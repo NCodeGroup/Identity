@@ -217,7 +217,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
     {
         var count = 0;
         MockCryptoService
-            .Setup(x => x.GenerateKey(It.IsAny<int>(), It.IsAny<BinaryEncodingType>()))
+            .Setup(x => x.GenerateKey(It.IsAny<int>(), It.IsAny<string>()))
             .Returns(() => $"generated-{++count}")
             .Verifiable();
 

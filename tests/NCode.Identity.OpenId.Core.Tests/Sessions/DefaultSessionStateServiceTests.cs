@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Moq;
@@ -51,15 +52,15 @@ public class DefaultSessionStateServiceTests : BaseTests
     }
 
     private void SetupSalt() =>
-        MockCryptoService.Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url)).Returns(Salt);
+        MockCryptoService.Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url)).Returns(Salt);
 
     private void SetupDigest(string expectedInput) =>
         MockCryptoService
             .Setup(x =>
                 x.HashValue(
                     expectedInput,
-                    HashAlgorithmType.Sha256,
-                    BinaryEncodingType.Base64Url,
+                    HashAlgorithmName.SHA256,
+                    BinaryEncodings.Base64Url,
                     null
                 )
             )
@@ -76,7 +77,7 @@ public class DefaultSessionStateServiceTests : BaseTests
 
         const string browserState = "browser-state";
         MockCryptoService
-            .Setup(x => x.GenerateKey(32, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns(browserState);
         SetupSalt();
         SetupDigest($"{ClientId} https://rp.example {browserState} {Salt}");

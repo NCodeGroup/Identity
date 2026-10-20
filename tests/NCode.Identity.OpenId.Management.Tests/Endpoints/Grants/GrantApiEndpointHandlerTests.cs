@@ -536,7 +536,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
 
         MockCryptoService
-            .Setup(x => x.GenerateKey(32, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns(token)
             .Verifiable();
 
@@ -629,7 +629,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
 
         MockCryptoService
-            .Setup(x => x.GenerateKey(32, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns(token)
             .Verifiable();
 

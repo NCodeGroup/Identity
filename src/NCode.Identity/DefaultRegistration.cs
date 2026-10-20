@@ -56,6 +56,15 @@ public static class DefaultRegistration
             serviceCollection.AddEndpointGroupRouting();
 
             // Cryptography
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBinaryEncoder, Base64UrlBinaryEncoder>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBinaryEncoder, Base64BinaryEncoder>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBinaryEncoder, HexBinaryEncoder>()
+            );
             serviceCollection.TryAddSingleton<ICryptoService, DefaultCryptoService>();
 
             // Settings

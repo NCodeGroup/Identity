@@ -225,7 +225,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private void SetupResourceId(string id = "generated-id")
     {
         MockCryptoService
-            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
             .Returns(id)
             .Verifiable();
     }

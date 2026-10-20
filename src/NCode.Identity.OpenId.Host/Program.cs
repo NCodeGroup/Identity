@@ -110,6 +110,9 @@ serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 // and injects the 'openiddb' connection string, and a dedicated migration worker applies the schema before this host
 // starts — so the api never bootstraps the database itself. The developer data-protection key ring is persisted in the
 // same database, so one purge resets the OpenID data, the seeded signing key, and the ring that protects it together.
+// Because the ring sits beside the data it protects, a Production deployment also wraps it with a key held elsewhere
+// — a 'DataProtection:KeyProtection' certificate bound by AddConfiguration, or a key management service — and the
+// production gate refuses to start while it is unprotected (ADR-0177).
 var connectionString = configuration.GetConnectionString("openiddb");
 if (!string.IsNullOrEmpty(connectionString))
 {

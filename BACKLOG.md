@@ -362,8 +362,10 @@ entry and/or ADR that closed it.
   separated from liveness; no Helm chart (probes, `preStop` drain, PodDisruptionBudget, restricted security context,
   the `valkey` connection string required when `replicas > 1` — ADR-0164 leaves that rule to the chart); and
   `Host.MigrationService` (which has no image) should run as a pre-deploy Job with expand/contract schema changes so a
-  rolling update never breaks the running version. The production-safety gate should also refuse an unprotected Data
-  Protection key ring (`S10`); a served tenant without an issuer already fails closed
+  rolling update never breaks the running version; the chart mounts the `DataProtection:KeyProtection` certificate
+  that the production-safety gate requires
+  ([ADR-0177](docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)). A served tenant
+  without an issuer already fails closed
   ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)). Plus the
   OpenTofu modules, bootstrap stack, and GitHub
   Actions workflows in the public `NCodeGroup/identity-platform` repository
@@ -691,16 +693,6 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   external-keystore providers. Touch points:
   `src/NCode.Identity.Secrets.Persistence/DefaultSecretSerializer.cs`,
   `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`. Capture the design in an ADR.
-
-- **`S10` — Encrypt the Data Protection key ring at rest.** The host persists the ASP.NET Core Data Protection key ring
-  to the same Postgres database as the secrets it protects (`PersistKeysToDbContext<DeveloperDataProtectionDbContext>`,
-  unconditionally and with no `ProtectKeysWith…`), so a database backup or dump contains both the protected secret
-  material and the keys that unprotect it. Production must wrap the ring with a key held outside the database — a cloud
-  KMS / HSM key (Azure Key Vault, OCI Vault) or a certificate from the secret store — the server composition should
-  make that the secure default rather than an opt-in, and `AddProductionSafety` should refuse an unprotected ring.
-  Complements `S9` (envelope encryption of stored secrets) and `S7` (external-keystore providers). Touch points:
-  `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.Server/IdentityServerBuilder.cs`,
-  `src/NCode.Identity.Server/ProductionSafety`, `src/NCode.Identity.Secrets/DefaultRegistration.cs`.
 
 - **`S12` — Tailor each tenant's provisioned keys to the algorithms it can sign with.** Every tenant is provisioned with a
   persisted key for each algorithm `OpenId:Tenant:KeyProvisioning:Keys` configures — `RS256`, `PS256`, and `ES256` by

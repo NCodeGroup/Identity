@@ -33,6 +33,14 @@ The single `openiddb` database holds the OpenID data, the **signing keys every t
 **DataProtection key ring** that protects them (persisted via `PersistKeysToDbContext`, not a file under `App_Data/`).
 Because they live together, one purge resets all three consistently, with nothing left on the filesystem.
 
+Because the ring sits beside the data it protects, a **Production** host refuses to start until the ring is encrypted
+at rest by a key held outside the database
+([ADR-0177](../../docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)). Mount an RSA
+certificate from the secret store and point `DataProtection:KeyProtection:Certificate` at it: set `CertificatePath` and
+`PrivateKeyPath` for PEM files, or `CertificatePath` and `Password` for a PKCS#12 bundle. List the outgoing certificate
+under `PreviousCertificates` when rotating. A key management service registered on the server's `DataProtectionBuilder`
+also satisfies the check.
+
 ## Schema management (EF Core migrations)
 
 The schema is managed by **EF Core migrations**, not `EnsureCreated()`

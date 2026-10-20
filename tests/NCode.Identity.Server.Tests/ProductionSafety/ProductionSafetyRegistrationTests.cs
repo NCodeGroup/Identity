@@ -16,9 +16,13 @@
 
 #endregion
 
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.DataProtection.Repositories;
+using Microsoft.AspNetCore.DataProtection.XmlEncryption;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -119,6 +123,80 @@ public class ProductionSafetyRegistrationTests
         Assert.Contains("AllowedHosts", exception.Message);
         Assert.Contains("DeveloperKeys:Mode", exception.Message);
         Assert.Contains("DeveloperInteractiveSeed", exception.Message);
+    }
+
+    [Fact]
+    public void AddProductionSafety_WhenProductionAndKeyRingUnprotected_FailsOnStart()
+    {
+        var services = new ServiceCollection();
+        services.AddProductionSafety(
+            CreateSafeConfiguration(),
+            CreateEnvironment(Environments.Production)
+        );
+        services.Configure<KeyManagementOptions>(options =>
+            options.XmlRepository = new Mock<IXmlRepository>(MockBehavior.Strict).Object
+        );
+        using var serviceProvider = services.BuildServiceProvider();
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            serviceProvider.GetRequiredService<IStartupValidator>().Validate()
+        );
+
+        Assert.Equal([ProductionSafetyRegistration.KeyRingUnprotectedMessage], exception.Failures);
+    }
+
+    [Fact]
+    public void AddProductionSafety_WhenProductionAndKeyRingHasNoRepository_FailsOnStart()
+    {
+        var services = new ServiceCollection();
+        services.AddProductionSafety(
+            CreateSafeConfiguration(),
+            CreateEnvironment(Environments.Production)
+        );
+        using var serviceProvider = services.BuildServiceProvider();
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            serviceProvider.GetRequiredService<IStartupValidator>().Validate()
+        );
+
+        Assert.Equal(
+            [
+                ProductionSafetyRegistration.KeyRingRepositoryMissingMessage,
+                ProductionSafetyRegistration.KeyRingUnprotectedMessage,
+            ],
+            exception.Failures
+        );
+    }
+
+    [Fact]
+    public void AddProductionSafety_WhenProductionAndKeyRingProtected_StartsCleanly()
+    {
+        var services = new ServiceCollection();
+        services.AddProductionSafety(
+            CreateSafeConfiguration(),
+            CreateEnvironment(Environments.Production)
+        );
+        services.Configure<KeyManagementOptions>(options =>
+        {
+            options.XmlRepository = new Mock<IXmlRepository>(MockBehavior.Strict).Object;
+            options.XmlEncryptor = new Mock<IXmlEncryptor>(MockBehavior.Strict).Object;
+        });
+        using var serviceProvider = services.BuildServiceProvider();
+
+        serviceProvider.GetRequiredService<IStartupValidator>().Validate();
+    }
+
+    [Fact]
+    public void AddProductionSafety_WhenNotProduction_LeavesTheKeyRingUnchecked()
+    {
+        var services = new ServiceCollection();
+
+        services.AddProductionSafety(
+            CreateSafeConfiguration(),
+            CreateEnvironment(Environments.Development)
+        );
+
+        Assert.Empty(services);
     }
 
     #endregion

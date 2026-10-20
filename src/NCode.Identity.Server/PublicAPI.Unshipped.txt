@@ -203,3 +203,18 @@ NCode.Identity.Server.DeveloperKeyMode.None = 2 -> NCode.Identity.Server.Develop
 NCode.Identity.Server.DevelopmentEnvironmentRegistration
 NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
 NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDevelopmentEnvironment(Microsoft.Extensions.Configuration.IConfiguration! configuration, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+const NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.DefaultSectionName = "DataProtection:KeyProtection" -> string!
+NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions
+NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.CertificatePath.get -> string!
+NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.CertificatePath.set -> void
+NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.KeyRingCertificateOptions() -> void
+NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.Password.get -> string?
+NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.Password.set -> void
+NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.PrivateKeyPath.get -> string?
+NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.PrivateKeyPath.set -> void
+NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions
+NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.Certificate.get -> NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions?
+NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.Certificate.set -> void
+NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.KeyRingProtectionOptions() -> void
+NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.PreviousCertificates.get -> NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions![]!
+NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.PreviousCertificates.set -> void

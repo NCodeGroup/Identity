@@ -783,6 +783,22 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   tenant route, and the base-address and link-generation defects on that path are fixed. Follow-ups: `F50`, `F51`,
   `F52`._
 
+- **`F44` — Accept Traefik's `X-Forwarded-Tls-Client-Cert` encoding.** Traefik's `passTLSClientCert` (`pem: true`)
+  forwards each certificate as base64 DER (PEM delimiters and newlines stripped) and comma-separates the chain when the
+  client presents one. `MutualTlsClientCertificateFormat.Base64Der` decodes a single certificate only, so a presented
+  chain fails to parse and `DefaultClientCertificateResolver` silently falls back to "no certificate". Make the base64-DER
+  format list-aware (leaf first; expose the rest as intermediates for `F43`) or add a dedicated format. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultClientCertificateResolver.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Abstractions/Tokens/MutualTlsClientCertificateFormat.cs`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0172](docs/adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md). `Base64Der` became
+  list-aware rather than gaining a Traefik-specific sibling, since a comma never occurs in base64. The format enum
+  failed ADR-0150's test and became registered `IClientCertificateHeaderDecoder` strategies named by `Format`, which
+  also closes `MutualTlsClientCertificateFormat` under `D15`. The PEM and XFCC formats read chains too, and a forwarded
+  value that cannot be decoded is `invalid_request` rather than no certificate; behind a proxy the connection's
+  certificate is never read._
+
 - **`F49` — Shared `IDistributedCache` for multi-replica deployments.** The DPoP nonce service, the DPoP proof replay
   cache, and the client-assertion replay cache (RFC 7523 §3) run over `IDistributedCache`, and the server registers
   `AddDistributedMemoryCache()` by default, so every replica keeps its own: a nonce issued by one pod is rejected by

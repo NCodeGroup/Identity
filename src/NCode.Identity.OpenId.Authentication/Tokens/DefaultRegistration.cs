@@ -57,18 +57,12 @@ internal static class DefaultRegistration
 
             // Sender-constrained tokens (DPoP — RFC 9449, mutual-TLS — RFC 8705). The nonce and replay stores record
             // into the shared IExpiringKeySet, whose adapter the composition root registers (in-process for a single
-            // replica, Valkey for several). The mutual-TLS forwarded-header settings are configured by the host; the
-            // server's AddConfiguration binds them from OpenId:MutualTls.
-            serviceCollection.AddOptions<MutualTlsForwardingOptions>();
+            // replica, Valkey for several).
             serviceCollection.TryAddSingleton<
                 IProofOfPossessionService,
                 DefaultProofOfPossessionService
             >();
             serviceCollection.TryAddSingleton<IDPoPProofValidator, DefaultDPoPProofValidator>();
-            serviceCollection.TryAddSingleton<
-                IClientCertificateResolver,
-                DefaultClientCertificateResolver
-            >();
             serviceCollection.TryAddSingleton<IDPoPProofReplayCache, DefaultDPoPProofReplayCache>();
             serviceCollection.TryAddSingleton<IDPoPNonceService, DefaultDPoPNonceService>();
 

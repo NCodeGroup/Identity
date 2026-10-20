@@ -120,9 +120,7 @@ entry and/or ADR that closed it.
 - **`D15` — Re-evaluate the existing public enums against the open-vocabulary rule.** Vocabularies are open unless
   provably closed ([ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)), and the public enums
   predate the three-part test. Several look open: `SessionTerminationReason` (carried to consumer handlers; an extension
-  can end a session for its own reason — risk, password change, account disabled), `MutualTlsClientCertificateFormat`
-  (each proxy, load balancer, or mesh forwards the certificate its own way; a decoder registered by name would let a
-  deployment add one), `SecretKeyImportFormat` (PKCS #12, OpenSSH, or a key-vault reference), `PersistedGrantStatus`
+  can end a session for its own reason — risk, password change, account disabled), `SecretKeyImportFormat` (PKCS #12, OpenSSH, or a key-vault reference), `PersistedGrantStatus`
   (persisted; a lifecycle a grant type may extend), and `HashAlgorithmType` / `BinaryEncodingType` (closed only because
   the implementation is a `switch`). `AlgorithmType`, `RequestObjectSource`, `TenantPlane`, `SerializationFormat`,
   `DeveloperKeyMode`, the `ObjectJson*Handling` mirrors, and the operation outcomes (`PasswordVerificationResult`,
@@ -368,16 +366,10 @@ entry and/or ADR that closed it.
   so the proxy only needs to request and forward the certificate. Found during the
   [hosting analysis](docs/hosting-analysis.md#8-traefik-mtls-and-tenant-pki). Touch points:
   `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/TlsClientAuthClientAuthenticationHandler.cs`,
-  `MutualTlsClientAuthenticationHandler`, `IClientCertificateResolver` (surface the chain), `OpenIdSettingKeys`. Capture
-  the design in an ADR.
-
-- **`F44` — Accept Traefik's `X-Forwarded-Tls-Client-Cert` encoding.** Traefik's `passTLSClientCert` (`pem: true`)
-  forwards each certificate as base64 DER (PEM delimiters and newlines stripped) and comma-separates the chain when the
-  client presents one. `MutualTlsClientCertificateFormat.Base64Der` decodes a single certificate only, so a presented
-  chain fails to parse and `DefaultClientCertificateResolver` silently falls back to "no certificate". Make the base64-DER
-  format list-aware (leaf first; expose the rest as intermediates for `F43`) or add a dedicated format. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultClientCertificateResolver.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Tokens/MutualTlsClientCertificateFormat.cs`.
+  `MutualTlsClientAuthenticationHandler`, `OpenIdSettingKeys`. `IClientCertificateResolver` already surfaces the chain
+  the client presented (`PresentedClientCertificate.Intermediates`,
+  [ADR-0172](docs/adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)). Capture the design in
+  an ADR.
 
 - **`F45` — Per-tenant rate limits and quotas.** Customers run their dev, test, and prod environments as separate
   tenants on the one production platform ([hosting analysis](docs/hosting-analysis.md#environment-model)), so a

@@ -3,7 +3,9 @@
 - **Status:** Accepted (nonce and proof-replay storage amended by
   [ADR-0164](0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md):
   both record into the atomic, tenant-scoped shared-state port, backed by Valkey for several replicas, rather than an
-  `IDistributedCache` the library registers)
+  `IDistributedCache` the library registers; certificate ingestion amended by
+  [ADR-0172](0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md): forwarded formats are registered
+  decoders that read the whole presented chain, and behind a proxy the header is the only certificate source)
 - **Date:** 2026-10-14
 - **Deciders:** NCode Group
 

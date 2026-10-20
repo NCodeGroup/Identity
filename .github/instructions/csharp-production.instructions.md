@@ -695,6 +695,13 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   (`PersistedSecret.KeyId`), while a secret identifier is globally unique. Match a key type by its JSON Web Key `kty`
   through `ISecretKeyTypeCatalog.TryGetByJwkKeyType`, never a `switch` over `kty` values. See
   [ADR-0161](../../docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md).
+- 👁 **Read a client's certificate only through `IClientCertificateResolver`.** It is the one place that knows where the
+  deployment's certificate comes from: the connection under direct TLS, and behind a proxy only the trusted forwarded
+  header, decoded by the `IClientCertificateHeaderDecoder` registered for the configured format. Never read
+  `HttpContext.Connection.ClientCertificate` or a forwarded header directly — behind a proxy the connection's certificate
+  is the proxy's. A forwarded value that cannot be decoded is `invalid_request`, never an absent certificate: a
+  present-but-malformed credential fails visibly instead of looking like one that was never sent. See
+  [ADR-0172](../../docs/adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md).
 - **Give a typed `Claim` its value in the declared type's XML Schema lexical form** — numbers via
   `value.ToString(CultureInfo.InvariantCulture)`, never culture-formatted (`"1,000"`). The JWT claim ⇄ JSON mapping
   (`ClaimValueMapper`, the single place a `Claim.ValueType` is interpreted) parses each value strictly in its declared

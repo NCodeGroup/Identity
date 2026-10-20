@@ -21,7 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId;
-using NCode.Identity.OpenId.Authentication.Tokens;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.Frontend;
 using Xunit;

@@ -1883,7 +1883,8 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   coverage, makes coverlet skip `**/obj/**`, `**/Migrations/**`, and `[GeneratedCode]` members, so the job summary and
   Codecov read the same reports and no `codecov.yml` `ignore` list is needed. The reference host stays in scope because
   it ships. `codecov.yml` sets `parsers.cobertura.partials_as_hits` so Codecov counts a partially covered line as
-  ReportGenerator does. Coverage thresholds remain a separate policy decision._
+  ReportGenerator does. The first full run under this scope reports 83.6% line coverage over 38,091 coverable lines,
+  with the reference host at 79.1%. Coverage thresholds remain a separate policy decision._
 
 - **`X5` — Flag a migration that would break the previous release.** Every EF Core migration must keep the previous
   release working, because the chart's Job migrates while the previous release serves

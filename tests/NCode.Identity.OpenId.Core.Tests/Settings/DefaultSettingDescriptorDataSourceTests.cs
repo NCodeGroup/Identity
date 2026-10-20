@@ -255,6 +255,8 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
         public IReadOnlyCollection<ISecurityProfileRequirement> Requirements => [];
 
         public void ApplyCeilingSettings(ISecurityProfileCeilingBuilder ceiling) { }
+
+        public void ApplyDefaultSettings(ISecurityProfileDefaultsBuilder defaults) { }
     }
 
     #endregion

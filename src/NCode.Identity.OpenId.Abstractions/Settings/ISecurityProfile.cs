@@ -69,4 +69,19 @@ public interface ISecurityProfile
     /// </remarks>
     /// <param name="ceiling">The builder that collects this profile's ceiling settings.</param>
     void ApplyCeilingSettings(ISecurityProfileCeilingBuilder ceiling);
+
+    /// <summary>
+    /// Contributes this profile's default settings through the supplied <paramref name="defaults"/> builder: values the
+    /// declaring scope takes unless it sets its own, so the scope is compliant with the profile without configuring each
+    /// choice the profile constrains (for example a permitted ID token signing algorithm in place of the protocol's
+    /// <c>RS256</c> default, which the profile's own ceiling excludes).
+    /// </summary>
+    /// <remarks>
+    /// A default setting does not merge with a lattice operation, which the builder enforces: a default is a choice, not
+    /// a bound, so the selecting scope and every scope below it may still set another value, and the profile's ceilings
+    /// keep deciding whether that value is permitted. When several selected profiles default the same setting, the
+    /// profile whose name sorts first in ordinal order supplies it.
+    /// </remarks>
+    /// <param name="defaults">The builder that collects this profile's default settings.</param>
+    void ApplyDefaultSettings(ISecurityProfileDefaultsBuilder defaults);
 }

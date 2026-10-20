@@ -185,6 +185,43 @@ public class TenantKeyProvisioningTests
         Assert.Equal(provisioned, published.Order(StringComparer.Ordinal));
     }
 
+    [Fact]
+    public async Task CreateTenant_WhenItsProfileExcludesAnAlgorithm_ProvisionsNoKeyForIt()
+    {
+        using var factory = CreateDynamicFactory();
+        using var client = factory.CreateClient();
+
+        var accessToken = await GetBootstrapTokenAsync(client);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            accessToken
+        );
+
+        using var createResponse = await client.PostAsJsonAsync(
+            "/api/tenants",
+            new
+            {
+                tenantId = "acme",
+                displayName = "Acme",
+                isDisabled = false,
+                settings = new Dictionary<string, object>
+                {
+                    ["security_profiles"] = (string[])[OpenIdConstants.SecurityProfiles.Fapi2],
+                },
+            }
+        );
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
+
+        // FAPI 2.0 permits PS256 and ES256 only, so the tenant holds and publishes no RS256 key (ADR-0169 decision 9).
+        var keys = await GetJwksAsync(client, host: "acme.auth.test");
+        Assert.Equal(
+            ["ES256", "PS256"],
+            keys.Select(key => key.GetProperty("alg").GetString()).Order(StringComparer.Ordinal)
+        );
+        Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
+    }
+
     private static void AssertRsaKey(JsonElement key, int modulusBits)
     {
         Assert.Equal("RSA", key.GetProperty("kty").GetString());

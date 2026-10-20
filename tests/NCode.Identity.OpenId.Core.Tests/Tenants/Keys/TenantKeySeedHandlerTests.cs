@@ -16,18 +16,23 @@
 
 #endregion
 
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Core.Tests;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -58,6 +63,9 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
 
     private OpenIdOptions OpenIdOptions { get; } = new();
     private Mock<ITenantKeyPolicy> MockPolicy { get; }
+    private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
+    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
+    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
@@ -67,6 +75,9 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
     public TenantKeySeedHandlerTests()
     {
         MockPolicy = CreateStrictMock<ITenantKeyPolicy>();
+        MockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
+        MockServerProvider = CreateStrictMock<IOpenIdServerProvider>();
+        MockSecurityProfileCatalog = CreateStrictMock<ISecurityProfileCatalog>();
         MockSecretGenerator = CreateStrictMock<ISecretGenerator>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
@@ -75,6 +86,9 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         Handler = new TenantKeySeedHandler(
             Options.Create(OpenIdOptions),
             MockPolicy.Object,
+            MockEnvironmentProvider.Object,
+            MockServerProvider.Object,
+            MockSecurityProfileCatalog.Object,
             MockSecretGenerator.Object,
             MockCryptoService.Object,
             TimeProvider.System,
@@ -104,6 +118,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
     {
         var tenant = CreateTenant([]);
         SetupSpecifications(Rs256, Es256);
+        SetupSettings(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, "RS256", "ES256");
         var requests = SetupGeneration();
         var added = SetupAddSecret();
 
@@ -125,6 +140,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         var held = CreateSecret("held");
         var tenant = CreateTenant([held]);
         SetupSpecifications(Rs256, Es256);
+        SetupSettings(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, "RS256", "ES256");
         MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, held)).Returns(true).Verifiable();
         MockPolicy.Setup(x => x.IsSatisfiedBy(Es256, held)).Returns(false).Verifiable();
         var requests = SetupGeneration();
@@ -146,7 +162,53 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         var tenant = CreateTenant([held]);
         var original = tenant.Secrets;
         SetupSpecifications(Rs256);
+        SetupSettings(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, "RS256");
         MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, held)).Returns(true).Verifiable();
+
+        await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
+
+        Assert.Same(original, tenant.Secrets);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenNoAlgorithmSettingNamesAnAlgorithm_DoesNotProvisionIt()
+    {
+        var tenant = CreateTenant([]);
+        SetupSpecifications(Rs256, Es256);
+        SetupSettings(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, "PS256", "ES256");
+        var requests = SetupGeneration();
+        var added = SetupAddSecret();
+
+        await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
+
+        var request = Assert.Single(requests);
+        AssertRequest(Es256, request);
+        Assert.Equal(added, tenant.Secrets.Value);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAnyAlgorithmSettingNamesTheAlgorithm_ProvisionsIt()
+    {
+        var tenant = CreateTenant([]);
+        SetupSpecifications(Rs256);
+        SetupSettings(OpenIdSettingNames.AccessTokenSigningAlgValuesSupported, "RS256");
+        var requests = SetupGeneration();
+        SetupAddSecret();
+
+        await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
+
+        var request = Assert.Single(requests);
+        AssertRequest(Rs256, request);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheSettingIsNotAnAlgorithmSetting_DoesNotProvisionTheKey()
+    {
+        // The store and the generator are strict with no setups: generating or adding a key fails the test.
+        var tenant = CreateTenant([]);
+        var original = tenant.Secrets;
+        SetupSpecifications(Rs256);
+        SetupSettings(OpenIdSettingNames.DPoPSigningAlgValuesSupported, "RS256");
 
         await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
 
@@ -212,6 +274,55 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
                 }
             )
             .Verifiable();
+
+    private void SetupSettings(string settingName, params string[] algorithms)
+    {
+        var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
+        mockEnvironment
+            .SetupGet(x => x.JsonSerializerOptions)
+            .Returns(JsonSerializerOptions.Default)
+            .Verifiable();
+        MockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
+
+        var mockServer = CreateStrictMock<OpenIdServer>();
+        MockServerProvider
+            .Setup(x => x.GetAsync(mockEnvironment.Object, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockServer.Object)
+            .Verifiable();
+
+        IReadOnlyCollection<Setting> tenantSettings = [];
+        MockSecurityProfileCatalog
+            .Setup(x =>
+                x.Expand(
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.Tenant,
+                    JsonSerializerOptions.Default
+                )
+            )
+            .Returns(tenantSettings)
+            .Verifiable();
+
+        // The effective settings name the algorithms under one setting only; every other lookup finds nothing.
+        object? value = algorithms.ToList();
+        var mockEffectiveSettings = CreateLooseMock<ISettingCollection>();
+        mockEffectiveSettings.Setup(x => x.TryGetValue(settingName, out value)).Returns(true);
+
+        var mockServerSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        mockServerSettings
+            .Setup(x => x.Merge(tenantSettings))
+            .Returns(mockEffectiveSettings.Object)
+            .Verifiable();
+
+        var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
+        mockSettingsProvider
+            .SetupGet(x => x.Collection)
+            .Returns(mockServerSettings.Object)
+            .Verifiable();
+        mockServer
+            .SetupGet(x => x.SettingsProvider)
+            .Returns(mockSettingsProvider.Object)
+            .Verifiable();
+    }
 
     private List<GenerateSecretRequest> SetupGeneration()
     {

@@ -519,7 +519,8 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)). The keys every tenant is
   provisioned with ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)) carry no effective
   lifetime today —
-  nothing enforces a key's expiry, so they are stamped a century out — and rollover is what gives them one; record an
+  nothing enforces a key's expiry, so they are stamped a century out — and rollover is what gives them one; retire a
+  provisioned key its tenant's settings no longer use, which provisioning keeps (ADR-0169 decision 9); record an
   audit event when the server generates or retires a key, since provisioning only logs it. Touch points:
   [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets),
   `src/NCode.Identity.Secrets.Persistence`, `src/NCode.Identity.OpenId.Core/Tenants/Keys/`. Capture the design in an
@@ -531,18 +532,6 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   external-keystore providers. Touch points:
   `src/NCode.Identity.Secrets.Persistence/DefaultSecretSerializer.cs`,
   `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`. Capture the design in an ADR.
-
-- **`S12` — Tailor each tenant's provisioned keys to the algorithms it can sign with.** Every tenant is provisioned with a
-  persisted key for each algorithm `OpenId:Tenant:KeyProvisioning:Keys` configures — `RS256`, `PS256`, and `ES256` by
-  default ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)). The set is server-wide, so a
-  tenant whose effective signing lists exclude an algorithm still holds and publishes a key for it: a `fapi2` tenant
-  publishes an RS256 key it never signs with. Conversely, a client that registers an algorithm outside the set, such as
-  `ES384`, fails at issuance until a key is imported. Provision per tenant from what its effective
-  `*_signing_alg_values_supported` lists and security profile permit, intersected with the configured set. That needs the
-  tenant's merged settings while it is seeded, which today materialize only after the seed. Decide whether keys a tenant
-  no longer permits are retired, which is `S8`'s lifecycle. Touch points:
-  `src/NCode.Identity.OpenId.Core/Tenants/Keys/` (`TenantKeySeedHandler`, `DefaultTenantKeyPolicy`),
-  `DefaultOpenIdTenantFactory` (the settings it materializes), `ISecurityProfile`.
 
 ## Tooling & agent customization (group `X`)
 

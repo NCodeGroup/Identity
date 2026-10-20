@@ -1958,6 +1958,23 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   wraps the ring with a `DataProtection:KeyProtection` certificate, and in Production `AddProductionSafety` refuses a
   ring with no repository or no `IXmlEncryptor` as the host starts._
 
+- **`S12` — Tailor each tenant's provisioned keys to the algorithms it can sign with.** Every tenant is provisioned with a
+  persisted key for each algorithm `OpenId:Tenant:KeyProvisioning:Keys` configures — `RS256`, `PS256`, and `ES256` by
+  default ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)). The set is server-wide, so a
+  tenant whose effective signing lists exclude an algorithm still holds and publishes a key for it: a `fapi2` tenant
+  publishes an RS256 key it never signs with. Conversely, a client that registers an algorithm outside the set, such as
+  `ES384`, fails at issuance until a key is imported. Provision per tenant from what its effective
+  `*_signing_alg_values_supported` lists and security profile permit, intersected with the configured set. That needs the
+  tenant's merged settings while it is seeded, which today materialize only after the seed. Decide whether keys a tenant
+  no longer permits are retired, which is `S8`'s lifecycle. Touch points:
+  `src/NCode.Identity.OpenId.Core/Tenants/Keys/` (`TenantKeySeedHandler`, `DefaultTenantKeyPolicy`),
+  `DefaultOpenIdTenantFactory` (the settings it materializes), `ISecurityProfile`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md) decision 9. The seed merges the tenant's
+  document onto the server's settings and provisions a configured algorithm only when one of the lists
+  `OpenId:Tenant:KeyProvisioning:AlgorithmSettings` names includes it; a key the settings no longer use is kept, and
+  retiring it is `S8`'s lifecycle._
+
 ## Tooling & agent customization (group `X`)
 
 - **`X1` — Chat commands duplicated as prompt + skill.** Every chat command exists **twice**: a VS Code prompt under

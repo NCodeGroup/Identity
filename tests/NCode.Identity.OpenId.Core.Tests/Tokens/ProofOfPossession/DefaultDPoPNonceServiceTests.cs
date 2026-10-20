@@ -16,56 +16,122 @@
 
 #endregion
 
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using NCode.Identity.OpenId.Authentication.SharedState;
 using NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.SharedState;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Tokens.ProofOfPossession;
 
 public sealed class DefaultDPoPNonceServiceTests : BaseTests
 {
-    private IDistributedCache DistributedCache { get; } =
-        new ServiceCollection()
-            .AddDistributedMemoryCache()
-            .BuildServiceProvider()
-            .GetRequiredService<IDistributedCache>();
+    private const string TenantId = "tenant-1";
 
-    private DefaultDPoPNonceService Service => new(DistributedCache);
+    private static DateTimeOffset Now { get; } = new(2026, 10, 19, 12, 0, 0, TimeSpan.Zero);
 
-    private OpenIdContext Context => CreateStrictMock<OpenIdContext>().Object;
+    private Mock<IExpiringKeySet> MockKeySet { get; }
+
+    private Mock<TimeProvider> MockTimeProvider { get; }
+
+    private Mock<OpenIdContext> MockContext { get; }
+
+    private DefaultDPoPNonceService Service { get; }
+
+    public DefaultDPoPNonceServiceTests()
+    {
+        MockKeySet = CreateStrictMock<IExpiringKeySet>();
+        MockTimeProvider = CreateStrictMock<TimeProvider>();
+        MockContext = CreateStrictMock<OpenIdContext>();
+        Service = new DefaultDPoPNonceService(MockKeySet.Object, MockTimeProvider.Object);
+    }
+
+    private void SetupTenant()
+    {
+        var mockTenant = CreateStrictMock<OpenIdTenant>();
+        mockTenant.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
+        MockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+    }
+
+    #region IssueNonceAsync Tests
+
+    [Fact]
+    public async Task IssueNonceAsync_RecordsTheTenantScopedNonceForFiveMinutes()
+    {
+        SetupTenant();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        string? recordedKey = null;
+        MockKeySet
+            .Setup(x =>
+                x.TryAddAsync(It.IsAny<string>(), Now.AddMinutes(5), CancellationToken.None)
+            )
+            .Callback<string, DateTimeOffset, CancellationToken>((key, _, _) => recordedKey = key)
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        var nonce = await Service.IssueNonceAsync(MockContext.Object, CancellationToken.None);
+
+        Assert.Equal(32, nonce.Length);
+        Assert.Equal(ExpiringKeys.Create("dpop_nonce", TenantId, nonce), recordedKey);
+    }
+
+    [Fact]
+    public async Task IssueNonceAsync_WhenCalledTwice_IssuesDistinctNonces()
+    {
+        SetupTenant();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        MockKeySet
+            .Setup(x =>
+                x.TryAddAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        var first = await Service.IssueNonceAsync(MockContext.Object, CancellationToken.None);
+        var second = await Service.IssueNonceAsync(MockContext.Object, CancellationToken.None);
+
+        Assert.NotEqual(first, second);
+    }
+
+    #endregion
 
     #region ValidateNonceAsync Tests
 
-    [Fact]
-    public async Task ValidateNonceAsync_WhenIssuedNonce_ReturnsTrue()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ValidateNonceAsync_ReturnsWhetherTheTenantScopedNonceIsRecorded(bool recorded)
     {
-        var service = Service;
-        var context = Context;
+        SetupTenant();
+        var expectedKey = ExpiringKeys.Create("dpop_nonce", TenantId, "nonce-1");
+        MockKeySet
+            .Setup(x => x.ContainsAsync(expectedKey, CancellationToken.None))
+            .ReturnsAsync(recorded)
+            .Verifiable();
 
-        var nonce = await service.IssueNonceAsync(context, CancellationToken.None);
-        var valid = await service.ValidateNonceAsync(context, nonce, CancellationToken.None);
-
-        Assert.True(valid);
-    }
-
-    [Fact]
-    public async Task ValidateNonceAsync_WhenUnknownNonce_ReturnsFalse()
-    {
         var valid = await Service.ValidateNonceAsync(
-            Context,
-            "unknown-nonce",
+            MockContext.Object,
+            "nonce-1",
             CancellationToken.None
         );
 
-        Assert.False(valid);
+        Assert.Equal(recorded, valid);
     }
 
     [Fact]
-    public async Task ValidateNonceAsync_WhenEmpty_ReturnsFalse()
+    public async Task ValidateNonceAsync_WhenEmpty_ReturnsFalseWithoutALookup()
     {
-        var valid = await Service.ValidateNonceAsync(Context, string.Empty, CancellationToken.None);
+        var valid = await Service.ValidateNonceAsync(
+            MockContext.Object,
+            string.Empty,
+            CancellationToken.None
+        );
 
         Assert.False(valid);
     }

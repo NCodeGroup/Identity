@@ -1,6 +1,8 @@
 # 102. JWT-bearer client authentication (`private_key_jwt` and `client_secret_jwt`)
 
-- **Status:** Accepted
+- **Status:** Accepted (assertion-replay storage amended by
+  [ADR-0164](0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md):
+  assertions are recorded atomically, scoped by tenant, in the shared-state port, backed by Valkey for several replicas)
 - **Date:** 2026-10-14
 - **Deciders:** NCode Group
 

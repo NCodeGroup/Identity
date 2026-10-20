@@ -16,46 +16,34 @@
 
 #endregion
 
-using Microsoft.Extensions.Caching.Distributed;
+
+using NCode.Identity.OpenId.Authentication.SharedState;
+using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.SharedState;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
 
 /// <summary>
-/// Provides the default implementation of the <see cref="IDPoPProofReplayCache"/> abstraction over
-/// <see cref="IDistributedCache"/>, so DPoP proof replay (RFC 9449 §11.1) is detected across every node of a
-/// multi-instance deployment. The server registers an in-memory <see cref="IDistributedCache"/> by default (single
-/// node); a cluster swaps in a shared provider (for example Redis) by registering it in DI.
+/// Provides the default implementation of the <see cref="IDPoPProofReplayCache"/> abstraction over the shared
+/// <see cref="IExpiringKeySet"/>, so DPoP proof replay (RFC 9449 §11.1) is detected by every replica that shares the set.
+/// The set's atomic add-if-absent lets exactly one of any number of concurrent presentations of a proof succeed.
 /// </summary>
-internal sealed class DefaultDPoPProofReplayCache(IDistributedCache distributedCache)
-    : IDPoPProofReplayCache
+internal sealed class DefaultDPoPProofReplayCache(IExpiringKeySet keySet) : IDPoPProofReplayCache
 {
-    private static ReadOnlySpan<byte> Marker => [1];
+    private const string Purpose = "dpop_jti";
 
-    private IDistributedCache DistributedCache { get; } = distributedCache;
+    private IExpiringKeySet KeySet { get; } = keySet;
 
     /// <inheritdoc />
-    public async ValueTask<bool> TryRecordAsync(
+    public ValueTask<bool> TryRecordAsync(
+        OpenIdContext openIdContext,
         string jwkThumbprint,
         string jti,
         DateTimeOffset expiresWhen,
         CancellationToken cancellationToken
     )
     {
-        var key = $"dpop_jti:{jwkThumbprint}:{jti}";
-
-        // IDistributedCache has no atomic add-if-absent, so two concurrent identical proofs could both observe an
-        // empty slot; the window is bounded by the proof's short acceptance lifetime and is acceptable for replay
-        // detection. A provider-specific atomic implementation may replace this seam when stricter guarantees matter.
-        var existing = await DistributedCache.GetAsync(key, cancellationToken);
-        if (existing is not null)
-            return false;
-
-        await DistributedCache.SetAsync(
-            key,
-            Marker.ToArray(),
-            new DistributedCacheEntryOptions { AbsoluteExpiration = expiresWhen },
-            cancellationToken
-        );
-        return true;
+        var key = ExpiringKeys.Create(Purpose, openIdContext.Tenant.TenantId, jwkThumbprint, jti);
+        return KeySet.TryAddAsync(key, expiresWhen, cancellationToken);
     }
 }

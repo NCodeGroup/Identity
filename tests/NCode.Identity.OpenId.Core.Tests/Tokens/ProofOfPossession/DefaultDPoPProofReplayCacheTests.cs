@@ -16,57 +16,61 @@
 
 #endregion
 
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using NCode.Identity.OpenId.Authentication.SharedState;
 using NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
+using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.SharedState;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Tokens.ProofOfPossession;
 
-public sealed class DefaultDPoPProofReplayCacheTests
+public sealed class DefaultDPoPProofReplayCacheTests : BaseTests
 {
-    private IDistributedCache DistributedCache { get; } =
-        new ServiceCollection()
-            .AddDistributedMemoryCache()
-            .BuildServiceProvider()
-            .GetRequiredService<IDistributedCache>();
+    private const string TenantId = "tenant-1";
+
+    private static DateTimeOffset ExpiresWhen { get; } = new(2026, 10, 19, 12, 5, 0, TimeSpan.Zero);
+
+    private Mock<IExpiringKeySet> MockKeySet { get; }
+
+    private OpenIdContext Context { get; }
+
+    public DefaultDPoPProofReplayCacheTests()
+    {
+        MockKeySet = CreateStrictMock<IExpiringKeySet>();
+
+        var mockTenant = CreateStrictMock<OpenIdTenant>();
+        mockTenant.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
+
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        Context = mockContext.Object;
+    }
 
     #region TryRecordAsync Tests
 
-    [Fact]
-    public async Task TryRecordAsync_WhenFirstSeen_RecordsThenRejectsReplay()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task TryRecordAsync_AddsTheTenantScopedKeyUntilExpiry(bool added)
     {
-        var cache = new DefaultDPoPProofReplayCache(DistributedCache);
-        var expiresWhen = DateTimeOffset.UtcNow.AddMinutes(1);
+        var expectedKey = ExpiringKeys.Create("dpop_jti", TenantId, "jkt", "jti-1");
+        MockKeySet
+            .Setup(x => x.TryAddAsync(expectedKey, ExpiresWhen, CancellationToken.None))
+            .ReturnsAsync(added)
+            .Verifiable();
+        var cache = new DefaultDPoPProofReplayCache(MockKeySet.Object);
 
-        var first = await cache.TryRecordAsync("jkt", "jti-1", expiresWhen, CancellationToken.None);
-        var second = await cache.TryRecordAsync(
+        var recorded = await cache.TryRecordAsync(
+            Context,
             "jkt",
             "jti-1",
-            expiresWhen,
+            ExpiresWhen,
             CancellationToken.None
         );
 
-        Assert.True(first);
-        Assert.False(second);
-    }
-
-    [Fact]
-    public async Task TryRecordAsync_WhenDifferentJti_BothRecorded()
-    {
-        var cache = new DefaultDPoPProofReplayCache(DistributedCache);
-        var expiresWhen = DateTimeOffset.UtcNow.AddMinutes(1);
-
-        var first = await cache.TryRecordAsync("jkt", "jti-1", expiresWhen, CancellationToken.None);
-        var second = await cache.TryRecordAsync(
-            "jkt",
-            "jti-2",
-            expiresWhen,
-            CancellationToken.None
-        );
-
-        Assert.True(first);
-        Assert.True(second);
+        Assert.Equal(added, recorded);
     }
 
     #endregion

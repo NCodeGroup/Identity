@@ -1,0 +1,7 @@
+#nullable enable
+NCode.Identity.SharedState.DefaultRegistration
+NCode.Identity.SharedState.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.SharedState.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddSharedStateServices() -> NCode.Registration.IServiceBuilder<NCode.Identity.SharedState.SharedStateLibrary>!
+NCode.Identity.SharedState.SharedStateLibraryRegistration
+NCode.Identity.SharedState.SharedStateLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.SharedState.SharedStateLibrary>!)
+NCode.Identity.SharedState.SharedStateLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.SharedState.SharedStateLibrary>!).AddInProcessExpiringKeySet() -> NCode.Registration.IServiceBuilder<NCode.Identity.SharedState.SharedStateLibrary>!

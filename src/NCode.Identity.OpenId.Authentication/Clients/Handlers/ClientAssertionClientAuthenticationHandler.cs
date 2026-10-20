@@ -314,6 +314,7 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
                 : expiresAt + retentionMargin;
 
         var recorded = await ReplayCache.TryRecordAsync(
+            openIdContext,
             clientId,
             jti,
             expiresWhen,

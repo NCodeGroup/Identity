@@ -10,6 +10,16 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Several replicas can now share DPoP nonces and single-use records through Valkey.** The new
+  `NCode.Identity.SharedState.Abstractions` package defines `IExpiringKeySet`, an atomic add-if-absent set of
+  expiring keys; `NCode.Identity.SharedState` provides the in-process adapter `AddIdentityServer()` registers by default
+  (correct for one replica), and the opt-in `NCode.Identity.SharedState.Valkey` package adds
+  `SharedStateLibraryBuilder.AddValkey(configuration)`, which uses the `ConnectionStrings:valkey` connection string
+  and binds the `Valkey` section (`KeyPrefix`) strictly. Without the connection string it registers nothing. It adds a
+  `valkey` health check tagged `ready`. The reference host calls it, and the Aspire AppHost runs a Valkey container and
+  injects the connection string, so local development uses the same adapter as a multi-replica deployment. See
+  [ADR-0164](docs/adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md).
+
 - **CI runs now show their results on GitHub instead of only in zip artifacts.** The run summary page opens with the
   Definition of Done verdict and a per-stage duration table, then the test results (one table across every test
   assembly or frontend package, plus each failed test's message and stack) and the merged coverage summary. Failed
@@ -69,6 +79,15 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **DPoP nonces and the DPoP-proof and client-assertion replay records are stored in the shared-state port, scoped by
+  tenant.** They are recorded in `IExpiringKeySet` under keys that name the tenant and digest the request-supplied
+  values, so tenants sharing a store never collide and a crafted `jti` cannot make a key ambiguous or unbounded. If
+  the store is unreachable, these checks fail closed. **Breaking:** `IDPoPProofReplayCache.TryRecordAsync` and
+  `IClientAssertionReplayCache.TryRecordAsync` now take the request's `OpenIdContext` as their first parameter. The
+  server no longer registers an in-memory `IDistributedCache`, so a host that resolved one must register its own.
+  Records in flight across the upgrade are lost; they expire within minutes. See
+  [ADR-0164](docs/adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md).
 
 - **A tenant is named by whoever creates it.** `POST /api/tenants` takes the tenant's `tenantId` — 1 to 63 lowercase
   letters, digits, or hyphens that starts and ends with a letter or digit — instead of minting an opaque one, and the
@@ -566,6 +585,12 @@ change to the public API is a **major** version bump.
   ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md))
 
 ### Security
+
+- **A DPoP proof or client assertion could be accepted twice.** The replay stores checked for a record and then wrote
+  one, so two concurrent presentations of the same proof or `private_key_jwt` / `client_secret_jwt` assertion could
+  both pass. Each replica also kept its own records, so a replay sent to a different replica was accepted. Recording is
+  now one atomic add-if-absent. With Valkey configured, it holds across every replica.
+  ([ADR-0164](docs/adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md))
 
 - **A client's key set could carry private or symmetric key material, and an inconsistent key was accepted.**
   Registration stored the `jwks` document verbatim and echoed it back, so a key the import skipped — an `oct` key's `k`

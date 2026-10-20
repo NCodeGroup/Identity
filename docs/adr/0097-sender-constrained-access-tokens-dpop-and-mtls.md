@@ -1,6 +1,9 @@
 # 97. Sender-constrained access tokens (DPoP — RFC 9449, mutual-TLS — RFC 8705)
 
-- **Status:** Accepted
+- **Status:** Accepted (nonce and proof-replay storage amended by
+  [ADR-0164](0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md):
+  both record into the atomic, tenant-scoped shared-state port, backed by Valkey for several replicas, rather than an
+  `IDistributedCache` the library registers)
 - **Date:** 2026-10-14
 - **Deciders:** NCode Group
 

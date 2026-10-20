@@ -394,8 +394,9 @@ entry and/or ADR that closed it.
   Traefik: the [`Dockerfile`](src/NCode.Identity.OpenId.Host/Dockerfile) is development-shaped (copies the whole repo,
   exposes 80/443 although .NET listens on 8080, runs as root, amd64 only) and never builds the `apps/auth` interactive
   bundle — `InteractiveAuthentication:BundleRootPath` is set only in `launchSettings.json` — so the container cannot
-  render login or consent; `/health` has no checks registered, so readiness (database, Valkey) is not separated from
-  liveness; no Helm chart (probes, `preStop` drain, PodDisruptionBudget, restricted security context); and
+  render login or consent; `/health` runs only the `valkey` check (tagged `ready`), so readiness (database, Valkey) is not
+  separated from liveness; no Helm chart (probes, `preStop` drain, PodDisruptionBudget, restricted security context,
+  the `valkey` connection string required when `replicas > 1` — ADR-0164 leaves that rule to the chart); and
   `Host.MigrationService` (which has no image) should run as a pre-deploy Job with expand/contract schema changes so a
   rolling update never breaks the running version. The production-safety gate should also refuse a tenant with no
   configured issuer (the [ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)
@@ -443,22 +444,9 @@ entry and/or ADR that closed it.
   July 15, 2026). Next: the rest of `live/global` (DNS records — including the lab's, so the lab never holds a zone
   token — and zone settings) and `live/lab` on OCI OKE; each root that manages AWS resources adds exactly those
   permissions to its apply role, which today can reach only its state and secrets. Beyond this item, the lab needs
-  `F46` and `S11`, plus `F49` to run more than one replica. Workload images and charts get
-  build-provenance attestations and signatures that Flux verifies before the first production rollout.
-
-- **`F49` — Shared `IDistributedCache` for multi-replica deployments.** The DPoP nonce service, the DPoP proof replay
-  cache, and the client-assertion replay cache (RFC 7523 §3) run over `IDistributedCache`, and the server registers
-  `AddDistributedMemoryCache()` by default, so every replica keeps its own: a nonce issued by one pod is rejected by
-  another, and a proof or assertion replayed against a different pod is accepted. Nothing in the server composition or
-  the host registers a shared provider, so a deployment must run a single replica until one exists. Add a
-  configuration-bound Valkey (Redis-protocol) registration to the server composition, wire it in the host, and report
-  it in readiness (`F46`). Give the replay caches an atomic set-if-absent on that store to close the check-then-set race
-  their `IDistributedCache` implementations document. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultRegistration.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultDPoPNonceService.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultDPoPProofReplayCache.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientAssertionReplayCache.cs`,
-  `src/NCode.Identity.OpenId.Host/Program.cs`.
+  `F46` and `S11`, and a Valkey instance (the shared-state adapter `F49` delivered) to run more than one replica.
+  Workload images and charts get build-provenance attestations and signatures that Flux verifies before the first
+  production rollout.
 
 - **`F50` — Serve the interactive login and consent surface under the tenant route.** The protocol endpoints are served
   under the tenant route ([ADR-0138](docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md)), but the

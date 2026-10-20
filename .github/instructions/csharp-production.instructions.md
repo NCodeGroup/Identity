@@ -511,9 +511,17 @@ rationale.
   a fix when a singleton consumer captures it (captive dependency re-singletons it), so prefer request-scoped storage.
 - 👁 **Correctness never depends on process-local state.** The host runs as several interchangeable, disposable
   replicas ([ADR-0134](../../docs/adr/0134-cloud-native-operating-principles.md)), and any replica may serve the next
-  request. State that must outlive a request or be seen by another replica goes to the database or `IDistributedCache`;
-  in-memory state (`IMemoryCache`, static or singleton fields) is only for data that can be rebuilt on a miss, and must
-  tolerate eviction and restarts. Never write durable data to the local filesystem.
+  request. State that must outlive a request or be seen by another replica goes to the database or to the shared-state
+  port; in-memory state (`IMemoryCache`, static or singleton fields) is only for data that can be rebuilt on a miss, and
+  must tolerate eviction and restarts. Never write durable data to the local filesystem.
+- 👁 **A single-use or freshness check records into `IExpiringKeySet`, never a get-then-set.** A replay guard (a
+  `jti`), a server-issued nonce, or any "accept once" record is an atomic add-if-absent on the shared-state port
+  (`NCode.Identity.SharedState.Abstractions`), whose adapter the composition root chooses — in-process for one replica,
+  Valkey for several. `IDistributedCache` cannot express it: a read followed by a write lets two concurrent requests
+  both pass. Build the key with the tenant and a digest of the length-prefixed, request-supplied components
+  (`ExpiringKeys.Create`), so tenants sharing a store never collide and an attacker-supplied value cannot make a key
+  ambiguous or unbounded. A library never registers a host-wide cache. See
+  [ADR-0164](../../docs/adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.
@@ -872,6 +880,9 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
     | `12000`–`12999` | `NCode.Identity.Server`                             |
     | `13000`–`13999` | `NCode.Identity.OpenId.Host`                  |
     | `14000`–`14999` | `NCode.Identity.Events`                             |
+    | `15000`–`15999` | `NCode.Identity.Dispatch`                           |
+    | `16000`–`16999` | `NCode.Identity.SharedState`                        |
+    | `17000`–`17999` | `NCode.Identity.SharedState.Valkey`                 |
 
 ## 12. Configuration & options
 

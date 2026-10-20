@@ -783,6 +783,32 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   tenant route, and the base-address and link-generation defects on that path are fixed. Follow-ups: `F50`, `F51`,
   `F52`._
 
+- **`F49` — Shared `IDistributedCache` for multi-replica deployments.** The DPoP nonce service, the DPoP proof replay
+  cache, and the client-assertion replay cache (RFC 7523 §3) run over `IDistributedCache`, and the server registers
+  `AddDistributedMemoryCache()` by default, so every replica keeps its own: a nonce issued by one pod is rejected by
+  another, and a proof or assertion replayed against a different pod is accepted. Nothing in the server composition or
+  the host registers a shared provider, so a deployment must run a single replica until one exists. Add a
+  configuration-bound Valkey (Redis-protocol) registration to the server composition, wire it in the host, and report
+  it in readiness (`F46`). Give the replay caches an atomic set-if-absent on that store to close the check-then-set race
+  their `IDistributedCache` implementations document. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultRegistration.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultDPoPNonceService.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultDPoPProofReplayCache.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientAssertionReplayCache.cs`,
+  `src/NCode.Identity.OpenId.Host/Program.cs`.
+  _Closed: [ADR-0164](docs/adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) and the
+  [`CHANGELOG.md`](CHANGELOG.md) `[Unreleased]` entries "Several replicas can now share DPoP nonces and single-use
+  records through Valkey", "DPoP nonces and the DPoP-proof and client-assertion replay records are stored in the
+  shared-state port, scoped by tenant", and "A DPoP proof or client assertion could be accepted twice". The three
+  stores record into one atomic port, `IExpiringKeySet` (`NCode.Identity.SharedState.Abstractions`), rather than
+  `IDistributedCache`, which has no add-if-absent. The in-process adapter (`NCode.Identity.SharedState`) is the
+  composition root's default, and the opt-in `NCode.Identity.SharedState.Valkey` adapter (`SET NX PX`, a `ready`-tagged
+  `valkey` health check) is registered from `ConnectionStrings:valkey` by the reference host, with Valkey run by the
+  AppHost. Records are keyed by tenant and a digest of the request-supplied values. The Valkey adapter is an opt-in
+  package wired through `IIdentityServerBuilder.SharedStateLibraryBuilder`, not part of the server composition itself,
+  so single-replica self-hosters carry no Redis client. Splitting liveness from readiness, and requiring Valkey when the
+  Helm chart runs more than one replica, stay with `F46`._
+
 - **`F51` — Validate a tenant's issuer against the tenant route in the management API.** The static tenant's configured
   issuer is checked when the host starts: an absolute `http`/`https` URL ending in the tenant path
   ([ADR-0137](docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md)). A tenant created or updated

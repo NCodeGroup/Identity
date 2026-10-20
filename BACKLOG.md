@@ -559,19 +559,4 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
 
 ## Tooling & agent customization (group `X`)
 
-- **`X1` — `audit-conventions` duplicated as prompt + skill.** The convention-audit workflow now exists **twice**:
-  the original VS Code prompt [`.github/prompts/audit-conventions.prompt.md`](.github/prompts/audit-conventions.prompt.md)
-  and a migrated Agent Host skill [`.github/skills/audit-conventions/SKILL.md`](.github/skills/audit-conventions/SKILL.md)
-  (prompt files are not loaded by Agent Host / Copilot CLI, which reads `SKILL.md`). The skill originally carried
-  `disable-model-invocation: true` to preserve the prompt's explicit-invocation-only semantics, but that flag makes the
-  skill **unreachable** in Copilot CLI (it returns "Skill not found" even on explicit invocation — upstream bug
-  github/copilot-cli#4438), so it was **removed**. **Trade-off accepted:** the skill is now both explicitly invocable
-  **and** model-auto-invocable (it no longer enforces explicit-only invocation); its `description` is the only guard on
-  when the model reaches for it. The prompt's `agent: "agent"` frontmatter has no skill equivalent and was dropped.
-  **Runtime-validated (2026-10-10):** the skill was confirmed discoverable and loadable in a live Agent Host / Copilot
-  CLI session (it surfaced in the session's available-skills list), and its five relative links and LF line endings were
-  verified; the body is identical to the prompt apart from the intended `+1 ../` link-depth adjustment. **Decision still
-  deferred:** whether to delete the prompt (Agent-Host-only) or keep both (dual VS-Code-chat + Agent-Host support). Keep
-  both for now — the prompt still serves VS Code chat via its `agent:` frontmatter, and `disable-model-invocation: true`
-  is intended to return once github/copilot-cli#4438 is fixed (restoring explicit-only semantics). If kept, edits must be
-  mirrored across both files to avoid drift.
+_No pending items. Completed `X` items are archived in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)._

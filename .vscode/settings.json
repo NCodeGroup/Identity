@@ -2,6 +2,8 @@
   "chat.promptFilesRecommendations": {
     "audit-conventions": true
   },
+  "chat.planAgent.defaultModel": "Claude Opus 5.5 (copilot)",
+  "github.copilot.chat.implementAgent.model": "Auto (copilot)",
   "files.eol": "\n",
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,

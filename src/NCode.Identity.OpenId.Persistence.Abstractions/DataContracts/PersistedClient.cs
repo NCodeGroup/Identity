@@ -43,6 +43,14 @@ public sealed class PersistedClient : BasePersistedClientResource
     public required bool IsDisabled { get; set; }
 
     /// <summary>
+    /// Gets the identifier of the resource server this client acts for, or <c>null</c> for an ordinary client. A
+    /// client bound to a resource server is that resource server's credential at the token introspection endpoint and
+    /// is accepted nowhere else. The binding is set when the client is created and never changes.
+    /// </summary>
+    [MaxLength(MaxLengths.ResourceId)]
+    public string? ResourceServerId { get; init; }
+
+    /// <summary>
     /// Gets or sets the JSON settings for an OpenID Client instance.
     /// </summary>
     public required PersistedClientSettings Settings { get; set; }

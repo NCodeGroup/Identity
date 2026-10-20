@@ -31,9 +31,8 @@ using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.Secrets.Collections;
 using NCode.PropertyBag;
 using Xunit;
 
@@ -42,22 +41,21 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.EndSession;
 public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
 {
     private const string TenantId = "tenant-1";
-    private const string Issuer = "https://op.example";
     private const string SubjectId = "subject-1";
     private const string PairwisePseudonym = "ppid-opaque-pseudonym";
     private const string SessionId = "sid-1";
     private const string ClientId = "client-1";
 
-    private Mock<IJwtValidator> MockJsonWebTokenService { get; }
+    private Mock<IIssuedTokenValidator> MockIssuedTokenValidator { get; }
     private Mock<ISessionService> MockSessionService { get; }
     private DefaultResolveEndSessionSubjectHandler Handler { get; }
 
     public DefaultResolveEndSessionSubjectHandlerTests()
     {
-        MockJsonWebTokenService = CreateStrictMock<IJwtValidator>();
+        MockIssuedTokenValidator = CreateStrictMock<IIssuedTokenValidator>();
         MockSessionService = CreateStrictMock<ISessionService>();
         Handler = new DefaultResolveEndSessionSubjectHandler(
-            MockJsonWebTokenService.Object,
+            MockIssuedTokenValidator.Object,
             MockSessionService.Object,
             NullLogger<DefaultResolveEndSessionSubjectHandler>.Instance
         );
@@ -84,21 +82,6 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         {
             RequestServices = serviceCollection.BuildServiceProvider(),
         };
-    }
-
-    private void SetupTenant(Mock<OpenIdContext> mockContext)
-    {
-        var mockTenant = CreateStrictMock<OpenIdTenant>();
-        var mockSecretsProvider = CreateLooseMock<ISecretKeyCollectionProvider>();
-        var mockSecretKeys = CreateLooseMock<ISecretKeyCollection>();
-
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockTenant.SetupGet(x => x.Issuer).Returns(Issuer).Verifiable();
-        mockTenant
-            .SetupGet(x => x.SecretsProvider)
-            .Returns(mockSecretsProvider.Object)
-            .Verifiable();
-        mockSecretsProvider.SetupGet(x => x.Collection).Returns(mockSecretKeys.Object);
     }
 
     private Mock<IEndSessionRequest> CreateRequest(string? idTokenHint, string? clientId)
@@ -153,11 +136,11 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
             (_, _, _, _, _, _) => ValueTask.FromResult(new ClaimsIdentity())
         );
 
-        MockJsonWebTokenService
+        MockIssuedTokenValidator
             .Setup(x =>
-                x.ValidateAsync(
+                x.ValidateIdTokenHintAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.IsAny<string>(),
-                    It.IsAny<JwtValidationParameters>(),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -166,11 +149,11 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
     }
 
     private void SetupInvalidHint() =>
-        MockJsonWebTokenService
+        MockIssuedTokenValidator
             .Setup(x =>
-                x.ValidateAsync(
+                x.ValidateIdTokenHintAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.IsAny<string>(),
-                    It.IsAny<JwtValidationParameters>(),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -201,7 +184,6 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
     public async Task HandleAsync_WhenValidIdTokenHint_ResolvesSubjectFromSessionGrantNotHint()
     {
         var mockContext = CreateContext(new DefaultHttpContext());
-        SetupTenant(mockContext);
         // The hint carries a pairwise pseudonym as `sub`; it must be ignored and the stable subject taken from the
         // persisted session grant (the OP never reverses a one-way pairwise projection).
         SetupValidHint(
@@ -229,7 +211,6 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
     public async Task HandleAsync_WhenPairwiseHintSubButSessionNotFound_LeavesSubjectUnresolved()
     {
         var mockContext = CreateContext(new DefaultHttpContext());
-        SetupTenant(mockContext);
         // A hint that carries only a pairwise `sub` (plus sid) whose session has already lapsed cannot be mapped back
         // to the stable subject without reversing the one-way projection, which the OP refuses to do.
         SetupValidHint(
@@ -258,7 +239,6 @@ public class DefaultResolveEndSessionSubjectHandlerTests : BaseTests
         var mockAuthService = CreateStrictMock<IAuthenticationService>();
         var httpContext = CreateHttpContext(mockAuthService);
         var mockContext = CreateContext(httpContext);
-        SetupTenant(mockContext);
         SetupInvalidHint();
 
         mockContext

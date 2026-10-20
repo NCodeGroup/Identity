@@ -48,6 +48,14 @@ public static class OpenIdEndpointConventionBuilderExtensions
             );
 
         /// <summary>
+        /// Adds <see cref="IOpenIdEndpointResourceServerClientMetadata"/> to the <see cref="IEndpointConventionBuilder"/>
+        /// so that the endpoint accepts a client bound to a resource server. Every other endpoint refuses such a client.
+        /// </summary>
+        /// <returns>The <see cref="IEndpointConventionBuilder"/> instance for method chaining.</returns>
+        public TBuilder AcceptResourceServerClients() =>
+            builder.WithMetadata(new DefaultOpenIdEndpointResourceServerClientMetadata());
+
+        /// <summary>
         /// Adds <see cref="IOpenIdEndpointExceptionHandlerMetadata"/> to the <see cref="IEndpointConventionBuilder"/> to indicate the exception handler for the endpoint.
         /// </summary>
         /// <param name="getter">The delegate to get the <see cref="IOpenIdExceptionHandler"/> instance.</param>

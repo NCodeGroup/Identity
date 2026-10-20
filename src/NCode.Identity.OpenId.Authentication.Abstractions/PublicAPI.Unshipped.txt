@@ -1,8 +1,25 @@
 #nullable enable
+abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdClient.ResourceServerId.get -> string?
 NCode.Identity.OpenId.Authentication.Clients.IClientKeyImporter
 NCode.Identity.OpenId.Authentication.Clients.IClientKeyImporter.TryImportKey(NCode.Identity.Secrets.Persistence.SecretKeyImportRequest! request, out NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret? secret, out string? error) -> bool
 NCode.Identity.OpenId.Authentication.Clients.IClientKeyImporter.TryImportPublishedKeySet(System.Text.Json.JsonElement keySet, System.DateTimeOffset createdWhen, out System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>? secrets, out string? error) -> bool
 NCode.Identity.OpenId.Authentication.Clients.IClientKeyImporter.TryImportRegisteredKeySet(System.Text.Json.JsonElement keySet, System.DateTimeOffset createdWhen, out System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>? secrets, out string? error) -> bool
+NCode.Identity.OpenId.Authentication.Clients.IOpenIdClientFactory.CreatePublicClientAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition! definition, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!>
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.ClientId.get -> string!
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.ClientId.init -> void
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.OpenIdClientDefinition() -> void
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.ResourceServerId.get -> string?
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.ResourceServerId.init -> void
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.Secrets.init -> void
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.Settings.get -> NCode.Identity.Settings.IReadOnlySettingCollection!
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.Settings.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.IntrospectTokenCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.ResourceServers.ResolvedResourceServer? ResourceServer, NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.ITokenIntrospectionRequest! TokenIntrospectionRequest, NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results.IntrospectionResult! Result) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.ResourceServer.get -> NCode.Identity.OpenId.Authentication.ResourceServers.ResolvedResourceServer?
+NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.ResourceServer.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointResourceServerClientMetadata
+NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointResourceServerClientMetadata.AcceptsResourceServerClients.get -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IdTokenEncryptedResponseAlg.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IdTokenEncryptedResponseAlg.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IdTokenEncryptedResponseEnc.get -> string?
@@ -39,6 +56,11 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClie
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoEncryptedResponseEnc.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoSignedResponseAlg.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoSignedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.ResourceServers.IResourceServerCredentialResolver.ResolveByIdAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! resourceServerId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.ResourceServers.ResourceServerCredentialResolution!>
+NCode.Identity.OpenId.Authentication.ResourceServers.ResolvedResourceServer.IsSystem.get -> bool
+NCode.Identity.OpenId.Authentication.ResourceServers.ResolvedResourceServer.IsSystem.init -> void
+NCode.Identity.OpenId.Authentication.ResourceServers.ResolvedResourceServer.Scopes.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.OpenId.Authentication.ResourceServers.ResolvedResourceServer.Scopes.init -> void
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand.AuthenticateResourceRequestCommand() -> void
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand.AuthenticateResourceRequestCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, System.Collections.Generic.IReadOnlyCollection<string!>! RequiredAudiences) -> void
@@ -134,7 +156,6 @@ NCode.Identity.OpenId.Authentication.Clients.IClientKeyResolver
 NCode.Identity.OpenId.Authentication.Clients.IClientKeyResolver.ResolveSecretKeysAsync(NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Collections.ISecretKeyCollection!>
 NCode.Identity.OpenId.Authentication.Clients.IOpenIdClientFactory
 NCode.Identity.OpenId.Authentication.Clients.IOpenIdClientFactory.CreateConfidentialClientAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! publicClient, string! method, NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.Text.Json.JsonElement? confirmation, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Clients.OpenIdConfidentialClient!>
-NCode.Identity.OpenId.Authentication.Clients.IOpenIdClientFactory.CreatePublicClientAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! clientId, NCode.Identity.Settings.IReadOnlySettingCollection! settings, System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>! secrets, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!>
 NCode.Identity.OpenId.Authentication.Clients.IOpenIdClientResolver
 NCode.Identity.OpenId.Authentication.Clients.IOpenIdClientResolver.ResolveClientOrDefaultAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! clientId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Clients.OpenIdClient?>
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClient
@@ -512,7 +533,6 @@ NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results.DiscoveryResult
 NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Results.DiscoveryResult.Metadata.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand
 NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.IntrospectTokenCommand() -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.IntrospectTokenCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! OpenIdClient, NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages.ITokenIntrospectionRequest! TokenIntrospectionRequest, NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results.IntrospectionResult! Result) -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
 NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.OpenIdClient.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands.IntrospectTokenCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
@@ -783,6 +803,16 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange.SubjectTokenV
 NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange.SubjectTokenValidationResult.SubjectTokenValidationResult() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange.SubjectTokenValidationResult.TokenTypeIdentifier.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange.SubjectTokenValidationResult.TokenTypeIdentifier.init -> void
+NCode.Identity.OpenId.Authentication.Tokens.AccessTokenValidationOptions
+NCode.Identity.OpenId.Authentication.Tokens.AccessTokenValidationOptions.AccessTokenValidationOptions() -> void
+NCode.Identity.OpenId.Authentication.Tokens.AccessTokenValidationOptions.AdditionalDecryptionKeys.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!
+NCode.Identity.OpenId.Authentication.Tokens.AccessTokenValidationOptions.AdditionalDecryptionKeys.init -> void
+NCode.Identity.OpenId.Authentication.Tokens.AccessTokenValidationOptions.RequiredAudiences.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.OpenId.Authentication.Tokens.AccessTokenValidationOptions.RequiredAudiences.init -> void
+NCode.Identity.OpenId.Authentication.Tokens.IIssuedTokenValidator
+NCode.Identity.OpenId.Authentication.Tokens.IIssuedTokenValidator.ValidateAccessTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! accessToken, NCode.Identity.OpenId.Authentication.Tokens.AccessTokenValidationOptions! options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Jwt.Validation.JwtValidationResult!>
+NCode.Identity.OpenId.Authentication.Tokens.IIssuedTokenValidator.ValidateIdTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! idToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Jwt.Validation.JwtValidationResult!>
+NCode.Identity.OpenId.Authentication.Tokens.IIssuedTokenValidator.ValidateIdTokenHintAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! idTokenHint, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Jwt.Validation.JwtValidationResult!>
 NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext
 NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.AuthorizationRequestProfileContext(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! Client) -> void
 NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.Client.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!

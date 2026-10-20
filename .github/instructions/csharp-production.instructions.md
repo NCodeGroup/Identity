@@ -103,6 +103,19 @@ rationale.
   interface with an internal default (`IAccessTokenPolicyService`), so a replacement resolves the policy instead of
   reimplementing it or silently skipping it; keeping it internal makes the secure path unreachable for exactly the code
   that needs it. See [ADR-0158](../../docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md).
+- 👁 **A token the server issued is validated only through `IIssuedTokenValidator`.** Never build
+  `JwtValidationParameters` for an access token, ID token, or `id_token_hint` the tenant minted. The seam states the
+  tenant's algorithm allow-lists, keys, `typ`, issuer, lifetime, and session check in one place, and hand-built copies
+  are how introspection came to report ID tokens as active access tokens and ignore revoked sessions. A caller adds
+  only what it owns — the audiences it requires and the decryption keys of the resource server it acts for — through
+  `AccessTokenValidationOptions`. See
+  [ADR-0167](../../docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md).
+- 👁 **Restrict a caller to some endpoints with opt-in endpoint metadata that fails closed.** When a kind of client may
+  use only some endpoints, refuse it everywhere by default where it is resolved, and let each permitted endpoint opt in
+  through route metadata (`AcceptResourceServerClients()` adds `IOpenIdEndpointResourceServerClientMetadata`, which
+  `DefaultOpenIdClientResolver` checks). A per-endpoint deny check would be missing from the next endpoint someone
+  adds, and a request with no endpoint, such as background work, must resolve nothing. See
+  [ADR-0168](../../docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md).
 - 👁 **Extensibility is the default: a vocabulary is open unless it is provably closed.** The family exists to be
   extended — by consumers and by sibling packages — without editing it, so every set of named values (kinds, types,
   modes, scopes, formats, methods, reasons, statuses, plans) is **open** by default and modeled as:

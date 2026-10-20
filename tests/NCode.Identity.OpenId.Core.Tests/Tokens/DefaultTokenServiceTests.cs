@@ -147,6 +147,8 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
                 {
                     ResourceServerId = "rs-api",
                     Identifier = Audience,
+                    Scopes = [],
+                    IsSystem = false,
                     EffectiveSettings = CreateLooseMock<IReadOnlySettingCollection>().Object,
                     SecretsProvider = MockResourceServerSecrets.Object,
                 },

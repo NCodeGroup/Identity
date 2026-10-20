@@ -135,7 +135,7 @@ internal class DefaultResourceServerValidator(IAuthorizationService authorizatio
             {
                 StatusCode = StatusCodes.Status409Conflict,
                 Detail =
-                    "The resource server cannot be deleted while it is still referenced by a client grant.",
+                    "The resource server cannot be deleted while a client grant references it or a client acts for it.",
             };
         }
 

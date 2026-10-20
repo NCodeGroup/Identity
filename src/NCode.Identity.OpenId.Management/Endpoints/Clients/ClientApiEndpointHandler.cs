@@ -193,6 +193,7 @@ internal class ClientApiEndpointHandler(
             ClientId = client.ClientId,
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
+            ResourceServerId = client.ResourceServerId,
         };
     }
 
@@ -306,6 +307,8 @@ internal class ClientApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="resourceServerId">The identifier of a resource server, to list only the clients that act for it; or
+    /// <c>null</c> to list every client.</param>
     /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
     /// <param name="limit">The maximum number of clients to return on the page.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -314,6 +317,7 @@ internal class ClientApiEndpointHandler(
     internal virtual async ValueTask<IResult> ListClientsAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
+        [FromQuery] string? resourceServerId,
         [FromQuery] string? cursor,
         [FromQuery] int? limit,
         CancellationToken cancellationToken
@@ -331,10 +335,14 @@ internal class ClientApiEndpointHandler(
                     cancellationToken
                 );
                 var store = storeManager.GetStore<IClientStore>();
-                return await store.GetPageAsync(
-                    new PageRequest { Cursor = cursor, Limit = effectiveLimit },
-                    cancellationToken
-                );
+                var page = new PageRequest { Cursor = cursor, Limit = effectiveLimit };
+                return string.IsNullOrEmpty(resourceServerId)
+                    ? await store.GetPageAsync(page, cancellationToken)
+                    : await store.GetPageByResourceServerAsync(
+                        resourceServerId,
+                        page,
+                        cancellationToken
+                    );
             },
             ToClientResource
         );
@@ -394,6 +402,9 @@ internal class ClientApiEndpointHandler(
             ClientId = clientId,
             ConcurrencyToken = string.Empty,
             IsDisabled = request.IsDisabled,
+            ResourceServerId = string.IsNullOrEmpty(request.ResourceServerId)
+                ? null
+                : request.ResourceServerId,
             Settings = new PersistedClientSettings
             {
                 TenantId = tenantId,

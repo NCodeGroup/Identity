@@ -21,6 +21,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -66,13 +67,17 @@ public sealed class DefaultClientValidatorTests : IDisposable
 
     private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
 
-    private static PersistedClient CreateClient(string concurrencyToken = "client-ct") =>
+    private static PersistedClient CreateClient(
+        string concurrencyToken = "client-ct",
+        string? resourceServerId = null
+    ) =>
         new()
         {
             TenantId = TenantId,
             ClientId = ClientId,
             ConcurrencyToken = concurrencyToken,
             IsDisabled = false,
+            ResourceServerId = resourceServerId,
             Settings = new PersistedClientSettings
             {
                 TenantId = TenantId,
@@ -184,6 +189,145 @@ public sealed class DefaultClientValidatorTests : IDisposable
             MockStoreManager.Object,
             CancellationToken.None
         );
+
+        Assert.Null(error);
+    }
+
+    private const string ResourceServerId = "rs-1";
+
+    private static PersistedResourceServer CreateResourceServer(
+        string tenantId = TenantId,
+        bool isSystem = false
+    ) =>
+        new()
+        {
+            TenantId = tenantId,
+            ResourceServerId = ResourceServerId,
+            Identifier = "https://api.example.com",
+            ConcurrencyToken = "rs-ct",
+            Name = "API",
+            IsSystem = isSystem,
+            IsDisabled = false,
+            Settings = new PersistedResourceServerSettings
+            {
+                TenantId = tenantId,
+                ResourceServerId = ResourceServerId,
+                Value = EmptyObject(),
+            },
+            Scopes = [],
+            Secrets = new PersistedResourceServerSecrets
+            {
+                TenantId = tenantId,
+                ResourceServerId = ResourceServerId,
+                Value = [],
+            },
+        };
+
+    // The client create is authorized; the binding then asks for the right to update the resource server.
+    private void SetupBoundClientCreate(
+        PersistedResourceServer? resourceServer,
+        AuthorizationResult? resourceServerAuthorization = null
+    )
+    {
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource => resource is PersistedClient),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+        SetupClientStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+
+        var mockResourceServerStore = MockRepository.Create<IResourceServerStore>();
+        MockStoreManager
+            .Setup(x => x.GetStore<IResourceServerStore>())
+            .Returns(mockResourceServerStore.Object)
+            .Verifiable();
+        mockResourceServerStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resourceServer)
+            .Verifiable();
+
+        if (resourceServerAuthorization is not null)
+        {
+            MockAuthorizationService
+                .Setup(x =>
+                    x.AuthorizeAsync(
+                        It.IsAny<ClaimsPrincipal>(),
+                        It.Is<object?>(resource => resource is ResourceNode),
+                        It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                    )
+                )
+                .ReturnsAsync(resourceServerAuthorization)
+                .Verifiable();
+        }
+    }
+
+    private async Task<ManagementError?> ValidateBoundCreateAsync() =>
+        await Validator.ValidateCreateAsync(
+            CreateUser(authenticated: true),
+            CreateClient(resourceServerId: ResourceServerId),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+    [Fact]
+    public async Task ValidateCreateAsync_WhenTheBoundResourceServerIsUnknown_Returns400()
+    {
+        SetupBoundClientCreate(resourceServer: null);
+
+        var error = await ValidateBoundCreateAsync();
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task ValidateCreateAsync_WhenTheBoundResourceServerBelongsToAnotherTenant_Returns400()
+    {
+        SetupBoundClientCreate(CreateResourceServer(tenantId: "tenant-2"));
+
+        var error = await ValidateBoundCreateAsync();
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task ValidateCreateAsync_WhenTheCallerCannotUpdateTheBoundResourceServer_Returns403()
+    {
+        SetupBoundClientCreate(CreateResourceServer(), AuthorizationResult.Failed());
+
+        var error = await ValidateBoundCreateAsync();
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task ValidateCreateAsync_WhenTheBoundResourceServerIsASystemResourceServer_Returns400()
+    {
+        SetupBoundClientCreate(CreateResourceServer(isSystem: true), AuthorizationResult.Success());
+
+        var error = await ValidateBoundCreateAsync();
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task ValidateCreateAsync_WhenTheBindingIsValid_ReturnsNull()
+    {
+        SetupBoundClientCreate(CreateResourceServer(), AuthorizationResult.Success());
+
+        var error = await ValidateBoundCreateAsync();
 
         Assert.Null(error);
     }

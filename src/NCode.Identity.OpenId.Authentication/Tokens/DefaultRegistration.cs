@@ -49,6 +49,7 @@ internal static class DefaultRegistration
                 IAccessTokenPolicyService,
                 DefaultAccessTokenPolicyService
             >();
+            serviceCollection.TryAddSingleton<IIssuedTokenValidator, DefaultIssuedTokenValidator>();
             serviceCollection.TryAddSingleton<
                 IAuthorizationCodeService,
                 DefaultAuthorizationCodeService

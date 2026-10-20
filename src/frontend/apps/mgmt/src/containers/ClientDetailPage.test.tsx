@@ -20,6 +20,7 @@ const client: ClientResource = {
   tenantId: 'acme',
   concurrencyToken: 'c1',
   isDisabled: false,
+  resourceServerId: null,
 };
 
 function renderPage(overrides: Partial<ClientResource> = {}, onBack = vi.fn()) {
@@ -123,6 +124,25 @@ describe('ClientDetailPage', () => {
     renderPage({ isDisabled: true });
 
     expect(screen.getByText('Client · Disabled')).toBeInTheDocument();
+    expect(await screen.findByTestId('data-empty')).toBeInTheDocument();
+  });
+
+  it('names the resource server a bound client acts for', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/clients/web/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage({ resourceServerId: 'rs-orders' });
+
+    expect(
+      screen.getByText('Client · Active · Acts for resource server rs-orders'),
+    ).toBeInTheDocument();
     expect(await screen.findByTestId('data-empty')).toBeInTheDocument();
   });
 

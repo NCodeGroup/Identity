@@ -76,7 +76,26 @@ Content-Type: application/json
 GET {{host}}/api/tenants/{{tenantId}}/resource-servers/REPLACE_WITH_ResourceServerId/scopes
 Accept: application/json
 
-### Delete a resource server (409 when it is a system resource server or still has client grants)
+### Create a client that acts for a resource server — its credential at the introspection endpoint, accepted nowhere
+### else. Introspection reports an access token active to it only when the token's audience names the resource server.
+### Create a secret for it (POST .../clients/{clientId}/secrets) and authenticate with that secret when introspecting;
+### add "introspection_encrypted_response_alg" and a jwks/jwks_uri to receive encrypted RFC 9701 JWT responses.
+POST {{host}}/api/tenants/{{tenantId}}/clients
+Content-Type: application/json
+
+{
+  "isDisabled": false,
+  "resourceServerId": "REPLACE_WITH_ResourceServerId",
+  "settings": {
+    "token_endpoint_auth_method": "client_secret_basic"
+  }
+}
+
+### List the clients that act for a resource server
+GET {{host}}/api/tenants/{{tenantId}}/clients?resourceServerId=REPLACE_WITH_ResourceServerId&limit=50
+Accept: application/json
+
+### Delete a resource server (409 when it is a system resource server, still has client grants, or a client acts for it)
 DELETE {{host}}/api/tenants/{{tenantId}}/resource-servers/REPLACE_WITH_ResourceServerId
 
 ### List a client's grants (its authorizations to resource servers) — first page

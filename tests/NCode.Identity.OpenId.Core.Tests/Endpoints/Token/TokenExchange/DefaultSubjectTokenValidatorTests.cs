@@ -17,9 +17,11 @@
 #endregion
 
 using Moq;
+using NCode.Identity.Jose;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange;
+using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -29,35 +31,153 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Token.TokenExchange;
 
 public class DefaultSubjectTokenValidatorTests : BaseTests
 {
-    private Mock<IJwtValidator> MockJsonWebTokenService { get; }
+    private const string Token = "subject-token";
+    private const string Subject = "subject-1";
+
+    private Mock<IIssuedTokenValidator> MockIssuedTokenValidator { get; }
+    private Mock<OpenIdContext> MockContext { get; }
+    private Mock<OpenIdClient> MockClient { get; }
+    private Mock<IOpenIdError> MockError { get; }
     private DefaultSubjectTokenValidator Validator { get; }
 
     public DefaultSubjectTokenValidatorTests()
     {
-        MockJsonWebTokenService = CreateStrictMock<IJwtValidator>();
-        Validator = new DefaultSubjectTokenValidator(MockJsonWebTokenService.Object);
+        MockIssuedTokenValidator = CreateStrictMock<IIssuedTokenValidator>();
+        MockContext = CreateStrictMock<OpenIdContext>();
+        MockClient = CreateStrictMock<OpenIdClient>();
+        MockError = CreateLooseMock<IOpenIdError>();
+        SetupErrorFactory();
+
+        Validator = new DefaultSubjectTokenValidator(MockIssuedTokenValidator.Object);
     }
+
+    #region Scaffolding
+
+    // The validator reads the error factory on every path.
+    private void SetupErrorFactory()
+    {
+        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+        mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(MockError.Object);
+        MockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+    }
+
+    private static JwtValidationResult ValidResult() =>
+        TestJwtValidationResults.Valid(
+            new Dictionary<string, object> { [JoseClaimNames.Payload.Sub] = Subject }
+        );
+
+    private void SetupAccessTokenValidation(JwtValidationResult result) =>
+        MockIssuedTokenValidator
+            .Setup(x =>
+                x.ValidateAccessTokenAsync(
+                    MockContext.Object,
+                    Token,
+                    It.Is<AccessTokenValidationOptions>(options =>
+                        options.RequiredAudiences.Count == 0
+                        && options.AdditionalDecryptionKeys.Count == 0
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
+    private void SetupIdTokenValidation(JwtValidationResult result) =>
+        MockIssuedTokenValidator
+            .Setup(x =>
+                x.ValidateIdTokenAsync(MockContext.Object, Token, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
+    private async Task<SubjectTokenValidationResult> ValidateAsync(string tokenTypeIdentifier) =>
+        await Validator.ValidateAsync(
+            MockContext.Object,
+            MockClient.Object,
+            Token,
+            tokenTypeIdentifier,
+            CancellationToken.None
+        );
+
+    #endregion
+
+    #region ValidateAsync Tests
 
     [Fact]
     public async Task ValidateAsync_WhenTokenTypeNotJwt_ReturnsFailWithoutValidatingJwt()
     {
-        var mockContext = CreateStrictMock<OpenIdContext>();
-        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
-        var mockError = CreateLooseMock<IOpenIdError>();
-        var mockClient = CreateStrictMock<OpenIdClient>();
-
-        mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-        mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
-
-        var result = await Validator.ValidateAsync(
-            mockContext.Object,
-            mockClient.Object,
-            "some-saml-assertion",
-            "urn:ietf:params:oauth:token-type:saml2",
-            CancellationToken.None
-        );
+        var result = await ValidateAsync("urn:ietf:params:oauth:token-type:saml2");
 
         Assert.False(result.IsValid);
-        Assert.Same(mockError.Object, result.Error);
+        Assert.Same(MockError.Object, result.Error);
     }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAnAccessTokenIsValid_ReturnsItsPrincipal()
+    {
+        SetupAccessTokenValidation(ValidResult());
+
+        var result = await ValidateAsync(OpenIdConstants.TokenTypeIdentifiers.AccessToken);
+
+        Assert.True(result.IsValid);
+        Assert.Equal(Subject, result.Principal?.FindFirst(JoseClaimNames.Payload.Sub)?.Value);
+        Assert.Equal(OpenIdConstants.TokenTypeIdentifiers.AccessToken, result.TokenTypeIdentifier);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAnAccessTokenIsInvalid_FailsWithoutTryingTheIdTokenPolicy()
+    {
+        SetupAccessTokenValidation(TestJwtValidationResults.Invalid(Token));
+
+        var result = await ValidateAsync(OpenIdConstants.TokenTypeIdentifiers.AccessToken);
+
+        Assert.False(result.IsValid);
+        Assert.Same(MockError.Object, result.Error);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAnIdTokenIsValid_ReturnsItsPrincipal()
+    {
+        SetupIdTokenValidation(ValidResult());
+
+        var result = await ValidateAsync(OpenIdConstants.TokenTypeIdentifiers.IdToken);
+
+        Assert.True(result.IsValid);
+        Assert.Equal(Subject, result.Principal?.FindFirst(JoseClaimNames.Payload.Sub)?.Value);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAJwtIsAnAccessToken_DoesNotTryTheIdTokenPolicy()
+    {
+        SetupAccessTokenValidation(ValidResult());
+
+        var result = await ValidateAsync(OpenIdConstants.TokenTypeIdentifiers.Jwt);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAJwtIsAnIdToken_AcceptsIt()
+    {
+        SetupAccessTokenValidation(TestJwtValidationResults.Invalid(Token));
+        SetupIdTokenValidation(ValidResult());
+
+        var result = await ValidateAsync(OpenIdConstants.TokenTypeIdentifiers.Jwt);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAJwtIsNeitherAnAccessTokenNorAnIdToken_Fails()
+    {
+        SetupAccessTokenValidation(TestJwtValidationResults.Invalid(Token));
+        SetupIdTokenValidation(TestJwtValidationResults.Invalid(Token));
+
+        var result = await ValidateAsync(OpenIdConstants.TokenTypeIdentifiers.Jwt);
+
+        Assert.False(result.IsValid);
+        Assert.Same(MockError.Object, result.Error);
+    }
+
+    #endregion
 }

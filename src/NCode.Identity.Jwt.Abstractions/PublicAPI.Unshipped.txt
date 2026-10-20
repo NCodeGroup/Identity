@@ -5,6 +5,8 @@ NCode.Identity.Jwt.DecodedJwt.DecryptionKey.init -> void
 NCode.Identity.Jwt.DecodedJwt.EncryptionHeader.get -> System.Text.Json.JsonElement?
 NCode.Identity.Jwt.DecodedJwt.EncryptionHeader.init -> void
 NCode.Identity.Jwt.DecodedJwt.SigningKey.get -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.EnsureTokenLifetime.get -> bool
+NCode.Identity.Jwt.Encoding.JwtEncodingParameters.EnsureTokenLifetime.init -> void
 NCode.Identity.Jwt.Validation.JwtValidationParameters.DecryptionKeys.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>?
 NCode.Identity.Jwt.Validation.JwtValidationParameters.DecryptionKeys.set -> void
 NCode.Identity.Jwt.Validation.JwtValidationParameters.ValidCompressionAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<string!>?

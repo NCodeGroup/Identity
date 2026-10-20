@@ -783,6 +783,65 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateSecretAsync_WhenTheResourceServerIsASystemResourceServer_Returns409WithoutGenerating()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer(isSystem: true))
+            .Verifiable();
+
+        var result = await Handler.CreateSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new CreateSecretRequest
+            {
+                SecretType = "rsa",
+                KeySizeBits = 2048,
+                Use = null,
+                Algorithm = null,
+                ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenTheResourceServerIsASystemResourceServer_Returns409WithoutImporting()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer(isSystem: true))
+            .Verifiable();
+
+        var result = await Handler.ImportSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new ImportSecretRequest
+            {
+                SecretType = "rsa",
+                Format = "jwk",
+                KeyMaterial = "{}",
+                Use = null,
+                Algorithm = null,
+                ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task DeleteSecretAsync_WhenAuthorized_ReturnsNoContent()
     {
         SetupAuthorization(AuthorizationResult.Success());

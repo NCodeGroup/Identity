@@ -69,6 +69,12 @@ public static class JoseTokenTypes
     public const string AuthorizationRequestJwt = "oauth-authz-req+jwt";
 
     /// <summary>
+    /// Specifies that the content is an OAuth 2.0 <c>token introspection response</c> (<c>token-introspection+jwt</c>).
+    /// https://datatracker.ietf.org/doc/html/rfc9701#section-5
+    /// </summary>
+    public const string TokenIntrospectionJwt = "token-introspection+jwt";
+
+    /// <summary>
     /// Normalizes a <c>typ</c> JOSE header value for media-type comparison per <c>RFC 7515</c> §4.1.9: a value that
     /// omits a <c>'/'</c> is treated as if the <c>application/</c> prefix were prepended. The result is not lower-cased
     /// because media-type matching is performed case-insensitively by <see cref="AreSame"/>.

@@ -339,6 +339,46 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.IdTokenSigningAlgValuesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'introspection_encrypted_response_alg' setting.
+    /// </summary>
+    public static SettingKey<string> IntrospectionEncryptedResponseAlg =>
+        new(OpenIdSettingNames.IntrospectionEncryptedResponseAlg);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'introspection_encrypted_response_enc' setting.
+    /// </summary>
+    public static SettingKey<string> IntrospectionEncryptedResponseEnc =>
+        new(OpenIdSettingNames.IntrospectionEncryptedResponseEnc);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'introspection_encryption_alg_values_supported' setting.
+    /// </summary>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > IntrospectionEncryptionAlgValuesSupported =>
+        new(OpenIdSettingNames.IntrospectionEncryptionAlgValuesSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'introspection_encryption_enc_values_supported' setting.
+    /// </summary>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > IntrospectionEncryptionEncValuesSupported =>
+        new(OpenIdSettingNames.IntrospectionEncryptionEncValuesSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'introspection_signed_response_alg' setting.
+    /// </summary>
+    public static SettingKey<string> IntrospectionSignedResponseAlg =>
+        new(OpenIdSettingNames.IntrospectionSignedResponseAlg);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'introspection_signing_alg_values_supported' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> IntrospectionSigningAlgValuesSupported =>
+        new(OpenIdSettingNames.IntrospectionSigningAlgValuesSupported);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'jwks_uri' setting.
     /// </summary>
     public static SettingKey<string> JwksUri => new(OpenIdSettingNames.JwksUri);

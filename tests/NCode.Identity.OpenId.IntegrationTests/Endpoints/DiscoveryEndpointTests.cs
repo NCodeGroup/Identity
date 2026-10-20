@@ -129,6 +129,48 @@ public class DiscoveryEndpointTests(HostApplicationFactory factory)
     }
 
     [Fact]
+    public async Task GetDiscovery_AdvertisesJwtIntrospectionAndTheEndpointsClientAuthentication()
+    {
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.GetAsync("/.well-known/openid-configuration");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+
+        // RFC 9701 §7: the algorithms a JWT introspection response may be signed and encrypted with.
+        Assert.Contains(
+            "RS256",
+            root.GetProperty("introspection_signing_alg_values_supported")
+                .EnumerateArray()
+                .Select(value => value.GetString())
+        );
+        Assert.True(root.TryGetProperty("introspection_encryption_alg_values_supported", out _));
+        Assert.True(root.TryGetProperty("introspection_encryption_enc_values_supported", out _));
+
+        // RFC 8414 §2: the introspection and revocation endpoints authenticate clients as the token endpoint does.
+        var tokenMethods = root.GetProperty("token_endpoint_auth_methods_supported").GetRawText();
+        Assert.Equal(
+            tokenMethods,
+            root.GetProperty("introspection_endpoint_auth_methods_supported").GetRawText()
+        );
+        Assert.Equal(
+            tokenMethods,
+            root.GetProperty("revocation_endpoint_auth_methods_supported").GetRawText()
+        );
+        Assert.Equal(
+            root.GetProperty("token_endpoint_auth_signing_alg_values_supported").GetRawText(),
+            root.GetProperty("introspection_endpoint_auth_signing_alg_values_supported")
+                .GetRawText()
+        );
+    }
+
+    [Fact]
     public async Task GetDiscovery_AdvertisesOnlySecureFlows()
     {
         var client = Factory.CreateClient(

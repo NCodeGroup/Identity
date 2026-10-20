@@ -35,6 +35,15 @@ public sealed class CreateClientRequest
     public required bool IsDisabled { get; init; }
 
     /// <summary>
+    /// Gets the identifier of the resource server the client acts for, or <c>null</c> for an ordinary client. A client
+    /// that acts for a resource server is that resource server's credential at the token introspection endpoint — where
+    /// it learns about the access tokens issued for the resource server — and is accepted at no other endpoint. The
+    /// resource server must belong to the tenant and must not be a system resource server, and the caller must be
+    /// allowed to update it. The binding cannot be changed after the client is created.
+    /// </summary>
+    public string? ResourceServerId { get; init; }
+
+    /// <summary>
     /// Gets the initial JSON settings for the client.
     /// </summary>
     public required JsonElement Settings { get; init; }

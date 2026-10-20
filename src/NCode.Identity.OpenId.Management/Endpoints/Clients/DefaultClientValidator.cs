@@ -65,6 +65,71 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
             };
         }
 
+        return await ValidateResourceServerBindingAsync(
+            user,
+            client,
+            storeManager,
+            cancellationToken
+        );
+    }
+
+    // A client that acts for a resource server receives the access tokens issued for it at introspection, so binding one
+    // is a change to the resource server: the caller must be allowed to update it. A system resource server is read by
+    // the server itself and never acts through a client (ADR-0168).
+    private async ValueTask<ManagementError?> ValidateResourceServerBindingAsync(
+        ClaimsPrincipal user,
+        PersistedClient client,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        if (client.ResourceServerId is not { } resourceServerId)
+        {
+            return null;
+        }
+
+        var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
+        var resourceServer = await resourceServerStore.GetOrDefaultAsync(
+            resourceServerId,
+            cancellationToken
+        );
+        if (
+            resourceServer is null
+            || !string.Equals(resourceServer.TenantId, client.TenantId, StringComparison.Ordinal)
+        )
+        {
+            return new ManagementError
+            {
+                StatusCode = StatusCodes.Status400BadRequest,
+                Detail = "The resource server the client acts for does not exist in the tenant.",
+            };
+        }
+
+        var error = await AuthorizeAsync(
+            user,
+            ResourceNode.For(
+                resourceServer.TenantId,
+                ResourceNodeTypes.ResourceServer,
+                resourceServer.ResourceServerId
+            ),
+            Operations.Update,
+            "The caller is not authorized to create a client for this resource server.",
+            "Authentication is required to create a client for this resource server."
+        );
+        if (error is not null)
+        {
+            return error;
+        }
+
+        if (resourceServer.IsSystem)
+        {
+            return new ManagementError
+            {
+                StatusCode = StatusCodes.Status400BadRequest,
+                Detail = "A client cannot act for a system resource server.",
+            };
+        }
+
         return null;
     }
 

@@ -46,8 +46,9 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// An encrypted access token is encrypted to the party that reads it. A resource server that holds a key it can decrypt
 /// with under its own effective settings decrypts the tokens issued for it, so a token for it alone is encrypted to that
 /// key, and a token for it together with another resource server is refused, because a compact JWE has one recipient.
-/// Any other token is encrypted to the tenant's key, and its resource servers introspect it. Access tokens are always
-/// signed with the tenant's key.
+/// A system resource server is read by the server itself and never decrypts its own tokens. Any other token is
+/// encrypted to the tenant's key, and its resource servers introspect it. Access tokens are always signed with the
+/// tenant's key.
 /// </para>
 /// </remarks>
 // See ADR-0158 (amending ADR-0075).
@@ -231,9 +232,16 @@ internal class DefaultAccessTokenPolicyService(
     }
 
     // A resource server decrypts the tokens issued for it when it holds a key it can decrypt with under its own effective
-    // settings — the opt-in to per-audience encryption (ADR-0075). The server never compresses what it encrypts.
+    // settings — the opt-in to per-audience encryption (ADR-0075). A system resource server never does: its tokens are
+    // read by the server's own endpoints, which decrypt with the tenant's keys (ADR-0167). The server never compresses
+    // what it encrypts.
     private bool DecryptsItsOwnTokens(ResolvedResourceServer resourceServer)
     {
+        if (resourceServer.IsSystem)
+        {
+            return false;
+        }
+
         var ownSettings = resourceServer.EffectiveSettings;
 
         return CredentialSelector.TryGetEncryptionCredentials(

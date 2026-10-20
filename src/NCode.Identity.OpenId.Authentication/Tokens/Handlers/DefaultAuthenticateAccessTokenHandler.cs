@@ -20,10 +20,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
-using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Logging;
-using NCode.Identity.OpenId.Authentication.Persistence;
-using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Errors;
@@ -34,22 +31,20 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="AuthenticateAccessTokenCommand"/> message. It
-/// validates a self-issued JWT access token against the resolved tenant's signing keys, explicit <c>at+jwt</c> type
-/// (RFC 9068 §4), issuer, lifetime, and the required audience, then — for a sender-constrained token — verifies the
-/// presented DPoP proof (RFC 9449) or client certificate (RFC 8705) matches the token's <c>cnf</c> claim, returning
-/// the authenticated principal on success.
+/// validates a self-issued access token through <see cref="IIssuedTokenValidator"/> — which checks its protection,
+/// explicit <c>at+jwt</c> type (RFC 9068 §4), issuer, lifetime, session, and the required audience — then, for a
+/// sender-constrained token, verifies the presented DPoP proof (RFC 9449) or client certificate (RFC 8705) matches the
+/// token's <c>cnf</c> claim, returning the authenticated principal on success.
 /// </summary>
 internal class DefaultAuthenticateAccessTokenHandler(
     ILogger<DefaultAuthenticateAccessTokenHandler> logger,
-    IJwtValidator jwtValidator,
-    IProofOfPossessionService proofOfPossessionService,
-    ISessionService sessionService
+    IIssuedTokenValidator issuedTokenValidator,
+    IProofOfPossessionService proofOfPossessionService
 ) : ICommandResponseHandler<AuthenticateAccessTokenCommand, AuthenticateAccessTokenDisposition>
 {
     private ILogger<DefaultAuthenticateAccessTokenHandler> Logger { get; } = logger;
-    private IJwtValidator JwtValidator { get; } = jwtValidator;
+    private IIssuedTokenValidator IssuedTokenValidator { get; } = issuedTokenValidator;
     private IProofOfPossessionService ProofOfPossessionService { get; } = proofOfPossessionService;
-    private ISessionService SessionService { get; } = sessionService;
 
     /// <inheritdoc />
     public async ValueTask<AuthenticateAccessTokenDisposition> HandleAsync(
@@ -64,40 +59,13 @@ internal class DefaultAuthenticateAccessTokenHandler(
             return default;
         }
 
-        var openIdTenant = openIdContext.Tenant;
-
-        JwtValidationResult validateResult;
-        try
-        {
-            // The realm/ownership handlers read roles via ClaimsPrincipal.IsInRole, which keys off the identity's
-            // role-claim type; align it with the token's 'role' claim name so a 'GlobalAdmin' role is recognized.
-            var parameters = new JwtValidationParameters
-            {
-                RoleClaimType = JoseClaimNames.Payload.Role,
-            }
-                .UseValidationKeys(openIdTenant.SecretsProvider.Collection)
-                .ValidateTokenType(JoseTokenTypes.AccessTokenJwt)
-                .ValidateIssuer(openIdTenant.Issuer)
-                .ValidateTokenLifeTime();
-
-            if (requiredAudiences.Count > 0)
-            {
-                parameters.ValidateAudience(requiredAudiences);
-            }
-
-            validateResult = await JwtValidator.ValidateAsync(
-                accessToken,
-                parameters,
-                cancellationToken
-            );
-        }
-        catch (Exception exception)
-        {
-            Logger.AccessTokenValidationError(exception);
-            return new AuthenticateAccessTokenDisposition(
-                openIdContext.ErrorFactory.InvalidToken()
-            );
-        }
+        var options = new AccessTokenValidationOptions { RequiredAudiences = requiredAudiences };
+        var validateResult = await IssuedTokenValidator.ValidateAccessTokenAsync(
+            openIdContext,
+            accessToken,
+            options,
+            cancellationToken
+        );
 
         if (!validateResult.IsValid)
         {
@@ -123,26 +91,6 @@ internal class DefaultAuthenticateAccessTokenHandler(
             if (error is not null)
             {
                 return new AuthenticateAccessTokenDisposition(error);
-            }
-        }
-
-        // A token whose end-user session has been revoked (for example, by authorization-code replay — ADR-0112) is
-        // rejected at the OP's own resource endpoints; external resource servers treat the JWT as self-contained and
-        // never see this check. Only an explicitly revoked session blocks the token — an absent (aged-out) session
-        // grant is treated as fail-open, bounded by the access token's own short lifetime.
-        var sessionId = claimsIdentity.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
-        if (!string.IsNullOrEmpty(sessionId))
-        {
-            var session = await SessionService.GetOrDefaultAsync(
-                openIdContext,
-                sessionId,
-                cancellationToken
-            );
-            if (session is { Status: PersistedGrantStatus.Revoked })
-            {
-                return new AuthenticateAccessTokenDisposition(
-                    openIdContext.ErrorFactory.InvalidToken()
-                );
             }
         }
 

@@ -24,6 +24,13 @@ import { ClientDetailPage } from './ClientDetailPage.js';
 
 export type ClientsPageProps = {
   readonly scope: ManagementScope;
+  /**
+   * The resource server whose clients the page administers: it lists only the clients that act for
+   * it and creates clients bound to it. When omitted, the page administers every client in the scope.
+   */
+  readonly resourceServerId?: string;
+  /** When set, the page renders inside a parent's detail view and omits its own heading. */
+  readonly embedded?: boolean;
 };
 
 type DialogState =
@@ -37,12 +44,15 @@ const closed: DialogState = { kind: 'none' };
 /**
  * Container: browses and administers the clients within a given management scope. The scope is passed
  * down from the stateful shell, so a tenant administrator view is always bound to its own tenant (the
- * API path is nested under the tenant — the boundary is structural, not a filter). Wires the RTK Query
- * client list and mutations to the stateless {@link ClientTable}, {@link ClientFormDialog}, and
- * {@link ConfirmDialog}; owns only dialog/error state.
+ * API path is nested under the tenant — the boundary is structural, not a filter). Given a resource
+ * server, it administers the clients that act for it — that resource server's credentials at the
+ * token introspection endpoint. Wires the RTK Query client list and mutations to the stateless
+ * {@link ClientTable}, {@link ClientFormDialog}, and {@link ConfirmDialog}; owns only dialog/error state.
  */
-export function ClientsPage({ scope }: ClientsPageProps) {
-  const { data, isLoading, error } = useListClientsQuery({ scope });
+export function ClientsPage({ scope, resourceServerId, embedded = false }: ClientsPageProps) {
+  const { data, isLoading, error } = useListClientsQuery(
+    resourceServerId ? { scope, resourceServerId } : { scope },
+  );
   const clients = data?.items ?? [];
 
   const [createClient, { isLoading: isCreating }] = useCreateClientMutation();
@@ -92,7 +102,11 @@ export function ClientsPage({ scope }: ClientsPageProps) {
       if (dialog.kind === 'create') {
         await createClient({
           scope,
-          body: { isDisabled: values.isDisabled, settings: {} },
+          body: {
+            isDisabled: values.isDisabled,
+            ...(resourceServerId ? { resourceServerId } : {}),
+            settings: {},
+          },
         }).unwrap();
       } else if (dialog.kind === 'edit') {
         await updateClient({
@@ -123,10 +137,19 @@ export function ClientsPage({ scope }: ClientsPageProps) {
 
   return (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-        <Typography variant="h5" component="h2">
-          Clients
-        </Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: embedded ? 'flex-end' : 'space-between',
+          mb: 1,
+        }}
+      >
+        {!embedded && (
+          <Typography variant="h5" component="h2">
+            Clients
+          </Typography>
+        )}
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -140,7 +163,11 @@ export function ClientsPage({ scope }: ClientsPageProps) {
         isLoading={isLoading}
         error={error ? 'Failed to load clients.' : undefined}
         isEmpty={clients.length === 0}
-        emptyMessage="No clients in this scope yet."
+        emptyMessage={
+          resourceServerId
+            ? 'No client acts for this resource server yet.'
+            : 'No clients in this scope yet.'
+        }
       >
         <ClientTable
           clients={clients}

@@ -234,19 +234,9 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.AccessTokenValidationError,
-        Level = LogLevel.Debug,
-        Message = "An access token presented to a protected endpoint threw during validation and was rejected as invalid_token."
-    )]
-    internal static partial void AccessTokenValidationError(
-        this ILogger logger,
-        Exception exception
-    );
-
-    [LoggerMessage(
         EventId = EventIds.AccessTokenInvalid,
         Level = LogLevel.Debug,
-        Message = "An access token presented to a protected endpoint failed validation (issuer, audience, lifetime, or signature) and was rejected as invalid_token."
+        Message = "An access token presented to a protected endpoint failed validation (protection, type, issuer, audience, lifetime, or session) and was rejected as invalid_token."
     )]
     internal static partial void AccessTokenInvalid(this ILogger logger, Exception exception);
 

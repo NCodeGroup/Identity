@@ -68,6 +68,10 @@ NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityReso
 NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SupportsPublicKeyExport.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SupportsPublicKeyImport.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Capabilities.SecretTypeCapabilityResource.SupportsPublicKeyImport.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.ResourceServerId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.ResourceServerId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.ResourceServerId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.ResourceServerId.init -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.ResourceServerEffectiveSettingsResource() -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerEffectiveSettingsResource.ResourceServerId.get -> string!

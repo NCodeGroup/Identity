@@ -222,6 +222,13 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         string resourceServerId,
         IReadOnlyDictionary<string, object>? overrides = null,
         params SecretKey[] keys
+    ) => CreateResourceServer(resourceServerId, isSystem: false, overrides, keys);
+
+    private ResolvedResourceServer CreateResourceServer(
+        string resourceServerId,
+        bool isSystem,
+        IReadOnlyDictionary<string, object>? overrides,
+        SecretKey[] keys
     )
     {
         var mockSecretsProvider = CreateLooseMock<ISecretKeyCollectionProvider>();
@@ -231,6 +238,8 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         {
             ResourceServerId = resourceServerId,
             Identifier = $"urn:{resourceServerId}",
+            Scopes = [],
+            IsSystem = isSystem,
             EffectiveSettings = CreateEffectiveSettings(overrides),
             SecretsProvider = mockSecretsProvider.Object,
         };
@@ -732,6 +741,25 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         var second = CreateResourceServer("rs-b");
 
         var policy = Evaluate(client, Targeting(first, second));
+
+        var credentials = Assert.IsType<JoseEncryptionCredentials>(policy.EncryptionCredentials);
+        Assert.Same(TenantKey, credentials.SecretKey);
+    }
+
+    [Fact]
+    public void Evaluate_WhenASystemResourceServerHoldsAKey_EncryptsToTheTenantKey()
+    {
+        // The key would be used for an ordinary resource server (Evaluate_WhenTheResourceServerRequiresEncryption_
+        // EncryptsToItsKey); a system resource server is read by the server itself, which decrypts with the tenant's.
+        var client = CreateClient();
+        var resourceServer = CreateResourceServer(
+            "rs-system",
+            isSystem: true,
+            Values((OpenIdSettingNames.AccessTokenEncryptionRequired, true)),
+            [ResourceServerKey]
+        );
+
+        var policy = Evaluate(client, Targeting(resourceServer));
 
         var credentials = Assert.IsType<JoseEncryptionCredentials>(policy.EncryptionCredentials);
         Assert.Same(TenantKey, credentials.SecretKey);

@@ -1,6 +1,8 @@
 # 101. OAuth 2.0 Token Exchange (RFC 8693) over the extension-grant seam, self-issued-token only
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0167](0167-the-server-validates-the-tokens-it-issued-under-one-policy.md): a subject token is validated under the
+  policy its type names, and a `jwt` subject token must be an access token or an ID token)
 - **Date:** 2026-10-14
 - **Deciders:** NCode Group
 

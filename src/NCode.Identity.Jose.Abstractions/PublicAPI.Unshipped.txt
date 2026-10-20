@@ -168,6 +168,7 @@ const NCode.Identity.Jose.JoseTokenTypes.DPoPJwt = "dpop+jwt" -> string!
 const NCode.Identity.Jose.JoseTokenTypes.Jwt = "JWT" -> string!
 const NCode.Identity.Jose.JoseTokenTypes.LogoutJwt = "logout+jwt" -> string!
 const NCode.Identity.Jose.JoseTokenTypes.SecurityEventJwt = "secevent+jwt" -> string!
+const NCode.Identity.Jose.JoseTokenTypes.TokenIntrospectionJwt = "token-introspection+jwt" -> string!
 NCode.Identity.Jose.Algorithms.Algorithm
 NCode.Identity.Jose.Algorithms.Algorithm.Algorithm() -> void
 NCode.Identity.Jose.Algorithms.AlgorithmCodes

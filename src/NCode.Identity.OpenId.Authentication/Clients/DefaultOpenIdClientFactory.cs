@@ -38,24 +38,16 @@ internal class DefaultOpenIdClientFactory(ISecretKeyCollectionFactory secretKeyC
     /// <inheritdoc />
     public ValueTask<OpenIdClient> CreatePublicClientAsync(
         OpenIdContext openIdContext,
-        string clientId,
-        IReadOnlySettingCollection settings,
-        IReadOnlyCollection<SecretKey> secrets,
+        OpenIdClientDefinition definition,
         CancellationToken cancellationToken
     )
     {
-        var secretKeys = SecretKeyCollectionFactory.Create(secrets);
+        var secretKeys = SecretKeyCollectionFactory.Create(definition.Secrets);
         var propertyBag = openIdContext.PropertyBag.Clone();
 
-        var redirectUris = GetRedirectUris(settings);
+        var redirectUris = GetRedirectUris(definition.Settings);
 
-        var publicClient = CreatePublicClient(
-            clientId,
-            settings,
-            secretKeys,
-            redirectUris,
-            propertyBag
-        );
+        var publicClient = CreatePublicClient(definition, secretKeys, redirectUris, propertyBag);
 
         return ValueTask.FromResult(publicClient);
     }
@@ -79,12 +71,19 @@ internal class DefaultOpenIdClientFactory(ISecretKeyCollectionFactory secretKeyC
     /// Factory method that creates a new instance of <see cref="OpenIdClient"/> that represents a public client.
     /// </summary>
     protected internal virtual OpenIdClient CreatePublicClient(
-        string clientId,
-        IReadOnlySettingCollection settings,
+        OpenIdClientDefinition definition,
         ISecretKeyCollection secretKeys,
         IReadOnlyCollection<string> redirectUris,
         IPropertyBag propertyBag
-    ) => new DefaultOpenIdClient(clientId, settings, secretKeys, redirectUris, propertyBag);
+    ) =>
+        new DefaultOpenIdClient(
+            definition.ClientId,
+            definition.Settings,
+            secretKeys,
+            redirectUris,
+            definition.ResourceServerId,
+            propertyBag
+        );
 
     /// <inheritdoc />
     public ValueTask<OpenIdConfidentialClient> CreateConfidentialClientAsync(

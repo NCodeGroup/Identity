@@ -53,6 +53,7 @@ export function ClientDetailPage({ scope, client, onBack }: ClientDetailPageProp
         </Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Client · {client.isDisabled ? 'Disabled' : 'Active'}
+          {client.resourceServerId ? ` · Acts for resource server ${client.resourceServerId}` : ''}
         </Typography>
       </Stack>
       <Tabs

@@ -165,6 +165,44 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Encode_WhenLifetimeClaimsAreOmitted_SuppliesDefaults()
+    {
+        var parameters = new JwtEncodingParameters { SigningCredentials = _signingCredentials };
+
+        var token = _encoder.Encode(parameters);
+
+        var payload = Assert
+            .IsType<DecodedJwt>((await ValidateTokenAsync(token)).DecodedJwt)
+            .Payload;
+        Assert.True(payload.TryGetProperty(JoseClaimNames.Payload.Iat, out _));
+        Assert.True(payload.TryGetProperty(JoseClaimNames.Payload.Nbf, out _));
+        Assert.True(payload.TryGetProperty(JoseClaimNames.Payload.Exp, out _));
+    }
+
+    [Fact]
+    public async Task Encode_WhenTheJwtIsNotAToken_CarriesOnlyTheTimeClaimsItIsGiven()
+    {
+        var parameters = new JwtEncodingParameters
+        {
+            SigningCredentials = _signingCredentials,
+            EnsureTokenLifetime = false,
+            IssuedAt = _utcNow,
+        };
+
+        var token = _encoder.Encode(parameters);
+
+        var payload = Assert
+            .IsType<DecodedJwt>((await ValidateTokenAsync(token)).DecodedJwt)
+            .Payload;
+        Assert.Equal(
+            _utcNow.ToUnixTimeSeconds(),
+            payload.GetProperty(JoseClaimNames.Payload.Iat).GetInt64()
+        );
+        Assert.False(payload.TryGetProperty(JoseClaimNames.Payload.Nbf, out _));
+        Assert.False(payload.TryGetProperty(JoseClaimNames.Payload.Exp, out _));
+    }
+
+    [Fact]
     public async Task Encode_WhenSingleExtraPayloadClaim_EmitsIt()
     {
         var token = EncodeToken(

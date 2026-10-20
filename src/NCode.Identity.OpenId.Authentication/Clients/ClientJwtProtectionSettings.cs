@@ -62,6 +62,25 @@ internal readonly record struct ClientJwtProtectionSettings
         };
 
     /// <summary>
+    /// Gets the settings for a JWT introspection response (RFC 9701), addressed to a client acting for a resource
+    /// server. It is signed with the client's <c>introspection_signed_response_alg</c>, which defaults to <c>RS256</c>,
+    /// and encrypted when the client registers an encryption algorithm for it.
+    /// </summary>
+    public static ClientJwtProtectionSettings Introspection { get; } =
+        new()
+        {
+            ResponseName = "introspection response",
+            SignedResponseAlg = OpenIdSettingKeys.IntrospectionSignedResponseAlg,
+            SigningAlgValuesSupported = OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported,
+            EncryptedResponseAlg = OpenIdSettingKeys.IntrospectionEncryptedResponseAlg,
+            EncryptedResponseEnc = OpenIdSettingKeys.IntrospectionEncryptedResponseEnc,
+            EncryptionAlgValuesSupported =
+                OpenIdSettingKeys.IntrospectionEncryptionAlgValuesSupported,
+            EncryptionEncValuesSupported =
+                OpenIdSettingKeys.IntrospectionEncryptionEncValuesSupported,
+        };
+
+    /// <summary>
     /// Gets the name of the protected response, used in error descriptions.
     /// </summary>
     public required string ResponseName { get; init; }

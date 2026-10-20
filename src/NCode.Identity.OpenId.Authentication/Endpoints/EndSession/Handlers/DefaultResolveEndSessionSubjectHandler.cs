@@ -20,11 +20,11 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
-using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Json;
 using NCode.Mediator;
@@ -33,8 +33,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="ResolveEndSessionSubjectCommand"/> handler that identifies the
-/// session being logged out from the request's <c>id_token_hint</c> (whose signature and issuer are validated, but not
-/// its lifetime) or the current OP login cookie, and resolves the participating relying parties for back-channel
+/// session being logged out from the request's <c>id_token_hint</c> (validated as an ID token the tenant issued, except
+/// for its lifetime) or the current OP login cookie, and resolves the participating relying parties for back-channel
 /// notification. The stable subject (the internal <c>PrincipalId</c> used to key grants and re-projected per-client for
 /// back-channel logout) is recovered from server-owned state — the persisted session grant, falling back to the login
 /// cookie. The <c>sub</c> carried by the <c>id_token_hint</c> is deliberately never used as the subject identifier:
@@ -44,12 +44,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 /// a presented value is matched forward, never reversed (ADR-0096).
 /// </summary>
 internal class DefaultResolveEndSessionSubjectHandler(
-    IJwtValidator jwtValidator,
+    IIssuedTokenValidator issuedTokenValidator,
     ISessionService sessionService,
     ILogger<DefaultResolveEndSessionSubjectHandler> logger
 ) : ICommandResponseHandler<ResolveEndSessionSubjectCommand, EndSessionSubject>
 {
-    private IJwtValidator JwtValidator { get; } = jwtValidator;
+    private IIssuedTokenValidator IssuedTokenValidator { get; } = issuedTokenValidator;
     private ISessionService SessionService { get; } = sessionService;
     private ILogger<DefaultResolveEndSessionSubjectHandler> Logger { get; } = logger;
 
@@ -134,40 +134,27 @@ internal class DefaultResolveEndSessionSubjectHandler(
         CancellationToken cancellationToken
     )
     {
-        var openIdTenant = openIdContext.Tenant;
+        // The id_token_hint is typically expired at logout time, so its lifetime is not validated; every other check of
+        // an ID token is, so only tokens this OP issued are trusted to identify the session.
+        var result = await IssuedTokenValidator.ValidateIdTokenHintAsync(
+            openIdContext,
+            idTokenHint,
+            cancellationToken
+        );
 
-        try
-        {
-            // The id_token_hint is typically expired at logout time, so its lifetime is not validated; the signature
-            // and issuer are, so only tokens this OP issued are trusted to identify the session.
-            var parameters = new JwtValidationParameters()
-                .UseValidationKeys(openIdTenant.SecretsProvider.Collection)
-                .ValidateIssuer(openIdTenant.Issuer);
-
-            var result = await JwtValidator.ValidateAsync(
-                idTokenHint,
-                parameters,
-                cancellationToken
-            );
-
-            if (!result.IsValid)
-            {
-                return null;
-            }
-
-            var payload = result.DecodedJwt.Payload;
-            return new HintClaims(
-                GetString(payload, JoseClaimNames.Payload.Sid),
-                GetString(payload, JoseClaimNames.Payload.Azp)
-                    ?? GetString(payload, JoseClaimNames.Payload.ClientId)
-                    ?? GetAudience(payload)
-            );
-        }
-        catch
+        if (!result.IsValid)
         {
             // A hint that cannot be parsed or validated simply does not identify a session.
             return null;
         }
+
+        var payload = result.DecodedJwt.Payload;
+        return new HintClaims(
+            GetString(payload, JoseClaimNames.Payload.Sid),
+            GetString(payload, JoseClaimNames.Payload.Azp)
+                ?? GetString(payload, JoseClaimNames.Payload.ClientId)
+                ?? GetAudience(payload)
+        );
     }
 
     private static string? GetString(JsonElement payload, string name) =>

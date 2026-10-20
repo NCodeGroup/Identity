@@ -101,10 +101,23 @@ public sealed class ClientEntity : ISupportTenantEntity, ISupportConcurrencyToke
     /// </summary>
     public required JsonElement SettingsJson { get; set; }
 
+    /// <summary>
+    /// Gets the foreign key for the resource server this client acts for at the token introspection endpoint, or
+    /// <c>null</c> for an ordinary client. The binding is set when the client is created and never changes.
+    /// </summary>
+    [ForeignKey(nameof(ResourceServer))]
+    public required long? ResourceServerId { get; init; }
+
     // navigational properties
 
     /// <inheritdoc />
     public required TenantEntity Tenant { get; init; }
+
+    /// <summary>
+    /// Gets the navigation property for the resource server this client acts for, or <c>null</c> for an ordinary
+    /// client.
+    /// </summary>
+    public required ResourceServerEntity? ResourceServer { get; init; }
 
     /// <summary>
     /// Gets the collection of secrets only known to this client.

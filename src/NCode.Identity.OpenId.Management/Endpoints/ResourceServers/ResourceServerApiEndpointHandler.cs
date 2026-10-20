@@ -20,6 +20,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
@@ -179,10 +180,12 @@ internal class ResourceServerApiEndpointHandler(
             .Produces<ResourceServerSecretsResource>();
         resourceServers
             .MapPost("/{resourceServerId}/secrets", CreateSecretAsync)
-            .Produces<CreatedSecretResource>(StatusCodes.Status201Created);
+            .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
+            .Produces(StatusCodes.Status409Conflict);
         resourceServers
             .MapPost("/{resourceServerId}/secrets/import", ImportSecretAsync)
-            .Produces<SecretResource>(StatusCodes.Status201Created);
+            .Produces<SecretResource>(StatusCodes.Status201Created)
+            .Produces(StatusCodes.Status409Conflict);
         resourceServers
             .MapGet("/{resourceServerId}/secrets/{secretId}", GetSecretAsync)
             .Produces<SecretResource>();
@@ -206,6 +209,14 @@ internal class ResourceServerApiEndpointHandler(
             .MapDelete("/{resourceServerId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
     }
+
+    // A system resource server's tokens are read by the server itself, which decrypts them with the tenant's keys; a key
+    // of its own would make issuance encrypt its tokens to a key the server's own endpoints do not read (ADR-0167).
+    private static ProblemHttpResult SystemResourceServerHoldsNoKeys() =>
+        TypedResults.Problem(
+            detail: "A system resource server is read by the server itself and holds no keys.",
+            statusCode: StatusCodes.Status409Conflict
+        );
 
     internal virtual ScopeResource ToScopeResource(PersistedScope scope) =>
         new()
@@ -459,7 +470,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Deletes a resource server (API).
     /// </summary>
     /// <response code="204">The resource server was deleted.</response>
-    /// <response code="409">The resource server is a system server or is still referenced by a client grant.</response>
+    /// <response code="409">The resource server is a system server, is referenced by a client grant, or a client acts for it.</response>
     [EndpointName("api/resource-servers/delete")]
     internal virtual async ValueTask<IResult> DeleteAsync(
         HttpContext httpContext,
@@ -1113,6 +1124,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Creates a secret for a resource server. The generated key material is returned exactly once.
     /// </summary>
     /// <response code="201">The created secret, including its one-time key material.</response>
+    /// <response code="409">The resource server is a system resource server, which holds no keys.</response>
     [EndpointName("api/resource-servers/secrets/create")]
     internal virtual async ValueTask<IResult> CreateSecretAsync(
         HttpContext httpContext,
@@ -1139,6 +1151,11 @@ internal class ResourceServerApiEndpointHandler(
         if (!authorizationResult.Succeeded)
         {
             return AuthorizationFailed(httpContext);
+        }
+
+        if (resourceServer.IsSystem)
+        {
+            return SystemResourceServerHoldsNoKeys();
         }
 
         var validationError = SecretValidator.ValidateCreate(request);
@@ -1211,6 +1228,8 @@ internal class ResourceServerApiEndpointHandler(
     /// <summary>
     /// Imports a caller-supplied public key (JWK, PEM, or certificate) as a new resource-server secret.
     /// </summary>
+    /// <response code="201">The imported secret.</response>
+    /// <response code="409">The resource server is a system resource server, which holds no keys.</response>
     // See ADR-0104.
     internal virtual async ValueTask<IResult> ImportSecretAsync(
         HttpContext httpContext,
@@ -1237,6 +1256,11 @@ internal class ResourceServerApiEndpointHandler(
         if (!authorizationResult.Succeeded)
         {
             return AuthorizationFailed(httpContext);
+        }
+
+        if (resourceServer.IsSystem)
+        {
+            return SystemResourceServerHoldsNoKeys();
         }
 
         var validationError = SecretValidator.ValidateImport(request);

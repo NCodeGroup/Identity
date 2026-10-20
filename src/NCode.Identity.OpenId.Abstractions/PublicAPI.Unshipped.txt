@@ -281,6 +281,12 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DPoPSigningAlgValuesSupp
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenEncryptedResponseAlg = "id_token_encrypted_response_alg" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenEncryptedResponseEnc = "id_token_encrypted_response_enc" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IdTokenSignedResponseAlg = "id_token_signed_response_alg" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IntrospectionEncryptedResponseAlg = "introspection_encrypted_response_alg" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IntrospectionEncryptedResponseEnc = "introspection_encrypted_response_enc" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IntrospectionEncryptionAlgValuesSupported = "introspection_encryption_alg_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IntrospectionEncryptionEncValuesSupported = "introspection_encryption_enc_values_supported" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IntrospectionSignedResponseAlg = "introspection_signed_response_alg" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IntrospectionSigningAlgValuesSupported = "introspection_signing_alg_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.LogoUri = "logo_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MtlsEndpointAliasAuthority = "mtls_endpoint_alias_authority" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PolicyUri = "policy_uri" -> string!
@@ -840,6 +846,12 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.GrantTypesSupported.get 
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptedResponseAlg.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenEncryptedResponseEnc.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IdTokenSignedResponseAlg.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IntrospectionEncryptedResponseAlg.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IntrospectionEncryptedResponseEnc.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IntrospectionEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IntrospectionEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IntrospectionSignedResponseAlg.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.LogoUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.MtlsEndpointAliasAuthority.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PolicyUri.get -> NCode.Identity.Settings.SettingKey<string!>

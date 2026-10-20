@@ -916,6 +916,36 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         return localAccountId;
     }
 
+    /// <summary>
+    /// Persists the tenant with the given settings and no keys, so the tenant's keys are the ones the host provisions
+    /// when it first seeds the tenant (<c>OpenId:Tenant:KeyProvisioning</c>, under <c>DeveloperKeys:Mode</c>
+    /// <c>None</c>). The tenant reads its settings and keys when it is first served, so this must be called before the
+    /// factory serves any request.
+    /// </summary>
+    /// <param name="settings">The tenant's settings document.</param>
+    public async Task SeedTenantSettingsAsync(IReadOnlyDictionary<string, object> settings)
+    {
+        using var scope = Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var tenantStore = storeManager.GetStore<ITenantStore>();
+        if (await tenantStore.GetOrDefaultAsync(TenantId, CancellationToken.None) is not null)
+        {
+            throw new InvalidOperationException(
+                "The tenant is already persisted, so it may already be served with its earlier settings."
+            );
+        }
+
+        var tenant = CreateEmptyTenant(TenantId);
+        tenant.Settings.Value = System.Text.Json.JsonSerializer.SerializeToElement(settings);
+        await tenantStore.AddAsync(tenant, CancellationToken.None);
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
     private PersistedTenant CreateEmptyTenant(string tenantId) =>
         new()
         {

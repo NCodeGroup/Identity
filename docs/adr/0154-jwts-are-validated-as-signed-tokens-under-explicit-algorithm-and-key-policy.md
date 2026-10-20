@@ -1,6 +1,8 @@
 # 154. JWTs are validated as signed tokens under explicit algorithm and key policy
 
-- **Status:** Accepted
+- **Status:** Accepted (follow-up `F67` closed by
+  [ADR-0167](0167-the-server-validates-the-tokens-it-issued-under-one-policy.md): the server's readers of its own tokens
+  state their policy through one seam)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

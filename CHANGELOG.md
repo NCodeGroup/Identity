@@ -10,6 +10,21 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **A resource server can introspect through a client that acts for it, and receive the answer as a signed JWT.** A
+  client created with `CreateClientRequest.resourceServerId` acts for that resource server: it authenticates like any
+  confidential client but is accepted only at the introspection endpoint, and the binding never changes. The resource
+  server must be in the client's tenant and must not be a system resource server, and the caller must be allowed to
+  update it. `ClientResource.resourceServerId` reports the binding, `GET …/clients?resourceServerId=` lists a resource
+  server's clients, and a resource server with bound clients cannot be deleted. Such a client that sends
+  `Accept: application/token-introspection+jwt` receives the response as a JWT typed `token-introspection+jwt` (RFC
+  9701). The JWT is signed with its `introspection_signed_response_alg` (default `RS256`) and encrypted when it registers
+  `introspection_encrypted_response_alg` / `_enc`. Discovery advertises the
+  `introspection_{signing_alg,encryption_alg,encryption_enc}_values_supported` lists, and the client-authentication
+  methods and algorithms of the introspection and revocation endpoints. The management console's resource-server page
+  gains a **Clients** tab that lists and creates them. `JwtEncodingParameters.EnsureTokenLifetime` lets a JWT that is
+  not a credential omit `exp`. See
+  [ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md).
+
 - **Every tenant is provisioned with persisted keys, so a production deployment can sign from its first request.** On a
   fresh production database no tenant had a key, so the JSON Web Key Set was empty and nothing could be signed. That
   included the bootstrap administrator's first management token, which is the only credential that could import a key.
@@ -122,6 +137,28 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **Introspection reports a token only to the party that consumes it.** An access token is reported active only to a
+  client acting for a resource server in the token's audience, with `aud` reduced to that resource server and `scope`
+  to its scopes. A refresh token is reported active only to the client it was issued to. Everything else is
+  `{"active": false}`. **Breaking:** an integration that introspected access tokens as an ordinary client now receives
+  `active: false` and must create a client bound to its resource server. `IntrospectTokenCommand` gains the caller's
+  `ResolvedResourceServer`. `OpenIdClient` gains `ResourceServerId`, and `IOpenIdClientFactory.CreatePublicClientAsync`
+  takes an `OpenIdClientDefinition`. `PersistedClient` gains `ResourceServerId`, `IClientStore` gains
+  `GetPageByResourceServerAsync`, and the client table gains a `ResourceServerId` foreign key (migration
+  `AddClientResourceServer`). See
+  [ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md).
+
+- **The server validates every token it issued through one seam, and a system resource server holds no keys.** UserInfo,
+  the management API, introspection, token exchange, and the end-session `id_token_hint` validate through
+  `IIssuedTokenValidator`. Access tokens are checked against the tenant's access-token algorithm lists and keys, with
+  `typ` `at+jwt`, the issuer, the lifetime, and session revocation. ID tokens are checked against
+  `id_token_signing_alg_values_supported` with `typ` `JWT`. Token exchange picks the policy by `subject_token_type`, and
+  accepts a `jwt` subject token only when it is an access token or an ID token. The management API refuses to create or
+  import a secret for a system resource server (`409 Conflict`), and issuance ignores a key already stored on one; the
+  console no longer offers their Secrets tab. **Breaking:** `ResolvedResourceServer` requires `IsSystem` and `Scopes`,
+  `IResourceServerCredentialResolver` gains `ResolveByIdAsync`, and the `AccessTokenValidationError` log event is
+  retired. See [ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md).
 
 - **The development key modes build on the keys every tenant is provisioned with.**
   - **`PersistentSigningKey`** keeps the provisioned keys and only removes a key the development key ring can no
@@ -664,6 +701,20 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **Any authenticated client could introspect any token.** A client could introspect another client's refresh token or
+  any access token, including its own encrypted ones, and read what encryption hides from it. Introspection now
+  reports an access token only to a client acting for a resource server in the token's audience, narrowed to that
+  resource server, and a refresh token only to its own client (RFC 7662 §4, RFC 9701 §5). A client bound to a resource
+  server is accepted at no other endpoint, and every other endpoint refuses it unless it opts in.
+  ([ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md))
+
+- **The server's readers of its own tokens checked neither the token type nor an algorithm allow-list.** Introspection
+  reported an ID token as an active access token and ignored a revoked session. Token exchange accepted a logout token
+  or any other JWT the tenant signed as a `jwt` subject token. No reader limited the algorithms it accepted to those the
+  tenant permits. Every reader now enforces the type, the tenant's allow-lists, and, for access tokens, session
+  revocation.
+  ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md))
+
 - **No published URL follows the request's `Host` header any more.** A tenant without an issuer published its
   discovery endpoints, `registration_client_uri`, and device `verification_uri` under the origin of whatever request
   materialized it, so a forged `Host` could point a client's credentials elsewhere. Every served tenant now has an
@@ -730,6 +781,11 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **The server rejected the access tokens it encrypted.** A client or resource server that required encrypted access
+  tokens received tokens that UserInfo, the management API, introspection, and token exchange could not read, because
+  none of them named a decryption key. They now decrypt with the tenant's keys, and introspection also uses the calling
+  resource server's own keys. ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md))
 
 - **Concurrent first requests to a tenant failed one of them.** Two seeds of the same tenant — two replicas, or two
   requests that missed the tenant cache together — raced to commit, and the loser's request failed. A seed whose commit

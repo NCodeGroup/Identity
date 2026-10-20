@@ -101,10 +101,19 @@ internal class ClientStore(
             ClientId = client.ClientId,
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
+            ResourceServerId = client.ResourceServer?.ResourceServerId,
             Settings = await MapSettingsAsync(client, cancellationToken),
             Secrets = await MapSecretsAsync(client, cancellationToken),
         };
     }
+
+    // Every read of a client loads what MapFromEntityAsync maps.
+    private IQueryable<ClientEntity> QueryClients() =>
+        DbContext
+            .Clients.Include(client => client.Tenant)
+            .Include(client => client.ResourceServer)
+            .Include(client => client.Secrets)
+                .ThenInclude(clientSecret => clientSecret.Secret);
 
     /// <inheritdoc />
     protected override async ValueTask<ClientEntity?> GetEntityOrDefaultAsync(
@@ -113,11 +122,7 @@ internal class ClientStore(
     )
     {
         return GetLocalOrDefault(predicate)
-            ?? await DbContext
-                .Clients.Include(client => client.Tenant)
-                .Include(client => client.Secrets)
-                    .ThenInclude(clientSecret => clientSecret.Secret)
-                .FirstOrDefaultAsync(predicate, cancellationToken);
+            ?? await QueryClients().FirstOrDefaultAsync(predicate, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -138,14 +143,15 @@ internal class ClientStore(
         long? afterId,
         int take,
         CancellationToken cancellationToken
+    ) => await GetEntityPageAsync(QueryClients(), afterId, take, cancellationToken);
+
+    private static async ValueTask<IReadOnlyList<ClientEntity>> GetEntityPageAsync(
+        IQueryable<ClientEntity> query,
+        long? afterId,
+        int take,
+        CancellationToken cancellationToken
     )
     {
-        var query = DbContext
-            .Clients.Include(client => client.Tenant)
-            .Include(client => client.Secrets)
-                .ThenInclude(clientSecret => clientSecret.Secret)
-            .AsQueryable();
-
         if (afterId is { } id)
         {
             query = query.Where(client => client.Id > id);
@@ -155,7 +161,52 @@ internal class ClientStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedClient>> GetPageByResourceServerAsync(
+        string resourceServerId,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedResourceServerId = Normalize(resourceServerId);
+        var query = QueryClients()
+            .Where(client =>
+                client.ResourceServer != null
+                && client.ResourceServer.NormalizedResourceServerId == normalizedResourceServerId
+            );
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var afterId = DecodeCursor(page.Cursor);
+        var entities = await GetEntityPageAsync(query, afterId, page.Limit + 1, cancellationToken);
+
+        return await BuildPageAsync(entities, page.Limit, cancellationToken);
+    }
+
+    /// <inheritdoc />
     protected override long GetSortKey(ClientEntity entity) => entity.Id;
+
+    // A client is bound only to a resource server of its own tenant.
+    private async ValueTask<ResourceServerEntity?> GetResourceServerEntityOrDefaultAsync(
+        PersistedClient persistedClient,
+        long tenantEntityId,
+        CancellationToken cancellationToken
+    )
+    {
+        if (persistedClient.ResourceServerId is not { } resourceServerId)
+        {
+            return null;
+        }
+
+        var normalizedResourceServerId = Normalize(resourceServerId);
+        return await DbContext.ResourceServers.FirstOrDefaultAsync(
+                resourceServer =>
+                    resourceServer.TenantId == tenantEntityId
+                    && resourceServer.NormalizedResourceServerId == normalizedResourceServerId,
+                cancellationToken
+            )
+            ?? throw new InvalidOperationException(
+                $"Resource server '{resourceServerId}' not found."
+            );
+    }
 
     /// <inheritdoc />
     public override async ValueTask AddAsync(
@@ -164,6 +215,11 @@ internal class ClientStore(
     )
     {
         var tenantEntity = await GetTenantEntityAsync(persistedClient, cancellationToken);
+        var resourceServerEntity = await GetResourceServerEntityOrDefaultAsync(
+            persistedClient,
+            tenantEntity.Id,
+            cancellationToken
+        );
 
         // Assign the row token up front so create can return it without a re-read; the interceptor leaves a
         // pre-seeded insert token intact (ADR-0012). The sub-resource version columns stay manual.
@@ -185,7 +241,9 @@ internal class ClientStore(
             SecretsConcurrencyToken = persistedClient.Secrets.ConcurrencyToken,
             IsDisabled = persistedClient.IsDisabled,
             SettingsJson = persistedClient.Settings.Value,
+            ResourceServerId = resourceServerEntity?.Id,
             Tenant = tenantEntity,
+            ResourceServer = resourceServerEntity,
             Secrets = secrets,
         };
 

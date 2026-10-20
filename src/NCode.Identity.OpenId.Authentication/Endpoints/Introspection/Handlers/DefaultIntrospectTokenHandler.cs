@@ -16,33 +16,38 @@
 
 #endregion
 
+using System.Text.Json;
 using NCode.Identity.Jose;
-using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Authentication.Subject;
+using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Json;
 using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Handlers;
 
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="IntrospectTokenCommand"/> message. It resolves
-/// whether the presented token is active — a JWT access token (validated against the tenant keys) or a refresh token
-/// (a persisted grant) — and contributes the token's claims. Additional handlers may enrich the response.
+/// whether the presented token is active for the caller and contributes the claims the caller may see. An access token
+/// is active only for a caller acting for a resource server the token names in its audience: it is validated through
+/// <see cref="IIssuedTokenValidator"/>, decrypted with the tenant's keys and that resource server's own, and its
+/// <c>aud</c> and <c>scope</c> are narrowed to that resource server. A refresh token (a persisted grant) is active
+/// only for the client it was issued to. Every other token is inactive. Additional handlers may enrich the response.
 /// </summary>
+// See ADR-0029 and ADR-0168 (RFC 7662 §4, RFC 9701 §5).
 internal class DefaultIntrospectTokenHandler(
-    IJwtValidator jwtValidator,
-    IOpenIdClientResolver openIdClientResolver,
+    IIssuedTokenValidator issuedTokenValidator,
     ISubjectIdentifierService subjectIdentifierService,
     IPersistedGrantService persistedGrantService
 ) : ICommandHandler<IntrospectTokenCommand>, ISupportMediatorPriority
 {
-    private IJwtValidator JwtValidator { get; } = jwtValidator;
-    private IOpenIdClientResolver OpenIdClientResolver { get; } = openIdClientResolver;
+    private IIssuedTokenValidator IssuedTokenValidator { get; } = issuedTokenValidator;
     private ISubjectIdentifierService SubjectIdentifierService { get; } = subjectIdentifierService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
 
@@ -55,7 +60,7 @@ internal class DefaultIntrospectTokenHandler(
         CancellationToken cancellationToken
     )
     {
-        var (openIdContext, _, request, result) = command;
+        var (openIdContext, openIdClient, resourceServer, request, result) = command;
 
         // A higher-priority handler already resolved the token.
         if (result.Active)
@@ -70,55 +75,105 @@ internal class DefaultIntrospectTokenHandler(
         }
 
         // Try the JWT access token first (the common introspection target); otherwise a refresh token grant.
-        if (await TryIntrospectAccessTokenAsync(openIdContext, token, result, cancellationToken))
+        if (
+            resourceServer is not null
+            && await TryIntrospectAccessTokenAsync(
+                openIdContext,
+                resourceServer,
+                token,
+                result,
+                cancellationToken
+            )
+        )
         {
             return;
         }
 
-        await TryIntrospectRefreshTokenAsync(openIdContext, token, result, cancellationToken);
+        await TryIntrospectRefreshTokenAsync(
+            openIdContext,
+            openIdClient,
+            token,
+            result,
+            cancellationToken
+        );
     }
 
     private async ValueTask<bool> TryIntrospectAccessTokenAsync(
         OpenIdContext openIdContext,
+        ResolvedResourceServer resourceServer,
         string token,
         IntrospectionResult result,
         CancellationToken cancellationToken
     )
     {
-        var openIdTenant = openIdContext.Tenant;
-
-        JwtValidationResult validateResult;
-        try
+        var options = new AccessTokenValidationOptions
         {
-            var parameters = new JwtValidationParameters()
-                .UseValidationKeys(openIdTenant.SecretsProvider.Collection)
-                .ValidateIssuer(openIdTenant.Issuer)
-                .ValidateTokenLifeTime();
+            RequiredAudiences = [resourceServer.Identifier],
+            AdditionalDecryptionKeys = resourceServer.SecretsProvider.Collection,
+        };
 
-            validateResult = await JwtValidator.ValidateAsync(token, parameters, cancellationToken);
-        }
-        catch
-        {
-            // A token that cannot be parsed as a JWT is not an access token; fall through to the refresh-token path.
-            return false;
-        }
+        var validateResult = await IssuedTokenValidator.ValidateAccessTokenAsync(
+            openIdContext,
+            token,
+            options,
+            cancellationToken
+        );
 
+        // A token that cannot be decoded as an access token for the caller's resource server is not one; fall through to
+        // the refresh-token path.
         if (!validateResult.IsValid)
         {
             return false;
         }
 
+        var payload = validateResult.DecodedJwt.Payload;
+
         result.Active = true;
-        foreach (var claim in validateResult.DecodedJwt.Payload.EnumerateObject())
+        foreach (var claim in payload.EnumerateObject())
         {
             result.Claims[claim.Name] = claim.Value.Clone();
         }
 
+        // The caller learns only its own audience and the scopes it owns, never the other resource servers the token
+        // also targets.
+        result.Claims[JoseClaimNames.Payload.Aud] = resourceServer.Identifier;
+        NarrowScope(payload, resourceServer, result);
+
         return true;
+    }
+
+    private static void NarrowScope(
+        JsonElement payload,
+        ResolvedResourceServer resourceServer,
+        IntrospectionResult result
+    )
+    {
+        if (!payload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Scope, out var scope))
+        {
+            return;
+        }
+
+        var ownedScopes = resourceServer.Scopes;
+        var narrowed = scope
+            .Split(OpenIdConstants.ParameterSeparatorChar, StringSplitOptions.RemoveEmptyEntries)
+            .Where(value => ownedScopes.Contains(value, StringComparer.Ordinal))
+            .ToList();
+
+        if (narrowed.Count == 0)
+        {
+            result.Claims.Remove(JoseClaimNames.Payload.Scope);
+            return;
+        }
+
+        result.Claims[JoseClaimNames.Payload.Scope] = string.Join(
+            OpenIdConstants.ParameterSeparatorChar,
+            narrowed
+        );
     }
 
     private async ValueTask TryIntrospectRefreshTokenAsync(
         OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
         string token,
         IntrospectionResult result,
         CancellationToken cancellationToken
@@ -141,9 +196,15 @@ internal class DefaultIntrospectTokenHandler(
             return;
         }
 
+        // A refresh token is a credential of the client it was issued to, and only that client may learn about it.
+        var payload = grant.Value.Payload;
+        if (!string.Equals(payload.ClientId, openIdClient.ClientId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
         result.Active = true;
 
-        var payload = grant.Value.Payload;
         result.Claims[JoseClaimNames.Payload.ClientId] = payload.ClientId;
         if (payload.EffectiveScopes.Count > 0)
         {
@@ -155,18 +216,14 @@ internal class DefaultIntrospectTokenHandler(
 
         if (grant.Value.SubjectId is { Length: > 0 } subjectId)
         {
-            // Project to the owning client's per-sector pseudonym so a pairwise client never recovers the stable
-            // principal identifier through introspection (OpenID Connect Core 1.0 §8). The access-token path needs no
-            // such projection: the token already carries the projected `sub`.
-            var openIdClient = await OpenIdClientResolver.ResolveClientOrDefaultAsync(
+            // Project to the client's per-sector pseudonym so a pairwise client never recovers the stable principal
+            // identifier through introspection (OpenID Connect Core 1.0 §8). The access-token path needs no such
+            // projection: the token already carries the projected `sub`.
+            result.Claims[JoseClaimNames.Payload.Sub] = SubjectIdentifierService.ProjectSubjectId(
                 openIdContext,
-                payload.ClientId,
-                cancellationToken
+                openIdClient,
+                subjectId
             );
-
-            result.Claims[JoseClaimNames.Payload.Sub] = openIdClient is null
-                ? subjectId
-                : SubjectIdentifierService.ProjectSubjectId(openIdContext, openIdClient, subjectId);
         }
     }
 }

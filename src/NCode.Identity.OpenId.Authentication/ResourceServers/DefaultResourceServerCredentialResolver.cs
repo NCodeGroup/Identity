@@ -73,8 +73,6 @@ internal class DefaultResourceServerCredentialResolver(
         }
 
         var openIdTenant = openIdContext.Tenant;
-        var tenantEffectiveSettings = openIdTenant.SettingsProvider.Collection;
-        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
 
         var requestedScopes =
             effectiveScopes as IReadOnlySet<string>
@@ -138,27 +136,7 @@ internal class DefaultResourceServerCredentialResolver(
         {
             foreach (var resourceServer in matches.Values)
             {
-                var effectiveSettings = tenantEffectiveSettings.Merge(
-                    SettingSerializer.DeserializeSettings(
-                        resourceServer.Settings.Value,
-                        OpenIdSettingScopes.ResourceServer,
-                        jsonOptions
-                    )
-                );
-
-                var secretsProvider = SecretKeyCollectionProviderFactory.CreateStatic(
-                    SecretSerializer.DeserializeSecrets(resourceServer.Secrets.Value)
-                );
-
-                resourceServers.Add(
-                    new ResolvedResourceServer
-                    {
-                        ResourceServerId = resourceServer.ResourceServerId,
-                        Identifier = resourceServer.Identifier,
-                        EffectiveSettings = effectiveSettings,
-                        SecretsProvider = secretsProvider,
-                    }
-                );
+                resourceServers.Add(CreateResolvedResourceServer(openIdContext, resourceServer));
             }
         }
         catch
@@ -172,5 +150,65 @@ internal class DefaultResourceServerCredentialResolver(
         }
 
         return new ResourceServerCredentialResolution { ResourceServers = resourceServers };
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<ResourceServerCredentialResolution> ResolveByIdAsync(
+        OpenIdContext openIdContext,
+        string resourceServerId,
+        CancellationToken cancellationToken
+    )
+    {
+        // The OIDC runtime endpoints do not establish an ambient tenant scope, so set it explicitly here so the
+        // persistence-layer tenant query filter applies to the resource-server read (ADR-0018).
+        using var tenantScope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
+
+        var resourceServer = await resourceServerStore.GetOrDefaultAsync(
+            resourceServerId,
+            cancellationToken
+        );
+
+        if (resourceServer is null || resourceServer.IsDisabled)
+        {
+            return new ResourceServerCredentialResolution { ResourceServers = [] };
+        }
+
+        var resolved = CreateResolvedResourceServer(openIdContext, resourceServer);
+        return new ResourceServerCredentialResolution { ResourceServers = [resolved] };
+    }
+
+    // A resource server's effective settings are the tenant's merged with its own, and its keys are its own secrets.
+    private ResolvedResourceServer CreateResolvedResourceServer(
+        OpenIdContext openIdContext,
+        PersistedResourceServer resourceServer
+    )
+    {
+        var tenantEffectiveSettings = openIdContext.Tenant.SettingsProvider.Collection;
+        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
+
+        var effectiveSettings = tenantEffectiveSettings.Merge(
+            SettingSerializer.DeserializeSettings(
+                resourceServer.Settings.Value,
+                OpenIdSettingScopes.ResourceServer,
+                jsonOptions
+            )
+        );
+
+        var secretsProvider = SecretKeyCollectionProviderFactory.CreateStatic(
+            SecretSerializer.DeserializeSecrets(resourceServer.Secrets.Value)
+        );
+
+        return new ResolvedResourceServer
+        {
+            ResourceServerId = resourceServer.ResourceServerId,
+            Identifier = resourceServer.Identifier,
+            Scopes = [.. resourceServer.Scopes.Select(scope => scope.Value)],
+            IsSystem = resourceServer.IsSystem,
+            EffectiveSettings = effectiveSettings,
+            SecretsProvider = secretsProvider,
+        };
     }
 }

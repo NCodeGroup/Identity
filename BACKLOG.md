@@ -367,19 +367,16 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationApplicationBuilderExtensions.cs`,
   `src/frontend/apps/auth`. Capture the design in an ADR.
 
-- **`F68` — Check a client's registered response algorithms when its settings are written.** A client's
-  `id_token_signed_response_alg` and its other registered response algorithms must be in its effective
-  `*_values_supported` lists
+- **`F68` — Check a client's registered response algorithms when its tenant's settings are written, and when it is
+  seeded or configured.** A client's registered response algorithms must be in its effective `*_values_supported` lists
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)). Dynamic client
-  registration checks them, but the management API, the seeders, and configuration do not, so a mismatch surfaces only
-  when issuance fails with `server_error`. A security profile now supplies compliant defaults, so a client under FAPI
-  2.0 that registers no algorithm gets `PS256`
-  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md) decision 7), but an explicit
-  value outside a ceiling, or a ceiling a tenant narrows beneath its clients' values, is still accepted. Validate the
-  registered values against the client's effective settings wherever a client's or its tenant's settings are written —
-  the management client create and settings update can reuse `ClientApiEndpointHandler.MergeClientSettingsAsync` and
-  the keys `ClientJwtProtectionSettings` names; a tenant write must check every client of the tenant. Touch points: the
-  management client and tenant endpoints, the seeders.
+  registration and the management API's client create and settings update check them
+  (`ClientApiEndpointHandler.ValidateResponseAlgorithms`), and a security profile supplies a compliant default
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md) decision 7). A tenant (or
+  server) settings write that narrows a list beneath a client's registered value, and a client the seeders or
+  configuration create, are still accepted, so the mismatch surfaces only when issuance fails with `server_error`.
+  Check every client of the tenant when its settings are written, and seeded and configured clients when they load.
+  Touch points: `TenantApiEndpointHandler`, `ServerApiEndpointHandler`, the seeders.
 
 - **`F75` — Authenticate the management API against the control plane, not the tenant the request resolves.** The
   management `/api` surface materializes its OpenID context through `CreateForRequestAsync`, so the tenant that

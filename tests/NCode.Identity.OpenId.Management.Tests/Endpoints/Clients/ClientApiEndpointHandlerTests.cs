@@ -473,6 +473,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupEffectiveSettings(CreateSettingCollection());
+
         var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -522,6 +524,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+
+        SetupEffectiveSettings(CreateSettingCollection());
 
         var request = new CreateClientRequest
         {
@@ -573,6 +577,39 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         AssertSettingsValidationProblem(result);
+    }
+
+    [Fact]
+    public async Task CreateClientAsync_WhenARegisteredAlgorithmIsNotPermitted_ReturnsValidationProblem()
+    {
+        SetupValidSettings();
+        SetupStore();
+        SetupResourceId("generated-id");
+        MockClientValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedClient>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        SetupEffectiveSettings(CreateIdTokenSigningSettings("RS256", ["PS256", "ES256"]));
+
+        var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no AddAsync / SaveChangesAsync setup, so persisting the client would fail the test.
+        var result = await Handler.CreateClientAsync(
+            httpContext,
+            TenantId,
+            request,
+            CancellationToken.None
+        );
+
+        AssertAlgorithmNotPermitted(result, OpenIdSettingNames.IdTokenSignedResponseAlg, "RS256");
     }
 
     #endregion
@@ -961,6 +998,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupEffectiveSettings(CreateSettingCollection());
+
         var httpContext = CreateHttpContext(authenticated: true);
 
         var result = await Handler.UpdateSettingsAsync(
@@ -997,6 +1036,32 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         AssertSettingsValidationProblem(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenARegisteredAlgorithmIsNotPermitted_ReturnsValidationProblem()
+    {
+        SetupValidSettings();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupEffectiveSettings(CreateIdTokenSigningSettings("RS256", ["PS256"]));
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ClientId,
+            CreateAddPatch(OpenIdSettingNames.IdTokenSignedResponseAlg, "RS256"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        AssertAlgorithmNotPermitted(result, OpenIdSettingNames.IdTokenSignedResponseAlg, "RS256");
     }
 
     [Fact]
@@ -1073,6 +1138,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupEffectiveSettings(CreateSettingCollection());
+
         var httpContext = CreateHttpContext(authenticated: true);
 
         var result = await Handler.UpdateSettingsAsync(
@@ -1084,6 +1151,133 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    #endregion
+
+    #region ValidateResponseAlgorithms Tests
+
+    [Fact]
+    public void ValidateResponseAlgorithms_WhenNoAlgorithmIsRegistered_ReturnsNoErrors()
+    {
+        var errors = Handler.ValidateResponseAlgorithms(CreateSettingCollection());
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void ValidateResponseAlgorithms_WhenTheSigningAlgorithmIsPermitted_ReturnsNoErrors()
+    {
+        var settings = CreateIdTokenSigningSettings("PS256", ["PS256", "ES256"]);
+
+        var errors = Handler.ValidateResponseAlgorithms(settings);
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void ValidateResponseAlgorithms_WhenEncryptionRegistersNoContentEncryption_ChecksTheDefault()
+    {
+        var mockSettings = new Mock<ISettingCollection>(MockBehavior.Loose);
+        string? keyAlgorithm = AlgorithmCodes.KeyManagement.RsaOaep256;
+        IReadOnlyCollection<string>? permittedKeyAlgorithms = [keyAlgorithm];
+        IReadOnlyCollection<string>? permittedContentAlgorithms =
+        [
+            AlgorithmCodes.AuthenticatedEncryption.Aes256Gcm,
+        ];
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(OpenIdSettingKeys.UserInfoEncryptedResponseAlg, out keyAlgorithm)
+            )
+            .Returns(true);
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.UserInfoEncryptionAlgValuesSupported,
+                    out permittedKeyAlgorithms
+                )
+            )
+            .Returns(true);
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported,
+                    out permittedContentAlgorithms
+                )
+            )
+            .Returns(true);
+
+        var errors = Handler.ValidateResponseAlgorithms(mockSettings.Object);
+
+        var error = Assert.Single(errors);
+        Assert.Equal(OpenIdSettingNames.UserInfoEncryptedResponseEnc, error.SettingName);
+        Assert.Contains(
+            $"'{AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256}'",
+            error.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    private void SetupEffectiveSettings(ISettingCollection effectiveSettings)
+    {
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenantSettings())
+            .Verifiable();
+        MockSecurityProfileCatalog
+            .Setup(x =>
+                x.Expand(
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
+            .Returns(Array.Empty<Setting>())
+            .Verifiable();
+        SetupServerProvider(effectiveSettings);
+    }
+
+    private static ISettingCollection CreateIdTokenSigningSettings(
+        string registered,
+        IReadOnlyCollection<string> permitted
+    )
+    {
+        string? registeredValue = registered;
+        IReadOnlyCollection<string>? permittedValues = permitted;
+        var mockSettings = new Mock<ISettingCollection>(MockBehavior.Loose);
+        mockSettings
+            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
+            .Returns(mockSettings.Object);
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(OpenIdSettingKeys.IdTokenSignedResponseAlg, out registeredValue)
+            )
+            .Returns(true);
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
+                    out permittedValues
+                )
+            )
+            .Returns(true);
+        return mockSettings.Object;
+    }
+
+    private static void AssertAlgorithmNotPermitted(
+        IResult result,
+        string settingName,
+        string registered
+    )
+    {
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal([settingName], problem.ProblemDetails.Errors.Keys);
+        Assert.Contains($"'{registered}'", problem.ProblemDetails.Detail, StringComparison.Ordinal);
     }
 
     #endregion

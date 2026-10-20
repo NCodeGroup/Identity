@@ -244,6 +244,13 @@ change to the public API is a **major** version bump.
   registers no algorithm is therefore signed with an algorithm the profile permits, rather than with `RS256`, which the
   profile excludes, and no longer fails at issuance
   ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)).
+- **The management API rejects a client algorithm its effective settings do not permit.** Client create and settings
+  update merge the client's document onto its tenant's effective settings, as the runtime does. They then answer `400`
+  with a validation problem naming the setting when a registered ID token, UserInfo, or introspection signing or
+  encryption algorithm is outside its effective `*_values_supported` list. The default `A128CBC-HS256` of a registered
+  encryption without an `enc` is checked the same way. A mismatch is reported when the settings are written instead of
+  failing every issuance with `server_error`
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
 - **Hash algorithms and binary encodings are open vocabularies.** The `HashAlgorithmType` and `BinaryEncodingType`
   enums are removed. `ICryptoService.HashValue` takes the framework's `HashAlgorithmName` and computes the digest with
   `CryptographicOperations`, so SHA-384 and SHA-3 are available. Encodings are named: `BinaryEncodings` holds

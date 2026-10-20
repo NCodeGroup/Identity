@@ -27,6 +27,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
@@ -222,7 +223,7 @@ internal class ClientApiEndpointHandler(
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
-    /// <param name="client">The <see cref="PersistedClient"/> whose settings to merge.</param>
+    /// <param name="clientSettings">The client's settings document to merge.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the owning tenant's
@@ -230,7 +231,7 @@ internal class ClientApiEndpointHandler(
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeClientSettingsAsync(
         OpenIdContext openIdContext,
         string tenantId,
-        PersistedClient client,
+        JsonElement clientSettings,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
@@ -251,13 +252,139 @@ internal class ClientApiEndpointHandler(
             jsonOptions
         );
         var clientScopeSettings = SecurityProfileCatalog.Expand(
-            client.Settings.Value,
+            clientSettings,
             OpenIdSettingScopes.Client,
             jsonOptions
         );
 
         var tenantEffective = server.SettingsProvider.Collection.Merge(tenantScopeSettings);
         return tenantEffective.Merge(clientScopeSettings);
+    }
+
+    /// <summary>
+    /// Verifies that a client's settings document, merged onto its tenant's effective settings as the runtime merges it,
+    /// permits every algorithm the client registers for the JWTs addressed to it: its ID tokens, UserInfo responses, and
+    /// introspection responses. A mismatch is rejected when the settings are written instead of failing every issuance
+    /// with <c>server_error</c>.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
+    /// <param name="clientSettings">The client's settings document to verify.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="SettingError"/> instances naming each algorithm that is not permitted, or an empty list.</returns>
+    // See ADR-0155.
+    internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateResponseAlgorithmsAsync(
+        OpenIdContext openIdContext,
+        string tenantId,
+        JsonElement clientSettings,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        var effectiveSettings = await MergeClientSettingsAsync(
+            openIdContext,
+            tenantId,
+            clientSettings,
+            storeManager,
+            cancellationToken
+        );
+
+        return effectiveSettings is null ? [] : ValidateResponseAlgorithms(effectiveSettings);
+    }
+
+    /// <summary>
+    /// Verifies that a client's effective settings permit every algorithm it registers for the JWTs addressed to it, as
+    /// issuance selects them: a registered signing algorithm must be in the signing list, and a registered key-management
+    /// algorithm and its content encryption, <c>A128CBC-HS256</c> unless registered, in the encryption lists. An unset
+    /// list is unrestricted.
+    /// </summary>
+    /// <param name="settings">The client's effective settings.</param>
+    /// <returns>The <see cref="SettingError"/> instances naming each algorithm that is not permitted, or an empty list.</returns>
+    // See ADR-0155.
+    internal virtual IReadOnlyList<SettingError> ValidateResponseAlgorithms(
+        IReadOnlySettingCollection settings
+    )
+    {
+        List<SettingError> errors = [];
+        ClientJwtProtectionSettings[] responses =
+        [
+            ClientJwtProtectionSettings.IdToken,
+            ClientJwtProtectionSettings.UserInfo,
+            ClientJwtProtectionSettings.Introspection,
+        ];
+
+        foreach (var response in responses)
+        {
+            if (
+                settings.TryGetValue(response.SignedResponseAlg, out var signingAlgorithm)
+                && !string.IsNullOrEmpty(signingAlgorithm)
+            )
+            {
+                AddIfNotPermitted(
+                    errors,
+                    settings,
+                    response.SignedResponseAlg,
+                    signingAlgorithm,
+                    response.SigningAlgValuesSupported
+                );
+            }
+
+            if (
+                !settings.TryGetValue(response.EncryptedResponseAlg, out var keyAlgorithm)
+                || string.IsNullOrEmpty(keyAlgorithm)
+            )
+            {
+                continue;
+            }
+
+            AddIfNotPermitted(
+                errors,
+                settings,
+                response.EncryptedResponseAlg,
+                keyAlgorithm,
+                response.EncryptionAlgValuesSupported
+            );
+
+            var contentAlgorithm =
+                settings.TryGetValue(response.EncryptedResponseEnc, out var registeredEnc)
+                && !string.IsNullOrEmpty(registeredEnc)
+                    ? registeredEnc
+                    : AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256;
+
+            AddIfNotPermitted(
+                errors,
+                settings,
+                response.EncryptedResponseEnc,
+                contentAlgorithm,
+                response.EncryptionEncValuesSupported
+            );
+        }
+
+        return errors;
+    }
+
+    private static void AddIfNotPermitted(
+        List<SettingError> errors,
+        IReadOnlySettingCollection settings,
+        SettingKey<string> registeredKey,
+        string registeredValue,
+        SettingKey<IReadOnlyCollection<string>> permittedKey
+    )
+    {
+        if (
+            settings.TryGetValue(permittedKey, out var permitted)
+            && !permitted.Contains(registeredValue, StringComparer.Ordinal)
+        )
+        {
+            errors.Add(
+                new SettingError(
+                    registeredKey.SettingName,
+                    $"The '{registeredKey.SettingName}' value '{registeredValue}' is not permitted by the client's "
+                        + $"effective '{permittedKey.SettingName}'."
+                )
+            );
+        }
     }
 
     /// <summary>
@@ -443,6 +570,18 @@ internal class ClientApiEndpointHandler(
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);
+        }
+
+        var algorithmErrors = await ValidateResponseAlgorithmsAsync(
+            openIdContext,
+            tenantId,
+            client.Settings.Value,
+            storeManager,
+            cancellationToken
+        );
+        if (algorithmErrors.Count > 0)
+        {
+            return SettingsValidationProblem(algorithmErrors);
         }
 
         await store.AddAsync(client, cancellationToken);
@@ -662,7 +801,7 @@ internal class ClientApiEndpointHandler(
         var effectiveSettings = await MergeClientSettingsAsync(
             openIdContext,
             tenantId,
-            client,
+            client.Settings.Value,
             storeManager,
             cancellationToken
         );
@@ -759,6 +898,18 @@ internal class ClientApiEndpointHandler(
         if (HasJwksUri(settingsValue) && HasPublicKeys(client.Secrets.Value))
         {
             return KeySourceConflict();
+        }
+
+        var algorithmErrors = await ValidateResponseAlgorithmsAsync(
+            httpContext.GetOpenIdContext(),
+            client.TenantId,
+            settingsValue,
+            storeManager,
+            cancellationToken
+        );
+        if (algorithmErrors.Count > 0)
+        {
+            return SettingsValidationProblem(algorithmErrors);
         }
 
         clientSettings.Value = settingsValue;

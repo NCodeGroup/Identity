@@ -31,4 +31,10 @@ public readonly record struct InitialAccessTokenGrant
     /// Gets the optional human-readable description of the initial access token, for administrative purposes.
     /// </summary>
     public string? Description { get; init; }
+
+    /// <summary>
+    /// Gets the identifier of the resource server the token is scoped to, or <c>null</c> when it registers ordinary
+    /// clients. A client registered with a scoped token is bound to that resource server and introspects for it.
+    /// </summary>
+    public string? ResourceServerId { get; init; }
 }

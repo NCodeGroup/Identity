@@ -75,6 +75,15 @@ public sealed record RegisterClientResponse
     public string? RegistrationClientUri { get; init; }
 
     /// <summary>
+    /// Gets the identifier of the resource server the client is bound to and introspects for, or <c>null</c> for an
+    /// ordinary client. The binding comes from the initial access token the client registered with and never changes
+    /// (ADR-0192), so the server reports it and ignores the member in a request.
+    /// </summary>
+    [JsonPropertyName("resource_server_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ResourceServerId { get; init; }
+
+    /// <summary>
     /// Gets the array of redirection URI strings the client may use in authorization requests.
     /// </summary>
     [JsonPropertyName("redirect_uris")]

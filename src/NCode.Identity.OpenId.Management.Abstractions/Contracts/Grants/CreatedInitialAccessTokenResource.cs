@@ -52,6 +52,12 @@ public sealed class CreatedInitialAccessTokenResource
     public required string? Description { get; init; }
 
     /// <summary>
+    /// Gets the identifier of the resource server the token is scoped to, or <c>null</c> when it registers ordinary
+    /// clients.
+    /// </summary>
+    public string? ResourceServerId { get; init; }
+
+    /// <summary>
     /// Gets when the token was created.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }

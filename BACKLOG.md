@@ -367,15 +367,21 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationApplicationBuilderExtensions.cs`,
   `src/frontend/apps/auth`. Capture the design in an ADR.
 
-- **`F77` — Register a resource-server client through dynamic client registration.** A resource server introspects
-  through a client bound to it, and the binding is set only through the management API, by a caller allowed to update
-  that resource server ([ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
-  RFC 9701 §3 allows the authorization server to register resource servers dynamically, which a deployment that
-  provisions APIs automatically would need. Define how a registration request names its resource server and how the
-  registrant proves it may act for it — an initial access token scoped to that resource server is the likely shape —
-  register the `introspection_*_response_alg` metadata, and report the binding in the client information response.
-  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/`.
+- **`F77` — Register a resource-server client's introspection response metadata dynamically (remaining).** A client
+  registered with an initial access token scoped to a resource server is bound to it
+  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)), but dynamic
+  registration does not yet accept `introspection_signed_response_alg`, `introspection_encrypted_response_alg`, and
+  `introspection_encrypted_response_enc` (RFC 9701 §6). A dynamically registered resource-server client therefore
+  receives `RS256` and no encryption until an operator sets them through the management API. Register the three members
+  for a bound client only, and refuse them with `invalid_client_metadata` for an ordinary client, as introspection
+  refuses an ordinary client a JWT. Validate them against the tenant's `introspection_*_values_supported` and the FAPI
+  ceilings the way `userinfo_*` metadata is validated, store them as the client's settings, and report them in the
+  client information response. The admin console's initial-access-token dialog also cannot scope a token to a resource
+  server yet; the `@ncode/api` contract already carries `resourceServerId`. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/Messages/RegisterClientRequest.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/Results/RegisterClientResponse.cs`,
+  `src/frontend/packages/ui/src/components/InitialAccessTokenFormDialog.tsx`.
 
 ## Conformance & interop testing (group `T`)
 

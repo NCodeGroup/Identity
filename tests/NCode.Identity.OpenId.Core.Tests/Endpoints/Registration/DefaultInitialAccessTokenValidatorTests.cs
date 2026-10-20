@@ -52,7 +52,7 @@ public class DefaultInitialAccessTokenValidatorTests : BaseTests
             .Verifiable();
 
     [Fact]
-    public async Task ValidateAsync_EmptyToken_ReturnsFalse()
+    public async Task ValidateAsync_EmptyToken_ReturnsNull()
     {
         var mockGrantService = CreateStrictMock<IPersistedGrantService>();
         var mockContext = CreateStrictMock<OpenIdContext>();
@@ -64,11 +64,11 @@ public class DefaultInitialAccessTokenValidatorTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.False(result);
+        Assert.Null(result);
     }
 
     [Fact]
-    public async Task ValidateAsync_ActiveGrant_ReturnsTrue()
+    public async Task ValidateAsync_ActiveGrant_ReturnsPayload()
     {
         var mockGrantService = CreateStrictMock<IPersistedGrantService>();
         var mockContext = CreateStrictMock<OpenIdContext>();
@@ -85,7 +85,7 @@ public class DefaultInitialAccessTokenValidatorTests : BaseTests
             ClientId = null,
             SubjectId = null,
             SessionId = null,
-            Payload = new InitialAccessTokenGrant(),
+            Payload = new InitialAccessTokenGrant { ResourceServerId = "api" },
         };
 
         mockGrantService
@@ -107,11 +107,11 @@ public class DefaultInitialAccessTokenValidatorTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.True(result);
+        Assert.Equal("api", result?.ResourceServerId);
     }
 
     [Fact]
-    public async Task ValidateAsync_NoGrant_ReturnsFalse()
+    public async Task ValidateAsync_NoGrant_ReturnsNull()
     {
         var mockGrantService = CreateStrictMock<IPersistedGrantService>();
         var mockContext = CreateStrictMock<OpenIdContext>();
@@ -144,6 +144,6 @@ public class DefaultInitialAccessTokenValidatorTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.False(result);
+        Assert.Null(result);
     }
 }

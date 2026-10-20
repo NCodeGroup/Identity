@@ -230,12 +230,16 @@ NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenReques
 NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.Description.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.LifetimeSeconds.get -> long?
 NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.LifetimeSeconds.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.ResourceServerId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.ResourceServerId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.CreatedInitialAccessTokenResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.CreatedWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.Description.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.Description.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ResourceServerId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ResourceServerId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ExpiresWhen.get -> System.DateTimeOffset?
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ExpiresWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.GrantId.get -> string!

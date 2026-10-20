@@ -212,7 +212,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                 .AsHttpResult();
         }
 
-        var authorized = await AuthorizeRegistrationAsync(
+        var (authorized, initialAccessToken) = await AuthorizeRegistrationAsync(
             openIdContext,
             httpContext,
             cancellationToken
@@ -280,6 +280,12 @@ internal class DefaultClientRegistrationEndpointHandler(
         var isConfidential =
             resolved.TokenEndpointAuthMethod != OpenIdConstants.ClientAuthenticationMethods.None;
 
+        var resourceServerId = initialAccessToken?.ResourceServerId;
+        if (resourceServerId is not null && !isConfidential)
+        {
+            return ResourceServerClientMustBeConfidential(errorFactory);
+        }
+
         var secretsError = BuildClientSecrets(
             request,
             isConfidential,
@@ -299,6 +305,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             ClientId = clientId,
             ConcurrencyToken = string.Empty,
             IsDisabled = false,
+            ResourceServerId = resourceServerId,
             Settings = new PersistedClientSettings
             {
                 TenantId = tenantId,
@@ -317,6 +324,22 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         await using (var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken))
         {
+            if (
+                resourceServerId is not null
+                && !await CanBindResourceServerAsync(
+                    storeManager,
+                    tenantId,
+                    resourceServerId,
+                    cancellationToken
+                )
+            )
+            {
+                return errorFactory
+                    .InvalidToken()
+                    .WithStatusCode(StatusCodes.Status401Unauthorized)
+                    .AsHttpResult();
+            }
+
             var store = storeManager.GetStore<IClientStore>();
             await store.AddAsync(client, cancellationToken);
             await storeManager.SaveChangesAsync(cancellationToken);
@@ -556,6 +579,14 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (client is null)
             return TypedResults.NotFound();
 
+        if (
+            client.ResourceServerId is not null
+            && resolved.TokenEndpointAuthMethod == OpenIdConstants.ClientAuthenticationMethods.None
+        )
+        {
+            return ResourceServerClientMustBeConfidential(errorFactory);
+        }
+
         client.Settings.Value = settingsJson;
 
         await store.UpdateSettingsAsync(client.Settings, cancellationToken);
@@ -651,29 +682,67 @@ internal class DefaultClientRegistrationEndpointHandler(
         return TypedResults.NoContent();
     }
 
-    private async ValueTask<bool> AuthorizeRegistrationAsync(
+    // A presented initial access token is always validated, even where anonymous registration is allowed, so a token
+    // scoped to a resource server binds the client it registers and an invalid token is never silently ignored
+    // (ADR-0192).
+    private async ValueTask<(
+        bool IsAuthorized,
+        InitialAccessTokenGrant? InitialAccessToken
+    )> AuthorizeRegistrationAsync(
         OpenIdContext openIdContext,
         HttpContext httpContext,
         CancellationToken cancellationToken
     )
     {
-        var allowAnonymous = openIdContext.Tenant.SettingsProvider.Collection.GetValue(
-            OpenIdSettingKeys.RegistrationEndpointAllowAnonymous
-        );
-
-        if (allowAnonymous)
-            return true;
-
         var token = GetBearerToken(httpContext);
         if (token is null)
-            return false;
+        {
+            var allowAnonymous = openIdContext.Tenant.SettingsProvider.Collection.GetValue(
+                OpenIdSettingKeys.RegistrationEndpointAllowAnonymous
+            );
 
-        return await InitialAccessTokenValidator.ValidateAsync(
+            return (allowAnonymous, null);
+        }
+
+        var grant = await InitialAccessTokenValidator.ValidateAsync(
             openIdContext,
             token,
             cancellationToken
         );
+
+        return (grant is not null, grant);
     }
+
+    // A client registered with a token scoped to a resource server is bound to it, so the resource server must still
+    // exist in the tenant and must not be a system resource server when the client registers (ADR-0168, ADR-0192).
+    private static async ValueTask<bool> CanBindResourceServerAsync(
+        IStoreManager storeManager,
+        string tenantId,
+        string resourceServerId,
+        CancellationToken cancellationToken
+    )
+    {
+        var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
+        var resourceServer = await resourceServerStore.GetOrDefaultAsync(
+            resourceServerId,
+            cancellationToken
+        );
+
+        return resourceServer is { IsSystem: false }
+            && string.Equals(resourceServer.TenantId, tenantId, StringComparison.Ordinal);
+    }
+
+    // A resource-server client introspects for its resource server, which requires a confidential client (ADR-0168).
+    private static IResult ResourceServerClientMustBeConfidential(
+        IOpenIdErrorFactory errorFactory
+    ) =>
+        errorFactory
+            .InvalidRequest(
+                "A client bound to a resource server must be confidential; 'token_endpoint_auth_method' cannot be 'none'.",
+                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+            )
+            .WithStatusCode(StatusCodes.Status400BadRequest)
+            .AsHttpResult();
 
     private static async ValueTask<RegisterClientRequest?> ReadRequestOrDefaultAsync(
         HttpContext httpContext,
@@ -1556,6 +1625,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         return new RegisterClientResponse
         {
             ClientId = client.ClientId,
+            ResourceServerId = client.ResourceServerId,
             RedirectUris = ReadStringArray(settings, OpenIdSettingNames.RedirectUris),
             GrantTypes = ReadStringArray(settings, OpenIdSettingNames.GrantTypesSupported),
             ResponseTypes = ReadStringArray(settings, OpenIdSettingNames.ResponseTypesSupported),

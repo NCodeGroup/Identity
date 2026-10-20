@@ -635,6 +635,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointExceptionHandlerMe
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointExceptionHandlerMetadata.GetExceptionHandlerAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler!>
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant.Description.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant.ResourceServerId.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant.ResourceServerId.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant.Description.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant.InitialAccessTokenGrant() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationAccessTokenGrant
@@ -642,7 +644,7 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationA
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationAccessTokenGrant.ClientId.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationAccessTokenGrant.RegistrationAccessTokenGrant() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.IInitialAccessTokenValidator
-NCode.Identity.OpenId.Authentication.Endpoints.Registration.IInitialAccessTokenValidator.ValidateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! initialAccessToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.IInitialAccessTokenValidator.ValidateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! initialAccessToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant?>
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.ISectorIdentifierValidator
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.ISectorIdentifierValidator.ValidateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! sectorIdentifierUri, System.Collections.Generic.IReadOnlyCollection<string!>! redirectUris, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Messages.IOpenIdError?>
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest
@@ -714,6 +716,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClie
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RegistrationAccessToken.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RegistrationClientUri.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.RegistrationClientUri.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ResourceServerId.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ResourceServerId.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ResponseTypes.get -> System.Collections.Generic.IReadOnlyList<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.ResponseTypes.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.Scope.get -> string?

@@ -22,15 +22,27 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// Reads the single-page bundle's <c>index.html</c> so the login, consent, and error pages can inject their
-/// server-rendered form into the bundle's <c>#root</c> mount point (progressive enhancement). The index is read on
-/// each request rather than cached so a locally rebuilt bundle is picked up without a restart; the no-JavaScript forms
-/// render standalone when no bundle is configured or available.
+/// server-rendered form into the bundle's <c>#root</c> mount point (progressive enhancement). The index is read once
+/// and cached; each request compares the file's last-write time and length with the cached copy's, so a locally
+/// rebuilt bundle is picked up without a restart. The no-JavaScript forms render standalone when no bundle is
+/// configured or available.
 /// </summary>
+// The cache is revalidated from file metadata rather than invalidated by a file watcher: a watcher costs an inotify
+// instance per process and misses changes on bind-mounted and network file systems, while one metadata read per
+// request is far cheaper than the file read it replaces.
 internal sealed class InteractiveBundleReader(
     IOptions<InteractiveAuthenticationOptions> optionsAccessor
 )
 {
-    private InteractiveAuthenticationOptions Options { get; } = optionsAccessor.Value;
+    private const string IndexFileName = "index.html";
+
+    private string? IndexPath { get; } =
+        string.IsNullOrEmpty(optionsAccessor.Value.BundleRootPath)
+            ? null
+            : Path.Combine(optionsAccessor.Value.BundleRootPath, IndexFileName);
+
+    // Replaced as a whole, so a request sees either the previous or the new version, never a mix of the two.
+    private InteractiveBundleIndex? CachedIndex { get; set; }
 
     /// <summary>
     /// Reads the single-page bundle's <c>index.html</c>, or returns <see langword="null"/> when no bundle is
@@ -38,18 +50,34 @@ internal sealed class InteractiveBundleReader(
     /// </summary>
     public async ValueTask<string?> TryReadIndexHtmlAsync(CancellationToken cancellationToken)
     {
-        var bundleRootPath = Options.BundleRootPath;
-        if (string.IsNullOrEmpty(bundleRootPath))
+        if (IndexPath is null)
         {
             return null;
         }
 
-        var indexPath = Path.Combine(bundleRootPath, "index.html");
-        if (!File.Exists(indexPath))
+        var file = new FileInfo(IndexPath);
+        if (!file.Exists)
         {
             return null;
         }
 
-        return await File.ReadAllTextAsync(indexPath, cancellationToken);
+        var lastWriteTimeUtc = file.LastWriteTimeUtc;
+        var length = file.Length;
+
+        var cachedIndex = CachedIndex;
+        if (
+            cachedIndex is not null
+            && cachedIndex.LastWriteTimeUtc == lastWriteTimeUtc
+            && cachedIndex.Length == length
+        )
+        {
+            return cachedIndex.Html;
+        }
+
+        // A rebuild that lands between the metadata read and this read is cached under the older metadata, so the
+        // next request sees a mismatch and reads the file again.
+        var html = await File.ReadAllTextAsync(IndexPath, cancellationToken);
+        CachedIndex = new InteractiveBundleIndex(lastWriteTimeUtc, length, html);
+        return html;
     }
 }

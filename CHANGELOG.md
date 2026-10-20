@@ -244,6 +244,10 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The interactive pages read the bundle's `index.html` once.** `InteractiveBundleReader` caches the bundle index the
+  login, consent, and error pages inject their forms into, rather than reading it from disk on every request. Each
+  request compares the file's last-write time and length with the cached copy's, so a rebuilt bundle is still picked up
+  without a restart, including on bind-mounted and network file systems where change notifications are unreliable.
 - **A security profile supplies compliant defaults.** `ISecurityProfile` gains `ApplyDefaultSettings`, through which a
   profile contributes overridable defaults with the new `ISecurityProfileDefaultsBuilder`; the builder accepts only a
   setting that does not merge with a lattice operation. The catalog places a profile's defaults beneath the settings of

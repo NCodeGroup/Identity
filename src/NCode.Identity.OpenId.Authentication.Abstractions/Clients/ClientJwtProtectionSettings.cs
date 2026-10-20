@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 
@@ -25,8 +26,13 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// Names the settings that govern how the server protects one kind of JWT it addresses to a client: the algorithms the
 /// client registers (OpenID Connect Dynamic Client Registration 1.0 §2) and the lists that bound them.
 /// </summary>
+/// <remarks>
+/// The kinds the server issues are <see cref="IdToken"/>, <see cref="UserInfo"/>, and <see cref="Introspection"/>. A
+/// package that addresses a further kind of JWT to a client describes its own settings with a new instance.
+/// </remarks>
 // See ADR-0155.
-internal readonly record struct ClientJwtProtectionSettings
+[PublicAPI]
+public readonly record struct ClientJwtProtectionSettings
 {
     /// <summary>
     /// Gets the settings for an ID token, which also govern a logout token (OpenID Connect Back-Channel Logout 1.0

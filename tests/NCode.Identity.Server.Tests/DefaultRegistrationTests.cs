@@ -183,6 +183,29 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public void AddIdentityServer_RegistersTheClientJwtCredentialSelectorBesideTheTokenService()
+    {
+        // A replacement ITokenService resolves the selector to protect ID tokens exactly as the client registered.
+        using var host = BuildHost([]);
+
+        Assert.NotNull(host.Services.GetRequiredService<ITokenService>());
+        Assert.NotNull(host.Services.GetRequiredService<IClientJwtCredentialSelector>());
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenAClientJwtCredentialSelectorIsRegistered_KeepsIt()
+    {
+        var selector = new Mock<IClientJwtCredentialSelector>(MockBehavior.Strict).Object;
+        var services = new ServiceCollection();
+        services.AddSingleton(selector);
+
+        services.AddIdentityServer();
+
+        using var serviceProvider = services.BuildServiceProvider();
+        Assert.Same(selector, serviceProvider.GetRequiredService<IClientJwtCredentialSelector>());
+    }
+
+    [Fact]
     public void AddIdentityServer_EveryDescriptorAppliesOnlyToRegisteredScopes()
     {
         // A setting that names no registered scope could never be configured, and a misspelled scope name is never read.

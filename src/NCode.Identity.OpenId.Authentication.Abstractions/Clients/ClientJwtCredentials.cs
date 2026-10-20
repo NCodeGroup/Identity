@@ -16,6 +16,7 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.Jose.Credentials;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
@@ -27,7 +28,8 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <param name="SigningCredentials">The credentials that sign the JWT, or <c>null</c> when it is not signed.</param>
 /// <param name="EncryptionCredentials">The credentials that encrypt the JWT, or <c>null</c> when it is not
 /// encrypted.</param>
-internal readonly record struct ClientJwtCredentials(
+[PublicAPI]
+public readonly record struct ClientJwtCredentials(
     JoseSigningCredentials? SigningCredentials,
     JoseEncryptionCredentials? EncryptionCredentials
 )

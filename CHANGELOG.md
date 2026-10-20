@@ -10,6 +10,11 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **A replacement token service can protect ID tokens as the client registered.** `IClientJwtCredentialSelector`,
+  `ClientJwtCredentials`, and `ClientJwtProtectionSettings` are public in
+  `NCode.Identity.OpenId.Authentication.Abstractions` (namespace unchanged). Every issuer of a JWT addressed to a client
+  resolves the selector, and a deployment can register its own before `AddIdentityServer()`. Backlog `F69` is complete
+  ([ADR-0181](docs/adr/0181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md)).
 - **The host's chart migrates the database before each rollout.** The host image now also carries the migration worker
   in `/app/migrations`, and the chart runs it as a Helm `pre-install` and `pre-upgrade` Job. A failed migration fails
   the release before any pod is replaced. The Job runs restricted like the server, and

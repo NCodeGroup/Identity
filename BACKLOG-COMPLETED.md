@@ -1328,6 +1328,23 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `id_token_hint` re-encrypted to the server) and `F77` (registering a resource-server client through dynamic client
   registration)._
 
+- **`F69` — Expose the client JWT credential selector beside `ITokenService`.** A replacement `ITokenService` must
+  protect ID tokens exactly as the client registered
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), but
+  `IClientJwtCredentialSelector`, `ClientJwtCredentials`, and `ClientJwtProtectionSettings` are internal to
+  `NCode.Identity.OpenId.Authentication`, so a replacement can only reimplement that policy or skip it — the gap
+  `IAccessTokenPolicyService` closes for access tokens
+  ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)). Move the
+  interface and its models to `NCode.Identity.OpenId.Authentication.Abstractions` as a public seam with the internal
+  default, so every issuer of a client-addressed JWT (ID token, logout token, UserInfo response, JWT introspection
+  response) resolves the same selector. Touch points: `src/NCode.Identity.OpenId.Authentication/Clients/IClientJwtCredentialSelector.cs`,
+  `ClientJwtCredentials.cs`, `ClientJwtProtectionSettings.cs` (which now carries an `Introspection` entry,
+  [ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)), and the
+  Authentication.Abstractions public API.
+  _Closed: the three types are public in `NCode.Identity.OpenId.Authentication.Abstractions` and the default stays
+  internal and replaceable ([ADR-0181](docs/adr/0181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md); see the
+  [`CHANGELOG.md`](CHANGELOG.md))._
+
 - **`F71` — Derive a tenant's issuer from a configured template.** A tenant served at a request-independent address
   needs an issuer, and a production deployment must not rely on the request-derived fallback
   ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md); the production-safety part of

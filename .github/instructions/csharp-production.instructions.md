@@ -100,9 +100,11 @@ rationale.
   for an equal-or-stronger one.
 - 👁 **A policy that a replaceable public service must apply is itself a public seam.** When a public interface a
   consumer may replace (`ITokenService`) has to enforce a security policy, put the policy behind its own public
-  interface with an internal default (`IAccessTokenPolicyService`), so a replacement resolves the policy instead of
-  reimplementing it or silently skipping it; keeping it internal makes the secure path unreachable for exactly the code
-  that needs it. See [ADR-0158](../../docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md).
+  interface with an internal default (`IAccessTokenPolicyService`, `IClientJwtCredentialSelector`), so a replacement
+  resolves the policy instead of reimplementing it or silently skipping it; keeping it internal makes the secure path
+  unreachable for exactly the code that needs it. See
+  [ADR-0158](../../docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md) and
+  [ADR-0181](../../docs/adr/0181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md).
 - 👁 **A token the server issued is validated only through `IIssuedTokenValidator`.** Never build
   `JwtValidationParameters` for an access token, ID token, or `id_token_hint` the tenant minted. The seam states the
   tenant's algorithm allow-lists, keys, `typ`, issuer, lifetime, and session check in one place, and hand-built copies

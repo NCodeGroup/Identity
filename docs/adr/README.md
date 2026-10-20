@@ -218,3 +218,4 @@ standards.
 | [0181](./0181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md) | Every issuer of a JWT addressed to a client resolves one public credential selector | Accepted |
 | [0182](./0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md) | The frontend bootstrap issuer is the serving tenant's, not the request's | Accepted |
 | [0183](./0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md) | A client secret is rotated by replacing it in one change | Accepted |
+| [0184](./0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) | A migration only expands the schema unless it is marked a contract step | Accepted |

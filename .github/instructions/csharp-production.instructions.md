@@ -585,6 +585,12 @@ rationale.
   re-saves `OpenIdDbContextModelSnapshot.cs` even when the model is unchanged; the repository's files are BOM-less
   (`charset = utf-8`), so strip the BOM from the generated migration and revert a snapshot whose only diff is the BOM.
   See [ADR-0073](../../docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md).
+- ✅ **A migration only expands the schema.** The previous release serves while a migration runs and after a rollback,
+  so a migration adds tables, nullable or defaulted columns, and indexes, and never drops, renames, or tightens what the
+  previous release reads. `ExpandOnlyRuleTests` fails any other migration in the Definition of Done. A deliberate
+  contract step, shipped a release after its expansion, carries `[ContractMigration("why")]`. Hand-written code in
+  `NCode.Identity.OpenId.Host.Database` stays outside `Migrations/`, which `.editorconfig` treats as generated code. See
+  [ADR-0184](../../docs/adr/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md).
 - ✅ **Raw SQL in the EF model must quote identifiers.** Any hand-written SQL fragment in the model (`HasFilter`,
   `HasComputedColumnSql`, `HasDefaultValueSql`, …) MUST double-quote column/table names (e.g.
   `HasFilter("\"NormalizedDomainName\" IS NOT NULL")`). Postgres folds unquoted identifiers to lower case (the schema

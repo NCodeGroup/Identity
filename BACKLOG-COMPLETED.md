@@ -1862,3 +1862,19 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `latest-recommended`, and it requires `GenerateDocumentationFile=true`, hard-erroring with
   `EnableGenerateDocumentationFile` otherwise (dotnet/roslyn#41640) — which is why test projects now generate (and
   discard) an XML documentation file and suppress `CS1591`._
+
+- **`X5` — Flag a migration that would break the previous release.** Every EF Core migration must keep the previous
+  release working, because the chart's Job migrates while the previous release serves
+  ([ADR-0180](docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Today that is
+  a review rule only. Add a Definition of Done check that fails when a new migration drops or renames a table or
+  column, or makes a column required without a default, unless the migration is marked as a deliberate contract step.
+  Touch points: `build/dod.ps1`, `src/NCode.Identity.OpenId.Host.Database`.
+
+  _Closed by [ADR-0184](docs/adr/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md). The
+  check is a unit test, not a `dod.ps1` text scan: `ExpandOnlyRuleTests` in the new
+  `NCode.Identity.OpenId.Host.Database.Tests` project reads every host migration's `Up` operations through EF Core's
+  `MigrationOperation` objects and runs in the Definition of Done's test stage. `ExpandOnlyRule` reports dropped or
+  renamed schemas, tables, columns, and sequences; required columns added or altered without a default; changed column
+  types; and shortened columns. `[ContractMigration("why")]` marks a deliberate contract step, and the test fails a
+  marker on a migration that only expands. `ReplaceTenantDomainNameWithIssuerHost`, which shipped before any release,
+  is the one marked migration. Raw SQL stays a review item._

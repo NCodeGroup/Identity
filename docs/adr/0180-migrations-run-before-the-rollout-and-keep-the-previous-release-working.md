@@ -1,6 +1,7 @@
 # 180. Migrations run before the rollout and keep the previous release working
 
-- **Status:** Accepted
+- **Status:** Accepted (expand-and-contract checked by
+  [ADR-0184](0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md))
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 
@@ -46,7 +47,8 @@ same step. During a rolling update, the old and new versions run at the same tim
 - An install or upgrade takes as long as its migrations, and Helm's `--timeout` must cover them. A long data migration
   belongs in code that runs after the rollout, not in the Job.
 - The image grows by the worker's few assemblies that the host does not already ship.
-- Expand and contract is a review rule, not a check: CI does not detect a destructive migration. Backlog `X5` tracks
-  that check.
+- A unit test fails every migration that drops, renames, or tightens schema, unless the migration is marked a
+  deliberate contract step ([ADR-0184](0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md)).
+  Raw SQL in a migration stays a review item.
 - On a first install, the Job uses the namespace's `default` service account, because the chart's own account does not
   exist before the hook runs. It never mounts a token.

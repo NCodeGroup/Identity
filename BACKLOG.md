@@ -664,10 +664,3 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   not in the repository (the generated `obj/` sources) and scores partially-covered lines differently. Touch points:
   [`build/coverage-report.ps1`](build/coverage-report.ps1), [`tests/Directory.Build.props`](tests/Directory.Build.props),
   [`codecov.yml`](codecov.yml). Coverage thresholds are a separate, later policy decision.
-
-- **`X5` — Flag a migration that would break the previous release.** Every EF Core migration must keep the previous
-  release working, because the chart's Job migrates while the previous release serves
-  ([ADR-0180](docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Today that is
-  a review rule only. Add a Definition of Done check that fails when a new migration drops or renames a table or
-  column, or makes a column required without a default, unless the migration is marked as a deliberate contract step.
-  Touch points: `build/dod.ps1`, `src/NCode.Identity.OpenId.Host.Database`.

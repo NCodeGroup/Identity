@@ -42,7 +42,14 @@ nothing.
 3. **A bound client is confidential.** Registering a bound client with `token_endpoint_auth_method` `none` is refused
    with `invalid_client_metadata`, and so is an update (RFC 7592) that would make a bound client public. Introspection
    already refuses a public bound client; registration now refuses to create one.
-4. **The binding is reported and never changes.**
+4. **A bound client registers its introspection response protection.** Registration accepts
+   `introspection_signed_response_alg`, `introspection_encrypted_response_alg`, and
+   `introspection_encrypted_response_enc` (RFC 9701 §6), validated like the `userinfo_*` metadata: an `*_enc` needs its
+   `*_alg`, an encrypted response needs the client's `jwks` or `jwks_uri`, and each value must be among the tenant's
+   `introspection_*_values_supported`. The client information response reports them. Only a bound client receives a
+   JWT introspection response, so an ordinary client that registers them is refused with `invalid_client_metadata`,
+   just as introspection refuses an ordinary client a JWT.
+5. **The binding is reported and never changes.**
    - The client information response carries `resource_server_id` for a bound client.
    - The member is an extension the server sets. A registration or update request may carry it, and the server ignores
      it like any unrecognized metadata (RFC 7591 §2), so a client that echoes its read response back in an update does
@@ -70,10 +77,9 @@ nothing.
 - **Breaking:**
   - `IInitialAccessTokenValidator.ValidateAsync` returns `InitialAccessTokenGrant?` instead of `bool`.
   - A presented initial access token is validated even when anonymous registration is allowed.
-- Dynamic registration does not yet accept the `introspection_signed_response_alg`,
-  `introspection_encrypted_response_alg` and `introspection_encrypted_response_enc` metadata (RFC 9701 §6), so a
-  dynamically registered resource-server client receives the default `RS256` and no encryption until an operator sets
-  them through the management API (backlog `F77`).
+- A dynamically registered resource-server client chooses how its introspection responses are signed and encrypted,
+  as a client created through the management API does.
+- The admin console cannot scope an initial access token to a resource server yet (backlog `U24`).
 
 ## References
 

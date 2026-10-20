@@ -281,9 +281,15 @@ internal class DefaultClientRegistrationEndpointHandler(
             resolved.TokenEndpointAuthMethod != OpenIdConstants.ClientAuthenticationMethods.None;
 
         var resourceServerId = initialAccessToken?.ResourceServerId;
-        if (resourceServerId is not null && !isConfidential)
+        var bindingError = ValidateResourceServerBinding(
+            errorFactory,
+            request,
+            isBound: resourceServerId is not null,
+            isConfidential
+        );
+        if (bindingError is not null)
         {
-            return ResourceServerClientMustBeConfidential(errorFactory);
+            return bindingError;
         }
 
         var secretsError = BuildClientSecrets(
@@ -579,12 +585,16 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (client is null)
             return TypedResults.NotFound();
 
-        if (
-            client.ResourceServerId is not null
-            && resolved.TokenEndpointAuthMethod == OpenIdConstants.ClientAuthenticationMethods.None
-        )
+        var bindingError = ValidateResourceServerBinding(
+            errorFactory,
+            request,
+            isBound: client.ResourceServerId is not null,
+            isConfidential: resolved.TokenEndpointAuthMethod
+                != OpenIdConstants.ClientAuthenticationMethods.None
+        );
+        if (bindingError is not null)
         {
-            return ResourceServerClientMustBeConfidential(errorFactory);
+            return bindingError;
         }
 
         client.Settings.Value = settingsJson;
@@ -732,17 +742,42 @@ internal class DefaultClientRegistrationEndpointHandler(
             && string.Equals(resourceServer.TenantId, tenantId, StringComparison.Ordinal);
     }
 
-    // A resource-server client introspects for its resource server, which requires a confidential client (ADR-0168).
-    private static IResult ResourceServerClientMustBeConfidential(
-        IOpenIdErrorFactory errorFactory
-    ) =>
-        errorFactory
-            .InvalidRequest(
-                "A client bound to a resource server must be confidential; 'token_endpoint_auth_method' cannot be 'none'.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+    // A resource-server client introspects for its resource server, which requires a confidential client, and only a
+    // resource-server client receives a JWT introspection response, so only it registers how that response is protected
+    // (RFC 9701 §6, ADR-0168, ADR-0192).
+    private static IResult? ValidateResourceServerBinding(
+        IOpenIdErrorFactory errorFactory,
+        RegisterClientRequest request,
+        bool isBound,
+        bool isConfidential
+    )
+    {
+        string? description = null;
+        if (isBound && !isConfidential)
+        {
+            description =
+                "A client bound to a resource server must be confidential; 'token_endpoint_auth_method' cannot be 'none'.";
+        }
+        else if (
+            !isBound
+            && (
+                request.IntrospectionSignedResponseAlg is not null
+                || request.IntrospectionEncryptedResponseAlg is not null
+                || request.IntrospectionEncryptedResponseEnc is not null
             )
-            .WithStatusCode(StatusCodes.Status400BadRequest)
-            .AsHttpResult();
+        )
+        {
+            description =
+                "Only a client bound to a resource server receives JWT introspection responses, so only it registers the 'introspection_*_response_*' metadata.";
+        }
+
+        return description is null
+            ? null
+            : errorFactory
+                .InvalidRequest(description, OpenIdConstants.ErrorCodes.InvalidClientMetadata)
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsHttpResult();
+    }
 
     private static async ValueTask<RegisterClientRequest?> ReadRequestOrDefaultAsync(
         HttpContext httpContext,
@@ -1075,6 +1110,12 @@ internal class DefaultClientRegistrationEndpointHandler(
                 request.UserInfoEncryptedResponseEnc
             ),
             (
+                OpenIdSettingNames.IntrospectionEncryptedResponseAlg,
+                request.IntrospectionEncryptedResponseAlg,
+                OpenIdSettingNames.IntrospectionEncryptedResponseEnc,
+                request.IntrospectionEncryptedResponseEnc
+            ),
+            (
                 RequestObjectEncryptionAlgMetadata,
                 request.RequestObjectEncryptionAlg,
                 RequestObjectEncryptionEncMetadata,
@@ -1096,7 +1137,8 @@ internal class DefaultClientRegistrationEndpointHandler(
         // A response is encrypted to a public key the client publishes; without one it could never be delivered.
         var registersEncryptedResponse =
             !string.IsNullOrEmpty(request.IdTokenEncryptedResponseAlg)
-            || !string.IsNullOrEmpty(request.UserInfoEncryptedResponseAlg);
+            || !string.IsNullOrEmpty(request.UserInfoEncryptedResponseAlg)
+            || !string.IsNullOrEmpty(request.IntrospectionEncryptedResponseAlg);
         if (registersEncryptedResponse && !hasJwks && !hasJwksUri)
         {
             return InvalidClientMetadata(
@@ -1168,6 +1210,21 @@ internal class DefaultClientRegistrationEndpointHandler(
                 OpenIdSettingNames.UserInfoEncryptedResponseEnc,
                 request.UserInfoEncryptedResponseEnc,
                 OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported
+            ),
+            (
+                OpenIdSettingNames.IntrospectionSignedResponseAlg,
+                request.IntrospectionSignedResponseAlg,
+                OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported
+            ),
+            (
+                OpenIdSettingNames.IntrospectionEncryptedResponseAlg,
+                request.IntrospectionEncryptedResponseAlg,
+                OpenIdSettingKeys.IntrospectionEncryptionAlgValuesSupported
+            ),
+            (
+                OpenIdSettingNames.IntrospectionEncryptedResponseEnc,
+                request.IntrospectionEncryptedResponseEnc,
+                OpenIdSettingKeys.IntrospectionEncryptionEncValuesSupported
             ),
             (
                 RequestObjectSigningAlgMetadata,
@@ -1541,6 +1598,21 @@ internal class DefaultClientRegistrationEndpointHandler(
             OpenIdSettingNames.UserInfoEncryptedResponseEnc,
             request.UserInfoEncryptedResponseEnc
         );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.IntrospectionSignedResponseAlg,
+            request.IntrospectionSignedResponseAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.IntrospectionEncryptedResponseAlg,
+            request.IntrospectionEncryptedResponseAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.IntrospectionEncryptedResponseEnc,
+            request.IntrospectionEncryptedResponseEnc
+        );
 
         SetListIfPresent(
             settings,
@@ -1668,6 +1740,18 @@ internal class DefaultClientRegistrationEndpointHandler(
             UserInfoEncryptedResponseEnc = ReadString(
                 settings,
                 OpenIdSettingNames.UserInfoEncryptedResponseEnc
+            ),
+            IntrospectionSignedResponseAlg = ReadString(
+                settings,
+                OpenIdSettingNames.IntrospectionSignedResponseAlg
+            ),
+            IntrospectionEncryptedResponseAlg = ReadString(
+                settings,
+                OpenIdSettingNames.IntrospectionEncryptedResponseAlg
+            ),
+            IntrospectionEncryptedResponseEnc = ReadString(
+                settings,
+                OpenIdSettingNames.IntrospectionEncryptedResponseEnc
             ),
             RequestObjectSigningAlg = ReadSingleValue(
                 settings,

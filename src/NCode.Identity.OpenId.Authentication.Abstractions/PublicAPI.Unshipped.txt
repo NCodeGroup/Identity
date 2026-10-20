@@ -100,6 +100,12 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterCli
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TokenEndpointAuthSigningAlg.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.UserInfoEncryptedResponseAlg.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.UserInfoEncryptedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IntrospectionEncryptedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IntrospectionEncryptedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IntrospectionEncryptedResponseEnc.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IntrospectionEncryptedResponseEnc.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IntrospectionSignedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.IntrospectionSignedResponseAlg.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.UserInfoEncryptedResponseEnc.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.UserInfoEncryptedResponseEnc.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.UserInfoSignedResponseAlg.get -> string?
@@ -128,6 +134,12 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClie
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TokenEndpointAuthSigningAlg.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoEncryptedResponseAlg.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoEncryptedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.IntrospectionEncryptedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.IntrospectionEncryptedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.IntrospectionEncryptedResponseEnc.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.IntrospectionEncryptedResponseEnc.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.IntrospectionSignedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.IntrospectionSignedResponseAlg.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoEncryptedResponseEnc.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoEncryptedResponseEnc.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.UserInfoSignedResponseAlg.get -> string?

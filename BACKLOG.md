@@ -76,7 +76,7 @@ entry and/or ADR that closed it.
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
 | `F` — Feature gaps                    | `F78`     | `F77`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
-| `U` — Frontend presentation platform  | `U24`     | `U23`      |
+| `U` — Frontend presentation platform  | `U25`     | `U24`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
 
@@ -367,22 +367,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationApplicationBuilderExtensions.cs`,
   `src/frontend/apps/auth`. Capture the design in an ADR.
 
-- **`F77` — Register a resource-server client's introspection response metadata dynamically (remaining).** A client
-  registered with an initial access token scoped to a resource server is bound to it
-  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)), but dynamic
-  registration does not yet accept `introspection_signed_response_alg`, `introspection_encrypted_response_alg`, and
-  `introspection_encrypted_response_enc` (RFC 9701 §6). A dynamically registered resource-server client therefore
-  receives `RS256` and no encryption until an operator sets them through the management API. Register the three members
-  for a bound client only, and refuse them with `invalid_client_metadata` for an ordinary client, as introspection
-  refuses an ordinary client a JWT. Validate them against the tenant's `introspection_*_values_supported` and the FAPI
-  ceilings the way `userinfo_*` metadata is validated, store them as the client's settings, and report them in the
-  client information response. The admin console's initial-access-token dialog also cannot scope a token to a resource
-  server yet; the `@ncode/api` contract already carries `resourceServerId`. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/Messages/RegisterClientRequest.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/Results/RegisterClientResponse.cs`,
-  `src/frontend/packages/ui/src/components/InitialAccessTokenFormDialog.tsx`.
-
 ## Conformance & interop testing (group `T`)
 
 - **`T1` (subsumes `T6`) — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite,
@@ -454,6 +438,15 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   [`build/frontend-install.ps1`](build/frontend-install.ps1), the AppHost's `EnsurePinnedNodeOnPath`.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
+- **`U24` — Scope an initial access token to a resource server in the admin console.** The management API mints an
+  initial access token scoped to a resource server, so the client it registers introspects for that resource server
+  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)), and the
+  `@ncode/api` contract carries `resourceServerId` on the request and the created resource. The console's mint dialog
+  offers only a description and a lifetime. Add an optional resource-server picker that lists the tenant's non-system
+  resource servers, send its `resourceServerId`, show the scope in the one-time reveal, and cover it in the
+  `GrantsPage` and `managementApi` tests. Touch points:
+  `src/frontend/packages/ui/src/components/InitialAccessTokenFormDialog.tsx`,
+  `src/frontend/apps/mgmt/src/containers/GrantsPage.tsx`.
 
 ## Secrets management (group `S`)
 

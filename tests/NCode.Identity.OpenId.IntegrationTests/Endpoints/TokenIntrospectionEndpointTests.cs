@@ -741,24 +741,29 @@ public class TokenIntrospectionEndpointTests
     private static async Task<HttpResponseMessage> RegisterAsync(
         HttpClient client,
         string initialAccessToken,
-        string tokenEndpointAuthMethod
+        string tokenEndpointAuthMethod,
+        IReadOnlyDictionary<string, object>? extraMetadata = null
     )
     {
+        var metadata = new Dictionary<string, object>
+        {
+            ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+            ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
+            // The binding comes from the initial access token alone; a request member is ignored.
+            ["resource_server_id"] = BillingResourceServerId,
+        };
+        foreach (var (name, value) in extraMetadata ?? NoSettings)
+        {
+            metadata[name] = value;
+        }
+
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/register")
         {
             Headers =
             {
                 Authorization = new AuthenticationHeaderValue("Bearer", initialAccessToken),
             },
-            Content = JsonContent.Create(
-                new Dictionary<string, object>
-                {
-                    ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
-                    ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
-                    // The binding comes from the initial access token alone; a request member is ignored.
-                    ["resource_server_id"] = BillingResourceServerId,
-                }
-            ),
+            Content = JsonContent.Create(metadata),
         };
         return await client.SendAsync(request);
     }
@@ -810,6 +815,82 @@ public class TokenIntrospectionEndpointTests
         Assert.True(root.GetProperty("active").GetBoolean());
         Assert.Equal(OrdersAudience, root.GetProperty("aud").GetString());
         Assert.Equal(OrdersScope, root.GetProperty("scope").GetString());
+    }
+
+    [Fact]
+    public async Task PostRegister_WithIntrospectionEncryption_EncryptsTheJwtToTheRegisteredKey()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var initialAccessToken = await MintInitialAccessTokenAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+        using var rsa = RSA.Create(2048);
+        var parameters = rsa.ExportParameters(includePrivateParameters: false);
+
+        using var registrationResponse = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            new Dictionary<string, object>
+            {
+                ["introspection_signed_response_alg"] = "RS256",
+                ["introspection_encrypted_response_alg"] = "RSA-OAEP-256",
+                ["jwks"] = new Dictionary<string, object>
+                {
+                    ["keys"] = new[]
+                    {
+                        new Dictionary<string, object>
+                        {
+                            ["kty"] = "RSA",
+                            ["use"] = "enc",
+                            ["alg"] = "RSA-OAEP-256",
+                            ["kid"] = "it-introspection-enc",
+                            ["n"] = Base64Url.EncodeToString(parameters.Modulus),
+                            ["e"] = Base64Url.EncodeToString(parameters.Exponent),
+                        },
+                    },
+                },
+            }
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registration = JsonDocument.Parse(registrationBody);
+        var root = registration.RootElement;
+        Assert.Equal("RS256", root.GetProperty("introspection_signed_response_alg").GetString());
+        Assert.Equal(
+            "RSA-OAEP-256",
+            root.GetProperty("introspection_encrypted_response_alg").GetString()
+        );
+        var clientId = root.GetProperty("client_id").GetString();
+        var clientSecret = root.GetProperty("client_secret").GetString();
+        Assert.False(string.IsNullOrEmpty(clientId));
+        Assert.False(string.IsNullOrEmpty(clientSecret));
+
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+        using var response = await IntrospectAsync(
+            client,
+            clientId,
+            clientSecret,
+            accessToken,
+            JwtResponseMediaType
+        );
+
+        var jwt = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, jwt);
+        Assert.Equal(5, jwt.Split('.').Length);
+        var header = DecodeSegment(jwt, 0);
+        Assert.Equal("RSA-OAEP-256", header.GetProperty("alg").GetString());
+        Assert.Equal("it-introspection-enc", header.GetProperty("kid").GetString());
     }
 
     [Fact]

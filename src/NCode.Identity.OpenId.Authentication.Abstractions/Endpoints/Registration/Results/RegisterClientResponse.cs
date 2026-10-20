@@ -249,6 +249,27 @@ public sealed record RegisterClientResponse
     public string? UserInfoEncryptedResponseEnc { get; init; }
 
     /// <summary>
+    /// Gets the JWS <c>alg</c> the client requires for signing its JWT introspection responses (RFC 9701 §6); <c>RS256</c> when omitted. Registered only by a client bound to a resource server (ADR-0192).
+    /// </summary>
+    [JsonPropertyName("introspection_signed_response_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IntrospectionSignedResponseAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>alg</c> the client requires for encrypting its JWT introspection responses to its public key (RFC 9701 §6); introspection responses are not encrypted when omitted. Registered only by a client bound to a resource server (ADR-0192).
+    /// </summary>
+    [JsonPropertyName("introspection_encrypted_response_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IntrospectionEncryptedResponseAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>enc</c> the client requires for encrypting its JWT introspection responses (RFC 9701 §6); <c>A128CBC-HS256</c> when omitted, and allowed only with <see cref="IntrospectionEncryptedResponseAlg"/>.
+    /// </summary>
+    [JsonPropertyName("introspection_encrypted_response_enc")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IntrospectionEncryptedResponseEnc { get; init; }
+
+    /// <summary>
     /// Gets the JWS <c>alg</c> every request object from the client must be signed with (OpenID Connect Dynamic Client Registration 1.0 §2); any algorithm the server permits when omitted.
     /// </summary>
     [JsonPropertyName("request_object_signing_alg")]

@@ -1597,6 +1597,24 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `DynamicByPath` (a collection route and a tenant route); every other management integration test drives
   `StaticSingle`._
 
+- **`F77` — Register a resource-server client through dynamic client registration.** A resource server introspects
+  through a client bound to it, and the binding is set only through the management API, by a caller allowed to update
+  that resource server ([ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+  RFC 9701 §3 allows the authorization server to register resource servers dynamically, which a deployment that
+  provisions APIs automatically would need. Define how a registration request names its resource server and how the
+  registrant proves it may act for it — an initial access token scoped to that resource server is the likely shape —
+  register the `introspection_*_response_alg` metadata, and report the binding in the client information response.
+  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/`.
+
+  _Closed: [ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md);
+  [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. `CreateInitialAccessTokenRequest.resourceServerId` scopes a token
+  under the management API's binding checks, `IInitialAccessTokenValidator` returns the token's grant, and a client
+  registered with a scoped token is bound to its resource server, must be confidential, and registers the
+  `introspection_*_response_*` metadata (refused for an ordinary client). The client information response reports
+  `resource_server_id`. `TokenIntrospectionEndpointTests` registers a bound client and introspects with it, plain and
+  encrypted; the admin console's mint dialog follows as `U24`._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

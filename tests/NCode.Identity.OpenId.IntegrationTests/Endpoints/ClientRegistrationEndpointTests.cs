@@ -102,6 +102,34 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
+    public async Task PostRegister_WhenAnOrdinaryClientRegistersIntrospectionMetadata_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        // Only a client bound to a resource server receives JWT introspection responses (ADR-0192).
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["introspection_signed_response_alg"] = "RS256",
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            "introspection_*_response_*"
+        );
+    }
+
+    [Fact]
     public async Task PostRegister_WhenAnonymousRegistrationIsAllowed_StillRejectsAnInvalidInitialAccessToken()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();

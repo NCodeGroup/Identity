@@ -367,20 +367,19 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationApplicationBuilderExtensions.cs`,
   `src/frontend/apps/auth`. Capture the design in an ADR.
 
-- **`F68` — Check a client's registered response algorithms when its settings are written, and let a security profile
-  supply compliant defaults.** A client's `id_token_signed_response_alg` and its other registered response algorithms
-  must be in its effective `*_values_supported` lists
+- **`F68` — Check a client's registered response algorithms when its settings are written.** A client's
+  `id_token_signed_response_alg` and its other registered response algorithms must be in its effective
+  `*_values_supported` lists
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)). Dynamic client
   registration checks them, but the management API, the seeders, and configuration do not, so a mismatch surfaces only
-  when issuance fails with `server_error`. The common case is a security profile: the FAPI 2.0 ceiling excludes the
-  registration default `RS256`, so every client under it needs an explicit `id_token_signed_response_alg`, and a profile
-  can contribute only lattice-merged ceilings, not a default
-  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)). Validate the registered values
-  against the client's effective ceilings wherever a client's or its tenant's settings are written, and let a profile
-  contribute overridable defaults (for example `PS256`) that its own ceiling then bounds. Touch points:
-  `src/NCode.Identity.OpenId.Abstractions/Settings/ISecurityProfile.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Settings/Fapi2SecurityProfile.cs`, the management client and tenant
-  endpoints.
+  when issuance fails with `server_error`. A security profile now supplies compliant defaults, so a client under FAPI
+  2.0 that registers no algorithm gets `PS256`
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md) decision 7), but an explicit
+  value outside a ceiling, or a ceiling a tenant narrows beneath its clients' values, is still accepted. Validate the
+  registered values against the client's effective settings wherever a client's or its tenant's settings are written —
+  the management client create and settings update can reuse `ClientApiEndpointHandler.MergeClientSettingsAsync` and
+  the keys `ClientJwtProtectionSettings` names; a tenant write must check every client of the tenant. Touch points: the
+  management client and tenant endpoints, the seeders.
 
 - **`F75` — Authenticate the management API against the control plane, not the tenant the request resolves.** The
   management `/api` surface materializes its OpenID context through `CreateForRequestAsync`, so the tenant that

@@ -17,10 +17,12 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NCode.Identity.Server.DevelopmentEnvironment;
+using NCode.Identity.Server.KeyRingProtection;
 using NCode.Identity.Server.ProductionSafety;
 
 namespace NCode.Identity.Server;
@@ -42,12 +44,24 @@ public static class ProductionSafetyRegistration
     private const string DeveloperKeyModeConfigurationKey =
         $"{DeveloperKeysOptions.DefaultSectionName}:{nameof(DeveloperKeysOptions.Mode)}";
 
+    internal const string KeyRingRepositoryMissingMessage =
+        "Refusing to start in the Production environment: the Data Protection key ring has no repository, so it "
+        + "falls back to a local directory or to memory and is lost when the replica is replaced. Persist it to "
+        + "storage every replica shares (for example PersistKeysToDbContext).";
+
+    internal const string KeyRingUnprotectedMessage =
+        "Refusing to start in the Production environment: the Data Protection key ring is not encrypted at rest. "
+        + "Configure a certificate under '"
+        + KeyRingProtectionOptions.DefaultSectionName
+        + "', or protect it with a key management service such as ProtectKeysWithAzureKeyVault.";
+
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
         /// Validates that the current configuration is safe to expose publicly, and throws when it is not. The check
         /// runs only in a Production environment; every other environment (Development, Conformance, Staging, and any
-        /// custom name) is left alone so local and test hosts keep their conveniences.
+        /// custom name) is left alone so local and test hosts keep their conveniences. It also refuses, as the host
+        /// starts, a Data Protection key ring that has no repository or is not encrypted at rest.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> to validate.</param>
         /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> that decides whether to validate at all.</param>
@@ -67,6 +81,16 @@ public static class ProductionSafetyRegistration
 
             if (!hostEnvironment.IsProduction())
                 return serviceCollection;
+
+            // Data Protection is composed after this gate runs, so the key ring is checked as the host starts.
+            serviceCollection
+                .AddOptions<KeyManagementOptions>()
+                .Validate(
+                    options => options.XmlRepository is not null,
+                    KeyRingRepositoryMissingMessage
+                )
+                .Validate(options => options.XmlEncryptor is not null, KeyRingUnprotectedMessage)
+                .ValidateOnStart();
 
             var violations = ProductionSafetyRegistration.FindViolations(configuration);
             if (violations.Count == 0)

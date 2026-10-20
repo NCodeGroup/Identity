@@ -24,6 +24,7 @@ using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.Frontend;
+using NCode.Identity.Server.KeyRingProtection;
 using NCode.Registration;
 using NCode.Registration.AspNetCore;
 
@@ -65,17 +66,23 @@ public static class IdentityServerBuilderExtensions
         /// <item><description><c>MutualTls</c> — <see cref="MutualTlsForwardingOptions"/>: how a forwarded mutual-TLS
         /// client certificate is read.</description></item>
         /// </list>
-        /// The top-level <c>BootstrapAdmin</c> section binds <see cref="BootstrapAdminOptions"/>.
+        /// The top-level <c>BootstrapAdmin</c> section binds <see cref="BootstrapAdminOptions"/>, and the
+        /// <c>DataProtection:KeyProtection</c> section binds <see cref="KeyRingProtectionOptions"/>: when it names a
+        /// certificate, the Data Protection key ring is encrypted at rest with it.
         /// </summary>
         /// <remarks>
         /// Binding is strict and checked when the host starts: a key that maps to no option — a misspelling, or a
         /// setting placed in the wrong subsection — stops the host with an error naming the key, rather than leaving
-        /// the option at its default without any sign that the setting was ignored.
+        /// the option at its default without any sign that the setting was ignored. The key ring protection
+        /// certificates are loaded immediately, because Data Protection takes certificate instances, so a missing file
+        /// or a wrong password stops the host during composition.
         /// </remarks>
         /// <param name="configuration">The <see cref="IConfiguration"/> to bind the options from.</param>
         /// <param name="sectionName">The configuration section name that holds the OpenID options, or <c>null</c> to use
         /// <see cref="OpenIdOptions.DefaultSectionName"/>.</param>
         /// <returns>The same <see cref="IIdentityServerBuilder"/> instance for method chaining.</returns>
+        /// <exception cref="InvalidOperationException">A key ring protection certificate is configured but cannot be
+        /// loaded or carries no RSA private key.</exception>
         public IIdentityServerBuilder AddConfiguration(
             IConfiguration configuration,
             string? sectionName = null
@@ -134,6 +141,9 @@ public static class IdentityServerBuilderExtensions
                 .AddOptions<BootstrapAdminOptions>()
                 .Configure(options => bootstrapAdminSection.BindStrictly(options))
                 .ValidateOnStart();
+
+            // The key ring is stored beside the data it protects, so it is wrapped with a key held elsewhere (ADR-0177).
+            KeyRingProtectionRegistration.AddKeyRingProtection(builder, configuration);
 
             return builder;
         }

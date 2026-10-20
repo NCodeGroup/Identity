@@ -314,7 +314,8 @@ No production load data exists yet, so these are **planning estimates**; confirm
 - **Bandwidth is not a cost driver.** Token responses are a few KB; even 1M interactive logins/month at ~500 KB of
   assets each is ~0.5 TB, below every vendor's included transfer.
 - **Multi-replica readiness:** Data Protection keys already persist to Postgres
-  ([ADR-0073](adr/0073-postgres-dev-database-and-aspire-migration-worker.md); encryption at rest is `S10`); the DPoP
+  ([ADR-0073](adr/0073-postgres-dev-database-and-aspire-migration-worker.md); a Production host refuses the ring unless it is encrypted at rest —
+  [ADR-0177](adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)); the DPoP
   nonce and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`
   connection string ([ADR-0164](adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); the
   in-process job dispatcher does not coordinate across nodes (backlog `D5`).
@@ -609,10 +610,11 @@ speed-test endpoint from the Denver network the users are on.
 
 **Must-do before customers (code and composition, tracked in the backlog):**
 
-- **The Data Protection key ring is unencrypted at rest.** The host persists the ring to the same Postgres database as
-  the secrets it protects, with no `ProtectKeysWith…`, so any database backup or dump holds everything needed to
-  decrypt the signing keys. Production must wrap the ring with a key held outside the database — backlog `S10` (pairs
-  with `S7` / `S9`).
+- **The Data Protection key ring must be wrapped by a key outside the database.** The host persists the ring to the
+  same Postgres database as the secrets it protects, so a database backup or dump would otherwise hold everything
+  needed to decrypt the signing keys. A Production host refuses to start until the ring has an `IXmlEncryptor`: mount
+  an RSA certificate from the secret store under `DataProtection:KeyProtection`, or use a key management service
+  ([ADR-0177](adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md); pairs with `S7` / `S9`).
 - **Kubernetes deployment artifacts** — backlog `F46`. `NCode.Identity.OpenId.Host` already trusts forwarded headers
   only from configured proxies (set `ReverseProxy:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,

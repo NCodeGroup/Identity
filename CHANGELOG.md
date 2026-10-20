@@ -748,6 +748,16 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **The Data Protection key ring is encrypted at rest, and a Production host refuses an unprotected one.** The host
+  persists the key ring to the same database as the secrets it unprotects, so a database dump held both. In
+  Production, `AddProductionSafety` now refuses to start, as the host starts, when the key ring has no repository or
+  no `IXmlEncryptor`. Any encryptor satisfies it: a certificate, `ProtectKeysWithAzureKeyVault` or another key
+  management service, or a custom one. `AddConfiguration` binds the new `DataProtection:KeyProtection` section
+  (`KeyRingProtectionOptions`). A `Certificate` there, either PEM with a separate (optionally encrypted) private key or
+  PKCS#12, with an RSA key, protects every new key. `PreviousCertificates` keep older keys readable through a rotation.
+  **Breaking:** a Production deployment without key ring protection no longer starts.
+  ([ADR-0177](docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md))
+
 - **`tls_client_auth` validates the presented certificate's chain in the server and fails closed.** The handler
   matched only the subject and trusted the TLS terminator to have validated the chain, so a proxy that only requested
   a certificate let a self-signed certificate carrying a client's registered subject authenticate as that client. The

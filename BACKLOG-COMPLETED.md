@@ -1689,6 +1689,20 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   [ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md). Follow-up: `S12` tailors the
   provisioned algorithm set per tenant._
 
+- **`S10` — Encrypt the Data Protection key ring at rest.** The host persists the ASP.NET Core Data Protection key ring
+  to the same Postgres database as the secrets it protects (`PersistKeysToDbContext<DeveloperDataProtectionDbContext>`,
+  unconditionally and with no `ProtectKeysWith…`), so a database backup or dump contains both the protected secret
+  material and the keys that unprotect it. Production must wrap the ring with a key held outside the database — a cloud
+  KMS / HSM key (Azure Key Vault, OCI Vault) or a certificate from the secret store — the server composition should
+  make that the secure default rather than an opt-in, and `AddProductionSafety` should refuse an unprotected ring.
+  Complements `S9` (envelope encryption of stored secrets) and `S7` (external-keystore providers). Touch points:
+  `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.Server/IdentityServerBuilder.cs`,
+  `src/NCode.Identity.Server/ProductionSafety`, `src/NCode.Identity.Secrets/DefaultRegistration.cs`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0177](docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md). `AddConfiguration`
+  wraps the ring with a `DataProtection:KeyProtection` certificate, and in Production `AddProductionSafety` refuses a
+  ring with no repository or no `IXmlEncryptor` as the host starts._
+
 ## Tooling & agent customization (group `X`)
 
 - **`X2` — Archive completed backlog items (full text) for reference.** Completed entries were **deleted** from

@@ -758,6 +758,35 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
     [`src/NCode.Identity.OpenId.Authentication.Interactive`](src/NCode.Identity.OpenId.Authentication.Interactive), and
     the SPA consent form under [`src/frontend/apps/auth`](src/frontend/apps/auth).
     _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)._
+- **`F40` — Harden signed request objects: lifetime, audience, and explicit typing (JAR, CIBA, FAPI Message
+  Signing).** Signed request objects —
+  the authorization endpoint's inline `request` / `request_uri` (RFC 9101) and CIBA signed authentication requests —
+  have their `nbf` / `iat` / `exp` validated (and `exp` required) but no lifetime cap, so a pre-generated request object
+  stays usable until an arbitrarily distant `exp`. FAPI 1.0 Advanced and FAPI 2.0 Message Signing
+  require a request object to carry `nbf` and `exp`, with `exp` no more than 60 minutes after `nbf` and `nbf` no more
+  than 60 minutes in the past; CIBA Core §7.1.1 requires `iat`, `nbf`, `exp`, and `jti` on a signed authentication
+  request. The general `TokenLifetimeRequirement.MaxLifetime` cap built for `F39`
+  ([ADR-0124](docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md)) provides the lifetime half: add a
+  `request_object_max_lifetime` setting (`Min` ceiling, pinned by the FAPI profile), require the claims each profile
+  demands (`nbf`, and CIBA's `iat` / `jti`) in both loaders, and decide the default. The authorization endpoint also
+  checks a request object's `aud` only when `request_object_expected_audience` is set, although RFC 9101 §4 expects the
+  issuer and FAPI 2.0 Message Signing requires it; validate `aud` against the issuer by default, and decide whether to
+  require the explicit `typ` `oauth-authz-req+jwt` (RFC 9101 §10.8) so a request object cannot be confused with another
+  JWT the client signs. The CIBA loader also still validates with the JWT library's default 5-minute clock skew rather
+  than the client's `clock_skew` setting; align it with the JAR loader in the same pass. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/Handlers/DefaultLoadBackchannelAuthenticationRequestHandler.cs`,
+  `OpenIdSettingKeys`, `Fapi2SecurityProfile`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0187](docs/adr/0187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md). The JWT library's
+  lifetime requirement gains `RequireNotBefore` and `RequireIssuedAt`. The new client-scoped
+  `request_object_max_lifetime` (`Min` ceiling, default and FAPI 2.0 pin 60 minutes) caps both loaders, and
+  `request_object_nbf_required` (`Or` merge, default `false`, FAPI 2.0 pin `true`) makes `nbf` mandatory at the
+  authorization endpoint. The authorization endpoint always validates `aud`, against the tenant's issuer unless
+  `request_object_expected_audience` is set. The CIBA loader requires `iat`, `nbf`, `exp`, and `jti` and uses the
+  client's `clock_skew`. The explicit `typ` `oauth-authz-req+jwt` is not required, because OpenID Connect Core clients
+  and the conformance suite do not send it and `iss`, `aud`, and the client's signature already bind the object to
+  its purpose._
 - **`F41` — Make the tenant's issuer the single source of the routing host, retiring `DomainName`.** The tenant now
   carries a first-class `Issuer` (its request-independent identity, and the origin of every absolute URL the server
   publishes). `DomainName` overlaps it: the issuer URL already embeds a host, and `DomainName` exists only as the

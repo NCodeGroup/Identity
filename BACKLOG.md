@@ -323,26 +323,6 @@ entry and/or ADR that closed it.
   [`src/NCode.Identity.Jose/Algorithms/KeyManagement`](src/NCode.Identity.Jose/Algorithms/KeyManagement),
   [`src/NCode.Identity.Jose.Abstractions/Algorithms`](src/NCode.Identity.Jose.Abstractions/Algorithms).
 
-- **`F40` — Harden signed request objects: lifetime, audience, and explicit typing (JAR, CIBA, FAPI Message
-  Signing).** Signed request objects —
-  the authorization endpoint's inline `request` / `request_uri` (RFC 9101) and CIBA signed authentication requests —
-  have their `nbf` / `iat` / `exp` validated (and `exp` required) but no lifetime cap, so a pre-generated request object
-  stays usable until an arbitrarily distant `exp`. FAPI 1.0 Advanced and FAPI 2.0 Message Signing
-  require a request object to carry `nbf` and `exp`, with `exp` no more than 60 minutes after `nbf` and `nbf` no more
-  than 60 minutes in the past; CIBA Core §7.1.1 requires `iat`, `nbf`, `exp`, and `jti` on a signed authentication
-  request. The general `TokenLifetimeRequirement.MaxLifetime` cap built for `F39`
-  ([ADR-0124](docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md)) provides the lifetime half: add a
-  `request_object_max_lifetime` setting (`Min` ceiling, pinned by the FAPI profile), require the claims each profile
-  demands (`nbf`, and CIBA's `iat` / `jti`) in both loaders, and decide the default. The authorization endpoint also
-  checks a request object's `aud` only when `request_object_expected_audience` is set, although RFC 9101 §4 expects the
-  issuer and FAPI 2.0 Message Signing requires it; validate `aud` against the issuer by default, and decide whether to
-  require the explicit `typ` `oauth-authz-req+jwt` (RFC 9101 §10.8) so a request object cannot be confused with another
-  JWT the client signs. The CIBA loader also still validates with the JWT library's default 5-minute clock skew rather
-  than the client's `clock_skew` setting; align it with the JAR loader in the same pass. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/Handlers/DefaultLoadBackchannelAuthenticationRequestHandler.cs`,
-  `OpenIdSettingKeys`, `Fapi2SecurityProfile`.
-
 - **`F45` — Per-tenant rate limits and quotas.** Customers run their dev, test, and prod environments as separate
   tenants on the one production platform ([hosting analysis](docs/hosting-analysis.md#environment-model)), so a
   customer's load test against a `-dev` tenant shares hardware with every other tenant's production. Nothing limits a

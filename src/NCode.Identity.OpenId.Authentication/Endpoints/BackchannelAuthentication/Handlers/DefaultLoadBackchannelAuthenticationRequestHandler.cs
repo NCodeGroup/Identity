@@ -19,6 +19,7 @@
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.Jose;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Commands;
@@ -78,9 +79,13 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
 
             // No decryption keys are given, so an encrypted request is rejected; the signature algorithm is one the
             // client's effective settings permit, checked before the signature is verified (ADR-0154).
+            var settings = openIdClient.Settings;
             var parameters = new JwtValidationParameters
             {
-                ValidSignatureAlgorithms = openIdClient.Settings.GetPermittedAlgorithms(
+                // Honor the client's effective clock_skew setting, as the authorization endpoint's request objects do;
+                // without it the JWT validator would fall back to its 5-minute default.
+                ClockSkew = settings.GetValue(OpenIdSettingKeys.ClockSkew),
+                ValidSignatureAlgorithms = settings.GetPermittedAlgorithms(
                     OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported
                 ),
             }
@@ -88,7 +93,28 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
                 .ValidateIssuer(openIdClient.ClientId)
                 .ValidateAudience(openIdContext.Tenant.Issuer)
                 .ValidateCertificateLifeTime()
-                .ValidateTokenLifeTime();
+                .ValidateTokenLifeTime(options =>
+                {
+                    // CIBA Core 1.0 §7.1.1: a signed authentication request carries 'iat', 'nbf', and 'exp', and is
+                    // valid for a bounded time like any request object (ADR-0187).
+                    options.RequireExpirationTime = true;
+                    options.RequireIssuedAt = true;
+                    options.RequireNotBefore = true;
+                    options.MaxLifetime = settings.GetValue(
+                        OpenIdSettingKeys.RequestObjectMaxLifetime
+                    );
+                })
+                .RequireAssertion(
+                    static (context, _) =>
+                        ValueTask.FromResult(
+                            context.DecodedJwt.Payload.TryGetProperty(
+                                JoseClaimNames.Payload.Jti,
+                                out var jti
+                            )
+                                && jti.ValueKind == JsonValueKind.String
+                                && !string.IsNullOrEmpty(jti.GetString())
+                        )
+                );
 
             var result = await JwtValidator.ValidateAsync(
                 requestJwt,

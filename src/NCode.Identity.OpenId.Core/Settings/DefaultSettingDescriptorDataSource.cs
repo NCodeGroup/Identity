@@ -1076,7 +1076,8 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect,
             };
 
-            // request_object_expected_audience: expected "aud" of a client's request object; empty disables audience validation (default empty).
+            // request_object_expected_audience: expected "aud" of a client's request object; empty expects the tenant's
+            // issuer (RFC 9101 §4, ADR-0187) (default empty).
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
@@ -1086,6 +1087,33 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
+            };
+
+            // request_object_max_lifetime: longest lifetime accepted for a signed request object or CIBA authentication
+            // request, from its earliest 'iat'/'nbf' to its 'exp' (default 60 minutes, FAPI's bound; ADR-0187).
+            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.RequestObjectMaxLifetime,
+                AppliesTo = Clients,
+                Rule = OpenIdSettingRules.Lifetime(),
+                Default = TimeSpan.FromMinutes(60),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // request_object_nbf_required: whether a signed request object must carry 'nbf' (default false; FAPI requires
+            // it; a CIBA authentication request always must, ADR-0187).
+            // Floor (Or): once a parent requires it, a child cannot un-require it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.RequestObjectNotBeforeRequired,
+                AppliesTo = Clients,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Or,
             };
 
             // request_parameter_supported: whether a passed-by-value "request" object parameter is accepted (default true).

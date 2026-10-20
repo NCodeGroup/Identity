@@ -98,12 +98,22 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         return registration.GetProperty("client_id").GetString() ?? string.Empty;
     }
 
+    private static async Task<string> GetIssuerAsync(HttpClient client)
+    {
+        using var response = await client.GetAsync("/.well-known/openid-configuration");
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return document.RootElement.GetProperty("issuer").GetString()!;
+    }
+
     private string CreateRequestObject(
         HostApplicationFactory factory,
         string clientId,
-        string algorithmCode
+        string algorithmCode,
+        string? audience,
+        TimeSpan? lifetime = null
     )
     {
+        var now = DateTimeOffset.UtcNow;
         var algorithms = factory
             .Services.GetRequiredService<IAlgorithmCollectionProvider>()
             .Collection;
@@ -119,6 +129,10 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             {
                 SigningCredentials = new JoseSigningCredentials(clientKey, algorithm),
                 Issuer = clientId,
+                Audience = audience,
+                IssuedAt = now,
+                NotBefore = now,
+                Expires = now + (lifetime ?? TimeSpan.FromMinutes(5)),
                 ExtraPayloadClaims = new Dictionary<string, object>
                 {
                     ["client_id"] = clientId,
@@ -180,7 +194,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var client = CreateClient(factory);
         var clientId = await RegisterClientAsync(client);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
-        var requestObject = CreateRequestObject(factory, clientId, "RS256");
+        var issuer = await GetIssuerAsync(client);
+        var requestObject = CreateRequestObject(factory, clientId, "RS256", issuer);
 
         using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
 
@@ -198,7 +213,63 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var client = CreateClient(factory);
         var clientId = await RegisterClientAsync(client);
         var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
-        var requestObject = CreateRequestObject(factory, clientId, "PS256");
+        var issuer = await GetIssuerAsync(client);
+        var requestObject = CreateRequestObject(factory, clientId, "PS256", issuer);
+
+        using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
+
+        var (code, error) = await ReadResultAsync(response);
+        Assert.True(string.IsNullOrEmpty(code));
+        Assert.NotNull(error);
+        Assert.Contains(
+            OpenIdConstants.ErrorCodes.InvalidRequestJwt,
+            error,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task Authorize_WhenRequestObjectIsNotAddressedToTheIssuer_ReturnsInvalidRequestObject()
+    {
+        // A request object is addressed to the authorization server, so one without the issuer in its 'aud' is
+        // refused (RFC 9101 §4, ADR-0187).
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var clientId = await RegisterClientAsync(client);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var requestObject = CreateRequestObject(factory, clientId, "RS256", audience: null);
+
+        using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
+
+        var (code, error) = await ReadResultAsync(response);
+        Assert.True(string.IsNullOrEmpty(code));
+        Assert.NotNull(error);
+        Assert.Contains(
+            OpenIdConstants.ErrorCodes.InvalidRequestJwt,
+            error,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task Authorize_WhenRequestObjectOutlivesTheMaximumLifetime_ReturnsInvalidRequestObject()
+    {
+        // The default request_object_max_lifetime is 60 minutes, so a request object valid for longer is refused
+        // (ADR-0187).
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var clientId = await RegisterClientAsync(client);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var issuer = await GetIssuerAsync(client);
+        var requestObject = CreateRequestObject(
+            factory,
+            clientId,
+            "RS256",
+            issuer,
+            lifetime: TimeSpan.FromMinutes(61)
+        );
 
         using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
 

@@ -839,6 +839,17 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **A signed request object is short-lived and addressed to the issuer.** The authorization endpoint (`request` /
+  `request_uri`) and the CIBA backchannel endpoint refuse a request object valid for longer than the new client-scoped
+  `request_object_max_lifetime` setting, which defaults to 60 minutes as a `Min` ceiling. The authorization endpoint
+  now always validates `aud`, against the tenant's issuer unless `request_object_expected_audience` is set, so a
+  client that omitted `aud` must add it. The new `request_object_nbf_required` setting (`Or` merge, default `false`)
+  makes `nbf` mandatory. The FAPI 2.0 profile pins both, at 60 minutes and `true`. A CIBA signed authentication request
+  must carry `iat`, `nbf`, `exp`, and `jti` (CIBA Core §7.1.1), and the CIBA loader now uses the client's
+  `clock_skew` instead of the JWT library's 5-minute default. `TokenLifetimeRequirement` and
+  `ValidateTokenLifeTimeOptions` gain `RequireNotBefore` and `RequireIssuedAt`. See
+  [ADR-0187](docs/adr/0187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md).
+
 - **The frontend bootstrap document's issuer is the serving tenant's, never the request's.** With `Frontend:Issuer`
   unset, `/config/bootstrap.json` published the request's `scheme://host` as the issuer, so a forged or proxied
   `Host` sent the bundle to an authority the operator never configured. It now publishes the stored issuer of the

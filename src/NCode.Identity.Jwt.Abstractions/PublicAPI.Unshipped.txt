@@ -155,6 +155,10 @@ NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.MaxLifetime.get -> System
 NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.MaxLifetime.init -> void
 NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.RequireExpirationTime.get -> bool
 NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.RequireExpirationTime.init -> void
+NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.RequireIssuedAt.get -> bool
+NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.RequireIssuedAt.init -> void
+NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.RequireNotBefore.get -> bool
+NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.RequireNotBefore.init -> void
 NCode.Identity.Jwt.Validation.TokenLifetimeRequirement.TokenLifetimeRequirement(bool RequireExpirationTime, System.TimeSpan ClockSkew) -> void
 NCode.Identity.Jwt.Validation.TokenTypeRequirement
 NCode.Identity.Jwt.Validation.TokenTypeRequirement.TokenTypeRequirement(System.Collections.Generic.IReadOnlyCollection<string!>! ValidTokenTypes) -> void
@@ -165,6 +169,10 @@ NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.MaxLifetime.get -> Sy
 NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.MaxLifetime.set -> void
 NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.RequireExpirationTime.get -> bool
 NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.RequireExpirationTime.set -> void
+NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.RequireIssuedAt.get -> bool
+NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.RequireIssuedAt.set -> void
+NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.RequireNotBefore.get -> bool
+NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.RequireNotBefore.set -> void
 NCode.Identity.Jwt.Validation.ValidateTokenLifeTimeOptions.ValidateTokenLifeTimeOptions() -> void
 static NCode.Identity.Jwt.Validation.JwtValidationResult.Fail(NCode.Identity.Jwt.Validation.JwtValidationParameters! parameters, NCode.PropertyBag.IPropertyBag! propertyBag, string! encodedToken, System.Exception! exception) -> NCode.Identity.Jwt.Validation.JwtValidationResult!
 static NCode.Identity.Jwt.Validation.JwtValidationResult.Success(NCode.Identity.Jwt.Validation.JwtValidationParameters! parameters, NCode.PropertyBag.IPropertyBag! propertyBag, NCode.Identity.Jwt.DecodedJwt! decodedJwt, NCode.Identity.Jwt.Validation.CreateClaimsIdentityAsync! createClaimsIdentity) -> NCode.Identity.Jwt.Validation.JwtValidationResult!

@@ -589,4 +589,113 @@ public class ClientRegistrationEndpointTests
     }
 
     #endregion
+
+    #region Token Endpoint and CIBA Metadata
+
+    [Fact]
+    public async Task PostRegister_WithTokenEndpointAndCibaMetadata_StoresAndReportsThem()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["token_endpoint_auth_signing_alg"] = "ES256",
+                ["backchannel_token_delivery_mode"] = OpenIdConstants
+                    .BackchannelTokenDeliveryModes
+                    .Ping,
+                ["backchannel_client_notification_endpoint"] = "https://client.example/ciba",
+                ["backchannel_authentication_request_signing_alg"] = "PS256",
+                ["backchannel_user_code_parameter"] = false,
+            }
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registration = JsonDocument.Parse(registrationBody);
+        var root = registration.RootElement;
+
+        // Reading the registration back loads the stored client, so the metadata round-trips through its settings.
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        using var read = JsonDocument.Parse(readBody);
+
+        foreach (var document in new[] { root, read.RootElement })
+        {
+            Assert.Equal(
+                "ES256",
+                document.GetProperty("token_endpoint_auth_signing_alg").GetString()
+            );
+            Assert.Equal(
+                OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+                document.GetProperty("backchannel_token_delivery_mode").GetString()
+            );
+            Assert.Equal(
+                "https://client.example/ciba",
+                document.GetProperty("backchannel_client_notification_endpoint").GetString()
+            );
+            Assert.Equal(
+                "PS256",
+                document.GetProperty("backchannel_authentication_request_signing_alg").GetString()
+            );
+            Assert.False(document.GetProperty("backchannel_user_code_parameter").GetBoolean());
+        }
+    }
+
+    [Theory]
+    [InlineData("push", null, "backchannel_client_notification_endpoint")]
+    [InlineData(
+        "ping",
+        "http://client.example/ciba",
+        OpenIdSettingNames.ClientNotificationEndpoint
+    )]
+    [InlineData("poll", null, "backchannel_user_code_parameter")]
+    public async Task PostRegister_WhenTheCibaMetadataCannotBeHonored_ReturnsInvalidClientMetadata(
+        string deliveryMode,
+        string? notificationEndpoint,
+        string expectedQuotedName
+    )
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var metadata = new Dictionary<string, object>
+        {
+            ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+            ["backchannel_token_delivery_mode"] = deliveryMode,
+        };
+        if (notificationEndpoint is not null)
+            metadata["backchannel_client_notification_endpoint"] = notificationEndpoint;
+
+        // The server does not support the user_code parameter by default, so no client may claim it.
+        if (expectedQuotedName == "backchannel_user_code_parameter")
+            metadata["backchannel_user_code_parameter"] = true;
+
+        using var response = await client.PostAsJsonAsync("/oauth2/register", metadata);
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            expectedQuotedName
+        );
+    }
+
+    #endregion
 }

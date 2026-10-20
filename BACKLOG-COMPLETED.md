@@ -1290,6 +1290,26 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   were verified up and down against Postgres 18.3. Follow-ups recorded: `F72` (`x5c` certificates for
   `self_signed_tls_client_auth`) and `F73` (the key policy and `kid` for the other secret owners)._
 
+- **`F66` — Accept the remaining algorithm and CIBA metadata at dynamic client registration.** Registration accepts the
+  ID token, UserInfo, and request-object algorithm metadata
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)) but not
+  `token_endpoint_auth_signing_alg` (OpenID Connect Dynamic Client Registration 1.0 §2) or the CIBA registration
+  metadata (`backchannel_token_delivery_mode`, `backchannel_client_notification_endpoint`,
+  `backchannel_authentication_request_signing_alg`, `backchannel_user_code_parameter`, CIBA Core §4), so a dynamically
+  registered client cannot narrow its assertion algorithm or use CIBA at all and must be provisioned through the
+  management API. Map each algorithm to a single-element client list as `request_object_signing_alg` is, validate it
+  against the tenant's ceiling, and report it in the client information response. Pairs with the `F16` follow-up that
+  accepts the non-secret `token_endpoint_auth_method` values. Touch points:
+  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) (decision and consequences
+  amended). Each algorithm narrows the client's own list under the tenant's ceiling; the notification endpoint is stored
+  as `client_notification_endpoint` and is required for `ping` and `push`; the user-code flag is stored at the client's
+  scope of `backchannel_user_code_parameter_supported`, which the tenant's value bounds. The non-secret
+  `token_endpoint_auth_method` values remain the `F16` follow-up._
+
 - **`F67` — Validate the access tokens the server encrypted itself.** When an access token's settings require encryption,
   it is a Nested JWT encrypted to the key of the single targeted resource server that decrypts its own tokens or,
   otherwise, to the tenant's

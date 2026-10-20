@@ -571,12 +571,13 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect,
             };
 
-            // backchannel_user_code_parameter_supported: whether the server supports the CIBA user_code parameter (default false).
+            // backchannel_user_code_parameter_supported: whether the server supports the CIBA user_code parameter (default false);
+            // a client's registered backchannel_user_code_parameter is stored here, at the client's scope.
             // Ceiling (And): once a parent disables it, a child cannot re-enable it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.BackchannelUserCodeParameterSupported,
-                AppliesTo = Tenants,
+                AppliesTo = TenantsAndClients,
                 Default = false,
 
                 IsDiscoverable = IsStdDiscoverable,

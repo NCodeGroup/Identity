@@ -76,6 +76,17 @@ internal class DefaultClientRegistrationEndpointHandler(
     private const string RequestObjectEncryptionAlgMetadata = "request_object_encryption_alg";
     private const string RequestObjectEncryptionEncMetadata = "request_object_encryption_enc";
 
+    // The token endpoint and CIBA metadata (Dynamic Client Registration 1.0 §2, CIBA Core 1.0 §4) map to client settings
+    // whose names differ from the registration members: an algorithm narrows the client's own list to it, the
+    // notification endpoint is the client's `client_notification_endpoint`, and the user-code flag narrows the tenant's.
+    private const string TokenEndpointAuthSigningAlgMetadata = "token_endpoint_auth_signing_alg";
+    private const string BackchannelTokenDeliveryModeMetadata = "backchannel_token_delivery_mode";
+    private const string BackchannelClientNotificationEndpointMetadata =
+        "backchannel_client_notification_endpoint";
+    private const string BackchannelAuthenticationRequestSigningAlgMetadata =
+        "backchannel_authentication_request_signing_alg";
+    private const string BackchannelUserCodeParameterMetadata = "backchannel_user_code_parameter";
+
     private static readonly string[] DefaultGrantTypes =
     [
         OpenIdConstants.GrantTypes.AuthorizationCode,
@@ -1104,6 +1115,21 @@ internal class DefaultClientRegistrationEndpointHandler(
                 request.RequestObjectEncryptionEnc,
                 OpenIdSettingKeys.RequestObjectEncryptionEncValuesSupported
             ),
+            (
+                TokenEndpointAuthSigningAlgMetadata,
+                request.TokenEndpointAuthSigningAlg,
+                OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported
+            ),
+            (
+                BackchannelTokenDeliveryModeMetadata,
+                request.BackchannelTokenDeliveryMode,
+                OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported
+            ),
+            (
+                BackchannelAuthenticationRequestSigningAlgMetadata,
+                request.BackchannelAuthenticationRequestSigningAlg,
+                OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported
+            ),
         ];
 
         foreach (var (name, value, permittedKey) in checks)
@@ -1143,6 +1169,50 @@ internal class DefaultClientRegistrationEndpointHandler(
             return InvalidClientMetadata(
                 errorFactory,
                 $"The tenant requires encrypted ID tokens, so '{OpenIdSettingNames.IdTokenEncryptedResponseAlg}' is required."
+            );
+        }
+
+        return ValidateBackchannelMetadata(errorFactory, tenantSettings, request);
+    }
+
+    // CIBA Core 1.0 §4: a ping or push client must register the endpoint its notifications go to, and a client may claim
+    // the user_code parameter only where the server supports it.
+    private static IOpenIdError? ValidateBackchannelMetadata(
+        IOpenIdErrorFactory errorFactory,
+        IReadOnlySettingCollection tenantSettings,
+        RegisterClientRequest request
+    )
+    {
+        var deliveryMode = request.BackchannelTokenDeliveryMode;
+        var isNotified =
+            !string.IsNullOrEmpty(deliveryMode)
+            && !string.Equals(
+                deliveryMode,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+                StringComparison.Ordinal
+            );
+        if (isNotified && string.IsNullOrEmpty(request.BackchannelClientNotificationEndpoint))
+        {
+            return InvalidClientMetadata(
+                errorFactory,
+                $"The '{BackchannelTokenDeliveryModeMetadata}' value '{deliveryMode}' requires a "
+                    + $"'{BackchannelClientNotificationEndpointMetadata}'."
+            );
+        }
+
+        if (
+            request.BackchannelUserCodeParameter == true
+            && !(
+                tenantSettings.TryGetValue(
+                    OpenIdSettingKeys.BackchannelUserCodeParameterSupported,
+                    out var userCodeSupported
+                ) && userCodeSupported
+            )
+        )
+        {
+            return InvalidClientMetadata(
+                errorFactory,
+                $"The '{BackchannelUserCodeParameterMetadata}' value 'true' is not supported."
             );
         }
 
@@ -1419,6 +1489,29 @@ internal class DefaultClientRegistrationEndpointHandler(
             request.RequestObjectEncryptionEnc
         );
 
+        SetListIfPresent(
+            settings,
+            OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported,
+            request.TokenEndpointAuthSigningAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.BackchannelTokenDeliveryMode,
+            request.BackchannelTokenDeliveryMode
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.ClientNotificationEndpoint,
+            request.BackchannelClientNotificationEndpoint
+        );
+        SetListIfPresent(
+            settings,
+            OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported,
+            request.BackchannelAuthenticationRequestSigningAlg
+        );
+        if (request.BackchannelUserCodeParameter is { } userCodeParameter)
+            settings[OpenIdSettingNames.BackchannelUserCodeParameterSupported] = userCodeParameter;
+
         return settings;
     }
 
@@ -1518,6 +1611,26 @@ internal class DefaultClientRegistrationEndpointHandler(
                 settings,
                 OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported
             ),
+            TokenEndpointAuthSigningAlg = ReadSingleValue(
+                settings,
+                OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported
+            ),
+            BackchannelTokenDeliveryMode = ReadString(
+                settings,
+                OpenIdSettingNames.BackchannelTokenDeliveryMode
+            ),
+            BackchannelClientNotificationEndpoint = ReadString(
+                settings,
+                OpenIdSettingNames.ClientNotificationEndpoint
+            ),
+            BackchannelAuthenticationRequestSigningAlg = ReadSingleValue(
+                settings,
+                OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported
+            ),
+            BackchannelUserCodeParameter = ReadBoolean(
+                settings,
+                OpenIdSettingNames.BackchannelUserCodeParameterSupported
+            ),
         };
     }
 
@@ -1600,6 +1713,14 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         return values;
     }
+
+    private static bool? ReadBoolean(JsonObject settings, string key) =>
+        settings[key]?.GetValueKind() switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            _ => null,
+        };
 
     private static string? ReadString(JsonObject settings, string key)
     {

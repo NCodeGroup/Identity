@@ -74,6 +74,8 @@ never compresses.**
    decrypted with the tenant's, under `request_object_signing_alg_values_supported` and
    `request_object_encryption_{alg,enc}_values_supported` read from the client's effective settings; a registered
    `request_object_signing_alg` / `request_object_encryption_alg` / `_enc` narrows the client's list to that one value.
+   A registered `token_endpoint_auth_signing_alg` and `backchannel_authentication_request_signing_alg` narrow the
+   lists named below the same way.
    A signed CIBA request is verified under `backchannel_authentication_request_signing_alg_values_supported`, whose
    domain is asymmetric signatures, and an encrypted one is rejected; a client assertion (`private_key_jwt`,
    `client_secret_jwt`) under `token_endpoint_auth_signing_alg_values_supported`. At these trust boundaries an **unset**
@@ -113,12 +115,18 @@ never compresses.**
   clients, or each client registers one; otherwise registration is refused and issuance fails with `server_error`
   (backlog `F68`).
 - A relying party that called UserInfo with only the end-user's session cookie must present an access token.
+- A dynamically registered client can narrow its assertion algorithm and use CIBA without the management API. Its
+  `backchannel_token_delivery_mode` is checked against the tenant's `backchannel_token_delivery_modes_supported`; its
+  `backchannel_client_notification_endpoint` is stored as its `client_notification_endpoint`, which `ping` and `push`
+  require; and its `backchannel_user_code_parameter` is stored as its own `backchannel_user_code_parameter_supported`,
+  which the tenant's value bounds, so a client claims the parameter only where the tenant supports it.
 - **Breaking:** the six registration settings are new; the seven retired settings are removed;
   `AuthenticateSubjectCommand` authenticates only the session and `AuthenticateResourceRequestCommand` is new;
-  `RegisterClientRequest` and `RegisterClientResponse` gain the response and request-object metadata. A deployment that
+  `RegisterClientRequest` and `RegisterClientResponse` gain the response and request-object metadata, the
+  `token_endpoint_auth_signing_alg`, and the CIBA registration metadata (CIBA Core 1.0 §4). A deployment that
   stores settings documents in its own database applies the same migration there.
 - Follow-ups: request-object audience, typing, and lifetime (backlog `F40`); validating client key material at every
-  entry point (`F65`); the remaining registration metadata (`F66`); the server validating access tokens it encrypted
+  entry point (`F65`); the server validating access tokens it encrypted
   (`F67`); and checking a client's registered response algorithms when its settings are written (`F68`).
 
 ## References

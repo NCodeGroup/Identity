@@ -1,6 +1,8 @@
 # 112. Authorization-code replay revokes the end-user session; first-party resource endpoints enforce it
 
-- **Status:** Accepted
+- **Status:** Accepted (introspection's enforcement realized by
+  [ADR-0167](0167-the-server-validates-the-tokens-it-issued-under-one-policy.md): every reader of an issued access
+  token checks its session through one seam)
 - **Date:** 2026-10-16
 - **Deciders:** NCode Group
 

@@ -1,6 +1,8 @@
 # 155. JWTs exchanged with a client follow its registered metadata
 
-- **Status:** Accepted
+- **Status:** Accepted (extended by
+  [ADR-0168](0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): a JWT introspection response
+  follows the client's registered introspection metadata)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

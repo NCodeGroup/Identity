@@ -89,20 +89,28 @@ export type UpdateServerFields = {
   readonly displayName: string;
 };
 
-/** Mirror of `ClientResource` (tenant scope). A client has no display name; it is identified by id. */
+/**
+ * Mirror of `ClientResource` (tenant scope). A client has no display name; it is identified by id.
+ * `resourceServerId` names the resource server the client acts for — its credential at the token
+ * introspection endpoint, accepted nowhere else — or is `null` for an ordinary client.
+ */
 export type ClientResource = {
   readonly clientId: string;
   readonly tenantId: string;
   readonly concurrencyToken: string;
   readonly isDisabled: boolean;
+  readonly resourceServerId: string | null;
 };
 
 /**
  * Mirror of `CreateClientRequest`. The client id is server-generated (not supplied), and `settings`
  * is the initial JSON settings object (empty by default; settings have their own PATCH endpoint).
+ * `resourceServerId` binds the new client to the resource server it acts for; the binding cannot
+ * change after the client is created.
  */
 export type CreateClientRequest = {
   readonly isDisabled: boolean;
+  readonly resourceServerId?: string | null;
   readonly settings: Readonly<Record<string, unknown>>;
 };
 

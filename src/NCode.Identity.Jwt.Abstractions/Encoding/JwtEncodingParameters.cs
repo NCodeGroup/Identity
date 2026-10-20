@@ -37,6 +37,14 @@ public class JwtEncodingParameters
     public string TokenType { get; init; } = JoseTokenTypes.Jwt;
 
     /// <summary>
+    /// Gets a value indicating whether the encoder supplies the lifetime claims the JWT does not set — <c>iat</c>,
+    /// <c>nbf</c>, and <c>exp</c> — when the encoder is configured to. Set it to <c>false</c> for a JWT that is not a
+    /// token with a lifetime, such as a JWT token introspection response (RFC 9701), which carries <c>iat</c> but no
+    /// <c>exp</c> so it cannot pass for an access token. The default value is <c>true</c>.
+    /// </summary>
+    public bool EnsureTokenLifetime { get; init; } = true;
+
+    /// <summary>
     /// Gets a boolean indicating whether to add the secret's <c>kid</c> value (if present) to the JWT header.
     /// The default value is <c>true</c>.
     /// </summary>

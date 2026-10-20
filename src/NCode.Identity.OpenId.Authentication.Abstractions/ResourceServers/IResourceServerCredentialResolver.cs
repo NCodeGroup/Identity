@@ -22,13 +22,13 @@ using NCode.Identity.OpenId.Contexts;
 namespace NCode.Identity.OpenId.Authentication.ResourceServers;
 
 /// <summary>
-/// Resolves the resource servers an access token targets — the tenant's enabled resource servers that own at least one
-/// of the token's effective scopes — and materializes, for each, its effective settings and its own secret keys. The
-/// resolution supplies data only: access-token issuance combines every targeted resource server's settings with the
-/// requesting client's, and chooses the token's credentials, itself. The token is always signed with the tenant's key.
-/// Register a custom implementation to replace the default behavior.
+/// Resolves resource servers with their effective settings and their own secret keys: the resource servers an access
+/// token targets — the tenant's enabled resource servers that own at least one of the token's effective scopes — and
+/// the resource server a client acts for. The resolution supplies data only: access-token issuance combines every
+/// targeted resource server's settings with the requesting client's, and chooses the token's credentials, itself. The
+/// token is always signed with the tenant's key. Register a custom implementation to replace the default behavior.
 /// </summary>
-// See ADR-0075 and ADR-0154.
+// See ADR-0075, ADR-0154, and ADR-0168.
 [PublicAPI]
 public interface IResourceServerCredentialResolver
 {
@@ -50,6 +50,23 @@ public interface IResourceServerCredentialResolver
         OpenIdContext openIdContext,
         IReadOnlyCollection<string> effectiveScopes,
         IReadOnlyCollection<string> requestedResources,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Resolves the enabled resource server with the specified opaque identifier within the current tenant — the
+    /// resource server a client acts for — returning its audience, scopes, effective settings, and own secret-key
+    /// provider.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <param name="resourceServerId">The opaque identifier of the resource server.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="ResourceServerCredentialResolution"/> that carries the resource server, or no resource server when
+    /// none is enabled with that identifier. The caller owns the returned resolution and must dispose it.</returns>
+    ValueTask<ResourceServerCredentialResolution> ResolveByIdAsync(
+        OpenIdContext openIdContext,
+        string resourceServerId,
         CancellationToken cancellationToken
     );
 }

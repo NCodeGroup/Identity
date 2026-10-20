@@ -174,6 +174,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<long?>("ResourceServerId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("SecretsConcurrencyToken")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -194,6 +197,8 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ResourceServerId");
 
                     b.HasIndex("TenantId", "NormalizedClientId")
                         .IsUnique();
@@ -1105,11 +1110,18 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
             modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity", b =>
                 {
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity", "ResourceServer")
+                        .WithMany()
+                        .HasForeignKey("ResourceServerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("ResourceServer");
 
                     b.Navigation("Tenant");
                 });

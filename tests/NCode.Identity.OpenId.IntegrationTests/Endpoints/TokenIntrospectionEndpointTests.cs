@@ -16,68 +16,270 @@
 
 #endregion
 
+using System.Buffers.Text;
 using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
+/// <summary>
+/// Drives token introspection (RFC 7662, RFC 9701) the way a deployment uses it: an operator creates a client that acts
+/// for a resource server through the management API, and that client learns about the access tokens issued for its
+/// resource server — and only those, narrowed to it — including tokens the server encrypted.
+/// </summary>
 public class TokenIntrospectionEndpointTests
 {
-    private const string ClientId = "it-introspect-client";
+    private const string IssuingClientId = "it-introspect-client";
     private const string ClientSecret = "confidential-secret-value";
+    private const string OrdersResourceServerId = "it-orders-rs";
+    private const string OrdersAudience = "https://orders.introspect.test";
+    private const string OrdersScope = "orders:read";
+    private const string BillingResourceServerId = "it-billing-rs";
+    private const string BillingAudience = "https://billing.introspect.test";
+    private const string BillingScope = "billing:read";
+    private const string BootstrapClientId = "it-bootstrap-admin";
+    private const string BootstrapClientSecret = "bootstrap-secret-value";
+    private const string ManagementScope = "read:clients";
+    private const string JwtResponseMediaType = "application/token-introspection+jwt";
+    private const string IntrospectPath = "/oauth2/introspect";
+    private const string TokenPath = "/oauth2/token";
+    private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";
+
+    private static IReadOnlyDictionary<string, object> NoSettings { get; } =
+        new Dictionary<string, object>();
+
+    private static IReadOnlyDictionary<string, object> EncryptionRequired { get; } =
+        new Dictionary<string, object> { ["access_token_encryption_required"] = true };
+
+    #region Scaffolding
+
+    // The tenant's provisioned keys sign and encrypt its tokens, and the bootstrap administrator creates the clients that
+    // act for resource servers through the management API.
+    private static async Task<HostApplicationFactory> CreateFactoryAsync(
+        IReadOnlyDictionary<string, object> tenantSettings
+    )
+    {
+        var factory = new ProvisionedKeysHostApplicationFactory();
+        await factory.SeedTenantSettingsAsync(tenantSettings);
+        await factory.SeedConfidentialClientAsync(IssuingClientId, ClientSecret);
+        return factory;
+    }
+
+    private static HttpClient CreateHttpClient(HostApplicationFactory factory) =>
+        factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+    private static async Task<HttpClient> CreateAdministratorClientAsync(
+        HostApplicationFactory factory
+    )
+    {
+        var client = CreateHttpClient(factory);
+        var credentials = Encoding.UTF8.GetBytes($"{BootstrapClientId}:{BootstrapClientSecret}");
+        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, TokenPath)
+        {
+            Headers =
+            {
+                Authorization = new AuthenticationHeaderValue(
+                    "Basic",
+                    Convert.ToBase64String(credentials)
+                ),
+            },
+            Content = new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["scope"] = ManagementScope,
+                }
+            ),
+        };
+
+        var accessToken = await RequestAccessTokenAsync(client, tokenRequest);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            accessToken
+        );
+        return client;
+    }
+
+    private static async Task<string> RequestAccessTokenAsync(
+        HttpClient client,
+        HttpRequestMessage tokenRequest
+    )
+    {
+        using var response = await client.SendAsync(tokenRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+
+        using var document = JsonDocument.Parse(body);
+        var accessToken = document.RootElement.GetProperty("access_token").GetString();
+        Assert.False(string.IsNullOrEmpty(accessToken));
+        return accessToken;
+    }
+
+    private static async Task<string> IssueAccessTokenAsync(HttpClient client, string scope)
+    {
+        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, TokenPath)
+        {
+            Content = new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["client_id"] = IssuingClientId,
+                    ["client_secret"] = ClientSecret,
+                    ["scope"] = scope,
+                }
+            ),
+        };
+        return await RequestAccessTokenAsync(client, tokenRequest);
+    }
+
+    // The client acts for the resource server and authenticates with a secret the management API reveals once.
+    private static async Task<(
+        string ClientId,
+        string ClientSecret
+    )> CreateResourceServerClientAsync(
+        HttpClient administrator,
+        string resourceServerId,
+        IReadOnlyDictionary<string, object>? extraSettings = null
+    )
+    {
+        var settings = new Dictionary<string, object>
+        {
+            ["token_endpoint_auth_method"] = OpenIdConstants
+                .ClientAuthenticationMethods
+                .ClientSecretPost,
+        };
+        foreach (var (name, value) in extraSettings ?? NoSettings)
+        {
+            settings[name] = value;
+        }
+
+        using var createResponse = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/clients",
+            new
+            {
+                isDisabled = false,
+                resourceServerId,
+                settings,
+            }
+        );
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
+
+        using var created = JsonDocument.Parse(createBody);
+        Assert.Equal(
+            resourceServerId,
+            created.RootElement.GetProperty("resourceServerId").GetString()
+        );
+        var clientId = created.RootElement.GetProperty("clientId").GetString();
+        Assert.False(string.IsNullOrEmpty(clientId));
+
+        using var secretResponse = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/clients/{clientId}/secrets",
+            new
+            {
+                secretType = "symmetric",
+                keySizeBits = 256,
+                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            }
+        );
+        var secretBody = await secretResponse.Content.ReadAsStringAsync();
+        Assert.True(secretResponse.StatusCode == HttpStatusCode.Created, secretBody);
+
+        using var secret = JsonDocument.Parse(secretBody);
+        var secretMaterial = secret.RootElement.GetProperty("secretMaterial").GetString();
+        Assert.False(string.IsNullOrEmpty(secretMaterial));
+
+        return (clientId, secretMaterial);
+    }
+
+    private static async Task<HttpResponseMessage> IntrospectAsync(
+        HttpClient client,
+        string clientId,
+        string clientSecret,
+        string token,
+        string? accept = null
+    )
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, IntrospectPath)
+        {
+            Content = new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["client_id"] = clientId,
+                    ["client_secret"] = clientSecret,
+                    ["token"] = token,
+                }
+            ),
+        };
+        if (accept is not null)
+        {
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(accept));
+        }
+
+        return await client.SendAsync(request);
+    }
+
+    private static async Task<JsonElement> IntrospectJsonAsync(
+        HttpClient client,
+        string clientId,
+        string clientSecret,
+        string token
+    )
+    {
+        using var response = await IntrospectAsync(client, clientId, clientSecret, token);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        return JsonElement.Parse(body);
+    }
+
+    private static JsonElement DecodeSegment(string jwt, int index) =>
+        JsonElement.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[index]));
+
+    #endregion
+
+    #region Caller and request Tests
 
     [Fact]
     public async Task PostIntrospect_WithUnknownToken_ReturnsInactive()
     {
-        using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        using var factory = await CreateFactoryAsync(NoSettings);
+        using var client = CreateHttpClient(factory);
 
-        var client = factory.CreateClient(
-            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        var root = await IntrospectJsonAsync(
+            client,
+            IssuingClientId,
+            ClientSecret,
+            "not-a-real-token"
         );
 
-        using var content = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["client_id"] = ClientId,
-                ["client_secret"] = ClientSecret,
-                ["token"] = "not-a-real-token",
-            }
-        );
-
-        using var response = await client.PostAsync("/oauth2/introspect", content);
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        Assert.False(document.RootElement.GetProperty("active").GetBoolean());
+        Assert.False(root.GetProperty("active").GetBoolean());
     }
 
     [Fact]
     public async Task PostIntrospect_WithoutToken_ReturnsInvalidRequest()
     {
-        using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
-
-        var client = factory.CreateClient(
-            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
-        );
+        using var factory = await CreateFactoryAsync(NoSettings);
+        using var client = CreateHttpClient(factory);
 
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["client_id"] = ClientId,
+                ["client_id"] = IssuingClientId,
                 ["client_secret"] = ClientSecret,
             }
         );
-
-        using var response = await client.PostAsync("/oauth2/introspect", content);
+        using var response = await client.PostAsync(IntrospectPath, content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal("invalid_request", document.RootElement.GetProperty("error").GetString());
     }
@@ -85,80 +287,458 @@ public class TokenIntrospectionEndpointTests
     [Fact]
     public async Task PostIntrospect_WithoutClientAuthentication_IsRejected()
     {
-        using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
-
-        var client = factory.CreateClient(
-            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
-        );
+        using var factory = await CreateFactoryAsync(NoSettings);
+        using var client = CreateHttpClient(factory);
 
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string> { ["token"] = "not-a-real-token" }
         );
-
-        using var response = await client.PostAsync("/oauth2/introspect", content);
+        using var response = await client.PostAsync(IntrospectPath, content);
 
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
     }
 
+    #endregion
+
+    #region Disclosure Tests
+
     [Fact]
-    public async Task PostIntrospect_WithActiveAccessToken_ReturnsActiveWithClaims()
+    public async Task PostIntrospect_ByAClientActingForAnAudience_ReportsTheTokenNarrowedToIt()
     {
-        using var factory = new HostApplicationFactory();
-        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        using var factory = await CreateFactoryAsync(NoSettings);
         await factory.SeedResourceServerWithClientGrantAsync(
-            ClientId,
-            "it-introspect-rs",
-            "https://api.introspect.test",
-            TestServerSettingsProvider.ApiScope
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
         );
-
-        var client = factory.CreateClient(
-            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            BillingResourceServerId,
+            BillingAudience,
+            BillingScope
         );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, clientSecret) = await CreateResourceServerClientAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+        var accessToken = await IssueAccessTokenAsync(client, $"{OrdersScope} {BillingScope}");
 
-        // Obtain a real access token via the client-credentials flow.
-        using var tokenContent = new FormUrlEncodedContent(
+        var root = await IntrospectJsonAsync(client, clientId, clientSecret, accessToken);
+
+        Assert.True(root.GetProperty("active").GetBoolean());
+        Assert.Equal(OrdersAudience, root.GetProperty("aud").GetString());
+        Assert.Equal(OrdersScope, root.GetProperty("scope").GetString());
+        Assert.Equal(IssuingClientId, root.GetProperty("client_id").GetString());
+        Assert.Equal(HostApplicationFactory.TestServerIssuer, root.GetProperty("iss").GetString());
+    }
+
+    [Fact]
+    public async Task PostIntrospect_ByTheClientTheTokenWasIssuedTo_ReportsItInactive()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var client = CreateHttpClient(factory);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+
+        var root = await IntrospectJsonAsync(client, IssuingClientId, ClientSecret, accessToken);
+
+        Assert.False(root.GetProperty("active").GetBoolean());
+        Assert.Single(root.EnumerateObject());
+    }
+
+    [Fact]
+    public async Task PostIntrospect_ByAClientActingForAnotherResourceServer_ReportsItInactive()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            BillingResourceServerId,
+            BillingAudience,
+            BillingScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, clientSecret) = await CreateResourceServerClientAsync(
+            administrator,
+            BillingResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+
+        var root = await IntrospectJsonAsync(client, clientId, clientSecret, accessToken);
+
+        Assert.False(root.GetProperty("active").GetBoolean());
+    }
+
+    [Fact]
+    public async Task PostToken_ByAClientActingForAResourceServer_IsRefused()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, clientSecret) = await CreateResourceServerClientAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+
+        using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
                 ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
-                ["client_id"] = ClientId,
-                ["client_secret"] = ClientSecret,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["client_id"] = clientId,
+                ["client_secret"] = clientSecret,
             }
         );
-
-        using var tokenResponse = await client.PostAsync("/oauth2/token", tokenContent);
-        var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
-        Assert.True(tokenResponse.StatusCode == HttpStatusCode.OK, tokenBody);
-
-        using var tokenDocument = JsonDocument.Parse(tokenBody);
-        var accessToken = tokenDocument.RootElement.GetProperty("access_token").GetString();
-        Assert.False(string.IsNullOrEmpty(accessToken));
-
-        // Introspect the access token.
-        using var introspectContent = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["client_id"] = ClientId,
-                ["client_secret"] = ClientSecret,
-                ["token"] = accessToken!,
-                ["token_type_hint"] = "access_token",
-            }
-        );
-
-        using var response = await client.PostAsync("/oauth2/introspect", introspectContent);
+        using var response = await client.PostAsync(TokenPath, content);
 
         var body = await response.Content.ReadAsStringAsync();
-        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
-
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
         using var document = JsonDocument.Parse(body);
-        var root = document.RootElement;
+        Assert.Equal("invalid_client", document.RootElement.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task PostIntrospect_ByAPublicClientActingForAResourceServer_IsRefused()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var createResponse = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/clients",
+            new
+            {
+                isDisabled = false,
+                resourceServerId = OrdersResourceServerId,
+                settings = new Dictionary<string, object>
+                {
+                    ["token_endpoint_auth_method"] = OpenIdConstants
+                        .ClientAuthenticationMethods
+                        .None,
+                },
+            }
+        );
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        using var created = JsonDocument.Parse(await createResponse.Content.ReadAsStringAsync());
+        var clientId = created.RootElement.GetProperty("clientId").GetString();
+        using var client = CreateHttpClient(factory);
+
+        // A resource server must authenticate to learn about its tokens (RFC 9701 §4).
+        using var content = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["client_id"] = clientId ?? string.Empty,
+                ["token"] = "not-a-real-token",
+            }
+        );
+        using var response = await client.PostAsync(IntrospectPath, content);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var document = JsonDocument.Parse(body);
+        Assert.Equal("invalid_client", document.RootElement.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task PostIntrospect_WhenTheResourceServerIsDisabled_RefusesTheClientActingForIt()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, clientSecret) = await CreateResourceServerClientAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var patch = new HttpRequestMessage(
+            HttpMethod.Patch,
+            $"{TenantApiPath}/resource-servers/{OrdersResourceServerId}"
+        )
+        {
+            Content = new StringContent(
+                """[{ "op": "replace", "path": "/isDisabled", "value": true }]""",
+                Encoding.UTF8,
+                "application/json-patch+json"
+            ),
+        };
+        using var patchResponse = await administrator.SendAsync(patch);
+        var patchBody = await patchResponse.Content.ReadAsStringAsync();
+        Assert.True(patchResponse.StatusCode == HttpStatusCode.NoContent, patchBody);
+        using var client = CreateHttpClient(factory);
+
+        using var response = await IntrospectAsync(
+            client,
+            clientId,
+            clientSecret,
+            "not-a-real-token"
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var document = JsonDocument.Parse(body);
+        Assert.Equal("invalid_client", document.RootElement.GetProperty("error").GetString());
+    }
+
+    #endregion
+
+    #region Encrypted access token Tests
+
+    [Fact]
+    public async Task Server_WhenTheTenantEncryptsAccessTokens_ReadsThemAtTheManagementApiAndIntrospection()
+    {
+        using var factory = await CreateFactoryAsync(EncryptionRequired);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+
+        // The management token itself is encrypted to the tenant, and the management API reads it.
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var managementToken = administrator.DefaultRequestHeaders.Authorization?.Parameter;
+        Assert.Equal(5, managementToken?.Split('.').Length);
+
+        var (clientId, clientSecret) = await CreateResourceServerClientAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+        Assert.Equal(5, accessToken.Split('.').Length);
+
+        var root = await IntrospectJsonAsync(client, clientId, clientSecret, accessToken);
 
         Assert.True(root.GetProperty("active").GetBoolean());
+        Assert.Equal(OrdersAudience, root.GetProperty("aud").GetString());
+    }
 
-        // The JWT claims are flattened into the top-level introspection response.
-        Assert.True(root.TryGetProperty("iss", out _));
-        Assert.True(root.TryGetProperty("exp", out _));
+    [Fact]
+    public async Task PostIntrospect_WhenTheResourceServerDecryptsItsOwnTokens_TheClientActingForItReadsThem()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            EncryptionRequired,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var keyResponse = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/resource-servers/{OrdersResourceServerId}/secrets",
+            new
+            {
+                secretType = "rsa",
+                keySizeBits = 2048,
+                use = "enc",
+                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            }
+        );
+        Assert.Equal(HttpStatusCode.Created, keyResponse.StatusCode);
+        using var key = JsonDocument.Parse(await keyResponse.Content.ReadAsStringAsync());
+        var resourceServerKeyId = key.RootElement.GetProperty("secretId").GetString();
+
+        var (clientId, clientSecret) = await CreateResourceServerClientAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+        Assert.Equal(
+            resourceServerKeyId,
+            DecodeSegment(accessToken, 0).GetProperty("kid").GetString()
+        );
+
+        var root = await IntrospectJsonAsync(client, clientId, clientSecret, accessToken);
+
+        Assert.True(root.GetProperty("active").GetBoolean());
+    }
+
+    #endregion
+
+    #region JWT response Tests
+
+    [Fact]
+    public async Task PostIntrospect_AsJwt_ReturnsASignedTokenIntrospectionResponse()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, clientSecret) = await CreateResourceServerClientAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+
+        using var response = await IntrospectAsync(
+            client,
+            clientId,
+            clientSecret,
+            accessToken,
+            JwtResponseMediaType
+        );
+
+        var jwt = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, jwt);
+        Assert.Equal(JwtResponseMediaType, response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(3, jwt.Split('.').Length);
+
+        var header = DecodeSegment(jwt, 0);
+        Assert.Equal("token-introspection+jwt", header.GetProperty("typ").GetString());
+        Assert.Equal("RS256", header.GetProperty("alg").GetString());
+
+        var payload = DecodeSegment(jwt, 1);
+        Assert.Equal(
+            HostApplicationFactory.TestServerIssuer,
+            payload.GetProperty("iss").GetString()
+        );
+        Assert.Equal(OrdersAudience, payload.GetProperty("aud").GetString());
+        Assert.True(payload.TryGetProperty("iat", out _));
+        Assert.False(payload.TryGetProperty("exp", out _));
+        Assert.False(payload.TryGetProperty("sub", out _));
+
+        var introspection = payload.GetProperty("token_introspection");
+        Assert.True(introspection.GetProperty("active").GetBoolean());
+        Assert.Equal(OrdersAudience, introspection.GetProperty("aud").GetString());
+    }
+
+    [Fact]
+    public async Task PostIntrospect_AsJwt_ByAnOrdinaryClient_IsNotAcceptable()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        using var client = CreateHttpClient(factory);
+
+        using var response = await IntrospectAsync(
+            client,
+            IssuingClientId,
+            ClientSecret,
+            "not-a-real-token",
+            JwtResponseMediaType
+        );
+
+        Assert.Equal(HttpStatusCode.NotAcceptable, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PostIntrospect_WhenTheClientRegistersEncryptedResponses_EncryptsTheJwtToItsKey()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, clientSecret) = await CreateResourceServerClientAsync(
+            administrator,
+            OrdersResourceServerId,
+            new Dictionary<string, object>
+            {
+                ["introspection_encrypted_response_alg"] = "RSA-OAEP-256",
+            }
+        );
+
+        using var rsa = RSA.Create(2048);
+        using var importResponse = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/clients/{clientId}/secrets/import",
+            new
+            {
+                secretType = "rsa",
+                format = "pem",
+                keyMaterial = rsa.ExportSubjectPublicKeyInfoPem(),
+                use = "enc",
+                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            }
+        );
+        var importBody = await importResponse.Content.ReadAsStringAsync();
+        Assert.True(importResponse.StatusCode == HttpStatusCode.Created, importBody);
+
+        using var client = CreateHttpClient(factory);
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+
+        // A client that registered encrypted responses never receives one in the clear.
+        using var jsonResponse = await IntrospectAsync(client, clientId, clientSecret, accessToken);
+        Assert.Equal(HttpStatusCode.NotAcceptable, jsonResponse.StatusCode);
+
+        using var response = await IntrospectAsync(
+            client,
+            clientId,
+            clientSecret,
+            accessToken,
+            JwtResponseMediaType
+        );
+
+        var jwt = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, jwt);
+        Assert.Equal(5, jwt.Split('.').Length);
+
+        var header = DecodeSegment(jwt, 0);
+        Assert.Equal("RSA-OAEP-256", header.GetProperty("alg").GetString());
+        Assert.Equal("JWT", header.GetProperty("cty").GetString());
+    }
+
+    #endregion
+
+    // A tenant that encrypts access tokens to itself lists a key-management algorithm among the keys it is provisioned
+    // with (ADR-0169), which only a host without developer keys provisions. The developer-key mode decides what the host
+    // registers, so it is supplied as a host setting, which that read observes, rather than as a configuration overlay
+    // applied after it.
+    private sealed class ProvisionedKeysHostApplicationFactory : HostApplicationFactory
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+
+            builder.UseSetting("DeveloperKeys:Mode", "None");
+            builder.ConfigureAppConfiguration(configurationBuilder =>
+                configurationBuilder.AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["OpenId:Tenant:KeyProvisioning:Keys:0:Algorithm"] = "RS256",
+                        ["OpenId:Tenant:KeyProvisioning:Keys:1:Algorithm"] = "RSA-OAEP-256",
+                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
+                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
+                            Encoding.UTF8.GetBytes(BootstrapClientSecret)
+                        ),
+                        ["BootstrapAdmin:TenantId"] = TenantId,
+                    }
+                )
+            );
+        }
     }
 }

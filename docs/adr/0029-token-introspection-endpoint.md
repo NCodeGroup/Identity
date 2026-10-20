@@ -1,6 +1,9 @@
 # 29. Token introspection resolves JWT access tokens and refresh-token grants
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0168](0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): an access token is reported
+  active only to a client acting for a resource server in its audience and a refresh token only to its own client; the
+  response is narrowed to the caller and may be a JWT)
 - **Date:** 2026-09-30
 - **Deciders:** NCode Group
 

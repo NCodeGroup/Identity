@@ -16,6 +16,10 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.Nor
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.NormalizedClientId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.NormalizedTenantId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.NormalizedTenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.ResourceServer.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.ResourceServer.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.ResourceServerId.get -> long?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.ResourceServerId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.Secrets.get -> System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientSecretEntity!>!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.Secrets.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.SecretsConcurrencyToken.get -> string!

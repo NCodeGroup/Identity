@@ -16,8 +16,9 @@
 
 #endregion
 
+using System.Text.Json;
 using Moq;
-using NCode.Identity.Jwt.Validation;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Handlers;
@@ -25,11 +26,13 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Authentication.Subject;
+using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Collections;
-using NCode.PropertyBag;
+using NCode.Identity.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Introspection;
@@ -38,24 +41,29 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
 {
     private const string TenantId = "tenant-1";
     private const string ClientId = "client-1";
-    private const string Issuer = "https://issuer.example.com";
+    private const string OtherClientId = "client-2";
     private const string Token = "token-value";
+    private const string Audience = "https://api.example.com";
+    private const string OtherAudience = "https://other.example.com";
 
-    private Mock<IJwtValidator> MockJsonWebTokenService { get; }
-    private Mock<IOpenIdClientResolver> MockOpenIdClientResolver { get; }
+    private Mock<IIssuedTokenValidator> MockIssuedTokenValidator { get; }
     private Mock<ISubjectIdentifierService> MockSubjectIdentifierService { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
+    private Mock<OpenIdContext> MockContext { get; }
+    private Mock<OpenIdClient> MockClient { get; }
+    private ISecretKeyCollection ResourceServerKeys { get; }
     private DefaultIntrospectTokenHandler Handler { get; }
 
     public DefaultIntrospectTokenHandlerTests()
     {
-        MockJsonWebTokenService = CreateStrictMock<IJwtValidator>();
-        MockOpenIdClientResolver = CreateStrictMock<IOpenIdClientResolver>();
+        MockIssuedTokenValidator = CreateStrictMock<IIssuedTokenValidator>();
         MockSubjectIdentifierService = CreateStrictMock<ISubjectIdentifierService>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
+        MockContext = CreateStrictMock<OpenIdContext>();
+        MockClient = CreateStrictMock<OpenIdClient>();
+        ResourceServerKeys = CreateLooseMock<ISecretKeyCollection>().Object;
         Handler = new DefaultIntrospectTokenHandler(
-            MockJsonWebTokenService.Object,
-            MockOpenIdClientResolver.Object,
+            MockIssuedTokenValidator.Object,
             MockSubjectIdentifierService.Object,
             MockPersistedGrantService.Object
         );
@@ -63,84 +71,105 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
 
     #region Scaffolding
 
-    private IntrospectTokenCommand CreateCommand(string? token, IntrospectionResult result)
+    private IntrospectTokenCommand CreateCommand(
+        string? token,
+        IntrospectionResult result,
+        ResolvedResourceServer? resourceServer = null
+    )
     {
-        var mockContext = CreateStrictMock<OpenIdContext>();
-        var mockClient = CreateStrictMock<OpenIdClient>();
-        var mockTenant = CreateStrictMock<OpenIdTenant>();
         var mockRequest = CreateStrictMock<ITokenIntrospectionRequest>();
-
-        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId);
-        mockRequest.SetupGet(x => x.Token).Returns(token);
+        mockRequest.SetupGet(x => x.Token).Returns(token).Verifiable();
 
         return new IntrospectTokenCommand(
-            mockContext.Object,
-            mockClient.Object,
+            MockContext.Object,
+            MockClient.Object,
+            resourceServer,
             mockRequest.Object,
             result
         );
     }
 
-    private void SetupTenantForJwtValidation(OpenIdContext context)
-    {
-        var tenant = Mock.Get(context.Tenant);
-        var mockSecretsProvider = CreateLooseMock<ISecretKeyCollectionProvider>();
-        var mockSecretKeys = CreateLooseMock<ISecretKeyCollection>();
+    // A command whose request is never read.
+    private IntrospectTokenCommand CreateUnreadCommand(IntrospectionResult result) =>
+        new(
+            MockContext.Object,
+            MockClient.Object,
+            CreateResourceServer(),
+            CreateStrictMock<ITokenIntrospectionRequest>().Object,
+            result
+        );
 
-        tenant.SetupGet(x => x.Issuer).Returns(Issuer);
-        tenant.SetupGet(x => x.SecretsProvider).Returns(mockSecretsProvider.Object);
-        mockSecretsProvider.SetupGet(x => x.Collection).Returns(mockSecretKeys.Object);
+    private ResolvedResourceServer CreateResourceServer()
+    {
+        var mockSecretsProvider = CreateLooseMock<ISecretKeyCollectionProvider>();
+        mockSecretsProvider.SetupGet(x => x.Collection).Returns(ResourceServerKeys);
+
+        return new ResolvedResourceServer
+        {
+            ResourceServerId = "rs-1",
+            Identifier = Audience,
+            Scopes = ["read:orders", "write:orders"],
+            IsSystem = false,
+            EffectiveSettings = CreateLooseMock<IReadOnlySettingCollection>().Object,
+            SecretsProvider = mockSecretsProvider.Object,
+        };
     }
 
-    private void SetupInvalidJwt() =>
-        MockJsonWebTokenService
+    private void SetupAccessTokenValidation(object? payload) =>
+        MockIssuedTokenValidator
             .Setup(x =>
-                x.ValidateAsync(
+                x.ValidateAccessTokenAsync(
+                    MockContext.Object,
                     Token,
-                    It.IsAny<JwtValidationParameters>(),
+                    It.Is<AccessTokenValidationOptions>(options =>
+                        options.RequiredAudiences.SequenceEqual(new[] { Audience })
+                        && ReferenceEquals(options.AdditionalDecryptionKeys, ResourceServerKeys)
+                    ),
                     It.IsAny<CancellationToken>()
                 )
             )
             .ReturnsAsync(
-                JwtValidationResult.Fail(
-                    new JwtValidationParameters(),
-                    PropertyBagFactory.Create(),
-                    Token,
-                    new InvalidOperationException("invalid")
-                )
+                payload is null
+                    ? TestJwtValidationResults.Invalid(Token)
+                    : TestJwtValidationResults.Valid(payload)
             )
             .Verifiable();
 
-    private void SetupCreateGrantId() =>
+    private void SetupRefreshTokenLookup(PersistedGrant<RefreshTokenGrant>? grant)
+    {
+        var mockTenant = CreateStrictMock<OpenIdTenant>();
+        MockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
+
+        var grantId = new PersistedGrantId
+        {
+            TenantId = TenantId,
+            GrantType = OpenIdConstants.PersistedGrantTypes.RefreshToken,
+            GrantKey = Token,
+        };
+
         MockPersistedGrantService
             .Setup(x =>
                 x.CreateGrantId(TenantId, OpenIdConstants.PersistedGrantTypes.RefreshToken, Token)
             )
-            .Returns(
-                new PersistedGrantId
-                {
-                    TenantId = TenantId,
-                    GrantType = OpenIdConstants.PersistedGrantTypes.RefreshToken,
-                    GrantKey = Token,
-                }
-            )
+            .Returns(grantId)
             .Verifiable();
 
-    private void SetupGetGrant(PersistedGrant<RefreshTokenGrant>? grant) =>
         MockPersistedGrantService
             .Setup(x =>
                 x.GetOrDefaultAsync<RefreshTokenGrant>(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<PersistedGrantId>(),
+                    MockContext.Object,
+                    grantId,
                     It.IsAny<CancellationToken>()
                 )
             )
             .ReturnsAsync(grant)
             .Verifiable();
+    }
 
     private static PersistedGrant<RefreshTokenGrant> CreateGrant(
         PersistedGrantStatus status,
+        string clientId,
         string? subjectId,
         IReadOnlyList<string> effectiveScopes
     ) =>
@@ -148,19 +177,31 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
         {
             Status = status,
             TenantId = TenantId,
-            ClientId = ClientId,
+            ClientId = clientId,
             SubjectId = subjectId,
             SessionId = null,
-            Payload = new RefreshTokenGrant(ClientId, [], effectiveScopes, null, default),
+            Payload = new RefreshTokenGrant(clientId, [], effectiveScopes, null, default),
         };
 
+    private static string? ClaimString(IntrospectionResult result, string name) =>
+        result.Claims.TryGetValue(name, out var value)
+            ? value switch
+            {
+                string text => text,
+                JsonElement element => element.GetString(),
+                _ => value.ToString(),
+            }
+            : null;
+
     #endregion
+
+    #region HandleAsync Tests
 
     [Fact]
     public async Task HandleAsync_WhenAlreadyActive_ReturnsWithoutChecking()
     {
         var result = new IntrospectionResult { Active = true };
-        var command = CreateCommand(Token, result);
+        var command = CreateUnreadCommand(result);
 
         // Strict mocks ensure no validation or grant lookup occurs.
         await Handler.HandleAsync(command, CancellationToken.None);
@@ -172,7 +213,7 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
     public async Task HandleAsync_WhenTokenMissing_LeavesInactive()
     {
         var result = new IntrospectionResult { Active = false };
-        var command = CreateCommand(token: null, result);
+        var command = CreateCommand(token: null, result, CreateResourceServer());
 
         await Handler.HandleAsync(command, CancellationToken.None);
 
@@ -180,98 +221,123 @@ public class DefaultIntrospectTokenHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenNotJwtAndUnknownGrant_LeavesInactive()
+    public async Task HandleAsync_WhenTheAccessTokenNamesTheCallersResourceServer_ReportsItNarrowedToTheCaller()
     {
         var result = new IntrospectionResult { Active = false };
-        var command = CreateCommand(Token, result);
-        SetupTenantForJwtValidation(command.OpenIdContext);
-        SetupInvalidJwt();
-        SetupCreateGrantId();
-        SetupGetGrant(grant: null);
-
-        await Handler.HandleAsync(command, CancellationToken.None);
-
-        Assert.False(result.Active);
-    }
-
-    [Fact]
-    public async Task HandleAsync_WhenNotJwtAndRevokedGrant_LeavesInactive()
-    {
-        var result = new IntrospectionResult { Active = false };
-        var command = CreateCommand(Token, result);
-        SetupTenantForJwtValidation(command.OpenIdContext);
-        SetupInvalidJwt();
-        SetupCreateGrantId();
-        SetupGetGrant(CreateGrant(PersistedGrantStatus.Revoked, subjectId: null, []));
-
-        await Handler.HandleAsync(command, CancellationToken.None);
-
-        Assert.False(result.Active);
-    }
-
-    [Fact]
-    public async Task HandleAsync_WhenActiveRefreshToken_SetsActiveAndClaims()
-    {
-        var result = new IntrospectionResult { Active = false };
-        var command = CreateCommand(Token, result);
-        SetupTenantForJwtValidation(command.OpenIdContext);
-        SetupInvalidJwt();
-        SetupCreateGrantId();
-        SetupGetGrant(
-            CreateGrant(PersistedGrantStatus.Active, subjectId: "subject-1", ["api", "profile"])
+        var command = CreateCommand(Token, result, CreateResourceServer());
+        SetupAccessTokenValidation(
+            new Dictionary<string, object>
+            {
+                [JoseClaimNames.Payload.Sub] = "subject-1",
+                [JoseClaimNames.Payload.Aud] = new[] { Audience, OtherAudience },
+                [JoseClaimNames.Payload.Scope] = "openid read:orders profile write:orders",
+            }
         );
 
-        // the owning client is resolved and the subject is projected to its per-sector pseudonym
-        var mockOwningClient = CreateStrictMock<OpenIdClient>();
-        MockOpenIdClientResolver
-            .Setup(x =>
-                x.ResolveClientOrDefaultAsync(
-                    command.OpenIdContext,
-                    ClientId,
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(mockOwningClient.Object)
-            .Verifiable();
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.Active);
+        Assert.Equal("subject-1", ClaimString(result, JoseClaimNames.Payload.Sub));
+        Assert.Equal(Audience, ClaimString(result, JoseClaimNames.Payload.Aud));
+        Assert.Equal("read:orders write:orders", ClaimString(result, JoseClaimNames.Payload.Scope));
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheAccessTokenCarriesNoScopeOfTheCallersResourceServer_OmitsTheScope()
+    {
+        var result = new IntrospectionResult { Active = false };
+        var command = CreateCommand(Token, result, CreateResourceServer());
+        SetupAccessTokenValidation(
+            new Dictionary<string, object>
+            {
+                [JoseClaimNames.Payload.Aud] = Audience,
+                [JoseClaimNames.Payload.Scope] = "openid profile",
+            }
+        );
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.Active);
+        Assert.False(result.Claims.ContainsKey(JoseClaimNames.Payload.Scope));
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheTokenIsNotAnAccessTokenForTheCaller_FallsThroughToRefreshTokens()
+    {
+        var result = new IntrospectionResult { Active = false };
+        var command = CreateCommand(Token, result, CreateResourceServer());
+        SetupAccessTokenValidation(payload: null);
+        SetupRefreshTokenLookup(grant: null);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(result.Active);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheCallerActsForNoResourceServer_NeverReportsAnAccessToken()
+    {
+        // The strict validator mock has no setup, so an access-token validation would fail the test.
+        var result = new IntrospectionResult { Active = false };
+        var command = CreateCommand(Token, result);
+        SetupRefreshTokenLookup(grant: null);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(result.Active);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheRefreshTokenIsRevoked_LeavesInactive()
+    {
+        var result = new IntrospectionResult { Active = false };
+        var command = CreateCommand(Token, result);
+        SetupRefreshTokenLookup(
+            CreateGrant(PersistedGrantStatus.Revoked, ClientId, subjectId: null, [])
+        );
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(result.Active);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheCallerOwnsAnActiveRefreshToken_SetsActiveAndProjectsTheSubject()
+    {
+        var result = new IntrospectionResult { Active = false };
+        var command = CreateCommand(Token, result);
+        MockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
+        SetupRefreshTokenLookup(
+            CreateGrant(PersistedGrantStatus.Active, ClientId, "subject-1", ["api", "profile"])
+        );
         MockSubjectIdentifierService
-            .Setup(x =>
-                x.ProjectSubjectId(command.OpenIdContext, mockOwningClient.Object, "subject-1")
-            )
+            .Setup(x => x.ProjectSubjectId(MockContext.Object, MockClient.Object, "subject-1"))
             .Returns("pairwise-1")
             .Verifiable();
 
         await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.Active);
-        Assert.Equal(ClientId, result.Claims["client_id"]);
-        Assert.Equal("api profile", result.Claims["scope"]);
-        Assert.Equal("pairwise-1", result.Claims["sub"]);
+        Assert.Equal(ClientId, result.Claims[JoseClaimNames.Payload.ClientId]);
+        Assert.Equal("api profile", result.Claims[JoseClaimNames.Payload.Scope]);
+        Assert.Equal("pairwise-1", result.Claims[JoseClaimNames.Payload.Sub]);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenActiveRefreshTokenAndClientUnresolved_FallsBackToRawSubject()
+    public async Task HandleAsync_WhenAnotherClientOwnsTheRefreshToken_LeavesInactive()
     {
         var result = new IntrospectionResult { Active = false };
         var command = CreateCommand(Token, result);
-        SetupTenantForJwtValidation(command.OpenIdContext);
-        SetupInvalidJwt();
-        SetupCreateGrantId();
-        SetupGetGrant(CreateGrant(PersistedGrantStatus.Active, subjectId: "subject-1", ["api"]));
-
-        MockOpenIdClientResolver
-            .Setup(x =>
-                x.ResolveClientOrDefaultAsync(
-                    command.OpenIdContext,
-                    ClientId,
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync((OpenIdClient?)null)
-            .Verifiable();
+        MockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
+        SetupRefreshTokenLookup(
+            CreateGrant(PersistedGrantStatus.Active, OtherClientId, "subject-1", ["api"])
+        );
 
         await Handler.HandleAsync(command, CancellationToken.None);
 
-        Assert.True(result.Active);
-        Assert.Equal("subject-1", result.Claims["sub"]);
+        Assert.False(result.Active);
+        Assert.Empty(result.Claims);
     }
+
+    #endregion
 }

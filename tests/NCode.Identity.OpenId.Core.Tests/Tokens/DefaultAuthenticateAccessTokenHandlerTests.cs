@@ -23,16 +23,12 @@ using Moq;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
 using NCode.Identity.Jwt.Validation;
-using NCode.Identity.OpenId.Authentication.Persistence;
-using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
-using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.Secrets.Collections;
 using NCode.PropertyBag;
 using Xunit;
 
@@ -40,26 +36,21 @@ namespace NCode.Identity.OpenId.Core.Tests.Tokens;
 
 public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
 {
-    private const string Issuer = "https://issuer.example.com";
     private const string Token = "token-value";
     private const string ManagementAudience = "urn:ncode:management";
-    private const string SessionId = "session-xyz";
 
-    private Mock<IJwtValidator> MockJsonWebTokenService { get; }
+    private Mock<IIssuedTokenValidator> MockIssuedTokenValidator { get; }
     private Mock<IProofOfPossessionService> MockProofOfPossessionService { get; }
-    private Mock<ISessionService> MockSessionService { get; }
     private DefaultAuthenticateAccessTokenHandler Handler { get; }
 
     public DefaultAuthenticateAccessTokenHandlerTests()
     {
-        MockJsonWebTokenService = CreateStrictMock<IJwtValidator>();
+        MockIssuedTokenValidator = CreateStrictMock<IIssuedTokenValidator>();
         MockProofOfPossessionService = CreateStrictMock<IProofOfPossessionService>();
-        MockSessionService = CreateStrictMock<ISessionService>();
         Handler = new DefaultAuthenticateAccessTokenHandler(
             NullLogger<DefaultAuthenticateAccessTokenHandler>.Instance,
-            MockJsonWebTokenService.Object,
-            MockProofOfPossessionService.Object,
-            MockSessionService.Object
+            MockIssuedTokenValidator.Object,
+            MockProofOfPossessionService.Object
         );
     }
 
@@ -71,55 +62,36 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
         return new AuthenticateAccessTokenCommand(mockContext.Object, token, [ManagementAudience]);
     }
 
-    private void SetupTenantForJwtValidation(OpenIdContext context)
-    {
-        var mockTenant = CreateStrictMock<OpenIdTenant>();
-        var mockSecretsProvider = CreateLooseMock<ISecretKeyCollectionProvider>();
-        var mockSecretKeys = CreateLooseMock<ISecretKeyCollection>();
-
-        Mock.Get(context).SetupGet(x => x.Tenant).Returns(mockTenant.Object);
-        mockTenant.SetupGet(x => x.Issuer).Returns(Issuer);
-        mockTenant.SetupGet(x => x.SecretsProvider).Returns(mockSecretsProvider.Object);
-        mockSecretsProvider.SetupGet(x => x.Collection).Returns(mockSecretKeys.Object);
-    }
-
-    private void SetupInvalidJwt() =>
-        MockJsonWebTokenService
+    private void SetupValidation(OpenIdContext context, JwtValidationResult result) =>
+        MockIssuedTokenValidator
             .Setup(x =>
-                x.ValidateAsync(
+                x.ValidateAccessTokenAsync(
+                    context,
                     Token,
-                    It.IsAny<JwtValidationParameters>(),
+                    It.Is<AccessTokenValidationOptions>(options =>
+                        options.RequiredAudiences.SequenceEqual(new[] { ManagementAudience })
+                        && options.AdditionalDecryptionKeys.Count == 0
+                    ),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(
-                JwtValidationResult.Fail(
-                    new JwtValidationParameters(),
-                    PropertyBagFactory.Create(),
-                    Token,
-                    new InvalidOperationException("invalid")
-                )
-            )
+            .ReturnsAsync(result)
             .Verifiable();
 
-    private void SetupErrorFactory(OpenIdContext context)
-    {
-        var mockErrorFactory = CreateStrictMock<IOpenIdErrorFactory>();
-        var mockError = CreateLooseMock<IOpenIdError>();
+    private static JwtValidationResult CreateInvalidResult() =>
+        JwtValidationResult.Fail(
+            new JwtValidationParameters(),
+            PropertyBagFactory.Create(),
+            Token,
+            new JwtValidationException("invalid")
+        );
 
-        Mock.Get(context).SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
-        mockErrorFactory
-            .Setup(x => x.Create(It.IsAny<string>()))
-            .Returns(mockError.Object)
-            .Verifiable();
-    }
-
-    private void SetupValidJwt(object payloadObject)
+    private static JwtValidationResult CreateValidResult(object payloadObject)
     {
         var payload = JsonSerializer.SerializeToElement(payloadObject);
         var compactJwt = new CompactJwt("JWS", default, "aaa.bbb.ccc", []);
         var decodedJwt = new DecodedJwt(compactJwt, payload, signingKey: null!);
-        var result = JwtValidationResult.Success(
+        return JwtValidationResult.Success(
             new JwtValidationParameters(),
             PropertyBagFactory.Create(),
             decodedJwt,
@@ -133,41 +105,19 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
                 return ValueTask.FromResult(identity);
             }
         );
-
-        MockJsonWebTokenService
-            .Setup(x =>
-                x.ValidateAsync(
-                    Token,
-                    It.IsAny<JwtValidationParameters>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(result)
-            .Verifiable();
     }
 
-    private void SetupSession(OpenIdContext context, PersistedGrantStatus status) =>
-        MockSessionService
-            .Setup(x => x.GetOrDefaultAsync(context, SessionId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                new PersistedGrant<SessionGrant>
-                {
-                    Status = status,
-                    TenantId = "tenant-1",
-                    ClientId = null,
-                    SubjectId = "subject-1",
-                    SessionId = SessionId,
-                    Payload = new SessionGrant
-                    {
-                        AuthTime = DateTimeOffset.UnixEpoch,
-                        AuthenticationMethods = null,
-                        IdentityProvider = null,
-                        ClientIds = [],
-                        LastActivityWhen = DateTimeOffset.UnixEpoch,
-                    },
-                }
-            )
+    private void SetupErrorFactory(OpenIdContext context)
+    {
+        var mockErrorFactory = CreateStrictMock<IOpenIdErrorFactory>();
+        var mockError = CreateLooseMock<IOpenIdError>();
+
+        Mock.Get(context).SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
+        mockErrorFactory
+            .Setup(x => x.Create(It.IsAny<string>()))
+            .Returns(mockError.Object)
             .Verifiable();
+    }
 
     #endregion
 
@@ -186,11 +136,10 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenTokenInvalid_ReturnsError()
+    public async Task HandleAsync_WhenTheValidatorRejectsTheToken_ReturnsError()
     {
         var command = CreateCommand(Token);
-        SetupTenantForJwtValidation(command.OpenIdContext);
-        SetupInvalidJwt();
+        SetupValidation(command.OpenIdContext, CreateInvalidResult());
         SetupErrorFactory(command.OpenIdContext);
 
         var disposition = await Handler.HandleAsync(command, CancellationToken.None);
@@ -200,49 +149,22 @@ public class DefaultAuthenticateAccessTokenHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenSessionRevoked_ReturnsError()
-    {
-        // ADR-0112: a token whose end-user session has been revoked (e.g. by authorization-code replay) is rejected
-        // at the OP's own resource endpoints.
-        var command = CreateCommand(Token);
-        SetupTenantForJwtValidation(command.OpenIdContext);
-        SetupValidJwt(new Dictionary<string, object> { [JoseClaimNames.Payload.Sid] = SessionId });
-        SetupSession(command.OpenIdContext, PersistedGrantStatus.Revoked);
-        SetupErrorFactory(command.OpenIdContext);
-
-        var disposition = await Handler.HandleAsync(command, CancellationToken.None);
-
-        Assert.True(disposition.HasError);
-        Assert.False(disposition.IsAuthenticated);
-    }
-
-    [Fact]
-    public async Task HandleAsync_WhenSessionActive_ReturnsAuthenticated()
+    public async Task HandleAsync_WhenTheValidatorAcceptsAnUnboundToken_ReturnsAuthenticatedPrincipal()
     {
         var command = CreateCommand(Token);
-        SetupTenantForJwtValidation(command.OpenIdContext);
-        SetupValidJwt(new Dictionary<string, object> { [JoseClaimNames.Payload.Sid] = SessionId });
-        SetupSession(command.OpenIdContext, PersistedGrantStatus.Active);
-
-        var disposition = await Handler.HandleAsync(command, CancellationToken.None);
-
-        Assert.True(disposition.IsAuthenticated);
-        Assert.False(disposition.HasError);
-    }
-
-    [Fact]
-    public async Task HandleAsync_WhenNoSessionClaim_SkipsSessionCheckAndAuthenticates()
-    {
-        var command = CreateCommand(Token);
-        SetupTenantForJwtValidation(command.OpenIdContext);
-        SetupValidJwt(
+        var result = CreateValidResult(
             new Dictionary<string, object> { [JoseClaimNames.Payload.Sub] = "subject-1" }
         );
+        SetupValidation(command.OpenIdContext, result);
 
         var disposition = await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(disposition.IsAuthenticated);
         Assert.False(disposition.HasError);
+        Assert.Equal(
+            "subject-1",
+            disposition.Principal.FindFirst(JoseClaimNames.Payload.Sub)?.Value
+        );
     }
 
     #endregion

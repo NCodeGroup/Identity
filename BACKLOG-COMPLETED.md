@@ -1206,6 +1206,44 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   were verified up and down against Postgres 18.3. Follow-ups recorded: `F72` (`x5c` certificates for
   `self_signed_tls_client_auth`) and `F73` (the key policy and `kid` for the other secret owners)._
 
+- **`F67` — Validate the access tokens the server encrypted itself.** When an access token's settings require encryption,
+  it is a Nested JWT encrypted to the key of the single targeted resource server that decrypts its own tokens or,
+  otherwise, to the tenant's
+  ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)).
+  The server's own consumers of access tokens — UserInfo, introspection, token exchange, and the management API —
+  name no decryption keys and no algorithm lists, so they reject every encrypted access token
+  ([ADR-0154](docs/adr/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)): an
+  encrypted token for the OpenID system resource server cannot call UserInfo, and a resource server cannot introspect
+  a token encrypted to it. Name the tenant's keys (and, for introspection, the calling resource server's keys) as
+  decryption keys, and state the access-token signing and encryption lists as allow-lists. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/DefaultAuthenticateAccessTokenHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Introspection/Handlers/DefaultIntrospectTokenHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/TokenExchange/DefaultSubjectTokenValidator.cs`.
+  _Closed: [ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md) and
+  [ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md); see the
+  [`CHANGELOG.md`](CHANGELOG.md) `[Unreleased]` entries "A resource server can introspect through a client that acts for
+  it…", "Introspection reports a token only to the party that consumes it", "The server validates every token it issued
+  through one seam…", "Any authenticated client could introspect any token", "The server's readers of its own tokens
+  checked neither the token type nor an algorithm allow-list", and "The server rejected the access tokens it
+  encrypted". Every reader of a token the tenant issued — UserInfo and the management API through resource-request
+  authentication, introspection, token exchange, and the end-session `id_token_hint` — validates through one public seam,
+  `IIssuedTokenValidator`. The seam names the tenant's keys and access-token algorithm lists, and checks `typ`, the
+  issuer, the lifetime, and session revocation. Token exchange picks the policy by `subject_token_type`. Investigation
+  widened the item: ADR-0029 let any client introspect any token, which RFC 7662 §4 and RFC 9701 §3/§5 forbid, and
+  decrypting at introspection would have let a token's own client read it. Folded in:
+  - a resource server introspects through a client bound to it, accepted only at introspection through fail-closed,
+    opt-in endpoint metadata;
+  - an access token is disclosed only to a resource server in its audience and narrowed to it, and a refresh token
+    only to its own client;
+  - RFC 9701 JWT introspection responses, with their discovery metadata and a FAPI 2.0 ceiling;
+  - the introspection and revocation endpoints' client-authentication discovery metadata;
+  - the management API binding, filter, and console **Clients** tab;
+  - system resource servers hold no keys.
+
+  The `AddClientResourceServer` migration adds the binding's foreign key. Follow-ups recorded: `F76` (an
+  `id_token_hint` re-encrypted to the server) and `F77` (registering a resource-server client through dynamic client
+  registration)._
+
 - **`F71` — Derive a tenant's issuer from a configured template.** A tenant served at a request-independent address
   needs an issuer, and a production deployment must not rely on the request-derived fallback
   ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md); the production-safety part of

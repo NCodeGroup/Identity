@@ -224,6 +224,13 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   the wrong composition. Supply such a value with `builder.UseSetting(key, value)`, which reaches the host's entry point
   the way `UseEnvironment` does, and assert on an effect only that composition has (the provisioned keys of
   `TenantKeyProvisioningTests`), so a value that did not arrive fails the test.
+- 👁 **A test that needs a tenant encryption key has the host provision it.** The default `Ephemeral` developer keys are
+  one in-memory RSA signing key, and a tenant reads its settings and keys once, when it is first served, so neither can
+  be added after a request reaches it. Select `DeveloperKeys:Mode` `None` (a host setting, above), list a key-management
+  algorithm such as `RSA-OAEP-256` beside a signing algorithm in `OpenId:Tenant:KeyProvisioning:Keys`
+  ([ADR-0169](../../docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)), and persist the settings the
+  tenant needs with `HostApplicationFactory.SeedTenantSettingsAsync` before the first request. Assert that the token is
+  a JWE (five segments), so a key that was never provisioned fails the test (`TokenIntrospectionEndpointTests`).
 - 👁 **Drive the authorization endpoint the way a conforming client does.** Every authorization code is bound to an
   `S256` PKCE challenge by default ([ADR-0144](../../docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)),
   so an integration test that requests a code sends `TestPkce.QueryParameters` (or `TestPkce.FormFields` at the pushed

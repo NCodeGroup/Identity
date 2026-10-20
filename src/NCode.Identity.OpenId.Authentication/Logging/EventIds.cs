@@ -47,7 +47,8 @@ internal static class EventIds
     public const int OpenIdErrorAuditFailed = Base + 16;
     public const int UnexpectedOpenIdError = Base + 17;
     public const int OpenIdErrorException = Base + 18;
-    public const int AccessTokenValidationError = Base + 19;
+
+    // Base + 19 is retired; an event ID is never reused.
     public const int AccessTokenInvalid = Base + 20;
     public const int EndUserSessionAuthenticationFailed = Base + 21;
     public const int EndSessionIdTokenHintInvalid = Base + 22;

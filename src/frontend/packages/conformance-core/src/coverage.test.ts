@@ -172,6 +172,17 @@ describe('buildCoverageReport — fully advertised surface', () => {
     });
     expect(entry(report, 'sec-jarm')?.status).toBe('implemented');
   });
+
+  it('classifies JWT introspection responses from an introspection signing alg', () => {
+    expect(entry(buildCoverageReport(baseline), 'sec-jwt-introspection')?.status).toBe('missing');
+
+    const report = buildCoverageReport({
+      ...baseline,
+      introspection_signing_alg_values_supported: ['PS256'],
+    });
+    expect(entry(report, 'sec-jwt-introspection')?.status).toBe('implemented');
+    expect(entry(report, 'sec-jwt-introspection')?.reference).toBe('RFC 9701 §5');
+  });
 });
 
 describe('buildCoverageReport — empty discovery document', () => {

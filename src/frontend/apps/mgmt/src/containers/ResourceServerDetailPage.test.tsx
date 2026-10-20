@@ -26,7 +26,7 @@ const resourceServer: ResourceServerResource = {
   scopes: [],
 };
 
-function renderPage(onBack = vi.fn()) {
+function renderPage(onBack = vi.fn(), overrides: Partial<ResourceServerResource> = {}) {
   const store = createAppStore({
     config: { runtime },
     auth: {
@@ -41,7 +41,7 @@ function renderPage(onBack = vi.fn()) {
     <Provider store={store}>
       <ResourceServerDetailPage
         scope={tenantScope('acme')}
-        resourceServer={resourceServer}
+        resourceServer={{ ...resourceServer, ...overrides }}
         onBack={onBack}
       />
     </Provider>,
@@ -108,6 +108,87 @@ describe('ResourceServerDetailPage', () => {
 
     fireEvent.click(screen.getByTestId('resource-server-detail-back'));
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('lists only the clients that act for the resource server', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.includes('/clients?') && method === 'GET') {
+        return jsonResponse({
+          items: [
+            {
+              clientId: 'orders-introspector',
+              tenantId: 'acme',
+              concurrencyToken: 'cc1',
+              isDisabled: false,
+              resourceServerId: 'rs-orders',
+            },
+          ],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(screen.getByTestId('resource-server-tab-clients'));
+
+    expect(await screen.findByText('orders-introspector')).toBeInTheDocument();
+    // Embedded, the clients panel defers its heading to the detail page.
+    expect(screen.queryByRole('heading', { name: 'Clients' })).not.toBeInTheDocument();
+    expect(calls.find((c) => c.method === 'GET')?.url).toBe(
+      'https://api.test/api/tenants/acme/clients?resourceServerId=rs-orders',
+    );
+  });
+
+  it('creates a client bound to the resource server', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/tenants/acme/clients') && method === 'POST') {
+        return jsonResponse(
+          {
+            clientId: 'orders-introspector',
+            tenantId: 'acme',
+            concurrencyToken: 'cc1',
+            isDisabled: false,
+            resourceServerId: 'rs-orders',
+          },
+          201,
+        );
+      }
+      if (url.includes('/clients?') && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(screen.getByTestId('resource-server-tab-clients'));
+    expect(await screen.findByTestId('data-empty')).toHaveTextContent(
+      'No client acts for this resource server yet.',
+    );
+    fireEvent.click(screen.getByTestId('create-client'));
+    fireEvent.click(screen.getByTestId('client-form-submit'));
+
+    await waitFor(() => {
+      const post = calls.find((c) => c.method === 'POST');
+      expect(post?.url).toBe('https://api.test/api/tenants/acme/clients');
+      expect(JSON.parse(post?.body ?? '{}')).toEqual({
+        isDisabled: false,
+        resourceServerId: 'rs-orders',
+        settings: {},
+      });
+    });
+  });
+
+  it('offers no secrets or clients for a system resource server', () => {
+    installFetch((url, method) => {
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage(vi.fn(), { isSystem: true });
+
+    expect(screen.getByTestId('resource-server-tab-scopes')).toBeInTheDocument();
+    expect(screen.getByTestId('resource-server-tab-settings')).toBeInTheDocument();
+    expect(screen.queryByTestId('resource-server-tab-secrets')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('resource-server-tab-clients')).not.toBeInTheDocument();
   });
 
   it('deletes a resource-server secret under the nested path after confirmation', async () => {

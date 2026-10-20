@@ -132,8 +132,17 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     private void SetupContext()
     {
         MockContext.SetupGet(x => x.Tenant).Returns(MockTenant.Object).Verifiable();
-        MockContext.SetupGet(x => x.Environment).Returns(MockEnvironment.Object).Verifiable();
         MockTenant.SetupGet(x => x.TenantId).Returns(TenantId).Verifiable();
+        MockAmbientTenantAccessor
+            .Setup(x => x.BeginScope(TenantId))
+            .Returns(Mock.Of<IDisposable>())
+            .Verifiable();
+    }
+
+    // A matched resource server's effective settings are read from the tenant's, which only a match reads.
+    private void SetupMaterialization()
+    {
+        MockContext.SetupGet(x => x.Environment).Returns(MockEnvironment.Object).Verifiable();
         MockTenant
             .SetupGet(x => x.SettingsProvider)
             .Returns(MockSettingsProvider.Object)
@@ -145,10 +154,6 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         MockEnvironment
             .SetupGet(x => x.JsonSerializerOptions)
             .Returns(JsonSerializerOptions.Default)
-            .Verifiable();
-        MockAmbientTenantAccessor
-            .Setup(x => x.BeginScope(TenantId))
-            .Returns(Mock.Of<IDisposable>())
             .Verifiable();
     }
 
@@ -279,6 +284,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     {
         SetupContext();
         SetupStore();
+        SetupMaterialization();
         SetupSettingsMerge();
         SetupFindEnabledByScopes(ResourceServer("rs-api", "read:x"));
 
@@ -312,6 +318,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     {
         SetupContext();
         SetupStore();
+        SetupMaterialization();
         SetupSettingsMerge();
         SetupSecretsProviders();
         SetupFindEnabledByScopes(
@@ -337,6 +344,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     {
         SetupContext();
         SetupStore();
+        SetupMaterialization();
         SetupSettingsMerge();
         SetupSecretsProviders();
         SetupFindEnabledByScopes(
@@ -363,6 +371,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     {
         SetupContext();
         SetupStore();
+        SetupMaterialization();
         SetupSettingsMerge();
         SetupFindEnabledByScopes(
             ResourceServer("rs-a", "read:x"),
@@ -394,6 +403,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     {
         SetupContext();
         SetupStore();
+        SetupMaterialization();
         SetupSettingsMerge();
         SetupSecretsProviders();
         // The store applies the RFC 8707 identifier narrowing, so rs-c is not returned.
@@ -445,6 +455,81 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
                 CancellationToken.None
             )
         );
+    }
+
+    [Fact]
+    public async Task ResolveByIdAsync_WhenTheResourceServerIsEnabled_ResolvesItWithItsScopes()
+    {
+        SetupContext();
+        SetupStore();
+        SetupMaterialization();
+        SetupSettingsMerge();
+        var mockProvider = CreateDisposableSecretsProvider();
+        MockSecretSerializer
+            .Setup(x => x.DeserializeSecrets(It.IsAny<IReadOnlyCollection<PersistedSecret>>()))
+            .Returns(Array.Empty<SecretKey>())
+            .Verifiable();
+        MockSecretKeyCollectionProviderFactory
+            .Setup(x => x.CreateStatic(It.IsAny<IEnumerable<SecretKey>>()))
+            .Returns(mockProvider.Object)
+            .Verifiable();
+        MockResourceServerStore
+            .Setup(x => x.GetOrDefaultAsync("rs-api", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ResourceServer("rs-api", "read:x", "write:x"))
+            .Verifiable();
+
+        await using var resolution = await Resolver.ResolveByIdAsync(
+            MockContext.Object,
+            "rs-api",
+            CancellationToken.None
+        );
+
+        var single = resolution.Single;
+        Assert.NotNull(single);
+        Assert.Equal("urn:rs-api", single.Identifier);
+        Assert.Equal(["read:x", "write:x"], single.Scopes);
+        Assert.False(single.IsSystem);
+        Assert.Same(mockProvider.Object, single.SecretsProvider);
+    }
+
+    [Fact]
+    public async Task ResolveByIdAsync_WhenTheResourceServerIsDisabled_ResolvesNone()
+    {
+        SetupContext();
+        SetupStore();
+        var resourceServer = ResourceServer("rs-api", "read:x");
+        resourceServer.IsDisabled = true;
+        MockResourceServerStore
+            .Setup(x => x.GetOrDefaultAsync("rs-api", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(resourceServer)
+            .Verifiable();
+
+        await using var resolution = await Resolver.ResolveByIdAsync(
+            MockContext.Object,
+            "rs-api",
+            CancellationToken.None
+        );
+
+        Assert.Empty(resolution.ResourceServers);
+    }
+
+    [Fact]
+    public async Task ResolveByIdAsync_WhenTheResourceServerIsUnknown_ResolvesNone()
+    {
+        SetupContext();
+        SetupStore();
+        MockResourceServerStore
+            .Setup(x => x.GetOrDefaultAsync("rs-api", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedResourceServer?)null)
+            .Verifiable();
+
+        await using var resolution = await Resolver.ResolveByIdAsync(
+            MockContext.Object,
+            "rs-api",
+            CancellationToken.None
+        );
+
+        Assert.Empty(resolution.ResourceServers);
     }
 
     private void SetupErrorFactory()

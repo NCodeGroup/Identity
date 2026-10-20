@@ -58,8 +58,9 @@ Two consequences worth knowing up front:
 
 **Grants and endpoints** — authorization code with PKCE, refresh token (with rotation and reuse detection), client
 credentials, device authorization ([RFC 8628]), CIBA, token exchange ([RFC 8693]), pushed authorization requests
-([RFC 9126]), dynamic client registration ([RFC 7591]/[RFC 7592]), token revocation and introspection, UserInfo,
-discovery, JWKS, and RP-initiated / front-channel / back-channel logout.
+([RFC 9126]), dynamic client registration ([RFC 7591]/[RFC 7592]), token revocation, audience-restricted token
+introspection with JWT responses ([RFC 9701]), UserInfo, discovery, JWKS, and RP-initiated / front-channel /
+back-channel logout.
 
 **Client authentication** — `private_key_jwt`, `client_secret_basic` / `_post` / `_jwt`, and mutual TLS
 (`tls_client_auth` and `self_signed_tls_client_auth`, [RFC 8705]), with a deployment-agnostic certificate resolver that
@@ -172,6 +173,7 @@ The specifications this family implements, grouped by area.
 | [RFC 8414](https://datatracker.ietf.org/doc/html/rfc8414)  | Authorization server metadata     |
 | [RFC 9068](https://datatracker.ietf.org/doc/html/rfc9068)  | JWT profile for access tokens     |
 | [RFC 9700](https://datatracker.ietf.org/doc/html/rfc9700)  | OAuth 2.0 Security Best Current Practice |
+| [RFC 9701](https://datatracker.ietf.org/doc/html/rfc9701)  | JWT response for token introspection |
 
 ### JOSE — signing, encryption, keys
 

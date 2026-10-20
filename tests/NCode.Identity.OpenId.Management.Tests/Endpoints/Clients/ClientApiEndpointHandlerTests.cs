@@ -475,6 +475,59 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal(TenantId, captured.TenantId);
         Assert.Equal(TenantId, captured.Settings.TenantId);
         Assert.Equal(TenantId, captured.Secrets.TenantId);
+        Assert.Null(captured.ResourceServerId);
+    }
+
+    [Fact]
+    public async Task CreateClientAsync_WhenBoundToAResourceServer_PersistsAndReturnsTheBinding()
+    {
+        SetupValidSettings();
+        SetupStore();
+        SetupResourceId("generated-id");
+
+        PersistedClient? captured = null;
+        MockClientValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedClient>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (ClaimsPrincipal _, PersistedClient c, IStoreManager _, CancellationToken _) =>
+                    captured = c
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedClient>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var request = new CreateClientRequest
+        {
+            IsDisabled = false,
+            ResourceServerId = "rs-1",
+            Settings = EmptyObject(),
+        };
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateClientAsync(
+            httpContext,
+            TenantId,
+            request,
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<ClientResource>>(result);
+        Assert.Equal("rs-1", captured?.ResourceServerId);
+        Assert.Equal("rs-1", created.Value?.ResourceServerId);
     }
 
     [Fact]
@@ -534,6 +587,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var result = await Handler.ListClientsAsync(
             httpContext,
             TenantId,
+            resourceServerId: null,
             cursor: null,
             limit: null,
             CancellationToken.None
@@ -542,6 +596,43 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var json = Assert.IsType<JsonHttpResult<CollectionResource<ClientResource>>>(result);
         Assert.Single(json.Value!.Items);
         Assert.Equal("next", json.Value.ContinuationToken);
+    }
+
+    [Fact]
+    public async Task ListClientsAsync_WhenFilteredByResourceServer_ListsOnlyItsClients()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockClientStore
+            .Setup(x =>
+                x.GetPageByResourceServerAsync(
+                    "rs-1",
+                    It.IsAny<PageRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PagedResult<PersistedClient>
+                {
+                    Items = [CreateClient("client-ct")],
+                    NextCursor = null,
+                }
+            )
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ListClientsAsync(
+            httpContext,
+            TenantId,
+            resourceServerId: "rs-1",
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<ClientResource>>>(result);
+        Assert.Single(json.Value!.Items);
     }
 
     [Fact]
@@ -554,6 +645,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var result = await Handler.ListClientsAsync(
             httpContext,
             TenantId,
+            resourceServerId: null,
             cursor: null,
             limit: null,
             CancellationToken.None

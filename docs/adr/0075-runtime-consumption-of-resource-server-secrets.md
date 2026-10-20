@@ -4,7 +4,9 @@
   [ADR-0158](0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md): the client's and every
   targeted resource server's settings combine by their lattice merges, and an encrypted token goes to the party that
   reads it — a resource server that decrypts its own tokens, or else the tenant — with no fallback and no
-  provenance-based multi-audience guard)
+  provenance-based multi-audience guard; amended by
+  [ADR-0167](0167-the-server-validates-the-tokens-it-issued-under-one-policy.md): a system resource server never
+  decrypts its own tokens)
 - **Date:** 2026-10-11
 - **Deciders:** NCode.Identity maintainers
 

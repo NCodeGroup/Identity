@@ -51,6 +51,13 @@ public abstract class OpenIdClient
     public abstract IReadOnlyCollection<string> RedirectUris { get; }
 
     /// <summary>
+    /// Gets the identifier of the resource server this client acts for, or <c>null</c> for an ordinary client. A
+    /// client bound to a resource server is that resource server's credential at the token introspection endpoint and
+    /// is accepted at no other endpoint.
+    /// </summary>
+    public abstract string? ResourceServerId { get; }
+
+    /// <summary>
     /// Gets a <see cref="bool"/> value indicating whether the current request authenticated the client as a confidential
     /// client. If <c>true</c>, the <see cref="ConfidentialClient"/> property will be non-null. A client authenticates only
     /// with the client-authentication method it is registered to use, so wherever the client is authenticated this is

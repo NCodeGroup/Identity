@@ -307,6 +307,11 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
             OpenIdSettingKeys.UserInfoSigningAlgValuesSupported,
             asymmetricSigningAlgValuesSupported
         );
+        // A JWT introspection response is addressed to a resource server across a trust boundary (RFC 9701).
+        settings.Set(
+            OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported,
+            asymmetricSigningAlgValuesSupported
+        );
         settings.Set(
             OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported,
             asymmetricSigningAlgValuesSupported
@@ -328,15 +333,19 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
             signingAlgValuesSupported
         );
 
-        // ID tokens and UserInfo responses are encrypted to the client's public key, and request objects to the
-        // server's, so they advertise asymmetric key management only (ADR-0155). An access token may be encrypted to a
-        // resource server that holds a shared key, so it keeps the full set.
+        // ID tokens, UserInfo responses, and JWT introspection responses are encrypted to the client's public key, and
+        // request objects to the server's, so they advertise asymmetric key management only (ADR-0155). An access token
+        // may be encrypted to a resource server that holds a shared key, so it keeps the full set.
         settings.Set(
             OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported,
             asymmetricEncryptionAlgValuesSupported
         );
         settings.Set(
             OpenIdSettingKeys.UserInfoEncryptionAlgValuesSupported,
+            asymmetricEncryptionAlgValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.IntrospectionEncryptionAlgValuesSupported,
             asymmetricEncryptionAlgValuesSupported
         );
         settings.Set(
@@ -354,6 +363,10 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         );
         settings.Set(
             OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported,
+            encryptionEncValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.IntrospectionEncryptionEncValuesSupported,
             encryptionEncValuesSupported
         );
         settings.Set(

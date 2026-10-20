@@ -15,6 +15,7 @@ import {
   useListResourceServerSecretsQuery,
   useUpdateResourceServerSettingsMutation,
 } from '@ncode/store';
+import { ClientsPage } from './ClientsPage.js';
 import { ResourceServerScopesPage } from './ResourceServerScopesPage.js';
 import { SecretsManager } from './SecretsManager.js';
 import { SettingsManager } from './SettingsManager.js';
@@ -25,14 +26,17 @@ export type ResourceServerDetailPageProps = {
   readonly onBack: () => void;
 };
 
-type ResourceServerSurface = 'scopes' | 'secrets' | 'settings';
+type ResourceServerSurface = 'scopes' | 'clients' | 'secrets' | 'settings';
 
 /**
- * Container: drills into a single resource server (API) to manage its scopes, secrets, and settings. The parent
- * {@link import('./ResourceServersPage.js').ResourceServersPage} supplies the resource server and owns the drill-in
- * selection. Scopes reuse the embedded {@link ResourceServerScopesPage}; secrets/settings reuse the shared
- * {@link SecretsManager}/{@link SettingsManager} (one-time reveal per ADR-0050 and a top-level JSON Patch diff),
- * wired to the resource server's nested endpoints. Owns only tab state.
+ * Container: drills into a single resource server (API) to manage its scopes, the clients that act for
+ * it, its secrets, and its settings. The parent
+ * {@link import('./ResourceServersPage.js').ResourceServersPage} supplies the resource server and owns
+ * the drill-in selection. Scopes reuse the embedded {@link ResourceServerScopesPage} and clients the
+ * embedded {@link ClientsPage}; secrets/settings reuse the shared {@link SecretsManager}/
+ * {@link SettingsManager} (one-time reveal per ADR-0050 and a top-level JSON Patch diff), wired to the
+ * resource server's nested endpoints. A system resource server is read by the server itself, so it
+ * holds no keys and no client acts for it: those tabs are not offered. Owns only tab state.
  */
 export function ResourceServerDetailPage({
   scope,
@@ -40,6 +44,7 @@ export function ResourceServerDetailPage({
   onBack,
 }: ResourceServerDetailPageProps) {
   const [surface, setSurface] = useState<ResourceServerSurface>('scopes');
+  const isSystem = resourceServer.isSystem;
 
   return (
     <>
@@ -66,11 +71,18 @@ export function ResourceServerDetailPage({
         sx={{ mb: 2 }}
       >
         <Tab value="scopes" label="Scopes" data-testid="resource-server-tab-scopes" />
-        <Tab value="secrets" label="Secrets" data-testid="resource-server-tab-secrets" />
+        {!isSystem && (
+          <Tab value="clients" label="Clients" data-testid="resource-server-tab-clients" />
+        )}
+        {!isSystem && (
+          <Tab value="secrets" label="Secrets" data-testid="resource-server-tab-secrets" />
+        )}
         <Tab value="settings" label="Settings" data-testid="resource-server-tab-settings" />
       </Tabs>
       {surface === 'scopes' ? (
         <ResourceServerScopesPage scope={scope} resourceServer={resourceServer} embedded />
+      ) : surface === 'clients' ? (
+        <ClientsPage scope={scope} resourceServerId={resourceServer.resourceServerId} embedded />
       ) : surface === 'secrets' ? (
         <ResourceServerSecretsTab
           scope={scope}

@@ -434,6 +434,22 @@ const SECURITY: Catalog = {
             };
       },
     },
+    {
+      id: 'sec-jwt-introspection',
+      feature: 'JWT introspection responses',
+      reference: 'RFC 9701 §5',
+      channel: 'probe-runner',
+      classify: (raw) =>
+        asStringArray(raw, 'introspection_signing_alg_values_supported').length > 0
+          ? {
+              status: 'implemented',
+              detail: "'introspection_signing_alg_values_supported' is advertised.",
+            }
+          : {
+              status: 'missing',
+              detail: "'introspection_signing_alg_values_supported' is not advertised.",
+            },
+    },
   ],
 };
 

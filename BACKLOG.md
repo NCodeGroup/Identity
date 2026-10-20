@@ -74,7 +74,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
-| `F` — Feature gaps                    | `F76`     | `F75`      |
+| `F` — Feature gaps                    | `F78`     | `F77`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U23`     | `U22`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
@@ -479,20 +479,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`.
 
-- **`F67` — Validate the access tokens the server encrypted itself.** When an access token's settings require encryption,
-  it is a Nested JWT encrypted to the key of the single targeted resource server that decrypts its own tokens or,
-  otherwise, to the tenant's
-  ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)).
-  The server's own consumers of access tokens — UserInfo, introspection, token exchange, and the management API —
-  name no decryption keys and no algorithm lists, so they reject every encrypted access token
-  ([ADR-0154](docs/adr/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)): an
-  encrypted token for the OpenID system resource server cannot call UserInfo, and a resource server cannot introspect
-  a token encrypted to it. Name the tenant's keys (and, for introspection, the calling resource server's keys) as
-  decryption keys, and state the access-token signing and encryption lists as allow-lists. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/DefaultAuthenticateAccessTokenHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Introspection/Handlers/DefaultIntrospectTokenHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Token/TokenExchange/DefaultSubjectTokenValidator.cs`.
-
 - **`F68` — Check a client's registered response algorithms when its settings are written, and let a security profile
   supply compliant defaults.** A client's `id_token_signed_response_alg` and its other registered response algorithms
   must be in its effective `*_values_supported` lists
@@ -516,9 +502,11 @@ entry and/or ADR that closed it.
   `IAccessTokenPolicyService` closes for access tokens
   ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)). Move the
   interface and its models to `NCode.Identity.OpenId.Authentication.Abstractions` as a public seam with the internal
-  default, so every issuer of a client-addressed JWT (ID token, logout token, UserInfo response) resolves the same
-  selector. Touch points: `src/NCode.Identity.OpenId.Authentication/Clients/IClientJwtCredentialSelector.cs`,
-  `ClientJwtCredentials.cs`, `ClientJwtProtectionSettings.cs`, and the Authentication.Abstractions public API.
+  default, so every issuer of a client-addressed JWT (ID token, logout token, UserInfo response, JWT introspection
+  response) resolves the same selector. Touch points: `src/NCode.Identity.OpenId.Authentication/Clients/IClientJwtCredentialSelector.cs`,
+  `ClientJwtCredentials.cs`, `ClientJwtProtectionSettings.cs` (which now carries an `Introspection` entry,
+  [ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)), and the
+  Authentication.Abstractions public API.
 
 - **`F70` — Never reissue a retired tenant name or issuer.** A tenant is named by its creator
   ([ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md)), and its issuer is its identity in every token it
@@ -585,9 +573,33 @@ entry and/or ADR that closed it.
   by default ([ADR-0024](docs/adr/0024-control-plane-and-per-tenant-planes.md),
   [ADR-0042](docs/adr/0042-management-api-route-driven-tenant-scope.md)) — independent of the protocol strategy, and
   the route's `tenantId` should only scope the data. Capture the design in an ADR and cover every strategy with
-  integration tests. Touch points:
+  integration tests. The access token itself is validated through `IIssuedTokenValidator` against the `OpenIdContext`
+  it is given ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md)), so passing the
+  authenticating tenant's context is enough; the seam needs no change. Touch points:
   `src/NCode.Identity.OpenId.Management/Endpoints/ManagementEnvironmentEndpointFilter.cs`, `IOpenIdContextFactory`,
-  `TenantScopeEndpointFilter`, `OwnershipHandler`.
+  `TenantScopeEndpointFilter`, `OwnershipHandler`,
+  `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/DefaultAuthenticateAccessTokenHandler.cs`.
+
+- **`F76` — Accept an `id_token_hint` the client re-encrypted to the server.** OpenID Connect RP-Initiated Logout 1.0
+  §2 lets a relying party that received an encrypted ID token re-encrypt it to the OP's public key before passing it as
+  `id_token_hint`. The server validates a hint under the ID-token policy, which names no decryption keys because an ID
+  token is encrypted only to its client
+  ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md)), so a re-encrypted hint is
+  rejected and logout proceeds without one. Accept a hint encrypted to the tenant's encryption keys under the tenant's
+  advertised `id_token_encryption_*` lists, keep the enclosed ID token's checks unchanged, and decide whether the OP
+  advertises the keys a relying party re-encrypts to. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultIssuedTokenValidator.cs` (`ValidateIdTokenHintAsync`),
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/Handlers/DefaultResolveEndSessionSubjectHandler.cs`.
+
+- **`F77` — Register a resource-server client through dynamic client registration.** A resource server introspects
+  through a client bound to it, and the binding is set only through the management API, by a caller allowed to update
+  that resource server ([ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+  RFC 9701 §3 allows the authorization server to register resource servers dynamically, which a deployment that
+  provisions APIs automatically would need. Define how a registration request names its resource server and how the
+  registrant proves it may act for it — an initial access token scoped to that resource server is the likely shape —
+  register the `introspection_*_response_alg` metadata, and report the binding in the client information response.
+  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/`.
 
 ## Conformance & interop testing (group `T`)
 

@@ -105,8 +105,15 @@ export const managementApi = createApi({
         { type: 'Server', id: serverId },
       ],
     }),
-    listClients: build.query<CollectionResource<ClientResource>, { scope: ManagementScope }>({
-      query: ({ scope }) => `${scopeApiPrefix(scope)}/clients`,
+    // `resourceServerId` lists only the clients that act for that resource server.
+    listClients: build.query<
+      CollectionResource<ClientResource>,
+      { scope: ManagementScope; resourceServerId?: string }
+    >({
+      query: ({ scope, resourceServerId }) => ({
+        url: `${scopeApiPrefix(scope)}/clients`,
+        ...(resourceServerId ? { params: { resourceServerId } } : {}),
+      }),
       providesTags: (result) => [
         { type: 'Client' as const, id: 'LIST' },
         ...(result?.items ?? []).map((c) => ({ type: 'Client' as const, id: c.clientId })),

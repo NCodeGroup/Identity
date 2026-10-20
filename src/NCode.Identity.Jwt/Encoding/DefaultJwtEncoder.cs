@@ -133,7 +133,10 @@ internal sealed class DefaultJwtEncoder(
 
         ProcessRequestClaims(payload, parameters);
 
-        ProcessTokenLifetime(payload);
+        if (parameters.EnsureTokenLifetime)
+        {
+            ProcessTokenLifetime(payload);
+        }
 
         return payload;
     }

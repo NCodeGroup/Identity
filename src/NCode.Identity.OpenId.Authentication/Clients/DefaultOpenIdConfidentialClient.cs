@@ -49,6 +49,9 @@ internal class DefaultOpenIdConfidentialClient(
     public override IReadOnlyCollection<string> RedirectUris => PublicClient.RedirectUris;
 
     /// <inheritdoc />
+    public override string? ResourceServerId => PublicClient.ResourceServerId;
+
+    /// <inheritdoc />
     public override bool IsConfidential => true;
 
     /// <inheritdoc />

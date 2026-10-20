@@ -33,6 +33,12 @@ internal class DefaultDiscoverMetadataHandler(
 ) : ICommandHandler<DiscoverMetadataCommand>, ISupportMediatorPriority
 {
     private const string MtlsEndpointAliasesKey = "mtls_endpoint_aliases";
+    private const string AuthMethodsSupportedSuffix = "_auth_methods_supported";
+    private const string AuthSigningAlgValuesSupportedSuffix = "_auth_signing_alg_values_supported";
+
+    // RFC 8414 §2 metadata names the authentication of these endpoints after the endpoint itself.
+    private static string[] ClientAuthenticatingEndpointNames { get; } =
+    [OpenIdConstants.EndpointNames.Introspection, OpenIdConstants.EndpointNames.Revocation];
 
     private EndpointDataSource EndpointDataSource { get; } = endpointDataSource;
     private LinkGenerator LinkGenerator { get; } = linkGenerator;
@@ -52,7 +58,32 @@ internal class DefaultDiscoverMetadataHandler(
 
         DiscoverEndpoints(openIdContext, metadata);
 
+        DiscoverEndpointAuthentication(metadata);
+
         return ValueTask.CompletedTask;
+    }
+
+    // The introspection and revocation endpoints authenticate clients through the same service as the token endpoint,
+    // so they accept exactly its methods and assertion signing algorithms (RFC 8414 §2).
+    private static void DiscoverEndpointAuthentication(IDictionary<string, object> metadata)
+    {
+        metadata.TryGetValue(OpenIdSettingNames.TokenEndpointAuthMethodsSupported, out var methods);
+        metadata.TryGetValue(
+            OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported,
+            out var algorithms
+        );
+
+        foreach (var endpointName in ClientAuthenticatingEndpointNames)
+        {
+            if (!metadata.ContainsKey(endpointName))
+                continue;
+
+            if (methods is not null)
+                metadata.TryAdd(endpointName + AuthMethodsSupportedSuffix, methods);
+
+            if (algorithms is not null)
+                metadata.TryAdd(endpointName + AuthSigningAlgValuesSupportedSuffix, algorithms);
+        }
     }
 
     private static void DiscoverSettings(

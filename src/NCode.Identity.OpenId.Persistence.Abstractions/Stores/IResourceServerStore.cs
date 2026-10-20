@@ -144,12 +144,13 @@ public interface IResourceServerStore : IStore<PersistedResourceServer>
     );
 
     /// <summary>
-    /// Determines whether any client grant still references the specified resource server.
+    /// Determines whether any client grant references the specified resource server, or any client acts for it.
     /// </summary>
     /// <param name="resourceServerId">The opaque identifier of the resource server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when at
-    /// least one client grant references the resource server; otherwise <c>false</c>.</returns>
+    /// least one client grant references the resource server or one client is bound to it; otherwise
+    /// <c>false</c>.</returns>
     ValueTask<bool> HasDependentsAsync(
         string resourceServerId,
         CancellationToken cancellationToken

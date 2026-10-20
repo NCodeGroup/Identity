@@ -1,6 +1,8 @@
 # 158. An access token is bound by its client and every resource server it targets
 
-- **Status:** Accepted
+- **Status:** Accepted (follow-up `F67` closed by
+  [ADR-0167](0167-the-server-validates-the-tokens-it-issued-under-one-policy.md): the server reads the access tokens it
+  encrypted)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

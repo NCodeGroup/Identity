@@ -4,7 +4,9 @@
   [ADR-0063](0063-dynamic-client-registration.md), [ADR-0108](0108-fapi-security-profile-merge-lattice-ceiling-injection.md),
   [ADR-0109](0109-fapi-behavioral-rules-and-discovery-validation-details.md),
   [ADR-0140](0140-setting-values-are-validated-against-their-domain.md), and
-  [ADR-0144](0144-authorization-codes-are-bound-to-pkce-by-default.md))
+  [ADR-0144](0144-authorization-codes-are-bound-to-pkce-by-default.md); extended by
+  [ADR-0168](0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): a client bound to a resource
+  server authenticates the same way and is accepted only at introspection)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

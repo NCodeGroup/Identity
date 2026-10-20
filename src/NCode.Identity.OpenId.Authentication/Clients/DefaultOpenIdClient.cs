@@ -30,6 +30,7 @@ internal class DefaultOpenIdClient(
     IReadOnlySettingCollection settings,
     ISecretKeyCollection secretKeys,
     IReadOnlyCollection<string> redirectUris,
+    string? resourceServerId,
     IPropertyBag propertyBag
 ) : OpenIdClient
 {
@@ -44,6 +45,9 @@ internal class DefaultOpenIdClient(
 
     /// <inheritdoc />
     public override IReadOnlyCollection<string> RedirectUris { get; } = redirectUris;
+
+    /// <inheritdoc />
+    public override string? ResourceServerId { get; } = resourceServerId;
 
     /// <inheritdoc />
     public override bool IsConfidential => false;

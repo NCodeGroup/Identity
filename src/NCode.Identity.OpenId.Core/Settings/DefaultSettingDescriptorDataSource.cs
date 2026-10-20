@@ -1936,6 +1936,90 @@ internal class DefaultSettingDescriptorDataSource(
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
             };
+
+            // introspection_signed_response_alg: the signature "alg" a client acting for a resource server registers for
+            // its JWT introspection responses (RFC 9701 §6: RS256 unless registered).
+            // Override (Replace): a child fully replaces the parent value. The effective
+            // introspection_signing_alg_values_supported must permit it (ADR-0155, ADR-0168).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.IntrospectionSignedResponseAlg,
+                AppliesTo = Clients,
+                Rule = AsymmetricSignatureAlgorithm(),
+                Default = AlgorithmCodes.DigitalSignature.RsaSha256,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // introspection_signing_alg_values_supported: permitted "alg" values for signing a JWT introspection
+            // response (RFC 9701 §7). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
+            // (ADR-0010). Advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.IntrospectionSigningAlgValuesSupported,
+                AppliesTo = TenantsAndClients,
+                Rule = AsymmetricSignatureAlgorithms(),
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // introspection_encrypted_response_alg: the key-management "alg" a client acting for a resource server
+            // registers for encrypting its JWT introspection responses to its public key (RFC 9701 §6); absent = not
+            // encrypted. Override (Replace): a child fully replaces the parent value. The effective
+            // introspection_encryption_alg_values_supported must permit it (ADR-0155).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.IntrospectionEncryptedResponseAlg,
+                AppliesTo = Clients,
+                Rule = AsymmetricKeyManagementAlgorithm(),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // introspection_encrypted_response_enc: the content-encryption "enc" of the client's encrypted JWT
+            // introspection responses (RFC 9701 §6: A128CBC-HS256 unless registered).
+            // Override (Replace): a child fully replaces the parent value. The effective
+            // introspection_encryption_enc_values_supported must permit it (ADR-0155).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.IntrospectionEncryptedResponseEnc,
+                AppliesTo = Clients,
+                Rule = ContentEncryptionAlgorithm(),
+                Default = AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // introspection_encryption_alg_values_supported: permitted "alg" values for encrypting a JWT introspection
+            // response (RFC 9701 §7). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
+            // (ADR-0010). The response is encrypted to the client's public key, so only asymmetric key management
+            // applies; advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.IntrospectionEncryptionAlgValuesSupported,
+                AppliesTo = TenantsAndClients,
+                Rule = AsymmetricKeyManagementAlgorithms(),
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // introspection_encryption_enc_values_supported: permitted "enc" values for encrypting a JWT introspection
+            // response (RFC 9701 §7). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
+            // (ADR-0010). Advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.IntrospectionEncryptionEncValuesSupported,
+                AppliesTo = TenantsAndClients,
+                Rule = ContentEncryptionAlgorithms(),
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
         }
     }
 

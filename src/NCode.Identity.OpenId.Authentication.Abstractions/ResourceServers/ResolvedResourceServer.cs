@@ -23,10 +23,11 @@ using NCode.Identity.Settings;
 namespace NCode.Identity.OpenId.Authentication.ResourceServers;
 
 /// <summary>
-/// Represents a resource server resolved at access-token issuance as one of the audiences a token targets, carrying the
-/// effective settings that bound the access tokens issued for it and its own secret keys.
+/// Represents a resolved resource server — one of the audiences an access token targets at issuance, or the resource
+/// server a caller acts for at token introspection — carrying the scopes it owns, the effective settings that bound
+/// the access tokens issued for it, and its own secret keys.
 /// </summary>
-// See ADR-0075 and ADR-0154.
+// See ADR-0075, ADR-0154, and ADR-0168.
 [PublicAPI]
 public sealed class ResolvedResourceServer
 {
@@ -39,6 +40,18 @@ public sealed class ResolvedResourceServer
     /// Gets the audience identifier of the resource server (its <c>aud</c> value).
     /// </summary>
     public required string Identifier { get; init; }
+
+    /// <summary>
+    /// Gets the values of the scopes the resource server owns.
+    /// </summary>
+    public required IReadOnlyCollection<string> Scopes { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the resource server is a reserved, system-owned resource server — one whose
+    /// access tokens the server's own endpoints read. A system resource server never decrypts the tokens issued for
+    /// it: they are encrypted, when required, to the tenant's key.
+    /// </summary>
+    public required bool IsSystem { get; init; }
 
     /// <summary>
     /// Gets the resource server's effective settings — the server baseline merged with the tenant's and then the

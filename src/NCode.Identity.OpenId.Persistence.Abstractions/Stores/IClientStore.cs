@@ -45,6 +45,21 @@ public interface IClientStore : IStore<PersistedClient>
     );
 
     /// <summary>
+    /// Gets a single page of the <see cref="PersistedClient"/> instances bound to the specified resource server, ordered
+    /// by their identifier, using keyset (cursor) pagination.
+    /// </summary>
+    /// <param name="resourceServerId">The identifier of the resource server whose clients are returned.</param>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
+    /// <see cref="PersistedClient"/> instances and the cursor for the next page.</returns>
+    ValueTask<PagedResult<PersistedClient>> GetPageByResourceServerAsync(
+        string resourceServerId,
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Attempts to get a <see cref="PersistedClient"/> instance from the store with the specified identifier.
     /// </summary>
     /// <param name="clientId">The identifier of the <see cref="PersistedClient"/> instance to retrieve.</param>

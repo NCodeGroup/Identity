@@ -445,10 +445,19 @@ internal class ResourceServerStore(
     )
     {
         var normalizedResourceServerId = Normalize(resourceServerId);
-        return await DbContext.ClientGrants.AnyAsync(
+        var hasGrants = await DbContext.ClientGrants.AnyAsync(
             grant => grant.ResourceServer.NormalizedResourceServerId == normalizedResourceServerId,
             cancellationToken
         );
+
+        return hasGrants
+            || await DbContext.Clients.AnyAsync(
+                client =>
+                    client.ResourceServer != null
+                    && client.ResourceServer.NormalizedResourceServerId
+                        == normalizedResourceServerId,
+                cancellationToken
+            );
     }
 
     /// <inheritdoc />
@@ -478,6 +487,17 @@ internal class ResourceServerStore(
         {
             throw new InvalidOperationException(
                 $"The resource server with ResourceServerId='{resourceServerId}' cannot be removed because one or more client grants still reference it."
+            );
+        }
+
+        var hasBoundClients = await DbContext.Clients.AnyAsync(
+            client => client.ResourceServerId == resourceServerEntity.Id,
+            cancellationToken
+        );
+        if (hasBoundClients)
+        {
+            throw new InvalidOperationException(
+                $"The resource server with ResourceServerId='{resourceServerId}' cannot be removed because one or more clients act for it."
             );
         }
 

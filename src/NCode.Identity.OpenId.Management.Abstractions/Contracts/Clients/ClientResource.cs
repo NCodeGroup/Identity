@@ -42,4 +42,7 @@ public sealed class ClientResource : ISupportClientId, ISupportTenantId, ISuppor
 
     /// <inheritdoc cref="PersistedClient.IsDisabled"/>
     public required bool IsDisabled { get; init; }
+
+    /// <inheritdoc cref="PersistedClient.ResourceServerId"/>
+    public string? ResourceServerId { get; init; }
 }

@@ -1,7 +1,9 @@
 # 0066. Resource servers are first-class settings and secret owners
 
 - **Status:** Accepted (amended by [ADR-0149](0149-settings-declare-the-scopes-they-apply-to.md): a resource-server
-  document carries only the settings that apply within a resource server)
+  document carries only the settings that apply within a resource server; amended by
+  [ADR-0167](0167-the-server-validates-the-tokens-it-issued-under-one-policy.md): a system resource server holds no
+  keys)
 - **Date:** 2026-10-11
 - **Deciders:** NCode.Identity maintainers
 

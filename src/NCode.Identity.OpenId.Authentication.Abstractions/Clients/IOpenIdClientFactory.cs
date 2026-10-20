@@ -20,7 +20,6 @@ using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.Secrets.Keys;
-using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
@@ -34,17 +33,14 @@ public interface IOpenIdClientFactory
     /// Factory method that creates a new instance of <see cref="OpenIdClient"/> that represents a public client.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
-    /// <param name="clientId">The <see cref="string"/> that contains the client identifier.</param>
-    /// <param name="settings">The <see cref="IReadOnlySettingCollection"/> that contains the client settings.</param>
-    /// <param name="secrets">The collection of <see cref="SecretKey"/> instances that contains the secrets only known to the client.</param>
+    /// <param name="definition">The <see cref="OpenIdClientDefinition"/> that contains the client's resolved
+    /// registration.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation,
     /// containing the <see cref="OpenIdClient"/> that represents a public client.</returns>
     ValueTask<OpenIdClient> CreatePublicClientAsync(
         OpenIdContext openIdContext,
-        string clientId,
-        IReadOnlySettingCollection settings,
-        IReadOnlyCollection<SecretKey> secrets,
+        OpenIdClientDefinition definition,
         CancellationToken cancellationToken
     );
 

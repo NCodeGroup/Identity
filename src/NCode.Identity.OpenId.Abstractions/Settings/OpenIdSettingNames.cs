@@ -334,6 +334,48 @@ public static class OpenIdSettingNames
     public const string IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported";
 
     /// <summary>
+    /// Contains the name of the per-client <c>introspection_encrypted_response_alg</c> setting (RFC 9701 §6): the
+    /// key-management algorithm a client acting for a resource server registers for encrypting its JWT introspection
+    /// responses to its public key. When it is absent, introspection responses are not encrypted.
+    /// </summary>
+    public const string IntrospectionEncryptedResponseAlg = "introspection_encrypted_response_alg";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>introspection_encrypted_response_enc</c> setting (RFC 9701 §6): the
+    /// content-encryption algorithm of the client's encrypted JWT introspection responses (<c>A128CBC-HS256</c> unless
+    /// registered).
+    /// </summary>
+    public const string IntrospectionEncryptedResponseEnc = "introspection_encrypted_response_enc";
+
+    /// <summary>
+    /// Contains the name of the <c>introspection_encryption_alg_values_supported</c> setting (RFC 9701 §7): the
+    /// key-management algorithms a JWT introspection response may be encrypted with.
+    /// </summary>
+    public const string IntrospectionEncryptionAlgValuesSupported =
+        "introspection_encryption_alg_values_supported";
+
+    /// <summary>
+    /// Contains the name of the <c>introspection_encryption_enc_values_supported</c> setting (RFC 9701 §7): the
+    /// content-encryption algorithms a JWT introspection response may be encrypted with.
+    /// </summary>
+    public const string IntrospectionEncryptionEncValuesSupported =
+        "introspection_encryption_enc_values_supported";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>introspection_signed_response_alg</c> setting (RFC 9701 §6): the
+    /// signature algorithm a client acting for a resource server registers for its JWT introspection responses
+    /// (<c>RS256</c> unless registered).
+    /// </summary>
+    public const string IntrospectionSignedResponseAlg = "introspection_signed_response_alg";
+
+    /// <summary>
+    /// Contains the name of the <c>introspection_signing_alg_values_supported</c> setting (RFC 9701 §7): the signature
+    /// algorithms a JWT introspection response may be signed with.
+    /// </summary>
+    public const string IntrospectionSigningAlgValuesSupported =
+        "introspection_signing_alg_values_supported";
+
+    /// <summary>
     /// Contains the name of the per-client <c>jwks_uri</c> setting: the URI of the client's JSON Web Key Set, resolved
     /// at runtime to obtain the client's public verification keys for <c>private_key_jwt</c> client authentication and
     /// signed request objects (JAR).

@@ -220,6 +220,36 @@ describe('managementApi client mutations (tenant scope)', () => {
     expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual({ isDisabled: false, settings: {} });
   });
 
+  it('createClient POSTs the resource-server binding of a bound client', async () => {
+    const captured = mockFetch(
+      new Response(
+        JSON.stringify({
+          clientId: 'new',
+          tenantId: 'acme',
+          concurrencyToken: 'c1',
+          isDisabled: false,
+          resourceServerId: 'rs-orders',
+        }),
+        { status: 201, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.createClient.initiate({
+        scope,
+        body: { isDisabled: false, resourceServerId: 'rs-orders', settings: {} },
+      }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/clients');
+    expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual({
+      isDisabled: false,
+      resourceServerId: 'rs-orders',
+      settings: {},
+    });
+  });
+
   it('updateClient PATCHes a replace patch with If-Match under the tenant path', async () => {
     const captured = mockFetch(new Response(null, { status: 204 }));
     const store = createStore();
@@ -968,6 +998,17 @@ const queryRequestCases: readonly QueryRequestCase[] = [
     name: 'listClients (tenant scope)',
     url: 'https://api.test/api/tenants/acme/clients',
     run: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: acme })),
+  },
+  {
+    name: 'listClients (resource server filter)',
+    url: 'https://api.test/api/tenants/acme/clients?resourceServerId=rs-orders',
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.listClients.initiate({
+          scope: acme,
+          resourceServerId: 'rs-orders',
+        }),
+      ),
   },
   {
     name: 'listResourceServers (global scope)',

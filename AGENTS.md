@@ -83,6 +83,10 @@ everything on it. Only commits pushed from the repository clone survive — work
   builds slow every agent down rather than finishing more items.
 - **Budget the gates.** On the standard runner a cold `dotnet build` takes about two minutes and `./build/dod.ps1 -Fast`
   about five; iterate with targeted tests and run the full gate once per item.
+- **Validate the chart against a real API server.** `helm` and `kind` are on the runner, and a `kind` cluster starts in
+  about a minute. Its API server checks the chart's manifests (`helm install --dry-run=server`), and Pod Security
+  admission enforces a namespace labeled `restricted`. Pod-to-pod networking and cluster DNS do not work on the
+  runner, so reach a pod with `kubectl port-forward` instead.
 
 [`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml) installs the pinned .NET SDK,
 Node, and pnpm and restores the NuGet and pnpm packages before a session starts.

@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Encoders;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -303,6 +304,59 @@ public class TokenEndpointMutualTlsTests
             OpenIdConstants.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
+    }
+
+    private const string JwksUri = "https://client.mtls-jwks.integration.test/jwks.json";
+
+    private static string BuildJwks(X509Certificate2 certificate, bool includeCertificate)
+    {
+        using var rsa = certificate.GetRSAPublicKey();
+        var parameters = rsa!.ExportParameters(includePrivateParameters: false);
+        var jwk = new Dictionary<string, object>
+        {
+            ["kty"] = "RSA",
+            ["use"] = "sig",
+            ["kid"] = "it-mtls-jwks-key",
+            ["n"] = Base64Url.Encode(parameters.Modulus!),
+            ["e"] = Base64Url.Encode(parameters.Exponent!),
+        };
+        if (includeCertificate)
+            jwk["x5c"] = new[] { Convert.ToBase64String(certificate.RawData) };
+        return JsonSerializer.Serialize(
+            new Dictionary<string, object> { ["keys"] = new[] { jwk } }
+        );
+    }
+
+    [Theory]
+    [InlineData(true, HttpStatusCode.OK)]
+    [InlineData(false, HttpStatusCode.BadRequest)]
+    public async Task PostToken_SelfSignedTlsClientAuth_WithJwksUri_MatchesPublishedCertificate(
+        bool publishCertificate,
+        HttpStatusCode expectedStatusCode
+    )
+    {
+        const string clientId = "it-mtls-self-signed-jwks";
+        using var certificate = CreateCertificate(clientId);
+        var jwks = BuildJwks(certificate, publishCertificate);
+
+        using var factory = new HostApplicationFactory { ClientJwksResponder = _ => jwks };
+        await factory.SeedSelfSignedTlsClientWithJwksUriAsync(
+            clientId,
+            JwksUri,
+            OpenIdConstants.GrantTypes.ClientCredentials
+        );
+        await factory.SeedResourceServerWithClientGrantAsync(
+            clientId,
+            "it-mtls-jwks-rs-api",
+            "https://api.mtls-jwks.integration.test",
+            TestServerSettingsProvider.ApiScope
+        );
+
+        var client = CreateClient(factory);
+        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == expectedStatusCode, body);
     }
 
     [Fact]

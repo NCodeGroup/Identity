@@ -235,6 +235,15 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **A security profile supplies compliant defaults.** `ISecurityProfile` gains `ApplyDefaultSettings`, through which a
+  profile contributes overridable defaults with the new `ISecurityProfileDefaultsBuilder`; the builder accepts only a
+  setting that does not merge with a lattice operation. The catalog places a profile's defaults beneath the settings of
+  the scope that selects it, so that scope and every scope below it may still set another value. When several selected
+  profiles default one setting, the first in ordinal order supplies it. FAPI 2.0 now defaults
+  `id_token_signed_response_alg` and `introspection_signed_response_alg` to `PS256`. A client under the profile that
+  registers no algorithm is therefore signed with an algorithm the profile permits, rather than with `RS256`, which the
+  profile excludes, and no longer fails at issuance
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)).
 - **Hash algorithms and binary encodings are open vocabularies.** The `HashAlgorithmType` and `BinaryEncodingType`
   enums are removed. `ICryptoService.HashValue` takes the framework's `HashAlgorithmName` and computes the digest with
   `CryptographicOperations`, so SHA-384 and SHA-3 are available. Encodings are named: `BinaryEncodings` holds

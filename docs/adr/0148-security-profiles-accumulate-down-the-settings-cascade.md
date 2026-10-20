@@ -70,6 +70,16 @@ that selects it.**
    — is removed, and a value of another type is left to fail closed
    ([ADR-0139](0139-setting-names-are-a-closed-vocabulary.md)). Its `Down` restores what the single name can express
    and leaves a list of several names to fail closed.
+7. **A profile supplies the choices it constrains as overridable defaults.** A ceiling can exclude a protocol default —
+   the FAPI 2.0 signing ceilings exclude `RS256`, the registration default for `id_token_signed_response_alg` and
+   `introspection_signed_response_alg` — so without a default every client under the profile would need an explicit
+   choice and would otherwise fail at issuance. A profile therefore contributes defaults through
+   `ISecurityProfile.ApplyDefaultSettings` and `ISecurityProfileDefaultsBuilder`, which accepts only a setting that does
+   **not** merge with a lattice operation: a default is a choice, not a bound. `Expand` places the defaults of the
+   profiles a scope declares beneath that scope's own settings, so the scope's own value — and any value a scope below
+   it sets — replaces the default, and the profile's ceilings still decide whether that value is permitted. When several
+   selected profiles default one setting, the profile whose name sorts first in ordinal order supplies it. FAPI 2.0
+   defaults both signed responses to `PS256`.
 
 ## Options considered
 
@@ -86,6 +96,9 @@ that selects it.**
   cascade's history.
 - **Leave the choice of ceiling settings to each profile author.** Rejected: one projection-merged ceiling makes that
   ceiling loosenable or inert without any signal — the failure ADR-0139 and ADR-0140 remove for configuration.
+- **A profile's default fills a choice only where the inherited value falls outside its ceiling.** Rejected: whether a
+  value is permitted depends on which list bounds which setting, which the catalog cannot know for an arbitrary setting,
+  and the default would then depend on the parent's value rather than on the scope's selection.
 - **Declare each descriptor's merge kind as separate metadata.** Rejected: it restates the merge function and can drift
   from it; reading the kind from the `SettingMerge` function the descriptor uses cannot disagree with what it does.
 
@@ -101,6 +114,10 @@ that selects it.**
   for the algorithm lists). The order in which profiles apply never changes which values are permitted, and changes the
   order only for a list that no scope above sets.
 - A requirement's error description names "a selected security profile".
+- A profile's default applies at the scope that selects the profile, beneath that scope's own value: it replaces a value
+  a scope above sets, so a tenant that selects `fapi2` signs its clients' ID tokens with `PS256` even when the server's
+  default is another permitted algorithm, unless the tenant sets its own. A profile whose default names a lattice
+  setting fails when a scope selects it.
 - Follow-ups: a resource-server document accepts `security_profiles` but neither expands nor evaluates it, which is part
   of making the setting vocabulary scope-aware (backlog `F60`); and a single targeted resource server governs
   access-token encryption with its own effective settings, without combining the client's (backlog `F61`).
@@ -121,8 +138,9 @@ that selects it.**
   renaming a setting ships with a data migration; [ADR-0075](0075-runtime-consumption-of-resource-server-secrets.md) —
   resource-server token encryption.
 - OpenID Foundation FAPI 2.0 Security Profile and FAPI 2.0 Message Signing.
-- Code: `NCode.Identity.OpenId.Settings.ISecurityProfile`, `ISecurityProfileCeilingBuilder`, `ISecurityProfileCatalog`,
-  `DefaultSecurityProfileCatalog`, `SecurityProfileCeilingBuilder`, `DefaultSettingDescriptorDataSource`,
+- Code: `NCode.Identity.OpenId.Settings.ISecurityProfile`, `ISecurityProfileCeilingBuilder`,
+  `ISecurityProfileDefaultsBuilder`, `ISecurityProfileCatalog`, `DefaultSecurityProfileCatalog`,
+  `SecurityProfileCeilingBuilder`, `SecurityProfileDefaultsBuilder`, `Fapi2SecurityProfile`, `DefaultSettingDescriptorDataSource`,
   `RootSettingsCollectionDataSource`, `NCode.Identity.OpenId.Servers.DefaultOpenIdServerFactory`,
   `NCode.Identity.Settings.SettingDescriptor.HasLatticeMerge`, `NCode.Identity.Settings.SettingMerge`, and the
   `TranslateSecurityProfileToSecurityProfiles` migration.

@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Cryptography;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Auditing;
@@ -58,7 +59,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     private Mock<IResourceServerValidator> MockValidator { get; }
     private Mock<ISecretValidator> MockSecretValidator { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
-    private Mock<ISecretImporter> MockSecretImporter { get; }
+    private Mock<IClientKeyImporter> MockKeyImporter { get; }
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
@@ -79,7 +80,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockValidator = MockRepository.Create<IResourceServerValidator>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
-        MockSecretImporter = MockRepository.Create<ISecretImporter>();
+        MockKeyImporter = MockRepository.Create<IClientKeyImporter>();
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockSettingScopeCollectionProvider =
@@ -148,7 +149,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             MockValidator.Object,
             MockSecretValidator.Object,
             MockSecretGenerator.Object,
-            MockSecretImporter.Object,
+            MockKeyImporter.Object,
             MockSecretPublicKeyConverter.Object,
             TimeProvider.System,
             MockCryptoService.Object,

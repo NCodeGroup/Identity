@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Auditing;
@@ -54,7 +55,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<IServerStore> MockServerStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
-    private Mock<ISecretImporter> MockSecretImporter { get; }
+    private Mock<IClientKeyImporter> MockKeyImporter { get; }
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
     private Mock<IServerValidator> MockServerValidator { get; }
     private Mock<ISecretValidator> MockSecretValidator { get; }
@@ -73,12 +74,17 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockServerStore = MockRepository.Create<IServerStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
-        MockSecretImporter = MockRepository.Create<ISecretImporter>();
+        MockKeyImporter = MockRepository.Create<IClientKeyImporter>();
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
         MockServerValidator = MockRepository.Create<IServerValidator>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Returns((ManagementError?)null);
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateUpdate(It.IsAny<PersistedSecret>(), It.IsAny<UpdateSecretRequest>())
+            )
             .Returns((ManagementError?)null);
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
@@ -117,7 +123,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             MockServerValidator.Object,
             MockSecretValidator.Object,
             MockSecretGenerator.Object,
-            MockSecretImporter.Object,
+            MockKeyImporter.Object,
             MockSecretPublicKeyConverter.Object,
             TimeProvider.System,
             MockCryptoService.Object,
@@ -1305,6 +1311,244 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var statusCode = Assert.IsType<StatusCodeHttpResult>(result);
         Assert.Equal(StatusCodes.Status412PreconditionFailed, statusCode.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenMetadataIsRefused_ReturnsBadRequest()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedSecret())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateUpdate(It.IsAny<PersistedSecret>(), It.IsAny<UpdateSecretRequest>())
+            )
+            .Returns(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status400BadRequest,
+                    Detail = "refused",
+                }
+            )
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no UpdateSecretAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSecretAsync(
+            httpContext,
+            ServerId,
+            "secret-1",
+            UpdateSecretRequest(),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var statusCode = Assert.IsAssignableFrom<IStatusCodeHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, statusCode.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenKeyHasAKid_KeepsIt()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetSecretOrDefaultAsync(ServerId, "key-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreatePublicKeySecret("key-1", "server-kid"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        PersistedSecret? updated = null;
+        MockServerStore
+            .Setup(x =>
+                x.UpdateSecretAsync(
+                    ServerId,
+                    It.IsAny<PersistedSecret>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback((string _, PersistedSecret secret, CancellationToken _) => updated = secret)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSecretAsync(
+            httpContext,
+            ServerId,
+            "key-1",
+            UpdateSecretRequest(),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal("server-kid", updated?.KeyId);
+    }
+
+    #endregion
+
+    #region ImportSecretAsync Tests
+
+    private static ImportSecretRequest CreateImportSecretRequest() =>
+        new()
+        {
+            SecretType = SecretTypes.Rsa,
+            Format = "jwk",
+            KeyMaterial = """{"kty":"RSA","kid":"server-kid","n":"AQAB","e":"AQAB"}""",
+            Use = null,
+            Algorithm = null,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
+    private static PersistedSecret CreatePublicKeySecret(string secretId, string? keyId) =>
+        new()
+        {
+            SecretId = secretId,
+            KeyId = keyId,
+            ConcurrencyToken = "secret-ct",
+            Use = "sig",
+            Algorithm = "PS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            SecretType = SecretTypes.Rsa,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Spki,
+            KeySizeBits = 2048,
+            EncodedValue = "encoded",
+        };
+
+    private void SetupImportServer(params PersistedSecret[] existingKeys)
+    {
+        SetupStore();
+        var server = CreateServer("server-ct");
+        server.Secrets = new PersistedServerSecrets
+        {
+            ServerId = ServerId,
+            ConcurrencyToken = "secrets-ct",
+            Value = existingKeys,
+        };
+        MockServerStore
+            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(server)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockSecretValidator
+            .Setup(x => x.ValidateImport(It.IsAny<ImportSecretRequest>()))
+            .Returns((ManagementError?)null)
+            .Verifiable();
+        SetupResourceId();
+    }
+
+    private void SetupImportedKey(PersistedSecret? imported, string? error)
+    {
+        MockKeyImporter
+            .Setup(x =>
+                x.TryImportKey(
+                    It.Is<SecretKeyImportRequest>(request => request.SecretId == "generated-id"),
+                    out imported,
+                    out error
+                )
+            )
+            .Returns(imported is not null)
+            .Verifiable();
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenKeyIsImported_ReturnsCreatedWithItsKid()
+    {
+        SetupImportServer();
+        var imported = CreatePublicKeySecret("generated-id", "server-kid");
+        SetupImportedKey(imported, error: null);
+        MockServerStore
+            .Setup(x => x.AddSecretAsync(ServerId, imported, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ImportSecretAsync(
+            httpContext,
+            ServerId,
+            CreateImportSecretRequest(),
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<SecretResource>>(result);
+        Assert.Equal("generated-id", created.Value?.SecretId);
+        Assert.Equal("server-kid", created.Value?.KeyId);
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenKeyIsRefused_ReturnsBadRequest()
+    {
+        SetupImportServer();
+        SetupImportedKey(imported: null, error: "refused");
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no AddSecretAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.ImportSecretAsync(
+            httpContext,
+            ServerId,
+            CreateImportSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal("refused", problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenKidIsTaken_ReturnsConflict()
+    {
+        SetupImportServer(CreatePublicKeySecret("secret-1", "server-kid"));
+        SetupImportedKey(CreatePublicKeySecret("generated-id", "server-kid"), error: null);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no AddSecretAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.ImportSecretAsync(
+            httpContext,
+            ServerId,
+            CreateImportSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Contains("server-kid", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenAnExistingKeyIsIdentifiedBySecretId_ReturnsConflict()
+    {
+        SetupImportServer(CreatePublicKeySecret("server-kid", keyId: null));
+        SetupImportedKey(CreatePublicKeySecret("generated-id", "server-kid"), error: null);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ImportSecretAsync(
+            httpContext,
+            ServerId,
+            CreateImportSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
     }
 
     #endregion

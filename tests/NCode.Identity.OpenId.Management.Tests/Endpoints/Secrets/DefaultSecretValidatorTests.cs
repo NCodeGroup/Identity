@@ -23,6 +23,8 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
@@ -299,6 +301,88 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         var error = Validator.ValidateCreate(
             CreateRequest("rsa", 2048, "sig", algorithm: "CUSTOM-ALG")
         );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    #endregion
+
+    #region ValidateUpdate Tests
+
+    private static PersistedSecret CreateRsaKey() =>
+        new()
+        {
+            SecretId = "key-1",
+            ConcurrencyToken = "secret-ct",
+            Use = "sig",
+            Algorithm = "PS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            SecretType = SecretTypes.Rsa,
+            SecretEncoding = SecretEncodings.Spki,
+            KeySizeBits = 2048,
+            EncodedValue = "encoded",
+        };
+
+    private static UpdateSecretRequest CreateUpdateRequest(string? use, string? algorithm) =>
+        new()
+        {
+            Use = use,
+            Algorithm = algorithm,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(2),
+        };
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("sig", null)]
+    [InlineData("sig", "PS256")]
+    [InlineData("enc", "RSA-OAEP-256")]
+    [InlineData(null, "RS256")]
+    public void ValidateUpdate_WhenMetadataFitsTheKey_ReturnsNull(string? use, string? algorithm)
+    {
+        var error = Validator.ValidateUpdate(CreateRsaKey(), CreateUpdateRequest(use, algorithm));
+
+        Assert.Null(error);
+    }
+
+    [Theory]
+    [InlineData("both", null)]
+    [InlineData("sig", "ES256")]
+    [InlineData("sig", "RSA-OAEP-256")]
+    [InlineData("enc", "PS256")]
+    [InlineData("sig", "HS256")]
+    [InlineData(null, "not-an-algorithm")]
+    public void ValidateUpdate_WhenMetadataDoesNotFitTheKey_ReturnsBadRequest(
+        string? use,
+        string? algorithm
+    )
+    {
+        var error = Validator.ValidateUpdate(CreateRsaKey(), CreateUpdateRequest(use, algorithm));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenSecretTypeIsUnknown_ReturnsBadRequest()
+    {
+        var secret = CreateRsaKey();
+        secret = new PersistedSecret
+        {
+            SecretId = secret.SecretId,
+            ConcurrencyToken = secret.ConcurrencyToken,
+            Use = secret.Use,
+            Algorithm = secret.Algorithm,
+            CreatedWhen = secret.CreatedWhen,
+            ExpiresWhen = secret.ExpiresWhen,
+            SecretType = "unknown",
+            SecretEncoding = secret.SecretEncoding,
+            KeySizeBits = secret.KeySizeBits,
+            EncodedValue = secret.EncodedValue,
+        };
+
+        var error = Validator.ValidateUpdate(secret, CreateUpdateRequest("sig", "PS256"));
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);

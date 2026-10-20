@@ -27,7 +27,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
-using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
@@ -41,7 +40,6 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
@@ -83,7 +81,6 @@ internal class ClientApiEndpointHandler(
     ISecretGenerator secretGenerator,
     IClientKeyImporter clientKeyImporter,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
-    IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretPublicKeyConverter secretPublicKeyConverter,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
@@ -103,8 +100,6 @@ internal class ClientApiEndpointHandler(
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
-    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
-        algorithmCollectionProvider;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
@@ -1015,18 +1010,10 @@ internal class ClientApiEndpointHandler(
             return TypedResults.Problem(detail: error, statusCode: StatusCodes.Status400BadRequest);
         }
 
-        // Keys are selected by kid, so two of a client's keys never share one.
-        var keyId = GetKeyId(importedSecret);
-        if (
-            client.Secrets.Value.Any(secret =>
-                string.Equals(GetKeyId(secret), keyId, StringComparison.Ordinal)
-            )
-        )
+        var keyIdConflict = KeyIdConflictOrDefault(client.Secrets.Value, importedSecret, "client");
+        if (keyIdConflict is not null)
         {
-            return TypedResults.Problem(
-                detail: $"A key with the 'kid' value '{keyId}' is already registered for the client.",
-                statusCode: StatusCodes.Status409Conflict
-            );
+            return keyIdConflict;
         }
 
         try
@@ -1203,13 +1190,10 @@ internal class ClientApiEndpointHandler(
             return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
         }
 
-        var metadataError = ValidateKeyMetadata(secret, request.Use, request.Algorithm);
+        var metadataError = SecretValidator.ValidateUpdate(secret, request);
         if (metadataError is not null)
         {
-            return TypedResults.Problem(
-                detail: metadataError,
-                statusCode: StatusCodes.Status400BadRequest
-            );
+            return ToErrorResult(metadataError);
         }
 
         var updated = new PersistedSecret
@@ -1570,38 +1554,4 @@ internal class ClientApiEndpointHandler(
 
     private bool HasPublicKeys(IEnumerable<PersistedSecret> secrets) =>
         secrets.Any(secret => IsPublicKeyType(secret.SecretType));
-
-    // A key without its own kid is selected by its secret identifier.
-    private static string GetKeyId(PersistedSecret secret) => secret.KeyId ?? secret.SecretId;
-
-    /// <summary>
-    /// Validates the metadata an update declares for a client's key: the <c>use</c> is <c>sig</c> or <c>enc</c>, and
-    /// the <c>alg</c> agrees with the use and accepts the key's type and size. Returns a human-readable reason, or
-    /// <see langword="null"/> when the metadata is coherent.
-    /// </summary>
-    // See ADR-0161.
-    private string? ValidateKeyMetadata(PersistedSecret secret, string? use, string? algorithm)
-    {
-        if (use is not null && use is not (SecretKeyUses.Signature or SecretKeyUses.Encryption))
-        {
-            return $"The use '{use}' is not supported; expected '{SecretKeyUses.Signature}' or "
-                + $"'{SecretKeyUses.Encryption}'.";
-        }
-
-        if (algorithm is null)
-            return null;
-
-        if (!SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor))
-            return $"The secret type '{secret.SecretType}' is not supported.";
-
-        return AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
-            new KeyAlgorithmDeclaration
-            {
-                KeyType = descriptor.KeyClrType,
-                KeySizeBits = secret.KeySizeBits,
-                Use = use,
-                Algorithm = algorithm,
-            }
-        );
-    }
 }

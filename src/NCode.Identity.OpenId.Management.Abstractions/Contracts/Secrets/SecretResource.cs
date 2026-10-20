@@ -32,6 +32,12 @@ public sealed class SecretResource
     /// <inheritdoc cref="PersistedSecret.SecretId"/>
     public required string SecretId { get; init; }
 
+    /// <summary>
+    /// Gets the key identifier (<c>kid</c>) the key is selected by: the <c>kid</c> it was imported with, or its
+    /// <c>SecretId</c> when it has none.
+    /// </summary>
+    public required string KeyId { get; init; }
+
     /// <inheritdoc cref="PersistedSecret.ConcurrencyToken"/>
     public required string ConcurrencyToken { get; init; }
 

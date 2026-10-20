@@ -215,6 +215,8 @@ export type GrantRevocationResult = {
  */
 export type SecretResource = {
   readonly secretId: string;
+  /** The key identifier (`kid`) the key is selected by: the one it was imported with, or `secretId` when none. */
+  readonly keyId: string;
   readonly concurrencyToken: string;
   readonly use: string | null;
   readonly algorithm: string | null;

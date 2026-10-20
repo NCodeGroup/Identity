@@ -14,6 +14,8 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey';
 /** The minimal secret shape this presentational table needs (decoupled from the API contract). */
 export type SecretRow = {
   readonly secretId: string;
+  /** The key identifier (`kid`) the key is selected by; equal to {@link secretId} when the key has no own `kid`. */
+  readonly keyId: string;
   readonly secretType: string;
   readonly keySizeBits: number;
   readonly use: string | null;
@@ -74,6 +76,7 @@ export function SecretTable({
       <TableHead>
         <TableRow>
           <TableCell>Secret ID</TableCell>
+          <TableCell>Key ID</TableCell>
           <TableCell>Type</TableCell>
           <TableCell>Key size</TableCell>
           <TableCell>Expires</TableCell>
@@ -86,6 +89,7 @@ export function SecretTable({
           return (
             <TableRow key={secret.secretId} data-testid={`secret-row-${secret.secretId}`}>
               <TableCell>{secret.secretId}</TableCell>
+              <TableCell data-testid={`secret-kid-${secret.secretId}`}>{secret.keyId}</TableCell>
               <TableCell>{secret.secretType}</TableCell>
               <TableCell>{secret.keySizeBits}</TableCell>
               <TableCell>

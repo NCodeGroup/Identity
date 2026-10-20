@@ -220,3 +220,4 @@ standards.
 | [0183](./0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md) | A client secret is rotated by replacing it in one change | Accepted |
 | [0184](./0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) | A migration only expands the schema unless it is marked a contract step | Accepted |
 | [0185](./0185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md) | Coverage measures hand-written code and counts a line that runs as covered | Accepted |
+| [0186](./0186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md) | Every owner's keys are imported and updated under the client-key policy | Accepted |

@@ -10,6 +10,10 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Every key the management API reports carries its `kid`.** `SecretResource` and `CreatedSecretResource` have a
+  required `KeyId`: the `kid` the key was imported with, or its secret identifier when it has none. The `@ncode/api`
+  contract mirrors it, and the admin console's secret tables show it in a **Key ID** column. See
+  [ADR-0186](docs/adr/0186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md).
 - **The Definition of Done fails a migration that would break the previous release.** `ExpandOnlyRuleTests`, in the new
   `NCode.Identity.OpenId.Host.Database.Tests` project, reads the `Up` operations of every host migration and fails one
   that drops or renames a schema, table, column, or sequence; adds a required column without a default; makes a column
@@ -231,6 +235,13 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Tenant, server, and resource-server keys are imported and updated under the client-key policy.** Their import
+  endpoints use `IClientKeyImporter.TryImportKey`, so a JSON Web Key keeps its `kid`, a key whose `use`, `key_ops`, or
+  `alg` contradicts it is refused with a `400` that says why, and a `kid` already used by another of the owner's keys is
+  a `409 Conflict`. Their update endpoints check `use` and `alg` against the key through the new
+  `ISecretValidator.ValidateUpdate`, as the client endpoint does, and keep the key's `kid`. `IClientKeyImporter` and its
+  error messages no longer describe the policy as client-only. See
+  [ADR-0186](docs/adr/0186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md).
 - **Coverage measures hand-written code, and the job summary and Codecov agree.** The full Definition of Done collects
   .NET coverage with `build/coverage.runsettings`, which leaves out source-generator output under `obj/`, the
   scaffolded EF Core migrations, and `[GeneratedCode]` members. The reference host stays in scope because it ships.

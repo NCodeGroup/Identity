@@ -1408,6 +1408,26 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   amended). The JSON Web Key import keeps the leaf `x5c` certificate once its public key equals the key's, and refuses
   an empty, malformed, or mismatched `x5c`; the self-signed handler matches it by thumbprint unchanged._
 
+- **`F73` — Apply the key policy to every secret owner in the management API, and report a key's `kid`.** A client's
+  keys are imported and updated under one policy
+  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)), but the
+  tenant, server, and resource-server secret endpoints keep their earlier checks: an imported key's `use` and `alg` are
+  not checked against each other or the key, an update can give a key an `alg` its type does not accept, and a JSON Web
+  Key's `kid` is discarded in favor of the secret identifier. Check those imports and updates with the same
+  key-to-algorithm rule (`IAlgorithmCollection.ValidateKeyAlgorithm`), keep a JSON Web Key's `kid` (unique among the
+  owner's keys), and report every key's `kid` (its `KeyId`, or its secret identifier) in the management
+  `SecretResource` and the admin console's secret tables, which show only the secret identifier. Touch points:
+  `src/NCode.Identity.OpenId.Management/Endpoints/{Tenants,Servers,ResourceServers}/*ApiEndpointHandler.cs`,
+  `src/NCode.Identity.OpenId.Management.Abstractions/Contracts/Secrets/SecretResource.cs`, and the `@ncode/api`
+  contracts and secret tables in `src/frontend`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0186](docs/adr/0186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md) (amends
+  [ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)). Every owner's
+  import goes through `IClientKeyImporter.TryImportKey` with a per-owner `kid` uniqueness check (`409`), every owner's
+  update goes through `ISecretValidator.ValidateUpdate` and keeps the key's `KeyId`, and `SecretResource` reports a
+  required `KeyId` that the console's secret table shows._
+
 - **`F74` — Derive the frontend bootstrap document's issuer and API base from the tenant, not the request.** Every
   served tenant's issuer is now its stored, validated origin and nothing else derives one from the request
   ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), but

@@ -152,6 +152,12 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Every frontend bundle splits into vendor and surface chunks, and an oversized chunk fails the build.** The shared
+  Vite preset splits React, MUI with emotion, Redux, and every other package into their own vendor chunks, and each
+  app lazy-loads its route-level containers, so no chunk exceeds 500 kB after minification. The preset's
+  `failOnOversizedChunks` plugin fails `pnpm build` when a chunk exceeds the build's `chunkSizeWarningLimit` instead of
+  only warning. ([ADR-0175](docs/adr/0175-bundles-split-into-vendor-and-surface-chunks-and-an-oversized-chunk-fails-the-build.md))
+
 - **A forwarded client certificate is decoded by a registered format, and every format reads the whole chain the
   client presented.** Traefik's `passTLSClientCert` (`pem: true`) forwards the chain as comma-separated base64 DER in
   `X-Forwarded-Tls-Client-Cert`, which failed to parse. `Base64Der` now reads a comma-separated list, the client's own

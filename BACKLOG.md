@@ -617,17 +617,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   `typescript-eslint` widens its peer range to 7, bump every workspace's `typescript` together, drop the Dependabot
   ignore, and keep `pnpm typecheck` (`tsc --noEmit`) and `pnpm lint` green. Touch points: `src/frontend/package.json`
   and each `apps/*` / `packages/*` `package.json`, `.github/dependabot.yml`.
-- **`U20` — Split the standalone SPA bundles below Vite's chunk-size warning.** `pnpm build` warns that `apps/mgmt`,
-  `apps/playground`, and `apps/conformance` each emit a chunk larger than 500 kB after minification — React, MUI,
-  emotion, and Redux all land in one entry chunk. Raising `build.chunkSizeWarningLimit` would only hide it. Split
-  instead: lazy-load the route-level containers (`React.lazy` + `Suspense`) and separate the vendor libraries into their
-  own chunks in the Vite build options, then make a chunk-size warning fail the build so it stays fixed — the
-  build-time counterpart of the test gates in
-  [ADR-0151](docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md). Every app's build
-  options come from the shared preset
-  ([ADR-0157](docs/adr/0157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)), so the chunking and the
-  failing warning land there once. Touch points:
-  [`packages/vite-config/src/preset.ts`](src/frontend/packages/vite-config/src/preset.ts) and each app's `src/App.tsx`.
 - **`U21` — Move pnpm to its current major once Dependabot supports it.** The workspace pins pnpm 10 in the
   `packageManager` field, the newest major Dependabot officially supports
   ([ADR-0152](docs/adr/0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)). pnpm 12 is

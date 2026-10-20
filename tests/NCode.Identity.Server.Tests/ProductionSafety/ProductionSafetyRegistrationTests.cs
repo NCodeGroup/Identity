@@ -156,10 +156,11 @@ public class ProductionSafetyRegistrationTests
             CreateConfiguration(("AllowedHosts", "op.example.com"), ("DeveloperKeys:Mode", mode))
         );
 
-        Assert.Contains(
+        var violation = Assert.Single(
             violations,
             violation => violation.ConfigurationKey == "DeveloperKeys:Mode"
         );
+        Assert.Contains("provisioned with persisted signing keys", violation.Resolution);
     }
 
     [Theory]
@@ -167,7 +168,7 @@ public class ProductionSafetyRegistrationTests
     [InlineData("none")]
     public void FindViolations_WhenDeveloperKeysDisabled_DoesNotReportKeyViolation(string mode)
     {
-        // 'None' is the operator asserting they supply their own managed signing key, which is the only safe answer.
+        // 'None' leaves tenants with the persisted keys they are provisioned with, or the keys an operator imports.
         var violations = ProductionSafetyRegistration.FindViolations(
             CreateConfiguration(("AllowedHosts", "op.example.com"), ("DeveloperKeys:Mode", mode))
         );

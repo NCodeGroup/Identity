@@ -462,6 +462,65 @@ public sealed class DefaultRegistrationTests
         Assert.Equal("OpenId:Server:Settings", options.Server.Settings?.Path);
     }
 
+    [Fact]
+    public void AddIdentityServer_WhenTenantKeysAreConfigured_BindsThem()
+    {
+        using var host = BuildHost(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Tenant:KeyProvisioning:Keys:0:Algorithm"] = "ES384",
+                ["OpenId:Tenant:KeyProvisioning:Keys:1:Algorithm"] = "RSA-OAEP-256",
+                ["OpenId:Tenant:KeyProvisioning:Keys:1:KeySizeBits"] = "4096",
+            }
+        );
+
+        // Resolving the options runs the key-provisioning validator against the registered algorithms and key types.
+        var provisioning = host
+            .Services.GetRequiredService<IOptions<OpenIdOptions>>()
+            .Value.Tenant.KeyProvisioning;
+
+        Assert.True(provisioning.Enabled);
+        Assert.Collection(
+            provisioning.Keys,
+            key =>
+            {
+                Assert.Equal("ES384", key.Algorithm);
+                Assert.Null(key.KeySizeBits);
+            },
+            key =>
+            {
+                Assert.Equal("RSA-OAEP-256", key.Algorithm);
+                Assert.Equal(4096, key.KeySizeBits);
+            }
+        );
+    }
+
+    [Theory]
+    [InlineData("XX999", null, "'XX999' is not a registered signature or key-management algorithm")]
+    [InlineData("HS256", null, "'HS256' uses a symmetric key")]
+    [InlineData("RS256", "1024", "'1024' bits is not valid for algorithm 'RS256'")]
+    public async Task AddIdentityServer_WhenATenantKeyCannotBeProvisioned_FailsToStart(
+        string algorithm,
+        string? keySizeBits,
+        string expectedReason
+    )
+    {
+        using var host = BuildHost(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Tenant:KeyProvisioning:Keys:0:Algorithm"] = algorithm,
+                ["OpenId:Tenant:KeyProvisioning:Keys:0:KeySizeBits"] = keySizeBits,
+            }
+        );
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains("Tenant:KeyProvisioning", exception.Message, StringComparison.Ordinal);
+        Assert.Contains(expectedReason, exception.Message, StringComparison.Ordinal);
+    }
+
     #endregion
 
     private sealed class StaticDataSource<T>(IEnumerable<T> items) : ICollectionDataSource<T>

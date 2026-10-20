@@ -42,6 +42,9 @@ internal sealed class DefaultTenantProvisioner(
     IMediator mediator
 ) : ITenantProvisioner
 {
+    // One retry is enough to converge after losing a race to a concurrent seed of the same tenant (see SeedAsync).
+    private const int MaxSeedAttempts = 2;
+
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private ITenantResolver TenantResolver { get; } = tenantResolver;
@@ -120,30 +123,45 @@ internal sealed class DefaultTenantProvisioner(
             await SeedAsync(rootTenantId, cancellationToken);
         }
 
-        // Scope the whole seed to this tenant so every seed handler's tenant-bound queries resolve to it.
-        using var tenantScope = AmbientTenantAccessor.BeginScope(tenantId);
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantStore>();
+        var plane = isRootTenant ? TenantPlane.Root : TenantPlane.Workload;
 
-        var persistedTenant =
-            await store.GetOrDefaultAsync(tenantId, cancellationToken)
-            ?? throw TypedResults
-                .NotFound()
-                .AsException($"The tenant with identifier '{tenantId}' could not be found.");
-
-        var context = new TenantSeedContext
+        for (var attempt = 1; ; ++attempt)
         {
-            Tenant = persistedTenant,
-            Plane = isRootTenant ? TenantPlane.Root : TenantPlane.Workload,
-            StoreManager = storeManager,
-        };
+            // Scope the whole seed to this tenant so every seed handler's tenant-bound queries resolve to it.
+            using var tenantScope = AmbientTenantAccessor.BeginScope(tenantId);
+            await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+            var store = storeManager.GetStore<ITenantStore>();
 
-        // Every seed handler runs and enlists in the shared unit of work; the seeded data commits together below.
-        await Mediator.SendAsync(new SeedTenantCommand(context), cancellationToken);
+            var persistedTenant =
+                await store.GetOrDefaultAsync(tenantId, cancellationToken)
+                ?? throw TypedResults
+                    .NotFound()
+                    .AsException($"The tenant with identifier '{tenantId}' could not be found.");
 
-        await storeManager.SaveChangesAsync(cancellationToken);
+            var context = new TenantSeedContext
+            {
+                Tenant = persistedTenant,
+                Plane = plane,
+                StoreManager = storeManager,
+            };
 
-        return persistedTenant;
+            // Every seed handler runs and enlists in the shared unit of work; the seeded data commits together below.
+            await Mediator.SendAsync(new SeedTenantCommand(context), cancellationToken);
+
+            try
+            {
+                await storeManager.SaveChangesAsync(cancellationToken);
+                return persistedTenant;
+            }
+            catch (Exception exception)
+                when (exception is not OperationCanceledException && attempt < MaxSeedAttempts)
+            {
+                // Another seed of the same tenant — a second replica, or a second request that missed the tenant cache —
+                // may have committed between this seed's reads and its write. Seed contributors are idempotent, so
+                // seeding again in a fresh unit of work observes what that seed wrote and adds only what is still
+                // missing. A failure that persists is genuine and surfaces from the last attempt.
+            }
+        }
     }
 
     private async ValueTask<PersistedTenant?> FindTenantAsync(

@@ -77,7 +77,7 @@ entry and/or ADR that closed it.
 | `F` — Feature gaps                    | `F76`     | `F75`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U23`     | `U22`      |
-| `S` — Secrets management              | `S12`     | `S11`      |
+| `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X5`      | `X4`       |
 
 ---
@@ -448,7 +448,8 @@ entry and/or ADR that closed it.
   July 15, 2026). Next: the rest of `live/global` (DNS records — including the lab's, so the lab never holds a zone
   token — and zone settings) and `live/lab` on OCI OKE; each root that manages AWS resources adds exactly those
   permissions to its apply role, which today can reach only its state and secrets. Beyond this item, the lab needs
-  `F46` and `S11`, and a Valkey instance (the shared-state adapter `F49` delivered) to run more than one replica.
+  `F46`, and a Valkey instance (the shared-state adapter `F49` delivered) to run more than one replica; tenant signing
+  keys are provisioned on first use ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)).
   Workload images and charts get build-provenance attestations and signatures that Flux verifies before the first
   production rollout.
 
@@ -743,9 +744,13 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
 - **`S8` — Key lifecycle / rotation primitives.** First-class signing-key rollover: overlapping validity windows,
   activation/retirement grace periods, automatic rotation, and a published JWKS that reflects active **and** retiring
   keys (so verifiers accept both across a rotation) — analogous to the ASP.NET Core Data Protection key ring. Builds on
-  the delivered `F33` JWK/JWKS types and the `S1` rotate endpoint. Touch points:
+  the delivered `F33` JWK/JWKS types and the `S1` rotate endpoint. The keys every tenant is provisioned with
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)) carry no effective lifetime today —
+  nothing enforces a key's expiry, so they are stamped a century out — and rollover is what gives them one; record an
+  audit event when the server generates or retires a key, since provisioning only logs it. Touch points:
   [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets),
-  `src/NCode.Identity.Secrets.Persistence`. Capture the design in an ADR.
+  `src/NCode.Identity.Secrets.Persistence`, `src/NCode.Identity.OpenId.Core/Tenants/Keys/`. Capture the design in an
+  ADR.
 
 - **`S9` — Envelope encryption / hardware-backed protection at rest.** Protect stored reversible secret material with
   envelope encryption (a KMS/HSM-held root key wrapping per-secret data keys) rather than the single data-protection
@@ -764,25 +769,17 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.Server/IdentityServerBuilder.cs`,
   `src/NCode.Identity.Server/ProductionSafety`, `src/NCode.Identity.Secrets/DefaultRegistration.cs`.
 
-- **`S11` — Provision tenant signing keys in production.** A tenant's signing keys come only from its persisted secrets
-  (`DefaultOpenIdTenantFactory.GetTenantSecretsAsync`), and the only seeder that creates one is the development-only
-  `DeveloperSigningKeySeedHandler`. `AddProductionSafety` requires `DeveloperKeys:Mode=None` in Production, so on a
-  fresh production database no tenant has a signing key: the JWKS is empty, no token can be issued, and the
-  [ADR-0044](docs/adr/0044-management-api-authentication-and-globaladmin-bootstrap.md) bootstrap administrator cannot
-  obtain the management token it needs to create or import one through `POST api/tenants/{tenantId}/secrets` — a
-  cold-start deadlock that blocks the lab. Add production key provisioning (the open "first-class production
-  key-management registration" follow-up of [ADR-0002](docs/adr/0002-ephemeral-development-keys.md)): on tenant seed,
-  generate the tenant's asymmetric signing keys through the normal persistence path when none is usable — covering the
-  mandatory-to-implement `RS256` and the preferred `PS256` / `ES256`. Every tenant passes through the one seed pipeline
-  — the root tenant when it is first served, a management-created tenant before its create returns, and every tenant
-  again when it is next materialized
-  ([ADR-0166](docs/adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)) — so a
-  `SeedTenantCommand` handler reaches each one. Unlike the developer seeder, never prune
-  undecryptable secrets; fail loudly, since that signals a lost or changed Data Protection key ring. Rotation and
-  retirement follow in `S8`, external keystores in `S7`. Touch points:
-  `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperSigningKeySeedHandler.cs`,
-  `src/NCode.Identity.Server/ProductionSafety/ProductionSafetyRegistration.cs`,
-  `src/NCode.Identity.OpenId.Core/Tenants/DefaultOpenIdTenantFactory.cs`. Capture the design in an ADR.
+- **`S12` — Tailor each tenant's provisioned keys to the algorithms it can sign with.** Every tenant is provisioned with a
+  persisted key for each algorithm `OpenId:Tenant:KeyProvisioning:Keys` configures — `RS256`, `PS256`, and `ES256` by
+  default ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)). The set is server-wide, so a
+  tenant whose effective signing lists exclude an algorithm still holds and publishes a key for it: a `fapi2` tenant
+  publishes an RS256 key it never signs with. Conversely, a client that registers an algorithm outside the set, such as
+  `ES384`, fails at issuance until a key is imported. Provision per tenant from what its effective
+  `*_signing_alg_values_supported` lists and security profile permit, intersected with the configured set. That needs the
+  tenant's merged settings while it is seeded, which today materialize only after the seed. Decide whether keys a tenant
+  no longer permits are retired, which is `S8`'s lifecycle. Touch points:
+  `src/NCode.Identity.OpenId.Core/Tenants/Keys/` (`TenantKeySeedHandler`, `DefaultTenantKeyPolicy`),
+  `DefaultOpenIdTenantFactory` (the settings it materializes), `ISecurityProfile`.
 
 ## Tooling & agent customization (group `X`)
 

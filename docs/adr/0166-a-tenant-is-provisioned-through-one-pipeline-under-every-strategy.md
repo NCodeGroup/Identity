@@ -1,6 +1,7 @@
 # 166. A tenant is provisioned through one pipeline under every strategy
 
-- **Status:** Accepted
+- **Status:** Accepted (production key provisioning realized by
+  [ADR-0169](0169-every-tenant-is-provisioned-with-persisted-keys.md))
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

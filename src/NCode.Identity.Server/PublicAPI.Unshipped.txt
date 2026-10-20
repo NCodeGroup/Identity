@@ -70,8 +70,8 @@ NCode.Identity.Server.DeveloperKeysConfiguration.extension(Microsoft.Extensions.
 NCode.Identity.Server.DeveloperKeysRegistration
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperKeys(NCode.Identity.Server.DeveloperKeyMode mode) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
-NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperSigningKey() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddEphemeralDeveloperKeys() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddPersistentDeveloperKeys() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.AllowedOrigins.get -> string![]!
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.AllowedOrigins.set -> void

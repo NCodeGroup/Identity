@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -483,6 +484,7 @@ public class DefaultOpenIdTenantFactory(
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="ISecretKeyCollectionProvider"/> instance.</returns>
+    /// <exception cref="InvalidOperationException">A key of the tenant cannot be unprotected.</exception>
     protected virtual ValueTask<
         AsyncSharedReferenceLease<ISecretKeyCollectionProvider>
     > GetTenantSecretsAsync(
@@ -498,7 +500,7 @@ public class DefaultOpenIdTenantFactory(
     )
     {
         var refreshInterval = OpenIdOptions.Tenant.SecretsPeriodicRefreshInterval;
-        var initialCollection = SecretSerializer.DeserializeSecrets(persistedTenant.Secrets.Value);
+        var initialCollection = DeserializeTenantSecrets(persistedTenant);
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedTenant,
@@ -510,6 +512,26 @@ public class DefaultOpenIdTenantFactory(
         var provider = SecretKeyCollectionProviderFactory.Create(dataSource, owns: true);
 
         return ValueTask.FromResult(provider.AsSharedReference());
+    }
+
+    // A tenant key that cannot be unprotected means the Data Protection key ring that protected it is missing or has
+    // changed. The server never discards or replaces such a key (ADR-0169), so the tenant fails with a reason an
+    // operator can act on instead of the key ring's bare cryptographic error.
+    private IReadOnlyCollection<SecretKey> DeserializeTenantSecrets(PersistedTenant persistedTenant)
+    {
+        try
+        {
+            return SecretSerializer.DeserializeSecrets(persistedTenant.Secrets.Value);
+        }
+        catch (CryptographicException exception)
+        {
+            throw new InvalidOperationException(
+                $"The keys of the tenant with id '{persistedTenant.TenantId}' cannot be unprotected, so the tenant "
+                    + "cannot be served. The Data Protection key ring that protected them is missing or has changed: "
+                    + "restore it. The server does not discard or replace a key it cannot read.",
+                exception
+            );
+        }
     }
 
     private async ValueTask<RefreshCollectionResult<SecretKey>> RefreshSecretsAsync(

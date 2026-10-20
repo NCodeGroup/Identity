@@ -60,4 +60,16 @@ internal static partial class Log
         string sectionPath,
         string errors
     );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyProvisioned,
+        Level = LogLevel.Information,
+        Message = "Provisioned the tenant '{TenantId}' with a new {Algorithm} key '{SecretId}'"
+    )]
+    internal static partial void TenantKeyProvisioned(
+        this ILogger logger,
+        string tenantId,
+        string algorithm,
+        string secretId
+    );
 }

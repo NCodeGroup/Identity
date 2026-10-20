@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (the single-source-of-truth policy stands; the developer key's realization moved from the
   read-path `DeveloperSigningKeyOpenIdTenantFactory` to a seed handler by
-  [ADR-0045](0045-tenant-provisioning-and-seeding-pipeline.md))
+  [ADR-0045](0045-tenant-provisioning-and-seeding-pipeline.md); the persistent mode keeps the keys every tenant is
+  provisioned with and only prunes undecryptable ones, by
+  [ADR-0169](0169-every-tenant-is-provisioned-with-persisted-keys.md))
 - **Date:** 2026-09-30
 - **Deciders:** NCode Group
 

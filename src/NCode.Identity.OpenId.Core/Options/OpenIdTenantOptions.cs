@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId;
 
 /// <summary>
 /// Contains the options that are used to configure how a resolved tenant is materialized (settings/secrets refresh
-/// and caching). Tenant <em>selection</em> is configured separately via
+/// and caching) and which keys every tenant is provisioned with. Tenant <em>selection</em> is configured separately via
 /// <see cref="NCode.Identity.OpenId.Tenants.TenantResolutionOptions"/>.
 /// </summary>
 [PublicAPI]
@@ -47,4 +47,9 @@ public sealed class OpenIdTenantOptions
     /// The default value is 4 hours.
     /// </summary>
     public TimeSpan TenantCacheExpiration { get; set; } = TimeSpan.FromHours(4.0);
+
+    /// <summary>
+    /// Gets or sets the options that decide which keys every tenant is provisioned with when it is seeded.
+    /// </summary>
+    public OpenIdTenantKeyProvisioningOptions KeyProvisioning { get; set; } = new();
 }

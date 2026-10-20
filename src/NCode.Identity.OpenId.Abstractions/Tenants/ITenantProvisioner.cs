@@ -52,7 +52,8 @@ public interface ITenantProvisioner
     /// <summary>
     /// Brings the existing tenant with the specified identifier into a seeded state: it ensures the root tenant exists
     /// and is seeded first when the tenant is not itself the root tenant, then runs every seed contributor for the tenant
-    /// within a single unit of work.
+    /// within a single unit of work. A seed whose commit loses to a concurrent seed of the same tenant runs again in a
+    /// fresh unit of work, so concurrent seeds converge on one seeded state.
     /// </summary>
     /// <param name="tenantId">The identifier of the tenant to seed.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>

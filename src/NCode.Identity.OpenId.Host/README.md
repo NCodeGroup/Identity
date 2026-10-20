@@ -29,9 +29,9 @@ A container runtime (Docker Desktop or Podman) must be running when you launch t
 
 ### One database holds everything
 
-The single `openiddb` database holds the OpenID data, the **seeded developer signing key**, and the **DataProtection
-key ring** that protects it (persisted via `PersistKeysToDbContext`, not a file under `App_Data/`). Because they live
-together, one purge resets all three consistently, with nothing left on the filesystem.
+The single `openiddb` database holds the OpenID data, the **signing keys every tenant is provisioned with**, and the
+**DataProtection key ring** that protects them (persisted via `PersistKeysToDbContext`, not a file under `App_Data/`).
+Because they live together, one purge resets all three consistently, with nothing left on the filesystem.
 
 ## Schema management (EF Core migrations)
 
@@ -69,5 +69,5 @@ the next AppHost run rebuilds the schema (migration worker) and re-seeds the dev
 ```
 
 The script auto-detects Docker or Podman and removes the `ncode-identity-openiddb-data` volume (equivalently,
-`docker volume rm ncode-identity-openiddb-data`). This is the only reset needed — the seeded signing key and the
+`docker volume rm ncode-identity-openiddb-data`). This is the only reset needed — the provisioned signing keys and the
 DataProtection key ring are in the same database and are purged with it.

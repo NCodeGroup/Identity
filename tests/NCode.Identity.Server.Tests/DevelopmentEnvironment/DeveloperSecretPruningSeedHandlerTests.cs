@@ -16,9 +16,9 @@
 
 #endregion
 
+
 using System.Security.Cryptography;
 using Moq;
-using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
@@ -26,17 +26,18 @@ using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Server.DevelopmentEnvironment;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;
 
-public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
+public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
 {
     #region HandleAsync Tests
 
     [Fact]
-    public async Task HandleAsync_WhenAllSecretsUndecryptable_PrunesAllAndSeedsNewKey()
+    public async Task HandleAsync_WhenAllSecretsUndecryptable_PrunesAllWithoutGeneratingAKey()
     {
         const string tenantId = "tenant-1";
 
@@ -54,19 +55,6 @@ public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
             .Throws(new CryptographicException("payload invalid"))
             .Verifiable();
 
-        var generatedSecret = CreatePersistedSecret("new-key");
-        var secretGenerator = CreateStrictMock<ISecretGenerator>();
-        secretGenerator
-            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
-            .Returns(new GeneratedSecret { Secret = generatedSecret, SecretMaterial = null })
-            .Verifiable();
-
-        var cryptoService = CreateStrictMock<ICryptoService>();
-        cryptoService
-            .Setup(x => x.GenerateKey(It.IsAny<int>(), It.IsAny<BinaryEncodingType>()))
-            .Returns("new-key")
-            .Verifiable();
-
         var store = CreateStrictMock<ITenantStore>();
         store
             .Setup(x => x.RemoveSecretAsync(tenantId, "broken-a", It.IsAny<CancellationToken>()))
@@ -76,17 +64,13 @@ public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
             .Setup(x => x.RemoveSecretAsync(tenantId, "broken-b", It.IsAny<CancellationToken>()))
             .Returns(ValueTask.FromResult(true))
             .Verifiable();
-        store
-            .Setup(x => x.AddSecretAsync(tenantId, generatedSecret, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
 
-        var handler = CreateHandler(secretSerializer, secretGenerator, cryptoService);
+        var handler = new DeveloperSecretPruningSeedHandler(secretSerializer.Object);
 
         await handler.HandleAsync(CreateCommand(tenant, store), CancellationToken.None);
 
-        var remaining = Assert.Single(tenant.Secrets.Value);
-        Assert.Same(generatedSecret, remaining);
+        // Key provisioning, which runs after the pruner, generates the replacements.
+        Assert.Empty(tenant.Secrets.Value);
     }
 
     [Fact]
@@ -105,7 +89,7 @@ public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
             .Verifiable();
         secretSerializer
             .Setup(x => x.DeserializeSecret(broken))
-            .Throws(new CryptographicException("payload invalid"))
+            .Throws(new FormatException("payload invalid"))
             .Verifiable();
 
         var store = CreateStrictMock<ITenantStore>();
@@ -114,17 +98,13 @@ public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
             .Returns(ValueTask.FromResult(true))
             .Verifiable();
 
-        // The seed path must not run when a usable key survives: these strict mocks have no setups,
-        // so any call to them fails the test.
-        var secretGenerator = CreateStrictMock<ISecretGenerator>();
-        var cryptoService = CreateStrictMock<ICryptoService>();
-
-        var handler = CreateHandler(secretSerializer, secretGenerator, cryptoService);
+        var handler = new DeveloperSecretPruningSeedHandler(secretSerializer.Object);
 
         await handler.HandleAsync(CreateCommand(tenant, store), CancellationToken.None);
 
         var remaining = Assert.Single(tenant.Secrets.Value);
         Assert.Same(usable, remaining);
+        Assert.Equal("token", tenant.Secrets.ConcurrencyToken);
     }
 
     [Fact]
@@ -147,12 +127,10 @@ public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
             .Returns(CreateLooseMock<SecretKey>().Object)
             .Verifiable();
 
-        // The store and seed collaborators are strict with no setups: any call fails the test.
+        // The store is strict with no setups: any call fails the test.
         var store = CreateStrictMock<ITenantStore>();
-        var secretGenerator = CreateStrictMock<ISecretGenerator>();
-        var cryptoService = CreateStrictMock<ICryptoService>();
 
-        var handler = CreateHandler(secretSerializer, secretGenerator, cryptoService);
+        var handler = new DeveloperSecretPruningSeedHandler(secretSerializer.Object);
 
         await handler.HandleAsync(CreateCommand(tenant, store), CancellationToken.None);
 
@@ -160,57 +138,39 @@ public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenNoSecretsExist_SeedsNewKey()
+    public async Task HandleAsync_WhenNoSecretsExist_DoesNothing()
     {
-        const string tenantId = "tenant-1";
+        var tenant = CreateTenant("tenant-1", []);
+        var originalSecrets = tenant.Secrets;
 
-        var tenant = CreateTenant(tenantId, []);
-
-        // DeserializeSecret is never called for an empty collection; a strict mock with no setups proves it.
+        // DeserializeSecret is never called for an empty collection; strict mocks with no setups prove it.
         var secretSerializer = CreateStrictMock<ISecretSerializer>();
-
-        var generatedSecret = CreatePersistedSecret("new-key");
-        var secretGenerator = CreateStrictMock<ISecretGenerator>();
-        secretGenerator
-            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
-            .Returns(new GeneratedSecret { Secret = generatedSecret, SecretMaterial = null })
-            .Verifiable();
-
-        var cryptoService = CreateStrictMock<ICryptoService>();
-        cryptoService
-            .Setup(x => x.GenerateKey(It.IsAny<int>(), It.IsAny<BinaryEncodingType>()))
-            .Returns("new-key")
-            .Verifiable();
-
         var store = CreateStrictMock<ITenantStore>();
-        store
-            .Setup(x => x.AddSecretAsync(tenantId, generatedSecret, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
 
-        var handler = CreateHandler(secretSerializer, secretGenerator, cryptoService);
+        var handler = new DeveloperSecretPruningSeedHandler(secretSerializer.Object);
 
         await handler.HandleAsync(CreateCommand(tenant, store), CancellationToken.None);
 
-        var remaining = Assert.Single(tenant.Secrets.Value);
-        Assert.Same(generatedSecret, remaining);
+        Assert.Same(originalSecrets, tenant.Secrets);
+    }
+
+    #endregion
+
+    #region MediatorPriority Property Tests
+
+    [Fact]
+    public void MediatorPriority_IsHigh_SoKeyProvisioningRunsAfterThePrune()
+    {
+        var handler = new DeveloperSecretPruningSeedHandler(
+            CreateStrictMock<ISecretSerializer>().Object
+        );
+
+        Assert.Equal(DefaultMediatorPriorities.High, handler.MediatorPriority);
     }
 
     #endregion
 
     #region Helpers
-
-    private DeveloperSigningKeySeedHandler CreateHandler(
-        Mock<ISecretSerializer> secretSerializer,
-        Mock<ISecretGenerator> secretGenerator,
-        Mock<ICryptoService> cryptoService
-    ) =>
-        new(
-            secretSerializer.Object,
-            secretGenerator.Object,
-            cryptoService.Object,
-            TimeProvider.System
-        );
 
     private SeedTenantCommand CreateCommand(PersistedTenant tenant, Mock<ITenantStore> store)
     {
@@ -238,7 +198,12 @@ public sealed class DeveloperSigningKeySeedHandlerTests : BaseTests
             IsDisabled = false,
             DisplayName = "Test Tenant",
             Settings = new PersistedTenantSettings { TenantId = tenantId, Value = default },
-            Secrets = new PersistedTenantSecrets { TenantId = tenantId, Value = secrets },
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = "token",
+                Value = secrets,
+            },
         };
 
     private static PersistedSecret CreatePersistedSecret(string secretId) =>

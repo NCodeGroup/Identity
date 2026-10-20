@@ -1,6 +1,7 @@
 # 2. Ephemeral development keys are an explicit opt-in, never a silent default
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0169](0169-every-tenant-is-provisioned-with-persisted-keys.md): every tenant is
+  provisioned with persisted keys by default; ephemeral keys remain the explicit development opt-in decided here)
 - **Date:** 2026-09-27
 - **Deciders:** NCode Group
 
@@ -65,7 +66,8 @@ opt-in conveniences, never defaults.
 
 - Done: the opt-in now lives in the `NCode.Identity.Server` composition root (a development extension) so any
   host can consume it, rather than each app re-implementing it. The host is just the EXE host that wires it in.
-- Provide first-class production key-management registration and guidance.
+- Done: first-class production key provisioning — every tenant is provisioned with persisted keys when it is seeded
+  ([ADR-0169](0169-every-tenant-is-provisioned-with-persisted-keys.md)).
 - A related latent issue was discovered while building the harness: the server/tenant
   "create-if-missing" path is **not idempotent under concurrency** (a duplicate-key race when two
   first-requests create the row simultaneously). This should be hardened (idempotent upsert or

@@ -671,6 +671,7 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   `allowBuilds` list. Touch points: [`src/frontend/package.json`](src/frontend/package.json),
   [`pnpm-workspace.yaml`](src/frontend/pnpm-workspace.yaml), `pnpm-lock.yaml`,
   [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml),
+  [`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml),
   [`build/frontend-install.ps1`](build/frontend-install.ps1), the AppHost's `EnsurePinnedNodeOnPath`.
 - **`U22` — Put the management console's tenant scope in its URL.** The console keeps its active scope (global or one
   tenant) and surface in React state, so a tenant view cannot be bookmarked, linked, or restored on reload, and the

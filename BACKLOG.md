@@ -76,7 +76,7 @@ entry and/or ADR that closed it.
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
 | `F` — Feature gaps                    | `F78`     | `F77`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
-| `U` — Frontend presentation platform  | `U23`     | `U22`      |
+| `U` — Frontend presentation platform  | `U24`     | `U23`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
 
@@ -575,16 +575,19 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Results/DefaultAuthorizationResultExecutor.cs`.
 
+- **`U23` — Rotate a client secret from the Management console.** The management API rotates a client secret in one
+  call ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)), but the console's
+  client secret table offers only create and delete. Add a `rotateClientSecret` mutation to `@ncode/store`, a
+  `RotateSecretRequest` contract to `@ncode/api`, and a rotate action on a shared secret's row that asks for the
+  replacement's expiry and reveals its material once, as create does. Touch points:
+  `src/frontend/packages/store/src/managementApi.ts`, `src/frontend/packages/api`, the client secret table in the
+  Management console.
+
 ## Secrets management (group `S`)
 
 Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md)
 (client-secret material revealed once on create).
 
-- **`S1` — Client-secret rotate endpoint.** Rotation is create-new + delete-old (two calls) per
-  [ADR-0011](docs/adr/0011-secret-management-api.md); ADR-0050 notes a convenience `rotate` would inherit
-  the same one-time reveal. A `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate`
-  returning `CreatedSecretResource` is the natural next increment.
-  Touch points: `src/NCode.Identity.OpenId.Management/Endpoints/Clients/ClientApiEndpointHandler.cs`.
 - **`S5` — Client-secret storage: hash-at-rest vs reversible protection (needs its own ADR).** A client secret
   is reveal-once and never returned again, so the server only needs to _verify_ a presented value — a
   one-way hash (OWASP-preferred) is safer than today's reversible data-protected `EncodedValue`. But
@@ -607,8 +610,11 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
 - **`S8` — Key lifecycle / rotation primitives.** First-class signing-key rollover: overlapping validity windows,
   activation/retirement grace periods, automatic rotation, and a published JWKS that reflects active **and** retiring
   keys (so verifiers accept both across a rotation) — analogous to the ASP.NET Core Data Protection key ring. Builds on
-  the delivered `F33` JWK/JWKS types and the `S1` rotate endpoint. The keys every tenant is provisioned with
-  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)) carry no effective lifetime today —
+  the delivered `F33` JWK/JWKS types and the `S1` rotate endpoint; once expiry is enforced, let that endpoint keep
+  the rotated client secret for a grace period
+  ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)). The keys every tenant is
+  provisioned with ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)) carry no effective
+  lifetime today —
   nothing enforces a key's expiry, so they are stamped a century out — and rollover is what gives them one; record an
   audit event when the server generates or retires a key, since provisioning only logs it. Touch points:
   [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets),

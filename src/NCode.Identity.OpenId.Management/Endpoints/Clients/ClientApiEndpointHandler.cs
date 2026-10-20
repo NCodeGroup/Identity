@@ -168,6 +168,10 @@ internal class ClientApiEndpointHandler(
         clients
             .MapDelete("/{clientId}/secrets/{secretId}", DeleteSecretAsync)
             .Produces(StatusCodes.Status204NoContent);
+        clients
+            .MapPost("/{clientId}/secrets/{secretId}/rotate", RotateSecretAsync)
+            .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
+            .ProducesValidationProblem();
 
         clients
             .MapGet("/{clientId}/owners", ListOwnersAsync)
@@ -1295,6 +1299,178 @@ internal class ClientApiEndpointHandler(
         );
 
         return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Rotates a client secret: generates a replacement of the same type, size, use, and algorithm, and removes the
+    /// rotated secret in the same change.
+    /// </summary>
+    /// <remarks>
+    /// Only a client's shared secret is rotated; a key is the client's to hold and is replaced by importing a new one.
+    /// The rotated secret stops being accepted at once, so a client that needs both to overlap creates the replacement
+    /// and deletes the rotated secret in two calls. Rotation is authorized as those two calls are. The replacement's
+    /// material is revealed in the response only.
+    /// </remarks>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="clientId">The identifier of the OpenID Client.</param>
+    /// <param name="secretId">The identifier of the secret to rotate.</param>
+    /// <param name="request">The <see cref="RotateSecretRequest"/> describing the replacement.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the rotated secret.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="201">The replacement secret.</response>
+    // See ADR-0183.
+    [EndpointName("api/clients/secrets/rotate")]
+    internal virtual async ValueTask<IResult> RotateSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string clientId,
+        [FromRoute] string secretId,
+        [FromBody] RotateSecretRequest request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IClientStore>();
+
+        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
+        var secret = client?.Secrets.Value.FirstOrDefault(candidate =>
+            string.Equals(candidate.SecretId, secretId, StringComparison.Ordinal)
+        );
+        if (client is null || secret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var createResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            client,
+            Operations.Create
+        );
+        if (!createResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var deleteResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            TenantOwnedResource.For(client.TenantId, secret),
+            Operations.Delete
+        );
+        if (!deleteResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (
+            !string.IsNullOrEmpty(ifMatch)
+            && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
+        )
+        {
+            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+        }
+
+        if (secret.SecretType != SecretTypes.Symmetric)
+        {
+            return TypedResults.Problem(
+                detail: "Only a client's shared secret can be rotated; a key is replaced by importing a new one and "
+                    + "deleting the old one.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        var createRequest = new CreateSecretRequest
+        {
+            SecretType = secret.SecretType,
+            KeySizeBits = secret.KeySizeBits,
+            Use = secret.Use,
+            Algorithm = secret.Algorithm,
+            ExpiresWhen = request.ExpiresWhen,
+        };
+        var validationError = SecretValidator.ValidateCreate(createRequest);
+        if (validationError is not null)
+        {
+            return ToErrorResult(validationError);
+        }
+
+        var replacementId = CryptoService.GenerateResourceId();
+
+        GeneratedSecret generatedSecret;
+        try
+        {
+            // A client's shared secret is its client_secret, stored as the UTF-8 bytes of the opaque string (ADR-0110).
+            generatedSecret = SecretGenerator.GenerateSharedSecret(
+                new GenerateSecretRequest
+                {
+                    SecretId = replacementId,
+                    SecretType = createRequest.SecretType,
+                    KeySizeBits = createRequest.KeySizeBits,
+                    Use = createRequest.Use,
+                    Algorithm = createRequest.Algorithm,
+                    CreatedWhen = TimeProvider.GetUtcNow(),
+                    ExpiresWhen = createRequest.ExpiresWhen,
+                }
+            );
+        }
+        catch (Exception exception)
+            when (exception is ArgumentException or InvalidOperationException)
+        {
+            Logger.SecretGenerationFailed(exception);
+            return TypedResults.Problem(
+                detail: "The secret could not be generated from the supplied parameters.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        var rotatedValues = ToResourceValues(ToSecretResource(secret));
+
+        // The replacement is added and the rotated secret removed in one unit of work, so the client is never left
+        // with both or with neither.
+        try
+        {
+            await store.AddSecretAsync(clientId, generatedSecret.Secret, cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Logger.ResourceConflict(exception);
+            return TypedResults.Problem(
+                detail: "A secret with the specified identifier already exists.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await store.RemoveSecretAsync(clientId, secretId, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        var replacementResource = ToSecretResource(generatedSecret.Secret);
+
+        await ManagementAuditRecorder.RecordClientSecretChangedAsync(
+            httpContext,
+            client.TenantId,
+            clientId,
+            replacementId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(replacementResource),
+            cancellationToken
+        );
+        await ManagementAuditRecorder.RecordClientSecretChangedAsync(
+            httpContext,
+            client.TenantId,
+            clientId,
+            secretId,
+            ResourceChangeTypes.Deleted,
+            rotatedValues,
+            cancellationToken
+        );
+
+        httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
+
+        // The replacement's material is revealed here only (ADR-0050).
+        return TypedResults.Created(
+            $"/tenants/{tenantId}/clients/{clientId}/secrets/{replacementId}",
+            ToCreatedSecretResource(generatedSecret.Secret, generatedSecret.SecretMaterial)
+        );
     }
 
     /// <summary>

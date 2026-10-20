@@ -102,6 +102,10 @@ NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSetting
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Curve.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Curve.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest
+NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.ExpiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.RotateSecretRequest() -> void
 override NCode.Identity.OpenId.Management.Auditing.InitialAccessTokenCreatedAuditEvent.ResourceType.get -> string!
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

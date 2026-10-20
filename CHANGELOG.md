@@ -10,6 +10,13 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **A client secret is rotated in one call.** `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate`
+  generates a replacement shared secret with the rotated secret's type, size, `use`, and `alg` and the expiry the
+  request names (`RotateSecretRequest`), adds it and removes the rotated secret in one change, and returns the
+  replacement's `CreatedSecretResource` — the only place its material appears. The caller must be allowed to create a
+  secret for the client and to delete the rotated one; `If-Match` is honored, and a key answers `400`. The rotated
+  secret stops being accepted at once; a client that needs an overlap still creates and deletes in two calls. Backlog
+  `S1` is complete ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)).
 - **The end-session endpoint accepts an `id_token_hint` the client re-encrypted to the server.** OpenID Connect
   RP-Initiated Logout 1.0 §2 lets a relying party that received an encrypted ID token re-encrypt the signed token to
   the OP. The hint is decrypted with the tenant's keys under the tenant's advertised `id_token_encryption_*` lists,

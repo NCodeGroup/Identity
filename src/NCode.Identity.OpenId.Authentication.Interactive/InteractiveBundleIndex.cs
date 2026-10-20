@@ -24,4 +24,10 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// <param name="LastWriteTimeUtc">The file's last-write time when it was read.</param>
 /// <param name="Length">The file's length, in bytes, when it was read.</param>
 /// <param name="Html">The file's contents.</param>
-internal sealed record InteractiveBundleIndex(DateTime LastWriteTimeUtc, long Length, string Html);
+/// <param name="Shell">The contents split at the mount point, or <c>null</c> when they have none.</param>
+internal sealed record InteractiveBundleIndex(
+    DateTime LastWriteTimeUtc,
+    long Length,
+    string Html,
+    InteractiveBundleShell? Shell
+);

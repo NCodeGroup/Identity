@@ -17,8 +17,10 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
@@ -26,6 +28,7 @@ using NCode.Buffers;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.Results;
+using Nerdbank.Streams;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 
@@ -210,12 +213,15 @@ internal class DefaultAuthorizationResultExecutor : IResultExecutor<Authorizatio
         httpResponse.Headers.Location = redirectUri.AbsoluteUri;
     }
 
-    private const string FormPostAction = "{FormPostAction}";
-    private const string FormPostChildren = "{FormPostChildren}";
     private const string FormPostJavascript =
         "window.addEventListener('load',function(){document.forms[0].submit();});";
-    private const string FormPostHtml =
-        $"<html><head><title>Working...</title></head><body><form method='POST' action='{FormPostAction}'>{FormPostChildren}<noscript><p>Script is disabled. Click Submit to continue.</p><input type='submit' value='Submit'/></noscript></form><script language='javascript'>{FormPostJavascript}</script></body></html>";
+    private const string FormPostHtmlStart =
+        "<html><head><title>Working...</title></head><body><form method='POST' action='";
+    private const string FormPostHtmlEnd =
+        $"<noscript><p>Script is disabled. Click Submit to continue.</p><input type='submit' value='Submit'/></noscript></form><script>{FormPostJavascript}</script></body></html>";
+
+    private static readonly string FormPostContentSecurityPolicy =
+        $"default-src 'none'; script-src 'sha256-{Convert.ToBase64String(SHA256.HashData(Encoding.ASCII.GetBytes(FormPostJavascript)))}'";
 
     private static async ValueTask ExecuteUsingFormPostAsync(
         HttpResponse httpResponse,
@@ -225,66 +231,96 @@ internal class DefaultAuthorizationResultExecutor : IResultExecutor<Authorizatio
     )
     {
         httpResponse.SetNoStore();
-
-        var scriptHash = Convert.ToBase64String(
-            SHA256.HashData(Encoding.ASCII.GetBytes(FormPostJavascript))
-        );
-
         httpResponse.Headers["Referrer-Policy"] = "no-referrer";
-        httpResponse.Headers.ContentSecurityPolicy =
-            $"default-src 'none'; script-src 'sha256-{scriptHash}'";
+        httpResponse.Headers.ContentSecurityPolicy = FormPostContentSecurityPolicy;
 
-        var html = GetFormPostHtml(redirectUri, message);
+        // The page is rendered into a pooled buffer and transcoded straight into the response pipe, so no per-request
+        // document string is built.
+        using var html = new Sequence<char>(ArrayPool<char>.Shared);
+        WriteFormPostHtml(html, redirectUri, message);
 
         httpResponse.StatusCode = StatusCodes.Status200OK;
-        httpResponse.ContentType = "text/html; charset=UTF-8";
+        httpResponse.ContentType = "text/html; charset=utf-8";
 
-        await httpResponse.WriteAsync(html, SecureEncoding.UTF8, cancellationToken);
+        SecureEncoding.UTF8.GetBytes(html.AsReadOnlySequence, httpResponse.BodyWriter);
+        await httpResponse.BodyWriter.FlushAsync(cancellationToken);
     }
 
-    private static string GetFormPostHtml(Uri redirectUri, IOpenIdMessageResponse message)
+    private static void WriteFormPostHtml(
+        IBufferWriter<char> writer,
+        Uri redirectUri,
+        IOpenIdMessageResponse message
+    )
     {
+        writer.Write(FormPostHtmlStart);
+        WriteEncoded(writer, redirectUri.AbsoluteUri);
+        writer.Write("'>");
+
+        // The browser form-urlencodes each field when it submits the form, so a value is only HTML-encoded here;
+        // url-encoding it as well would reach the client double-encoded.
         var environment = message.OpenIdEnvironment;
-        var parameters = message
-            .Parameters.Where(parameter =>
-                parameter.Descriptor.ShouldSerialize(
+        foreach (var parameter in message.Parameters)
+        {
+            if (
+                !parameter.Descriptor.ShouldSerialize(
                     environment,
                     parameter,
                     SerializationFormat.OpenId
                 )
             )
-            .Select(parameter =>
-                KeyValuePair.Create(
-                    parameter.Descriptor.ParameterName,
-                    parameter.GetStringValues(environment)
-                )
-            );
+            {
+                continue;
+            }
 
-        // In the Form, encode spaces as '+'
-        // But Uri.EscapeDataString uses '%20', so replace them
+            var parameterName = parameter.Descriptor.ParameterName;
+            var stringValues = parameter.GetStringValues(environment);
+            if (stringValues.Count == 0)
+            {
+                WriteHiddenField(writer, parameterName, value: null);
+                continue;
+            }
 
-        var children = parameters.Aggregate(
-            new StringBuilder(),
-            (builder, tuple) =>
-                builder
-                    .Append("<input type='hidden' name='")
-                    .Append(EncodeFormParameter(tuple.Key))
-                    .Append("' value='")
-                    .Append(EncodeFormParameter(tuple.Value))
-                    .Append("'/>")
-        );
+            foreach (var stringValue in stringValues)
+            {
+                WriteHiddenField(writer, parameterName, stringValue);
+            }
+        }
 
-        var html = new StringBuilder(FormPostHtml);
-        html.Replace(FormPostAction, redirectUri.AbsoluteUri);
-        html.Replace(FormPostChildren, children.ToString());
-
-        return html.ToString();
+        writer.Write(FormPostHtmlEnd);
     }
 
-    private static string EncodeFormParameter(string? value) =>
-        // Reference: `FormUrlEncodedContent.Encode`
-        // Escape spaces as '+'.
-        string.IsNullOrEmpty(value)
-            ? string.Empty
-            : Uri.EscapeDataString(value).Replace("%20", "+");
+    private static void WriteHiddenField(IBufferWriter<char> writer, string name, string? value)
+    {
+        writer.Write("<input type='hidden' name='");
+        WriteEncoded(writer, name);
+        writer.Write("' value='");
+        WriteEncoded(writer, value);
+        writer.Write("'/>");
+    }
+
+    private static void WriteEncoded(IBufferWriter<char> writer, ReadOnlySpan<char> value)
+    {
+        var encoder = HtmlEncoder.Default;
+        var sizeHint = value.Length;
+        while (true)
+        {
+            var status = encoder.Encode(
+                value,
+                writer.GetSpan(sizeHint),
+                out var consumed,
+                out var written,
+                isFinalBlock: true
+            );
+            writer.Advance(written);
+            value = value[consumed..];
+
+            if (status == OperationStatus.Done)
+            {
+                return;
+            }
+
+            // An encoded character can take several characters, so ask for more room than the input still needs.
+            sizeHint = Math.Max(sizeHint * 2, 16);
+        }
+    }
 }

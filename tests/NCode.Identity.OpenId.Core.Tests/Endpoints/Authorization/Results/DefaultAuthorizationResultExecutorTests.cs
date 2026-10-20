@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Moq;
@@ -40,7 +41,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
 
     #region Scaffolding
 
-    private IParameter CreateSerializedParameter()
+    private IParameter CreateSerializedParameter(string value)
     {
         var mockParser = CreateStrictMock<ParameterParser<string>>();
         var knownParameter = new KnownParameter<string>(NormalName, mockParser.Object)
@@ -54,13 +55,13 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
                 x.GetStringValues(
                     It.IsAny<OpenIdEnvironment>(),
                     It.IsAny<ParameterDescriptor>(),
-                    NormalValue
+                    value
                 )
             )
-            .Returns(new StringValues(NormalValue))
+            .Returns(new StringValues(value))
             .Verifiable();
 
-        return new Parameter<string>(descriptor, mockParser.Object, NormalValue);
+        return new Parameter<string>(descriptor, mockParser.Object, value);
     }
 
     private IParameter CreateInternalParameter()
@@ -78,10 +79,14 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
         return new Parameter<string>(descriptor, mockParser.Object, InternalValue);
     }
 
-    private AuthorizationResult CreateResult(string responseMode)
+    private AuthorizationResult CreateResult(
+        string responseMode,
+        string normalValue = NormalValue,
+        Uri? redirectUri = null
+    )
     {
         var parameters = new ParameterCollection(
-            [CreateSerializedParameter(), CreateInternalParameter()],
+            [CreateSerializedParameter(normalValue), CreateInternalParameter()],
             cloneParameters: false
         );
 
@@ -91,7 +96,23 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
         mockTicket.SetupGet(x => x.OpenIdEnvironment).Returns(mockEnvironment.Object);
         mockTicket.SetupGet(x => x.Parameters).Returns(parameters);
 
-        return new AuthorizationResult(RedirectUri, responseMode, mockTicket.Object);
+        return new AuthorizationResult(redirectUri ?? RedirectUri, responseMode, mockTicket.Object);
+    }
+
+    private static async Task<string> ExecuteFormPostAsync(
+        DefaultAuthorizationResultExecutor executor,
+        AuthorizationResult result
+    )
+    {
+        var httpContext = new DefaultHttpContext();
+        using var body = new MemoryStream();
+        httpContext.Response.Body = body;
+
+        await executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        Assert.Equal("text/html; charset=utf-8", httpContext.Response.ContentType);
+        body.Position = 0;
+        return await new StreamReader(body).ReadToEndAsync();
     }
 
     #endregion
@@ -130,6 +151,39 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
         Assert.Contains(NormalValue, html, StringComparison.Ordinal);
         Assert.DoesNotContain("created_when", html, StringComparison.Ordinal);
         Assert.DoesNotContain(InternalValue, html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenResponseModeFormPost_HtmlEncodesTheValuesWithoutUrlEncoding()
+    {
+        const string value = "a b=c/d+e'<f>";
+        var result = CreateResult(OpenIdConstants.ResponseModes.FormPost, normalValue: value);
+
+        var html = await ExecuteFormPostAsync(Executor, result);
+
+        Assert.Contains(
+            $"<input type='hidden' name='{NormalName}' value='{HtmlEncoder.Default.Encode(value)}'/>",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain("%20", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("%3D", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenResponseModeFormPost_HtmlEncodesTheAction()
+    {
+        var redirectUri = new Uri("https://client.example/callback?x='y'");
+        var result = CreateResult(OpenIdConstants.ResponseModes.FormPost, redirectUri: redirectUri);
+
+        var html = await ExecuteFormPostAsync(Executor, result);
+
+        Assert.Contains(
+            $"action='{HtmlEncoder.Default.Encode(redirectUri.AbsoluteUri)}'>",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain("x='y'", html, StringComparison.Ordinal);
     }
 
     #endregion

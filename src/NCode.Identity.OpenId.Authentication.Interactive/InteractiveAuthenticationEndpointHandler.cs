@@ -113,14 +113,16 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     {
         var tokens = IssueAntiforgeryTokens(httpContext);
         var query = httpContext.Request.Query;
-        var html = InteractiveAuthenticationPageRenderer.RenderLoginPage(
-            await BundleReader.TryReadIndexHtmlAsync(httpContext.RequestAborted),
+        var html = InteractiveHtmlResult.CreateBuffer();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            html,
+            await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
             query["ReturnUrl"].ToString(),
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
             DescribeLoginError(query["error"].ToString())
         );
-        return TypedResults.Content(html, "text/html");
+        return new InteractiveHtmlResult(html);
     }
 
     /// <summary>
@@ -170,15 +172,17 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             }
         }
 
-        var html = InteractiveAuthenticationPageRenderer.RenderConsentPage(
-            await BundleReader.TryReadIndexHtmlAsync(httpContext.RequestAborted),
+        var html = InteractiveHtmlResult.CreateBuffer();
+        InteractiveAuthenticationPageRenderer.RenderConsentPage(
+            html,
+            await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
             rawReturnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
             appName,
             scopes
         );
-        return TypedResults.Content(html, "text/html");
+        return new InteractiveHtmlResult(html);
     }
 
     /// <summary>

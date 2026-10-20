@@ -106,4 +106,20 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         ceiling.Set(OpenIdSettingKeys.RequestObjectMaxLifetime, TimeSpan.FromMinutes(60));
         ceiling.Set(OpenIdSettingKeys.RequestObjectNotBeforeRequired, true);
     }
+
+    /// <inheritdoc />
+    public void ApplyDefaultSettings(ISecurityProfileDefaultsBuilder defaults)
+    {
+        // The protocol default for both signed responses is RS256, which the signing ceilings above exclude, so a client
+        // that registers no algorithm would fail at issuance; PS256 is the compliant default, and a client may still
+        // register ES256 or EdDSA (ADR-0148, ADR-0155).
+        defaults.Set(
+            OpenIdSettingKeys.IdTokenSignedResponseAlg,
+            AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
+        );
+        defaults.Set(
+            OpenIdSettingKeys.IntrospectionSignedResponseAlg,
+            AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
+        );
+    }
 }

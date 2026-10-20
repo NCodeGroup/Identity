@@ -30,7 +30,8 @@ namespace NCode.Identity.OpenId.Settings;
 /// <remarks>
 /// <para>
 /// A scope selects a set of profiles and every one applies: the ceiling settings of each profile a scope declares are
-/// merged into that scope's settings, and the requirements of each profile in the effective set are evaluated. The
+/// merged into that scope's settings, its default settings fill each choice the scope leaves unset, and the
+/// requirements of each profile in the effective set are evaluated. The
 /// profiles are visited in the ordinal order of their names, so the outcome never depends on how a list was written.
 /// </para>
 /// <para>
@@ -103,6 +104,7 @@ internal sealed class DefaultSecurityProfileCatalog(
     {
         IReadOnlySettingCollection expanded = SettingCollectionFactory.Create(scopeSettings);
         var appliedProfileNames = new HashSet<string>(StringComparer.Ordinal);
+        var appliedProfiles = new List<ISecurityProfile>();
 
         // A profile's ceiling may itself select the profiles it builds on, so expansion repeats until every profile
         // the scope carries has contributed its ceiling. It ends because each pass applies at least one registered
@@ -113,6 +115,7 @@ internal sealed class DefaultSecurityProfileCatalog(
             foreach (var profile in pendingProfiles)
             {
                 appliedProfileNames.Add(profile.ProfileName);
+                appliedProfiles.Add(profile);
                 expanded = ApplyCeiling(expanded, profile);
             }
 
@@ -121,7 +124,9 @@ internal sealed class DefaultSecurityProfileCatalog(
                 .ToList();
         }
 
-        return appliedProfileNames.Count == 0 ? scopeSettings : expanded;
+        return appliedProfiles.Count == 0
+            ? scopeSettings
+            : ApplyDefaults(expanded, appliedProfiles);
     }
 
     /// <inheritdoc />
@@ -142,6 +147,33 @@ internal sealed class DefaultSecurityProfileCatalog(
         var builder = new SecurityProfileCeilingBuilder(profile.ProfileName, ceiling);
         profile.ApplyCeilingSettings(builder);
         return settings.Merge(ceiling);
+    }
+
+    // A profile's defaults sit beneath the scope's own settings: the scope's settings merge over them, so a value the
+    // scope sets replaces the default. A default is never a lattice setting, so it cannot interact with a ceiling, and
+    // when several profiles default one setting the profile whose name sorts first in ordinal order supplies it.
+    private IReadOnlySettingCollection ApplyDefaults(
+        IReadOnlySettingCollection settings,
+        IEnumerable<ISecurityProfile> profiles
+    )
+    {
+        var defaults = SettingCollectionFactory.Create();
+        foreach (
+            var profile in profiles.OrderBy(profile => profile.ProfileName, StringComparer.Ordinal)
+        )
+        {
+            var profileDefaults = SettingCollectionFactory.Create();
+            var builder = new SecurityProfileDefaultsBuilder(profile.ProfileName, profileDefaults);
+            profile.ApplyDefaultSettings(builder);
+
+            foreach (var setting in profileDefaults)
+            {
+                if (!defaults.TryGet(setting.Descriptor.Name, out _))
+                    defaults.Set(setting);
+            }
+        }
+
+        return defaults.Count == 0 ? settings : defaults.Merge(settings);
     }
 
     private List<ISecurityProfile> GetSelectedProfiles(IReadOnlySettingCollection settings)

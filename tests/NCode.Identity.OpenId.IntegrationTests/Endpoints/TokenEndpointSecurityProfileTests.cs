@@ -282,6 +282,8 @@ public class TokenEndpointSecurityProfileTests
         [new RefusingRequirement()];
 
         public void ApplyCeilingSettings(ISecurityProfileCeilingBuilder ceiling) { }
+
+        public void ApplyDefaultSettings(ISecurityProfileDefaultsBuilder defaults) { }
     }
 
     private sealed class PermissiveProfile : ISecurityProfile
@@ -293,6 +295,8 @@ public class TokenEndpointSecurityProfileTests
         public IReadOnlyCollection<ISecurityProfileRequirement> Requirements { get; } = [];
 
         public void ApplyCeilingSettings(ISecurityProfileCeilingBuilder ceiling) { }
+
+        public void ApplyDefaultSettings(ISecurityProfileDefaultsBuilder defaults) { }
     }
 
     private sealed class RefusingRequirement : ITokenRequestProfileRequirement

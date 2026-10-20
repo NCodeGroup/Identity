@@ -446,6 +446,7 @@ NCode.Identity.OpenId.Results.IOpenIdResult
 NCode.Identity.OpenId.Results.IOpenIdResult.Response.get -> NCode.Identity.OpenId.Messages.IOpenIdResponse!
 NCode.Identity.OpenId.Settings.ISecurityProfile
 NCode.Identity.OpenId.Settings.ISecurityProfile.ApplyCeilingSettings(NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder! ceiling) -> void
+NCode.Identity.OpenId.Settings.ISecurityProfile.ApplyDefaultSettings(NCode.Identity.OpenId.Settings.ISecurityProfileDefaultsBuilder! defaults) -> void
 NCode.Identity.OpenId.Settings.ISecurityProfile.ProfileName.get -> string!
 NCode.Identity.OpenId.Settings.ISecurityProfile.Requirements.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Settings.ISecurityProfileRequirement!>!
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog
@@ -455,6 +456,8 @@ NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Text.Json.J
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.TryGetProfile(string! profileName, out NCode.Identity.OpenId.Settings.ISecurityProfile! profile) -> bool
 NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder
 NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder.Set<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, TValue value) -> void
+NCode.Identity.OpenId.Settings.ISecurityProfileDefaultsBuilder
+NCode.Identity.OpenId.Settings.ISecurityProfileDefaultsBuilder.Set<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, TValue value) -> void
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement<TContext>
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement<TContext>.EvaluateAsync(TContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

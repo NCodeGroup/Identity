@@ -26,6 +26,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -78,7 +79,7 @@ internal class TenantApiEndpointHandler(
     ITenantResolver tenantResolver,
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
-    ISecretImporter secretImporter,
+    IClientKeyImporter keyImporter,
     ISecretPublicKeyConverter secretPublicKeyConverter,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
@@ -97,7 +98,7 @@ internal class TenantApiEndpointHandler(
     private ITenantResolver TenantResolver { get; } = tenantResolver;
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
-    private ISecretImporter SecretImporter { get; } = secretImporter;
+    private IClientKeyImporter KeyImporter { get; } = keyImporter;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
@@ -995,30 +996,29 @@ internal class TenantApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
-        PersistedSecret importedSecret;
-        try
+        var importRequest = new SecretKeyImportRequest
         {
-            importedSecret = SecretImporter.ImportSecret(
-                new SecretKeyImportRequest
-                {
-                    SecretId = secretId,
-                    SecretType = request.SecretType,
-                    Format = format,
-                    KeyMaterial = request.KeyMaterial,
-                    Use = request.Use,
-                    Algorithm = request.Algorithm,
-                    CreatedWhen = TimeProvider.GetUtcNow(),
-                    ExpiresWhen = request.ExpiresWhen,
-                }
-            );
-        }
-        catch (ArgumentException exception)
+            SecretId = secretId,
+            SecretType = request.SecretType,
+            Format = format,
+            KeyMaterial = request.KeyMaterial,
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            CreatedWhen = TimeProvider.GetUtcNow(),
+            ExpiresWhen = request.ExpiresWhen,
+        };
+        if (!KeyImporter.TryImportKey(importRequest, out var importedSecret, out var importError))
         {
-            Logger.SecretGenerationFailed(exception);
             return TypedResults.Problem(
-                detail: "The secret could not be imported from the supplied material.",
+                detail: importError,
                 statusCode: StatusCodes.Status400BadRequest
             );
+        }
+
+        var keyIdConflict = KeyIdConflictOrDefault(tenant.Secrets.Value, importedSecret, "tenant");
+        if (keyIdConflict is not null)
+        {
+            return keyIdConflict;
         }
 
         try
@@ -1166,9 +1166,16 @@ internal class TenantApiEndpointHandler(
             return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
         }
 
+        var metadataError = SecretValidator.ValidateUpdate(secret, request);
+        if (metadataError is not null)
+        {
+            return ToErrorResult(metadataError);
+        }
+
         var updated = new PersistedSecret
         {
             SecretId = secret.SecretId,
+            KeyId = secret.KeyId,
             ConcurrencyToken = secret.ConcurrencyToken,
             Use = request.Use,
             Algorithm = request.Algorithm,

@@ -100,6 +100,19 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns((ManagementError?)null);
+        // Update metadata is checked by the real validator against the real key-type catalog and algorithms.
+        var secretValidator = new DefaultSecretValidator(
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
+        );
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateUpdate(It.IsAny<PersistedSecret>(), It.IsAny<UpdateSecretRequest>())
+            )
+            .Returns(
+                (PersistedSecret secret, UpdateSecretRequest request) =>
+                    secretValidator.ValidateUpdate(secret, request)
+            );
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockSettingScopeCollectionProvider =
@@ -157,7 +170,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockSecretGenerator.Object,
             MockClientKeyImporter.Object,
             ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
-            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             MockSecretPublicKeyConverter.Object,
             TimeProvider.System,
             MockCryptoService.Object,

@@ -100,12 +100,17 @@ NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSetting
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.Settings.init -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.KeyId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.KeyId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Curve.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Curve.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest
 NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.ExpiresWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.RotateSecretRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.KeyId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.KeyId.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateUpdate(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! secret, NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest! request) -> NCode.Identity.OpenId.Management.ManagementError?
 override NCode.Identity.OpenId.Management.Auditing.InitialAccessTokenCreatedAuditEvent.ResourceType.get -> string!
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

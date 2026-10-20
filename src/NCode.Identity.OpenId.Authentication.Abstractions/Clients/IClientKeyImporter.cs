@@ -72,10 +72,11 @@ public interface IClientKeyImporter
     );
 
     /// <summary>
-    /// Imports a single public key registered for a client in any supported format. A key supplied as a JSON Web Key
-    /// keeps the <c>kid</c>, <c>use</c>, and <c>alg</c> it declares, which the request may repeat but not contradict; a
-    /// key supplied in another format is identified by <see cref="SecretKeyImportRequest.KeyId"/>, or by its secret
-    /// identifier when that is unset. Uniqueness of the <c>kid</c> among the client's other keys is the caller's to
+    /// Imports a single public key in any supported format, for a client or for any other owner of keys the management
+    /// API imports into: a tenant, a server, or a resource server. A key supplied as a JSON Web Key keeps the
+    /// <c>kid</c>, <c>use</c>, and <c>alg</c> it declares, which the request may repeat but not contradict; a key
+    /// supplied in another format is identified by <see cref="SecretKeyImportRequest.KeyId"/>, or by its secret
+    /// identifier when that is unset. Uniqueness of the <c>kid</c> among the owner's other keys is the caller's to
     /// check, since only the caller knows them.
     /// </summary>
     /// <param name="request">The key material and the metadata to import it with.</param>

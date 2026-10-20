@@ -450,7 +450,7 @@ internal class DefaultClientKeyImporter(
     }
 
     /// <summary>
-    /// Imports a client's public key through its descriptor and checks that the algorithm it declares, if any, agrees
+    /// Imports a public key through its descriptor and checks that the algorithm it declares, if any, agrees
     /// with its use and accepts the key's type and size.
     /// </summary>
     private bool TryImport(
@@ -466,7 +466,7 @@ internal class DefaultClientKeyImporter(
         if (!descriptor.SupportsPublicKeyImport)
         {
             error =
-                $"A '{descriptor.KeyType}' key is secret key material and cannot be registered as a client's public key.";
+                $"A '{descriptor.KeyType}' key is secret key material and cannot be imported as a public key.";
             return false;
         }
 

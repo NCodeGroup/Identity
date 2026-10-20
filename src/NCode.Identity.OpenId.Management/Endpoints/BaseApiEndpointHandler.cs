@@ -138,6 +138,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
         return new SecretResource
         {
             SecretId = secret.SecretId,
+            KeyId = GetKeyId(secret),
             ConcurrencyToken = secret.ConcurrencyToken,
             Use = secret.Use,
             Algorithm = secret.Algorithm,
@@ -164,6 +165,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
         return new CreatedSecretResource
         {
             SecretId = secret.SecretId,
+            KeyId = GetKeyId(secret),
             ConcurrencyToken = secret.ConcurrencyToken,
             Use = secret.Use,
             Algorithm = secret.Algorithm,
@@ -173,5 +175,40 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
             KeySizeBits = secret.KeySizeBits,
             SecretMaterial = secretMaterial,
         };
+    }
+
+    /// <summary>
+    /// Gets the key identifier (<c>kid</c>) a key is selected by: the <c>kid</c> it was imported with, or its secret
+    /// identifier when it has none.
+    /// </summary>
+    /// <param name="secret">The <see cref="PersistedSecret"/> to identify.</param>
+    /// <returns>The key identifier.</returns>
+    internal static string GetKeyId(PersistedSecret secret) => secret.KeyId ?? secret.SecretId;
+
+    /// <summary>
+    /// Returns a <c>409 Conflict</c> when one of an owner's existing keys is selected by the same <c>kid</c> as an
+    /// imported key, because keys are selected by <c>kid</c> and two of one owner's keys never share one.
+    /// </summary>
+    /// <param name="secrets">The owner's existing keys.</param>
+    /// <param name="imported">The imported key.</param>
+    /// <param name="owner">The kind of owner, such as <c>client</c> or <c>tenant</c>, for the problem detail.</param>
+    /// <returns>The conflict result, or <c>null</c> when the <c>kid</c> is free.</returns>
+    // See ADR-0161 and ADR-0186.
+    internal static IResult? KeyIdConflictOrDefault(
+        IEnumerable<PersistedSecret> secrets,
+        PersistedSecret imported,
+        string owner
+    )
+    {
+        var keyId = GetKeyId(imported);
+        if (
+            !secrets.Any(secret => string.Equals(GetKeyId(secret), keyId, StringComparison.Ordinal))
+        )
+            return null;
+
+        return TypedResults.Problem(
+            detail: $"A key with the 'kid' value '{keyId}' is already registered for the {owner}.",
+            statusCode: StatusCodes.Status409Conflict
+        );
     }
 }

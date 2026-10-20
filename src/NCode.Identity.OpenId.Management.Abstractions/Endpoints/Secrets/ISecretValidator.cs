@@ -18,11 +18,12 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
 /// <summary>
-/// Validates the intrinsic coherence of a secret-create request — the <c>secretType</c>,
+/// Validates the intrinsic coherence of a secret-create, import, or update request — the <c>secretType</c>,
 /// <c>keySizeBits</c>, <c>use</c>, and <c>algorithm</c> parameters must form a compatible combination.
 /// Register a custom implementation to replace or extend the default validation.
 /// </summary>
@@ -49,4 +50,13 @@ public interface ISecretValidator
     /// <param name="request">The <see cref="ImportSecretRequest"/> to validate.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed check, or <c>null</c> when valid.</returns>
     ManagementError? ValidateImport(ImportSecretRequest request);
+
+    /// <summary>
+    /// Validates the metadata an <see cref="UpdateSecretRequest"/> declares for an existing key: the <c>use</c> is
+    /// supported, and the <c>algorithm</c>, when set, agrees with the <c>use</c> and accepts the key's type and size.
+    /// </summary>
+    /// <param name="secret">The <see cref="PersistedSecret"/> the update applies to.</param>
+    /// <param name="request">The <see cref="UpdateSecretRequest"/> to validate.</param>
+    /// <returns>A <see cref="ManagementError"/> describing the first failed check, or <c>null</c> when valid.</returns>
+    ManagementError? ValidateUpdate(PersistedSecret secret, UpdateSecretRequest request);
 }

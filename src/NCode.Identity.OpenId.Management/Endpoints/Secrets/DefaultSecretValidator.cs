@@ -22,6 +22,7 @@ using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
@@ -132,6 +133,37 @@ internal sealed class DefaultSecretValidator(
         }
 
         return null;
+    }
+
+    /// <inheritdoc />
+    // See ADR-0161 and ADR-0186.
+    public ManagementError? ValidateUpdate(PersistedSecret secret, UpdateSecretRequest request)
+    {
+        var use = request.Use;
+        if (use is not null && use is not (SecretKeyUses.Signature or SecretKeyUses.Encryption))
+        {
+            return Error(
+                $"The use '{use}' is not supported; expected "
+                    + $"'{SecretKeyUses.Signature}' or '{SecretKeyUses.Encryption}'."
+            );
+        }
+
+        if (request.Algorithm is not { } algorithm)
+            return null;
+
+        if (!SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor))
+            return Error($"The secret type '{secret.SecretType}' is not supported.");
+
+        var algorithmError = AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
+            new KeyAlgorithmDeclaration
+            {
+                KeyType = descriptor.KeyClrType,
+                KeySizeBits = secret.KeySizeBits,
+                Use = use,
+                Algorithm = algorithm,
+            }
+        );
+        return algorithmError is null ? null : Error(algorithmError);
     }
 
     private static ManagementError Error(string detail) =>

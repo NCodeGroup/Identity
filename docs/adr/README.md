@@ -223,3 +223,4 @@ standards.
 | [0186](./0186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md) | Every owner's keys are imported and updated under the client-key policy | Accepted |
 | [0187](./0187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md) | A signed request object is short-lived and addressed to the issuer | Accepted |
 | [0188](./0188-general-time-helpers-live-in-a-dependency-free-package.md) | General time helpers live in a dependency-free package | Accepted |
+| [0189](./0189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md) | A retired tenant identifier or issuer is never reissued | Accepted |

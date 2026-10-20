@@ -846,6 +846,15 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **A retired tenant identifier or issuer is never reissued.** Deleting a tenant retires its identifier and its issuer,
+  and changing a tenant's issuer retires the previous one, so a new tenant can no longer take an identity that relying
+  parties trust. The tenant store records them in the new `RetiredTenants` and `RetiredIssuers` tables, in the same
+  unit of work as the delete or update. `ITenantResolver.ValidateTenantAsync` reports a retired identifier, or an issuer
+  another tenant gave up, as a conflict: the management API answers `409 Conflict` on create and update, and the
+  address preview lists it. Only the tenant that gave up an issuer can take it back. `ITenantStore` adds
+  `IsTenantIdRetiredAsync` and `GetRetiredIssuerHolderOrDefaultAsync`. The host database's
+  `RetireTenantIdentifiersAndIssuers` migration adds the two tables
+  ([ADR-0189](docs/adr/0189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)).
 - **A signed request object is short-lived and addressed to the issuer.** The authorization endpoint (`request` /
   `request_uri`) and the CIBA backchannel endpoint refuse a request object valid for longer than the new client-scoped
   `request_object_max_lifetime` setting, which defaults to 60 minutes as a `Min` ceiling. The authorization endpoint

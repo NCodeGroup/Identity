@@ -253,6 +253,24 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerSe
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerSecretEntity.Tenant.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerSecretEntity.TenantId.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerSecretEntity.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredIssuerEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredIssuerEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredIssuerEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredIssuerEntity.Issuer.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredIssuerEntity.Issuer.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredIssuerEntity.NormalizedIssuer.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredIssuerEntity.NormalizedIssuer.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredIssuerEntity.RetiredIssuerEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredIssuerEntity.TenantId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredIssuerEntity.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredTenantEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredTenantEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredTenantEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredTenantEntity.NormalizedTenantId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredTenantEntity.NormalizedTenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredTenantEntity.RetiredTenantEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredTenantEntity.TenantId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RetiredTenantEntity.TenantId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RoleAssignmentEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RoleAssignmentEntity.AssignmentId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.RoleAssignmentEntity.AssignmentId.init -> void

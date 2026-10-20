@@ -24,6 +24,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Persistence.Stores;
@@ -181,6 +182,107 @@ public class TenantProvisioningTests
         using var address = JsonDocument.Parse(body);
         var failures = address.RootElement.GetProperty("failures").EnumerateArray().ToList();
         Assert.Contains(failures, failure => failure.GetProperty("isConflict").GetBoolean());
+    }
+
+    [Fact]
+    public async Task CreateTenant_WithTheIdentifierOfADeletedTenant_ReportsAConflict()
+    {
+        using var factory = CreateFactory();
+        using var client = await CreateAdministratorClientAsync(factory);
+        await SaveTenantDirectlyAsync(factory, "initech", issuer: null);
+
+        using var deleteResponse = await client.DeleteAsync("/api/tenants/initech");
+        var deleteBody = await deleteResponse.Content.ReadAsStringAsync();
+        Assert.True(deleteResponse.StatusCode == HttpStatusCode.NoContent, deleteBody);
+
+        using var createResponse = await client.PostAsJsonAsync(
+            "/api/tenants",
+            new
+            {
+                tenantId = "initech",
+                displayName = "Initech",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        Assert.True(createResponse.StatusCode == HttpStatusCode.Conflict, createBody);
+        Assert.Contains("never reissued", createBody, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetAddress_ForAnIssuerAnotherTenantGaveUp_ReportsAConflict()
+    {
+        using var factory = CreateFactory();
+        using var client = await CreateAdministratorClientAsync(factory);
+        await SaveTenantDirectlyAsync(factory, "acme", "https://acme.auth.test");
+        await SaveTenantDirectlyAsync(factory, "acme", "https://login.acme.example");
+
+        using var response = await client.GetAsync(
+            $"/api/tenants/globex/address?issuer={Uri.EscapeDataString("https://acme.auth.test")}"
+        );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+
+        using var address = JsonDocument.Parse(body);
+        var failures = address.RootElement.GetProperty("failures").EnumerateArray().ToList();
+        Assert.Contains(
+            failures,
+            failure =>
+                failure.GetProperty("isConflict").GetBoolean()
+                && failure
+                    .GetProperty("detail")
+                    .GetString()!
+                    .Contains("never reissued", StringComparison.Ordinal)
+        );
+    }
+
+    private static async Task SaveTenantDirectlyAsync(
+        HostApplicationFactory factory,
+        string tenantId,
+        string? issuer
+    )
+    {
+        using var serviceScope = factory.Services.CreateScope();
+        await using var storeManager = await serviceScope
+            .ServiceProvider.GetRequiredService<IStoreManagerFactory>()
+            .CreateAsync(CancellationToken.None);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var tenant = await store.GetOrDefaultAsync(tenantId, CancellationToken.None);
+        if (tenant is null)
+        {
+            await store.AddAsync(
+                new PersistedTenant
+                {
+                    TenantId = tenantId,
+                    ConcurrencyToken = string.Empty,
+                    Issuer = issuer,
+                    IsDisabled = false,
+                    DisplayName = tenantId,
+                    Settings = new PersistedTenantSettings
+                    {
+                        TenantId = tenantId,
+                        ConcurrencyToken = string.Empty,
+                        Value = JsonSerializer.SerializeToElement(new { }),
+                    },
+                    Secrets = new PersistedTenantSecrets
+                    {
+                        TenantId = tenantId,
+                        ConcurrencyToken = string.Empty,
+                        Value = [],
+                    },
+                },
+                CancellationToken.None
+            );
+        }
+        else
+        {
+            tenant.Issuer = issuer;
+            await store.UpdateAsync(tenant, CancellationToken.None);
+        }
+
+        await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 
     private static async Task<bool> HasOpenIdResourceServerAsync(

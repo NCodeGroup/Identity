@@ -1727,6 +1727,20 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
 
 ## Secrets management (group `S`)
 
+- **`S1` — Client-secret rotate endpoint.** Rotation is create-new + delete-old (two calls) per
+  [ADR-0011](docs/adr/0011-secret-management-api.md); ADR-0050 notes a convenience `rotate` would inherit
+  the same one-time reveal. A `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate`
+  returning `CreatedSecretResource` is the natural next increment.
+  Touch points: `src/NCode.Identity.OpenId.Management/Endpoints/Clients/ClientApiEndpointHandler.cs`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md).
+  `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate` generates a replacement shared secret of
+  the rotated secret's type, size, `use`, and `alg`, adds it and removes the rotated secret in one save, and returns
+  the replacement's `CreatedSecretResource`, the only place its material appears. It is authorized as the create and
+  delete it replaces and honors `If-Match`; a key answers `400`. The rotated secret stops at once, because expiry is
+  not enforced (`S8` adds a grace period). Follow-up recorded: `U23` (the console's rotate action)._
+
 - **`S2` — Server-secret change auditing.** Tenant- and client-secret create/delete emit audit events
   (`RecordTenantSecretChangedAsync` / `RecordClientSecretChangedAsync`), but there is no
   `RecordServerSecretChangedAsync` — server-secret operations are not audited. Decide whether this is

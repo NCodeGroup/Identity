@@ -1,6 +1,7 @@
 # 0011. Secret management: server-side key generation, no material on the surface
 
-- **Status:** Accepted (create-response reveal refined by [ADR-0050](0050-secret-material-revealed-once-on-create.md))
+- **Status:** Accepted (create-response reveal refined by [ADR-0050](0050-secret-material-revealed-once-on-create.md);
+  client-secret rotation added by [ADR-0183](0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md))
 - **Date:** 2026-09-29
 - **Deciders:** NCode.Identity maintainers
 
@@ -80,8 +81,8 @@ carries a `// Future:` note rather than an implementation.
 - The common, safe path (operator asks the server to mint a key) works end-to-end with no private key
   material crossing the API boundary in either direction.
 - `SecretResource` stays metadata-only; there is still no public API that returns `EncodedValue`.
-- Rotation is create-new + delete-old, which is auditable but requires two calls; a future convenience
-  "rotate" endpoint can wrap it.
+- Rotation is create-new + delete-old, which is auditable but requires two calls; a client secret is also rotated
+  in one call ([ADR-0183](0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)).
 - BYOK is a known follow-up; the DTO and store are shaped so import is an additive change, not a
   breaking one.
 - `ISecretGenerator` is new public surface in `NCode.Identity.Secrets.Persistence(.Abstractions)` and is

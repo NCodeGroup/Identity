@@ -83,9 +83,10 @@ Concretely:
   client create HTTP response. Audit events, logs, traces, and the persisted row continue to carry
   metadata and the **data-protected** `EncodedValue` only — never the unprotected `SecretMaterial` —
   preserving ADR-0011's audit posture and ADR-0049's funnel.
-- **Rotation inherits the same semantics.** Rotation stays create-new + delete-old (ADR-0011); a future
-  convenience "rotate" endpoint on the client reveals identically, and server/tenant rotation never
-  reveals. There is no reveal on `PUT` (metadata-only) or any other verb.
+- **Rotation inherits the same semantics.** Rotation stays create-new + delete-old (ADR-0011); the client's
+  "rotate" endpoint ([ADR-0183](0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)) reveals its
+  replacement identically, and server/tenant rotation never reveals. There is no reveal on `PUT` (metadata-only) or
+  any other verb.
 
 ## Options considered
 
@@ -125,9 +126,9 @@ Concretely:
   `CreatedSecretResource`; the server and tenant endpoints return `SecretResource` and cannot carry
   material.
 - The metadata-only **retrieval** invariant from ADR-0011 is strengthened: it holds on every read path
-  for every owner, and the only place material ever appears is one authorized client create response.
-- A lost client secret is unrecoverable by design — recovery is rotation (create-new + delete-old), the
-  same auditable path ADR-0011 prescribes. This keeps the system free of a standing material-read
+  for every owner, and the only place material ever appears is one authorized client create or rotate response.
+- A lost client secret is unrecoverable by design — recovery is rotation (create-new + delete-old, or one rotate
+  call), the same auditable path ADR-0011 prescribes. This keeps the system free of a standing material-read
   surface.
 - `CreatedSecretResource` is new public surface in `NCode.Identity.OpenId.Management.Abstractions`
   (`NCode.Identity.OpenId.Management.Contracts.Secrets`); `SecretResource` is unchanged, so no read

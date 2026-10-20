@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -1908,6 +1909,202 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var scoped = Assert.IsType<TenantOwnedResource<PersistedSecret>>(capturedResource);
         Assert.Equal(TenantId, scoped.TenantId);
         Assert.Equal("secret-1", scoped.Value.SecretId);
+    }
+
+    #endregion
+
+    #region RotateSecretAsync Tests
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenAuthorized_ReplacesTheSecretAndRevealsTheReplacement()
+    {
+        SetupStore();
+        var rotated = CreatePersistedSecret("secret-1", "rotated-ct");
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", EmptyObject(), rotated))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId("secret-2");
+
+        var expiresWhen = DateTimeOffset.UnixEpoch.AddYears(3);
+        var replacement = CreatePersistedSecret("secret-2", "replacement-ct");
+        MockSecretGenerator
+            .Setup(x =>
+                x.GenerateSharedSecret(
+                    It.Is<GenerateSecretRequest>(generate =>
+                        generate.SecretId == "secret-2"
+                        && generate.SecretType == rotated.SecretType
+                        && generate.KeySizeBits == rotated.KeySizeBits
+                        && generate.Use == rotated.Use
+                        && generate.Algorithm == rotated.Algorithm
+                        && generate.ExpiresWhen == expiresWhen
+                    )
+                )
+            )
+            .Returns(
+                new GeneratedSecret { Secret = replacement, SecretMaterial = "revealed-material" }
+            )
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddSecretAsync(ClientId, replacement, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.RemoveSecretAsync(ClientId, "secret-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RotateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = expiresWhen },
+            "rotated-ct",
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<CreatedSecretResource>>(result);
+        Assert.Equal("secret-2", created.Value?.SecretId);
+        Assert.Equal("revealed-material", created.Value?.SecretMaterial);
+        Assert.Equal($"/tenants/{TenantId}/clients/{ClientId}/secrets/secret-2", created.Location);
+        Assert.Equal("replacement-ct", httpContext.Response.Headers.ETag);
+        MockManagementAuditRecorder.Verify(
+            x =>
+                x.RecordClientSecretChangedAsync(
+                    httpContext,
+                    TenantId,
+                    ClientId,
+                    "secret-2",
+                    ResourceChangeTypes.Created,
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+        MockManagementAuditRecorder.Verify(
+            x =>
+                x.RecordClientSecretChangedAsync(
+                    httpContext,
+                    TenantId,
+                    ClientId,
+                    "secret-1",
+                    ResourceChangeTypes.Deleted,
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenSecretNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RotateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(3) },
+            null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenNotAuthorized_ReturnsForbidden()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", EmptyObject(), CreatePersistedSecret()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RotateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(3) },
+            null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenIfMatchDiffers_ReturnsPreconditionFailed()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", EmptyObject(), CreatePersistedSecret()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RotateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(3) },
+            "stale-ct",
+            CancellationToken.None
+        );
+
+        var status = Assert.IsType<StatusCodeHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, status.StatusCode);
+    }
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenSecretIsAKey_ReturnsBadRequest()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateClient("client-ct", EmptyObject(), CreatePublicKeySecret("secret-1", "kid-1"))
+            )
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RotateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(3) },
+            null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
     #endregion

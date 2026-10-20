@@ -78,7 +78,7 @@ entry and/or ADR that closed it.
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U23`     | `U22`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
-| `X` — Tooling & agent customization   | `X5`      | `X4`       |
+| `X` — Tooling & agent customization   | `X6`      | `X5`       |
 
 ---
 
@@ -351,29 +351,6 @@ entry and/or ADR that closed it.
   (Valkey) so limits hold across replicas, and RFC 6585 `429` + `Retry-After` responses; consider per-tenant quotas
   (requests/day, token issuances) for plan tiers. Capture the design in an ADR.
 
-- **`F46` — Kubernetes deployment artifacts for the host.** `NCode.Identity.OpenId.Host` is the deployable
-  ([ADR-0130](docs/adr/0130-distinct-names-for-host-local-dev-orchestrator-and-library.md)); it already trusts forwarded
-  headers only from configured proxies (`ReverseProxy:KnownNetworks` — set it to the cluster's pod CIDR), refuses
-  development-only settings and an unprotected Data Protection key ring in Production (`AddProductionSafety`), and
-  separates liveness (`/health/live`, no checks) from readiness (`/health/ready`: the database, and Valkey when
-  configured). The production image is done: chiseled, non-root on port 8080, built for amd64 and arm64, carrying the
-  `apps/auth` bundle ([ADR-0178](docs/adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
-  The Helm chart [`charts/ncode-identity-host`](charts/ncode-identity-host) is done: restricted pods, probes, `preStop`
-  drain, PodDisruptionBudget, secrets by reference, and Valkey required for more than one replica
-  ([ADR-0179](docs/adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
-  Still missing, in one session-sized slice: `Host.MigrationService` (which has no image) should run as the chart's
-  pre-deploy Job (a Helm `pre-install`/`pre-upgrade` hook) with expand/contract schema changes, so a rolling update
-  never breaks the running version. Publishing the image and the chart is `F48`. A served tenant
-  without an issuer already fails closed
-  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)). Plus the
-  OpenTofu modules, bootstrap stack, and GitHub
-  Actions workflows in the public `NCodeGroup/identity-platform` repository
-  ([ADR-0132](docs/adr/0132-platform-infrastructure-as-code-is-public-on-github.md); see the
-  [hosting analysis](docs/hosting-analysis.md#11-iac-and-delivery)). Touch points:
-  `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.OpenId.Host/Dockerfile`,
-  `charts/ncode-identity-host`, `src/NCode.Identity.OpenId.Host.MigrationService`, `src/NCode.Identity.Server/ProductionSafety`,
-  `src/frontend/apps/auth`.
-
 - **`F47` — Route a tenant's mTLS endpoint-alias host.** `mtls_endpoint_alias_authority` publishes the RFC 8705 §5
   `mtls_endpoint_aliases` on a separate authority (for example `https://acme.mtls.example`), but `DynamicByHost` routes
   only on the host component of the tenant's issuer
@@ -416,7 +393,7 @@ entry and/or ADR that closed it.
   July 15, 2026). Next: the rest of `live/global` (DNS records — including the lab's, so the lab never holds a zone
   token — and zone settings) and `live/lab` on OCI OKE; each root that manages AWS resources adds exactly those
   permissions to its apply role, which today can reach only its state and secrets. Beyond this item, the lab needs
-  `F46`, and a Valkey instance (the shared-state adapter `F49` delivered) to run more than one replica; tenant signing
+  a Valkey instance (the shared-state adapter `F49` delivered) to run more than one replica; tenant signing
   keys are provisioned on first use ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)).
   Workload images and charts get build-provenance attestations and signatures that Flux verifies before the first
   production rollout.
@@ -740,3 +717,10 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   not in the repository (the generated `obj/` sources) and scores partially-covered lines differently. Touch points:
   [`build/coverage-report.ps1`](build/coverage-report.ps1), [`tests/Directory.Build.props`](tests/Directory.Build.props),
   [`codecov.yml`](codecov.yml). Coverage thresholds are a separate, later policy decision.
+
+- **`X5` — Flag a migration that would break the previous release.** Every EF Core migration must keep the previous
+  release working, because the chart's Job migrates while the previous release serves
+  ([ADR-0180](docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Today that is
+  a review rule only. Add a Definition of Done check that fails when a new migration drops or renames a table or
+  column, or makes a column required without a default, unless the migration is marked as a deliberate contract step.
+  Touch points: `build/dod.ps1`, `src/NCode.Identity.OpenId.Host.Database`.

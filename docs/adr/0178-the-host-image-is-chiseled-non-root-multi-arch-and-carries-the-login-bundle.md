@@ -24,7 +24,8 @@ consent. The lab cluster runs on Ampere A1 nodes, so the image must also run on 
    HTTP and TLS terminates at the ingress.
 2. **The image carries the interactive bundle.** A Node stage builds `apps/auth` with the workspace's pinned pnpm. The
    final stage copies its `dist` to `/app/auth` and sets `InteractiveAuthentication__BundleRootPath` to that rooted
-   path.
+   path. The image also carries the migration worker in `/app/migrations`, which the chart runs before each rollout
+   ([ADR-0180](0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)).
 3. **Multi-arch builds without emulation.** The Node and SDK stages run `FROM --platform=$BUILDPLATFORM`. The SDK stage
    publishes framework-dependent for `$TARGETARCH` with no app host. The only stage built per target architecture
    copies files and runs nothing, so `linux/amd64` and `linux/arm64` both build on an amd64 runner without QEMU.

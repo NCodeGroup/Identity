@@ -1,0 +1,91 @@
+{{- if .Values.migrations.enabled }}
+{{- include "identity-host.validate" . }}
+{{- $secret := .Values.migrations.database.existingSecret | default .Values.database.existingSecret }}
+{{- $key := .Values.migrations.database.connectionStringKey | default .Values.database.connectionStringKey }}
+# Applies the database migrations before an install or upgrade changes anything else, while the previous version still
+# serves. Helm waits for the Job, and a failed Job fails the release before its rollout starts (ADR-0180).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "identity-host.fullname" . }}-migrations
+  labels:
+    {{- include "identity-host.commonLabels" . | nindent 4 }}
+    app.kubernetes.io/component: migrations
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    # A failed Job stays for its logs until the next release replaces it.
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrations.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "identity-host.commonLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrations
+    spec:
+      restartPolicy: Never
+      {{- if not .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "identity-host.serviceAccountName" . }}
+      {{- end }}
+      # The worker never calls the Kubernetes API. The chart's own service account does not exist yet when a first
+      # install runs this hook, so the Job uses the namespace's default account unless the operator names one.
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrations
+          image: {{ include "identity-host.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # The worker ships in the host image, so the schema it applies is the one this release's host reads.
+          workingDir: /app/migrations
+          command:
+            - dotnet
+            - NCode.Identity.OpenId.Host.MigrationService.dll
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: DOTNET_ENVIRONMENT
+              value: {{ .Values.environment | quote }}
+            - name: ConnectionStrings__openiddb
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secret }}
+                  key: {{ $key }}
+          {{- with .Values.migrations.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

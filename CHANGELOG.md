@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The host's chart migrates the database before each rollout.** The host image now also carries the migration worker
+  in `/app/migrations`, and the chart runs it as a Helm `pre-install` and `pre-upgrade` Job. A failed migration fails
+  the release before any pod is replaced. The Job runs restricted like the server, and
+  `migrations.database.existingSecret` gives it a connection with schema rights that the server does not need. Set
+  `migrations.enabled=false` to apply migrations another way. Every migration must keep the previous release working:
+  add first, drop or rename in a later release. The chart's pods now carry `app.kubernetes.io/component: server`, so
+  the Service and PodDisruptionBudget never select the Job. Backlog `F46` is complete
+  ([ADR-0180](docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)).
 - **The host has a Helm chart.** `charts/ncode-identity-host` deploys `NCode.Identity.OpenId.Host` under the
   restricted Pod Security Standard: non-root, read-only root filesystem, no capabilities, and no service-account token.
   The startup and liveness probes call `/health/live` and the readiness probe calls `/health/ready`, each sending an

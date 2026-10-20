@@ -615,7 +615,7 @@ speed-test endpoint from the Denver network the users are on.
   needed to decrypt the signing keys. A Production host refuses to start until the ring has an `IXmlEncryptor`: mount
   an RSA certificate from the secret store under `DataProtection:KeyProtection`, or use a key management service
   ([ADR-0177](adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md); pairs with `S7` / `S9`).
-- **Kubernetes deployment artifacts** — backlog `F46`. `NCode.Identity.OpenId.Host` already trusts forwarded headers
+- **Kubernetes deployment artifacts** — backlog `F46`, done. `NCode.Identity.OpenId.Host` already trusts forwarded headers
   only from configured proxies (set `ReverseProxy:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,
   developer CORS, seeders). Its image is chiseled, runs non-root on port 8080, is built for amd64 and arm64, and
@@ -623,9 +623,10 @@ speed-test endpoint from the Denver network the users are on.
   ([ADR-0178](adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)). Its Helm
   chart runs restricted pods that probe `/health/live` and `/health/ready`, drain before stopping, and require Valkey
   for more than one replica
-  ([ADR-0179](adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Still
-  needed: `Host.MigrationService` as a pre-deploy Job with expand/contract schema changes so a rolling update never
-  breaks the running version, and publishing the image and chart (`F48`).
+  ([ADR-0179](adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Before
+  each rollout it migrates the database in a Job from the same image, and every migration keeps the previous release
+  working ([ADR-0180](adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Still
+  needed: publishing the image and chart (`F48`).
 - **mTLS gap** `F47` (`F43` and `F44` are done) and **per-tenant rate limits** `F45` (above).
 
 **Operations:**

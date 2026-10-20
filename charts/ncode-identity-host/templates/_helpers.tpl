@@ -25,16 +25,30 @@ The fully qualified name of the release's resources.
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
+{{/*
+The labels every resource of the release carries.
+*/}}
+{{- define "identity-host.commonLabels" -}}
+helm.sh/chart: {{ include "identity-host.chart" . }}
+app.kubernetes.io/name: {{ include "identity-host.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+The labels that select the server's pods. The component keeps the migration Job's pod out of the Service and the
+PodDisruptionBudget.
+*/}}
 {{- define "identity-host.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "identity-host.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: server
 {{- end }}
 
 {{- define "identity-host.labels" -}}
-helm.sh/chart: {{ include "identity-host.chart" . }}
-{{ include "identity-host.selectorLabels" . }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{ include "identity-host.commonLabels" . }}
+app.kubernetes.io/component: server
 {{- end }}
 
 {{- define "identity-host.serviceAccountName" -}}

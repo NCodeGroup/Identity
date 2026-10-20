@@ -23,7 +23,8 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 RUN pnpm exec turbo run build --filter=@ncode/app-auth
 
-# The host, published framework-dependent for the target architecture.
+# The host and its migration worker, published framework-dependent for the target architecture. The worker ships in
+# the host's image so the schema a release migrates to is always the schema that release's host reads (ADR-0180).
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-noble AS build
 ARG TARGETARCH
 # The build context carries no .git directory, so the version comes from version.json alone rather than commit height.
@@ -36,6 +37,13 @@ RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
         --arch "$TARGETARCH" \
         --no-self-contained \
         --output /app/publish \
+        -p:UseAppHost=false \
+        -p:GeneratePackageOnBuild=false \
+    && dotnet publish src/NCode.Identity.OpenId.Host.MigrationService/NCode.Identity.OpenId.Host.MigrationService.csproj \
+        --configuration Release \
+        --arch "$TARGETARCH" \
+        --no-self-contained \
+        --output /app/migrations \
         -p:UseAppHost=false \
         -p:GeneratePackageOnBuild=false
 
@@ -52,6 +60,8 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-noble-chiseled-extra AS final
 WORKDIR /app
 COPY --from=build /app/publish ./
+# Run with the working directory /app/migrations and 'dotnet NCode.Identity.OpenId.Host.MigrationService.dll'.
+COPY --from=build /app/migrations ./migrations/
 COPY --from=frontend /source/src/frontend/apps/auth/dist ./auth/
 ENV InteractiveAuthentication__BundleRootPath=/app/auth
 USER $APP_UID

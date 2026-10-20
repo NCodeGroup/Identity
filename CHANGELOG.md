@@ -257,8 +257,10 @@ change to the public API is a **major** version bump.
   update merge the client's document onto its tenant's effective settings, as the runtime does. They then answer `400`
   with a validation problem naming the setting when a registered ID token, UserInfo, or introspection signing or
   encryption algorithm is outside its effective `*_values_supported` list. The default `A128CBC-HS256` of a registered
-  encryption without an `enc` is checked the same way. A mismatch is reported when the settings are written instead of
-  failing every issuance with `server_error`
+  encryption without an `enc` is checked the same way. A tenant settings update checks every client of the tenant and
+  answers `400`, naming the tenant list and the client, when the change excludes an algorithm a client registers; a
+  mismatch the change does not introduce is not reported. A mismatch is reported when the settings are written instead
+  of failing every issuance with `server_error`
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
 - **Hash algorithms and binary encodings are open vocabularies.** The `HashAlgorithmType` and `BinaryEncodingType`
   enums are removed. `ICryptoService.HashValue` takes the framework's `HashAlgorithmName` and computes the digest with

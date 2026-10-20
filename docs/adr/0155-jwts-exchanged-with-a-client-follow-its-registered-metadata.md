@@ -55,8 +55,11 @@ never compresses.**
    default `id_token_signed_response_alg` as well. The management API's client create and settings update merge the
    client's document onto its tenant's effective settings, as the runtime does, and reject a registered ID token,
    UserInfo, or introspection algorithm — or the default `enc` of a registered encryption — that its list excludes with
-   a validation problem naming the setting. Issuance checks again, because settings change after they are written, and
-   fails with `server_error` rather than choose another algorithm.
+   a validation problem naming the setting. A tenant settings write merges each of the tenant's clients onto the
+   tenant's effective settings before and after the change and rejects it, naming the tenant list, when the change
+   excludes an algorithm a client registers; a mismatch that predates the change is not reported, so it never blocks an
+   unrelated write. Issuance checks again, because settings change after they are written, and fails with
+   `server_error` rather than choose another algorithm.
 3. **One selector protects every JWT addressed to a client.** `IClientJwtCredentialSelector` resolves, for an ID token
    (which a logout token follows, OpenID Connect Back-Channel Logout 1.0 §2.4) or a UserInfo response: the tenant key
    for the registered signature algorithm, and an asymmetric public key from the client's `jwks` or `jwks_uri`
@@ -117,8 +120,9 @@ never compresses.**
 - A tenant whose ceiling excludes `RS256` sets `id_token_signed_response_alg` for its clients, or each client registers
   one; otherwise registration and a management write are refused. A security profile supplies a permitted default
   ([ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md) decision 7), so a client under FAPI 2.0
-  that registers none gets `PS256`. A tenant write that narrows a list beneath its clients' registered values, and a
-  seeded or configured client, are not checked until issuance (backlog `F68`).
+  that registers none gets `PS256`. A tenant write that narrows a list beneath a client's registered value is refused,
+  at the cost of reading every client of the tenant on each tenant settings write. A server settings write and a
+  seeded or configured client are not checked until issuance (backlog `F68`).
 - A relying party that called UserInfo with only the end-user's session cookie must present an access token.
 - A dynamically registered client can narrow its assertion algorithm and use CIBA without the management API. Its
   `backchannel_token_delivery_mode` is checked against the tenant's `backchannel_token_delivery_modes_supported`; its
@@ -132,7 +136,7 @@ never compresses.**
   stores settings documents in its own database applies the same migration there.
 - Follow-ups: request-object audience, typing, and lifetime (backlog `F40`); validating client key material at every
   entry point (`F65`); the server validating access tokens it encrypted
-  (`F67`); and checking a client's registered response algorithms when its tenant's settings are written and when it is
+  (`F67`); and checking a client's registered response algorithms when the server's settings are written and when it is
   seeded or configured (`F68`).
 
 ## References

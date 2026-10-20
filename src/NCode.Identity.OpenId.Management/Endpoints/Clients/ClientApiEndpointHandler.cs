@@ -27,7 +27,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
-using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
@@ -294,98 +293,23 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that a client's effective settings permit every algorithm it registers for the JWTs addressed to it, as
-    /// issuance selects them: a registered signing algorithm must be in the signing list, and a registered key-management
-    /// algorithm and its content encryption, <c>A128CBC-HS256</c> unless registered, in the encryption lists. An unset
-    /// list is unrestricted.
+    /// Verifies that a client's effective settings permit every algorithm it registers for the JWTs addressed to it
+    /// (<see cref="ClientResponseAlgorithmRule"/>), naming each registered setting whose value is not permitted.
     /// </summary>
     /// <param name="settings">The client's effective settings.</param>
     /// <returns>The <see cref="SettingError"/> instances naming each algorithm that is not permitted, or an empty list.</returns>
     // See ADR-0155.
     internal virtual IReadOnlyList<SettingError> ValidateResponseAlgorithms(
         IReadOnlySettingCollection settings
-    )
-    {
-        List<SettingError> errors = [];
-        ClientJwtProtectionSettings[] responses =
-        [
-            ClientJwtProtectionSettings.IdToken,
-            ClientJwtProtectionSettings.UserInfo,
-            ClientJwtProtectionSettings.Introspection,
-        ];
-
-        foreach (var response in responses)
-        {
-            if (
-                settings.TryGetValue(response.SignedResponseAlg, out var signingAlgorithm)
-                && !string.IsNullOrEmpty(signingAlgorithm)
-            )
-            {
-                AddIfNotPermitted(
-                    errors,
-                    settings,
-                    response.SignedResponseAlg,
-                    signingAlgorithm,
-                    response.SigningAlgValuesSupported
-                );
-            }
-
-            if (
-                !settings.TryGetValue(response.EncryptedResponseAlg, out var keyAlgorithm)
-                || string.IsNullOrEmpty(keyAlgorithm)
-            )
-            {
-                continue;
-            }
-
-            AddIfNotPermitted(
-                errors,
-                settings,
-                response.EncryptedResponseAlg,
-                keyAlgorithm,
-                response.EncryptionAlgValuesSupported
-            );
-
-            var contentAlgorithm =
-                settings.TryGetValue(response.EncryptedResponseEnc, out var registeredEnc)
-                && !string.IsNullOrEmpty(registeredEnc)
-                    ? registeredEnc
-                    : AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256;
-
-            AddIfNotPermitted(
-                errors,
-                settings,
-                response.EncryptedResponseEnc,
-                contentAlgorithm,
-                response.EncryptionEncValuesSupported
-            );
-        }
-
-        return errors;
-    }
-
-    private static void AddIfNotPermitted(
-        List<SettingError> errors,
-        IReadOnlySettingCollection settings,
-        SettingKey<string> registeredKey,
-        string registeredValue,
-        SettingKey<IReadOnlyCollection<string>> permittedKey
-    )
-    {
-        if (
-            settings.TryGetValue(permittedKey, out var permitted)
-            && !permitted.Contains(registeredValue, StringComparer.Ordinal)
-        )
-        {
-            errors.Add(
-                new SettingError(
-                    registeredKey.SettingName,
-                    $"The '{registeredKey.SettingName}' value '{registeredValue}' is not permitted by the client's "
-                        + $"effective '{permittedKey.SettingName}'."
-                )
-            );
-        }
-    }
+    ) =>
+        ClientResponseAlgorithmRule
+            .FindViolations(settings)
+            .Select(violation => new SettingError(
+                violation.RegisteredKey.SettingName,
+                $"The '{violation.RegisteredKey.SettingName}' value '{violation.Value}' is not permitted by the "
+                    + $"client's effective '{violation.PermittedKey.SettingName}'."
+            ))
+            .ToList();
 
     /// <summary>
     /// Maps an OpenID Client's effective <see cref="IReadOnlySettingCollection"/> to its

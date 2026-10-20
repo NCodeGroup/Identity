@@ -244,6 +244,14 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
+  settings onto the server's and provisions a configured algorithm only when one of the tenant's effective algorithm
+  lists names it — by default the ID token, UserInfo, introspection, and access-token signing lists and the
+  request-object and access-token encryption lists. `OpenIdTenantKeyProvisioningOptions` gains `AlgorithmSettings`
+  (`OpenId:Tenant:KeyProvisioning:AlgorithmSettings`), which names those lists; a package that signs or decrypts with
+  the tenant's keys under another setting adds its name. A `fapi2` tenant no longer holds and publishes an RS256 key it
+  never signs with. A key the tenant already holds is kept
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)).
 - **The interactive pages read the bundle's `index.html` once.** `InteractiveBundleReader` caches the bundle index the
   login, consent, and error pages inject their forms into, rather than reading it from disk on every request. Each
   request compares the file's last-write time and length with the cached copy's, so a rebuilt bundle is still picked up

@@ -37,6 +37,8 @@ NCode.Identity.OpenId.OpenIdTenantKeyOptions.KeySizeBits.get -> int?
 NCode.Identity.OpenId.OpenIdTenantKeyOptions.KeySizeBits.set -> void
 NCode.Identity.OpenId.OpenIdTenantKeyOptions.OpenIdTenantKeyOptions() -> void
 NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions
+NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions.AlgorithmSettings.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions.AlgorithmSettings.set -> void
 NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions.Enabled.get -> bool
 NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions.Enabled.set -> void
 NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions.Keys.get -> System.Collections.Generic.List<NCode.Identity.OpenId.OpenIdTenantKeyOptions!>!

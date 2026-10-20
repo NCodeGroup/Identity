@@ -17,6 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId;
 
@@ -24,7 +25,9 @@ namespace NCode.Identity.OpenId;
 /// Contains the options that decide which keys every tenant is provisioned with. Each time a tenant is seeded, the
 /// server generates and persists a key for every configured algorithm the tenant holds no usable key for, so every
 /// tenant — the root tenant, a tenant created at runtime, and an existing tenant when the configuration gains an
-/// algorithm — can sign without an operator importing a key first.
+/// algorithm — can sign without an operator importing a key first. A tenant is provisioned only with the keys its
+/// effective settings use: a configured algorithm that none of the tenant's <see cref="AlgorithmSettings"/> lists names
+/// — <c>RS256</c> under the <c>fapi2</c> security profile, say — gets no key.
 /// </summary>
 /// <remarks>
 /// Provisioning only fills gaps: a key the tenant already holds for an algorithm, whether imported or generated
@@ -53,4 +56,25 @@ public sealed class OpenIdTenantKeyProvisioningOptions
     /// host starts.
     /// </remarks>
     public List<OpenIdTenantKeyOptions> Keys { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the names of the settings that list the algorithms a tenant uses its own keys with: the lists it
+    /// signs ID tokens, UserInfo responses, introspection responses, and access tokens with, and the lists of the
+    /// key-management algorithms it decrypts request objects and access tokens encrypted to it with. A configured key
+    /// is provisioned for a tenant only when one of these lists, as the tenant's effective settings have it, names its
+    /// algorithm.
+    /// </summary>
+    /// <remarks>
+    /// A package that signs or decrypts with the tenant's keys under another setting adds that setting's name here.
+    /// Configuration binding adds to the default names rather than replacing them.
+    /// </remarks>
+    public List<string> AlgorithmSettings { get; set; } =
+    [
+        OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
+        OpenIdSettingNames.UserInfoSigningAlgValuesSupported,
+        OpenIdSettingNames.IntrospectionSigningAlgValuesSupported,
+        OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
+        OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported,
+        OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported,
+    ];
 }

@@ -22,7 +22,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Subject;
@@ -30,6 +29,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Results;
 using NCode.Registration.AspNetCore;
+using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization;
 

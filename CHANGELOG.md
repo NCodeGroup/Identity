@@ -235,6 +235,13 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The whole-second time helpers move to the new dependency-free `NCode.Time` package.** `DateTimeExtensions`,
+  `DateTimeOffsetExtensions`, and `TimeProviderExtensions` (`WithPrecisionInSeconds`, `GetUtcNowWithPrecisionInSeconds`,
+  `GetTimestampWithPrecisionInSeconds`) leave `NCode.Identity.Jose.Abstractions` and the `NCode.Identity.Jose.Extensions`
+  namespace for namespace `NCode.Time`, so the abstractions package holds no logic. Replace
+  `using NCode.Identity.Jose.Extensions;` with `using NCode.Time;` and reference `NCode.Time`. Backlog `D11` is
+  complete ([ADR-0188](docs/adr/0188-general-time-helpers-live-in-a-dependency-free-package.md)).
+
 - **Tenant, server, and resource-server keys are imported and updated under the client-key policy.** Their import
   endpoints use `IClientKeyImporter.TryImportKey`, so a JSON Web Key keeps its `kid`, a key whose `use`, `key_ops`, or
   `alg` contradicts it is refused with a `400` that says why, and a `kid` already used by another of the owner's keys is

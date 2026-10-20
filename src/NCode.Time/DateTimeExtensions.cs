@@ -18,7 +18,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Jose.Extensions;
+namespace NCode.Time;
 
 /// <summary>
 /// Provides extension methods for <see cref="DateTime"/> to truncate to the nearest second.

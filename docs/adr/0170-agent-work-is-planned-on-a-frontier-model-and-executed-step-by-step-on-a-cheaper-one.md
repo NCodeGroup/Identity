@@ -73,6 +73,47 @@ repository-specific rule belongs in the instruction files, which every agent in 
 [`.vscode/settings.json`](../../.vscode/settings.json) routes VS Code's built-in Plan agent to Opus and its **Start
 Implementation** handoff to Auto, so the built-in flow follows the same split.
 
+### Dual-runtime customization contract
+
+**Retain both Local prompts and Copilot skills as the permanent supported design**, closing backlog item `X1`.
+The two files are runtime adapters for one workflow, not competing definitions awaiting a migration. The 16 generated
+workflow pairs come from the installer templates; the hand-written `audit-conventions` pair is maintained together.
+The adapter boundary is explicit:
+
+- **Local** loads `.prompt.md` files and honors their prompt-specific `agent`, `model`, and `tools` selections.
+- **Copilot** sessions in VS Code and Copilot CLI load `SKILL.md`, not prompt files. Skills run on the current session
+  model, so select Opus for planning/orchestration and Sonnet for review. Execution uses the delegated executor, or
+  the model selected before invoking `/execute-step` directly. Model availability belongs to the session: if it
+  cannot delegate to the configured Auto executor, the supported fallback is to select an available lower-cost model
+  and invoke `/execute-step` directly, then return to the planner for verification or re-planning. A session-specific
+  model error is not a reason to rewrite generated agents or migrate prompt files.
+- Prompt input placeholders become the request supplied after the skill command. Relative Markdown links gain one
+  directory level in skills. The descriptions and ordered workflow bodies otherwise stay identical.
+- Skills remain available for automatic selection. Their descriptions and workflow instructions guide appropriate
+  invocation; they are not permission enforcement. Neither `disable-model-invocation` nor `user-invocable` is part
+  of this contract. Duplicate prompt/skill commands in Local's slash menu are an accepted consequence.
+
+[`build/agent-customizations.ps1`](../../build/agent-customizations.ps1) checks every project prompt and skill in both
+directions: a missing counterpart, mismatched name/description/body, malformed scalar metadata, a prompt-only skill
+setting, or an invocation-control flag fails with the offending path. Comparison preserves line order and code;
+only argument substitution, relative inline Markdown links outside code, line endings, and outer whitespace are
+adapted. The validator intentionally accepts the scalar frontmatter format used by these files, not arbitrary YAML.
+[`build/tests/agent-customizations.tests.ps1`](../../build/tests/agent-customizations.tests.ps1) tests the actual pairs
+and isolated success/failure fixtures; it runs as the first stage of both Definition-of-Done modes. Template
+reinstallation must satisfy the same gate, and the hand-written pair cannot silently drift.
+
+Copilot's migration notice identifies source formats it does not read, not proof that equivalent workflows are
+missing. Ignore the workspace prompt-conversion group because its skill adapters already exist; do not run generic
+conversion over them. The
+[VS Code migration documentation](https://code.visualstudio.com/docs/agent-customization/migrate-customizations#convert-prompt-files-to-skills)
+states that conversion drops prompt-specific agent/model/tool selection and adds `disable-model-invocation: true`.
+That flag has also made explicit skill invocation fail
+([github/copilot-cli#4438](https://github.com/github/copilot-cli/issues/4438), still open when checked on 2026-10-20).
+The bug explains the configuration choice, but its resolution is **not** a completion dependency or a scheduled
+follow-up: automatic skill availability is an intentional supported behavior. Any future change is a new design
+decision, not unfinished `X1` work. User-profile migration entries are outside this repository contract and require
+individual review.
+
 ## Options considered
 
 - **Opus for everything.** The best turn quality, but execution — most of the tokens — runs at the premium rate.
@@ -86,6 +127,10 @@ Implementation** handoff to Auto, so the built-in flow follows the same split.
   one machine or a second vendor account. Rejected as the repository default: one billing and tooling surface —
   Copilot — serves every contributor in both VS Code and Copilot CLI. The template set still installs those variants
   per user.
+- **Migrate everything to skills and remove Local prompts.** Rejected: it discards Local's prompt-specific model,
+  agent, and tool selection without improving the Copilot workflows, whose skill adapters already exist.
+- **Wait for manual-only skills before declaring dual support complete.** Rejected: automatic skill availability is
+  an accepted behavior, not a missing capability required by either supported runtime.
 
 ## Consequences
 
@@ -101,7 +146,8 @@ Implementation** handoff to Auto, so the built-in flow follows the same split.
 - Copilot CLI skills run on the session's model, so a planning session starts on Opus
   (`copilot --model claude-opus-5.5`); `/orchestrate-plan` then delegates execution to `plan-executor` on Auto.
 - Each workflow command appears twice in VS Code's slash menu — a prompt file for VS Code and a skill for Copilot CLI —
-  the same pairing `audit-conventions` uses.
+  the same pairing `audit-conventions` uses. This is intentional; the customization gate prevents drift, rather than
+  requiring users to migrate away from either runtime.
 
 ## References
 

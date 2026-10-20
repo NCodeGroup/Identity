@@ -1,0 +1,116 @@
+# 170. Agent work is planned on a frontier model and executed step by step on a cheaper one
+
+- **Status:** Accepted
+- **Date:** 2026-10-20
+- **Deciders:** NCode Group
+
+## Context
+
+An agent-driven change has two halves with opposite needs. **Planning** — reading the code paths, settling the design,
+deciding exactly what each file must say — is a few turns that need deep reasoning. **Execution** — read, edit, build,
+test, fix — is 20–60 tool turns per change, each resending the growing context, and is most of the token volume.
+Running both halves on the strongest model spends its premium rate on typing; running both on a cheaper model spends
+nothing on the design.
+
+A cheaper model follows a precise instruction well and a vague one badly. When a step leaves a decision open, it
+improvises — creates the function the plan assumed existed, reshapes an interface, edits a file the plan never named —
+and still reports success. In this repository an improvised design choice is exactly what the scoped instruction files
+and the ADRs exist to prevent.
+
+The same split serves [`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform), whose
+decisions are recorded here.
+
+## Decision
+
+**A frontier model plans, re-plans, and orchestrates; a lower-cost model executes one verified step at a time; any
+step that needs thinking goes back to the frontier model.** Every model is a GitHub Copilot built-in, so every
+contributor has the whole loop in VS Code and in Copilot CLI:
+
+| Role                                | Agents and prompts                                                                              | Model             |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------- |
+| Plan, re-plan, orchestrate, analyze | Copilot Planner, Copilot Orchestrator, `/plan-*`, `/handoff-plan`, `/replan-step`, `/analyze-*` | Claude Opus 5.5   |
+| Execute                             | Copilot Implementer, `/execute-step`, the Copilot CLI `plan-executor` agent                     | Auto              |
+| Execute a mechanical step           | The planner's **Execute next step (fast model)** handoff                                        | Claude Haiku 5.5  |
+| Review                              | Copilot Reviewer, `/review-plan-diff`, `/review-code`                                           | Claude Sonnet 5.5 |
+
+The rules:
+
+- **`PLAN.md` is the contract.** At the repository root: Goal, Context for the executor, Decisions, Out of scope,
+  numbered `### [ ] N.` steps that name exact files and symbols, each ending in a `- Done when:` PowerShell command
+  that exits 0 only when that step is done, and a Review checklist. The executor sees only `PLAN.md` and the files it
+  opens, so every design decision is made in the plan.
+- **The executor never redesigns.** When finishing a step would need a design choice, a file or interface the step does
+  not list, or the plan contradicts the code, the executor reverts its partial edits, marks the step `[?]` with an
+  `- Escalation:` line, and stops.
+- **Re-planning runs on Opus.** The planner — or the orchestrator, which is itself the planner — diagnoses the step,
+  rewrites or splits it, records any redesign under Decisions, resets it to `[ ]`, and hands it back. After two
+  re-plans of the same step the loop stops and asks the person driving it.
+- **The coordinator verifies.** The orchestrator runs each step's Done-when command itself before marking it `[x]` and
+  committing a `Plan step N: <title>` checkpoint; an executor's report of success is not the check.
+- **Review is part of the loop.** The reviewer compares the diff with the plan, rates every deviation from a step's
+  text at least should-fix — a deviation means the executor improvised instead of escalating — and appends fixes as new
+  steps for the executor.
+- **`PLAN.md` and its checkpoints are transient.** [`BACKLOG.md`](../../BACKLOG.md) is the single tracker of pending
+  work and the ADRs carry the reasoning, so a plan never outlives its change: its Decisions are promoted into ADRs,
+  instruction files, or the backlog, `PLAN.md` is deleted, and the `Plan step` / `Re-plan step` checkpoints are squashed
+  into conventional commits before the change leaves the machine — before a push to `main` here
+  ([ADR-0125](0125-trunk-based-development-on-main.md)), and before a pull request merges in `identity-platform`.
+- **Repository rules reach every agent.** The planner and the executor both load
+  [`copilot-instructions.md`](../../.github/copilot-instructions.md), [`AGENTS.md`](../../AGENTS.md), and the scoped
+  instruction files, so a plan restates only what a step needs, and the Definition of Done stays the final gate.
+
+The agents ([`.github/agents/`](../../.github/agents/)), prompt files ([`.github/prompts/`](../../.github/prompts/)),
+and Copilot CLI skills ([`.github/skills/`](../../.github/skills/)) are generated from the maintainer's plan-and-execute
+template set by its installer:
+
+```pwsh
+Install-HybridWorkflow.ps1 -Repo . -Variant Copilot -Target VSCode, CopilotCli -CliExecutorModel auto
+```
+
+A change to the workflow is made in the templates and re-installed, never hand-edited into a generated copy; a
+repository-specific rule belongs in the instruction files, which every agent in the loop already loads. The
+`audit-conventions` prompt and skill are hand-written and outside the generated set.
+[`.vscode/settings.json`](../../.vscode/settings.json) routes VS Code's built-in Plan agent to Opus and its **Start
+Implementation** handoff to Auto, so the built-in flow follows the same split.
+
+## Options considered
+
+- **Opus for everything.** The best turn quality, but execution — most of the tokens — runs at the premium rate.
+  Rejected: the volume is in the typing, not the thinking.
+- **A cheaper model for everything.** The lowest cost, but the design is improvised turn by turn, and the conventions
+  and ADRs are applied only as well as that model infers them. Rejected: the design is where quality is decided.
+- **VS Code's built-in Plan agent and Start Implementation alone.** No files to maintain, but the implementer carries the
+  whole planning conversation, runs the plan in one pass with no per-step check, and has no path back to the planner.
+  Kept as a convenience through the settings, not as the main flow.
+- **A local model as executor, or Claude Code with its own subscription.** Cheaper per token for one person, but tied to
+  one machine or a second vendor account. Rejected as the repository default: one billing and tooling surface —
+  Copilot — serves every contributor in both VS Code and Copilot CLI. The template set still installs those variants
+  per user.
+
+## Consequences
+
+- Most tokens run at the executor's rate; Opus is spent on the plan, a short check per step, and re-plans.
+- Plan precision is the lever. Every escalation is a round trip and a signal that a step was underspecified; the fix to
+  one step usually sharpens the later ones.
+- An improvised step that passes its own check is caught only by review, so a change is not done until the reviewer has
+  run and its fix steps are `[x]`.
+- Model names are literal. VS Code silently ignores an unknown model name and answers with the current model
+  ([microsoft/vscode#319131](https://github.com/microsoft/vscode/issues/319131)), so when Copilot renames or retires a
+  model, re-run the installer with the exact names from the `chat.planAgent.defaultModel` settings dropdown and confirm
+  the answering model by hovering a response. Copilot CLI uses model IDs (`claude-opus-5.5`, `auto`).
+- Copilot CLI skills run on the session's model, so a planning session starts on Opus
+  (`copilot --model claude-opus-5.5`); `/orchestrate-plan` then delegates execution to `plan-executor` on Auto.
+- Each workflow command appears twice in VS Code's slash menu — a prompt file for VS Code and a skill for Copilot CLI —
+  the same pairing `audit-conventions` uses.
+
+## References
+
+- [`.github/agents/copilot-planner.agent.md`](../../.github/agents/copilot-planner.agent.md),
+  [`copilot-implementer.agent.md`](../../.github/agents/copilot-implementer.agent.md),
+  [`copilot-orchestrator.agent.md`](../../.github/agents/copilot-orchestrator.agent.md),
+  [`copilot-reviewer.agent.md`](../../.github/agents/copilot-reviewer.agent.md),
+  [`plan-executor.agent.md`](../../.github/agents/plan-executor.agent.md)
+- [`AGENTS.md` — Plan-and-execute workflow](../../AGENTS.md#plan-and-execute-workflow)
+- [ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md) — conventions and lessons live in the repository
+- [ADR-0125](0125-trunk-based-development-on-main.md) — trunk-based development on `main`
+- [ADR-0128](0128-commits-are-attributed-to-people-not-agents.md) — commits are attributed to people, not agents

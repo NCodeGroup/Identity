@@ -79,7 +79,8 @@ nothing.
   - A presented initial access token is validated even when anonymous registration is allowed.
 - A dynamically registered resource-server client chooses how its introspection responses are signed and encrypted,
   as a client created through the management API does.
-- The admin console cannot scope an initial access token to a resource server yet (backlog `U24`).
+- The Management console's mint dialog scopes an initial access token to one of the tenant's non-system resource
+  servers, and its one-time reveal names that resource server.
 
 ## References
 

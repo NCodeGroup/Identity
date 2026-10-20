@@ -894,6 +894,38 @@ describe('managementApi initial access token mint (tenant scope)', () => {
       lifetimeSeconds: 3600,
     });
   });
+
+  it('createInitialAccessToken sends the resource server a scoped token names', async () => {
+    const captured = mockFetch(
+      new Response(
+        JSON.stringify({
+          initialAccessToken: 'iat-xyz',
+          grantId: 'g-1',
+          tenantId: 'acme',
+          description: null,
+          resourceServerId: 'rs-orders',
+          createdWhen: '2026-01-01T00:00:00Z',
+          expiresWhen: null,
+        }),
+        { status: 201, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.createInitialAccessToken.initiate({
+        tenantId: 'acme',
+        body: { description: null, lifetimeSeconds: null, resourceServerId: 'rs-orders' },
+      }),
+    );
+
+    expect('data' in result && result.data?.resourceServerId).toBe('rs-orders');
+    expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual({
+      description: null,
+      lifetimeSeconds: null,
+      resourceServerId: 'rs-orders',
+    });
+  });
 });
 
 describe('managementApi resource-server secret + settings endpoints (tenant scope)', () => {

@@ -20,6 +20,8 @@ export type RevealInitialAccessTokenDialogProps = {
   readonly grantId: string;
   /** When the token expires, or `null` when it never expires. */
   readonly expiresWhen: string | null;
+  /** The resource server the token is scoped to, if any (ADR-0192). */
+  readonly resourceServer?: string | null;
   readonly onClose: () => void;
 };
 
@@ -34,6 +36,7 @@ export function RevealInitialAccessTokenDialog({
   token,
   grantId,
   expiresWhen,
+  resourceServer,
   onClose,
 }: RevealInitialAccessTokenDialogProps) {
   const [copied, setCopied] = useState(false);
@@ -56,6 +59,13 @@ export function RevealInitialAccessTokenDialog({
               </>
             ) : (
               <span data-testid="reveal-iat-no-expiry">This token does not expire.</span>
+            )}
+            {resourceServer && (
+              <>
+                {' '}
+                It registers a client bound to resource server{' '}
+                <code data-testid="reveal-iat-resource-server">{resourceServer}</code>.
+              </>
             )}
           </DialogContentText>
           <Alert severity="warning">

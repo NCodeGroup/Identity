@@ -1908,6 +1908,21 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   action for the `rotatableSecretTypes` it is given, and `SecretsManager` derives them from the capabilities document
   (the types that are not asymmetric), confirms, rotates with the create form's one-year expiry, and reveals the
   replacement once. The client detail page wires the client's rotate endpoint._
+- **`U24` — Scope an initial access token to a resource server in the admin console.** The management API mints an
+  initial access token scoped to a resource server, so the client it registers introspects for that resource server
+  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)), and the
+  `@ncode/api` contract carries `resourceServerId` on the request and the created resource. The console's mint dialog
+  offers only a description and a lifetime. Add an optional resource-server picker that lists the tenant's non-system
+  resource servers, send its `resourceServerId`, show the scope in the one-time reveal, and cover it in the
+  `GrantsPage` and `managementApi` tests. Touch points:
+  `src/frontend/packages/ui/src/components/InitialAccessTokenFormDialog.tsx`,
+  `src/frontend/apps/mgmt/src/containers/GrantsPage.tsx`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)
+  (consequences amended). `InitialAccessTokenFormDialog` takes the `resourceServers` it may scope to and offers a
+  picker only when there is one, `RevealInitialAccessTokenDialog` names the scoped resource server, and `GrantsPage`
+  loads the tenant's non-system resource servers only while the mint dialog is open and sends `resourceServerId`._
 - **`U13` — Buffer-writer (pipe) render model for the server-rendered interactive surface.** The server-side HTML
   renderer `InteractiveAuthenticationPageRenderer` (login, consent, and the `F31` non-redirectable error page) builds
   each page as a `string` via `StringBuilder` and injects it into the SPA bundle's `#root` with `string.Replace`, then

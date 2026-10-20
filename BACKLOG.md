@@ -438,15 +438,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   [`build/frontend-install.ps1`](build/frontend-install.ps1), the AppHost's `EnsurePinnedNodeOnPath`.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
-- **`U24` — Scope an initial access token to a resource server in the admin console.** The management API mints an
-  initial access token scoped to a resource server, so the client it registers introspects for that resource server
-  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)), and the
-  `@ncode/api` contract carries `resourceServerId` on the request and the created resource. The console's mint dialog
-  offers only a description and a lifetime. Add an optional resource-server picker that lists the tenant's non-system
-  resource servers, send its `resourceServerId`, show the scope in the one-time reveal, and cover it in the
-  `GrantsPage` and `managementApi` tests. Touch points:
-  `src/frontend/packages/ui/src/components/InitialAccessTokenFormDialog.tsx`,
-  `src/frontend/apps/mgmt/src/containers/GrantsPage.tsx`.
 
 ## Secrets management (group `S`)
 

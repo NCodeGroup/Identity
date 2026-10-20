@@ -10,6 +10,10 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The Management console scopes an initial access token to a resource server.** The Grants page's mint dialog
+  offers an optional picker of the tenant's non-system resource servers, loaded while the dialog is open. It sends the
+  choice as `resourceServerId`, and the one-time reveal names the resource server the registered client will be bound
+  to. See [ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md).
 - **Dynamic client registration creates a client that introspects for a resource server.**
   `POST api/tenants/{tenantId}/grants/initial-access-tokens` accepts a `resourceServerId` that scopes the token to a
   resource server. The same checks apply as when the management API binds a client: the resource server exists in the

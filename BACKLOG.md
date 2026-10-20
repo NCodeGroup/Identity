@@ -356,15 +356,16 @@ entry and/or ADR that closed it.
   headers only from configured proxies (`ReverseProxy:KnownNetworks` — set it to the cluster's pod CIDR), refuses
   development-only settings and an unprotected Data Protection key ring in Production (`AddProductionSafety`), and
   separates liveness (`/health/live`, no checks) from readiness (`/health/ready`: the database, and Valkey when
-  configured). Still missing for a rolling deployment behind Traefik, in three session-sized slices (image, chart,
-  migration Job): the [`Dockerfile`](src/NCode.Identity.OpenId.Host/Dockerfile) is development-shaped (copies the whole repo,
-  exposes 80/443 although .NET listens on 8080, runs as root, amd64 only) and never builds the `apps/auth` interactive
-  bundle — `InteractiveAuthentication:BundleRootPath` is set only in `launchSettings.json` — so the container cannot
-  render login or consent; no Helm chart (probes on `/health/live` and `/health/ready`, `preStop` drain,
-  PodDisruptionBudget, restricted security context, the `valkey` connection string required when `replicas > 1` — ADR-0164 leaves that rule to the chart); and
-  `Host.MigrationService` (which has no image) should run as a pre-deploy Job with expand/contract schema changes so a
-  rolling update never breaks the running version; the chart mounts the `DataProtection:KeyProtection` certificate
-  that the production-safety gate requires
+  configured). The production image is done: chiseled, non-root on port 8080, built for amd64 and arm64, carrying the
+  `apps/auth` bundle ([ADR-0178](docs/adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
+  Still missing for a rolling deployment behind Traefik, in three session-sized slices (chart, migration Job, image
+  publishing): no Helm chart (probes on `/health/live` and `/health/ready`, `preStop` drain, PodDisruptionBudget,
+  restricted security context, the `valkey` connection string required when `replicas > 1` — ADR-0164 leaves that rule
+  to the chart); `Host.MigrationService` (which has no image) should run as a pre-deploy Job with expand/contract schema
+  changes so a rolling update never breaks the running version; and a release workflow should publish the host image
+  to GHCR, signed, tagged with the version Nerdbank.GitVersioning computes (the image build has no `.git`, so the
+  assembly version inside comes from `version.json` alone). The chart mounts the `DataProtection:KeyProtection`
+  certificate that the production-safety gate requires
   ([ADR-0177](docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)). A served tenant
   without an issuer already fails closed
   ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)). Plus the

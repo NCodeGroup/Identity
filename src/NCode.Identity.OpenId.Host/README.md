@@ -1,7 +1,7 @@
 # NCode.Identity.OpenId.Host
 
 A runnable ASP.NET Core reference host for the OpenID Connect + OAuth 2.0 library family. This document covers the
-**local database environment**, **schema management**, and the **purge/reset procedure**.
+**local database environment**, **schema management**, the **purge/reset procedure**, and the **container image**.
 
 ## Database provider
 
@@ -79,3 +79,34 @@ the next AppHost run rebuilds the schema (migration worker) and re-seeds the dev
 The script auto-detects Docker or Podman and removes the `ncode-identity-openiddb-data` volume (equivalently,
 `docker volume rm ncode-identity-openiddb-data`). This is the only reset needed — the provisioned signing keys and the
 DataProtection key ring are in the same database and are purged with it.
+
+## Container image
+
+The `Dockerfile` builds the production image from the repository root. It needs the frontend's Node major, which it
+reads from the single pin in `src/frontend/.node-version`:
+
+```bash
+docker build --file src/NCode.Identity.OpenId.Host/Dockerfile \
+  --build-arg NODE_VERSION="$(cat src/frontend/.node-version)" \
+  --tag ncode-identity-host .
+```
+
+The image runs on a chiseled ASP.NET Core base with no shell. It runs as the non-root `app` user (UID 1654), listens on
+port **8080** over plain HTTP, and serves the `apps/auth` login bundle from `/app/auth`. TLS terminates at the ingress.
+Probe `/health/live` for liveness and `/health/ready` for readiness. CI builds it for `linux/amd64` and `linux/arm64`
+([ADR-0178](../../docs/adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
+
+The image starts in the `Production` environment, which refuses to start until the deployment provides:
+
+- `AllowedHosts`: the public host names. A missing value or `*` is refused.
+- `DeveloperKeys__Mode=None`: every tenant gets persisted signing keys instead of developer keys.
+- `DataProtection__KeyProtection__Certificate__CertificatePath`, plus `PrivateKeyPath` or `Password`: the certificate
+  that encrypts the key ring at rest
+  ([ADR-0177](../../docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)).
+- `ConnectionStrings__openiddb`: the Postgres database. It also stores the key ring, so the host refuses to start
+  without it.
+- `OpenId__TenantResolution__StaticSingle__Issuer`: the public issuer URL, or another tenant resolution mode. A served
+  tenant without an issuer fails closed
+  ([ADR-0165](../../docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+
+Apply migrations before the new version starts; the image does not migrate on boot.

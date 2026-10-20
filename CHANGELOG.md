@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The host ships a production container image.** `src/NCode.Identity.OpenId.Host/Dockerfile` builds the host on
+  the chiseled `aspnet:10.0-noble-chiseled-extra` runtime. The image has no shell, runs as the non-root `app` user
+  (UID 1654), and listens on port 8080. It builds the `apps/auth` interactive bundle and serves it from `/app/auth`, so
+  the container renders login and consent. The SDK and Node stages cross-build on the build platform, so the image
+  builds for `linux/amd64` and `linux/arm64` without emulation, and the new `Host image` CI workflow builds both. The
+  build context is an allow-list, and the Node major is a required `NODE_VERSION` build argument read from
+  `src/frontend/.node-version`. **Breaking:** the image no longer exposes ports 80 and 443.
+  ([ADR-0178](docs/adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md))
+
 - **The JOSE library creates and validates DPoP proofs.** `IDPoPProofService`, registered by `AddJoseLibrary()`,
   signs a `dpop+jwt` proof (RFC 9449) with any asymmetric `JoseSigningCredentials`. The proof embeds the public `jwk`
   and carries the `htm`, `htu`, `jti`, `iat`, and optional `ath` and `nonce` claims. `TryValidateProof` checks the

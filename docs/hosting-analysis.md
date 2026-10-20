@@ -618,10 +618,12 @@ speed-test endpoint from the Denver network the users are on.
 - **Kubernetes deployment artifacts** — backlog `F46`. `NCode.Identity.OpenId.Host` already trusts forwarded headers
   only from configured proxies (set `ReverseProxy:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,
-  developer CORS, seeders). Still needed: a hardened multi-arch image (non-root, port 8080 — today's Dockerfile is
-  development-shaped), a Helm chart probing `/health/live` and `/health/ready`, `Host.MigrationService` as a pre-deploy
-  Job with expand/contract schema changes so a rolling update never breaks the running version, and a production gate
-  for a missing tenant issuer ([ADR-0129](adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)).
+  developer CORS, seeders). Its image is chiseled, runs non-root on port 8080, is built for amd64 and arm64, and
+  carries the login bundle
+  ([ADR-0178](adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)). Still needed:
+  a Helm chart probing `/health/live` and `/health/ready`, `Host.MigrationService` as a pre-deploy Job with
+  expand/contract schema changes so a rolling update never breaks the running version, and a release workflow that
+  publishes the image to GHCR.
 - **mTLS gap** `F47` (`F43` and `F44` are done) and **per-tenant rate limits** `F45` (above).
 
 **Operations:**

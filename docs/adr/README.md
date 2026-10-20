@@ -212,3 +212,4 @@ standards.
 | [0175](./0175-bundles-split-into-vendor-and-surface-chunks-and-an-oversized-chunk-fails-the-build.md) | Bundles split into vendor and surface chunks, and an oversized chunk fails the build | Accepted |
 | [0176](./0176-dpop-proofs-are-a-jose-building-block.md) | DPoP proofs are a JOSE building block | Accepted |
 | [0177](./0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md) | The Data Protection key ring is encrypted at rest in Production | Accepted |
+| [0178](./0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md) | The host image is chiseled, non-root, multi-arch, and carries the login bundle | Accepted |

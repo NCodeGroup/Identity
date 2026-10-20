@@ -15,6 +15,7 @@ import {
   type CreateResourceServerRequest,
   type CreateScopeRequest,
   type CreateSecretRequest,
+  type RotateSecretRequest,
   type CreateTenantRequest,
   type EffectiveSettingsResource,
   type GrantResource,
@@ -421,6 +422,22 @@ export const managementApi = createApi({
         { type: 'Secret', id: scopeTagId(scope, secretId) },
       ],
     }),
+    rotateClientSecret: build.mutation<
+      CreatedSecretResource,
+      { scope: ManagementScope; clientId: string; secretId: string; body: RotateSecretRequest }
+    >({
+      query: ({ scope, clientId, secretId, body }) => ({
+        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(
+          clientId,
+        )}/secrets/${encodeURIComponent(secretId)}/rotate`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { scope, clientId, secretId }) => [
+        { type: 'Secret', id: scopeTagId(scope, `client:${clientId}`) },
+        { type: 'Secret', id: scopeTagId(scope, secretId) },
+      ],
+    }),
     getClientSecretPublicKey: build.query<
       PublicKeyResource,
       { scope: ManagementScope; clientId: string; secretId: string }
@@ -759,6 +776,7 @@ export const {
   useListClientSecretsQuery,
   useCreateClientSecretMutation,
   useDeleteClientSecretMutation,
+  useRotateClientSecretMutation,
   useLazyGetClientSecretPublicKeyQuery,
   useGetClientSettingsQuery,
   useGetClientEffectiveSettingsQuery,

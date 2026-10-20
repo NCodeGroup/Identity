@@ -247,6 +247,14 @@ export type CreateSecretRequest = {
 };
 
 /**
+ * Mirror of `RotateSecretRequest`. The server generates a replacement of the rotated client secret's type, size,
+ * use, and algorithm; `expiresWhen` is the replacement's ISO-8601 expiry. See ADR-0183.
+ */
+export type RotateSecretRequest = {
+  readonly expiresWhen: string;
+};
+
+/**
  * Mirror of `CreatedSecretResource` — the create response. It carries the same metadata as
  * {@link SecretResource} plus `secretMaterial`: the one-time, base64url-encoded key material revealed only
  * here and never again (`null` for asymmetric secrets, which have no externally-held material). See ADR-0050.

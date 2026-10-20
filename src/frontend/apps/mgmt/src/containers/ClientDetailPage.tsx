@@ -9,6 +9,7 @@ import type { ClientResource, ManagementScope } from '@ncode/api';
 import {
   useCreateClientSecretMutation,
   useDeleteClientSecretMutation,
+  useRotateClientSecretMutation,
   useGetClientEffectiveSettingsQuery,
   useGetClientSettingsQuery,
   useLazyGetClientSecretPublicKeyQuery,
@@ -82,6 +83,7 @@ function ClientSecretsTab({ scope, clientId }: ClientTabProps) {
   const { data, isLoading, error } = useListClientSecretsQuery({ scope, clientId });
   const [createSecret, { isLoading: isCreating }] = useCreateClientSecretMutation();
   const [deleteSecret, { isLoading: isDeleting }] = useDeleteClientSecretMutation();
+  const [rotateSecret, { isLoading: isRotating }] = useRotateClientSecretMutation();
   const [getPublicKey] = useLazyGetClientSecretPublicKeyQuery();
 
   return (
@@ -95,6 +97,8 @@ function ClientSecretsTab({ scope, clientId }: ClientTabProps) {
       onCreate={(body) => createSecret({ scope, clientId, body }).unwrap()}
       onDelete={(secretId) => deleteSecret({ scope, clientId, secretId }).unwrap()}
       onExportPublicKey={(secretId) => getPublicKey({ scope, clientId, secretId }).unwrap()}
+      onRotate={(secretId, body) => rotateSecret({ scope, clientId, secretId, body }).unwrap()}
+      isRotating={isRotating}
     />
   );
 }

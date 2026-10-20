@@ -26,8 +26,11 @@ using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId;
+using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
+using NCode.Identity.SharedState;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -154,6 +157,21 @@ public sealed class DefaultRegistrationTests
         Assert.Equal(OpenIdSettingScopes.Tenant, client.ParentName);
         Assert.True(scopes.TryGet(OpenIdSettingScopes.ResourceServer, out var resourceServer));
         Assert.Equal(OpenIdSettingScopes.Tenant, resourceServer.ParentName);
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_RegistersAnExpiringKeySetForTheSingleUseStores()
+    {
+        // The DPoP and client-assertion stores record into the shared-state port, which the composition root backs.
+        using var host = BuildHost([]);
+        var keySet = host.Services.GetRequiredService<IExpiringKeySet>();
+        var expiresWhen = DateTimeOffset.UtcNow.AddMinutes(1);
+
+        Assert.True(await keySet.TryAddAsync("key", expiresWhen, CancellationToken.None));
+        Assert.False(await keySet.TryAddAsync("key", expiresWhen, CancellationToken.None));
+        Assert.NotNull(host.Services.GetRequiredService<IDPoPNonceService>());
+        Assert.NotNull(host.Services.GetRequiredService<IDPoPProofReplayCache>());
+        Assert.NotNull(host.Services.GetRequiredService<IClientAssertionReplayCache>());
     }
 
     [Fact]

@@ -148,6 +148,11 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   argument, so a collaborator member that takes a span (for example `ISecretGenerator.ImportSharedSecret`) cannot be
   set up. Exercise the code that calls it through an integration test against the real collaborator instead of
   widening the member's signature for the mock.
+- 👁 **Compute a setup's expected value outside the Moq expression.** A setup lambda is an expression tree, which cannot
+  hold a ref struct or the expanded form of a `params ReadOnlySpan<T>` call (`CS8640`, `CS9226`) — so
+  `Setup(x => x.ContainsAsync(ExpiringKeys.Create("p", tenant, nonce), ct))` does not compile. Build the value into a
+  local first (`var expectedKey = ExpiringKeys.Create(…);`) and match it in the setup; this also keeps the matched value
+  visible in the test.
 
 ## Persistence & integration tests
 

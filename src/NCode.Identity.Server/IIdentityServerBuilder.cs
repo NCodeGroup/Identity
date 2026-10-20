@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Authentication;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.SharedState;
 using NCode.Registration;
 
 namespace NCode.Identity.Server;
@@ -39,6 +40,13 @@ public interface IIdentityServerBuilder : IServiceBuilder<IdentityServer>
     /// Gets the builder for configuring data protection services.
     /// </summary>
     IDataProtectionBuilder DataProtectionBuilder { get; }
+
+    /// <summary>
+    /// Gets the builder for configuring the shared-state library: the state every replica of a deployment must see, such
+    /// as single-use and nonce records. The in-process adapter is registered by default, which is correct only for a
+    /// single replica; a deployment that runs several registers a shared adapter on this builder.
+    /// </summary>
+    IServiceBuilder<SharedStateLibrary> SharedStateLibraryBuilder { get; }
 
     /// <summary>
     /// Gets the builder for configuring the secrets library.

@@ -17,6 +17,7 @@
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.EntityFramework.Accounts\NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.EntityFramework.Core\NCode.Identity.OpenId.Persistence.EntityFramework.Core.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Host.Database\NCode.Identity.OpenId.Host.Database.csproj" />
+        <ProjectReference Include="..\NCode.Identity.SharedState.Valkey\NCode.Identity.SharedState.Valkey.csproj" />
     </ItemGroup>
 
     <ItemGroup>

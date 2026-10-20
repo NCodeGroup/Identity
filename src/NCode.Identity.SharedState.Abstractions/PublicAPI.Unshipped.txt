@@ -1,0 +1,6 @@
+#nullable enable
+NCode.Identity.SharedState.IExpiringKeySet
+NCode.Identity.SharedState.IExpiringKeySet.ContainsAsync(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.SharedState.IExpiringKeySet.TryAddAsync(string! key, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.SharedState.SharedStateLibrary
+NCode.Identity.SharedState.SharedStateLibrary.SharedStateLibrary() -> void

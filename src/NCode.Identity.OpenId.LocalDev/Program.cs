@@ -42,6 +42,12 @@ EnsurePinnedNodeOnPath(Path.Combine(builder.AppHostDirectory, "..", "frontend"))
 var postgres = builder.AddPostgres("postgres").WithDataVolume("ncode-identity-openiddb-data");
 var openIdDb = postgres.AddDatabase("openiddb");
 
+// The shared state every OP replica must see — DPoP nonces and the single-use records of DPoP proofs and client
+// assertions (ADR-0164) — lives in Valkey, as in a multi-replica deployment, so local development exercises the same
+// adapter. It is a cache, not a system of record, so it has no data volume: a restart only clears records that expire
+// within minutes. WithReference injects the 'valkey' connection string (with the generated password).
+var valkey = builder.AddValkey("valkey");
+
 // Dedicated migration resource (U12): applies the Npgsql migrations for both contexts, then exits. Dependents
 // WaitForCompletion on it, so a migration failure surfaces as a failed dashboard resource that blocks the api — it
 // never manifests as an api crash. WaitFor(postgres) holds it until the database is accepting connections.
@@ -60,6 +66,8 @@ var api = builder
     .AddProject<Projects.NCode_Identity_OpenId_Host>("api")
     .WithHttpHealthCheck("/health")
     .WithReference(openIdDb)
+    .WithReference(valkey)
+    .WaitFor(valkey)
     .WaitForCompletion(migrations)
     .WithExternalHttpEndpoints();
 
@@ -78,6 +86,8 @@ var conformanceApi = builder
     )
     .WithHttpHealthCheck("/health")
     .WithReference(openIdDb)
+    .WithReference(valkey)
+    .WaitFor(valkey)
     .WaitForCompletion(migrations)
     .WithExternalHttpEndpoints();
 

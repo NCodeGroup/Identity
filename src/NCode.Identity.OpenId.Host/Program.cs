@@ -28,6 +28,7 @@ using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
 using NCode.Identity.Server;
+using NCode.Identity.SharedState.Valkey;
 using NCode.Registration.AspNetCore;
 
 // COMPOSITION-ONLY HOST: this file is a flat list of turnkey Add*/Use*/Map* calls. Reusable or
@@ -69,6 +70,11 @@ identityServer.AddConfiguration(configuration, openIdOptionsSectionName);
 // publish this deployment's coordinates (API base, issuer, client id, feature flags, branding) to the tier-agnostic
 // bundles via MapFrontendBootstrap below.
 identityServer.AddFrontendBootstrap(configuration);
+
+// Shared state every replica must see — DPoP nonces and the single-use records of DPoP proofs and client assertions —
+// goes to Valkey when the 'valkey' connection string is configured (the AppHost injects it), and otherwise stays
+// in-process, which is correct only for a single replica (ADR-0164).
+identityServer.SharedStateLibraryBuilder.AddValkey(configuration);
 
 var entityFrameworkPersistence =
     serviceCollection.AddEntityFrameworkCorePersistence<OpenIdDbContext>();

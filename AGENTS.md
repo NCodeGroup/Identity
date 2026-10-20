@@ -15,6 +15,10 @@ Production projects live under `src/`; test projects (the `*Tests` projects) liv
   (the `.Abstractions` package holds the wire contracts under the `NCode.Identity.OpenId.Management.Contracts` namespace),
   `.Messages.Abstractions`, `.Persistence(.Abstractions)`, `.Persistence.EntityFramework`
 - **Persistence** — `NCode.Persistence.Abstractions`, `NCode.Identity.Persistence.Abstractions`
+- **Infrastructure ports** — `NCode.Identity.Dispatch(.Abstractions)` (background jobs),
+  `NCode.Identity.Events(.Abstractions)`, `NCode.Identity.SharedState(.Abstractions)` (state every replica sees) and its
+  opt-in `NCode.Identity.SharedState.Valkey` adapter
+  ([ADR-0164](docs/adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md))
 - **Composition / host** — `NCode.Registration` (the `IServiceBuilder<TMarker>` builder), `NCode.Identity`,
   `NCode.Identity.Server` (`AddIdentityServer()`), `NCode.Identity.OpenId.Host` (ASP.NET Core reference host),
   `NCode.Identity.OpenId.LocalDev` (.NET Aspire local-dev orchestrator — [ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md))

@@ -16,46 +16,36 @@
 
 #endregion
 
-using Microsoft.Extensions.Caching.Distributed;
+
+using NCode.Identity.OpenId.Authentication.SharedState;
+using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.SharedState;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
-/// Provides the default implementation of the <see cref="IClientAssertionReplayCache"/> abstraction over
-/// <see cref="IDistributedCache"/>, so client-assertion replay (RFC 7523 §3) is detected across every node of a
-/// multi-instance deployment. The server registers an in-memory <see cref="IDistributedCache"/> by default (single
-/// node); a cluster swaps in a shared provider (for example Redis) by registering it in DI.
+/// Provides the default implementation of the <see cref="IClientAssertionReplayCache"/> abstraction over the shared
+/// <see cref="IExpiringKeySet"/>, so client-assertion replay (RFC 7523 §3) is detected by every replica that shares the
+/// set. The set's atomic add-if-absent lets exactly one of any number of concurrent presentations of an assertion
+/// succeed.
 /// </summary>
-internal sealed class DefaultClientAssertionReplayCache(IDistributedCache distributedCache)
+internal sealed class DefaultClientAssertionReplayCache(IExpiringKeySet keySet)
     : IClientAssertionReplayCache
 {
-    private static ReadOnlySpan<byte> Marker => [1];
+    private const string Purpose = "client_assertion_jti";
 
-    private IDistributedCache DistributedCache { get; } = distributedCache;
+    private IExpiringKeySet KeySet { get; } = keySet;
 
     /// <inheritdoc />
-    public async ValueTask<bool> TryRecordAsync(
+    public ValueTask<bool> TryRecordAsync(
+        OpenIdContext openIdContext,
         string clientId,
         string jti,
         DateTimeOffset expiresWhen,
         CancellationToken cancellationToken
     )
     {
-        var key = $"client_assertion_jti:{clientId}:{jti}";
-
-        // IDistributedCache has no atomic add-if-absent, so two concurrent identical assertions could both observe an
-        // empty slot; the window is bounded by the assertion's short acceptance lifetime and is acceptable for replay
-        // detection. A provider-specific atomic implementation may replace this seam when stricter guarantees matter.
-        var existing = await DistributedCache.GetAsync(key, cancellationToken);
-        if (existing is not null)
-            return false;
-
-        await DistributedCache.SetAsync(
-            key,
-            Marker.ToArray(),
-            new DistributedCacheEntryOptions { AbsoluteExpiration = expiresWhen },
-            cancellationToken
-        );
-        return true;
+        var key = ExpiringKeys.Create(Purpose, openIdContext.Tenant.TenantId, clientId, jti);
+        return KeySet.TryAddAsync(key, expiresWhen, cancellationToken);
     }
 }

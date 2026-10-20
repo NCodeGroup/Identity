@@ -176,6 +176,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         MockReplayCache
             .Setup(x =>
                 x.TryRecordAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<DateTimeOffset>(),
@@ -261,6 +262,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         MockReplayCache
             .Setup(x =>
                 x.TryRecordAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<DateTimeOffset>(),
@@ -285,6 +287,7 @@ public class DefaultDPoPProofValidatorTests : BaseTests
         MockReplayCache
             .Setup(x =>
                 x.TryRecordAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<DateTimeOffset>(),

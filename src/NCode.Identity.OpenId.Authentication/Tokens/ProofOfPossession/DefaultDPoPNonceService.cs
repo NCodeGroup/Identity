@@ -16,27 +16,30 @@
 
 #endregion
 
+
 using System.Security.Cryptography;
-using Microsoft.Extensions.Caching.Distributed;
+using NCode.Identity.OpenId.Authentication.SharedState;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.SharedState;
 
 namespace NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
 
 /// <summary>
-/// Provides the default implementation of the <see cref="IDPoPNonceService"/> abstraction over
-/// <see cref="IDistributedCache"/>, so a server-issued DPoP nonce (RFC 9449 §8) is recognized across every node of a
-/// multi-instance deployment. The server registers an in-memory <see cref="IDistributedCache"/> by default (single
-/// node); a cluster swaps in a shared provider (for example Redis) by registering it in DI.
+/// Provides the default implementation of the <see cref="IDPoPNonceService"/> abstraction over the shared
+/// <see cref="IExpiringKeySet"/>, so a server-issued DPoP nonce (RFC 9449 §8) is recognized by every replica that shares
+/// the set. A nonce is recorded under its tenant, so a nonce issued for one tenant is not accepted by another.
 /// </summary>
-internal sealed class DefaultDPoPNonceService(IDistributedCache distributedCache)
+internal sealed class DefaultDPoPNonceService(IExpiringKeySet keySet, TimeProvider timeProvider)
     : IDPoPNonceService
 {
+    private const string Purpose = "dpop_nonce";
     private const int NonceByteLength = 16;
 
-    private static ReadOnlySpan<byte> Marker => [1];
     private static TimeSpan NonceLifetime => TimeSpan.FromMinutes(5);
 
-    private IDistributedCache DistributedCache { get; } = distributedCache;
+    private IExpiringKeySet KeySet { get; } = keySet;
+
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
     public async ValueTask<string> IssueNonceAsync(
@@ -45,13 +48,10 @@ internal sealed class DefaultDPoPNonceService(IDistributedCache distributedCache
     )
     {
         var nonce = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(NonceByteLength));
+        var key = ExpiringKeys.Create(Purpose, openIdContext.Tenant.TenantId, nonce);
 
-        await DistributedCache.SetAsync(
-            $"dpop_nonce:{nonce}",
-            Marker.ToArray(),
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = NonceLifetime },
-            cancellationToken
-        );
+        // A key already present is a live nonce with this value, which validates just the same.
+        await KeySet.TryAddAsync(key, TimeProvider.GetUtcNow() + NonceLifetime, cancellationToken);
 
         return nonce;
     }
@@ -66,7 +66,7 @@ internal sealed class DefaultDPoPNonceService(IDistributedCache distributedCache
         if (string.IsNullOrEmpty(nonce))
             return false;
 
-        var value = await DistributedCache.GetAsync($"dpop_nonce:{nonce}", cancellationToken);
-        return value is not null;
+        var key = ExpiringKeys.Create(Purpose, openIdContext.Tenant.TenantId, nonce);
+        return await KeySet.ContainsAsync(key, cancellationToken);
     }
 }

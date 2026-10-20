@@ -1,0 +1,11 @@
+#nullable enable
+const NCode.Identity.SharedState.Valkey.Options.ValkeyOptions.ConnectionStringName = "valkey" -> string!
+const NCode.Identity.SharedState.Valkey.Options.ValkeyOptions.DefaultKeyPrefix = "ncode-identity:" -> string!
+const NCode.Identity.SharedState.Valkey.Options.ValkeyOptions.DefaultSectionName = "Valkey" -> string!
+NCode.Identity.SharedState.Valkey.DefaultRegistration
+NCode.Identity.SharedState.Valkey.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.SharedState.SharedStateLibrary>!)
+NCode.Identity.SharedState.Valkey.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.SharedState.SharedStateLibrary>!).AddValkey(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.SharedState.SharedStateLibrary>!
+NCode.Identity.SharedState.Valkey.Options.ValkeyOptions
+NCode.Identity.SharedState.Valkey.Options.ValkeyOptions.KeyPrefix.get -> string!
+NCode.Identity.SharedState.Valkey.Options.ValkeyOptions.KeyPrefix.set -> void
+NCode.Identity.SharedState.Valkey.Options.ValkeyOptions.ValkeyOptions() -> void

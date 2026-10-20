@@ -129,6 +129,7 @@ NCode.Identity.Server.IIdentityServerBuilder.OpenIdCoreLibraryBuilder.get -> NCo
 NCode.Identity.Server.IIdentityServerBuilder.OpenIdManagementLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.SecretPersistenceLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
 NCode.Identity.Server.IIdentityServerBuilder.SecretsLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!
+NCode.Identity.Server.IIdentityServerBuilder.SharedStateLibraryBuilder.get -> NCode.Registration.IServiceBuilder<NCode.Identity.SharedState.SharedStateLibrary>!
 const NCode.Identity.Server.Frontend.FrontendBootstrapOptions.DefaultSectionName = "Frontend" -> string!
 NCode.Identity.Server.Frontend.FrontendBootstrapOptions
 NCode.Identity.Server.Frontend.FrontendBootstrapOptions.ApiBaseUrl.get -> string?

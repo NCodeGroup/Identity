@@ -1,6 +1,8 @@
 # 134. Cloud-native operating principles: cattle, immutable, stateless, redundant
 
-- **Status:** Accepted
+- **Status:** Accepted (principle 4 amended by
+  [ADR-0164](0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md):
+  shared ephemeral state lives in the shared-state port, backed by Valkey)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

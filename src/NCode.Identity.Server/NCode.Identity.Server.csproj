@@ -16,6 +16,7 @@
         <ProjectReference Include="..\NCode.Identity.OpenId.Management\NCode.Identity.OpenId.Management.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets.Persistence\NCode.Identity.Secrets.Persistence.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
+        <ProjectReference Include="..\NCode.Identity.SharedState\NCode.Identity.SharedState.csproj" />
         <ProjectReference Include="..\NCode.Identity\NCode.Identity.csproj" />
     </ItemGroup>
 

@@ -304,9 +304,10 @@ No production load data exists yet, so these are **planning estimates**; confirm
 - **Bandwidth is not a cost driver.** Token responses are a few KB; even 1M interactive logins/month at ~500 KB of
   assets each is ~0.5 TB, below every vendor's included transfer.
 - **Multi-replica readiness:** Data Protection keys already persist to Postgres
-  ([ADR-0073](adr/0073-postgres-dev-database-and-aspire-migration-worker.md); encryption at rest is `S10`); DPoP
-  replay/nonce stores need a shared `IDistributedCache` (Valkey) once there is >1 replica; the in-process job dispatcher
-  does not coordinate across nodes (backlog `D5`).
+  ([ADR-0073](adr/0073-postgres-dev-database-and-aspire-migration-worker.md); encryption at rest is `S10`); the DPoP
+  nonce and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`
+  connection string ([ADR-0164](adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); the
+  in-process job dispatcher does not coordinate across nodes (backlog `D5`).
 
 **Measure before buying:** run the host (`NCode.Identity.OpenId.Host`) with `dotnet-counters` attached, drive the token
 endpoint with k6 (`client_credentials` and authorization-code flows), and record working set and CPU-ms per request;
@@ -383,9 +384,13 @@ cluster). Neon and Aiven Free/Developer are fine for dev/staging, not for a prod
 | **Aiven**                       | **Free** (1 GB, no region choice)  | Business from **$70**                | Hobbyist $19                                                       |
 | **Akamai managed**              | 4 GB dedicated **$59**             | 3-node **$176**                      | Not entry-level; Valkey is in limited availability (Akamai docs, 2026-10-14) — re-verify plans |
 
-**Self-hosting is the recommended default.** Valkey backs the `IDistributedCache` used by the DPoP replay cache and
-nonce service ([ADR-0097](adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md)); losing it on restart only
-reopens a replay window bounded by the DPoP proof lifetime. Enable AOF persistence if that window matters.
+**Self-hosting is the recommended default.** Valkey backs the shared-state port that records DPoP nonces and the
+single-use DPoP-proof and client-assertion `jti`s
+([ADR-0164](adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); losing it on restart only
+reopens a replay window bounded by the proof and assertion lifetimes. Enable AOF persistence if that window matters.
+Address it with the `valkey` connection string (TLS and an access-control user in production:
+`valkey:6380,ssl=true,user=identity,password=…`); a replica that cannot reach it reports not ready on the `valkey`
+health check and fails those checks closed.
 
 ## 7. Cost scenarios (3 nodes × 2 vCPU / 4 GB, one LB)
 

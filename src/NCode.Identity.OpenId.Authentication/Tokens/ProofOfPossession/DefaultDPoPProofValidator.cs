@@ -236,6 +236,7 @@ internal class DefaultDPoPProofValidator(
         // Record the proof's jti to reject a replay within its acceptance window (RFC 9449 §11.1).
         var expiresWhen = issuedAt + lifetime;
         var recorded = await ReplayCache.TryRecordAsync(
+            openIdContext,
             jwkThumbprint,
             jti,
             expiresWhen,

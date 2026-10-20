@@ -32,6 +32,7 @@ using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Server.DevelopmentEnvironment.OpenApi;
 using NCode.Identity.Server.OpenApi;
+using NCode.Identity.SharedState;
 using NCode.Mediator;
 using NCode.PropertyBag;
 using NCode.Registration;
@@ -45,6 +46,9 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
 {
     /// <inheritdoc />
     public IDataProtectionBuilder DataProtectionBuilder { get; }
+
+    /// <inheritdoc />
+    public IServiceBuilder<SharedStateLibrary> SharedStateLibraryBuilder { get; }
 
     /// <inheritdoc />
     public IServiceBuilder<SecretsLibrary> SecretsLibraryBuilder { get; }
@@ -83,6 +87,12 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
         // The in-process, self-scheduling job dispatcher is the default adapter; a host swaps in a durable or
         // distributed backend (outbox, broker, scheduler cluster) by registering its own IJobDispatcher first.
         serviceCollection.AddDispatchServices().AddInProcessJobDispatcher();
+
+        // The in-process expiring key set is the default shared-state adapter, correct for a single replica; a
+        // deployment that runs several replicas swaps in a shared adapter (AddValkey) on SharedStateLibraryBuilder.
+        SharedStateLibraryBuilder = serviceCollection
+            .AddSharedStateServices()
+            .AddInProcessExpiringKeySet();
 
         DataProtectionBuilder = serviceCollection.AddDataProtection();
         SecretsLibraryBuilder = serviceCollection.AddSecretsLibrary();

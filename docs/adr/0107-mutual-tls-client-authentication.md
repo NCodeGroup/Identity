@@ -1,6 +1,7 @@
 # 107. Mutual-TLS client authentication (`tls_client_auth` and `self_signed_tls_client_auth`)
 
-- **Status:** Accepted
+- **Status:** Accepted (`tls_client_auth` chain validation moved into the server by
+  [ADR-0173](0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md))
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
 
@@ -44,7 +45,9 @@ proof-of-possession service.
   differences do not matter) or one of `tls_client_auth_san_dns` / `_san_uri` / `_san_ip` / `_san_email` (RFC 8705
   §2.1.2). DNS and IP SANs are read through the BCL `X509SubjectAlternativeNameExtension`; the `uniformResourceIdentifier`
   and `rfc822Name` GeneralName choices — the only two the BCL exposes no typed accessor for — are decoded from the
-  extension's ASN.1 directly. A client registered for `tls_client_auth` with no configured identity never matches.
+  extension's ASN.1 directly. A client registered for `tls_client_auth` with no configured identity never matches. The
+  certificate's chain is validated first, against the client's configured trust anchors
+  ([ADR-0173](0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
 
 - **Discovery advertises both methods automatically.** `token_endpoint_auth_methods_supported` is derived from the
   registered handlers ([DefaultClientSettingDescriptorDataSource]), so registering the two handlers advertises

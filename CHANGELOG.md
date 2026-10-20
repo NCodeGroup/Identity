@@ -716,6 +716,17 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **`tls_client_auth` validates the presented certificate's chain in the server and fails closed.** The handler
+  matched only the subject and trusted the TLS terminator to have validated the chain, so a proxy that only requested
+  a certificate let a self-signed certificate carrying a client's registered subject authenticate as that client. The
+  chain is now built against the tenant- or client-scoped `tls_client_auth_trust_anchors` (PEM CA certificates; a
+  self-issued one is an anchor, any other an intermediate) with custom root trust, the forwarded intermediates as
+  untrusted hints, the `clientAuth` extended key usage, validity, and `tls_client_auth_revocation_mode` (`online` by
+  default, `offline`, or `none`). The replaceable `IClientCertificateChainValidator` performs the check, and a failure
+  is audited as `client_certificate_untrusted`. **Breaking:** a `tls_client_auth` client with no trust anchors no
+  longer authenticates, and a PKI that publishes no revocation data must set `tls_client_auth_revocation_mode` to
+  `none`. ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md))
+
 - **Behind a proxy, a forwarded certificate that cannot be decoded fails the request, and the connection's certificate
   is never taken for the client's.** An undecodable forwarded value was read as no certificate, after which the resolver
   fell back to the certificate on the connection — at most the proxy's own on a re-encrypting hop. When a forwarded

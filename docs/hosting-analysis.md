@@ -440,19 +440,19 @@ Verified against Traefik v3.7 documentation and source:
   chain, the client's own certificate first, and surfaces the rest as intermediates for chain building. A forwarded
   value that cannot be decoded fails the request with `invalid_request` rather than reading as no certificate
   ([ADR-0172](adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
-- **`F43` — `tls_client_auth` trusts the TLS layer for chain validation.** The handler matches only subject DN / SAN.
-  Therefore the proxy must `RequireAndVerifyClientCert` against a CA bundle, which (a) rejects
-  `self_signed_tls_client_auth` certificates on the same host, (b) cannot pick a per-tenant CA when tenants share a
-  hostname (`DynamicByPath`), and (c) **becomes an authentication bypass** if the proxy is set to
-  `RequireAnyClientCert` — a self-signed certificate carrying the registered subject DN would match.
+- **`F43` — chain validation in the server (resolved).** `tls_client_auth` builds the presented certificate's chain to
+  the client's `tls_client_auth_trust_anchors` (tenant- or client-scoped PEM CAs, custom root trust, `clientAuth` EKU,
+  validity, `tls_client_auth_revocation_mode`) before matching the subject, and trusts no certificate when no anchor is
+  configured. The proxy only requests and forwards the certificate
+  ([ADR-0173](adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
 - **`F47` — the mTLS alias host doesn't route to a tenant.** `mtls_endpoint_alias_authority` advertises
   `{tenant}.mtls…`, but `DynamicByHost` resolves tenants only by the host of their issuer
   ([ADR-0129](adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)), so requests to a per-tenant alias
   host find no tenant.
 
-**Interim rule until `F43` lands:** on the mTLS host, either use `RequireAndVerifyClientCert` with the trusted CA bundle
-and register only `tls_client_auth` clients, **or** use `RequireAnyClientCert` and register only
-`self_signed_tls_client_auth` clients. Never combine `RequireAnyClientCert` with `tls_client_auth` clients.
+**Proxy rule:** on the mTLS host, use `RequireAnyClientCert` (request, don't verify) and forward the certificate. The
+server validates `tls_client_auth` chains itself, so `tls_client_auth` and `self_signed_tls_client_auth` clients share
+the host.
 
 ### Can Traefik read tenant PKI from our datastores?
 
@@ -463,16 +463,17 @@ Yes, indirectly — but it is not the recommended long-term design:
   provider with a generated file works the same way outside Kubernetes.)
 - **Limits:** client-CA selection happens at the TLS handshake by SNI, before any tenant routing — per-tenant CAs at the
   proxy require **per-tenant hostnames** (`DynamicByHost`). Self-signed and PKI clients still cannot share a host.
-- **Recommended:** keep the proxy simple — **request** the certificate on the mTLS host and forward it — and enforce
-  per-tenant / per-client trust anchors **in the server** (`F43`). Tenant changes then apply immediately, without proxy
-  reloads, and both RFC 8705 methods share one mTLS alias host. Use proxy-side dynamic config only for what must live at
+- **Recommended (implemented by `F43`):** keep the proxy simple — **request** the certificate on the mTLS host and
+  forward it — and enforce per-tenant / per-client trust anchors **in the server**. Tenant changes then apply
+  immediately, without proxy reloads, and both RFC 8705 methods share one mTLS alias host. Use proxy-side dynamic config only for what must live at
   the edge: per-tenant custom-domain routers and their server certificates (cert-manager).
 
 ### TLS pass-through alternative
 
 An `IngressRouteTCP` with `tls.passthrough: true` can route the mTLS hostname by SNI straight to Kestrel
 (`ClientCertificateMode.AllowCertificate`). The server then reads the certificate from the connection — no forwarded
-header to trust — at the cost of Traefik's L7 features for that host. Per-tenant trust still needs `F43`.
+header to trust — at the cost of Traefik's L7 features for that host. Per-tenant trust comes from the server's trust
+anchors (`F43`).
 
 ## 9. Remote keys / KMS (backlog `S7`, `S9`)
 
@@ -619,7 +620,7 @@ speed-test endpoint from the Denver network the users are on.
   development-shaped), readiness checks separate from liveness, a Helm chart, `Host.MigrationService` as a pre-deploy
   Job with expand/contract schema changes so a rolling update never breaks the running version, and a production gate
   for a missing tenant issuer ([ADR-0129](adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)).
-- **mTLS gaps** `F43` / `F44` / `F47` and **per-tenant rate limits** `F45` (above).
+- **mTLS gap** `F47` (`F43` and `F44` are done) and **per-tenant rate limits** `F45` (above).
 
 **Operations:**
 
@@ -672,6 +673,6 @@ the provider's SPF include and DKIM keys, and keep DMARC at `p=reject`.
    customer dev/test/prod are tenants on production; the platform runs production plus a private lab
    on the OCI Pay-As-You-Go A1 allowance (~$4) and ephemeral Azure runs on the Visual Studio credit (§2, §10,
    backlog `T9`).
-5. **Server prerequisites before mTLS goes live:** `F43` (in-app chain validation), `F44` (Traefik header format), and
-   `F47` (route per-tenant mTLS alias hosts).
+5. **Server prerequisites before mTLS goes live:** `F47` (route per-tenant mTLS alias hosts); `F43` (in-app chain
+   validation) and `F44` (Traefik header format) are done.
 6. **Primary domain:** acquire `nidentity.com` ($250 offer pending) or stay on `nidentity.io` (§3).

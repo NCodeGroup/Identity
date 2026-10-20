@@ -783,6 +783,31 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   tenant route, and the base-address and link-generation defects on that path are fixed. Follow-ups: `F50`, `F51`,
   `F52`._
 
+- **`F43` — Validate `tls_client_auth` certificate chains in the server against configured trust anchors.**
+  `tls_client_auth` ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)) assumes the TLS terminator already
+  PKI-validated the certificate; the handler only matches subject DN / SAN. That forces the proxy to
+  `RequireAndVerifyClientCert` against a CA bundle, which (a) rejects `self_signed_tls_client_auth` certificates on the
+  same host, (b) cannot select a per-tenant CA when tenants share a hostname (TLS options bind per SNI, before the tenant
+  is known), and (c) becomes an **authentication bypass** if the proxy only requests the certificate
+  (`RequireAnyClientCert`) — a self-signed certificate carrying the registered subject DN would match. Add
+  tenant/client-scoped trust-anchor settings (CA bundle, optional intermediates from the forwarded chain, revocation
+  policy) and build the chain with `X509Chain` (custom root trust, `clientAuth` EKU, validity) before the identity match,
+  so the proxy only needs to request and forward the certificate. Found during the
+  [hosting analysis](docs/hosting-analysis.md#8-traefik-mtls-and-tenant-pki). Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/TlsClientAuthClientAuthenticationHandler.cs`,
+  `MutualTlsClientAuthenticationHandler`, `OpenIdSettingKeys`. `IClientCertificateResolver` already surfaces the chain
+  the client presented (`PresentedClientCertificate.Intermediates`,
+  [ADR-0172](docs/adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)). Capture the design in
+  an ADR.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md). Trust anchors are the
+  tenant/client-scoped `tls_client_auth_trust_anchors` (a self-issued entry is an anchor, any other an intermediate),
+  and revocation is `tls_client_auth_revocation_mode` (`online` by default). `IClientCertificateChainValidator` builds
+  the chain with custom root trust, the forwarded intermediates as hints, and the `clientAuth` EKU, and fails closed
+  without anchors. The mutual-TLS base handler gained an `IsCertificateTrustedAsync` step that runs before the match
+  and audits `client_certificate_untrusted`._
+
 - **`F44` — Accept Traefik's `X-Forwarded-Tls-Client-Cert` encoding.** Traefik's `passTLSClientCert` (`pem: true`)
   forwards each certificate as base64 DER (PEM delimiters and newlines stripped) and comma-separates the chain when the
   client presents one. `MutualTlsClientCertificateFormat.Base64Der` decodes a single certificate only, so a presented

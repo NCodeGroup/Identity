@@ -16,6 +16,7 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Core.Tests.ClientCertificates;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using Xunit;
@@ -151,6 +152,23 @@ public class OpenIdSettingRulesTests
     public void AccessTokenType_AcceptsOnlyTheJwtAccessTokenType(string value, bool expected)
     {
         Assert.Equal(expected, IsValid(OpenIdSettingRules.AccessTokenType(), value));
+    }
+
+    [Theory]
+    [InlineData("online", true)]
+    [InlineData("offline", true)]
+    [InlineData("none", true)]
+    [InlineData("Online", false)]
+    [InlineData("", false)]
+    public void ClientCertificateRevocationMode_AcceptsOnlyTheNamedModes(
+        string value,
+        bool expected
+    )
+    {
+        Assert.Equal(
+            expected,
+            IsValid(OpenIdSettingRules.ClientCertificateRevocationMode(), value)
+        );
     }
 
     #endregion
@@ -302,6 +320,44 @@ public class OpenIdSettingRulesTests
     public void EmailAddress_AcceptsABareAddress(string value, bool expected)
     {
         Assert.Equal(expected, IsValid(OpenIdSettingRules.EmailAddress(), value));
+    }
+
+    [Fact]
+    public void CaCertificatePem_CertificateAuthority_IsValid()
+    {
+        using var authority = TestCertificates.CreateRootAuthority("Root");
+
+        Assert.True(
+            IsValid(OpenIdSettingRules.CaCertificatePem(), authority.ExportCertificatePem())
+        );
+    }
+
+    [Fact]
+    public void CaCertificatePem_EndEntityCertificate_IsInvalid()
+    {
+        using var authority = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(authority, "CN=client");
+
+        Assert.False(IsValid(OpenIdSettingRules.CaCertificatePem(), leaf.ExportCertificatePem()));
+    }
+
+    [Fact]
+    public void CaCertificatePem_MultipleCertificates_IsInvalid()
+    {
+        using var first = TestCertificates.CreateRootAuthority("First");
+        using var second = TestCertificates.CreateRootAuthority("Second");
+        var bundle = first.ExportCertificatePem() + "\n" + second.ExportCertificatePem();
+
+        Assert.False(IsValid(OpenIdSettingRules.CaCertificatePem(), bundle));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not a certificate")]
+    [InlineData("-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----")]
+    public void CaCertificatePem_NotACertificate_IsInvalid(string value)
+    {
+        Assert.False(IsValid(OpenIdSettingRules.CaCertificatePem(), value));
     }
 
     #endregion

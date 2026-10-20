@@ -884,6 +884,20 @@ public static class OpenIdSettingNames
     public const string TlsClientAuthSanEmail = "tls_client_auth_san_email";
 
     /// <summary>
+    /// Contains the name of the <c>tls_client_auth_trust_anchors</c> setting: the PEM-encoded X.509 CA certificates a
+    /// <c>tls_client_auth</c> client certificate must chain to. A self-issued certificate is a trust anchor; any other
+    /// is an intermediate that may complete a chain but is never trusted on its own. With none configured, no
+    /// <c>tls_client_auth</c> certificate is trusted.
+    /// </summary>
+    public const string TlsClientAuthTrustAnchors = "tls_client_auth_trust_anchors";
+
+    /// <summary>
+    /// Contains the name of the <c>tls_client_auth_revocation_mode</c> setting: how the revocation status of a
+    /// <c>tls_client_auth</c> client certificate chain is checked (<c>online</c>, <c>offline</c>, or <c>none</c>).
+    /// </summary>
+    public const string TlsClientAuthRevocationMode = "tls_client_auth_revocation_mode";
+
+    /// <summary>
     /// Contains the name of <c>mtls_endpoint_alias_authority</c> setting (RFC 8705 §5): when set to a
     /// scheme-and-authority (for example <c>https://mtls.op.example</c>), the discovery document advertises an
     /// <c>mtls_endpoint_aliases</c> object whose endpoint URLs are rewritten to that mutual-TLS authority.

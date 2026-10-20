@@ -1428,6 +1428,24 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   [ADR-0182](docs/adr/0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md) and the
   [`CHANGELOG.md`](CHANGELOG.md) entry "The frontend bootstrap document's issuer is the serving tenant's…"._
 
+- **`F76` — Accept an `id_token_hint` the client re-encrypted to the server.** OpenID Connect RP-Initiated Logout 1.0
+  §2 lets a relying party that received an encrypted ID token re-encrypt it to the OP's public key before passing it as
+  `id_token_hint`. The server validates a hint under the ID-token policy, which names no decryption keys because an ID
+  token is encrypted only to its client
+  ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md)), so a re-encrypted hint is
+  rejected and logout proceeds without one. Accept a hint encrypted to the tenant's encryption keys under the tenant's
+  advertised `id_token_encryption_*` lists, keep the enclosed ID token's checks unchanged, and decide whether the OP
+  advertises the keys a relying party re-encrypts to. Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultIssuedTokenValidator.cs` (`ValidateIdTokenHintAsync`),
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/Handlers/DefaultResolveEndSessionSubjectHandler.cs`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md) (decision and options
+  amended). `ValidateIdTokenHintAsync` names the tenant's keys as decryption keys under the tenant's
+  `id_token_encryption_{alg,enc}_values_supported`, with no compression; `ValidateIdTokenAsync` still rejects an
+  encrypted ID token. The tenant's JSON Web Key Set already publishes the public keys a relying party re-encrypts to,
+  as it does for request objects, so nothing new is advertised._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

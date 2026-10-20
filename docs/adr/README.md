@@ -206,3 +206,4 @@ standards.
 | [0167](./0167-the-server-validates-the-tokens-it-issued-under-one-policy.md) | The server validates the tokens it issued under one policy | Accepted |
 | [0168](./0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md) | Introspection discloses a token only to the party that consumes it | Accepted |
 | [0169](./0169-every-tenant-is-provisioned-with-persisted-keys.md) | Every tenant is provisioned with persisted keys | Accepted |
+| [0170](./0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md) | Agent work is planned on a frontier model and executed step by step on a cheaper one | Accepted |

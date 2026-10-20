@@ -92,6 +92,11 @@ marked tool-enforced or review-only. The highlights:
    CI reports a verdict on every commit but nothing blocks the push, so the gate is the one you run locally
    (`./build/dod.ps1 -Fast`). See [ADR-0125](docs/adr/0125-trunk-based-development-on-main.md).
 
+An agent-assisted change of more than a few steps runs as **plan-and-execute**: Claude Opus plans it into `PLAN.md`, a
+lower-cost Copilot model executes one verified step at a time, and Opus re-plans any step that comes back — see
+[AGENTS.md](AGENTS.md#plan-and-execute-workflow) and
+[ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md).
+
 See [GOVERNANCE.md](GOVERNANCE.md) for ownership, the release lifecycle, and how versions map onto tags.
 
 ## Commit attribution

@@ -44,6 +44,31 @@ history or volatile agent memory ([ADR-0008](docs/adr/0008-conventions-and-lesso
 item is fully done, **move** its text to the completed-items archive [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)
 (don't just delete it) so completed work stays discoverable without git archaeology.
 
+## Plan-and-execute workflow
+
+Multi-step changes run as **plan-and-execute**
+([ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)):
+Claude Opus plans into a root `PLAN.md`, a lower-cost Copilot model (Auto) executes it one verified step at a time, and
+any step that needs a decision comes back to Opus to be re-planned.
+
+- **VS Code** (session target Local): pick the **Copilot Planner** agent, or run a planning prompt — `/plan-feature`,
+  `/plan-bugfix`, `/plan-refactor`, `/plan-tests`, `/plan-migration`, `/plan-performance`, `/plan-security`,
+  `/plan-docs`, or `/handoff-plan` after planning in conversation. Review `PLAN.md`, then either **Run all steps with
+  subagents** (the Copilot Orchestrator on Opus delegates each step to a Copilot Implementer subagent on Auto, runs the
+  step's check, and re-plans escalations itself — enable the Run Subagent tool) or step through with **Execute next
+  step** and **Re-plan with the planner**. Finish with **Review the work** (Sonnet) and execute the fix steps it queues.
+- **Copilot CLI:** start on Opus — `copilot --model claude-opus-5.5 --reasoning-effort high` — then `/plan-feature …`,
+  `/orchestrate-plan` (delegates each step to the `plan-executor` agent on `auto`), and `/review-plan-diff`.
+- **Done-when commands** prove one step: the narrowest test that fails until the step is done, such as
+  `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>"` (xUnit v2 on VSTest).
+  `./build/dod.ps1 -Fast` stays the gate for the whole change.
+- **`PLAN.md` is transient:** the push protocol in [`copilot-instructions.md`](.github/copilot-instructions.md) promotes
+  its Decisions, deletes it, and squashes the `Plan step N` / `Re-plan step N` checkpoint commits before anything is
+  pushed.
+- The agents, prompts, and skills under `.github/` are **generated** (the installer command is in ADR-0170); change the
+  templates and re-install rather than hand-editing them. Repository rules belong in the instruction files, which every
+  agent in the loop already loads.
+
 ## Build, test & contributing
 
 Run [`./build/dod.ps1`](build/dod.ps1) — the single Definition of Done (tool-restore, CSharpier check, restore,

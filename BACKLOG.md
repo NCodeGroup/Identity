@@ -103,20 +103,6 @@ entry and/or ADR that closed it.
   until a concrete need justifies the persistence/migration (or broker/scheduler) operational cost. Touch points:
   implement `NCode.Identity.Dispatch.IJobDispatcher` in a new adapter package and register it before
   `AddInProcessJobDispatcher` (or omit that call).
-- **`D11` — Time/date extension methods carry logic inside the `*.Abstractions` package.**
-  `NCode.Identity.Jose.Abstractions/Extensions/` still holds `DateTimeExtensions`, `DateTimeOffsetExtensions`, and
-  `TimeProviderExtensions` — each a C# 14 `extension(...)` member with a real method body (`WithPrecisionInSeconds`,
-  `GetUtcNowWithPrecisionInSeconds`, `GetTimestampWithPrecisionInSeconds`) — which violates the house rule that
-  `*.Abstractions` packages hold only dumb DTOs / POCOs / interfaces / contracts (no logic). This is the same violation
-  the now-closed `D9` fixed for the dictionary accessor, but these are **general time/date helpers**, not JSON, so they
-  cannot follow `D9` into `NCode.Json`; they need a different non-abstractions home (a general NCode utility library).
-  They are consumed by ~28 OpenId handler files via `using NCode.Identity.Jose.Extensions;`
-  (`GetUtcNowWithPrecisionInSeconds`), so the relocation is a larger cross-cutting change best done as its own focused
-  pass. Touch points: `src/NCode.Identity.Jose.Abstractions/Extensions/DateTimeExtensions.cs`,
-  `src/NCode.Identity.Jose.Abstractions/Extensions/DateTimeOffsetExtensions.cs`,
-  `src/NCode.Identity.Jose.Abstractions/Extensions/TimeProviderExtensions.cs`, and every
-  `NCode.Identity.Jose.Extensions` consumer.
-
 - **`D15` — Re-evaluate the existing public enums against the open-vocabulary rule.** Vocabularies are open unless
   provably closed ([ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)), and the public enums
   predate the three-part test. Several look open: `SessionTerminationReason` (carried to consumer handlers; an extension

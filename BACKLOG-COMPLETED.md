@@ -126,6 +126,24 @@ group heading in ID order, preserve the original wording verbatim, and add a tra
   `NCode.Json.ObjectGraphExtensions.TryGetValue<T>` is numeric-width tolerant (`sbyte`…`ulong`/`BigInteger` + reals,
   range-checked) and reads a boxed integer as an RFC 7519 `NumericDate` (`DateTimeOffset`/`DateTime`). The epoch
   conversion is shared with the `JsonElement` path via the `NCode.Json.DateCoercion` helper so the two cannot drift._
+- **`D11` — Time/date extension methods carry logic inside the `*.Abstractions` package.**
+  `NCode.Identity.Jose.Abstractions/Extensions/` still holds `DateTimeExtensions`, `DateTimeOffsetExtensions`, and
+  `TimeProviderExtensions` — each a C# 14 `extension(...)` member with a real method body (`WithPrecisionInSeconds`,
+  `GetUtcNowWithPrecisionInSeconds`, `GetTimestampWithPrecisionInSeconds`) — which violates the house rule that
+  `*.Abstractions` packages hold only dumb DTOs / POCOs / interfaces / contracts (no logic). This is the same violation
+  the now-closed `D9` fixed for the dictionary accessor, but these are **general time/date helpers**, not JSON, so they
+  cannot follow `D9` into `NCode.Json`; they need a different non-abstractions home (a general NCode utility library).
+  They are consumed by ~28 OpenId handler files via `using NCode.Identity.Jose.Extensions;`
+  (`GetUtcNowWithPrecisionInSeconds`), so the relocation is a larger cross-cutting change best done as its own focused
+  pass. Touch points: `src/NCode.Identity.Jose.Abstractions/Extensions/DateTimeExtensions.cs`,
+  `src/NCode.Identity.Jose.Abstractions/Extensions/DateTimeOffsetExtensions.cs`,
+  `src/NCode.Identity.Jose.Abstractions/Extensions/TimeProviderExtensions.cs`, and every
+  `NCode.Identity.Jose.Extensions` consumer.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0188](docs/adr/0188-general-time-helpers-live-in-a-dependency-free-package.md). The three helpers move unchanged
+  to the new dependency-free `NCode.Time` package (namespace `NCode.Time`), the time counterpart of `NCode.Json`. Their
+  only consumers are the implementation packages `NCode.Identity.Jwt` and `NCode.Identity.OpenId.Authentication`, which
+  now reference it. The tests move to `NCode.Time.Tests` and use fixed instants instead of the wall clock._
 - **`D12` — Consolidate claim-string date parsing in `ConvertClaimToNativeValue` onto `DateCoercion`.** The JWT
   encoder's `DefaultJwtEncoder.ConvertClaimToNativeValue` (which maps a `Claim`'s string value to a native CLR value by
   `Claim.ValueType` before serialization) parses a `ClaimValueTypes.DateTime` claim with its own

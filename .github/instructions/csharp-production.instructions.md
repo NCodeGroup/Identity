@@ -672,6 +672,11 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   because they throw on out-of-range input. A time claim that is **present but invalid fails closed** — never read it
   as absent. Saturate (don't overflow) when adding a margin to an instant near `DateTimeOffset.MaxValue`. See
   [ADR-0123](../../docs/adr/0123-numeric-date-is-read-strictly-and-range-guarded.md).
+- **Stamp an instant that a JWT or a stored grant carries with `NCode.Time`'s whole-second helpers.** Use
+  `TimeProvider.GetUtcNowWithPrecisionInSeconds()` (or `GetTimestampWithPrecisionInSeconds()` for ticks) and
+  `WithPrecisionInSeconds()`, so a stored time equals the `NumericDate` it round-trips through. Reference the
+  dependency-free **`NCode.Time`** package, the home for general time helpers. A helper with a method body never lives
+  in an `*.Abstractions` package. See [ADR-0188](../../docs/adr/0188-general-time-helpers-live-in-a-dependency-free-package.md).
 - **Bound a received JWT's lifetime through the lifetime requirement, never with ad-hoc `exp` arithmetic.** Cap a
   client-supplied JWT (assertion, request object) with `ValidateTokenLifeTime(o => o.MaxLifetime = …)`, fed from a
   `Min`-merged `*_max_lifetime` setting; it measures from the earliest asserted `iat`/`nbf` (or now plus skew), so the

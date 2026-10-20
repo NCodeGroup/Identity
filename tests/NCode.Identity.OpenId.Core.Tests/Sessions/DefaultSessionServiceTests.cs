@@ -438,7 +438,7 @@ public class DefaultSessionServiceTests : BaseTests
             .Setup(x =>
                 x.SendAsync(
                     It.Is<OnSessionTerminatedCommand>(c =>
-                        c.Termination.Reason == SessionTerminationReason.IdleTimeout
+                        c.Termination.Reason == SessionTerminationReasons.IdleTimeout
                         && c.Termination.SessionId == SessionId
                     ),
                     It.IsAny<CancellationToken>()
@@ -522,7 +522,7 @@ public class DefaultSessionServiceTests : BaseTests
             .Setup(x =>
                 x.SendAsync(
                     It.Is<OnSessionTerminatedCommand>(c =>
-                        c.Termination.Reason == SessionTerminationReason.AdministrativeRevocation
+                        c.Termination.Reason == SessionTerminationReasons.AdministrativeRevocation
                         && c.Termination.SessionId == SessionId
                         && c.Termination.SubjectId == SubjectId
                         && c.Termination.ParticipatingClientIds.Contains("client-a")
@@ -536,7 +536,7 @@ public class DefaultSessionServiceTests : BaseTests
         await Service.RevokeAsync(
             mockContext.Object,
             SessionId,
-            SessionTerminationReason.AdministrativeRevocation,
+            SessionTerminationReasons.AdministrativeRevocation,
             CancellationToken.None
         );
     }
@@ -678,7 +678,7 @@ public class DefaultSessionServiceTests : BaseTests
             .Setup(x =>
                 x.SendAsync(
                     It.Is<OnSessionTerminatedCommand>(c =>
-                        c.Termination.Reason == SessionTerminationReason.GlobalSignOut
+                        c.Termination.Reason == SessionTerminationReasons.GlobalSignOut
                         && c.Termination.SessionId == null
                         && c.Termination.SubjectId == SubjectId
                         && c.Termination.ParticipatingClientIds.Contains("c1")
@@ -694,7 +694,7 @@ public class DefaultSessionServiceTests : BaseTests
         await Service.RevokeAllAsync(
             mockContext.Object,
             SubjectId,
-            SessionTerminationReason.GlobalSignOut,
+            SessionTerminationReasons.GlobalSignOut,
             CancellationToken.None
         );
     }
@@ -719,7 +719,7 @@ public class DefaultSessionServiceTests : BaseTests
             .Setup(x =>
                 x.SendAsync(
                     It.Is<OnSessionTerminatedCommand>(c =>
-                        c.Termination.Reason == SessionTerminationReason.UserInitiated
+                        c.Termination.Reason == SessionTerminationReasons.UserInitiated
                         && c.Termination.SessionId != null
                     ),
                     It.IsAny<CancellationToken>()
@@ -732,7 +732,7 @@ public class DefaultSessionServiceTests : BaseTests
             mockContext.Object,
             SubjectId,
             exceptSessionId: "s2",
-            SessionTerminationReason.UserInitiated,
+            SessionTerminationReasons.UserInitiated,
             CancellationToken.None
         );
 

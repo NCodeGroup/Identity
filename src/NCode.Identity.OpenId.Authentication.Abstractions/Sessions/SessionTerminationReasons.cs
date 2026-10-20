@@ -21,46 +21,50 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Authentication.Sessions;
 
 /// <summary>
-/// Identifies why an end-user session was terminated. Carried on <see cref="OnSessionTerminatedCommand"/> so the
+/// The well-known reasons an end-user session is terminated. Carried on <see cref="OnSessionTerminatedCommand"/> so the
 /// side-effect handlers (grant revocation, back-channel logout, auditing) and any consumer handlers can react to the
 /// cause.
 /// </summary>
+/// <remarks>
+/// The reasons are an open vocabulary (ADR-0150): a consumer or an extension that ends a session for its own cause, such
+/// as a risk signal, a password change, or a disabled account, passes its own name. Names are compared ordinally.
+/// </remarks>
 [PublicAPI]
-public enum SessionTerminationReason
+public static class SessionTerminationReasons
 {
     /// <summary>
     /// The session was terminated by an RP-Initiated Logout at the <c>end_session_endpoint</c>.
     /// </summary>
-    Logout = 0,
+    public const string Logout = "logout";
 
     /// <summary>
     /// The session expired because it was idle longer than its sliding inactivity window.
     /// </summary>
-    IdleTimeout = 1,
+    public const string IdleTimeout = "idle_timeout";
 
     /// <summary>
     /// The session reached its absolute lifetime and expired.
     /// </summary>
-    AbsoluteExpiry = 2,
+    public const string AbsoluteExpiry = "absolute_expiry";
 
     /// <summary>
     /// The session was evicted to keep the subject within the concurrent-session limit.
     /// </summary>
-    ConcurrentSessionLimit = 3,
+    public const string ConcurrentSessionLimit = "concurrent_session_limit";
 
     /// <summary>
     /// The session was terminated administratively (for example, from a management surface).
     /// </summary>
-    AdministrativeRevocation = 4,
+    public const string AdministrativeRevocation = "administrative_revocation";
 
     /// <summary>
     /// Every session the subject holds was terminated ("sign out everywhere").
     /// </summary>
-    GlobalSignOut = 5,
+    public const string GlobalSignOut = "global_sign_out";
 
     /// <summary>
     /// The end-user terminated the session themselves from a self-service active-sessions surface (for example,
     /// signing out another device, or "sign out everywhere else").
     /// </summary>
-    UserInitiated = 6,
+    public const string UserInitiated = "user_initiated";
 }

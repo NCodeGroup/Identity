@@ -30,13 +30,17 @@ seam (as `DefaultTokenService` drives the claims seam).
 **Unify every session termination behind one mediator seam, and keep session creation an inline capability.**
 
 - **Termination → `OnSessionTerminatedCommand`** (fan-out, `TryAddEnumerable` handlers ordered by priority), carrying a
-  `SessionTerminationReason` (`Logout`, `IdleTimeout`, `AbsoluteExpiry`, `ConcurrentSessionLimit`,
-  `AdministrativeRevocation`, `GlobalSignOut`) and a `SessionTermination` scope (subject id, session id — `null` for
+  reason name and a `SessionTermination` scope (subject id, session id — `null` for
   subject-wide — and the participating relying parties). It **replaces** `OnEndSessionCommand`. Default handlers:
     - `DefaultRevokeGrantsOnSessionTerminatedHandler` (high priority) — revokes the session's grants, or the subject's
       grants for a subject-wide termination;
     - `DefaultBackChannelLogoutOnSessionTerminatedHandler` (low priority) — notifies participating relying parties;
     - `DefaultAuditSessionTerminatedHandler` — records the `session.terminated` audit event.
+- **The reason is an open vocabulary** ([ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md)).
+  `SessionTerminationReasons` names the well-known reasons: `logout`, `idle_timeout`, `absolute_expiry`,
+  `concurrent_session_limit`, `administrative_revocation`, `global_sign_out`, and `user_initiated`. An extension
+  that ends a session for its own cause, such as a risk signal, a password change, or a disabled account, passes its
+  own name, and the handlers and the audit event carry it unchanged. Names are compared ordinally.
 
     Every termination path dispatches it: the `end_session_endpoint` (reason `Logout`), idle expiry and concurrent
     eviction inside `DefaultSessionService`, and the `ISessionService.RevokeAsync` / `RevokeAllAsync` administrative and
@@ -76,5 +80,7 @@ seam (as `DefaultTokenService` drives the claims seam).
 
 - [ADR-0001](0001-mediator-vs-dependency-injection-logic-classes.md) — the service / strategy-collection / mediator
   ladder this decision applies.
+- [ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md) — why the termination reason is a name, not an
+  `enum`.
 - [ADR-0074](0074-session-management-and-logout.md), [ADR-0077](0077-session-scoped-grant-revocation-on-logout.md) —
   the session model and session-scoped revocation the seam generalizes.

@@ -61,7 +61,7 @@ public class DefaultRevokeGrantsOnSessionTerminatedHandlerTests : BaseTests
     }
 
     private static OnSessionTerminatedCommand CreateCommand(
-        SessionTerminationReason reason,
+        string reason,
         string? subjectId,
         string? sessionId
     ) => new(Mock.Of<OpenIdContext>(), new SessionTermination(reason, subjectId, sessionId, []));
@@ -82,7 +82,7 @@ public class DefaultRevokeGrantsOnSessionTerminatedHandlerTests : BaseTests
             .Verifiable();
 
         await Handler.HandleAsync(
-            CreateCommand(SessionTerminationReason.AdministrativeRevocation, "subject-1", "sid-1"),
+            CreateCommand(SessionTerminationReasons.AdministrativeRevocation, "subject-1", "sid-1"),
             CancellationToken.None
         );
     }
@@ -103,7 +103,7 @@ public class DefaultRevokeGrantsOnSessionTerminatedHandlerTests : BaseTests
             .Verifiable();
 
         await Handler.HandleAsync(
-            CreateCommand(SessionTerminationReason.GlobalSignOut, "subject-1", sessionId: null),
+            CreateCommand(SessionTerminationReasons.GlobalSignOut, "subject-1", sessionId: null),
             CancellationToken.None
         );
     }
@@ -113,7 +113,11 @@ public class DefaultRevokeGrantsOnSessionTerminatedHandlerTests : BaseTests
     {
         // No store scaffold is set up: a strict-mock failure would mean the handler touched the store.
         await Handler.HandleAsync(
-            CreateCommand(SessionTerminationReason.GlobalSignOut, subjectId: null, sessionId: null),
+            CreateCommand(
+                SessionTerminationReasons.GlobalSignOut,
+                subjectId: null,
+                sessionId: null
+            ),
             CancellationToken.None
         );
     }

@@ -759,7 +759,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                 await SessionService.RevokeAsync(
                     openIdContext,
                     sessionId,
-                    SessionTerminationReason.UserInitiated,
+                    SessionTerminationReasons.UserInitiated,
                     httpContext.RequestAborted
                 );
 
@@ -821,7 +821,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                 openIdContext,
                 subjectId,
                 currentSessionId,
-                SessionTerminationReason.UserInitiated,
+                SessionTerminationReasons.UserInitiated,
                 httpContext.RequestAborted
             );
 
@@ -831,7 +831,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         await SessionService.RevokeAllAsync(
             openIdContext,
             subjectId,
-            SessionTerminationReason.GlobalSignOut,
+            SessionTerminationReasons.GlobalSignOut,
             httpContext.RequestAborted
         );
 

@@ -2,7 +2,8 @@
 #
 # The chart encodes the host's configuration surface, so it changes with the host and is checked on every change: each
 # values file under ci/ must lint strictly and render, and each release the chart must refuse — the host would refuse
-# it, or its replicas would not share state — must fail to render. Publishing the chart belongs to the release workflow.
+# it, or its replicas would not share state — must fail to render. The pre-deploy migration Job must render unless
+# disabled (ADR-0180). Publishing the chart belongs to the release workflow.
 name: Host chart
 
 on:
@@ -67,3 +68,15 @@ jobs:
           refuse --set tenantResolution.staticSingle.issuer=
           refuse --set tenantResolution.staticSingle.issuer=http://id.example.com
           refuse --set unknownSetting=true
+
+      - name: Migrate before the rollout unless disabled
+        run: |
+          base="$CHART/ci/single-replica-values.yaml"
+          if ! helm template release "$CHART" --values "$base" | grep -q 'helm.sh/hook: pre-install,pre-upgrade'; then
+            echo "::error::The chart rendered no pre-deploy migration Job."
+            exit 1
+          fi
+          if helm template release "$CHART" --values "$base" --set migrations.enabled=false | grep -q 'helm.sh/hook'; then
+            echo "::error::The chart rendered a migration Job with migrations.enabled=false."
+            exit 1
+          fi

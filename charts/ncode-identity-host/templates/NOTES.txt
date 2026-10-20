@@ -1,7 +1,11 @@
 {{ include "identity-host.fullname" . }} answers to {{ join ", " .Values.allowedHosts }} through the
 {{ include "identity-host.fullname" . }} Service on port {{ .Values.service.port }}.
 
+{{- if .Values.migrations.enabled }}
+The {{ include "identity-host.fullname" . }}-migrations Job applied the database migrations before the rollout.
+{{- else }}
 Apply the database migrations before a new version starts: the host does not migrate on boot.
+{{- end }}
 {{- if not (include "identity-host.valkeyEnabled" .) }}
 
 Without Valkey the release runs one replica and replaces it with downtime on every update. Set valkey.existingSecret

@@ -14,8 +14,8 @@ The chart takes no secret values. It references Secrets you create in the releas
 - `keyProtection.certificateSecret`: a `kubernetes.io/tls` Secret with an RSA certificate and its unencrypted key. The
   certificate encrypts the Data Protection key ring at rest; cert-manager can issue it.
 - `valkey.existingSecret`, for more than one replica: the Valkey connection string, under the `connection-string` key.
-
-Apply the database migrations before each new version starts; the host does not migrate on boot.
+- `migrations.database.existingSecret`, optional: a connection string with the right to change the schema, used only
+  by the migration Job. It defaults to `database.existingSecret`.
 
 ## Install
 
@@ -42,6 +42,19 @@ Rendering fails, before anything is applied, when:
 - `environment` is `Production` and `keyProtection.certificateSecret` is empty;
 - `replicaCount` is above 1 without `valkey.existingSecret`, because replicas share single-use state through Valkey;
 - a value is unknown or has the wrong type.
+
+## Migrations
+
+The host does not migrate on boot. Before each install and upgrade, a Helm hook Job runs the migration worker from the
+host's image and applies the pending EF Core migrations. Helm waits for it: a failed migration fails the release before
+any pod is replaced, and the Job stays until the next release so its logs can be read. Helm's `--timeout` must cover
+the migrations.
+
+The previous version keeps serving while the Job runs and until the rollout ends, so every migration must keep it
+working: add first, and drop or rename only in a later release
+([ADR-0180](../../docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). A `helm rollback` runs no migration.
+
+To apply migrations another way, such as with a generated idempotent script, set `migrations.enabled=false`.
 
 ## Updates
 

@@ -49,8 +49,25 @@ host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/O
 `Migrations/DataProtection`; the published persistence library ships none.
 
 - The **migration worker** applies pending migrations before the `api` starts — the `api` never applies schema itself.
-- **Production** (any non-Development deployment) applies schema deliberately with `dotnet ef database update` or a
-  generated idempotent script (`dotnet ef migrations script --idempotent`).
+- **Production** (any non-Development deployment) applies schema deliberately, once per release, before the rollout.
+  The Helm chart runs the same worker from the host's image as a `pre-install` and `pre-upgrade` Job, and a failed
+  migration stops the release before any pod changes
+  ([ADR-0180](../../docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Without the
+  chart, run the worker the same way, or apply a generated idempotent script
+  (`dotnet ef migrations script --idempotent`).
+
+### Every migration keeps the previous release working
+
+The previous release keeps serving while the new schema is applied and until the rollout replaces its last pod, and a
+rollback returns to it. So every migration must work with the release before it — **expand, then contract**:
+
+- **Expand** in the release that needs the change: add a table, add a nullable column or one with a default, or add an
+  index. Never rename, drop, or tighten anything the previous release reads or writes.
+- **Migrate the data** in code or in a later migration while both shapes are valid.
+- **Contract** only in a later release, once no running version uses the old shape: drop the old column or table, or
+  make the new column required.
+
+A rename is an add, a copy, and a later drop: three steps across at least two releases.
 
 Add a migration after changing the EF model (the `Database` project carries the design-time factories, so it is both
 `--project` and `--startup-project`):
@@ -109,7 +126,8 @@ The image starts in the `Production` environment, which refuses to start until t
   tenant without an issuer fails closed
   ([ADR-0165](../../docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
 
-Apply migrations before the new version starts; the image does not migrate on boot.
+The host does not migrate on boot. The image also carries the migration worker, which runs from `/app/migrations` with
+`dotnet NCode.Identity.OpenId.Host.MigrationService.dll` and the same `ConnectionStrings__openiddb`.
 
 The Helm chart in [`charts/ncode-identity-host`](../../charts/ncode-identity-host/README.md) deploys the image with
 these settings and refuses a release that lacks them.

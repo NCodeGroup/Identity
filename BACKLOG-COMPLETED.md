@@ -839,6 +839,34 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   value that cannot be decoded is `invalid_request` rather than no certificate; behind a proxy the connection's
   certificate is never read._
 
+- **`F46` — Kubernetes deployment artifacts for the host.** `NCode.Identity.OpenId.Host` is the deployable
+  ([ADR-0130](docs/adr/0130-distinct-names-for-host-local-dev-orchestrator-and-library.md)); it already trusts forwarded
+  headers only from configured proxies (`ReverseProxy:KnownNetworks` — set it to the cluster's pod CIDR), refuses
+  development-only settings and an unprotected Data Protection key ring in Production (`AddProductionSafety`), and
+  separates liveness (`/health/live`, no checks) from readiness (`/health/ready`: the database, and Valkey when
+  configured). The production image is done: chiseled, non-root on port 8080, built for amd64 and arm64, carrying the
+  `apps/auth` bundle ([ADR-0178](docs/adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
+  The Helm chart [`charts/ncode-identity-host`](charts/ncode-identity-host) is done: restricted pods, probes, `preStop`
+  drain, PodDisruptionBudget, secrets by reference, and Valkey required for more than one replica
+  ([ADR-0179](docs/adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
+  Still missing, in one session-sized slice: `Host.MigrationService` (which has no image) should run as the chart's
+  pre-deploy Job (a Helm `pre-install`/`pre-upgrade` hook) with expand/contract schema changes, so a rolling update
+  never breaks the running version. Publishing the image and the chart is `F48`. A served tenant
+  without an issuer already fails closed
+  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)). Plus the
+  OpenTofu modules, bootstrap stack, and GitHub
+  Actions workflows in the public `NCodeGroup/identity-platform` repository
+  ([ADR-0132](docs/adr/0132-platform-infrastructure-as-code-is-public-on-github.md); see the
+  [hosting analysis](docs/hosting-analysis.md#11-iac-and-delivery)). Touch points:
+  `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.OpenId.Host/Dockerfile`,
+  `charts/ncode-identity-host`, `src/NCode.Identity.OpenId.Host.MigrationService`, `src/NCode.Identity.Server/ProductionSafety`,
+  `src/frontend/apps/auth`.
+  _Closed: the migration worker ships in the host image and the chart runs it as a `pre-install`/`pre-upgrade` Job, and
+  every migration keeps the previous release working
+  ([ADR-0180](docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md); see the
+  [`CHANGELOG.md`](CHANGELOG.md)). The `NCodeGroup/identity-platform` modules, stacks, and workflows continue under
+  `F48`._
+
 - **`F49` — Shared `IDistributedCache` for multi-replica deployments.** The DPoP nonce service, the DPoP proof replay
   cache, and the client-assertion replay cache (RFC 7523 §3) run over `IDistributedCache`, and the server registers
   `AddDistributedMemoryCache()` by default, so every replica keeps its own: a nonce issued by one pod is rejected by

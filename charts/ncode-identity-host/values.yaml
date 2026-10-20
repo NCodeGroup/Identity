@@ -42,6 +42,24 @@ database:
   existingSecret: ""
   connectionStringKey: connection-string
 
+# The pre-install and pre-upgrade Job that applies the database migrations before the rollout (ADR-0180). Every
+# migration must stay compatible with the previous release, which keeps serving until the rollout finishes.
+migrations:
+  enabled: true
+  # A connection allowed to change the schema. Defaults to the database Secret; name a separate one so the running host
+  # connects without schema rights.
+  database:
+    existingSecret: ""
+    connectionStringKey: ""
+  backoffLimit: 1
+  activeDeadlineSeconds: 600
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+
 # Valkey (ConnectionStrings:valkey), shared by every replica. Required when replicaCount is greater than 1.
 valkey:
   existingSecret: ""

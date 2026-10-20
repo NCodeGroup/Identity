@@ -90,7 +90,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
             .ImportPublicKeyMaterial(
                 new SecretKeyImportParameters
                 {
-                    Format = SecretKeyImportFormat.Jwk,
+                    Format = SecretKeyImportFormats.Jwk,
                     KeyMaterial = jwk,
                 },
                 capture.Protect
@@ -111,7 +111,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
             .ImportPublicKeyMaterial(
                 new SecretKeyImportParameters
                 {
-                    Format = SecretKeyImportFormat.Pem,
+                    Format = SecretKeyImportFormats.Pem,
                     KeyMaterial = pem,
                 },
                 capture.Protect
@@ -142,7 +142,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
             .ImportPublicKeyMaterial(
                 new SecretKeyImportParameters
                 {
-                    Format = SecretKeyImportFormat.Certificate,
+                    Format = SecretKeyImportFormats.Certificate,
                     KeyMaterial = base64Der,
                 },
                 capture.Protect
@@ -170,7 +170,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
                 .ImportPublicKeyMaterial(
                     new SecretKeyImportParameters
                     {
-                        Format = SecretKeyImportFormat.Jwk,
+                        Format = SecretKeyImportFormats.Jwk,
                         KeyMaterial = jwk,
                     },
                     _ => "protected"
@@ -196,7 +196,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
                 .ImportPublicKeyMaterial(
                     new SecretKeyImportParameters
                     {
-                        Format = SecretKeyImportFormat.Jwk,
+                        Format = SecretKeyImportFormats.Jwk,
                         KeyMaterial = jwk,
                     },
                     _ => "protected"
@@ -215,7 +215,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
                 .ImportPublicKeyMaterial(
                     new SecretKeyImportParameters
                     {
-                        Format = SecretKeyImportFormat.Pem,
+                        Format = SecretKeyImportFormats.Pem,
                         KeyMaterial = privatePem,
                     },
                     _ => "protected"
@@ -239,7 +239,11 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
         var descriptor = Rsa();
         var capture = new CapturingProtector();
         var material = descriptor.ImportPublicKeyMaterial(
-            new SecretKeyImportParameters { Format = SecretKeyImportFormat.Pem, KeyMaterial = pem },
+            new SecretKeyImportParameters
+            {
+                Format = SecretKeyImportFormats.Pem,
+                KeyMaterial = pem,
+            },
             capture.Protect
         );
 
@@ -275,7 +279,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
             .ImportPublicKeyMaterial(
                 new SecretKeyImportParameters
                 {
-                    Format = SecretKeyImportFormat.Jwk,
+                    Format = SecretKeyImportFormats.Jwk,
                     KeyMaterial = jwk,
                 },
                 capture.Protect
@@ -297,7 +301,11 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
         var descriptor = Ecc();
         var capture = new CapturingProtector();
         var material = descriptor.ImportPublicKeyMaterial(
-            new SecretKeyImportParameters { Format = SecretKeyImportFormat.Pem, KeyMaterial = pem },
+            new SecretKeyImportParameters
+            {
+                Format = SecretKeyImportFormats.Pem,
+                KeyMaterial = pem,
+            },
             capture.Protect
         );
 
@@ -328,7 +336,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
                 .ImportPublicKeyMaterial(
                     new SecretKeyImportParameters
                     {
-                        Format = SecretKeyImportFormat.Jwk,
+                        Format = SecretKeyImportFormats.Jwk,
                         KeyMaterial = jwk,
                     },
                     _ => "protected"
@@ -359,7 +367,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
             .ImportPublicKeyMaterial(
                 new SecretKeyImportParameters
                 {
-                    Format = SecretKeyImportFormat.Jwk,
+                    Format = SecretKeyImportFormats.Jwk,
                     KeyMaterial = jwk,
                 },
                 capture.Protect
@@ -441,8 +449,38 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
     {
         var descriptor = Symmetric();
 
-        Assert.False(descriptor.SupportsPublicKeyImport);
+        Assert.Empty(descriptor.PublicKeyImportFormats);
         Assert.False(descriptor.SupportsPublicKeyExport);
+    }
+
+    [Fact]
+    public void Asymmetric_PublicKeyImportFormats_AreJwkPemAndCertificate()
+    {
+        string[] expected =
+        [
+            SecretKeyImportFormats.Jwk,
+            SecretKeyImportFormats.Pem,
+            SecretKeyImportFormats.Certificate,
+        ];
+
+        Assert.Equal(expected, Rsa().PublicKeyImportFormats);
+        Assert.Equal(expected, Ecc().PublicKeyImportFormats);
+    }
+
+    [Theory]
+    [InlineData("openssh")]
+    [InlineData("JWK")]
+    public void Rsa_ImportPublicKeyMaterial_WithAnUnknownFormat_IsRejected(string format)
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            Rsa()
+                .ImportPublicKeyMaterial(
+                    new SecretKeyImportParameters { Format = format, KeyMaterial = "{}" },
+                    _ => "protected"
+                )
+        );
+
+        Assert.Contains($"'{format}'", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -453,7 +491,7 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
                 .ImportPublicKeyMaterial(
                     new SecretKeyImportParameters
                     {
-                        Format = SecretKeyImportFormat.Jwk,
+                        Format = SecretKeyImportFormats.Jwk,
                         KeyMaterial = "{}",
                     },
                     _ => "protected"

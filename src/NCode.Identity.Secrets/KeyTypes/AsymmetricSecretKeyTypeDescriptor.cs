@@ -52,15 +52,22 @@ public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secret
     public abstract override string JwkKeyType { get; }
 
     /// <inheritdoc />
+    public override IReadOnlyCollection<string> PublicKeyImportFormats { get; } =
+    [SecretKeyImportFormats.Jwk, SecretKeyImportFormats.Pem, SecretKeyImportFormats.Certificate];
+
+    /// <inheritdoc />
     public override ImportedSecretKeyMaterial ImportPublicKeyMaterial(
         SecretKeyImportParameters parameters,
         SecretKeyMaterialProtector protect
     ) =>
         parameters.Format switch
         {
-            SecretKeyImportFormat.Jwk => ImportJwk(parameters.KeyMaterial, protect),
-            SecretKeyImportFormat.Pem => ImportPem(parameters.KeyMaterial, protect),
-            SecretKeyImportFormat.Certificate => ImportCertificate(parameters.KeyMaterial, protect),
+            SecretKeyImportFormats.Jwk => ImportJwk(parameters.KeyMaterial, protect),
+            SecretKeyImportFormats.Pem => ImportPem(parameters.KeyMaterial, protect),
+            SecretKeyImportFormats.Certificate => ImportCertificate(
+                parameters.KeyMaterial,
+                protect
+            ),
             _ => throw new ArgumentException(
                 $"The import format '{parameters.Format}' is not supported.",
                 nameof(parameters)

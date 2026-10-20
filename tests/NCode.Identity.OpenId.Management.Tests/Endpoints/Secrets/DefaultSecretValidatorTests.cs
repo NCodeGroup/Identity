@@ -22,6 +22,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -386,6 +387,65 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    #endregion
+
+    #region ValidateImport Tests
+
+    private static ImportSecretRequest CreateImportRequest(string secretType, string format) =>
+        new()
+        {
+            SecretType = secretType,
+            Format = format,
+            KeyMaterial = "material",
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
+    [Theory]
+    [InlineData(SecretTypes.Rsa, SecretKeyImportFormats.Jwk)]
+    [InlineData(SecretTypes.Rsa, SecretKeyImportFormats.Pem)]
+    [InlineData(SecretTypes.Ecc, SecretKeyImportFormats.Certificate)]
+    public void ValidateImport_WhenTheSecretTypeImportsTheFormat_ReturnsNull(
+        string secretType,
+        string format
+    )
+    {
+        var error = Validator.ValidateImport(CreateImportRequest(secretType, format));
+
+        Assert.Null(error);
+    }
+
+    [Theory]
+    [InlineData("JWK")]
+    [InlineData("openssh")]
+    [InlineData("")]
+    public void ValidateImport_WhenTheSecretTypeDoesNotImportTheFormat_ReturnsBadRequestListingItsFormats(
+        string format
+    )
+    {
+        var error = Validator.ValidateImport(CreateImportRequest(SecretTypes.Rsa, format));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Contains($"'{format}'", error.Detail, StringComparison.Ordinal);
+        Assert.Contains("'jwk', 'pem', 'certificate'", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(SecretTypes.Symmetric)]
+    [InlineData("unknown")]
+    public void ValidateImport_WhenTheSecretTypeImportsNoPublicKey_ReturnsBadRequest(
+        string secretType
+    )
+    {
+        var error = Validator.ValidateImport(
+            CreateImportRequest(secretType, SecretKeyImportFormats.Jwk)
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Contains($"'{secretType}'", error.Detail, StringComparison.Ordinal);
     }
 
     #endregion

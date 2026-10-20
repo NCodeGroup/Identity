@@ -273,7 +273,7 @@ internal class DefaultDPoPProofService(
 
         if (
             !SecretKeyTypeCatalog.TryGetByJwkKeyType(jwk.KeyType, out var descriptor)
-            || !descriptor.SupportsPublicKeyImport
+            || !descriptor.PublicKeyImportFormats.Contains(SecretKeyImportFormats.Jwk)
         )
         {
             error = $"The DPoP proof 'jwk' key type '{jwk.KeyType}' is not supported.";
@@ -286,7 +286,7 @@ internal class DefaultDPoPProofService(
             var imported = descriptor.ImportPublicKeyMaterial(
                 new SecretKeyImportParameters
                 {
-                    Format = SecretKeyImportFormat.Jwk,
+                    Format = SecretKeyImportFormats.Jwk,
                     KeyMaterial = jwkElement.GetRawText(),
                 },
                 bytes =>

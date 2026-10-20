@@ -22,27 +22,32 @@ using NCode.Identity.Secrets.KeyTypes;
 namespace NCode.Identity.Secrets.KeyMaterial;
 
 /// <summary>
-/// Specifies the encoding of caller-supplied <b>public</b> key material presented to a
+/// The well-known encodings of caller-supplied <b>public</b> key material presented to a
 /// <see cref="ISecretKeyTypeDescriptor"/> for import.
 /// </summary>
+/// <remarks>
+/// The formats are an open vocabulary (ADR-0150): each key type declares the formats it parses in
+/// <see cref="ISecretKeyTypeDescriptor.PublicKeyImportFormats"/>, so a key type registered by another package can accept
+/// its own format, such as an OpenSSH public key. Names are compared ordinally.
+/// </remarks>
 // See ADR-0104.
 [PublicAPI]
-public enum SecretKeyImportFormat
+public static class SecretKeyImportFormats
 {
     /// <summary>
     /// The material is a single <c>JSON Web Key</c> (RFC 7517) object carrying only public members.
     /// </summary>
-    Jwk,
+    public const string Jwk = "jwk";
 
     /// <summary>
     /// The material is a <c>PEM</c>-encoded <c>SubjectPublicKeyInfo</c> public key
     /// (<c>-----BEGIN PUBLIC KEY-----</c>).
     /// </summary>
-    Pem,
+    public const string Pem = "pem";
 
     /// <summary>
     /// The material is an <c>X.509</c> certificate, either <c>PEM</c>-encoded
     /// (<c>-----BEGIN CERTIFICATE-----</c>) or base64 DER.
     /// </summary>
-    Certificate,
+    public const string Certificate = "certificate";
 }

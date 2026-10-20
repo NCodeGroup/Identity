@@ -150,12 +150,8 @@ const NCode.Identity.Secrets.SecretEncodings.Spki = "spki" -> string!
 const NCode.Identity.Secrets.SecretEncodings.SymmetricRaw = "symmetric_raw" -> string!
 const NCode.Identity.Secrets.SecretEncodings.X509 = "x509" -> string!
 NCode.Identity.Secrets.SecretEncodings
-NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
-NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat.Certificate = 2 -> NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
-NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat.Jwk = 0 -> NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
-NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat.Pem = 1 -> NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
 NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters
-NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters.Format.get -> NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
+NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters.Format.get -> string!
 NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters.Format.init -> void
 NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters.KeyMaterial.get -> string!
 NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters.KeyMaterial.init -> void
@@ -170,9 +166,13 @@ NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial.SecretEncoding.get 
 NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial.SecretEncoding.init -> void
 NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.SecretEncoding.get -> string!
 NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.SecretEncoding.init -> void
-NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.SupportsPublicKeyImport.get -> bool
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.PublicKeyImportFormats.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial!
 NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.DeserializeKeyMaterial(NCode.Identity.Secrets.Keys.KeyMetadata metadata, string! secretEncoding, System.ReadOnlySpan<byte> keyMaterial) -> NCode.Identity.Secrets.Keys.SecretKey!
 virtual NCode.Identity.Secrets.Keys.SecretKey.FormatToString() -> string!
 virtual NCode.Identity.Secrets.Keys.SecretKey.KeyId.get -> string?
 virtual NCode.Identity.Secrets.Keys.SecretKey.KeySizeBytes.get -> int
+NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats
+const NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats.Certificate = "certificate" -> string!
+const NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats.Jwk = "jwk" -> string!
+const NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats.Pem = "pem" -> string!

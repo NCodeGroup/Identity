@@ -106,10 +106,11 @@ entry and/or ADR that closed it.
 - **`D15` — Re-evaluate the existing public enums against the open-vocabulary rule.** Vocabularies are open unless
   provably closed ([ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)), and the public enums
   predate the three-part test. `SessionTerminationReason` is already converted to the `SessionTerminationReasons`
-  names ([ADR-0098](docs/adr/0098-session-lifecycle-termination-seam.md)). Several others look open:
-  `SecretKeyImportFormat` (PKCS #12, OpenSSH, or a key-vault reference), `PersistedGrantStatus`
-  (persisted; a lifecycle a grant type may extend), and `HashAlgorithmType` / `BinaryEncodingType` (closed only because
-  the implementation is a `switch`). `AlgorithmType`, `RequestObjectSource`, `TenantPlane`, `SerializationFormat`,
+  names ([ADR-0098](docs/adr/0098-session-lifecycle-termination-seam.md)), and `SecretKeyImportFormat` to the
+  `SecretKeyImportFormats` names each key type declares
+  ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md)). Others still look open:
+  `PersistedGrantStatus` (persisted; a lifecycle a grant type may extend), and `HashAlgorithmType` /
+  `BinaryEncodingType` (closed only because the implementation is a `switch`). `AlgorithmType`, `RequestObjectSource`, `TenantPlane`, `SerializationFormat`,
   `DeveloperKeyMode`, the `ObjectJson*Handling` mirrors, and the operation outcomes (`PasswordVerificationResult`,
   `OutboundHttpReadResult`, `OwnerRemovalResult`) appear to pass. Apply the test to each and convert the ones that fail
   to names plus registered strategies, with data migrations for any persisted value. Touch points: the enum files under

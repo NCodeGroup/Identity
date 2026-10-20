@@ -48,7 +48,20 @@ internal sealed class InteractiveBundleReader(
     /// Reads the single-page bundle's <c>index.html</c>, or returns <see langword="null"/> when no bundle is
     /// configured or available.
     /// </summary>
-    public async ValueTask<string?> TryReadIndexHtmlAsync(CancellationToken cancellationToken)
+    public async ValueTask<string?> TryReadIndexHtmlAsync(CancellationToken cancellationToken) =>
+        (await TryReadIndexAsync(cancellationToken))?.Html;
+
+    /// <summary>
+    /// Reads the single-page bundle's <c>index.html</c> split at its <c>#root</c> mount point, or returns
+    /// <see langword="null"/> when no bundle is configured or available, or the bundle has no empty mount point.
+    /// </summary>
+    public async ValueTask<InteractiveBundleShell?> TryReadShellAsync(
+        CancellationToken cancellationToken
+    ) => (await TryReadIndexAsync(cancellationToken))?.Shell;
+
+    private async ValueTask<InteractiveBundleIndex?> TryReadIndexAsync(
+        CancellationToken cancellationToken
+    )
     {
         if (IndexPath is null)
         {
@@ -71,13 +84,20 @@ internal sealed class InteractiveBundleReader(
             && cachedIndex.Length == length
         )
         {
-            return cachedIndex.Html;
+            return cachedIndex;
         }
 
         // A rebuild that lands between the metadata read and this read is cached under the older metadata, so the
         // next request sees a mismatch and reads the file again.
+        // The document is split once per version, so each page render writes its slices rather than searching it.
         var html = await File.ReadAllTextAsync(IndexPath, cancellationToken);
-        CachedIndex = new InteractiveBundleIndex(lastWriteTimeUtc, length, html);
-        return html;
+        var index = new InteractiveBundleIndex(
+            lastWriteTimeUtc,
+            length,
+            html,
+            InteractiveBundleShell.TryCreate(html)
+        );
+        CachedIndex = index;
+        return index;
     }
 }

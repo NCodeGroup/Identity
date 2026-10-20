@@ -126,4 +126,57 @@ public sealed class InteractiveBundleReaderTests : IDisposable
     }
 
     #endregion
+
+    #region TryReadShellAsync Tests
+
+    [Fact]
+    public async Task TryReadShellAsync_WhenTheIndexHasAMountPoint_ReturnsItSplitAtTheMountPoint()
+    {
+        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var reader = CreateReader(BundleRoot.FullName);
+
+        var shell = await reader.TryReadShellAsync(CancellationToken.None);
+
+        Assert.NotNull(shell);
+        Assert.Equal("<!doctype html><html><body><div id=\"root\">", shell.Head.ToString());
+        Assert.Equal("</div></body></html>", shell.Tail.ToString());
+    }
+
+    [Fact]
+    public async Task TryReadShellAsync_WhenTheIndexIsUnchanged_ReturnsTheCachedShell()
+    {
+        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var reader = CreateReader(BundleRoot.FullName);
+        var first = await reader.TryReadShellAsync(CancellationToken.None);
+
+        var second = await reader.TryReadShellAsync(CancellationToken.None);
+
+        Assert.Same(first, second);
+    }
+
+    [Fact]
+    public async Task TryReadShellAsync_WhenTheIndexHasNoMountPoint_ReturnsNull()
+    {
+        WriteIndex(
+            "<!doctype html><html><body></body></html>",
+            new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+        );
+        var reader = CreateReader(BundleRoot.FullName);
+
+        var shell = await reader.TryReadShellAsync(CancellationToken.None);
+
+        Assert.Null(shell);
+    }
+
+    [Fact]
+    public async Task TryReadShellAsync_WhenNoBundleIsConfigured_ReturnsNull()
+    {
+        var reader = CreateReader(bundleRootPath: null);
+
+        var shell = await reader.TryReadShellAsync(CancellationToken.None);
+
+        Assert.Null(shell);
+    }
+
+    #endregion
 }

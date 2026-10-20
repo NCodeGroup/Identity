@@ -28,5 +28,6 @@
         <PackageReference Include="NCode.Buffers" />
         <PackageReference Include="NCode.Collections.Providers" />
         <PackageReference Include="NCode.Mediator" />
+        <PackageReference Include="Nerdbank.Streams" />
     </ItemGroup>
 </Project>

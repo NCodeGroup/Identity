@@ -252,6 +252,12 @@ change to the public API is a **major** version bump.
   the tenant's keys under another setting adds its name. A `fapi2` tenant no longer holds and publishes an RS256 key it
   never signs with. A key the tenant already holds is kept
   ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)).
+- **The server-rendered pages stream into the response without building a document string.** The login, consent, and
+  error pages and the `form_post` authorization response render into a pooled `Sequence<char>` that is transcoded
+  straight into `HttpResponse.BodyWriter`. The bundle's `index.html` is split once per version at its
+  `<div id="root"></div>` mount point, so each page writes the cached head, its form, and the cached tail rather than
+  replacing the mount point in a combined document. The renderer's page methods take an `IBufferWriter<char>` and the
+  split `InteractiveBundleShell` instead of returning a string.
 - **The interactive pages read the bundle's `index.html` once.** `InteractiveBundleReader` caches the bundle index the
   login, consent, and error pages inject their forms into, rather than reading it from disk on every request. Each
   request compares the file's last-write time and length with the cached copy's, so a rebuilt bundle is still picked up
@@ -1056,6 +1062,12 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A `form_post` response delivered url-encoded values.** The `form_post` page url-encoded each hidden field's value,
+  but the browser form-urlencodes the fields again when it submits the form, so a client received a `state` holding a
+  space, `=`, `/`, or `+` as its escaped form (`%3D`, `+`, …) rather than the value it sent. Each value — and the form's
+  action — is now HTML-encoded only, as the OAuth 2.0 Form Post Response Mode specification intends, and a parameter
+  with several values posts one field per value.
 
 - **A management console change refetched the caches of every other scope.** The Management API's cache tags shared
   their ids across the global scope and every tenant, so creating a client in one tenant also refetched the global

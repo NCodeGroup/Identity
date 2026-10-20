@@ -467,25 +467,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   [`build/frontend-install.ps1`](build/frontend-install.ps1), the AppHost's `EnsurePinnedNodeOnPath`.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
-- **`U13` — Buffer-writer (pipe) render model for the server-rendered interactive surface.** The server-side HTML
-  renderer `InteractiveAuthenticationPageRenderer` (login, consent, and the `F31` non-redirectable error page) builds
-  each page as a `string` via `StringBuilder` and injects it into the SPA bundle's `#root` with `string.Replace`, then
-  the caller writes it with `HttpResponse.WriteAsync(html, SecureEncoding.UTF8, …)`. This matches the form-post writer
-  (`DefaultAuthorizationResultExecutor.GetFormPostHtml`) but allocates a full form string **and** a full combined-document
-  string per request. The family already has the lower-allocation idiom — `IBufferWriter<char>` / `Sequence<char>` +
-  `SecureEncoding.UTF8` written straight to `HttpResponse.BodyWriter` (`NCode.Buffers`, as `CommonJoseEncoder` /
-  `JoseSerializer` use it). Deliverables: render each page into an `IBufferWriter<char>` (pooled `Sequence<char>`)
-  instead of returning a `string`; split the cached bundle `index.html` (`InteractiveBundleReader`) **once** per
-  version at the `<div id="root"></div>` marker into head/tail `ReadOnlyMemory<char>` slices and write
-  `head → form → tail` segments to the response pipe (no combined document string); apply the same seam to the login,
-  consent, and error renderers **and** the form-post executor so the whole interactive render surface is consistent.
-  Not hot-path critical for the `F31` error page (a cold error path), but login/consent are warmer and the
-  cohesion/allocation benefit applies surface-wide. Touch points:
-  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveBundleReader.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveOpenIdErrorResponseFormatter.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Results/DefaultAuthorizationResultExecutor.cs`.
 
 ## Secrets management (group `S`)
 

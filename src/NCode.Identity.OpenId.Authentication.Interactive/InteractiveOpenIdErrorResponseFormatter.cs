@@ -16,8 +16,6 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
-using NCode.Buffers;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
 
@@ -50,9 +48,10 @@ internal sealed class InteractiveOpenIdErrorResponseFormatter(InteractiveBundleR
     {
         var error = (IOpenIdError)context.Response;
 
-        var bundleIndexHtml = await BundleReader.TryReadIndexHtmlAsync(cancellationToken);
-        var html = InteractiveAuthenticationPageRenderer.RenderErrorPage(
-            bundleIndexHtml,
+        using var html = InteractiveHtmlResult.CreateBuffer();
+        InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            html,
+            await BundleReader.TryReadShellAsync(cancellationToken),
             error.Code,
             error.Description
         );
@@ -62,8 +61,11 @@ internal sealed class InteractiveOpenIdErrorResponseFormatter(InteractiveBundleR
         {
             httpResponse.StatusCode = context.StatusCode.Value;
         }
-        httpResponse.ContentType = "text/html; charset=utf-8";
 
-        await httpResponse.WriteAsync(html, SecureEncoding.UTF8, cancellationToken);
+        await InteractiveHtmlResult.WriteAsync(
+            httpResponse,
+            html.AsReadOnlySequence,
+            cancellationToken
+        );
     }
 }

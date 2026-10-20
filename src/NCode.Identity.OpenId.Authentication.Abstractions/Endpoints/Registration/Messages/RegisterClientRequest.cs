@@ -219,6 +219,41 @@ public sealed class RegisterClientRequest
     public string? RequestObjectEncryptionEnc { get; init; }
 
     /// <summary>
+    /// Gets the JWS <c>alg</c> the client signs its token endpoint authentication assertions with (OpenID Connect Dynamic Client Registration 1.0 §2); any algorithm the server permits when omitted.
+    /// </summary>
+    [JsonPropertyName("token_endpoint_auth_signing_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TokenEndpointAuthSigningAlg { get; init; }
+
+    /// <summary>
+    /// Gets the CIBA token delivery mode the client uses: <c>poll</c>, <c>ping</c>, or <c>push</c> (CIBA Core 1.0 §4); <c>poll</c> when omitted.
+    /// </summary>
+    [JsonPropertyName("backchannel_token_delivery_mode")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? BackchannelTokenDeliveryMode { get; init; }
+
+    /// <summary>
+    /// Gets the HTTPS endpoint the server sends CIBA ping and push notifications to (CIBA Core 1.0 §4); required for the <c>ping</c> and <c>push</c> delivery modes.
+    /// </summary>
+    [JsonPropertyName("backchannel_client_notification_endpoint")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? BackchannelClientNotificationEndpoint { get; init; }
+
+    /// <summary>
+    /// Gets the asymmetric JWS <c>alg</c> every signed CIBA authentication request from the client must use (CIBA Core 1.0 §4); any algorithm the server permits when omitted.
+    /// </summary>
+    [JsonPropertyName("backchannel_authentication_request_signing_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? BackchannelAuthenticationRequestSigningAlg { get; init; }
+
+    /// <summary>
+    /// Gets whether the client supports the CIBA <c>user_code</c> parameter (CIBA Core 1.0 §4); <see langword="false"/> when omitted, and <see langword="true"/> only when the server supports it.
+    /// </summary>
+    [JsonPropertyName("backchannel_user_code_parameter")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? BackchannelUserCodeParameter { get; init; }
+
+    /// <summary>
     /// Gets or sets the unrecognized metadata members, so an unknown wire member round-trips instead of being dropped.
     /// </summary>
     [JsonExtensionData]

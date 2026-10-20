@@ -411,19 +411,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationApplicationBuilderExtensions.cs`,
   `src/frontend/apps/auth`. Capture the design in an ADR.
 
-- **`F66` — Accept the remaining algorithm and CIBA metadata at dynamic client registration.** Registration accepts the
-  ID token, UserInfo, and request-object algorithm metadata
-  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)) but not
-  `token_endpoint_auth_signing_alg` (OpenID Connect Dynamic Client Registration 1.0 §2) or the CIBA registration
-  metadata (`backchannel_token_delivery_mode`, `backchannel_client_notification_endpoint`,
-  `backchannel_authentication_request_signing_alg`, `backchannel_user_code_parameter`, CIBA Core §4), so a dynamically
-  registered client cannot narrow its assertion algorithm or use CIBA at all and must be provisioned through the
-  management API. Map each algorithm to a single-element client list as `request_object_signing_alg` is, validate it
-  against the tenant's ceiling, and report it in the client information response. Pairs with the `F16` follow-up that
-  accepts the non-secret `token_endpoint_auth_method` values. Touch points:
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`.
-
 - **`F68` — Check a client's registered response algorithms when its settings are written, and let a security profile
   supply compliant defaults.** A client's `id_token_signed_response_alg` and its other registered response algorithms
   must be in its effective `*_values_supported` lists

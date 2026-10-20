@@ -983,9 +983,211 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
+    [Fact]
+    public void ValidateAlgorithmMetadata_WhenTheTokenEndpointAuthSigningAlgIsNotPermitted_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
+        IReadOnlyCollection<string>? permitted = ["PS256"];
+        mockTenantSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported,
+                    out permitted
+                )
+            )
+            .Returns(true);
+        var request = new RegisterClientRequest { TokenEndpointAuthSigningAlg = "RS256" };
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateAlgorithmMetadata_WhenTheBackchannelRequestSigningAlgIsNotPermitted_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
+        IReadOnlyCollection<string>? permitted = ["PS256"];
+        mockTenantSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported,
+                    out permitted
+                )
+            )
+            .Returns(true);
+        var request = new RegisterClientRequest
+        {
+            BackchannelAuthenticationRequestSigningAlg = "ES256",
+        };
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateAlgorithmMetadata_WhenTheDeliveryModeIsNotSupported_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
+        IReadOnlyCollection<string>? supported =
+        [
+            OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
+        ];
+        mockTenantSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
+                    out supported
+                )
+            )
+            .Returns(true);
+        var request = new RegisterClientRequest
+        {
+            BackchannelTokenDeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            BackchannelClientNotificationEndpoint = "https://client.example/cb",
+        };
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Theory]
+    [InlineData(OpenIdConstants.BackchannelTokenDeliveryModes.Ping)]
+    [InlineData(OpenIdConstants.BackchannelTokenDeliveryModes.Push)]
+    public void ValidateAlgorithmMetadata_WhenANotifiedModeHasNoNotificationEndpoint_ReturnsInvalidClientMetadata(
+        string deliveryMode
+    )
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
+        var request = new RegisterClientRequest { BackchannelTokenDeliveryMode = deliveryMode };
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateAlgorithmMetadata_WhenTheServerDoesNotSupportTheUserCodeParameter_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
+        var request = new RegisterClientRequest { BackchannelUserCodeParameter = true };
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateAlgorithmMetadata_WhenTheTenantSupportsTheBackchannelMetadata_ReturnsNull()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
+        var userCodeSupported = true;
+        mockTenantSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.BackchannelUserCodeParameterSupported,
+                    out userCodeSupported
+                )
+            )
+            .Returns(true);
+        var request = new RegisterClientRequest
+        {
+            BackchannelTokenDeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+            BackchannelClientNotificationEndpoint = "https://client.example/cb",
+            BackchannelAuthenticationRequestSigningAlg = "PS256",
+            BackchannelUserCodeParameter = true,
+        };
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.Null(error);
+    }
+
     #endregion
 
     #region Response Protection Metadata
+
+    [Fact]
+    public void BuildSettingsObject_WhenTokenEndpointAndBackchannelMetadata_RoundTripsThem()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest
+        {
+            TokenEndpointAuthSigningAlg = "ES256",
+            BackchannelTokenDeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            BackchannelClientNotificationEndpoint = "https://client.example/cb",
+            BackchannelAuthenticationRequestSigningAlg = "PS256",
+            BackchannelUserCodeParameter = false,
+        };
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            ResponseTypes = [],
+            RedirectUris = [],
+        };
+
+        var settings = handler.BuildSettingsObject(request, resolved);
+        var response = handler.ToResponse(
+            CreateClient(JsonSerializer.SerializeToElement(settings))
+        );
+
+        // Each metadata member is stored as the client setting the endpoints already enforce.
+        Assert.Equal(
+            ["ES256"],
+            settings[OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported]!
+                .AsArray()
+                .Select(node => node!.GetValue<string>())
+        );
+        Assert.Equal(
+            "https://client.example/cb",
+            settings[OpenIdSettingNames.ClientNotificationEndpoint]!.GetValue<string>()
+        );
+        Assert.Equal("ES256", response.TokenEndpointAuthSigningAlg);
+        Assert.Equal(
+            OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            response.BackchannelTokenDeliveryMode
+        );
+        Assert.Equal("https://client.example/cb", response.BackchannelClientNotificationEndpoint);
+        Assert.Equal("PS256", response.BackchannelAuthenticationRequestSigningAlg);
+        Assert.False(response.BackchannelUserCodeParameter);
+    }
+
+    [Fact]
+    public void ToResponse_WhenNoBackchannelMetadataIsStored_OmitsIt()
+    {
+        var handler = CreateHandler();
+        var client = CreateClient(
+            JsonSerializer.SerializeToElement(new Dictionary<string, object>())
+        );
+
+        var response = handler.ToResponse(client);
+
+        Assert.Null(response.TokenEndpointAuthSigningAlg);
+        Assert.Null(response.BackchannelTokenDeliveryMode);
+        Assert.Null(response.BackchannelClientNotificationEndpoint);
+        Assert.Null(response.BackchannelAuthenticationRequestSigningAlg);
+        Assert.Null(response.BackchannelUserCodeParameter);
+    }
 
     [Fact]
     public void BuildSettingsObject_WhenResponseProtectionAndRequestObjectMetadata_RoundTripsThem()

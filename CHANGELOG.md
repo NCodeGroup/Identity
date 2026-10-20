@@ -10,6 +10,16 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Dynamic client registration accepts the token endpoint and CIBA metadata.** A client registers
+  `token_endpoint_auth_signing_alg` (OpenID Connect Dynamic Client Registration 1.0 §2) and
+  `backchannel_token_delivery_mode`, `backchannel_client_notification_endpoint`,
+  `backchannel_authentication_request_signing_alg`, and `backchannel_user_code_parameter` (CIBA Core 1.0 §4), and the
+  client information response reports them. Each algorithm narrows the client's own list to it, under the tenant's
+  ceiling. A `ping` or `push` client must register an https notification endpoint, and a client may claim the
+  `user_code` parameter only where the tenant supports it; otherwise registration answers `invalid_client_metadata`.
+  `backchannel_user_code_parameter_supported` now also applies to clients, where the registered flag is stored. Backlog
+  `F66` is complete
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
 - **A replacement token service can protect ID tokens as the client registered.** `IClientJwtCredentialSelector`,
   `ClientJwtCredentials`, and `ClientJwtProtectionSettings` are public in
   `NCode.Identity.OpenId.Authentication.Abstractions` (namespace unchanged). Every issuer of a JWT addressed to a client

@@ -316,6 +316,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Exp
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ExpiresWhen.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Id.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.KeyId.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.KeyId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.KeySizeBits.get -> int
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.KeySizeBits.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.NormalizedSecretId.get -> string!

@@ -49,7 +49,7 @@ internal sealed class EccSecretKeyTypeDescriptor(
     public override Type KeyClrType => typeof(EccSecretKey);
 
     /// <inheritdoc />
-    protected override string ExpectedJwkKeyType => "EC";
+    public override string JwkKeyType => "EC";
 
     /// <inheritdoc />
     public override string? ValidateGeneration(SecretKeyGenerationParameters parameters) =>

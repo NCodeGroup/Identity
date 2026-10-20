@@ -872,6 +872,10 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.Property<DateTimeOffset>("ExpiresWhen")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("KeyId")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<int>("KeySizeBits")
                         .HasColumnType("integer");
 

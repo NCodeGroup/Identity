@@ -70,7 +70,7 @@ internal class DefaultSecretSerializer(
 
         var metadata = new KeyMetadata
         {
-            KeyId = persistedSecret.SecretId,
+            KeyId = persistedSecret.KeyId ?? persistedSecret.SecretId,
             Use = persistedSecret.Use,
             Algorithm = persistedSecret.Algorithm,
             ExpiresWhen = persistedSecret.ExpiresWhen,

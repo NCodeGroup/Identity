@@ -212,6 +212,9 @@ rationale.
   `….<Type>() -> void` entry. Entries are a **set**, so exact sort order is not required for the build, though the file
   is kept sorted. A C# 14 `extension(Receiver)` member needs **two** entries — the `….extension(Receiver!)` container
   line **and** the member line — so when hand-editing (every `DefaultRegistration` method is such a member), add both.
+  An `abstract override` member is recorded as `override abstract …`. `dotnet format analyzers` can rewrite a
+  `PublicAPI.Unshipped.txt` it edits with CRLF line endings; the repository's files are LF, so restore LF before
+  committing (`git diff --stat` shows the whole file changed when this happens).
 - ⏳ **At most one overload per method name may carry optional parameters (`RS0026`).** The public-API analyzer fails
   the build when two overloads of the same name each declare a defaulted parameter (even when their other parameters
   differ in type, so there is no call ambiguity). When a family of overloads needs an optional tail argument (e.g. a
@@ -391,7 +394,12 @@ rationale.
   ([ADR-0142](../../docs/adr/0142-listed-response-types-are-the-only-front-channel-token-control.md) and the
   `RetireUnsafeJoseSettingValues` migration of
   [ADR-0155](../../docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) are worked
-  examples). A value that is metadata rather than a runtime control (RFC 7591 `client_name`, `contacts`)
+  examples): run the Postgres image the AppHost uses (the `Aspire.Hosting.PostgreSQL` default tag) in a container on
+  an unused port, `dotnet ef database update <previous migration> --connection "<that container>"` (the design-time
+  factory's own connection string is a placeholder), seed rows with `psql`, update to the new migration and inspect
+  them — a rewritten document and its new token, an untouched control row — then revert with
+  `database update <previous migration>` to exercise `Down`, and remove the container. A value that is metadata
+  rather than a runtime control (RFC 7591 `client_name`, `contacts`)
   is still a registered setting. See [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md).
 - 👁 **A setting declares its domain, not only its type.** Give every descriptor whose type admits values the server
   would not honor a `Rule` (`SettingRules.OneOf`/`EmptyOr`/`AtLeast`/`Between`/`Each`/`Must`): an enumerated string is a
@@ -651,6 +659,16 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   compress a JWT the server produces (RFC 8725 §3.6). Add a new kind of client-addressed JWT as a new
   `ClientJwtProtectionSettings` profile. See
   [ADR-0155](../../docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
+- 👁 **Bring a client's key in through `IClientKeyImporter`, and read a client's keys through `IClientKeyResolver`.**
+  A client's public keys come from one source — the keys stored for it or the keys it publishes at its `jwks_uri`,
+  never both — and every entry point (dynamic registration, the `jwks_uri` fetch, the management API) imports a key
+  under one policy: a public key of a registered key type, no private or symmetric member, a `use` / `key_ops` / `alg`
+  that agree with each other and the key, and a `kid` unique among the client's keys. Never call `ISecretImporter`
+  directly for a client's key, never read `OpenIdClient.SecretKeys` for a client's public keys (it ignores the
+  `jwks_uri`), and never use a key's `kid` as its secret identifier: a `kid` is the owner's name for the key
+  (`PersistedSecret.KeyId`), while a secret identifier is globally unique. Match a key type by its JSON Web Key `kty`
+  through `ISecretKeyTypeCatalog.TryGetByJwkKeyType`, never a `switch` over `kty` values. See
+  [ADR-0161](../../docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md).
 - **Give a typed `Claim` its value in the declared type's XML Schema lexical form** — numbers via
   `value.ToString(CultureInfo.InvariantCulture)`, never culture-formatted (`"1,000"`). The JWT claim ⇄ JSON mapping
   (`ClaimValueMapper`, the single place a `Claim.ValueType` is interpreted) parses each value strictly in its declared

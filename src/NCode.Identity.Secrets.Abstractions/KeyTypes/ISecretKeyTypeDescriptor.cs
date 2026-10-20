@@ -44,6 +44,13 @@ public interface ISecretKeyTypeDescriptor
     Type KeyClrType { get; }
 
     /// <summary>
+    /// Gets the JSON Web Key <c>kty</c> value that represents keys of this type (for example <c>RSA</c>, <c>EC</c>,
+    /// <c>OKP</c>, <c>AKP</c>, or <c>oct</c>), or <c>null</c> when keys of this type have no JSON Web Key form. A key
+    /// supplied as a JSON Web Key is matched to its descriptor by this value.
+    /// </summary>
+    string? JwkKeyType { get; }
+
+    /// <summary>
     /// Gets a value indicating whether this key type uses asymmetric cryptography (its <see cref="KeyClrType"/>
     /// derives from <see cref="AsymmetricSecretKey"/>).
     /// </summary>

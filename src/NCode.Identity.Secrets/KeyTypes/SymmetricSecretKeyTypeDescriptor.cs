@@ -42,6 +42,9 @@ internal sealed class SymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secretK
     public override Type KeyClrType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
+    public override string JwkKeyType => "oct";
+
+    /// <inheritdoc />
     public override string? ValidateGeneration(SecretKeyGenerationParameters parameters) =>
         RejectCurveIfPresent(parameters) ?? ValidateKeySizeBits(parameters.KeySizeBits);
 

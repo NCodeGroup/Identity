@@ -1156,6 +1156,30 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   The provider cannot destroy `cloudflare_universal_ssl_setting`: removing the resource leaves Universal SSL off, so
   turning it back on takes `enabled = true`, not a deletion._
 
+- **`F65` — Validate client key material at every entry point.** A client's `jwks` and the keys its `jwks_uri`
+  publishes are the keys the server verifies its signatures with and encrypts its ID tokens and UserInfo responses to
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), but only dynamic client
+  registration checks them, and only that `jwks` and `jwks_uri` are not both present. RFC 7591 §2 requires a registered
+  key set to hold public keys: reject a JWK that carries private or symmetric key material (`d`, `p`, `q`, `k`, …) at
+  registration, in the management API, in the seeders, and when a `jwks_uri` document is fetched; require a `kid` that is
+  unique within the set; reject a key whose `use` / `alg` / `key_ops` are inconsistent; and decide whether
+  `IClientKeyResolver` merges a stored `jwks` with a `jwks_uri` or uses only one (OpenID Connect Dynamic Client
+  Registration 1.0 §2 forbids registering both). Touch points:
+  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientKeyResolver.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`, the
+  management client endpoints, and the development seeders.
+  _Closed: [ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md) and the
+  [`CHANGELOG.md`](CHANGELOG.md) `[Unreleased]` entries "A client's public keys have one source and are imported under
+  one policy", "A client's key set could carry private or symmetric key material…", "A client's stored public keys
+  stayed in force…", and "Two clients could not register a key with the same `kid`…". A client's keys come from one
+  source (stored keys or its `jwks_uri`, never merged); the `jwks` setting is retired in favor of the stored keys, which
+  every registration response projects back; one public `IClientKeyImporter` applies the key policy at registration,
+  the `jwks_uri` fetch, and the management import, and the management update checks a key's metadata against it; a
+  key's `kid` is stored apart from its secret identifier. The seeders needed no change — they register no client keys,
+  and settings validation rejects the retired setting. The `AddSecretKeyId` and `RetireClientJwksSetting` migrations
+  were verified up and down against Postgres 18.3. Follow-ups recorded: `F72` (`x5c` certificates for
+  `self_signed_tls_client_auth`) and `F73` (the key policy and `kid` for the other secret owners)._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

@@ -65,22 +65,24 @@ internal sealed class TlsClientAuthClientAuthenticationHandler(
         OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth;
 
     /// <inheritdoc />
-    protected override SecretKey? MatchCertificate(
+    protected override ValueTask<SecretKey?> MatchCertificateAsync(
         OpenIdClient openIdClient,
-        X509Certificate2 certificate
+        X509Certificate2 certificate,
+        CancellationToken cancellationToken
     )
     {
         var settings = openIdClient.Settings;
 
         if (!IsExpectedIdentityPresented(settings, certificate))
-            return null;
+            return ValueTask.FromResult<SecretKey?>(null);
 
         var metadata = new KeyMetadata
         {
             KeyId = certificate.Thumbprint,
             ExpiresWhen = certificate.NotAfter,
         };
-        return SecretKeyFactory.Create(metadata, certificate);
+        var secretKey = SecretKeyFactory.Create(metadata, certificate);
+        return ValueTask.FromResult<SecretKey?>(secretKey);
     }
 
     private static bool IsExpectedIdentityPresented(

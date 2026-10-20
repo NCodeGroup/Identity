@@ -175,6 +175,9 @@ NCode.Identity.Jose.Algorithms.AlgorithmCodes.AuthenticatedEncryption
 NCode.Identity.Jose.Algorithms.AlgorithmCodes.Compression
 NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature
 NCode.Identity.Jose.Algorithms.AlgorithmCodes.KeyManagement
+NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions
+NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!)
+NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!).ValidateKeyAlgorithm(NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration declaration) -> string?
 NCode.Identity.Jose.Algorithms.AlgorithmType
 NCode.Identity.Jose.Algorithms.AlgorithmType.AuthenticatedEncryption = 3 -> NCode.Identity.Jose.Algorithms.AlgorithmType
 NCode.Identity.Jose.Algorithms.AlgorithmType.Compression = 4 -> NCode.Identity.Jose.Algorithms.AlgorithmType
@@ -203,6 +206,16 @@ NCode.Identity.Jose.Algorithms.IAlgorithmCollection.TryGetCompressionAlgorithm(s
 NCode.Identity.Jose.Algorithms.IAlgorithmCollection.TryGetKeyManagementAlgorithm(string! algorithmCode, out NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm! algorithm) -> bool
 NCode.Identity.Jose.Algorithms.IAlgorithmCollection.TryGetSignatureAlgorithm(string! algorithmCode, out NCode.Identity.Jose.Algorithms.SignatureAlgorithm! algorithm) -> bool
 NCode.Identity.Jose.Algorithms.IAlgorithmCollectionProvider
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Algorithm.get -> string!
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Algorithm.init -> void
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.KeyAlgorithmDeclaration() -> void
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.KeySizeBits.get -> int
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.KeySizeBits.init -> void
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.KeyType.get -> System.Type!
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.KeyType.init -> void
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Use.get -> string?
+NCode.Identity.Jose.Algorithms.KeyAlgorithmDeclaration.Use.init -> void
 NCode.Identity.Jose.Algorithms.KeyedAlgorithm
 NCode.Identity.Jose.Algorithms.KeyedAlgorithm.KeyedAlgorithm() -> void
 NCode.Identity.Jose.Algorithms.KeyedHashFunctionDelegate

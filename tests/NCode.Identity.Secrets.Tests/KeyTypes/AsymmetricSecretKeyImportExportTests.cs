@@ -179,6 +179,32 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
     }
 
     [Fact]
+    public void Rsa_ImportJwk_WithPrivatePrimeButNoPrivateExponent_IsRejected()
+    {
+        using var rsa = RSA.Create(2048);
+        var parameters = rsa.ExportParameters(includePrivateParameters: true);
+        var jwk = $$"""
+            {"kty":"RSA","n":"{{Base64Url.EncodeToString(
+                parameters.Modulus!
+            )}}","e":"{{Base64Url.EncodeToString(
+                parameters.Exponent!
+            )}}","p":"{{Base64Url.EncodeToString(parameters.P!)}}"}
+            """;
+
+        Assert.Throws<ArgumentException>(() =>
+            Rsa()
+                .ImportPublicKeyMaterial(
+                    new SecretKeyImportParameters
+                    {
+                        Format = SecretKeyImportFormat.Jwk,
+                        KeyMaterial = jwk,
+                    },
+                    _ => "protected"
+                )
+        );
+    }
+
+    [Fact]
     public void Rsa_ImportPem_WithPrivateKey_IsRejected()
     {
         using var rsa = RSA.Create(2048);

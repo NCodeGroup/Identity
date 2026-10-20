@@ -239,6 +239,32 @@ public class AkpIntegrationTests
         );
     }
 
+    [Fact]
+    public void JwkKeyType_IsAkp()
+    {
+        Assert.Equal("AKP", CreateDescriptor().JwkKeyType);
+    }
+
+    [Theory]
+    [InlineData("priv")]
+    [InlineData("d")]
+    public void ImportJwk_WhenPrivateMemberPresent_Throws(string privateMember)
+    {
+        var descriptor = CreateDescriptor();
+        var jwk = $$"""{"kty":"AKP","alg":"ML-DSA-44","pub":"AAAA","{{privateMember}}":"AAAA"}""";
+        var parameters = new SecretKeyImportParameters
+        {
+            Format = SecretKeyImportFormat.Jwk,
+            KeyMaterial = jwk,
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            descriptor.ImportPublicKeyMaterial(parameters, Protect)
+        );
+
+        Assert.Contains("private key material", exception.Message, StringComparison.Ordinal);
+    }
+
     #endregion
 
     #region IdentityDataProtector

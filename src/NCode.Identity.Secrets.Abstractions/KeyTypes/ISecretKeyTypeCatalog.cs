@@ -41,4 +41,15 @@ public interface ISecretKeyTypeCatalog
     /// <param name="descriptor">When this method returns <c>true</c>, the matching descriptor.</param>
     /// <returns><c>true</c> when a descriptor is registered for the key type; otherwise <c>false</c>.</returns>
     bool TryGet(string keyType, [NotNullWhen(true)] out ISecretKeyTypeDescriptor? descriptor);
+
+    /// <summary>
+    /// Looks up the descriptor whose keys a JSON Web Key of the specified <c>kty</c> represents.
+    /// </summary>
+    /// <param name="jwkKeyType">The JSON Web Key <c>kty</c> value, compared ordinally.</param>
+    /// <param name="descriptor">When this method returns <c>true</c>, the matching descriptor.</param>
+    /// <returns><c>true</c> when a descriptor is registered for the <c>kty</c>; otherwise <c>false</c>.</returns>
+    bool TryGetByJwkKeyType(
+        string jwkKeyType,
+        [NotNullWhen(true)] out ISecretKeyTypeDescriptor? descriptor
+    );
 }

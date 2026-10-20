@@ -6,7 +6,10 @@
   `grant_types` amended by [ADR-0141](0141-response-types-are-whole-values.md): whole response types in canonical form,
   defaulted and checked consistently with the grant types and with what the tenant supports; `token_endpoint_auth_method`
   amended by [ADR-0145](0145-a-client-authenticates-only-with-its-registered-method.md): the registered method is the
-  only one the client authenticates with, and it must be within the tenant's `token_endpoint_auth_methods_supported`)
+  only one the client authenticates with, and it must be within the tenant's `token_endpoint_auth_methods_supported`;
+  `jwks` amended by [ADR-0161](0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md): its
+  keys are imported under the client-key policy and stored as the client's secrets, the response projects them back,
+  and an update replaces them)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

@@ -87,13 +87,16 @@ internal sealed class DefaultSecretValidator(
         // required key type, and the legal key sizes.
         if (request.Algorithm is { } algorithm)
         {
-            return ValidateAgainstAlgorithm(
-                request,
-                secretType,
-                descriptor.KeyClrType,
-                use,
-                algorithm
+            var algorithmError = AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
+                new KeyAlgorithmDeclaration
+                {
+                    KeyType = descriptor.KeyClrType,
+                    KeySizeBits = request.KeySizeBits,
+                    Use = use,
+                    Algorithm = algorithm,
+                }
             );
+            return algorithmError is null ? null : Error(algorithmError);
         }
 
         return null;
@@ -125,60 +128,6 @@ internal sealed class DefaultSecretValidator(
             return Error(
                 $"The use '{use}' is not supported; expected "
                     + $"'{SecretKeyUses.Signature}' or '{SecretKeyUses.Encryption}'."
-            );
-        }
-
-        return null;
-    }
-
-    private ManagementError? ValidateAgainstAlgorithm(
-        CreateSecretRequest request,
-        string secretType,
-        Type secretKeyClrType,
-        string? use,
-        string algorithm
-    )
-    {
-        var collection = AlgorithmCollectionProvider.Collection;
-
-        KeyedAlgorithm keyedAlgorithm;
-        string impliedUse;
-        if (collection.TryGetSignatureAlgorithm(algorithm, out var signatureAlgorithm))
-        {
-            keyedAlgorithm = signatureAlgorithm;
-            impliedUse = SecretKeyUses.Signature;
-        }
-        else if (collection.TryGetKeyManagementAlgorithm(algorithm, out var keyManagementAlgorithm))
-        {
-            keyedAlgorithm = keyManagementAlgorithm;
-            impliedUse = SecretKeyUses.Encryption;
-        }
-        else
-        {
-            return Error(
-                $"The algorithm '{algorithm}' is not a supported signature or key-management algorithm."
-            );
-        }
-
-        if (use is not null && !string.Equals(use, impliedUse, StringComparison.Ordinal))
-        {
-            return Error(
-                $"The algorithm '{algorithm}' is intended for '{impliedUse}' use and is "
-                    + $"incompatible with the specified use '{use}'."
-            );
-        }
-
-        if (!keyedAlgorithm.KeyType.IsAssignableFrom(secretKeyClrType))
-        {
-            return Error(
-                $"The algorithm '{algorithm}' is not compatible with a '{secretType}' secret."
-            );
-        }
-
-        if (!KeySizesUtility.IsLegalSize(keyedAlgorithm.KeyBitSizes, request.KeySizeBits))
-        {
-            return Error(
-                $"The key size '{request.KeySizeBits}' bits is not valid for algorithm '{algorithm}'."
             );
         }
 

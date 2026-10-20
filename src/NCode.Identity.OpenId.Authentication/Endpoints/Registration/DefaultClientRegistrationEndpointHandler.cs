@@ -23,6 +23,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Jwk;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages;
@@ -36,7 +38,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
@@ -55,7 +57,9 @@ internal class DefaultClientRegistrationEndpointHandler(
     LinkGenerator linkGenerator,
     ICryptoService cryptoService,
     ISecretGenerator secretGenerator,
-    ISecretImporter secretImporter,
+    IClientKeyImporter clientKeyImporter,
+    ISecretSerializer secretSerializer,
+    ISecretKeyTypeCatalog secretKeyTypeCatalog,
     IStoreManagerFactory storeManagerFactory,
     IPersistedGrantService persistedGrantService,
     IInitialAccessTokenValidator initialAccessTokenValidator,
@@ -95,7 +99,9 @@ internal class DefaultClientRegistrationEndpointHandler(
     private LinkGenerator LinkGenerator { get; } = linkGenerator;
     private ICryptoService CryptoService { get; } = cryptoService;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
-    private ISecretImporter SecretImporter { get; } = secretImporter;
+    private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
+    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private IInitialAccessTokenValidator InitialAccessTokenValidator { get; } =
@@ -521,6 +527,17 @@ internal class DefaultClientRegistrationEndpointHandler(
             return supportError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
         }
 
+        var keysError = ImportRegisteredKeys(
+            request,
+            TimeProvider.GetUtcNow(),
+            errorFactory,
+            out var keys
+        );
+        if (keysError is not null)
+        {
+            return keysError;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -531,6 +548,9 @@ internal class DefaultClientRegistrationEndpointHandler(
         client.Settings.Value = settingsJson;
 
         await store.UpdateSettingsAsync(client.Settings, cancellationToken);
+
+        client.Secrets.Value = await ReplacePublicKeysAsync(store, client, keys, cancellationToken);
+
         await storeManager.SaveChangesAsync(cancellationToken);
 
         var response = await ToResponseAsync(client, cancellationToken);
@@ -540,6 +560,45 @@ internal class DefaultClientRegistrationEndpointHandler(
         };
 
         return TypedResults.Json(response, openIdContext.Environment.JsonSerializerOptions);
+    }
+
+    /// <summary>
+    /// Replaces the public keys stored for a client with the keys of its updated registration, returning the client's
+    /// secrets afterward. An update replaces all of a client's metadata, its keys included (RFC 7592 §2.2): the keys
+    /// of the request's <c>jwks</c> take the place of every stored public key, and none remain when the client
+    /// publishes a <c>jwks_uri</c> instead. The secrets the client shares with the server are kept.
+    /// </summary>
+    // See ADR-0161.
+    private async ValueTask<List<PersistedSecret>> ReplacePublicKeysAsync(
+        IClientStore store,
+        PersistedClient client,
+        IReadOnlyList<PersistedSecret> keys,
+        CancellationToken cancellationToken
+    )
+    {
+        var secrets = new List<PersistedSecret>();
+        foreach (var secret in client.Secrets.Value)
+        {
+            if (
+                SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor)
+                && descriptor.IsAsymmetric
+            )
+            {
+                await store.RemoveSecretAsync(client.ClientId, secret.SecretId, cancellationToken);
+            }
+            else
+            {
+                secrets.Add(secret);
+            }
+        }
+
+        foreach (var key in keys)
+        {
+            await store.AddSecretAsync(client.ClientId, key, cancellationToken);
+            secrets.Add(key);
+        }
+
+        return secrets;
     }
 
     private async ValueTask<IResult> DeleteClientAsync(
@@ -1135,9 +1194,9 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Builds the new client's secrets: a generated symmetric secret for a confidential client, plus any public
-    /// verification keys imported from an inline <c>jwks</c> set (ADR-0104). Returns an error result when an inline
-    /// supported JWK is malformed; otherwise <see langword="null"/> with the secrets and one-time client secret.
+    /// Builds the new client's secrets: a generated symmetric secret for a confidential client, plus the public keys of
+    /// the <c>jwks</c> set the client registers by value, imported under the client-key policy. Returns an error result
+    /// when the set is refused; otherwise <see langword="null"/> with the secrets and one-time client secret.
     /// </summary>
     private IResult? BuildClientSecrets(
         RegisterClientRequest request,
@@ -1173,106 +1232,58 @@ internal class DefaultClientRegistrationEndpointHandler(
             secrets.Add(generated.Secret);
         }
 
-        // Import any inline JWK Set keys as public verification secrets (ADR-0104); runtime jwks_uri resolution is
-        // deferred (F16 Phase 0). An unsupported key type is skipped; a malformed supported key fails registration.
-        if (
-            request.Jwks is not { ValueKind: JsonValueKind.Object } jwks
-            || !jwks.TryGetProperty("keys", out var jwksKeys)
-            || jwksKeys.ValueKind != JsonValueKind.Array
-        )
+        var keysError = ImportRegisteredKeys(request, createdWhen, errorFactory, out var keys);
+        if (keysError is not null)
         {
-            return null;
+            return keysError;
         }
 
-        foreach (var jwk in jwksKeys.EnumerateArray())
-        {
-            if (!TryImportJwk(jwk, createdWhen, out var importedSecret, out var importError))
-            {
-                return errorFactory
-                    .InvalidRequest(
-                        importError ?? "The supplied JWK is invalid.",
-                        OpenIdConstants.ErrorCodes.InvalidClientMetadata
-                    )
-                    .WithStatusCode(StatusCodes.Status400BadRequest)
-                    .AsHttpResult();
-            }
-
-            if (importedSecret is not null)
-            {
-                secrets.Add(importedSecret);
-            }
-        }
-
+        secrets.AddRange(keys);
         return null;
     }
 
     /// <summary>
-    /// Attempts to import a single inline <c>JWK</c> as a public verification secret. Returns <see langword="true"/>
-    /// with a <see langword="null"/> secret for an unsupported key type (skipped), <see langword="true"/> with the
-    /// imported secret for a supported key, or <see langword="false"/> with an error for a malformed supported key.
+    /// Imports the public keys of the <c>jwks</c> set a registration request carries, under the client-key policy: every
+    /// key is a public key of a supported type with a <c>kid</c> unique within the set and metadata that agrees with the
+    /// key. Returns an <c>invalid_client_metadata</c> error result when the set is refused; otherwise
+    /// <see langword="null"/> with the imported keys, which are empty when the request carries no <c>jwks</c>.
     /// </summary>
-    // See ADR-0104.
-    private bool TryImportJwk(
-        JsonElement jwk,
+    // See ADR-0161.
+    private IResult? ImportRegisteredKeys(
+        RegisterClientRequest request,
         DateTimeOffset createdWhen,
-        out PersistedSecret? secret,
-        out string? error
+        IOpenIdErrorFactory errorFactory,
+        out IReadOnlyList<PersistedSecret> keys
     )
     {
-        secret = null;
-        error = null;
+        keys = [];
+
+        if (request.Jwks is not { } jwks || jwks.IsNullOrUndefined())
+        {
+            return null;
+        }
 
         if (
-            jwk.ValueKind != JsonValueKind.Object
-            || !jwk.TryGetPropertyValue<string>("kty", out var kty)
+            ClientKeyImporter.TryImportRegisteredKeySet(
+                jwks,
+                createdWhen,
+                out var importedKeys,
+                out var error
+            )
         )
         {
-            return true;
+            keys = importedKeys;
+            return null;
         }
 
-        var secretType = kty switch
-        {
-            "RSA" => SecretTypes.Rsa,
-            "EC" => SecretTypes.Ecc,
-            _ => null,
-        };
-        if (secretType is null)
-        {
-            return true;
-        }
-
-        var keyId = ReadStringMember(jwk, "kid");
-        if (string.IsNullOrEmpty(keyId))
-        {
-            keyId = CryptoService.GenerateResourceId();
-        }
-
-        try
-        {
-            secret = SecretImporter.ImportSecret(
-                new SecretKeyImportRequest
-                {
-                    SecretId = keyId,
-                    SecretType = secretType,
-                    Format = SecretKeyImportFormat.Jwk,
-                    KeyMaterial = jwk.GetRawText(),
-                    Use = ReadStringMember(jwk, "use"),
-                    Algorithm = ReadStringMember(jwk, "alg"),
-                    CreatedWhen = createdWhen,
-                    ExpiresWhen = DateTimeOffset.MaxValue,
-                }
-            );
-            return true;
-        }
-        catch (ArgumentException exception)
-        {
-            error = $"The supplied JWK is invalid: {exception.Message}";
-            return false;
-        }
+        return errorFactory
+            .InvalidRequest(
+                $"The 'jwks' parameter is invalid. {error}",
+                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+            )
+            .WithStatusCode(StatusCodes.Status400BadRequest)
+            .AsHttpResult();
     }
-
-    private static string? ReadStringMember(JsonElement element, string memberName) =>
-        element.TryGetPropertyValue<string>(memberName, out var value) ? value : null;
 
     private JsonElement BuildSettingsJson(RegisterClientRequest request, ResolvedMetadata resolved)
     {
@@ -1326,6 +1337,8 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// Projects the submitted metadata and the resolved values into the client's persisted settings document. Every
     /// key is a registered client setting. The requested <c>scope</c> is not stored: the scopes a client may request
     /// come from the tenant's resource servers and the client's grants, and the registration response reports those.
+    /// The <c>jwks</c> set is not stored either: its keys are imported as the client's secrets, and the registration
+    /// response projects them back.
     /// </summary>
     internal virtual JsonObject BuildSettingsObject(
         RegisterClientRequest request,
@@ -1358,9 +1371,6 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         if (request.Contacts is { Count: > 0 })
             settings[OpenIdSettingNames.Contacts] = ToJsonArray(request.Contacts);
-
-        if (request.Jwks is { ValueKind: JsonValueKind.Object } jwks)
-            settings[OpenIdSettingNames.Jwks] = JsonSerializer.SerializeToNode(jwks);
 
         SetIfPresent(
             settings,
@@ -1442,12 +1452,13 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Reconstructs the registered metadata of a client information response from a persisted client's settings
-    /// document.
+    /// Reconstructs the registered metadata of a client information response from a persisted client: the metadata
+    /// from its settings document, and the <c>jwks</c> set from the public keys stored for it.
     /// </summary>
     internal virtual RegisterClientResponse ToResponse(PersistedClient client)
     {
         var settings = ToJsonObject(client.Settings.Value);
+        var jwks = ExportPublicKeys(client.Secrets.Value);
 
         return new RegisterClientResponse
         {
@@ -1468,7 +1479,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             TosUri = ReadString(settings, OpenIdSettingNames.TosUri),
             PolicyUri = ReadString(settings, OpenIdSettingNames.PolicyUri),
             JwksUri = ReadString(settings, OpenIdSettingNames.JwksUri),
-            Jwks = ReadElement(settings, OpenIdSettingNames.Jwks),
+            Jwks = jwks,
             SoftwareId = ReadString(settings, OpenIdSettingNames.SoftwareId),
             SoftwareVersion = ReadString(settings, OpenIdSettingNames.SoftwareVersion),
             IdTokenSignedResponseAlg = ReadString(
@@ -1508,6 +1519,38 @@ internal class DefaultClientRegistrationEndpointHandler(
                 OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported
             ),
         };
+    }
+
+    /// <summary>
+    /// Projects the public keys stored for a client into the JSON Web Key Set its registration reports, or returns
+    /// <see langword="null"/> when it has none. A secret without public key material, such as the client secret, is
+    /// not part of the set and is never deserialized here.
+    /// </summary>
+    // See ADR-0161.
+    private JsonElement? ExportPublicKeys(IEnumerable<PersistedSecret> secrets)
+    {
+        var keys = new List<JsonWebKey>();
+        foreach (var secret in secrets)
+        {
+            if (
+                !SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor)
+                || !descriptor.SupportsPublicKeyExport
+            )
+            {
+                continue;
+            }
+
+            var secretKey = SecretSerializer.DeserializeSecret(secret);
+            var exported = descriptor.ExportPublicKey(secretKey);
+            if (exported is not null)
+                keys.Add(exported.Jwk);
+        }
+
+        if (keys.Count == 0)
+            return null;
+
+        var keySet = new JsonWebKeySet(keys);
+        return JsonSerializer.SerializeToElement(keySet);
     }
 
     private static JsonArray ToJsonArray(IReadOnlyCollection<string> values)
@@ -1563,7 +1606,4 @@ internal class DefaultClientRegistrationEndpointHandler(
         var node = settings[key];
         return node?.GetValueKind() == JsonValueKind.String ? node.GetValue<string>() : null;
     }
-
-    private static JsonElement? ReadElement(JsonObject settings, string key) =>
-        settings[key] is { } node ? JsonSerializer.SerializeToElement(node) : null;
 }

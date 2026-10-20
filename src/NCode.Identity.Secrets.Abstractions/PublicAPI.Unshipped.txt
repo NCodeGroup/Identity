@@ -109,9 +109,11 @@ NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory.Empty.get -> NCode.Identity
 NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeCatalog
 NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeCatalog.Descriptors.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor!>!
 NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeCatalog.TryGet(string! keyType, out NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor? descriptor) -> bool
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeCatalog.TryGetByJwkKeyType(string! jwkKeyType, out NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor? descriptor) -> bool
 NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor
 NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.GenerateKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial!
 NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.IsAsymmetric.get -> bool
+NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.JwkKeyType.get -> string?
 NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
 NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.KeyType.get -> string!
 NCode.Identity.Secrets.KeyTypes.ISecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool

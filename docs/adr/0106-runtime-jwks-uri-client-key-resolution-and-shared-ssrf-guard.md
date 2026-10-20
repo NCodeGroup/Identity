@@ -1,6 +1,8 @@
 # 106. Runtime `jwks_uri` client-key resolution and a shared, extensible outbound-fetch SSRF guard
 
-- **Status:** Accepted
+- **Status:** Accepted (key sources and import policy amended by
+  [ADR-0161](0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md): a client's stored public
+  keys and its `jwks_uri` keys are never merged, and a published key set is imported under the client-key policy)
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
 

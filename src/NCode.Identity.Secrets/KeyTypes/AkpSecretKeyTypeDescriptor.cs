@@ -50,6 +50,8 @@ public sealed class AkpSecretKeyTypeDescriptor(
     IDataProtectorFactory<SecretKey> dataProtectorFactory
 ) : ISecretKeyTypeDescriptor
 {
+    private const string AkpJwkKeyType = "AKP";
+
     private IDataProtector DataProtector { get; } = dataProtectorFactory.CreateDataProtector();
 
     /// <inheritdoc />
@@ -57,6 +59,9 @@ public sealed class AkpSecretKeyTypeDescriptor(
 
     /// <inheritdoc />
     public Type KeyClrType => typeof(AkpSecretKey);
+
+    /// <inheritdoc />
+    public string JwkKeyType => AkpJwkKeyType;
 
     /// <inheritdoc />
     public bool IsAsymmetric => true;
@@ -181,7 +186,7 @@ public sealed class AkpSecretKeyTypeDescriptor(
 
         var jwk = new JsonObject
         {
-            ["kty"] = "AKP",
+            ["kty"] = AkpJwkKeyType,
             ["alg"] = akp.AlgorithmName,
             ["pub"] = Base64Url.EncodeToString(publicKey),
         };
@@ -258,16 +263,17 @@ public sealed class AkpSecretKeyTypeDescriptor(
             throw new ArgumentException("The supplied JWK material is not a JSON object.");
         }
 
-        if (root.TryGetProperty("priv", out _))
+        if (!root.TryGetPropertyValue<string>("kty", out var kty) || kty != AkpJwkKeyType)
+        {
+            throw new ArgumentException("The supplied JWK is not an 'AKP' key.");
+        }
+
+        // A JWK carrying any private or secret component is rejected: only public keys may be imported.
+        if (new JsonWebKey(root).ContainsPrivateKeyMaterial)
         {
             throw new ArgumentException(
                 "Importing private key material is not supported; supply a public JWK."
             );
-        }
-
-        if (!root.TryGetPropertyValue<string>("kty", out var kty) || kty != "AKP")
-        {
-            throw new ArgumentException("The supplied JWK is not an 'AKP' key.");
         }
 
         if (

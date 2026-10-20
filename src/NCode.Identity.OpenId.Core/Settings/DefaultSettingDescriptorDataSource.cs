@@ -18,7 +18,6 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
@@ -1604,11 +1603,12 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
-            // RFC 7591 §2 client metadata: client_name, client_uri, logo_uri, tos_uri, policy_uri, contacts, jwks,
-            // software_id, software_version. Registered so a registration (or the management API) stores them as typed
-            // settings rather than untyped extras; client_name is shown on the consent page, and jwks keeps the key set
-            // the client registered by value (its keys are imported as client secrets). No defaults: absent means the
-            // client did not provide it. Not advertised. Override (Replace): a child fully replaces the parent value.
+            // RFC 7591 §2 client metadata: client_name, client_uri, logo_uri, tos_uri, policy_uri, contacts, software_id,
+            // software_version. Registered so a registration (or the management API) stores them as typed settings rather
+            // than untyped extras; client_name is shown on the consent page. The jwks metadata is deliberately not a
+            // setting: its keys are the client's stored public keys, imported under the client-key policy, and a
+            // registration response projects them back (ADR-0161). No defaults: absent means the client did not provide
+            // it. Not advertised. Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.ClientName,
@@ -1663,16 +1663,6 @@ internal class DefaultSettingDescriptorDataSource(
                 Name = OpenIdSettingNames.Contacts,
                 AppliesTo = Clients,
                 Rule = SettingRules.Each(SettingRules.NonEmpty()),
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
-            };
-
-            yield return new SettingDescriptor<JsonElement>
-            {
-                Name = OpenIdSettingNames.Jwks,
-                AppliesTo = Clients,
-                Rule = OpenIdSettingRules.JwkSet(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,

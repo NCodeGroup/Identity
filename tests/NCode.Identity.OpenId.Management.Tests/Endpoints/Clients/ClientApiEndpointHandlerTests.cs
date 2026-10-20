@@ -22,8 +22,12 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Jose;
+using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Auditing;
@@ -37,6 +41,8 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
@@ -46,7 +52,7 @@ using SystemTextJsonPatch.Operations;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 
-public sealed class ClientApiEndpointHandlerTests : IDisposable
+public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 {
     private const string TenantId = "tenant-1";
     private const string ClientId = "client-1";
@@ -57,7 +63,7 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     private Mock<IClientStore> MockClientStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
-    private Mock<ISecretImporter> MockSecretImporter { get; }
+    private Mock<IClientKeyImporter> MockClientKeyImporter { get; }
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
     private Mock<IClientValidator> MockClientValidator { get; }
     private Mock<ISecretValidator> MockSecretValidator { get; }
@@ -69,17 +75,24 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
+    private ServiceProvider ServiceProvider { get; }
     private ClientApiEndpointHandler Handler { get; }
 
     public ClientApiEndpointHandlerTests()
     {
+        // The real key-type catalog and algorithms are the sources of truth the key rules read.
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        ServiceProvider = serviceCollection.BuildServiceProvider();
+
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockClientStore = MockRepository.Create<IClientStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
-        MockSecretImporter = MockRepository.Create<ISecretImporter>();
+        MockClientKeyImporter = MockRepository.Create<IClientKeyImporter>();
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
         MockClientValidator = MockRepository.Create<IClientValidator>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
@@ -141,7 +154,9 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
             MockClientValidator.Object,
             MockSecretValidator.Object,
             MockSecretGenerator.Object,
-            MockSecretImporter.Object,
+            MockClientKeyImporter.Object,
+            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             MockSecretPublicKeyConverter.Object,
             TimeProvider.System,
             MockCryptoService.Object,
@@ -155,9 +170,12 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         );
     }
 
-    public void Dispose()
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    public async Task DisposeAsync()
     {
         MockRepository.Verify();
+        await ServiceProvider.DisposeAsync();
     }
 
     #region Helpers
@@ -278,15 +296,6 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
     private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
 
-    private static PersistedClientSettings CreateSettings(string concurrencyToken) =>
-        new()
-        {
-            TenantId = TenantId,
-            ClientId = ClientId,
-            ConcurrencyToken = concurrencyToken,
-            Value = EmptyObject(),
-        };
-
     private static PersistedTenantSettings CreateTenantSettings() =>
         new()
         {
@@ -316,14 +325,48 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         };
 
     private static PersistedClient CreateClient(string concurrencyToken) =>
+        CreateClient(concurrencyToken, EmptyObject());
+
+    private static PersistedClient CreateClient(
+        string concurrencyToken,
+        JsonElement settings,
+        params PersistedSecret[] secrets
+    ) =>
         new()
         {
             TenantId = TenantId,
             ClientId = ClientId,
             ConcurrencyToken = concurrencyToken,
             IsDisabled = false,
-            Settings = CreateSettings("settings-ct"),
-            Secrets = CreateSecretsCollection("secrets-ct"),
+            Settings = new PersistedClientSettings
+            {
+                TenantId = TenantId,
+                ClientId = ClientId,
+                ConcurrencyToken = "settings-ct",
+                Value = settings,
+            },
+            Secrets = CreateSecretsCollection("secrets-ct", secrets),
+        };
+
+    private static JsonElement JwksUriSettings() =>
+        JsonSerializer.SerializeToElement(
+            new JsonObject { [OpenIdSettingNames.JwksUri] = "https://client.example/jwks" }
+        );
+
+    private static PersistedSecret CreatePublicKeySecret(string secretId, string? keyId) =>
+        new()
+        {
+            SecretId = secretId,
+            KeyId = keyId,
+            ConcurrencyToken = "secret-ct",
+            Use = "sig",
+            Algorithm = "RS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            SecretType = SecretTypes.Rsa,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Spki,
+            KeySizeBits = 2048,
+            EncodedValue = "encoded",
         };
 
     private static PersistedSecret CreatePersistedSecret(
@@ -367,8 +410,8 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
     private static UpdateSecretRequest UpdateSecretRequest() =>
         new()
         {
-            Use = "enc",
-            Algorithm = "RS512",
+            Use = "sig",
+            Algorithm = "HS256",
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(2),
         };
 
@@ -873,6 +916,71 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         Assert.IsType<NotFound>(result);
     }
 
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenJwksUriIsAddedToAClientWithPublicKeys_ReturnsConflict()
+    {
+        SetupValidSettings();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateClient("client-ct", EmptyObject(), CreatePublicKeySecret("key-1", "kid-1"))
+            )
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ClientId,
+            CreateAddPatch(OpenIdSettingNames.JwksUri, "https://client.example/jwks"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenJwksUriIsAddedToAClientWithOnlySharedSecrets_ReturnsNoContent()
+    {
+        SetupValidSettings();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", EmptyObject(), CreatePersistedSecret()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockClientStore
+            .Setup(x =>
+                x.UpdateSettingsAsync(
+                    It.IsAny<PersistedClientSettings>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ClientId,
+            CreateAddPatch(OpenIdSettingNames.JwksUri, "https://client.example/jwks"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
     #endregion
 
     #region GetSecretsAsync Tests
@@ -1062,6 +1170,220 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenClientPublishesJwksUriAndKeyIsAsymmetric_ReturnsConflict()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", JwksUriSettings()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CreateAsymmetricSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenClientPublishesJwksUriAndSecretIsShared_ReturnsCreated()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", JwksUriSettings()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
+
+        var generated = CreatePersistedSecret();
+        MockSecretGenerator
+            .Setup(x => x.GenerateSharedSecret(It.IsAny<GenerateSecretRequest>()))
+            .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = "material" })
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddSecretAsync(ClientId, generated, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        Assert.IsType<Created<CreatedSecretResource>>(result);
+    }
+
+    #endregion
+
+    #region ImportSecretAsync Tests
+
+    private static ImportSecretRequest CreateImportSecretRequest() =>
+        new()
+        {
+            SecretType = SecretTypes.Rsa,
+            Format = "jwk",
+            KeyMaterial = """{"kty":"RSA","kid":"client-kid","n":"AQAB","e":"AQAB"}""",
+            Use = null,
+            Algorithm = null,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
+    private void SetupImportClient(PersistedClient client)
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(client)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockSecretValidator
+            .Setup(x => x.ValidateImport(It.IsAny<ImportSecretRequest>()))
+            .Returns((ManagementError?)null)
+            .Verifiable();
+    }
+
+    private void SetupImportedKey(PersistedSecret imported)
+    {
+        SetupResourceId("secret-2");
+        var importedSecret = (PersistedSecret?)imported;
+        string? error = null;
+        MockClientKeyImporter
+            .Setup(x =>
+                x.TryImportKey(
+                    It.Is<SecretKeyImportRequest>(request =>
+                        request.SecretId == "secret-2" && request.KeyId == null
+                    ),
+                    out importedSecret,
+                    out error
+                )
+            )
+            .Returns(true)
+            .Verifiable();
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenKeyIsImported_ReturnsCreated()
+    {
+        SetupImportClient(CreateClient("client-ct"));
+        var imported = CreatePublicKeySecret("secret-2", "client-kid");
+        SetupImportedKey(imported);
+        MockClientStore
+            .Setup(x => x.AddSecretAsync(ClientId, imported, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ImportSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CreateImportSecretRequest(),
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<SecretResource>>(result);
+        Assert.Equal("secret-2", created.Value?.SecretId);
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenClientPublishesJwksUri_ReturnsConflict()
+    {
+        SetupImportClient(CreateClient("client-ct", JwksUriSettings()));
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ImportSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CreateImportSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenKeyIsRefused_ReturnsBadRequestWithTheReason()
+    {
+        SetupImportClient(CreateClient("client-ct"));
+        SetupResourceId("secret-2");
+        PersistedSecret? importedSecret = null;
+        var error = (string?)"The key is not public.";
+        MockClientKeyImporter
+            .Setup(x =>
+                x.TryImportKey(It.IsAny<SecretKeyImportRequest>(), out importedSecret, out error)
+            )
+            .Returns(false)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ImportSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CreateImportSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal("The key is not public.", problem.ProblemDetails.Detail);
+    }
+
+    [Theory]
+    [InlineData("client-kid")]
+    [InlineData(null)]
+    public async Task ImportSecretAsync_WhenKidIsAlreadyRegisteredForTheClient_ReturnsConflict(
+        string? registeredKeyId
+    )
+    {
+        // A registered key without its own kid is selected by its secret identifier.
+        var registered = CreatePublicKeySecret(registeredKeyId ?? "client-kid", registeredKeyId);
+        SetupImportClient(CreateClient("client-ct", EmptyObject(), registered));
+        SetupImportedKey(CreatePublicKeySecret("secret-2", "client-kid"));
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no AddSecretAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.ImportSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CreateImportSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
     }
 
     #endregion
@@ -1307,6 +1629,102 @@ public sealed class ClientApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    [Theory]
+    [InlineData("sig", "RS256")]
+    [InlineData("enc", "HS256")]
+    [InlineData("both", null)]
+    public async Task UpdateSecretAsync_WhenMetadataDoesNotFitTheKey_ReturnsBadRequest(
+        string use,
+        string? algorithm
+    )
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(ClientId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateClientSecret())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+        var request = new UpdateSecretRequest
+        {
+            Use = use,
+            Algorithm = algorithm,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(2),
+        };
+
+        // Strict mocks: no UpdateSecretAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSecretAsync(
+            httpContext,
+            ClientId,
+            "secret-1",
+            request,
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenKeyHasAKid_KeepsIt()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetSecretOrDefaultAsync(ClientId, "key-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new PersistedClientSecret
+                {
+                    TenantId = TenantId,
+                    ClientId = ClientId,
+                    Value = CreatePublicKeySecret("key-1", "client-kid"),
+                }
+            )
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        PersistedSecret? updated = null;
+        MockClientStore
+            .Setup(x =>
+                x.UpdateSecretAsync(
+                    ClientId,
+                    It.IsAny<PersistedSecret>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback((string _, PersistedSecret secret, CancellationToken _) => updated = secret)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+        var request = new UpdateSecretRequest
+        {
+            Use = "sig",
+            Algorithm = "PS256",
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(2),
+        };
+
+        var result = await Handler.UpdateSecretAsync(
+            httpContext,
+            ClientId,
+            "key-1",
+            request,
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        Assert.NotNull(updated);
+        Assert.Equal("client-kid", updated.KeyId);
+        Assert.Equal("PS256", updated.Algorithm);
     }
 
     [Fact]

@@ -204,6 +204,37 @@ public class OkpIntegrationTests
         );
     }
 
+    [Fact]
+    public void JwkKeyType_IsOkp()
+    {
+        Assert.Equal("OKP", CreateDescriptor().JwkKeyType);
+    }
+
+    [Theory]
+    [InlineData("d")]
+    [InlineData("k")]
+    public void ImportJwk_WhenPrivateMemberPresent_Throws(string privateMember)
+    {
+        var descriptor = CreateDescriptor();
+        var privateKey = GeneratePrivateKey(descriptor, OkpCurves.Ed25519Name, 256);
+        var exported = descriptor.ExportPublicKey(privateKey);
+        Assert.NotNull(exported);
+
+        var members = System.Text.Json.Nodes.JsonNode.Parse(exported.Jwk.ToJsonString());
+        Assert.NotNull(members);
+        members[privateMember] = "AAAA";
+
+        var parameters = new SecretKeyImportParameters
+        {
+            Format = SecretKeyImportFormat.Jwk,
+            KeyMaterial = members.ToJsonString(),
+        };
+
+        Assert.Throws<ArgumentException>(() =>
+            descriptor.ImportPublicKeyMaterial(parameters, Protect)
+        );
+    }
+
     private static OkpSecretKey ImportPublicKey(
         OkpSecretKeyTypeDescriptor descriptor,
         SecretKeyImportFormat format,

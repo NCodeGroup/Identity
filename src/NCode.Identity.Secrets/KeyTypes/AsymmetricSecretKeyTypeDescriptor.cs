@@ -49,7 +49,7 @@ public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secret
     /// <summary>
     /// Gets the <c>JWK</c> <c>kty</c> value this key type accepts (for example <c>RSA</c> or <c>EC</c>).
     /// </summary>
-    protected abstract string ExpectedJwkKeyType { get; }
+    public abstract override string JwkKeyType { get; }
 
     /// <inheritdoc />
     public override ImportedSecretKeyMaterial ImportPublicKeyMaterial(
@@ -136,22 +136,18 @@ public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secret
                 nameof(keyMaterial)
             );
 
-        // A JWK carrying a private component is rejected: only public keys may be imported.
-        if (root.TryGetProperty("d", out _))
+        // A JWK carrying any private or secret component is rejected: only public keys may be imported.
+        var jwk = new JsonWebKey(root);
+        if (jwk.ContainsPrivateKeyMaterial)
             throw new ArgumentException(
                 "Importing private key material is not supported; supply a public JWK.",
                 nameof(keyMaterial)
             );
 
-        if (!root.TryGetPropertyValue<string>("kty", out var kty))
+        var kty = jwk.KeyType;
+        if (!string.Equals(kty, JwkKeyType, StringComparison.Ordinal))
             throw new ArgumentException(
-                "The supplied JWK is missing the 'kty' member.",
-                nameof(keyMaterial)
-            );
-
-        if (!string.Equals(kty, ExpectedJwkKeyType, StringComparison.Ordinal))
-            throw new ArgumentException(
-                $"The JWK key type '{kty}' does not match the expected '{ExpectedJwkKeyType}' for a "
+                $"The JWK key type '{kty}' does not match the expected '{JwkKeyType}' for a "
                     + $"'{KeyType}' secret.",
                 nameof(keyMaterial)
             );

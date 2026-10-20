@@ -117,6 +117,11 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **Hermetic — no network, no ambient host.** Use `DefaultHttpContext` with a test `RequestServices`, in-memory
   fakes, and constructed `ClaimsPrincipal`s. A resource/principal/stub a single test needs is a small local
   `private sealed` type in the test file.
+- 👁 **Dispose a test's real service provider asynchronously.** A test that resolves the real algorithms or key types
+  (`AddSecretsLibrary().AddJoseLibrary()`) owns a container holding a service that implements only
+  `IAsyncDisposable` (the algorithm-collection provider), so a synchronous `ServiceProvider.Dispose()` throws
+  `InvalidOperationException` from every test in the class. Implement `IAsyncLifetime` and `await` its
+  `DisposeAsync()` instead of implementing `IDisposable`.
 - 👁 **Keep test-only reach through `InternalsVisibleTo`** (`internal`), never by widening the production surface. The
   project under test exposes internals with:
 

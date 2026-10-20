@@ -101,6 +101,34 @@ public class ClientRegistrationEndpointTests
         Assert.True(tokenResponse.StatusCode == HttpStatusCode.OK, tokenBody);
     }
 
+    [Fact]
+    public async Task PostRegister_WhenAnonymousRegistrationIsAllowed_StillRejectsAnInvalidInitialAccessToken()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        // A presented token is always validated, so a scoped token is never silently ignored (ADR-0192).
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/register")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", "not-a-token") },
+            Content = JsonContent.Create(
+                new Dictionary<string, object>
+                {
+                    ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                    ["token_endpoint_auth_method"] = OpenIdConstants
+                        .ClientAuthenticationMethods
+                        .ClientSecretPost,
+                }
+            ),
+        };
+        using var response = await client.SendAsync(request);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Unauthorized, body);
+    }
+
     [Theory]
     [InlineData("grant_types", "authorisation_code", OpenIdSettingNames.GrantTypesSupported)]
     [InlineData("response_types", "code none", OpenIdSettingNames.ResponseTypesSupported)]

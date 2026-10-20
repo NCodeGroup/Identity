@@ -244,10 +244,12 @@ internal class GrantApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant that will own the token.</param>
-    /// <param name="request">The token-creation request, carrying an optional description and lifetime.</param>
+    /// <param name="request">The token-creation request, carrying an optional description, lifetime, and resource
+    /// server the token is scoped to.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The newly minted initial access token, including its one-time plaintext value.</response>
-    /// <response code="400">The requested lifetime was not greater than zero.</response>
+    /// <response code="400">The requested lifetime was not greater than zero, or the resource server does not exist in
+    /// the tenant or is a system resource server.</response>
     [EndpointName("api/grants/initial-access-tokens/create")]
     internal virtual async ValueTask<IResult> CreateInitialAccessTokenAsync(
         HttpContext httpContext,
@@ -281,6 +283,20 @@ internal class GrantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
+        if (request.ResourceServerId is { } resourceServerId)
+        {
+            var resourceServerError = await AuthorizeResourceServerScopeAsync(
+                httpContext,
+                tenantId,
+                resourceServerId,
+                cancellationToken
+            );
+            if (resourceServerError is not null)
+            {
+                return resourceServerError;
+            }
+        }
+
         var openIdContext = httpContext.GetOpenIdContext();
         var createdWhen = TimeProvider.GetUtcNow();
         var token = CryptoService.GenerateUrlSafeKey();
@@ -292,7 +308,11 @@ internal class GrantApiEndpointHandler(
             ClientId = null,
             SubjectId = null,
             SessionId = null,
-            Payload = new InitialAccessTokenGrant { Description = request.Description },
+            Payload = new InitialAccessTokenGrant
+            {
+                Description = request.Description,
+                ResourceServerId = request.ResourceServerId,
+            },
         };
 
         var grantId = await PersistedGrantService.AddAsync(
@@ -326,11 +346,59 @@ internal class GrantApiEndpointHandler(
             GrantId = grantId,
             TenantId = tenantId,
             Description = request.Description,
+            ResourceServerId = request.ResourceServerId,
             CreatedWhen = createdWhen,
             ExpiresWhen = lifetime is null ? null : createdWhen + lifetime,
         };
 
         return TypedResults.Json(response, statusCode: StatusCodes.Status201Created);
+    }
+
+    // A token scoped to a resource server registers a client that introspects for it and reads every token issued to
+    // it, so minting one is a change to the resource server, exactly like binding a client through the management API:
+    // the resource server must exist in the tenant, must not be a system resource server, and the caller must be
+    // authorized to update it (ADR-0168, ADR-0192).
+    private async ValueTask<IResult?> AuthorizeResourceServerScopeAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string resourceServerId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var resourceServer = await storeManager
+            .GetStore<IResourceServerStore>()
+            .GetOrDefaultAsync(resourceServerId, cancellationToken);
+        if (
+            resourceServer is null
+            || !string.Equals(resourceServer.TenantId, tenantId, StringComparison.Ordinal)
+        )
+        {
+            return TypedResults.Problem(
+                detail: "The resource server the token is scoped to does not exist in the tenant.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            Operations.Update
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (resourceServer.IsSystem)
+        {
+            return TypedResults.Problem(
+                detail: "A token cannot be scoped to a system resource server.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        return null;
     }
 
     /// <summary>

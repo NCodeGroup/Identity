@@ -227,3 +227,4 @@ standards.
 | [0189](./0189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md) | A retired tenant identifier or issuer is never reissued | Accepted |
 | [0190](./0190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md) | Hashing names the framework algorithm, and binary encodings are registered strategies | Accepted |
 | [0191](./0191-the-management-api-authenticates-against-the-control-plane-tenant.md) | The management API authenticates against the control-plane tenant | Accepted |
+| [0192](./0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md) | Dynamic registration binds a client to the resource server its initial access token names | Accepted |

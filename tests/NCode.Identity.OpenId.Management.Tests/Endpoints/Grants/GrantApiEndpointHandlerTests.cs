@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Grants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -39,6 +40,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 {
     private const string TenantId = "tenant-1";
     private const string GrantId = "grant-1";
+    private const string ResourceServerId = "rs-1";
 
     private MockRepository MockRepository { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
@@ -726,6 +728,118 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    private void SetupResourceServer(string tenantId, bool isSystem)
+    {
+        var mockResourceServerStore = MockRepository.Create<IResourceServerStore>();
+        mockResourceServerStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new PersistedResourceServer
+                {
+                    TenantId = tenantId,
+                    ResourceServerId = ResourceServerId,
+                    Identifier = "https://api.example.com",
+                    ConcurrencyToken = "rs-ct",
+                    Name = "Example API",
+                    IsSystem = isSystem,
+                    IsDisabled = false,
+                    Settings = new PersistedResourceServerSettings
+                    {
+                        TenantId = tenantId,
+                        ResourceServerId = ResourceServerId,
+                        Value = JsonSerializer.SerializeToElement(new { }),
+                    },
+                    Scopes = [],
+                    Secrets = new PersistedResourceServerSecrets
+                    {
+                        TenantId = tenantId,
+                        ResourceServerId = ResourceServerId,
+                        Value = [],
+                    },
+                }
+            )
+            .Verifiable();
+
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<IResourceServerStore>())
+            .Returns(mockResourceServerStore.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+    }
+
+    [Fact]
+    public async Task CreateInitialAccessTokenAsync_WhenResourceServerIsInAnotherTenant_ReturnsBadRequest()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceServer("tenant-2", isSystem: false);
+
+        // No mint scaffold: a strict-mock failure would mean the resource server was not checked.
+        var result = await Handler.CreateInitialAccessTokenAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new CreateInitialAccessTokenRequest { ResourceServerId = ResourceServerId },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateInitialAccessTokenAsync_WhenResourceServerIsSystem_ReturnsBadRequest()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceServer(TenantId, isSystem: true);
+
+        var result = await Handler.CreateInitialAccessTokenAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new CreateInitialAccessTokenRequest { ResourceServerId = ResourceServerId },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateInitialAccessTokenAsync_WhenNotAuthorizedToUpdateResourceServer_ReturnsForbid()
+    {
+        MockAuthorizationService
+            .SetupSequence(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .ReturnsAsync(AuthorizationResult.Failed());
+        SetupResourceServer(TenantId, isSystem: false);
+
+        var result = await Handler.CreateInitialAccessTokenAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new CreateInitialAccessTokenRequest { ResourceServerId = ResourceServerId },
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
+        MockAuthorizationService.Verify(
+            x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource => resource is IResourceNode),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                ),
+            Times.Once
+        );
     }
 
     #endregion

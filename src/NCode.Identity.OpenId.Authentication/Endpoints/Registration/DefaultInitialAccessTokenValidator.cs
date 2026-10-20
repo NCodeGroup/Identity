@@ -33,14 +33,14 @@ internal class DefaultInitialAccessTokenValidator(IPersistedGrantService persist
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
 
     /// <inheritdoc />
-    public async ValueTask<bool> ValidateAsync(
+    public async ValueTask<InitialAccessTokenGrant?> ValidateAsync(
         OpenIdContext openIdContext,
         string initialAccessToken,
         CancellationToken cancellationToken
     )
     {
         if (string.IsNullOrEmpty(initialAccessToken))
-            return false;
+            return null;
 
         var grantId = PersistedGrantService.CreateGrantId(
             openIdContext.Tenant.TenantId,
@@ -54,6 +54,6 @@ internal class DefaultInitialAccessTokenValidator(IPersistedGrantService persist
             cancellationToken
         );
 
-        return grant is { Status: PersistedGrantStatus.Active };
+        return grant is { Status: PersistedGrantStatus.Active } ? grant.Value.Payload : null;
     }
 }

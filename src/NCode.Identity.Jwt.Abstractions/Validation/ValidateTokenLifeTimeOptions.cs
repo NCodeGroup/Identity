@@ -37,4 +37,16 @@ public sealed class ValidateTokenLifeTimeOptions
     /// See <see cref="TokenLifetimeRequirement.MaxLifetime"/> for how the lifetime is measured.
     /// </summary>
     public TimeSpan? MaxLifetime { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the <c>nbf</c> claim is required.
+    /// The default is <c>false</c>.
+    /// </summary>
+    public bool RequireNotBefore { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the <c>iat</c> claim is required.
+    /// The default is <c>false</c>.
+    /// </summary>
+    public bool RequireIssuedAt { get; set; }
 }

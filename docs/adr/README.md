@@ -221,3 +221,4 @@ standards.
 | [0184](./0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) | A migration only expands the schema unless it is marked a contract step | Accepted |
 | [0185](./0185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md) | Coverage measures hand-written code and counts a line that runs as covered | Accepted |
 | [0186](./0186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md) | Every owner's keys are imported and updated under the client-key policy | Accepted |
+| [0187](./0187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md) | A signed request object is short-lived and addressed to the issuer | Accepted |

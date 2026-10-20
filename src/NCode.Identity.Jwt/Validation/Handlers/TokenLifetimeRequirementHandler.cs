@@ -74,6 +74,18 @@ internal sealed class TokenLifetimeRequirementHandler
             return true;
         }
 
+        if (notBefore is null && requirement.RequireNotBefore)
+        {
+            failureReason = "The token is missing a not-before time.";
+            return true;
+        }
+
+        if (issuedAt is null && requirement.RequireIssuedAt)
+        {
+            failureReason = "The token is missing an issued-at time.";
+            return true;
+        }
+
         // A lifetime cap cannot hold for a token that never expires.
         var requireExpirationTime =
             requirement.RequireExpirationTime || requirement.MaxLifetime.HasValue;

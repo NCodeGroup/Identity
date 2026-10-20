@@ -568,6 +568,18 @@ public static class OpenIdSettingNames
     public const string RequestObjectExpectedAudience = "request_object_expected_audience";
 
     /// <summary>
+    /// Contains the name of <c>request_object_max_lifetime</c> setting (the longest lifetime accepted for a signed
+    /// request object, from its earliest <c>iat</c> or <c>nbf</c> to its <c>exp</c>).
+    /// </summary>
+    public const string RequestObjectMaxLifetime = "request_object_max_lifetime";
+
+    /// <summary>
+    /// Contains the name of <c>request_object_nbf_required</c> setting (whether a signed request object must carry an
+    /// <c>nbf</c> claim).
+    /// </summary>
+    public const string RequestObjectNotBeforeRequired = "request_object_nbf_required";
+
+    /// <summary>
     /// Contains the name of <c>request_parameter_supported</c> setting.
     /// </summary>
     public const string RequestParameterSupported = "request_parameter_supported";

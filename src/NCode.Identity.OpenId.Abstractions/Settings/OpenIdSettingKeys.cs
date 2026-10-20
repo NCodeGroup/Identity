@@ -568,6 +568,18 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RequestObjectExpectedAudience);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_object_max_lifetime' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> RequestObjectMaxLifetime =>
+        new(OpenIdSettingNames.RequestObjectMaxLifetime);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_object_nbf_required' setting.
+    /// </summary>
+    public static SettingKey<bool> RequestObjectNotBeforeRequired =>
+        new(OpenIdSettingNames.RequestObjectNotBeforeRequired);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_parameter_supported' setting.
     /// </summary>
     public static SettingKey<bool> RequestParameterSupported =>

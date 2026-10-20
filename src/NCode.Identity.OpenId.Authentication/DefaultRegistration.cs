@@ -20,6 +20,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Consent;
 using NCode.Identity.OpenId.Authentication.Endpoints;
@@ -72,6 +73,7 @@ public static class DefaultRegistration
 
             newBuilder
                 .AddAuditingServices()
+                .AddClientCertificateServices()
                 .AddClientServices()
                 .AddClientSettingServices()
                 .AddConsentServices()

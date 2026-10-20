@@ -436,9 +436,10 @@ Verified against Traefik v3.7 documentation and source:
 
 ### Server gaps found (tracked in the backlog)
 
-- **`F44` — chain in the forwarded header.** `MutualTlsClientCertificateFormat.Base64Der` decodes a single certificate;
-  a client presenting its chain produces a comma-separated value that fails to parse, and the resolver silently treats
-  the request as having no certificate.
+- **`F44` — chain in the forwarded header (resolved).** The default `Base64Der` format reads Traefik's comma-separated
+  chain, the client's own certificate first, and surfaces the rest as intermediates for chain building. A forwarded
+  value that cannot be decoded fails the request with `invalid_request` rather than reading as no certificate
+  ([ADR-0172](adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
 - **`F43` — `tls_client_auth` trusts the TLS layer for chain validation.** The handler matches only subject DN / SAN.
   Therefore the proxy must `RequireAndVerifyClientCert` against a CA bundle, which (a) rejects
   `self_signed_tls_client_auth` certificates on the same host, (b) cannot pick a per-tenant CA when tenants share a

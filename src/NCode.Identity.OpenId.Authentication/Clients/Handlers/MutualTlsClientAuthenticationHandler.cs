@@ -17,12 +17,11 @@
 #endregion
 
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Logging;
-using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.Secrets.Keys;
 
@@ -57,7 +56,7 @@ internal abstract class MutualTlsClientAuthenticationHandler(
     /// </summary>
     protected abstract ValueTask<SecretKey?> MatchCertificateAsync(
         OpenIdClient openIdClient,
-        X509Certificate2 certificate,
+        PresentedClientCertificate certificate,
         CancellationToken cancellationToken
     );
 
@@ -131,7 +130,7 @@ internal abstract class MutualTlsClientAuthenticationHandler(
             return rejected;
 
         var certificate = await ClientCertificateResolver.ResolveCertificateAsync(
-            openIdContext.Http,
+            openIdContext,
             cancellationToken
         );
         if (certificate is null)

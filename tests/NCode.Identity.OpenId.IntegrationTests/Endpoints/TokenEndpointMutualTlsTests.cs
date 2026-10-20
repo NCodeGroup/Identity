@@ -59,6 +59,17 @@ public class TokenEndpointMutualTlsTests
         X509Certificate2? forwardedCertificate
     )
     {
+        var headerValue = forwardedCertificate is null
+            ? null
+            : Convert.ToBase64String(forwardedCertificate.RawData);
+        return BuildTokenRequest(clientId, headerValue);
+    }
+
+    private static HttpRequestMessage BuildTokenRequest(
+        string clientId,
+        string? forwardedHeaderValue
+    )
+    {
         var request = new HttpRequestMessage(HttpMethod.Post, TokenPath)
         {
             Content = new FormUrlEncodedContent(
@@ -71,14 +82,11 @@ public class TokenEndpointMutualTlsTests
             ),
         };
 
-        if (forwardedCertificate is not null)
+        if (forwardedHeaderValue is not null)
         {
-            var base64Der = Convert.ToBase64String(
-                forwardedCertificate.Export(X509ContentType.Cert)
-            );
             request.Headers.TryAddWithoutValidation(
                 HostApplicationFactory.MutualTlsCertificateHeaderName,
-                base64Der
+                forwardedHeaderValue
             );
         }
 
@@ -113,6 +121,64 @@ public class TokenEndpointMutualTlsTests
         using var document = JsonDocument.Parse(body);
         Assert.False(
             string.IsNullOrEmpty(document.RootElement.GetProperty("access_token").GetString())
+        );
+    }
+
+    [Fact]
+    public async Task PostToken_SelfSignedTlsClientAuth_WithForwardedChain_AuthenticatesWithLeaf()
+    {
+        const string clientId = "it-mtls-self-signed-chain";
+        using var certificate = CreateCertificate(clientId);
+        using var otherCertificate = CreateCertificate("it-mtls-chain-other");
+
+        using var factory = new HostApplicationFactory();
+        await factory.SeedSelfSignedTlsClientAsync(
+            clientId,
+            certificate,
+            OpenIdConstants.GrantTypes.ClientCredentials
+        );
+        await factory.SeedResourceServerWithClientGrantAsync(
+            clientId,
+            "it-mtls-ssc-rs-api",
+            "https://api.mtls-ssc.integration.test",
+            TestServerSettingsProvider.ApiScope
+        );
+
+        // Traefik's passTLSClientCert (pem: true) forwards each certificate of the presented chain as base64 DER,
+        // comma-separated, the client's own first.
+        var leaf = Convert.ToBase64String(certificate.RawData);
+        var other = Convert.ToBase64String(otherCertificate.RawData);
+        var client = CreateClient(factory);
+        using var response = await client.SendAsync(BuildTokenRequest(clientId, $"{leaf},{other}"));
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+    }
+
+    [Fact]
+    public async Task PostToken_SelfSignedTlsClientAuth_WithMalformedForwardedCertificate_ReturnsInvalidRequest()
+    {
+        const string clientId = "it-mtls-self-signed-malformed";
+        using var certificate = CreateCertificate(clientId);
+
+        using var factory = new HostApplicationFactory();
+        await factory.SeedSelfSignedTlsClientAsync(
+            clientId,
+            certificate,
+            OpenIdConstants.GrantTypes.ClientCredentials
+        );
+
+        var client = CreateClient(factory);
+        using var response = await client.SendAsync(
+            BuildTokenRequest(clientId, "-----BEGIN CERTIFICATE-----")
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidRequest,
+            document.RootElement.GetProperty("error").GetString()
         );
     }
 

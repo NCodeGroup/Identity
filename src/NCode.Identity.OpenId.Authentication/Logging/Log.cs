@@ -338,4 +338,15 @@ internal static partial class Log
         string clientId,
         Exception? exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.ForwardedClientCertificateMalformed,
+        Level = LogLevel.Warning,
+        Message = "The client certificate forwarded in the '{HeaderName}' header could not be decoded as the configured '{Format}' format; the request is refused. Check that OpenId:MutualTls:Format matches how the proxy encodes the certificate."
+    )]
+    internal static partial void ForwardedClientCertificateMalformed(
+        this ILogger logger,
+        string headerName,
+        string format
+    );
 }

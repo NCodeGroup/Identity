@@ -138,6 +138,21 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **A forwarded client certificate is decoded by a registered format, and every format reads the whole chain the
+  client presented.** Traefik's `passTLSClientCert` (`pem: true`) forwards the chain as comma-separated base64 DER in
+  `X-Forwarded-Tls-Client-Cert`, which failed to parse. `Base64Der` now reads a comma-separated list, the client's own
+  certificate first; `Pem` and `UrlEncodedPem` read several PEM blocks; and `EnvoyXfcc` reads `Chain` as well as
+  `Cert`, honoring quoted values. The resolver returns a `PresentedClientCertificate`: the client's certificate and the
+  other certificates it sent, as untrusted `Intermediates` for chain building. Formats are an open vocabulary: each is
+  an `IClientCertificateHeaderDecoder` registered under a `Format` name (the known names are
+  `ClientCertificateHeaderFormats`), so a package supports another proxy by registering a decoder, and the host refuses
+  to start when `OpenId:MutualTls:Format` names no registered decoder. The certificate is resolved once per request.
+  **Breaking:** `MutualTlsClientCertificateFormat` is removed and `MutualTlsForwardingOptions.Format` is a string with
+  the same names; `IClientCertificateResolver` and `MutualTlsForwardingOptions` move to
+  `NCode.Identity.OpenId.Authentication.ClientCertificates`, registered by `AddClientCertificateServices()`; and
+  `ResolveCertificateAsync` takes an `OpenIdContext` and returns a `PresentedClientCertificate`. See
+  [ADR-0172](docs/adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md).
+
 - **Introspection reports a token only to the party that consumes it.** An access token is reported active only to a
   client acting for a resource server in the token's audience, with `aud` reduced to that resource server and `scope`
   to its scopes. A refresh token is reported active only to the client it was issued to. Everything else is
@@ -700,6 +715,13 @@ change to the public API is a **major** version bump.
   ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md))
 
 ### Security
+
+- **Behind a proxy, a forwarded certificate that cannot be decoded fails the request, and the connection's certificate
+  is never taken for the client's.** An undecodable forwarded value was read as no certificate, after which the resolver
+  fell back to the certificate on the connection — at most the proxy's own on a re-encrypting hop. When a forwarded
+  header is configured it is now the only source: an absent header is no certificate, and a value the configured format
+  cannot decode is `invalid_request` with a warning naming the header and the format.
+  ([ADR-0172](docs/adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md))
 
 - **Any authenticated client could introspect any token.** A client could introspect another client's refresh token or
   any access token, including its own encrypted ones, and read what encryption hides from it. Introspection now

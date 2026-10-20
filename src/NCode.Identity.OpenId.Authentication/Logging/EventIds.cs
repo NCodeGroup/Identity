@@ -67,4 +67,5 @@ internal static class EventIds
     public const int ClientAuthenticationMethodNotPermitted = Base + 36;
     public const int BackChannelLogoutTokenNotProtected = Base + 37;
     public const int ClientJwksKeyIgnored = Base + 38;
+    public const int ForwardedClientCertificateMalformed = Base + 39;
 }

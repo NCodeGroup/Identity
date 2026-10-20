@@ -22,7 +22,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Auditing;
-using NCode.Identity.OpenId.Authentication.Tokens;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -67,11 +67,12 @@ internal sealed class TlsClientAuthClientAuthenticationHandler(
     /// <inheritdoc />
     protected override ValueTask<SecretKey?> MatchCertificateAsync(
         OpenIdClient openIdClient,
-        X509Certificate2 certificate,
+        PresentedClientCertificate presentedCertificate,
         CancellationToken cancellationToken
     )
     {
         var settings = openIdClient.Settings;
+        var certificate = presentedCertificate.Certificate;
 
         if (!IsExpectedIdentityPresented(settings, certificate))
             return ValueTask.FromResult<SecretKey?>(null);

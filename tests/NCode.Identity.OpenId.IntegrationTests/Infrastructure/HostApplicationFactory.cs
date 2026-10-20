@@ -32,6 +32,7 @@ using NCode.Extensions.DataProtection;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
@@ -1015,19 +1016,11 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
             // The TestServer terminates no TLS, so mutual-TLS client authentication is exercised by forwarding the
             // client certificate in a header (the reverse-proxy path the default resolver already supports).
-            serviceCollection.Configure<NCode.Identity.OpenId.Authentication.Tokens.MutualTlsForwardingOptions>(
-                options =>
-                {
-                    options.CertificateHeaderName = MutualTlsCertificateHeaderName;
-                    options.Format = NCode
-                        .Identity
-                        .OpenId
-                        .Authentication
-                        .Tokens
-                        .MutualTlsClientCertificateFormat
-                        .Base64Der;
-                }
-            );
+            serviceCollection.Configure<MutualTlsForwardingOptions>(options =>
+            {
+                options.CertificateHeaderName = MutualTlsCertificateHeaderName;
+                options.Format = ClientCertificateHeaderFormats.Base64Der;
+            });
         });
     }
 }

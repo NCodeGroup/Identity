@@ -20,7 +20,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Auditing;
-using NCode.Identity.OpenId.Authentication.Tokens;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
@@ -57,7 +57,7 @@ internal sealed class SelfSignedTlsClientAuthClientAuthenticationHandler(
     /// <inheritdoc />
     protected override async ValueTask<SecretKey?> MatchCertificateAsync(
         OpenIdClient openIdClient,
-        X509Certificate2 certificate,
+        PresentedClientCertificate certificate,
         CancellationToken cancellationToken
     )
     {
@@ -66,7 +66,7 @@ internal sealed class SelfSignedTlsClientAuthClientAuthenticationHandler(
             cancellationToken
         );
 
-        return MatchCertificate(clientKeys, certificate);
+        return MatchCertificate(clientKeys, certificate.Certificate);
     }
 
     private static AsymmetricSecretKey? MatchCertificate(

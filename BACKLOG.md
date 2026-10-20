@@ -795,22 +795,23 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
 
 ## Tooling & agent customization (group `X`)
 
-- **`X1` — `audit-conventions` duplicated as prompt + skill.** The convention-audit workflow now exists **twice**:
-  the original VS Code prompt [`.github/prompts/audit-conventions.prompt.md`](.github/prompts/audit-conventions.prompt.md)
-  and a migrated Agent Host skill [`.github/skills/audit-conventions/SKILL.md`](.github/skills/audit-conventions/SKILL.md)
-  (prompt files are not loaded by Agent Host / Copilot CLI, which reads `SKILL.md`). The skill originally carried
-  `disable-model-invocation: true` to preserve the prompt's explicit-invocation-only semantics, but that flag makes the
-  skill **unreachable** in Copilot CLI (it returns "Skill not found" even on explicit invocation — upstream bug
-  github/copilot-cli#4438), so it was **removed**. **Trade-off accepted:** the skill is now both explicitly invocable
-  **and** model-auto-invocable (it no longer enforces explicit-only invocation); its `description` is the only guard on
-  when the model reaches for it. The prompt's `agent: "agent"` frontmatter has no skill equivalent and was dropped.
-  **Runtime-validated (2026-10-10):** the skill was confirmed discoverable and loadable in a live Agent Host / Copilot
-  CLI session (it surfaced in the session's available-skills list), and its five relative links and LF line endings were
-  verified; the body is identical to the prompt apart from the intended `+1 ../` link-depth adjustment. **Decision still
-  deferred:** whether to delete the prompt (Agent-Host-only) or keep both (dual VS-Code-chat + Agent-Host support). Keep
-  both for now — the prompt still serves VS Code chat via its `agent:` frontmatter, and `disable-model-invocation: true`
-  is intended to return once github/copilot-cli#4438 is fixed (restoring explicit-only semantics). If kept, edits must be
-  mirrored across both files to avoid drift.
+- **`X1` — Chat commands duplicated as prompt + skill.** Every chat command exists **twice**: a VS Code prompt under
+  `.github/prompts/` and a Copilot CLI skill under `.github/skills/`, because the Agent Host / Copilot CLI does not load
+  prompt files and reads `SKILL.md` instead. There are two sets. The hand-written `audit-conventions`
+  [prompt](.github/prompts/audit-conventions.prompt.md) and [skill](.github/skills/audit-conventions/SKILL.md) must be
+  mirrored by hand — the bodies are identical apart from a `+1 ../` link-depth adjustment. The 16 plan-and-execute
+  commands are generated in pairs from one template each by the workflow installer
+  ([ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)),
+  so they cannot drift. VS Code lists both copies of each command in its slash menu. No skill carries
+  `disable-model-invocation: true`: the flag makes a skill **unreachable** in Copilot CLI, even on explicit invocation
+  (upstream bug github/copilot-cli#4438). **Trade-off accepted:** every skill is also model-auto-invocable, and its
+  `description` is the only guard on when the model reaches for it — including `execute-step`, which is meant to run
+  only on the executor model. A prompt's `agent:` and `model:` frontmatter have no skill equivalent; the generated
+  planning prompts select Opus through `model:`. **Runtime-validated (2026-10-10):** the `audit-conventions` skill was
+  discoverable and loadable in a live Agent Host / Copilot CLI session, with its relative links and LF line endings
+  intact. **Decision still deferred:** delete the prompts (Agent-Host-only) or keep both (VS Code chat + Agent Host).
+  Keep both for now, and restore `disable-model-invocation: true` once github/copilot-cli#4438 is fixed — by hand for
+  `audit-conventions`, and in the installer for the generated set.
 - **`X4` — Decide the .NET coverage scope.** The merged .NET coverage report
   ([ADR-0143](docs/adr/0143-ci-presents-test-results-and-coverage-in-github.md)) measures every assembly the tests load,
   so its overall line figure (≈36% on the first isolated run) is dragged down by code that is not unit-testable library

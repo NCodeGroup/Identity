@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { RuntimeConfig } from '@ncode/config';
-import { authConfigFromRuntime, endSessionUrlFromRuntime, redirectUri } from './auth.js';
+import {
+  authConfigFromRuntime,
+  endSessionUrlFromRuntime,
+  redirectUri,
+  rememberReturnPath,
+  RETURN_PATH_KEY,
+  takeReturnPath,
+} from './auth.js';
 
 const baseRuntime: RuntimeConfig = {
   apiBaseUrl: 'https://api.test',
@@ -68,5 +75,44 @@ describe('endSessionUrlFromRuntime', () => {
     const url = new URL(result!);
     expect(url.searchParams.has('id_token_hint')).toBe(false);
     expect(url.searchParams.get('post_logout_redirect_uri')).toBe('https://ui.test/');
+  });
+});
+
+describe('return path', () => {
+  function memoryStorage() {
+    const items = new Map<string, string>();
+    return {
+      items,
+      getItem: (key: string) => items.get(key) ?? null,
+      setItem: (key: string, value: string) => void items.set(key, value),
+      removeItem: (key: string) => void items.delete(key),
+    };
+  }
+
+  it('restores a remembered console path once, then clears it', () => {
+    const storage = memoryStorage();
+    rememberReturnPath(storage, '/tenants/acme/grants');
+
+    expect(storage.items.get(RETURN_PATH_KEY)).toBe('/tenants/acme/grants');
+    expect(takeReturnPath(storage)).toBe('/tenants/acme/grants');
+    expect(storage.items.has(RETURN_PATH_KEY)).toBe(false);
+  });
+
+  it('canonicalizes a remembered path', () => {
+    const storage = memoryStorage();
+    rememberReturnPath(storage, '/tenants/acme/');
+
+    expect(takeReturnPath(storage)).toBe('/tenants/acme/clients');
+  });
+
+  it('returns the default route when nothing was remembered', () => {
+    expect(takeReturnPath(memoryStorage())).toBe('/tenants');
+  });
+
+  it('never restores a path off the console', () => {
+    const storage = memoryStorage();
+    rememberReturnPath(storage, '//evil.test/tenants');
+
+    expect(takeReturnPath(storage)).toBe('/tenants');
   });
 });

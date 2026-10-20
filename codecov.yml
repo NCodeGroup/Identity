@@ -13,6 +13,13 @@ coverage:
       default:
         informational: true
 
+# The coverage scope is set where coverage is collected (build/coverage.runsettings), so the job summary and Codecov read
+# the same reports (ADR-0185). Codecov scores a partially covered line as a miss by default, while ReportGenerator, which
+# writes the job summary, counts it as covered; counting partials as hits keeps the two figures equal.
+parsers:
+  cobertura:
+    partials_as_hits: true
+
 flag_management:
   individual_flags:
     - name: dotnet

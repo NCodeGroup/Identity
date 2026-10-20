@@ -1863,6 +1863,28 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `EnableGenerateDocumentationFile` otherwise (dotnet/roslyn#41640) — which is why test projects now generate (and
   discard) an XML documentation file and suppress `CS1591`._
 
+- **`X4` — Decide the .NET coverage scope.** The merged .NET coverage report
+  ([ADR-0143](docs/adr/0143-ci-presents-test-results-and-coverage-in-github.md)) measures every assembly the tests load,
+  so its overall line figure (≈36% on the first isolated run) is dragged down by code that is not unit-testable library
+  surface: EF Core migrations in `NCode.Identity.OpenId.Host.Database` (0%), the reference host
+  `NCode.Identity.OpenId.Host` (<1%), and source-generator output under `obj/` (OpenAPI XML-comment and `Regex`
+  generators — ReportGenerator also warns that these files "do not exist" because they are build intermediates). Decide
+  what the headline number should measure — exclude generated code (`[GeneratedCode]`, `**/obj/**`, `**/Migrations/**`)
+  and the host/composition assemblies via coverlet `ExcludeByFile`/`Exclude` or ReportGenerator filters, applied
+  identically to the job summary and to Codecov (`codecov.yml` `ignore`) so the two never disagree. They already
+  disagree: on the first CI run (`d02ca805`) the job summary reported 35.8% .NET line coverage over 75,871 coverable
+  lines, while Codecov's `dotnet` flag reported 52.8% over ≈49,600 — Codecov silently drops every report file that is
+  not in the repository (the generated `obj/` sources) and scores partially-covered lines differently. Touch points:
+  [`build/coverage-report.ps1`](build/coverage-report.ps1), [`tests/Directory.Build.props`](tests/Directory.Build.props),
+  [`codecov.yml`](codecov.yml). Coverage thresholds are a separate, later policy decision.
+
+  _Closed by [ADR-0185](docs/adr/0185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md).
+  The headline measures hand-written code: `build/coverage.runsettings`, which `dod.ps1` passes whenever it collects
+  coverage, makes coverlet skip `**/obj/**`, `**/Migrations/**`, and `[GeneratedCode]` members, so the job summary and
+  Codecov read the same reports and no `codecov.yml` `ignore` list is needed. The reference host stays in scope because
+  it ships. `codecov.yml` sets `parsers.cobertura.partials_as_hits` so Codecov counts a partially covered line as
+  ReportGenerator does. Coverage thresholds remain a separate policy decision._
+
 - **`X5` — Flag a migration that would break the previous release.** Every EF Core migration must keep the previous
   release working, because the chart's Job migrates while the previous release serves
   ([ADR-0180](docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Today that is

@@ -231,6 +231,12 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Coverage measures hand-written code, and the job summary and Codecov agree.** The full Definition of Done collects
+  .NET coverage with `build/coverage.runsettings`, which leaves out source-generator output under `obj/`, the
+  scaffolded EF Core migrations, and `[GeneratedCode]` members. The reference host stays in scope because it ships.
+  `codecov.yml` counts a partially covered line as a hit, as ReportGenerator does, so the job summary and Codecov report
+  the same figure from the same lines. See
+  [ADR-0185](docs/adr/0185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md).
 - **The reference host separates liveness from readiness.** `/health` becomes two endpoints. `/health/live` runs no
   checks and reports only that the process answers, so a dependency outage never makes Kubernetes restart a replica.
   `/health/ready` runs every check tagged `ready` and returns `503` while any of them fails, which takes the replica out

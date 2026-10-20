@@ -309,6 +309,58 @@ describe('SecretsManager', () => {
     });
   });
 
+  describe('rotate', () => {
+    it('offers rotation only for the shared secret types the server discovers', async () => {
+      await renderManager({ onRotate: vi.fn<NonNullable<SecretsManagerProps['onRotate']>>() });
+
+      expect(screen.getByTestId('secret-rotate-s-sym')).toBeInTheDocument();
+      expect(screen.queryByTestId('secret-rotate-s-rsa')).not.toBeInTheDocument();
+    });
+
+    it('offers no rotation when the owner cannot rotate its secrets', async () => {
+      await renderManager();
+
+      expect(screen.queryByTestId('secret-rotate-s-sym')).not.toBeInTheDocument();
+    });
+
+    it('rotates a secret after confirmation and reveals the replacement once', async () => {
+      const onRotate = vi
+        .fn<NonNullable<SecretsManagerProps['onRotate']>>()
+        .mockResolvedValue(created);
+      await renderManager({ onRotate });
+
+      fireEvent.click(screen.getByTestId('secret-rotate-s-sym'));
+      expect(screen.getByRole('dialog', { name: 'Rotate secret' })).toHaveTextContent(
+        'Replace secret “s-sym” with a new one that expires in a year?',
+      );
+      fireEvent.click(screen.getByTestId('confirm-accept'));
+
+      expect(await screen.findByTestId('reveal-secret-material')).toHaveTextContent(
+        'one-time-material',
+      );
+      expect(screen.getByTestId('reveal-secret-id')).toHaveTextContent('s-new');
+      expect(onRotate).toHaveBeenCalledTimes(1);
+      const [secretId, body] = onRotate.mock.calls[0]!;
+      expect(secretId).toBe('s-sym');
+      expect(new Date(body.expiresWhen).getFullYear()).toBe(new Date().getFullYear() + 1);
+    });
+
+    it('keeps the rotate dialog open with the server problem detail when the rotation is rejected', async () => {
+      const onRotate = vi
+        .fn<NonNullable<SecretsManagerProps['onRotate']>>()
+        .mockRejectedValue({ status: 400, data: { detail: 'The secret cannot be rotated.' } });
+      await renderManager({ onRotate });
+
+      fireEvent.click(screen.getByTestId('secret-rotate-s-sym'));
+      fireEvent.click(screen.getByTestId('confirm-accept'));
+
+      expect(await screen.findByTestId('confirm-error')).toHaveTextContent(
+        'The secret cannot be rotated.',
+      );
+      expect(screen.queryByTestId('reveal-secret-material')).not.toBeInTheDocument();
+    });
+  });
+
   describe('public-key export', () => {
     it('shows progress until the public key arrives, then both representations', async () => {
       const pending = deferred<PublicKeyResource>();

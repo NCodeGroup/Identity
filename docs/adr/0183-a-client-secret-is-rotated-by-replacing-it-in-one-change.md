@@ -50,8 +50,10 @@ rotation that kept the old secret "until it expires" would keep it forever.
 
 - A client secret is rotated in one call, and the rotated secret is never left behind.
 - A client using the rotated secret fails authentication from the moment of rotation until it is reconfigured.
-- Rotating a tenant's, a server's, or a resource server's secret, and showing a rotate action in the Management
-  console, are not part of this endpoint.
+- The Management console offers a rotate action on each of a client's shared secrets — the secret types the
+  capabilities document reports as not asymmetric. After confirmation it rotates the secret with a replacement that
+  expires a year out, the create form's default, and reveals the replacement once.
+- Rotating a tenant's, a server's, or a resource server's secret is not part of this endpoint.
 
 ## References
 

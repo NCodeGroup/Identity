@@ -575,14 +575,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Results/DefaultAuthorizationResultExecutor.cs`.
 
-- **`U23` — Rotate a client secret from the Management console.** The management API rotates a client secret in one
-  call ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)), but the console's
-  client secret table offers only create and delete. Add a `rotateClientSecret` mutation to `@ncode/store`, a
-  `RotateSecretRequest` contract to `@ncode/api`, and a rotate action on a shared secret's row that asks for the
-  replacement's expiry and reveals its material once, as create does. Touch points:
-  `src/frontend/packages/store/src/managementApi.ts`, `src/frontend/packages/api`, the client secret table in the
-  Management console.
-
 ## Secrets management (group `S`)
 
 Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md)

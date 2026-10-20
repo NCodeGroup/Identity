@@ -572,6 +572,41 @@ describe('managementApi client secret + settings endpoints (tenant scope)', () =
     expect(captured[0]?.method).toBe('DELETE');
   });
 
+  it('rotateClientSecret POSTs the replacement expiry to the secret rotate path', async () => {
+    const captured = mockFetch(
+      new Response(
+        JSON.stringify({
+          secretId: 's-2',
+          concurrencyToken: 'c2',
+          use: null,
+          algorithm: null,
+          createdWhen: '2026-01-01T00:00:00Z',
+          expiresWhen: '2027-01-01T00:00:00Z',
+          secretType: 'symmetric',
+          keySizeBits: 256,
+          secretMaterial: 'def',
+        }),
+        { status: 201, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.rotateClientSecret.initiate({
+        scope,
+        clientId: 'web',
+        secretId: 's-1',
+        body: { expiresWhen: '2027-01-01T00:00:00Z' },
+      }),
+    );
+
+    expect('data' in result && result.data?.secretMaterial).toBe('def');
+    expect(captured[0]?.url).toBe(
+      'https://api.test/api/tenants/acme/clients/web/secrets/s-1/rotate',
+    );
+    expect(captured[0]?.method).toBe('POST');
+  });
+
   it('updateClientSettings PATCHes a JSON Patch diff with If-Match', async () => {
     const captured = mockFetch(new Response(null, { status: 204 }));
     const store = createStore();

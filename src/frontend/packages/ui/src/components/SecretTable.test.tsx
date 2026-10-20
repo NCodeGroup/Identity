@@ -65,6 +65,29 @@ describe('SecretTable', () => {
     expect(onExportPublicKey).toHaveBeenCalledWith('s-expired');
   });
 
+  it('shows the rotate action only for rotatable secret types', () => {
+    const onRotate = vi.fn();
+    render(
+      <SecretTable
+        secrets={secrets}
+        now={now}
+        onRotate={onRotate}
+        rotatableSecretTypes={['symmetric']}
+      />,
+    );
+
+    // 's-active' is symmetric (rotatable); 's-expired' is rsa (not rotatable).
+    expect(screen.queryByTestId('secret-rotate-s-expired')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('secret-rotate-s-active'));
+    expect(onRotate).toHaveBeenCalledWith('s-active');
+  });
+
+  it('hides the rotate action when rotatable types are not supplied', () => {
+    render(<SecretTable secrets={secrets} now={now} onRotate={vi.fn()} />);
+
+    expect(screen.queryByTestId('secret-rotate-s-active')).not.toBeInTheDocument();
+  });
+
   it('hides the export action when no exportable types are known', () => {
     render(
       <SecretTable

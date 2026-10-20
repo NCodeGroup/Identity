@@ -41,6 +41,7 @@ export {
   useListClientSecretsQuery,
   useCreateClientSecretMutation,
   useDeleteClientSecretMutation,
+  useRotateClientSecretMutation,
   useLazyGetClientSecretPublicKeyQuery,
   useGetClientSettingsQuery,
   useGetClientEffectiveSettingsQuery,

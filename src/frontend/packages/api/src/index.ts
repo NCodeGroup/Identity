@@ -6,6 +6,7 @@ export type {
   CreateScopeRequest,
   CreateSecretRequest,
   CreatedSecretResource,
+  RotateSecretRequest,
   CreateInitialAccessTokenRequest,
   CreatedInitialAccessTokenResource,
   CreateServerRequest,

@@ -10,6 +10,11 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The Management console rotates a client secret.** A client's shared secrets — the secret types the capabilities
+  document reports as not asymmetric — carry a rotate action. After confirmation it replaces the secret with one that
+  expires a year out and reveals the replacement once, as create does (`rotateClientSecret` in `@ncode/store`,
+  `RotateSecretRequest` in `@ncode/api`). Backlog `U23` is complete
+  ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)).
 - **A client secret is rotated in one call.** `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate`
   generates a replacement shared secret with the rotated secret's type, size, `use`, and `alg` and the expiry the
   request names (`RotateSecretRequest`), adds it and removes the rotated secret in one change, and returns the

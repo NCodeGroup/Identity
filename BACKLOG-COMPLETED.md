@@ -1725,6 +1725,21 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   and formats the routes, `navigation.ts` binds them to the browser history, and `AuthGate` carries a deep link through
   the sign-in round trip._
 
+- **`U23` — Rotate a client secret from the Management console.** The management API rotates a client secret in one
+  call ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)), but the console's
+  client secret table offers only create and delete. Add a `rotateClientSecret` mutation to `@ncode/store`, a
+  `RotateSecretRequest` contract to `@ncode/api`, and a rotate action on a shared secret's row that reveals the
+  replacement's material once, as create does. Touch points:
+  `src/frontend/packages/store/src/managementApi.ts`, `src/frontend/packages/api`, the client secret table in the
+  Management console.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md) (consequences amended).
+  `@ncode/api` mirrors `RotateSecretRequest`, `@ncode/store` adds `rotateClientSecret`, `SecretTable` shows a rotate
+  action for the `rotatableSecretTypes` it is given, and `SecretsManager` derives them from the capabilities document
+  (the types that are not asymmetric), confirms, rotates with the create form's one-year expiry, and reveals the
+  replacement once. The client detail page wires the client's rotate endpoint._
+
 ## Secrets management (group `S`)
 
 - **`S1` — Client-secret rotate endpoint.** Rotation is create-new + delete-old (two calls) per

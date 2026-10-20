@@ -18,6 +18,7 @@ import type {
   CreateSecretRequest,
   CreatedSecretResource,
   PublicKeyResource,
+  RotateSecretRequest,
   SecretResource,
 } from '@ncode/api';
 import { apiErrorMessage, useGetCapabilitiesQuery, type ApiError } from '@ncode/store';
@@ -36,6 +37,15 @@ export type SecretsManagerProps = {
   readonly onDelete: (secretId: string) => Promise<void>;
   /** Reads an asymmetric secret's public key; must reject with an {@link ApiError}-shaped error on failure. */
   readonly onExportPublicKey: (secretId: string) => Promise<PublicKeyResource>;
+  /**
+   * Rotates a shared secret in one call, replacing it with a new one (ADR-0183); must reject with an
+   * {@link ApiError}-shaped error on failure. The rotate action is shown only when this is supplied.
+   */
+  readonly onRotate?: (
+    secretId: string,
+    body: RotateSecretRequest,
+  ) => Promise<CreatedSecretResource>;
+  readonly isRotating?: boolean;
 };
 
 type SecretDialogState =
@@ -43,14 +53,21 @@ type SecretDialogState =
   | { readonly kind: 'create' }
   | { readonly kind: 'reveal'; readonly created: CreatedSecretResource }
   | { readonly kind: 'export'; readonly secret: SecretResource }
-  | { readonly kind: 'delete'; readonly secret: SecretResource };
+  | { readonly kind: 'delete'; readonly secret: SecretResource }
+  | { readonly kind: 'rotate'; readonly secret: SecretResource };
 
 const closed: SecretDialogState = { kind: 'none' };
 
-/** Seeds the create-secret form with a default expiry one year out, as a `datetime-local` string. */
-function defaultSecretFormValues(): SecretFormValues {
+/** The default expiry of a created or rotated secret: one year out. */
+function defaultExpiry(): Date {
   const expiry = new Date();
   expiry.setFullYear(expiry.getFullYear() + 1);
+  return expiry;
+}
+
+/** Seeds the create-secret form with the default expiry, as a `datetime-local` string. */
+function defaultSecretFormValues(): SecretFormValues {
+  const expiry = defaultExpiry();
   // Trim to minute precision for the `datetime-local` input (YYYY-MM-DDTHH:mm).
   const local = new Date(expiry.getTime() - expiry.getTimezoneOffset() * 60_000);
   return { ...emptySecretFormValues, expiresWhen: local.toISOString().slice(0, 16) };
@@ -73,12 +90,15 @@ export function SecretsManager({
   onCreate,
   onDelete,
   onExportPublicKey,
+  onRotate,
+  isRotating = false,
 }: SecretsManagerProps) {
   // Read the clock once, in a state initializer: reading it during render would make the table's output impure.
   const [now] = useState(() => Date.now());
   const [dialog, setDialog] = useState<SecretDialogState>(closed);
   const [formError, setFormError] = useState<string>();
   const [deleteError, setDeleteError] = useState<string>();
+  const [rotateError, setRotateError] = useState<string>();
   const [publicKey, setPublicKey] = useState<PublicKeyMaterial>();
   const [exportError, setExportError] = useState<string>();
 
@@ -89,6 +109,10 @@ export function SecretsManager({
     .map((capability) => capability.secretType);
   const eccCurves = capabilities?.eccCurves ?? [];
   const algorithms = capabilities?.algorithms ?? [];
+  // A shared secret is rotated; a key is replaced by importing a new one (ADR-0183).
+  const rotatableSecretTypes = (capabilities?.secretTypes ?? [])
+    .filter((capability) => !capability.isAsymmetric)
+    .map((capability) => capability.secretType);
 
   const openDelete = (secretId: string) => {
     const secret = secrets.find((s) => s.secretId === secretId);
@@ -97,6 +121,15 @@ export function SecretsManager({
     }
     setDeleteError(undefined);
     setDialog({ kind: 'delete', secret });
+  };
+
+  const openRotate = (secretId: string) => {
+    const secret = secrets.find((s) => s.secretId === secretId);
+    if (!secret) {
+      return;
+    }
+    setRotateError(undefined);
+    setDialog({ kind: 'rotate', secret });
   };
 
   const openExport = async (secretId: string) => {
@@ -144,6 +177,21 @@ export function SecretsManager({
     }
   };
 
+  const handleRotate = async () => {
+    if (dialog.kind !== 'rotate' || !onRotate) {
+      return;
+    }
+    setRotateError(undefined);
+    try {
+      const created = await onRotate(dialog.secret.secretId, {
+        expiresWhen: defaultExpiry().toISOString(),
+      });
+      setDialog({ kind: 'reveal', created });
+    } catch (rotateFailure) {
+      setRotateError(apiErrorMessage(rotateFailure as ApiError));
+    }
+  };
+
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -174,6 +222,8 @@ export function SecretsManager({
           onDelete={openDelete}
           onExportPublicKey={openExport}
           exportableSecretTypes={exportableSecretTypes}
+          {...(onRotate ? { onRotate: openRotate } : {})}
+          rotatableSecretTypes={rotatableSecretTypes}
         />
       </DataStateBoundary>
 
@@ -215,6 +265,22 @@ export function SecretsManager({
         isBusy={isDeleting}
         error={deleteError}
         onConfirm={handleDelete}
+        onCancel={() => setDialog(closed)}
+      />
+
+      <ConfirmDialog
+        open={dialog.kind === 'rotate'}
+        title="Rotate secret"
+        message={
+          dialog.kind === 'rotate'
+            ? `Replace secret “${dialog.secret.secretId}” with a new one that expires in a year? The current secret stops authenticating at once.`
+            : ''
+        }
+        confirmLabel="Rotate"
+        confirmColor="primary"
+        isBusy={isRotating}
+        error={rotateError}
+        onConfirm={handleRotate}
         onCancel={() => setDialog(closed)}
       />
     </>

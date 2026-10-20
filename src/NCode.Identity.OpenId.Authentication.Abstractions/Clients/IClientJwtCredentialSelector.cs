@@ -16,19 +16,32 @@
 
 #endregion
 
+using JetBrains.Annotations;
 using NCode.Identity.OpenId.Contexts;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
-/// Selects the credentials that protect a JWT the server addresses to a client — an ID token, a logout token, or a
-/// UserInfo response. The JWT is signed with the tenant's key using the signature algorithm the client registers and
-/// encrypted to the client's public key using the encryption algorithms the client registers; each registered algorithm
-/// must be permitted by the client's effective settings, which carry the tenant's lists and the ceiling of every
-/// security profile the client selects.
+/// Selects the credentials that protect a JWT the server addresses to a client — an ID token, a logout token, a UserInfo
+/// response, or a JWT introspection response. The JWT is signed with the tenant's key using the signature algorithm the
+/// client registers and encrypted to the client's public key using the encryption algorithms the client registers; each
+/// registered algorithm must be permitted by the client's effective settings, which carry the tenant's lists and the
+/// ceiling of every security profile the client selects.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Every issuer of a client-addressed JWT resolves this service, so an implementation that replaces
+/// <see cref="NCode.Identity.OpenId.Authentication.Tokens.ITokenService"/> protects its ID tokens through it rather than
+/// reproduce the policy or skip it.
+/// </para>
+/// <para>
+/// Register a custom implementation to extend the selection — for example, to choose among the client's keys by a
+/// further rule. A replacement must not weaken the protection the client registered.
+/// </para>
+/// </remarks>
 // See ADR-0155.
-internal interface IClientJwtCredentialSelector
+[PublicAPI]
+public interface IClientJwtCredentialSelector
 {
     /// <summary>
     /// Selects the credentials that protect a JWT the server addresses to the specified client.

@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (extended by
   [ADR-0168](0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): a JWT introspection response
-  follows the client's registered introspection metadata)
+  follows the client's registered introspection metadata; extended by [ADR-0181](0181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md): the
+  credential selector is a public seam every issuer of a client-addressed JWT resolves)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

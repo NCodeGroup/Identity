@@ -48,7 +48,9 @@ public interface ITokenService
     );
 
     /// <summary>
-    /// Generates an ID token.
+    /// Generates an ID token. An implementation protects it with the credentials <see cref="IClientJwtCredentialSelector"/>
+    /// selects for the client and <see cref="ClientJwtProtectionSettings.IdToken"/>, so the ID token is signed and
+    /// encrypted exactly as the client registered.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>

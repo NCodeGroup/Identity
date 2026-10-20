@@ -10,6 +10,13 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The Definition of Done fails a migration that would break the previous release.** `ExpandOnlyRuleTests`, in the new
+  `NCode.Identity.OpenId.Host.Database.Tests` project, reads the `Up` operations of every host migration and fails one
+  that drops or renames a schema, table, column, or sequence; adds a required column without a default; makes a column
+  required without a default; changes a column's type; or shortens it. A deliberate contract step carries
+  `[ContractMigration("why")]`, and the test also fails a marker on a migration that only expands. The existing
+  `ReplaceTenantDomainNameWithIssuerHost` migration, which shipped before any release, carries the marker. See
+  [ADR-0184](docs/adr/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md).
 - **The Management console rotates a client secret.** A client's shared secrets — the secret types the capabilities
   document reports as not asymmetric — carry a rotate action. After confirmation it replaces the secret with one that
   expires a year out and reveals the replacement once, as create does (`rotateClientSecret` in `@ncode/store`,

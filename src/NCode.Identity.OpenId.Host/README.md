@@ -69,6 +69,12 @@ rollback returns to it. So every migration must work with the release before it 
 
 A rename is an add, a copy, and a later drop: three steps across at least two releases.
 
+The Definition of Done enforces the rule. `ExpandOnlyRuleTests` reads every migration's `Up` operations and fails one
+that drops or renames a table or column, or adds or alters a column in a way the previous release cannot read or write.
+A deliberate contract step carries `[ContractMigration("why")]`, whose reason names the release that stopped reading the
+old shape ([ADR-0184](../../docs/adr/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md)).
+Raw SQL is not checked, so review a data change by hand.
+
 Add a migration after changing the EF model (the `Database` project carries the design-time factories, so it is both
 `--project` and `--startup-project`):
 

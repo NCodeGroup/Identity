@@ -164,6 +164,13 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The reference host separates liveness from readiness.** `/health` becomes two endpoints. `/health/live` runs no
+  checks and reports only that the process answers, so a dependency outage never makes Kubernetes restart a replica.
+  `/health/ready` runs every check tagged `ready` and returns `503` while any of them fails, which takes the replica out
+  of rotation until its dependencies return. Those checks are the database (`AddDbContextCheck<OpenIdDbContext>`,
+  registered with the `openiddb` connection string) and Valkey when configured. The Aspire orchestrator gates
+  dependents on `/health/ready`. **Breaking:** `/health` is no longer mapped.
+
 - **Every frontend bundle splits into vendor and surface chunks, and an oversized chunk fails the build.** The shared
   Vite preset splits React, MUI with emotion, Redux, and every other package into their own vendor chunks, and each
   app lazy-loads its route-level containers, so no chunk exceeds 500 kB after minification. The preset's

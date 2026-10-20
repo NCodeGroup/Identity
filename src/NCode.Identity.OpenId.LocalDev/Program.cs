@@ -60,12 +60,12 @@ var migrations = builder
 // the fixed dev endpoints (https://localhost:5001, http://localhost:5000) the rest of the stack is pinned to — the
 // tenant's issuer (pinned by the same profile), the browser-published bootstrap document, the seeded SPA redirect URIs,
 // and the developer CORS origins all assume those ports. WithHttpHealthCheck gates dependents on the app being HEALTHY
-// (its /health returns 200 once Kestrel is listening), not merely "process started", which is what deterministically
+// (its /health/ready returns 200 once Kestrel is listening and the database answers), not merely "process started", which is what deterministically
 // removes the UI-before-API race.
 // WithReference injects the 'openiddb' connection string; WaitForCompletion holds the api until migrations succeed.
 var api = builder
     .AddProject<Projects.NCode_Identity_OpenId_Host>("api")
-    .WithHttpHealthCheck("/health")
+    .WithHttpHealthCheck("/health/ready")
     .WithReference(openIdDb)
     .WithReference(valkey)
     .WaitFor(valkey)
@@ -88,7 +88,7 @@ var conformanceApi = builder
         "conformanceapi",
         launchProfileName: "ConformanceAspire"
     )
-    .WithHttpHealthCheck("/health")
+    .WithHttpHealthCheck("/health/ready")
     .WithReference(openIdDb)
     .WithReference(valkey)
     .WaitFor(valkey)

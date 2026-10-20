@@ -620,10 +620,12 @@ speed-test endpoint from the Denver network the users are on.
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,
   developer CORS, seeders). Its image is chiseled, runs non-root on port 8080, is built for amd64 and arm64, and
   carries the login bundle
-  ([ADR-0178](adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)). Still needed:
-  a Helm chart probing `/health/live` and `/health/ready`, `Host.MigrationService` as a pre-deploy Job with
-  expand/contract schema changes so a rolling update never breaks the running version, and a release workflow that
-  publishes the image to GHCR.
+  ([ADR-0178](adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)). Its Helm
+  chart runs restricted pods that probe `/health/live` and `/health/ready`, drain before stopping, and require Valkey
+  for more than one replica
+  ([ADR-0179](adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Still
+  needed: `Host.MigrationService` as a pre-deploy Job with expand/contract schema changes so a rolling update never
+  breaks the running version, and publishing the image and chart (`F48`).
 - **mTLS gap** `F47` (`F43` and `F44` are done) and **per-tenant rate limits** `F45` (above).
 
 **Operations:**

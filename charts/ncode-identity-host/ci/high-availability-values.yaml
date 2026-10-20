@@ -1,0 +1,36 @@
+# A rolling, highly available release behind an in-cluster ingress, mid-way through a key-protection rotation.
+replicaCount: 3
+image:
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+allowedHosts:
+  - id.example.com
+  - id.example.org
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+reverseProxy:
+  knownNetworks:
+    - 10.42.0.0/16
+database:
+  existingSecret: identity-database
+valkey:
+  existingSecret: identity-valkey
+keyProtection:
+  certificateSecret: identity-key-protection
+  previousCertificateSecrets:
+    - identity-key-protection-2026
+ingress:
+  enabled: true
+  className: traefik
+  hosts:
+    - host: id.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: id-example-com-tls
+      hosts:
+        - id.example.com
+extraEnv:
+  - name: Logging__LogLevel__Default
+    value: Warning

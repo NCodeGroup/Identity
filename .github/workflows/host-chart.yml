@@ -1,0 +1,69 @@
+# Host chart — lints and renders the Helm chart of NCode.Identity.OpenId.Host (ADR-0179).
+#
+# The chart encodes the host's configuration surface, so it changes with the host and is checked on every change: each
+# values file under ci/ must lint strictly and render, and each release the chart must refuse — the host would refuse
+# it, or its replicas would not share state — must fail to render. Publishing the chart belongs to the release workflow.
+name: Host chart
+
+on:
+  push:
+    # Bot branches always carry a pull request, so a push run would duplicate it (see ci.yml).
+    branches-ignore: ['dependabot/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# See the note in ci.yml: on main the group includes the SHA so every trunk commit keeps its own verdict.
+concurrency:
+  group: host-chart-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'head' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  check:
+    name: Lint and render the host chart
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      CHART: charts/ncode-identity-host
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # A third-party action, so it is pinned to a commit; Dependabot moves the pin and its version comment together.
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+
+      - name: Lint and render each supported release
+        run: |
+          for values in "$CHART"/ci/*-values.yaml; do
+            echo "::group::$values"
+            helm lint --strict "$CHART" --values "$values"
+            helm template release "$CHART" --values "$values" > /dev/null
+            echo "::endgroup::"
+          done
+
+      - name: Refuse each unsafe release
+        run: |
+          base="$CHART/ci/single-replica-values.yaml"
+          refuse() {
+            if helm template release "$CHART" --values "$base" "$@" > /dev/null 2>&1; then
+              echo "::error::The chart rendered a release it must refuse: $*"
+              exit 1
+            fi
+          }
+          refuse --set replicaCount=2
+          refuse --set 'allowedHosts={*}'
+          refuse --set-json 'allowedHosts=[]'
+          refuse --set 'allowedHosts={*.example.com}'
+          refuse --set database.existingSecret=
+          refuse --set keyProtection.certificateSecret=
+          refuse --set tenantResolution.staticSingle.issuer=
+          refuse --set tenantResolution.staticSingle.issuer=http://id.example.com
+          refuse --set unknownSetting=true

@@ -1,0 +1,10 @@
+# The smallest production release: one replica, no Valkey.
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  existingSecret: identity-database
+keyProtection:
+  certificateSecret: identity-key-protection

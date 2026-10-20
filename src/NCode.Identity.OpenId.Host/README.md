@@ -110,3 +110,6 @@ The image starts in the `Production` environment, which refuses to start until t
   ([ADR-0165](../../docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
 
 Apply migrations before the new version starts; the image does not migrate on boot.
+
+The Helm chart in [`charts/ncode-identity-host`](../../charts/ncode-identity-host/README.md) deploys the image with
+these settings and refuses a release that lacks them.

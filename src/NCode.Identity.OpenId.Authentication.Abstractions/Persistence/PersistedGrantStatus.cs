@@ -23,6 +23,13 @@ namespace NCode.Identity.OpenId.Authentication.Persistence;
 /// <summary>
 /// Specifies the status of a persisted grant.
 /// </summary>
+/// <remarks>
+/// The status is never stored. <see cref="IPersistedGrantService"/> derives it on every read from the grant's own
+/// revocation and expiry instants, so the members are the outcome set of that library-owned operation, and the set is
+/// closed under ADR-0150. A grant type that has its own lifecycle, such as a device code or a CIBA request that is
+/// pending, approved, or denied, keeps that state in its payload, not here. A new member would need a new instant on
+/// the stored grant and a change to the service that derives the status.
+/// </remarks>
 [PublicAPI]
 public enum PersistedGrantStatus
 {

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The coverage scope of the Definition of Done (ADR-0185). build/dod.ps1 passes this file to `dotnet test` only when it
+  collects coverage, so the job summary and Codecov both read reports that already leave out generated code:
+
+  - files under obj/: source-generator output (OpenAPI XML comments, GeneratedRegex), a build intermediate;
+  - files under Migrations/: EF Core migrations scaffolded by `dotnet ef`, which .editorconfig also treats as generated;
+  - members marked [GeneratedCode]; coverlet already honors [ExcludeFromCodeCoverage].
+
+  Hand-written code stays in scope wherever it lives, including the reference host, because it ships (ADR-0133).
+-->
+<RunSettings>
+    <DataCollectionRunSettings>
+        <DataCollectors>
+            <DataCollector friendlyName="XPlat code coverage">
+                <Configuration>
+                    <Format>cobertura</Format>
+                    <ExcludeByFile>**/obj/**/*.cs,**/Migrations/**/*.cs</ExcludeByFile>
+                    <ExcludeByAttribute>GeneratedCodeAttribute</ExcludeByAttribute>
+                </Configuration>
+            </DataCollector>
+        </DataCollectors>
+    </DataCollectionRunSettings>
+</RunSettings>

@@ -1,7 +1,7 @@
 #region Copyright Preamble
 
 //
-//    Copyright @ 2023 NCode Group
+//    Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -22,28 +22,24 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Cryptography;
 
 /// <summary>
-/// Specifies which cryptographic hash algorithm to use.
+/// Encodes binary data as text under one registered encoding name.
 /// </summary>
+/// <remarks>
+/// Register an implementation in the <see cref="IBinaryEncoder"/> strategy collection to add an encoding;
+/// <see cref="ICryptoService"/> resolves encoders by <see cref="Name"/> and rejects a duplicate or unknown name.
+/// </remarks>
 [PublicAPI]
-public enum HashAlgorithmType
+public interface IBinaryEncoder
 {
     /// <summary>
-    /// Represents a value that hasn't been initialized yet and its value is unknown.
+    /// Gets the name of the encoding, such as a <see cref="BinaryEncodings"/> name. Names compare ordinally.
     /// </summary>
-    Unspecified = 0,
+    string Name { get; }
 
     /// <summary>
-    /// Specifies to use the <c>SHA-1</c> cryptographic hash algorithm.
+    /// Encodes binary data as text.
     /// </summary>
-    Sha1 = 20,
-
-    /// <summary>
-    /// Specifies to use the <c>SHA-256</c> cryptographic hash algorithm.
-    /// </summary>
-    Sha256 = 32,
-
-    /// <summary>
-    /// Specifies to use the <c>SHA-512</c> cryptographic hash algorithm.
-    /// </summary>
-    Sha512 = 64,
+    /// <param name="data">The binary data to encode.</param>
+    /// <returns>The binary data encoded as text.</returns>
+    string Encode(ReadOnlySpan<byte> data);
 }

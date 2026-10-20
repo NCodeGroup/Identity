@@ -314,7 +314,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     {
         SetupValidSettings();
         MockCryptoService
-            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
             .Returns("generated-rs-id")
             .Verifiable();
         SetupStore();
@@ -364,7 +364,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     {
         SetupInvalidSettings();
         MockCryptoService
-            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
             .Returns("generated-rs-id")
             .Verifiable();
         SetupStore();
@@ -743,7 +743,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Returns((ManagementError?)null)
             .Verifiable();
         MockCryptoService
-            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
             .Returns("secret-1")
             .Verifiable();
 

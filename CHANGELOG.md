@@ -235,6 +235,16 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Hash algorithms and binary encodings are open vocabularies.** The `HashAlgorithmType` and `BinaryEncodingType`
+  enums are removed. `ICryptoService.HashValue` takes the framework's `HashAlgorithmName` and computes the digest with
+  `CryptographicOperations`, so SHA-384 and SHA-3 are available. Encodings are named: `BinaryEncodings` holds
+  `base64url`, `base64`, and `hex`, each the name of a registered `IBinaryEncoder`, and `EncodeBinary`, `GenerateKey`,
+  and `HashValue` take the name as a `string`. `AddIdentityLibrary` registers the three built-in encoders; a package adds
+  one, such as Base32, by registering another. An unregistered or duplicate encoding name is rejected. Hashed and
+  encoded output is unchanged
+  ([ADR-0190](docs/adr/0190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md),
+  [ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)).
+
 - **A secret import format is an open name that each key type declares.** The `SecretKeyImportFormat` enum is replaced
   by `SecretKeyImportFormats`, a static class of `const string` names: `jwk`, `pem`, and `certificate`.
   `SecretKeyImportParameters.Format` and `SecretKeyImportRequest.Format` are a `string`, and

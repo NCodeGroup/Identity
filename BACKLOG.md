@@ -108,13 +108,14 @@ entry and/or ADR that closed it.
   predate the three-part test. `SessionTerminationReason` is already converted to the `SessionTerminationReasons`
   names ([ADR-0098](docs/adr/0098-session-lifecycle-termination-seam.md)), and `SecretKeyImportFormat` to the
   `SecretKeyImportFormats` names each key type declares
-  ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md)). Others still look open:
-  `PersistedGrantStatus` (persisted; a lifecycle a grant type may extend), and `HashAlgorithmType` /
-  `BinaryEncodingType` (closed only because the implementation is a `switch`). `AlgorithmType`, `RequestObjectSource`, `TenantPlane`, `SerializationFormat`,
-  `DeveloperKeyMode`, the `ObjectJson*Handling` mirrors, and the operation outcomes (`PasswordVerificationResult`,
-  `OutboundHttpReadResult`, `OwnerRemovalResult`) appear to pass. Apply the test to each and convert the ones that fail
-  to names plus registered strategies, with data migrations for any persisted value. Touch points: the enum files under
-  `src/**/` and their `switch` consumers.
+  ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md)). `HashAlgorithmType` is replaced by the
+  framework's `HashAlgorithmName`, and `BinaryEncodingType` by `BinaryEncodings` names plus registered `IBinaryEncoder`
+  strategies ([ADR-0190](docs/adr/0190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md)). One
+  still looks open: `PersistedGrantStatus` (persisted; a lifecycle a grant type may extend). `AlgorithmType`,
+  `RequestObjectSource`, `TenantPlane`, `SerializationFormat`, `DeveloperKeyMode`, the `ObjectJson*Handling` mirrors,
+  and the operation outcomes (`PasswordVerificationResult`, `OutboundHttpReadResult`, `OwnerRemovalResult`) appear to
+  pass. Apply the test to `PersistedGrantStatus` and, if it fails, convert it to names plus registered strategies with a
+  data migration for the persisted value. Touch points: the enum file under `src/**/` and its `switch` consumers.
 - **`D16` — Resume Dependabot version updates.** Version updates are paused: every ecosystem in
   [`.github/dependabot.yml`](.github/dependabot.yml) sets `open-pull-requests-limit: 0`, because while the family is
   refactored heavily ahead of its first release a weekly bump is mostly churn against code that is about to move.

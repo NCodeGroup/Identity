@@ -125,7 +125,7 @@ public class DefaultSessionServiceTests : BaseTests
         var grantId = CreateGrantId();
 
         MockCryptoService
-            .Setup(x => x.GenerateKey(It.IsAny<int>(), It.IsAny<BinaryEncodingType>()))
+            .Setup(x => x.GenerateKey(It.IsAny<int>(), It.IsAny<string>()))
             .Returns(SessionId)
             .Verifiable();
         MockPersistedGrantService

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using NCode.Buffers;
 using NCode.Identity.Cryptography;
 
@@ -36,8 +37,8 @@ internal sealed class S256CodeChallengeMethod(ICryptoService cryptoService) : IC
     public string ComputeChallenge(string codeVerifier) =>
         CryptoService.HashValue(
             codeVerifier,
-            HashAlgorithmType.Sha256,
-            BinaryEncodingType.Base64Url,
+            HashAlgorithmName.SHA256,
+            BinaryEncodings.Base64Url,
             SecureEncoding.ASCII
         );
 }

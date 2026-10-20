@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -51,8 +52,8 @@ internal class DefaultPersistedGrantService(
     private string GetHashedKey(PersistedGrantId grantId) =>
         CryptoService.HashValue(
             GetHashInput(grantId),
-            HashAlgorithmType.Sha256,
-            BinaryEncodingType.Base64
+            HashAlgorithmName.SHA256,
+            BinaryEncodings.Base64
         );
 
     /// <inheritdoc />

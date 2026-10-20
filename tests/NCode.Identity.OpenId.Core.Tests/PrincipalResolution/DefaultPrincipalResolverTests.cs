@@ -282,7 +282,7 @@ public sealed class DefaultPrincipalResolverTests
             )
             .Verifiable();
         crypto
-            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
             .Returns(GeneratedId)
             .Verifiable();
 
@@ -350,7 +350,7 @@ public sealed class DefaultPrincipalResolverTests
                 )
             )
             .ReturnsAsync(new FederatedIdentityLinkDecision { JoinKey = null });
-        crypto.Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url)).Returns(GeneratedId);
+        crypto.Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url)).Returns(GeneratedId);
 
         PersistedFederatedPrincipal? capturedPrincipal = null;
         principalStore

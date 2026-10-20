@@ -1,9 +1,4 @@
 #nullable enable
-NCode.Identity.Cryptography.BinaryEncodingType
-NCode.Identity.Cryptography.BinaryEncodingType.Base64 = 2 -> NCode.Identity.Cryptography.BinaryEncodingType
-NCode.Identity.Cryptography.BinaryEncodingType.Base64Url = 1 -> NCode.Identity.Cryptography.BinaryEncodingType
-NCode.Identity.Cryptography.BinaryEncodingType.Hex = 3 -> NCode.Identity.Cryptography.BinaryEncodingType
-NCode.Identity.Cryptography.BinaryEncodingType.Unspecified = 0 -> NCode.Identity.Cryptography.BinaryEncodingType
 NCode.Identity.Claims.IClaimsSerializer
 NCode.Identity.Claims.IClaimsSerializer.DeserializeClaim(NCode.Identity.Claims.SerializableClaim! serializableClaim) -> System.Security.Claims.Claim!
 NCode.Identity.Claims.IClaimsSerializer.DeserializeClaim(NCode.Identity.Claims.SerializableClaim! serializableClaim, System.Security.Claims.ClaimsIdentity? subject) -> System.Security.Claims.Claim!
@@ -52,11 +47,6 @@ NCode.Identity.Claims.SerializableClaimsPrincipal
 NCode.Identity.Claims.SerializableClaimsPrincipal.Identities.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Claims.SerializableClaimsIdentity!>!
 NCode.Identity.Claims.SerializableClaimsPrincipal.Identities.init -> void
 NCode.Identity.Claims.SerializableClaimsPrincipal.SerializableClaimsPrincipal() -> void
-NCode.Identity.Cryptography.HashAlgorithmType
-NCode.Identity.Cryptography.HashAlgorithmType.Sha1 = 20 -> NCode.Identity.Cryptography.HashAlgorithmType
-NCode.Identity.Cryptography.HashAlgorithmType.Sha256 = 32 -> NCode.Identity.Cryptography.HashAlgorithmType
-NCode.Identity.Cryptography.HashAlgorithmType.Sha512 = 64 -> NCode.Identity.Cryptography.HashAlgorithmType
-NCode.Identity.Cryptography.HashAlgorithmType.Unspecified = 0 -> NCode.Identity.Cryptography.HashAlgorithmType
 NCode.Identity.IdentityLibrary
 NCode.Identity.IdentityLibrary.IdentityLibrary() -> void
 NCode.Identity.ISupportClone<T>
@@ -67,11 +57,11 @@ NCode.Identity.Cryptography.CryptoServiceExtensions.extension(NCode.Identity.Cry
 NCode.Identity.Cryptography.CryptoServiceExtensions.extension(NCode.Identity.Cryptography.ICryptoService!).GenerateUrlSafeKey() -> string!
 NCode.Identity.Cryptography.CryptoServiceExtensions.extension(NCode.Identity.Cryptography.ICryptoService!).GenerateUrlSafeKey(int byteLength) -> string!
 NCode.Identity.Cryptography.ICryptoService
-NCode.Identity.Cryptography.ICryptoService.EncodeBinary(System.ReadOnlySpan<byte> data, NCode.Identity.Cryptography.BinaryEncodingType binaryEncodingType) -> string!
+NCode.Identity.Cryptography.ICryptoService.EncodeBinary(System.ReadOnlySpan<byte> data, string! binaryEncoding) -> string!
 NCode.Identity.Cryptography.ICryptoService.GenerateBytes(System.Span<byte> destination) -> void
-NCode.Identity.Cryptography.ICryptoService.GenerateKey(int byteLength, NCode.Identity.Cryptography.BinaryEncodingType binaryEncodingType) -> string!
-NCode.Identity.Cryptography.ICryptoService.HashValue(string! data, NCode.Identity.Cryptography.HashAlgorithmType hashAlgorithmType, NCode.Identity.Cryptography.BinaryEncodingType binaryEncodingType, System.Text.Encoding? encoding = null) -> string!
-NCode.Identity.Cryptography.ICryptoService.HashValue(System.ReadOnlySpan<byte> data, NCode.Identity.Cryptography.HashAlgorithmType hashAlgorithmType, NCode.Identity.Cryptography.BinaryEncodingType binaryEncodingType) -> string!
+NCode.Identity.Cryptography.ICryptoService.GenerateKey(int byteLength, string! binaryEncoding) -> string!
+NCode.Identity.Cryptography.ICryptoService.HashValue(string! data, System.Security.Cryptography.HashAlgorithmName hashAlgorithm, string! binaryEncoding, System.Text.Encoding? encoding = null) -> string!
+NCode.Identity.Cryptography.ICryptoService.HashValue(System.ReadOnlySpan<byte> data, System.Security.Cryptography.HashAlgorithmName hashAlgorithm, string! binaryEncoding) -> string!
 NCode.Identity.Models.IsActiveResult
 NCode.Identity.Models.IsActiveResult.IsActive.get -> bool
 NCode.Identity.Models.IsActiveResult.IsActive.set -> void
@@ -89,3 +79,10 @@ NCode.Identity.Models.TimePeriod.EndTime.init -> void
 NCode.Identity.Models.TimePeriod.StartTime.get -> System.DateTimeOffset
 NCode.Identity.Models.TimePeriod.StartTime.init -> void
 NCode.Identity.Models.TimePeriod.TimePeriod() -> void
+NCode.Identity.Cryptography.BinaryEncodings
+const NCode.Identity.Cryptography.BinaryEncodings.Base64 = "base64" -> string!
+const NCode.Identity.Cryptography.BinaryEncodings.Base64Url = "base64url" -> string!
+const NCode.Identity.Cryptography.BinaryEncodings.Hex = "hex" -> string!
+NCode.Identity.Cryptography.IBinaryEncoder
+NCode.Identity.Cryptography.IBinaryEncoder.Encode(System.ReadOnlySpan<byte> data) -> string!
+NCode.Identity.Cryptography.IBinaryEncoder.Name.get -> string!

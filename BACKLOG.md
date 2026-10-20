@@ -466,19 +466,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Management.Abstractions/Contracts/Secrets/SecretResource.cs`, and the `@ncode/api`
   contracts and secret tables in `src/frontend`.
 
-- **`F74` — Derive the frontend bootstrap document's issuer and API base from the tenant, not the request.** Every
-  served tenant's issuer is now its stored, validated origin and nothing else derives one from the request
-  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), but
-  `/config/bootstrap.json` still defaults `issuer` and `apiBaseUrl` to the serving request's `scheme://host`
-  (`FrontendBootstrapOptions`, [ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). That
-  is a second, unvalidated source of the same value: under a forged or proxied `Host` (or a shared cache in front of
-  the host) the bundle discovers the wrong authority, and under `DynamicByHost` the console served at
-  `manage.<apex>` needs the root tenant's issuer (`https://auth.<apex>`), which the request origin is not. Default the
-  issuer to the issuer of the tenant that serves the surface (the root tenant's for the console), and the API base to
-  the configured management origin; keep explicit options as overrides. Touch points:
-  `src/NCode.Identity.Server/Frontend/FrontendBootstrapEndpointProvider.cs`, `FrontendBootstrapOptions.cs`,
-  `FrontendBootstrapDocument.cs`, `ITenantResolver.GetDefaultIssuerAsync`.
-
 - **`F75` — Authenticate the management API against the control plane, not the tenant the request resolves.** The
   management `/api` surface materializes its OpenID context through `CreateForRequestAsync`, so the tenant that
   validates the caller's access token is whichever tenant the protocol strategy resolves from the request. That holds

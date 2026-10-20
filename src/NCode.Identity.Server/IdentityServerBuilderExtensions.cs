@@ -20,6 +20,7 @@ using System.Collections.Frozen;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Tenants;
@@ -190,6 +191,8 @@ public static class IdentityServerBuilderExtensions
             {
                 serviceCollection.Configure(configureOptions);
             }
+
+            serviceCollection.TryAddScoped<FrontendIssuerResolver>();
 
             builder.AddEndpointProvider<FrontendBootstrapEndpointProvider>();
 

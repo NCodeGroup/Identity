@@ -214,9 +214,10 @@ unfinished load and starts over.
 
 `NCode.Identity.Server` binds the `Frontend` configuration section and registers the endpoint through the
 single `IIdentityServerBuilder.AddFrontendBootstrap(configuration)` seam — the host's existing
-`MapEndpointGroups()` call then publishes it (API base, issuer, client id, scopes, feature flags, branding),
-falling back to the serving request's own origin for the API base and issuer when they are unset — so a
-single-origin host needs no configuration.
+`MapEndpointGroups()` call then publishes it (API base, issuer, client id, scopes, feature flags, branding). An unset
+issuer is the issuer of the tenant that serves the surface — never the request's origin — and an unset API base is the
+serving request's own origin, so a single-origin host needs no configuration
+([ADR-0182](../../docs/adr/0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md)).
 
 - **Backend-served bundles** (e.g. `apps/auth`, served by the OpenID Provider host) fetch the document
   straight from their serving host.

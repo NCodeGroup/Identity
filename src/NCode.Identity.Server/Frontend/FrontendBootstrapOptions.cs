@@ -24,8 +24,9 @@ namespace NCode.Identity.Server.Frontend;
 /// Configures the runtime bootstrap document the OpenID Provider host publishes for the tier-agnostic frontend
 /// bundles. A single bundle is built once and discovers its deployment coordinates at boot by fetching
 /// this document from the serving host, so every value here is per-deployment and none is baked at build time.
-/// When <see cref="ApiBaseUrl"/> or <see cref="Issuer"/> is left unset, the serving request's own origin
-/// (<c>scheme://host</c>) is used, so a single-origin host needs no configuration at all.
+/// When <see cref="Issuer"/> is left unset, the issuer of the tenant that serves the surface is used; when
+/// <see cref="ApiBaseUrl"/> is left unset, the serving request's own origin (<c>scheme://host</c>) is used. A host
+/// therefore needs no configuration at all.
 /// </summary>
 // See ADR-0064.
 [PublicAPI]
@@ -44,8 +45,9 @@ public sealed class FrontendBootstrapOptions
 
     /// <summary>
     /// Gets or sets the OpenID issuer whose <c>/.well-known/openid-configuration</c> describes the auth endpoints.
-    /// It must byte-match the discovery <c>issuer</c> the bundle reads. When unset, the serving request's own origin
-    /// is used.
+    /// It must byte-match the discovery <c>issuer</c> the bundle reads. When unset, the issuer of the tenant that serves
+    /// the surface is used: the tenant the request identifies (the only tenant under the static single-tenant strategy),
+    /// and otherwise the root tenant, which serves the Management console. It is never derived from the request.
     /// </summary>
     public string? Issuer { get; set; }
 

@@ -1,6 +1,8 @@
 # 165. Every served tenant has an issuer, and its strategy supplies the default
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0182](0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md): the frontend bootstrap
+  document's issuer is the serving tenant's)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -90,8 +92,8 @@ with it, or the one its strategy derives for it — and that issuer is stored wi
 - Under the hosted platform, `DynamicByHost:IssuerTemplate = https://{tenantId}.auth.<apex>` and
   `Root:Issuer = https://auth.<apex>` produce the hostname scheme of ADR-0131, and a custom domain remains an explicit
   issuer.
-- The frontend bootstrap document still defaults its own `issuer` and `apiBaseUrl` to the serving request's origin;
-  deriving them from the tenant is tracked separately in the backlog.
+- The frontend bootstrap document's `issuer` is the serving tenant's issuer, never the request's origin
+  ([ADR-0182](0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md)).
 
 ## References
 

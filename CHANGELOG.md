@@ -787,6 +787,16 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **The frontend bootstrap document's issuer is the serving tenant's, never the request's.** With `Frontend:Issuer`
+  unset, `/config/bootstrap.json` published the request's `scheme://host` as the issuer, so a forged or proxied
+  `Host` sent the bundle to an authority the operator never configured. It now publishes the stored issuer of the
+  tenant that serves the surface: the `StaticSingle` tenant, or the root tenant under the dynamic strategies. Before
+  that tenant is provisioned, it publishes its strategy's default issuer. When neither exists, the endpoint answers
+  `500` rather than guess. The API base still defaults to the serving origin, which is where the management API is,
+  and the response is `Cache-Control: no-store`. `Frontend:Issuer` and `Frontend:ApiBaseUrl` remain overrides.
+  Backlog `F74` is complete
+  ([ADR-0182](docs/adr/0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md)).
+
 - **The Data Protection key ring is encrypted at rest, and a Production host refuses an unprotected one.** The host
   persists the key ring to the same database as the secrets it unprotects, so a database dump held both. In
   Production, `AddProductionSafety` now refuses to start, as the host starts, when the key ring has no repository or

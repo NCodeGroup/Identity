@@ -95,6 +95,7 @@ function invalidatedBy(store: AppStore, tags: readonly ManagementTag[]): string[
 }
 
 const acme = { kind: 'tenant', tenantId: 'acme' } as const;
+const other = { kind: 'tenant', tenantId: 'other' } as const;
 const globalScope = { kind: 'global' } as const;
 
 const secretRequest: CreateSecretRequest = {
@@ -1425,40 +1426,40 @@ const listTagCases: readonly ListTagCase[] = [
     path: '/api/tenants',
     body: { items: [{ tenantId: 'acme' }] },
     run: (s) => s.dispatch(managementApi.endpoints.listTenants.initiate()),
-    collectionTag: { type: 'Tenant', id: 'LIST' },
-    itemTag: { type: 'Tenant', id: 'acme' },
+    collectionTag: { type: 'Tenant', id: 'global:LIST' },
+    itemTag: { type: 'Tenant', id: 'global:acme' },
   },
   {
     name: 'listServers',
     path: '/api/servers',
     body: { items: [{ serverId: 'root' }] },
     run: (s) => s.dispatch(managementApi.endpoints.listServers.initiate()),
-    collectionTag: { type: 'Server', id: 'LIST' },
-    itemTag: { type: 'Server', id: 'root' },
+    collectionTag: { type: 'Server', id: 'global:LIST' },
+    itemTag: { type: 'Server', id: 'global:root' },
   },
   {
     name: 'listClients',
     path: '/api/tenants/acme/clients',
     body: { items: [{ clientId: 'web' }] },
     run: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: acme })),
-    collectionTag: { type: 'Client', id: 'LIST' },
-    itemTag: { type: 'Client', id: 'web' },
+    collectionTag: { type: 'Client', id: 'tenant:acme:LIST' },
+    itemTag: { type: 'Client', id: 'tenant:acme:web' },
   },
   {
     name: 'listResourceServers',
     path: '/api/tenants/acme/resource-servers',
     body: { items: [{ resourceServerId: 'rs-1' }] },
     run: (s) => s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: acme })),
-    collectionTag: { type: 'ResourceServer', id: 'LIST' },
-    itemTag: { type: 'ResourceServer', id: 'rs-1' },
+    collectionTag: { type: 'ResourceServer', id: 'tenant:acme:LIST' },
+    itemTag: { type: 'ResourceServer', id: 'tenant:acme:rs-1' },
   },
   {
     name: 'listGrants',
     path: '/api/tenants/acme/grants',
     body: { items: [{ grantId: 'g-1' }] },
     run: (s) => s.dispatch(managementApi.endpoints.listGrants.initiate({ tenantId: 'acme' })),
-    collectionTag: { type: 'Grant', id: 'LIST' },
-    itemTag: { type: 'Grant', id: 'g-1' },
+    collectionTag: { type: 'Grant', id: 'tenant:acme:LIST' },
+    itemTag: { type: 'Grant', id: 'tenant:acme:g-1' },
   },
   {
     name: 'listClientSecrets',
@@ -1468,8 +1469,8 @@ const listTagCases: readonly ListTagCase[] = [
       s.dispatch(
         managementApi.endpoints.listClientSecrets.initiate({ scope: acme, clientId: 'web' }),
       ),
-    collectionTag: { type: 'Secret', id: 'client:web' },
-    itemTag: { type: 'Secret', id: 'cs-1' },
+    collectionTag: { type: 'Secret', id: 'tenant:acme:client:web' },
+    itemTag: { type: 'Secret', id: 'tenant:acme:cs-1' },
   },
   {
     name: 'listTenantSecrets',
@@ -1477,8 +1478,8 @@ const listTagCases: readonly ListTagCase[] = [
     body: { secrets: [{ secretId: 'ts-1' }] },
     run: (s) =>
       s.dispatch(managementApi.endpoints.listTenantSecrets.initiate({ tenantId: 'acme' })),
-    collectionTag: { type: 'Secret', id: 'tenant:acme' },
-    itemTag: { type: 'Secret', id: 'ts-1' },
+    collectionTag: { type: 'Secret', id: 'tenant:acme:tenant' },
+    itemTag: { type: 'Secret', id: 'tenant:acme:ts-1' },
   },
   {
     name: 'listServerSecrets',
@@ -1486,8 +1487,8 @@ const listTagCases: readonly ListTagCase[] = [
     body: { secrets: [{ secretId: 'ss-1' }] },
     run: (s) =>
       s.dispatch(managementApi.endpoints.listServerSecrets.initiate({ serverId: 'root' })),
-    collectionTag: { type: 'Secret', id: 'server:root' },
-    itemTag: { type: 'Secret', id: 'ss-1' },
+    collectionTag: { type: 'Secret', id: 'global:server:root' },
+    itemTag: { type: 'Secret', id: 'global:ss-1' },
   },
   {
     name: 'listResourceServerSecrets',
@@ -1500,8 +1501,8 @@ const listTagCases: readonly ListTagCase[] = [
           resourceServerId: 'rs-1',
         }),
       ),
-    collectionTag: { type: 'Secret', id: 'resource-server:rs-1' },
-    itemTag: { type: 'Secret', id: 'rss-1' },
+    collectionTag: { type: 'Secret', id: 'tenant:acme:resource-server:rs-1' },
+    itemTag: { type: 'Secret', id: 'tenant:acme:rss-1' },
   },
 ];
 
@@ -1548,7 +1549,11 @@ type CachedQuery = {
   readonly subscribe: (store: AppStore) => PromiseLike<unknown>;
 };
 
-/** One subscribed cache entry per tagged (and a few untagged) query, spanning both scopes. */
+/**
+ * One subscribed cache entry per tagged (and a few untagged) query, spanning both scopes. The same
+ * resource ids recur in the global scope and in a second tenant, so every mutation also proves that it
+ * leaves the other scopes' caches alone.
+ */
 const cachedQueries: readonly CachedQuery[] = [
   {
     label: 'capabilities',
@@ -1587,6 +1592,19 @@ const cachedQueries: readonly CachedQuery[] = [
     subscribe: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: acme })),
   },
   {
+    label: 'clients:global',
+    path: '/api/clients',
+    body: { items: [{ clientId: 'web' }] },
+    subscribe: (s) =>
+      s.dispatch(managementApi.endpoints.listClients.initiate({ scope: globalScope })),
+  },
+  {
+    label: 'clients:other',
+    path: '/api/tenants/other/clients',
+    body: { items: [{ clientId: 'web' }] },
+    subscribe: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: other })),
+  },
+  {
     label: 'resourceServers',
     path: '/api/tenants/acme/resource-servers',
     body: { items: [{ resourceServerId: 'rs-1' }] },
@@ -1594,10 +1612,24 @@ const cachedQueries: readonly CachedQuery[] = [
       s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: acme })),
   },
   {
+    label: 'resourceServers:global',
+    path: '/api/resource-servers',
+    body: { items: [{ resourceServerId: 'rs-1' }] },
+    subscribe: (s) =>
+      s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: globalScope })),
+  },
+  {
     label: 'grants',
     path: '/api/tenants/acme/grants',
     body: { items: [{ grantId: 'g-1' }] },
     subscribe: (s) => s.dispatch(managementApi.endpoints.listGrants.initiate({ tenantId: 'acme' })),
+  },
+  {
+    label: 'grants:other',
+    path: '/api/tenants/other/grants',
+    body: { items: [{ grantId: 'g-1' }] },
+    subscribe: (s) =>
+      s.dispatch(managementApi.endpoints.listGrants.initiate({ tenantId: 'other' })),
   },
   {
     label: 'clientSecrets:web',
@@ -1615,6 +1647,15 @@ const cachedQueries: readonly CachedQuery[] = [
     subscribe: (s) =>
       s.dispatch(
         managementApi.endpoints.listClientSecrets.initiate({ scope: acme, clientId: 'mobile' }),
+      ),
+  },
+  {
+    label: 'clientSecrets:global:web',
+    path: '/api/clients/web/secrets',
+    body: { secrets: [{ secretId: 'cs-1' }] },
+    subscribe: (s) =>
+      s.dispatch(
+        managementApi.endpoints.listClientSecrets.initiate({ scope: globalScope, clientId: 'web' }),
       ),
   },
   {
@@ -1658,6 +1699,15 @@ const cachedQueries: readonly CachedQuery[] = [
     subscribe: (s) =>
       s.dispatch(
         managementApi.endpoints.getClientSettings.initiate({ scope: acme, clientId: 'mobile' }),
+      ),
+  },
+  {
+    label: 'clientSettings:global:web',
+    path: '/api/clients/web/settings',
+    body: { settings: {} },
+    subscribe: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getClientSettings.initiate({ scope: globalScope, clientId: 'web' }),
       ),
   },
   {
@@ -1746,6 +1796,18 @@ const cachedQueries: readonly CachedQuery[] = [
       ),
   },
   {
+    label: 'resourceServerSecrets:other:rs-1',
+    path: '/api/tenants/other/resource-servers/rs-1/secrets',
+    body: { secrets: [{ secretId: 'rss-1' }] },
+    subscribe: (s) =>
+      s.dispatch(
+        managementApi.endpoints.listResourceServerSecrets.initiate({
+          scope: other,
+          resourceServerId: 'rs-1',
+        }),
+      ),
+  },
+  {
     label: 'resourceServerSecretPublicKey:rss-1',
     path: '/api/tenants/acme/resource-servers/rs-1/secrets/rss-1/public-key',
     body: {},
@@ -1778,6 +1840,18 @@ const cachedQueries: readonly CachedQuery[] = [
       s.dispatch(
         managementApi.endpoints.getResourceServerEffectiveSettings.initiate({
           scope: acme,
+          resourceServerId: 'rs-1',
+        }),
+      ),
+  },
+  {
+    label: 'resourceServerSettings:global:rs-1',
+    path: '/api/resource-servers/rs-1/settings',
+    body: { settings: {} },
+    subscribe: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getResourceServerSettings.initiate({
+          scope: globalScope,
           resourceServerId: 'rs-1',
         }),
       ),
@@ -2114,6 +2188,96 @@ const invalidationCases: readonly InvalidationCase[] = [
         }),
       ),
     refetches: ['resourceServerSettings:rs-1', 'resourceServerEffectiveSettings:rs-1'],
+  },
+  {
+    name: 'createClient in the global scope',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.createClient.initiate({
+          scope: globalScope,
+          body: { isDisabled: false, settings: {} },
+        }),
+      ),
+    refetches: ['clients:global'],
+  },
+  {
+    name: 'deleteClient in another tenant',
+    mutate: (s) =>
+      s.dispatch(managementApi.endpoints.deleteClient.initiate({ scope: other, clientId: 'web' })),
+    refetches: ['clients:other'],
+  },
+  {
+    name: 'updateResourceServer in the global scope',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.updateResourceServer.initiate({
+          scope: globalScope,
+          resourceServerId: 'rs-1',
+          concurrencyToken: 'etag',
+          fields: { name: 'API', isDisabled: true },
+        }),
+      ),
+    refetches: ['resourceServers:global'],
+  },
+  {
+    name: 'revokeGrant in another tenant',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.revokeGrant.initiate({ tenantId: 'other', grantId: 'g-1' }),
+      ),
+    refetches: ['grants:other'],
+  },
+  {
+    name: 'deleteClientSecret in the global scope',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.deleteClientSecret.initiate({
+          scope: globalScope,
+          clientId: 'web',
+          secretId: 'cs-1',
+        }),
+      ),
+    refetches: ['clientSecrets:global:web'],
+  },
+  {
+    name: 'updateClientSettings in the global scope',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.updateClientSettings.initiate({
+          scope: globalScope,
+          clientId: 'web',
+          concurrencyToken: 'etag',
+          original: {},
+          desired: { a: 1 },
+        }),
+      ),
+    refetches: ['clientSettings:global:web'],
+  },
+  {
+    name: 'createResourceServerSecret in another tenant',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.createResourceServerSecret.initiate({
+          scope: other,
+          resourceServerId: 'rs-1',
+          body: secretRequest,
+        }),
+      ),
+    refetches: ['resourceServerSecrets:other:rs-1'],
+  },
+  {
+    name: 'updateResourceServerSettings in the global scope',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.updateResourceServerSettings.initiate({
+          scope: globalScope,
+          resourceServerId: 'rs-1',
+          concurrencyToken: 'etag',
+          original: {},
+          desired: { a: 1 },
+        }),
+      ),
+    refetches: ['resourceServerSettings:global:rs-1'],
   },
 ];
 

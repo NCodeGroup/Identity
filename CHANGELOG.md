@@ -804,6 +804,12 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **A management console change refetched the caches of every other scope.** The Management API's cache tags shared
+  their ids across the global scope and every tenant, so creating a client in one tenant also refetched the global
+  client list and every other tenant's, and a secret or setting change refetched the same-named resource in other
+  scopes. Every tag id now names the scope that owns the resource (`scopeTagId` in `@ncode/api`), so a mutation
+  refetches only its own scope's caches, as [ADR-0064](docs/adr/0064-frontend-presentation-platform.md) intends.
+
 - **The server rejected the access tokens it encrypted.** A client or resource server that required encrypted access
   tokens received tokens that UserInfo, the management API, introspection, and token exchange could not read, because
   none of them named a decryption key. They now decrypt with the tenant's keys, and introspection also uses the calling

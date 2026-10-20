@@ -45,8 +45,10 @@ export {
 export {
   GLOBAL_SCOPE,
   isGlobalScope,
+  LIST_TAG,
   scopeApiPrefix,
   scopeKey,
+  scopeTagId,
   tenantScope,
   type ManagementScope,
 } from './scope.js';

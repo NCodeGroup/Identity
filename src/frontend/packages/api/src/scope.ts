@@ -21,7 +21,7 @@ export function tenantScope(tenantId: string): ManagementScope {
   return { kind: 'tenant', tenantId };
 }
 
-/** A stable, human/URL-friendly key for a scope (used for routing and cache tags). */
+/** A stable, human/URL-friendly key for a scope (used for routing; cache tags use {@link scopeTagId}). */
 export function scopeKey(scope: ManagementScope): string {
   return scope.kind === 'global' ? 'global' : `tenant:${scope.tenantId}`;
 }
@@ -37,4 +37,19 @@ export function isGlobalScope(scope: ManagementScope): scope is { kind: 'global'
  */
 export function scopeApiPrefix(scope: ManagementScope): string {
   return scope.kind === 'global' ? 'api' : `api/tenants/${encodeURIComponent(scope.tenantId)}`;
+}
+
+/** The cache-tag id of a scope's collection of one resource type. */
+export const LIST_TAG = 'LIST';
+
+/**
+ * Builds a cache-tag id that names a resource within its scope (for example `global:LIST`,
+ * `tenant:acme:LIST`, or `tenant:acme:client:web`), so a mutation in one scope never invalidates
+ * another scope's caches. The tenant id is URI-encoded, so it can never contain the `:` separator and
+ * two scopes can never produce the same id.
+ */
+export function scopeTagId(scope: ManagementScope, id: string): string {
+  const prefix =
+    scope.kind === 'global' ? 'global' : `tenant:${encodeURIComponent(scope.tenantId)}`;
+  return `${prefix}:${id}`;
 }

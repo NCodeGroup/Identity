@@ -647,18 +647,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   `typescript-eslint` widens its peer range to 7, bump every workspace's `typescript` together, drop the Dependabot
   ignore, and keep `pnpm typecheck` (`tsc --noEmit`) and `pnpm lint` green. Touch points: `src/frontend/package.json`
   and each `apps/*` / `packages/*` `package.json`, `.github/dependabot.yml`.
-- **`U19` — Key the Management API cache tags by scope.** [ADR-0064](docs/adr/0064-frontend-presentation-platform.md)
-  makes the global-vs-tenant boundary first-class with distinct cache tags, and the doc comment on `managementApi`
-  promises that a tenant mutation never invalidates the global list and vice versa. The code does not deliver it: the
-  `Client` and `ResourceServer` `LIST` tags are shared by the global scope and every tenant, the `Grant` `LIST` tag by
-  every tenant, and the per-id `Client`/`ResourceServer`/`Secret`/`Settings` tags use the bare resource id, so a
-  mutation in one scope refetches the matching caches of every other scope. RTK Query caches by request arguments, so
-  no data crosses a boundary — the cost is redundant refetches and an invariant that only exists in a comment. Derive
-  each tag id from the scope (for example `tenant:{tenantId}:LIST` / `global:LIST`, and the scope prefix on per-id and
-  `client:`/`tenant:` tags) through one helper beside `scopeApiPrefix`, and extend `managementApi.test.ts`'s
-  invalidation matrix (it already asserts which of 27 cached queries refetch per mutation) to pin cross-scope
-  isolation. Touch points: [`packages/store/src/managementApi.ts`](src/frontend/packages/store/src/managementApi.ts),
-  `packages/api/src/scope.ts`, `packages/store/src/managementApi.test.ts`.
 - **`U20` — Split the standalone SPA bundles below Vite's chunk-size warning.** `pnpm build` warns that `apps/mgmt`,
   `apps/playground`, and `apps/conformance` each emit a chunk larger than 500 kB after minification — React, MUI,
   emotion, and Redux all land in one entry chunk. Raising `build.chunkSizeWarningLimit` would only hide it. Split

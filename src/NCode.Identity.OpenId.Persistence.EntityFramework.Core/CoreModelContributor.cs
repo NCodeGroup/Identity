@@ -49,6 +49,8 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
         modelBuilder.Entity<RoleAssignmentEntity>().ToTable("RoleAssignments");
         modelBuilder.Entity<FederatedPrincipalEntity>().ToTable("FederatedPrincipals");
         modelBuilder.Entity<FederatedIdentityEntity>().ToTable("FederatedIdentities");
+        modelBuilder.Entity<RetiredTenantEntity>().ToTable("RetiredTenants");
+        modelBuilder.Entity<RetiredIssuerEntity>().ToTable("RetiredIssuers");
 
         // A tenant's issuer is optional (a tenant without one derives its origin from the request), so enforce
         // uniqueness only over non-null values (a filtered index). Two tenants sharing an issuer is a protocol-level

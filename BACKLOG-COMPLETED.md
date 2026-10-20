@@ -1412,6 +1412,24 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   internal and replaceable ([ADR-0181](docs/adr/0181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md); see the
   [`CHANGELOG.md`](CHANGELOG.md))._
 
+- **`F70` — Never reissue a retired tenant name or issuer.** A tenant is named by its creator
+  ([ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md)), and its issuer is its identity in every token it
+  mints ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)). Deleting a tenant frees
+  both, so a new tenant can take the name `acme` — and with it an issuer that relying parties configured to trust the old
+  tenant: they fetch the new tenant's JWKS and accept its tokens. Auth0 never reuses a deleted tenant's name. Keep a
+  tombstone of every retired tenant identifier and normalized issuer, reject both when a tenant is created or its issuer
+  changes (`409`), and decide whether an operator can release a retired issuer explicitly, with an audit record. A
+  retired issuer is rejected for a derived issuer too: the template default is judged by the same
+  `ITenantResolver.ValidateTenantAsync`, and the address preview reports it.
+  Touch points: `ITenantStore` and `TenantStore` (a tombstone entity and migration),
+  `src/NCode.Identity.OpenId.Core/Tenants/DefaultTenantResolver.cs` (`ValidateTenantAsync`),
+  `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`, `TenantApiEndpointHandler`
+  (`DeleteTenantAsync`, `GetAddressAsync`).
+  _Closed: [CHANGELOG.md](CHANGELOG.md) [Unreleased]; [ADR-0189](docs/adr/0189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md).
+  The tenant store retires a deleted tenant's identifier and issuer, and a changed issuer, in the `RetiredTenants` and
+  `RetiredIssuers` tables; the resolver reports either as a conflict (`409`), except an issuer reclaimed by the tenant
+  that gave it up. No operator API releases a retired issuer: Auth0 never reuses a name either._
+
 - **`F71` — Derive a tenant's issuer from a configured template.** A tenant served at a request-independent address
   needs an issuer, and a production deployment must not rely on the request-derived fallback
   ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md); the production-safety part of

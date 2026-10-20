@@ -124,11 +124,26 @@ internal class DefaultTenantResolver(
         if (failures.Count > 0)
             return failures;
 
+        var store = storeManager.GetStore<ITenantStore>();
+
+        // A tenant identifier names its tenant in every route and management call, so one that belonged to a deleted
+        // tenant is never reissued (ADR-0189).
+        if (await store.IsTenantIdRetiredAsync(tenantId, cancellationToken))
+        {
+            failures.Add(
+                new TenantValidationFailure
+                {
+                    Detail =
+                        $"The tenant identifier '{tenantId}' belonged to a deleted tenant and is never reissued.",
+                    IsConflict = true,
+                }
+            );
+        }
+
         // The issuer is the tenant's identity and is asserted in every token it mints, so two tenants sharing one
         // would mint tokens a relying party cannot tell apart (ADR-0129).
         if (issuerUri is not null)
         {
-            var store = storeManager.GetStore<ITenantStore>();
             var holder = await store.GetOrDefaultByIssuerAsync(
                 issuerUri.OriginalString,
                 cancellationToken
@@ -142,6 +157,26 @@ internal class DefaultTenantResolver(
                     new TenantValidationFailure
                     {
                         Detail = $"Another tenant already has the issuer '{issuer}'.",
+                        IsConflict = true,
+                    }
+                );
+            }
+            else if (
+                await store.GetRetiredIssuerHolderOrDefaultAsync(
+                    issuerUri.OriginalString,
+                    cancellationToken
+                )
+                    is { } formerHolder
+                && !string.Equals(formerHolder, tenantId, StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                // Relying parties that trusted a retired issuer would accept another tenant's tokens under it, so only
+                // the tenant that gave it up can take it back (ADR-0189).
+                failures.Add(
+                    new TenantValidationFailure
+                    {
+                        Detail =
+                            $"The issuer '{issuer}' belonged to another tenant and is never reissued.",
                         IsConflict = true,
                     }
                 );

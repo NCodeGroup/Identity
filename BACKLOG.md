@@ -392,20 +392,6 @@ entry and/or ADR that closed it.
   `src/NCode.Identity.OpenId.Authentication/Settings/Fapi2SecurityProfile.cs`, the management client and tenant
   endpoints.
 
-- **`F70` — Never reissue a retired tenant name or issuer.** A tenant is named by its creator
-  ([ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md)), and its issuer is its identity in every token it
-  mints ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)). Deleting a tenant frees
-  both, so a new tenant can take the name `acme` — and with it an issuer that relying parties configured to trust the old
-  tenant: they fetch the new tenant's JWKS and accept its tokens. Auth0 never reuses a deleted tenant's name. Keep a
-  tombstone of every retired tenant identifier and normalized issuer, reject both when a tenant is created or its issuer
-  changes (`409`), and decide whether an operator can release a retired issuer explicitly, with an audit record. A
-  retired issuer is rejected for a derived issuer too: the template default is judged by the same
-  `ITenantResolver.ValidateTenantAsync`, and the address preview reports it.
-  Touch points: `ITenantStore` and `TenantStore` (a tombstone entity and migration),
-  `src/NCode.Identity.OpenId.Core/Tenants/DefaultTenantResolver.cs` (`ValidateTenantAsync`),
-  `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`, `TenantApiEndpointHandler`
-  (`DeleteTenantAsync`, `GetAddressAsync`).
-
 - **`F75` — Authenticate the management API against the control plane, not the tenant the request resolves.** The
   management `/api` surface materializes its OpenID context through `CreateForRequestAsync`, so the tenant that
   validates the caller's access token is whichever tenant the protocol strategy resolves from the request. That holds

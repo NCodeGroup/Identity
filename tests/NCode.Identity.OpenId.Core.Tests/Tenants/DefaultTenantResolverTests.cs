@@ -92,6 +92,22 @@ public sealed class DefaultTenantResolverTests
         return strategy;
     }
 
+    private static Mock<ITenantStore> CreateStore(
+        MockRepository mocks,
+        Mock<IStoreManager> storeManager,
+        string tenantId,
+        bool isTenantIdRetired = false
+    )
+    {
+        var store = mocks.Create<ITenantStore>();
+        storeManager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
+        store
+            .Setup(x => x.IsTenantIdRetiredAsync(tenantId, CancellationToken.None))
+            .ReturnsAsync(isTenantIdRetired)
+            .Verifiable();
+        return store;
+    }
+
     private static PersistedTenant CreatePersistedTenant(string tenantId) =>
         new()
         {
@@ -143,6 +159,7 @@ public sealed class DefaultTenantResolverTests
         var mocks = new MockRepository(MockBehavior.Strict);
         var strategy = CreateStrategy(mocks);
         var storeManager = mocks.Create<IStoreManager>();
+        CreateStore(mocks, storeManager, TenantId);
 
         strategy
             .Setup(x =>
@@ -169,9 +186,7 @@ public sealed class DefaultTenantResolverTests
         var mocks = new MockRepository(MockBehavior.Strict);
         var strategy = CreateStrategy(mocks);
         var storeManager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<ITenantStore>();
-
-        storeManager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
+        var store = CreateStore(mocks, storeManager, TenantId);
         store
             .Setup(x => x.GetOrDefaultByIssuerAsync(Issuer, CancellationToken.None))
             .ReturnsAsync(CreatePersistedTenant("globex"))
@@ -204,12 +219,14 @@ public sealed class DefaultTenantResolverTests
         var mocks = new MockRepository(MockBehavior.Strict);
         var strategy = CreateStrategy(mocks);
         var storeManager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<ITenantStore>();
-
-        storeManager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
+        var store = CreateStore(mocks, storeManager, TenantId);
         store
             .Setup(x => x.GetOrDefaultByIssuerAsync(Issuer, CancellationToken.None))
             .ReturnsAsync(CreatePersistedTenant(TenantId))
+            .Verifiable();
+        store
+            .Setup(x => x.GetRetiredIssuerHolderOrDefaultAsync(Issuer, CancellationToken.None))
+            .ReturnsAsync((string?)null)
             .Verifiable();
         strategy
             .Setup(x =>
@@ -246,12 +263,14 @@ public sealed class DefaultTenantResolverTests
         var mocks = new MockRepository(MockBehavior.Strict);
         var strategy = CreateStrategy(mocks);
         var storeManager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<ITenantStore>();
-
-        storeManager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
+        var store = CreateStore(mocks, storeManager, TenantId);
         store
             .Setup(x => x.GetOrDefaultByIssuerAsync(issuer, CancellationToken.None))
             .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+        store
+            .Setup(x => x.GetRetiredIssuerHolderOrDefaultAsync(issuer, CancellationToken.None))
+            .ReturnsAsync((string?)null)
             .Verifiable();
         strategy
             .Setup(x =>
@@ -288,12 +307,14 @@ public sealed class DefaultTenantResolverTests
         var mocks = new MockRepository(MockBehavior.Strict);
         var strategy = CreateStrategy(mocks);
         var storeManager = mocks.Create<IStoreManager>();
-        var store = mocks.Create<ITenantStore>();
-
-        storeManager.Setup(x => x.GetStore<ITenantStore>()).Returns(store.Object).Verifiable();
+        var store = CreateStore(mocks, storeManager, RootTenantOptions.DefaultTenantId);
         store
             .Setup(x => x.GetOrDefaultByIssuerAsync(rootIssuer, CancellationToken.None))
             .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+        store
+            .Setup(x => x.GetRetiredIssuerHolderOrDefaultAsync(rootIssuer, CancellationToken.None))
+            .ReturnsAsync((string?)null)
             .Verifiable();
         strategy
             .Setup(x =>
@@ -314,6 +335,110 @@ public sealed class DefaultTenantResolverTests
                 storeManager.Object,
                 CancellationToken.None
             );
+
+        Assert.Empty(failures);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenTheIdentifierBelongedToADeletedTenant_ReportsAConflict()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks);
+        var storeManager = mocks.Create<IStoreManager>();
+        CreateStore(mocks, storeManager, TenantId, isTenantIdRetired: true);
+
+        strategy
+            .Setup(x =>
+                x.ValidateTenantAsync(TenantId, null, storeManager.Object, CancellationToken.None)
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+
+        var failures = await CreateResolver(strategy.Object)
+            .ValidateTenantAsync(TenantId, null, storeManager.Object, CancellationToken.None);
+
+        var failure = Assert.Single(failures);
+        Assert.True(failure.IsConflict);
+        Assert.Contains($"'{TenantId}'", failure.Detail, StringComparison.Ordinal);
+        Assert.Contains("never reissued", failure.Detail, StringComparison.Ordinal);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenAnotherTenantGaveUpTheIssuer_ReportsAConflict()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks);
+        var storeManager = mocks.Create<IStoreManager>();
+        var store = CreateStore(mocks, storeManager, TenantId);
+
+        store
+            .Setup(x => x.GetOrDefaultByIssuerAsync(Issuer, CancellationToken.None))
+            .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+        store
+            .Setup(x => x.GetRetiredIssuerHolderOrDefaultAsync(Issuer, CancellationToken.None))
+            .ReturnsAsync("globex")
+            .Verifiable();
+        strategy
+            .Setup(x =>
+                x.ValidateTenantAsync(
+                    TenantId,
+                    It.IsAny<Uri>(),
+                    storeManager.Object,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+
+        var failures = await CreateResolver(strategy.Object)
+            .ValidateTenantAsync(TenantId, Issuer, storeManager.Object, CancellationToken.None);
+
+        var failure = Assert.Single(failures);
+        Assert.True(failure.IsConflict);
+        Assert.Contains(Issuer, failure.Detail, StringComparison.Ordinal);
+        Assert.Contains("never reissued", failure.Detail, StringComparison.Ordinal);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenTheTenantItselfGaveUpTheIssuer_Succeeds()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks);
+        var storeManager = mocks.Create<IStoreManager>();
+        var store = CreateStore(mocks, storeManager, TenantId);
+
+        store
+            .Setup(x => x.GetOrDefaultByIssuerAsync(Issuer, CancellationToken.None))
+            .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+        store
+            .Setup(x => x.GetRetiredIssuerHolderOrDefaultAsync(Issuer, CancellationToken.None))
+            .ReturnsAsync(TenantId.ToUpperInvariant())
+            .Verifiable();
+        strategy
+            .Setup(x =>
+                x.GetDefaultIssuerAsync(RootTenantOptions.DefaultTenantId, CancellationToken.None)
+            )
+            .ReturnsAsync("https://op.example/root")
+            .Verifiable();
+        strategy
+            .Setup(x =>
+                x.ValidateTenantAsync(
+                    TenantId,
+                    It.IsAny<Uri>(),
+                    storeManager.Object,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+
+        var failures = await CreateResolver(strategy.Object)
+            .ValidateTenantAsync(TenantId, Issuer, storeManager.Object, CancellationToken.None);
 
         Assert.Empty(failures);
         mocks.Verify();

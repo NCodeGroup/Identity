@@ -39,7 +39,6 @@ using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
@@ -89,15 +88,12 @@ internal class TenantApiEndpointHandler(
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IOpenIdServerProvider serverProvider,
     ISecurityProfileCatalog securityProfileCatalog,
-    IAmbientTenantAccessor ambientTenantAccessor,
+    IClientResponseAlgorithmValidator clientResponseAlgorithmValidator,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<TenantApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
-    // The number of clients read per page when a settings write is checked against the tenant's clients.
-    private const int ClientPageSize = 100;
-
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ITenantValidator TenantValidator { get; } = tenantValidator;
@@ -113,7 +109,8 @@ internal class TenantApiEndpointHandler(
         settingScopeCollectionProvider;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
     private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
-    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
+    private IClientResponseAlgorithmValidator ClientResponseAlgorithmValidator { get; } =
+        clientResponseAlgorithmValidator;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -734,9 +731,7 @@ internal class TenantApiEndpointHandler(
 
     /// <summary>
     /// Verifies that replacing a tenant's settings document leaves every algorithm each of its clients registers for the
-    /// JWTs addressed to it permitted (<see cref="ClientResponseAlgorithmRule"/>). Each client's document is merged onto
-    /// the tenant's effective settings before and after the change, as the runtime merges it, and only an algorithm the
-    /// change excludes is reported, so a write the change does not affect is never blocked by an earlier mismatch.
+    /// JWTs addressed to it permitted (<see cref="IClientResponseAlgorithmValidator"/>).
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant whose settings change.</param>
@@ -770,53 +765,23 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
 
-        List<SettingError> errors = [];
-        var clientStore = storeManager.GetStore<IClientStore>();
+        var findings = await ClientResponseAlgorithmValidator.FindIntroducedViolationsAsync(
+            storeManager,
+            tenantId,
+            currentEffective,
+            newEffective,
+            jsonOptions,
+            cancellationToken
+        );
 
-        // The tenant plane is not scoped to the addressed tenant, so its clients are read under an explicit scope.
-        using var scope = AmbientTenantAccessor.BeginScope(tenantId);
-
-        var page = new PageRequest { Limit = ClientPageSize };
-        do
-        {
-            var result = await clientStore.GetPageAsync(page, cancellationToken);
-            foreach (var client in result.Items)
-            {
-                var clientSettings = SecurityProfileCatalog.Expand(
-                    client.Settings.Value,
-                    OpenIdSettingScopes.Client,
-                    jsonOptions
-                );
-
-                var violations = ClientResponseAlgorithmRule.FindViolations(
-                    newEffective.Merge(clientSettings)
-                );
-                if (violations.Count == 0)
-                {
-                    continue;
-                }
-
-                var existing = ClientResponseAlgorithmRule.FindViolations(
-                    currentEffective.Merge(clientSettings)
-                );
-                foreach (var violation in violations.Except(existing))
-                {
-                    var permittedName = violation.PermittedKey.SettingName;
-                    errors.Add(
-                        new SettingError(
-                            permittedName,
-                            $"The client '{client.ClientId}' registers '{violation.RegisteredKey.SettingName}' value "
-                                + $"'{violation.Value}', which the tenant's effective '{permittedName}' would not "
-                                + "permit."
-                        )
-                    );
-                }
-            }
-
-            page = page with { Cursor = result.NextCursor };
-        } while (page.Cursor is not null);
-
-        return errors;
+        return findings
+            .Select(finding => new SettingError(
+                finding.Violation.PermittedKey.SettingName,
+                $"The client '{finding.ClientId}' registers '{finding.Violation.RegisteredKey.SettingName}' value "
+                    + $"'{finding.Violation.Value}', which the tenant's effective "
+                    + $"'{finding.Violation.PermittedKey.SettingName}' would not permit."
+            ))
+            .ToList();
     }
 
     /// <summary>

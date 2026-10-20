@@ -92,7 +92,7 @@ internal class DefaultOpenIdServerFactory(
     {
         var serverId = GetServerId();
 
-        var disposables = new List<object>(2);
+        var disposables = new List<object>(3);
         var propertyBag = openIdEnvironment.PropertyBag.Clone();
         var persistedServer = await GetPersistedServerAsync(
             serverId,
@@ -101,13 +101,26 @@ internal class DefaultOpenIdServerFactory(
         );
         try
         {
+            var rootSettingsDataSource = await CreateRootSettingsDataSourceAsync(
+                propertyBag,
+                cancellationToken
+            );
+
+            // The merged provider owns the root data source; the configured provider shares it.
             var settingsProvider = await CreateSettingsProviderAsync(
                 openIdEnvironment,
                 persistedServer,
+                rootSettingsDataSource,
                 propertyBag,
                 cancellationToken
             );
             disposables.Add(settingsProvider);
+
+            var configuredSettingsProvider = SettingCollectionProviderFactory.Create(
+                [rootSettingsDataSource],
+                owns: false
+            );
+            disposables.Add(configuredSettingsProvider);
 
             var secretsProvider = await CreateSecretsProviderAsync(
                 persistedServer,
@@ -116,7 +129,13 @@ internal class DefaultOpenIdServerFactory(
             );
             disposables.Add(secretsProvider);
 
-            return Create(serverId, settingsProvider, secretsProvider, propertyBag);
+            return Create(
+                serverId,
+                configuredSettingsProvider,
+                settingsProvider,
+                secretsProvider,
+                propertyBag
+            );
         }
         catch
         {
@@ -130,10 +149,18 @@ internal class DefaultOpenIdServerFactory(
     /// </summary>
     protected internal virtual OpenIdServer Create(
         string serverId,
+        IReadOnlySettingCollectionProvider configuredSettingsProvider,
         IReadOnlySettingCollectionProvider settingsProvider,
         ISecretKeyCollectionProvider secretsProvider,
         IPropertyBag propertyBag
-    ) => new DefaultOpenIdServer(serverId, settingsProvider, secretsProvider, propertyBag);
+    ) =>
+        new DefaultOpenIdServer(
+            serverId,
+            configuredSettingsProvider,
+            settingsProvider,
+            secretsProvider,
+            propertyBag
+        );
 
     /// <summary>
     /// Attempts to retrieve the <see cref="PersistedServer"/> with the specified server ID from the store.
@@ -190,21 +217,20 @@ internal class DefaultOpenIdServerFactory(
     }
 
     /// <summary>
-    /// Used to create the <see cref="IReadOnlySettingCollectionProvider"/> for the OpenID server.
+    /// Used to create the <see cref="IReadOnlySettingCollectionProvider"/> for the OpenID server, which merges the
+    /// server's persisted settings onto the <paramref name="rootSettingsDataSource"/> and takes ownership of it.
     /// </summary>
     protected internal virtual async ValueTask<IReadOnlySettingCollectionProvider> CreateSettingsProviderAsync(
         OpenIdEnvironment openIdEnvironment,
         PersistedServer persistedServer,
+        ICollectionDataSource<Setting> rootSettingsDataSource,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
-        var dataSources = new List<ICollectionDataSource<Setting>>(2);
+        var dataSources = new List<ICollectionDataSource<Setting>>(2) { rootSettingsDataSource };
         try
         {
-            dataSources.Add(
-                await CreateRootSettingsDataSourceAsync(propertyBag, cancellationToken)
-            );
             dataSources.Add(
                 await CreateServerSettingsDataSourceAsync(
                     openIdEnvironment,

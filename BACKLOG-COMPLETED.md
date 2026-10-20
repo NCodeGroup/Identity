@@ -1419,6 +1419,20 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `id_token_hint` re-encrypted to the server) and `F77` (registering a resource-server client through dynamic client
   registration)._
 
+- **`F68` — Check a client's registered response algorithms when the settings above it are written.** A client's
+  registered response algorithms must be in its effective `*_values_supported` lists, but only dynamic client
+  registration checked them; a management write, a tenant or server settings write that narrowed a list, or a client
+  registering no algorithm under a profile that excludes the default all surfaced only when issuance failed with
+  `server_error`. A security profile now supplies a compliant default
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md) decision 7). The management
+  API's client create and settings update reject a registered algorithm their effective lists exclude
+  (`ClientResponseAlgorithmRule`), and a tenant or server settings update checks every client it governs through
+  `IClientResponseAlgorithmValidator`, reporting only the mismatches the change introduces; a server update merges
+  onto the new `OpenIdServer.ConfiguredSettingsProvider`. Seeded clients register no response algorithm, so they
+  inherit a mismatch only from the settings these writes check.
+  _Closed: [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) decision 2; see the
+  [`CHANGELOG.md`](CHANGELOG.md) `[Unreleased]` entries "A security profile supplies compliant defaults" and "The
+  management API rejects a client algorithm its effective settings do not permit"._
 - **`F69` — Expose the client JWT credential selector beside `ITokenService`.** A replacement `ITokenService` must
   protect ID tokens exactly as the client registered
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), but

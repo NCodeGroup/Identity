@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
@@ -35,6 +36,10 @@ internal static class DefaultRegistration
         {
             builder.AddEndpoint<ServerApiEndpointHandler>();
             builder.ServiceCollection.TryAddSingleton<IServerValidator, DefaultServerValidator>();
+            builder.ServiceCollection.TryAddSingleton<
+                IClientResponseAlgorithmValidator,
+                DefaultClientResponseAlgorithmValidator
+            >();
         }
     }
 }

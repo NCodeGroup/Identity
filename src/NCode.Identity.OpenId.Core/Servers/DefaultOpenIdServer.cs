@@ -28,6 +28,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// </summary>
 internal class DefaultOpenIdServer(
     string serverId,
+    IReadOnlySettingCollectionProvider configuredSettingsProvider,
     IReadOnlySettingCollectionProvider settingsProvider,
     ISecretKeyCollectionProvider secretsProvider,
     IPropertyBag propertyBag
@@ -40,6 +41,10 @@ internal class DefaultOpenIdServer(
     public override IReadOnlySettingCollectionProvider SettingsProvider { get; } = settingsProvider;
 
     /// <inheritdoc />
+    public override IReadOnlySettingCollectionProvider ConfiguredSettingsProvider { get; } =
+        configuredSettingsProvider;
+
+    /// <inheritdoc />
     public override ISecretKeyCollectionProvider SecretsProvider { get; } = secretsProvider;
 
     /// <inheritdoc />
@@ -49,6 +54,7 @@ internal class DefaultOpenIdServer(
     public async ValueTask DisposeAsync()
     {
         await SecretsProvider.DisposeAsync();
+        await ConfiguredSettingsProvider.DisposeAsync();
         await SettingsProvider.DisposeAsync();
 
         GC.SuppressFinalize(this);

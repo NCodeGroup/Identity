@@ -41,6 +41,13 @@ public abstract class OpenIdServer
     public abstract IReadOnlySettingCollectionProvider SettingsProvider { get; }
 
     /// <summary>
+    /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> which contains the settings the server derives from its
+    /// defaults and the host's configuration. <see cref="SettingsProvider"/> merges the server's persisted settings
+    /// document onto them, so they are what a replacement document would be merged onto.
+    /// </summary>
+    public abstract IReadOnlySettingCollectionProvider ConfiguredSettingsProvider { get; }
+
+    /// <summary>
     /// Gets the <see cref="ISecretKeyCollectionProvider"/> which contains secrets only known to the server.
     /// </summary>
     public abstract ISecretKeyCollectionProvider SecretsProvider { get; }

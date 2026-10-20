@@ -52,8 +52,11 @@ never compresses.**
    client's effective lists carry its tenant's lists and the ceiling of every security profile it selects
    ([ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md)). A registered value must be in its list.
    Dynamic client registration rejects one that is not with `invalid_client_metadata`, checking the tenant's effective
-   default `id_token_signed_response_alg` as well; issuance checks again, because settings change after registration,
-   and fails with `server_error` rather than choose another algorithm.
+   default `id_token_signed_response_alg` as well. The management API's client create and settings update merge the
+   client's document onto its tenant's effective settings, as the runtime does, and reject a registered ID token,
+   UserInfo, or introspection algorithm — or the default `enc` of a registered encryption — that its list excludes with
+   a validation problem naming the setting. Issuance checks again, because settings change after they are written, and
+   fails with `server_error` rather than choose another algorithm.
 3. **One selector protects every JWT addressed to a client.** `IClientJwtCredentialSelector` resolves, for an ID token
    (which a logout token follows, OpenID Connect Back-Channel Logout 1.0 §2.4) or a UserInfo response: the tenant key
    for the registered signature algorithm, and an asymmetric public key from the client's `jwks` or `jwks_uri`
@@ -111,9 +114,11 @@ never compresses.**
   tokens, and UserInfo responses for every client that selects the profile.
 - A client receives an encrypted ID token or UserInfo response it can decrypt, and verifies a signature with the
   algorithm it registered.
-- A tenant whose ceiling excludes `RS256` — the FAPI 2.0 profile's does — sets `id_token_signed_response_alg` for its
-  clients, or each client registers one; otherwise registration is refused and issuance fails with `server_error`
-  (backlog `F68`).
+- A tenant whose ceiling excludes `RS256` sets `id_token_signed_response_alg` for its clients, or each client registers
+  one; otherwise registration and a management write are refused. A security profile supplies a permitted default
+  ([ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md) decision 7), so a client under FAPI 2.0
+  that registers none gets `PS256`. A tenant write that narrows a list beneath its clients' registered values, and a
+  seeded or configured client, are not checked until issuance (backlog `F68`).
 - A relying party that called UserInfo with only the end-user's session cookie must present an access token.
 - A dynamically registered client can narrow its assertion algorithm and use CIBA without the management API. Its
   `backchannel_token_delivery_mode` is checked against the tenant's `backchannel_token_delivery_modes_supported`; its
@@ -127,7 +132,8 @@ never compresses.**
   stores settings documents in its own database applies the same migration there.
 - Follow-ups: request-object audience, typing, and lifetime (backlog `F40`); validating client key material at every
   entry point (`F65`); the server validating access tokens it encrypted
-  (`F67`); and checking a client's registered response algorithms when its settings are written (`F68`).
+  (`F67`); and checking a client's registered response algorithms when its tenant's settings are written and when it is
+  seeded or configured (`F68`).
 
 ## References
 
@@ -144,6 +150,7 @@ never compresses.**
   [ADR-0085](0085-ciba-grant.md) and [ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md) (amended: no
   encrypted CIBA requests), [ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.DefaultClientJwtCredentialSelector`, `ClientJwtProtectionSettings`,
+  `NCode.Identity.OpenId.Management.Endpoints.Clients.ClientApiEndpointHandler.ValidateResponseAlgorithms`,
   `NCode.Identity.OpenId.Authentication.Settings.PermittedAlgorithmExtensions`,
   `NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.DefaultUserInfoEndpointProvider`,
   `NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand`, `DefaultLoadAuthorizationRequestHandler`,

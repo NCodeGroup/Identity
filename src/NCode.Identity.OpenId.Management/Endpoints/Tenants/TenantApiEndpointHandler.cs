@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -33,10 +34,12 @@ using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
+using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
@@ -86,11 +89,15 @@ internal class TenantApiEndpointHandler(
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IOpenIdServerProvider serverProvider,
     ISecurityProfileCatalog securityProfileCatalog,
+    IAmbientTenantAccessor ambientTenantAccessor,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<TenantApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
+    // The number of clients read per page when a settings write is checked against the tenant's clients.
+    private const int ClientPageSize = 100;
+
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ITenantValidator TenantValidator { get; } = tenantValidator;
@@ -106,6 +113,7 @@ internal class TenantApiEndpointHandler(
         settingScopeCollectionProvider;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
     private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -685,7 +693,7 @@ internal class TenantApiEndpointHandler(
         var openIdContext = httpContext.GetOpenIdContext();
         var effectiveSettings = await MergeTenantSettingsAsync(
             openIdContext,
-            tenantSettings,
+            tenantSettings.Value,
             cancellationToken
         );
 
@@ -705,23 +713,110 @@ internal class TenantApiEndpointHandler(
     /// the ceilings of the security profiles the tenant selects.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
-    /// <param name="tenantSettings">The <see cref="PersistedTenantSettings"/> whose values to merge.</param>
+    /// <param name="tenantSettings">The tenant's settings document to merge.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>.</returns>
     internal virtual async ValueTask<IReadOnlySettingCollection> MergeTenantSettingsAsync(
         OpenIdContext openIdContext,
-        PersistedTenantSettings tenantSettings,
+        JsonElement tenantSettings,
         CancellationToken cancellationToken
     )
     {
         var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
         var expandedSettings = SecurityProfileCatalog.Expand(
-            tenantSettings.Value,
+            tenantSettings,
             OpenIdSettingScopes.Tenant,
             jsonOptions
         );
         var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
         return server.SettingsProvider.Collection.Merge(expandedSettings);
+    }
+
+    /// <summary>
+    /// Verifies that replacing a tenant's settings document leaves every algorithm each of its clients registers for the
+    /// JWTs addressed to it permitted (<see cref="ClientResponseAlgorithmRule"/>). Each client's document is merged onto
+    /// the tenant's effective settings before and after the change, as the runtime merges it, and only an algorithm the
+    /// change excludes is reported, so a write the change does not affect is never blocked by an earlier mismatch.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant whose settings change.</param>
+    /// <param name="currentSettings">The tenant's current settings document.</param>
+    /// <param name="newSettings">The tenant's new settings document.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> used to page through the tenant's clients.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="SettingError"/> instances, keyed by the tenant setting that excludes each algorithm, or an
+    /// empty list.</returns>
+    // See ADR-0155.
+    internal virtual async ValueTask<
+        IReadOnlyList<SettingError>
+    > ValidateClientResponseAlgorithmsAsync(
+        OpenIdContext openIdContext,
+        string tenantId,
+        JsonElement currentSettings,
+        JsonElement newSettings,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
+        var currentEffective = await MergeTenantSettingsAsync(
+            openIdContext,
+            currentSettings,
+            cancellationToken
+        );
+        var newEffective = await MergeTenantSettingsAsync(
+            openIdContext,
+            newSettings,
+            cancellationToken
+        );
+
+        List<SettingError> errors = [];
+        var clientStore = storeManager.GetStore<IClientStore>();
+
+        // The tenant plane is not scoped to the addressed tenant, so its clients are read under an explicit scope.
+        using var scope = AmbientTenantAccessor.BeginScope(tenantId);
+
+        var page = new PageRequest { Limit = ClientPageSize };
+        do
+        {
+            var result = await clientStore.GetPageAsync(page, cancellationToken);
+            foreach (var client in result.Items)
+            {
+                var clientSettings = SecurityProfileCatalog.Expand(
+                    client.Settings.Value,
+                    OpenIdSettingScopes.Client,
+                    jsonOptions
+                );
+
+                var violations = ClientResponseAlgorithmRule.FindViolations(
+                    newEffective.Merge(clientSettings)
+                );
+                if (violations.Count == 0)
+                {
+                    continue;
+                }
+
+                var existing = ClientResponseAlgorithmRule.FindViolations(
+                    currentEffective.Merge(clientSettings)
+                );
+                foreach (var violation in violations.Except(existing))
+                {
+                    var permittedName = violation.PermittedKey.SettingName;
+                    errors.Add(
+                        new SettingError(
+                            permittedName,
+                            $"The client '{client.ClientId}' registers '{violation.RegisteredKey.SettingName}' value "
+                                + $"'{violation.Value}', which the tenant's effective '{permittedName}' would not "
+                                + "permit."
+                        )
+                    );
+                }
+            }
+
+            page = page with { Cursor = result.NextCursor };
+        } while (page.Cursor is not null);
+
+        return errors;
     }
 
     /// <summary>
@@ -796,6 +891,19 @@ internal class TenantApiEndpointHandler(
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);
+        }
+
+        var algorithmErrors = await ValidateClientResponseAlgorithmsAsync(
+            httpContext.GetOpenIdContext(),
+            tenantId,
+            tenantSettings.Value,
+            settingsValue,
+            storeManager,
+            cancellationToken
+        );
+        if (algorithmErrors.Count > 0)
+        {
+            return SettingsValidationProblem(algorithmErrors);
         }
 
         tenantSettings.Value = settingsValue;

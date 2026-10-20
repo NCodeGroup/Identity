@@ -36,6 +36,7 @@ using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
@@ -69,6 +70,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
+    private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
+    private Mock<IClientStore> MockClientStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private TenantApiEndpointHandler Handler { get; }
@@ -101,6 +104,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockRepository.Create<ISettingScopeCollectionProvider>();
         MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
         MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
+        MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
+        MockClientStore = MockRepository.Create<IClientStore>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
             .Setup(x =>
@@ -156,6 +161,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockSettingScopeCollectionProvider.Object,
             MockServerProvider.Object,
             MockSecurityProfileCatalog.Object,
+            MockAmbientTenantAccessor.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<TenantApiEndpointHandler>.Instance
@@ -626,6 +632,129 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     #region UpdateSettingsAsync Tests
 
+    private void SetupClientAlgorithmCheck(
+        ISettingCollection currentEffective,
+        ISettingCollection newEffective,
+        params PersistedClient[] clients
+    )
+    {
+        MockSecurityProfileCatalog
+            .Setup(x =>
+                x.Expand(
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
+            .Returns(Array.Empty<Setting>())
+            .Verifiable();
+
+        var mockServerCollection = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
+        mockServerCollection
+            .SetupSequence(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
+            .Returns(currentEffective)
+            .Returns(newEffective);
+        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
+        mockProvider.Setup(x => x.Collection).Returns(mockServerCollection.Object);
+        var mockServer = new Mock<OpenIdServer>(MockBehavior.Loose);
+        mockServer.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
+        MockServerProvider
+            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockServer.Object)
+            .Verifiable();
+
+        MockStoreManager
+            .Setup(x => x.GetStore<IClientStore>())
+            .Returns(MockClientStore.Object)
+            .Verifiable();
+        MockAmbientTenantAccessor
+            .Setup(x => x.BeginScope(TenantId))
+            .Returns(Mock.Of<IDisposable>())
+            .Verifiable();
+
+        // Two pages, so the check follows the cursor rather than stopping after the first page.
+        MockClientStore
+            .Setup(x =>
+                x.GetPageAsync(
+                    It.Is<PageRequest>(page => page.Cursor == null),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(new PagedResult<PersistedClient> { Items = [], NextCursor = "next" })
+            .Verifiable();
+        MockClientStore
+            .Setup(x =>
+                x.GetPageAsync(
+                    It.Is<PageRequest>(page => page.Cursor == "next"),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(new PagedResult<PersistedClient> { Items = clients, NextCursor = null })
+            .Verifiable();
+    }
+
+    private static ISettingCollection CreateIdTokenSigningSettings(
+        string registered,
+        IReadOnlyCollection<string> permitted
+    )
+    {
+        string? registeredValue = registered;
+        IReadOnlyCollection<string>? permittedValues = permitted;
+        var mockSettings = new Mock<ISettingCollection>(MockBehavior.Loose);
+        mockSettings
+            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
+            .Returns(mockSettings.Object);
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(OpenIdSettingKeys.IdTokenSignedResponseAlg, out registeredValue)
+            )
+            .Returns(true);
+        mockSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
+                    out permittedValues
+                )
+            )
+            .Returns(true);
+        return mockSettings.Object;
+    }
+
+    private static PersistedClient CreateClient(string clientId) =>
+        new()
+        {
+            TenantId = TenantId,
+            ClientId = clientId,
+            ConcurrencyToken = "client-ct",
+            IsDisabled = false,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = TenantId,
+                ClientId = clientId,
+                ConcurrencyToken = "settings-ct",
+                Value = EmptyObject(),
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = TenantId,
+                ClientId = clientId,
+                ConcurrencyToken = "secrets-ct",
+                Value = [],
+            },
+        };
+
+    private void SetupSettingsWrite(PersistedTenantSettings settings)
+    {
+        MockTenantStore
+            .Setup(x => x.UpdateSettingsAsync(settings, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+    }
+
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
@@ -637,14 +766,77 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
+        var effective = CreateSettingCollection();
+        SetupClientAlgorithmCheck(effective, effective);
+        SetupSettingsWrite(settings);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            TenantId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenTheChangeExcludesAClientAlgorithm_ReturnsValidationProblem()
+    {
+        SetupValidSettings();
+        SetupStore();
         MockTenantStore
-            .Setup(x => x.UpdateSettingsAsync(settings, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSettings("settings-ct"))
             .Verifiable();
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupClientAlgorithmCheck(
+            CreateIdTokenSigningSettings("RS256", ["RS256", "PS256"]),
+            CreateIdTokenSigningSettings("RS256", ["PS256"]),
+            CreateClient("client-1")
+        );
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            TenantId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal(
+            [OpenIdSettingNames.IdTokenSigningAlgValuesSupported],
+            problem.ProblemDetails.Errors.Keys
+        );
+        Assert.Contains("'client-1'", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+        Assert.Contains("'RS256'", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenAClientAlgorithmWasAlreadyExcluded_ReturnsNoContent()
+    {
+        SetupValidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct");
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupClientAlgorithmCheck(
+            CreateIdTokenSigningSettings("RS256", ["PS256"]),
+            CreateIdTokenSigningSettings("RS256", ["PS256"]),
+            CreateClient("client-1")
+        );
+        SetupSettingsWrite(settings);
 
         var httpContext = CreateHttpContext(authenticated: true);
 

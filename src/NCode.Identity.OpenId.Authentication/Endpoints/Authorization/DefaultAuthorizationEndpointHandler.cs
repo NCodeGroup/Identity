@@ -79,7 +79,8 @@ internal class DefaultAuthorizationEndpointHandler(
                 KnownParameterCollectionProvider,
                 OpenIdConstants.EndpointNames.Authorization
             )
-            .WithOpenIdDiscoverable();
+            .WithOpenIdDiscoverable()
+            .WithOpenIdFrontChannel();
     }
 
     /// <summary>

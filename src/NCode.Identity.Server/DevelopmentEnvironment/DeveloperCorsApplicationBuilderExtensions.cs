@@ -19,8 +19,10 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Authentication.Endpoints;
 
 namespace NCode.Identity.Server;
 
@@ -37,7 +39,10 @@ public static class DeveloperCorsApplicationBuilderExtensions
         /// Adds the CORS middleware using the development policy (<see cref="DeveloperCorsRegistration.PolicyName"/>).
         /// Call after <c>UseRouting</c> and before the authentication/authorization and endpoint middleware. It is a
         /// <b>no-op</b> when <c>AddDeveloperCors</c> has not registered the policy — as in Production, where
-        /// <c>AddDevelopmentEnvironment</c> registers nothing — so it is safe to leave wired.
+        /// <c>AddDevelopmentEnvironment</c> registers nothing — so it is safe to leave wired. The policy never applies
+        /// to a front-channel endpoint (<see cref="IOpenIdEndpointFrontChannelMetadata"/>): the authorization,
+        /// continue, and end-session endpoints and the interactive surface answer no cross-origin request or CORS
+        /// preflight with CORS headers (FAPI 2.0 Security Profile §5.3.2.1).
         /// </summary>
         /// <returns>The same <see cref="IApplicationBuilder"/> instance for method chaining.</returns>
         public IApplicationBuilder UseDeveloperCors()
@@ -49,7 +54,14 @@ public static class DeveloperCorsApplicationBuilderExtensions
                 .Value;
             var policy = corsOptions.GetPolicy(DeveloperCorsRegistration.PolicyName);
 
-            return policy is null ? app : app.UseCors(DeveloperCorsRegistration.PolicyName);
+            // The middleware is branched rather than the endpoints marked with DisableCors: CORS metadata on an endpoint
+            // fails every request a host without CORS middleware serves (ADR-0109).
+            return policy is null
+                ? app
+                : app.UseWhen(
+                    context => !context.GetEndpoint().IsOpenIdFrontChannel,
+                    branch => branch.UseCors(DeveloperCorsRegistration.PolicyName)
+                );
         }
     }
 }

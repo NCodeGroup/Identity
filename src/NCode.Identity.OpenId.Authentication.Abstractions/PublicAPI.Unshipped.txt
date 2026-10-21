@@ -1519,3 +1519,14 @@ const NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAu
 NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void
 NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.AuthenticationMethod.get -> string!
 NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.AuthenticationMethod.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointFrontChannelMetadata
+NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointFrontChannelMetadata.IsFrontChannel.get -> bool
+NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointFrontChannelMetadata
+NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointFrontChannelMetadata.IsFrontChannel.get -> bool
+NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointFrontChannelMetadata.IsFrontChannel.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.OpenIdEndpointFrontChannelMetadata.OpenIdEndpointFrontChannelMetadata() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.OpenIdFrontChannelEndpointConventionBuilderExtensions
+NCode.Identity.OpenId.Authentication.Endpoints.OpenIdFrontChannelEndpointConventionBuilderExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?)
+NCode.Identity.OpenId.Authentication.Endpoints.OpenIdFrontChannelEndpointConventionBuilderExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?).IsOpenIdFrontChannel.get -> bool
+NCode.Identity.OpenId.Authentication.Endpoints.OpenIdFrontChannelEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
+NCode.Identity.OpenId.Authentication.Endpoints.OpenIdFrontChannelEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithOpenIdFrontChannel() -> TBuilder

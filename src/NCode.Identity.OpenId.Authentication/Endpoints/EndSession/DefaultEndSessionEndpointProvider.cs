@@ -50,7 +50,8 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status302Found)
             .DisableAntiforgery()
-            .WithOpenIdDiscoverable();
+            .WithOpenIdDiscoverable()
+            .WithOpenIdFrontChannel();
 
     /// <summary>
     /// End session endpoint (OpenID Connect RP-Initiated Logout).

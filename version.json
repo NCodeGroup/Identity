@@ -10,9 +10,6 @@
     "^refs/tags/v\\d+\\.\\d+"
   ],
   "cloudBuild": {
-    "setVersionVariables": true,
-    "buildNumber": {
-      "enabled": true
-    }
+    "setVersionVariables": false
   }
 }

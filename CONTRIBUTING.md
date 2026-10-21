@@ -54,9 +54,10 @@ the same gates CI's frontend workflow runs. Every text file is LF with a final n
 with CRLF fails Prettier until it is converted.
 
 To preview the CI presentation (job summary + annotations) without pushing, run the gate with `GITHUB_ACTIONS=true` and
-point `GITHUB_STEP_SUMMARY`, `GITHUB_ENV`, and `GITHUB_OUTPUT` at empty temporary files, then read the summary file.
-Set all three: with `GITHUB_ACTIONS=true` Nerdbank.GitVersioning's cloud-build task writes to `GITHUB_ENV` during the
-build and fails it with `ArgumentNullException (Parameter 'path')` when that variable is unset.
+point `GITHUB_STEP_SUMMARY` at an empty temporary file, then read that file. The build writes nothing to `GITHUB_ENV`:
+`version.json` turns off Nerdbank.GitVersioning's cloud-build variables, whose unlocked appends from parallel MSBuild
+nodes tore that file and failed the job
+([ADR-0003](docs/adr/0003-central-package-management-and-lockstep-versioning.md)).
 
 When adding a project, place it in the solution folder that mirrors its directory — `/src/` for `src/**` and `/tests/`
 for `tests/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`) — never at the solution root.

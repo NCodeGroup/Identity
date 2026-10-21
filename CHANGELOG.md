@@ -10,6 +10,13 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Readiness fails while a replica cannot unwrap the Data Protection key ring.** `AddIdentityServer` registers a
+  readiness check that unwraps every live key that was in the ring when the replica started. A replica started with a
+  certificate that was renewed in place, or without a previous certificate whose keys are still live, stays out of
+  service, so a rolling update stops before it replaces the healthy replicas. Keys created later, for example by such
+  a replica, are not checked, so the replicas already serving stay ready
+  ([ADR-0177](docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)).
+
 - **`HealthCheckTags.Readiness`.** `NCode.Identity.Abstractions` publishes the tag (`"ready"`) of every health check
   that decides whether a replica can serve requests. The Valkey adapter tags its check with it and the reference host's
   `/health/ready` endpoint runs the checks that carry it, so a package that adds a readiness check uses the constant

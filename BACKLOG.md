@@ -492,11 +492,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   `src/NCode.Identity.OpenId.Host/Dockerfile:17, 28, 60`, `.github/dependabot.yml`.
 - **`R36` — Test the bundle-shell split against the built bundle's real `index.html`.** Touch point:
   `InteractiveBundleShell.cs:51-100`.
-- **`R48` — Fail readiness when the default Data Protection key cannot be unwrapped.** Split from R7, which documented
-  hand rotation of the key-protection certificate. A certificate renewed in place still leaves the ring unreadable
-  after a restart; a readiness check that unwraps the default key would keep such a pod out of service and stop a
-  rollout before it replaces the healthy replicas. Touch points: the host's readiness checks (`Program.cs`),
-  `DataProtection:KeyProtection`, ADR-0177.
 
 ### Refactor
 

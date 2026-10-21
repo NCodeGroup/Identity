@@ -197,8 +197,8 @@ app.UseAntiforgery();
 app.MapEndpointGroups();
 
 // Liveness runs no checks: it reports only that the process answers, so a dependency outage never restarts a replica.
-// Readiness runs the checks tagged 'ready' (the database, and Valkey when configured) and takes the replica out of
-// rotation while a dependency it needs is unreachable.
+// Readiness runs the checks tagged 'ready' (the database, the Data Protection key ring, and Valkey when configured)
+// and takes the replica out of rotation while a dependency it needs is unreachable or a key it needs is unreadable.
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
     .WithName("health_live_endpoint");
 app.MapHealthChecks(

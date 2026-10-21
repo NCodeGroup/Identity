@@ -4,7 +4,8 @@
   the issuer's form and host uniqueness under the host strategy are validated wherever a tenant is written; the
   request-derived fallback for a tenant without an issuer is removed by
   [ADR-0165](0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md): every served tenant has an
-  issuer)
+  issuer; [ADR-0195](0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md) adds the tenant's mTLS endpoint
+  alias as a derived, routed second host for the endpoints only, while the issuer stays the published origin)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

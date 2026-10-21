@@ -110,6 +110,8 @@ Concretely:
 
 - **mTLS endpoint aliases (RFC 8705 §5).** When `mtls_endpoint_alias_authority` is configured, the discovery document
   advertises an `mtls_endpoint_aliases` object whose endpoint URLs are rewritten to the mutual-TLS authority.
+  _Superseded in part by [ADR-0195](0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md): the alias is now
+  the tenant property `MtlsEndpointAliasAuthority`, and the host strategy routes its host; the setting is removed._
 
 ## Consequences
 

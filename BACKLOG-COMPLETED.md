@@ -938,6 +938,65 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   [`CHANGELOG.md`](CHANGELOG.md)). The `NCodeGroup/identity-platform` modules, stacks, and workflows continue under
   `F48`._
 
+- **`F47` — Route a tenant's mTLS endpoint-alias host.** `mtls_endpoint_alias_authority` publishes the RFC 8705 §5
+  `mtls_endpoint_aliases` on a separate authority (for example `https://acme.mtls.example`), but `DynamicByHost` routes
+  only on the host component of the tenant's issuer
+  ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)), so a request to the alias host
+  resolves no tenant. Multi-tenant mTLS on per-tenant hostnames therefore cannot work today. Found during the
+  [hosting analysis](docs/hosting-analysis.md#domain-and-dns--nidentityio). The design is settled; deliver it in one
+  change:
+
+  - **The alias authority becomes a first-class tenant property.** Add `PersistedTenant.MtlsEndpointAliasAuthority`
+    beside `Issuer`: nullable, and an `https` origin (scheme and authority only). Retire the
+    `mtls_endpoint_alias_authority` setting outright, with no shim. A value the router looks up must be typed and
+    indexed. Deriving a host from one key of the opaque settings document would make the store know an OpenID setting.
+    It would also give a settings write a routing side effect that tenant validation never judges, because settings
+    have their own endpoint and concurrency token.
+  - **Derive the alias host into the routing lookup the same way as the issuer host.** `TenantEntity` gains
+    `NormalizedMtlsAliasHost`, computed from the property on every write and never independently writable, with a
+    filtered index like `NormalizedIssuerHost`. `ITenantStore.GetOrDefaultByIssuerHostAsync` becomes
+    `GetOrDefaultByHostAsync`. It matches either column and resolves no tenant when more than one row matches, so a
+    lookup fails closed even if validation is bypassed.
+  - **Each strategy supplies the default, persisted on write**
+    ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+    `TenantStrategy` gains a default-alias method beside `GetDefaultIssuerAsync`. `DynamicByHostTenantOptions` gains
+    `MtlsEndpointAliasTemplate`, for example `https://{tenantId}.mtls.example`. `DynamicByHostTenantOptionsValidator`
+    checks it like `IssuerTemplate`, and it must also be an origin whose host `RegexPattern` maps to itself. The
+    expansion is stored with the tenant, so changing the template never moves an existing tenant. The other strategies
+    have no template; there an alias is set explicitly.
+  - **Validation judges both hosts**
+    ([ADR-0160](docs/adr/0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)).
+    `ITenantStrategy.ValidateTenantAsync` and `ITenantResolver.ValidateTenantAsync` take the alias authority beside the
+    issuer. Update every caller: `DefaultTenantProvisioner`, both calls in `DefaultTenantValidator`, and
+    `TenantApiEndpointHandler`. The base strategy requires an `https` origin. `DynamicByHost` requires the pattern to
+    map the alias host to itself. It also rejects, as a conflict, any of the tenant's hosts that another tenant holds
+    as either its issuer host or its alias host.
+  - **Discovery reads the tenant, not a setting.** `OpenIdTenant` exposes the alias authority, and
+    `DefaultDiscoverMetadataHandler` builds `mtls_endpoint_aliases` from it. That publication has no test today; add
+    one.
+  - **Management contract.** `CreateTenantRequest`, `UpdateTenantRequest`, `TenantResource`, and
+    `TenantAddressResource` carry the alias authority, and `TenantAddressResource` gains an
+    `IsMtlsEndpointAliasAuthorityDerived` flag beside `IsIssuerDerived`. `TenantApiEndpointHandler` handles it the way
+    it handles the issuer. Editing it in the console is `U25`.
+  - **Migration (expand-only).** Add the column and its index. Then move each tenant's stored
+    `mtls_endpoint_alias_authority` out of `SettingsJson` into the column, removing the key and rewriting the settings
+    concurrency token. This is the same retirement `RetireAllowUnsafeTokenResponse` performs
+    ([ADR-0139](docs/adr/0139-setting-names-are-a-closed-vocabulary.md)).
+  - **Records.** Write an ADR that amends ADR-0129's single-origin rule with a derived secondary routing origin, and
+    amend the alias bullet of [ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md). Update
+    `CHANGELOG.md` and the F47 note in [`docs/hosting-analysis.md`](docs/hosting-analysis.md).
+  - **Tests.**
+    - `DynamicByHostTenantStrategyTests`: route by the alias host, a conflict in each direction, a pattern mismatch,
+      and the template default.
+    - The options validator, the tenant store, and the discovery handler.
+    - An integration test that resolves a tenant through its alias host and reads its `mtls_endpoint_aliases`.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md). Delivered: the tenant property,
+  the derived `NormalizedMtlsEndpointAliasHost` column and index, `GetOrDefaultByHostAsync`, validation of both hosts,
+  discovery from the tenant, the create/update/read contract, the migration, and the tests. The template default and its
+  options-validator rules, the `TenantAddressResource` alias and derived flag, and their tests moved to `F78`; console
+  editing remains `U25`._
+
 - **`F49` — Shared `IDistributedCache` for multi-replica deployments.** The DPoP nonce service, the DPoP proof replay
   cache, and the client-assertion replay cache (RFC 7523 §3) run over `IDistributedCache`, and the server registers
   `AddDistributedMemoryCache()` by default, so every replica keeps its own: a nonce issued by one pod is rejected by

@@ -74,7 +74,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
-| `F` — Feature gaps                    | `F78`     | `F77`      |
+| `F` — Feature gaps                    | `F79`     | `F78`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U26`     | `U25`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
@@ -307,59 +307,6 @@ entry and/or ADR that closed it.
   (Valkey) so limits hold across replicas, and RFC 6585 `429` + `Retry-After` responses; consider per-tenant quotas
   (requests/day, token issuances) for plan tiers. Capture the design in an ADR.
 
-- **`F47` — Route a tenant's mTLS endpoint-alias host.** `mtls_endpoint_alias_authority` publishes the RFC 8705 §5
-  `mtls_endpoint_aliases` on a separate authority (for example `https://acme.mtls.example`), but `DynamicByHost` routes
-  only on the host component of the tenant's issuer
-  ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)), so a request to the alias host
-  resolves no tenant. Multi-tenant mTLS on per-tenant hostnames therefore cannot work today. Found during the
-  [hosting analysis](docs/hosting-analysis.md#domain-and-dns--nidentityio). The design is settled; deliver it in one
-  change:
-
-  - **The alias authority becomes a first-class tenant property.** Add `PersistedTenant.MtlsEndpointAliasAuthority`
-    beside `Issuer`: nullable, and an `https` origin (scheme and authority only). Retire the
-    `mtls_endpoint_alias_authority` setting outright, with no shim. A value the router looks up must be typed and
-    indexed. Deriving a host from one key of the opaque settings document would make the store know an OpenID setting.
-    It would also give a settings write a routing side effect that tenant validation never judges, because settings
-    have their own endpoint and concurrency token.
-  - **Derive the alias host into the routing lookup the same way as the issuer host.** `TenantEntity` gains
-    `NormalizedMtlsAliasHost`, computed from the property on every write and never independently writable, with a
-    filtered index like `NormalizedIssuerHost`. `ITenantStore.GetOrDefaultByIssuerHostAsync` becomes
-    `GetOrDefaultByHostAsync`. It matches either column and resolves no tenant when more than one row matches, so a
-    lookup fails closed even if validation is bypassed.
-  - **Each strategy supplies the default, persisted on write**
-    ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
-    `TenantStrategy` gains a default-alias method beside `GetDefaultIssuerAsync`. `DynamicByHostTenantOptions` gains
-    `MtlsEndpointAliasTemplate`, for example `https://{tenantId}.mtls.example`. `DynamicByHostTenantOptionsValidator`
-    checks it like `IssuerTemplate`, and it must also be an origin whose host `RegexPattern` maps to itself. The
-    expansion is stored with the tenant, so changing the template never moves an existing tenant. The other strategies
-    have no template; there an alias is set explicitly.
-  - **Validation judges both hosts**
-    ([ADR-0160](docs/adr/0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)).
-    `ITenantStrategy.ValidateTenantAsync` and `ITenantResolver.ValidateTenantAsync` take the alias authority beside the
-    issuer. Update every caller: `DefaultTenantProvisioner`, both calls in `DefaultTenantValidator`, and
-    `TenantApiEndpointHandler`. The base strategy requires an `https` origin. `DynamicByHost` requires the pattern to
-    map the alias host to itself. It also rejects, as a conflict, any of the tenant's hosts that another tenant holds
-    as either its issuer host or its alias host.
-  - **Discovery reads the tenant, not a setting.** `OpenIdTenant` exposes the alias authority, and
-    `DefaultDiscoverMetadataHandler` builds `mtls_endpoint_aliases` from it. That publication has no test today; add
-    one.
-  - **Management contract.** `CreateTenantRequest`, `UpdateTenantRequest`, `TenantResource`, and
-    `TenantAddressResource` carry the alias authority, and `TenantAddressResource` gains an
-    `IsMtlsEndpointAliasAuthorityDerived` flag beside `IsIssuerDerived`. `TenantApiEndpointHandler` handles it the way
-    it handles the issuer. Editing it in the console is `U25`.
-  - **Migration (expand-only).** Add the column and its index. Then move each tenant's stored
-    `mtls_endpoint_alias_authority` out of `SettingsJson` into the column, removing the key and rewriting the settings
-    concurrency token. This is the same retirement `RetireAllowUnsafeTokenResponse` performs
-    ([ADR-0139](docs/adr/0139-setting-names-are-a-closed-vocabulary.md)).
-  - **Records.** Write an ADR that amends ADR-0129's single-origin rule with a derived secondary routing origin, and
-    amend the alias bullet of [ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md). Update
-    `CHANGELOG.md` and the F47 note in [`docs/hosting-analysis.md`](docs/hosting-analysis.md).
-  - **Tests.**
-    - `DynamicByHostTenantStrategyTests`: route by the alias host, a conflict in each direction, a pattern mismatch,
-      and the template default.
-    - The options validator, the tenant store, and the discovery handler.
-    - An integration test that resolves a tenant through its alias host and reads its `mtls_endpoint_aliases`.
-
 - **`F48` — Publish the deployment artifacts the platform runs.** Per
   [ADR-0133](docs/adr/0133-we-ship-and-run-the-same-deployment-artifacts.md), the hosted platform consumes only the
   artifacts offered to self-hosters. Deliver: the host's Helm chart in this repository
@@ -392,6 +339,20 @@ entry and/or ADR that closed it.
   keys are provisioned on first use ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)).
   Workload images and charts get build-provenance attestations and signatures that Flux verifies before the first
   production rollout.
+
+- **`F78` — Derive a tenant's default mTLS endpoint alias from a template, and preview it.** `F47` made the alias a
+  routed tenant property ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)), but
+  it is only ever set explicitly. Finish the shape the issuer already has
+  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)):
+  - **Each strategy supplies the default, persisted on write.** `TenantStrategy` gains a default-alias method beside
+    `GetDefaultIssuerAsync`. `DynamicByHostTenantOptions` gains `MtlsEndpointAliasTemplate`, for example
+    `https://{tenantId}.mtls.example`. `DynamicByHostTenantOptionsValidator` checks it like `IssuerTemplate`, and it
+    must also be an origin whose host `RegexPattern` maps to itself. Provisioning and the management create path store
+    the expansion when no alias is given, so changing the template never moves an existing tenant. The other strategies
+    have no template.
+  - **Preview it.** `TenantAddressResource` carries the alias authority and an `IsMtlsEndpointAliasAuthorityDerived`
+    flag beside `IsIssuerDerived`, and the address preview endpoint takes the proposed alias.
+  - **Tests.** The template default in `DynamicByHostTenantStrategyTests`, the options validator, and the preview.
 
 ## Conformance & interop testing (group `T`)
 
@@ -462,10 +423,14 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml),
   [`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml),
   [`build/frontend-install.ps1`](build/frontend-install.ps1), the AppHost's `EnsurePinnedNodeOnPath`.
-- **`U25` — Edit a tenant's mTLS endpoint-alias authority in the console.** Once `F47` makes the alias authority a
-  tenant property, show and edit it beside the issuer in the management console's tenant pages (`apps/mgmt`
-  `TenantsPage.tsx` and `TenantDetailPage.tsx`). Preview its derived default through `TenantAddressResource`, the way
-  the create and edit dialog already previews the issuer, and re-judge it only when it changes. Depends on `F47`.
+- **`U25` — Edit a tenant's mTLS endpoint-alias authority in the console.** `F47` made the alias authority a tenant
+  property that the management API carries as `mtlsEndpointAliasAuthority`
+  ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). Add it to the `@ncode/api`
+  mirrors (`TenantResource`, `CreateTenantRequest`, `UpdateTenantFields` in `packages/api/src/contracts.ts`), then show
+  and edit it beside the issuer in the management console's tenant pages (`apps/mgmt` `TenantsPage.tsx` and
+  `TenantDetailPage.tsx`, and `TenantFormDialog`). Preview its derived default through `TenantAddressResource`, the way
+  the create and edit dialog already previews the issuer, and re-judge it only when it changes. The preview depends on
+  `F78`.
 
 ## Secrets management (group `S`)
 

@@ -149,6 +149,88 @@ public class TenantProvisioningTests
     }
 
     [Fact]
+    public async Task CreateTenant_WithAnMtlsEndpointAlias_IsServedOnTheAliasHostAndPublishesItsAliases()
+    {
+        using var factory = CreateFactory();
+        using var client = await CreateAdministratorClientAsync(factory);
+
+        using var createResponse = await client.PostAsJsonAsync(
+            "/api/tenants",
+            new
+            {
+                tenantId = "acme",
+                mtlsEndpointAliasAuthority = "https://acme.mtls.test",
+                displayName = "Acme",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
+
+        using var created = JsonDocument.Parse(createBody);
+        Assert.Equal(
+            "https://acme.mtls.test",
+            created.RootElement.GetProperty("mtlsEndpointAliasAuthority").GetString()
+        );
+
+        // A request to the alias host reaches the tenant (RFC 8705 §5), and its discovery document still names the issuer
+        // and mirrors the endpoints under the alias authority.
+        using var discoveryRequest = new HttpRequestMessage(HttpMethod.Get, DiscoveryPath);
+        discoveryRequest.Headers.Host = "acme.mtls.test";
+        using var discoveryResponse = await client.SendAsync(discoveryRequest);
+        var discoveryBody = await discoveryResponse.Content.ReadAsStringAsync();
+        Assert.True(discoveryResponse.StatusCode == HttpStatusCode.OK, discoveryBody);
+
+        using var discovery = JsonDocument.Parse(discoveryBody);
+        Assert.Equal(
+            "https://acme.auth.test",
+            discovery.RootElement.GetProperty("issuer").GetString()
+        );
+        Assert.Equal(
+            "https://acme.mtls.test/oauth2/token",
+            discovery
+                .RootElement.GetProperty("mtls_endpoint_aliases")
+                .GetProperty("token_endpoint")
+                .GetString()
+        );
+    }
+
+    [Fact]
+    public async Task CreateTenant_WithAnotherTenantsHostAsItsMtlsEndpointAlias_ReportsAConflict()
+    {
+        using var factory = CreateFactory();
+        using var client = await CreateAdministratorClientAsync(factory);
+
+        using var firstResponse = await client.PostAsJsonAsync(
+            "/api/tenants",
+            new
+            {
+                tenantId = "acme",
+                displayName = "Acme",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
+
+        using var secondResponse = await client.PostAsJsonAsync(
+            "/api/tenants",
+            new
+            {
+                tenantId = "globex",
+                mtlsEndpointAliasAuthority = "https://acme.auth.test",
+                displayName = "Globex",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var secondBody = await secondResponse.Content.ReadAsStringAsync();
+        Assert.True(secondResponse.StatusCode == HttpStatusCode.Conflict, secondBody);
+        Assert.Contains("acme.auth.test", secondBody, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GetAddress_ForANewTenant_PreviewsItsDerivedIssuer()
     {
         using var factory = CreateFactory();

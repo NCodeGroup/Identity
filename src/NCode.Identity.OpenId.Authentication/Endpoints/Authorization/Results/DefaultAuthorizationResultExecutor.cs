@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Collections.Frozen;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Metrics;
@@ -34,13 +35,13 @@ internal class DefaultAuthorizationResultExecutor(
     IEnumerable<IAuthorizationResponseModeHandler> responseModeHandlers
 ) : IResultExecutor<AuthorizationResult>
 {
-    private IReadOnlyDictionary<
+    private FrozenDictionary<
         string,
         IAuthorizationResponseModeHandler
     > ResponseModeHandlers { get; } =
         responseModeHandlers
             .GroupBy(handler => handler.ResponseMode, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+            .ToFrozenDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
     public async ValueTask ExecuteAsync(
         HttpContext httpContext,

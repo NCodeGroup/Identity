@@ -1120,6 +1120,12 @@ internal class DefaultClientRegistrationEndpointHandler(
                 request.IntrospectionEncryptedResponseEnc
             ),
             (
+                OpenIdSettingNames.AuthorizationEncryptedResponseAlg,
+                request.AuthorizationEncryptedResponseAlg,
+                OpenIdSettingNames.AuthorizationEncryptedResponseEnc,
+                request.AuthorizationEncryptedResponseEnc
+            ),
+            (
                 RequestObjectEncryptionAlgMetadata,
                 request.RequestObjectEncryptionAlg,
                 RequestObjectEncryptionEncMetadata,
@@ -1142,7 +1148,8 @@ internal class DefaultClientRegistrationEndpointHandler(
         var registersEncryptedResponse =
             !string.IsNullOrEmpty(request.IdTokenEncryptedResponseAlg)
             || !string.IsNullOrEmpty(request.UserInfoEncryptedResponseAlg)
-            || !string.IsNullOrEmpty(request.IntrospectionEncryptedResponseAlg);
+            || !string.IsNullOrEmpty(request.IntrospectionEncryptedResponseAlg)
+            || !string.IsNullOrEmpty(request.AuthorizationEncryptedResponseAlg);
         if (registersEncryptedResponse && !hasJwks && !hasJwksUri)
         {
             return InvalidClientMetadata(
@@ -1329,6 +1336,21 @@ internal class DefaultClientRegistrationEndpointHandler(
                 OpenIdSettingNames.IntrospectionEncryptedResponseEnc,
                 request.IntrospectionEncryptedResponseEnc,
                 OpenIdSettingKeys.IntrospectionEncryptionEncValuesSupported
+            ),
+            (
+                OpenIdSettingNames.AuthorizationSignedResponseAlg,
+                request.AuthorizationSignedResponseAlg,
+                OpenIdSettingKeys.AuthorizationSigningAlgValuesSupported
+            ),
+            (
+                OpenIdSettingNames.AuthorizationEncryptedResponseAlg,
+                request.AuthorizationEncryptedResponseAlg,
+                OpenIdSettingKeys.AuthorizationEncryptionAlgValuesSupported
+            ),
+            (
+                OpenIdSettingNames.AuthorizationEncryptedResponseEnc,
+                request.AuthorizationEncryptedResponseEnc,
+                OpenIdSettingKeys.AuthorizationEncryptionEncValuesSupported
             ),
             (
                 RequestObjectSigningAlgMetadata,
@@ -1730,6 +1752,21 @@ internal class DefaultClientRegistrationEndpointHandler(
             OpenIdSettingNames.IntrospectionEncryptedResponseEnc,
             request.IntrospectionEncryptedResponseEnc
         );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.AuthorizationSignedResponseAlg,
+            request.AuthorizationSignedResponseAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.AuthorizationEncryptedResponseAlg,
+            request.AuthorizationEncryptedResponseAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.AuthorizationEncryptedResponseEnc,
+            request.AuthorizationEncryptedResponseEnc
+        );
 
         SetListIfPresent(
             settings,
@@ -1877,6 +1914,18 @@ internal class DefaultClientRegistrationEndpointHandler(
             IntrospectionEncryptedResponseEnc = ReadString(
                 settings,
                 OpenIdSettingNames.IntrospectionEncryptedResponseEnc
+            ),
+            AuthorizationSignedResponseAlg = ReadString(
+                settings,
+                OpenIdSettingNames.AuthorizationSignedResponseAlg
+            ),
+            AuthorizationEncryptedResponseAlg = ReadString(
+                settings,
+                OpenIdSettingNames.AuthorizationEncryptedResponseAlg
+            ),
+            AuthorizationEncryptedResponseEnc = ReadString(
+                settings,
+                OpenIdSettingNames.AuthorizationEncryptedResponseEnc
             ),
             RequestObjectSigningAlg = ReadSingleValue(
                 settings,

@@ -26,7 +26,6 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Messages;
-using NCode.Identity.OpenId.Results;
 using Nerdbank.Streams;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;

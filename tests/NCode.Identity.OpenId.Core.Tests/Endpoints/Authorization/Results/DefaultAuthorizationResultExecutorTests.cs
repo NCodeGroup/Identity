@@ -41,7 +41,12 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
 
     private static readonly Uri RedirectUri = new("https://client.example/callback");
 
-    private DefaultAuthorizationResultExecutor Executor { get; } = new();
+    private DefaultAuthorizationResultExecutor Executor { get; } =
+        new([
+            new QueryAuthorizationResponseModeHandler(),
+            new FragmentAuthorizationResponseModeHandler(),
+            new FormPostAuthorizationResponseModeHandler(),
+        ]);
 
     #region Scaffolding
 
@@ -122,6 +127,40 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     #endregion
 
     #region ExecuteAsync Tests
+
+    [Fact]
+    public async Task ExecuteAsync_WhenNoHandlerServesTheResponseMode_Throws()
+    {
+        var result = new AuthorizationResult(
+            RedirectUri,
+            "unregistered",
+            CreateLooseMock<IAuthorizationTicket>().Object
+        );
+        var httpContext = new DefaultHttpContext();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Executor.ExecuteAsync(httpContext, result, CancellationToken.None)
+        );
+
+        Assert.Contains("'unregistered'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenAHandlerServesTheResponseMode_DelegatesToIt()
+    {
+        var ticket = CreateLooseMock<IAuthorizationTicket>().Object;
+        var result = new AuthorizationResult(RedirectUri, "custom", ticket);
+        var httpContext = new DefaultHttpContext();
+        var mockHandler = CreateStrictMock<IAuthorizationResponseModeHandler>();
+        mockHandler.SetupGet(x => x.ResponseMode).Returns("custom").Verifiable();
+        mockHandler
+            .Setup(x => x.ExecuteAsync(httpContext, result, ticket, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var executor = new DefaultAuthorizationResultExecutor([mockHandler.Object]);
+
+        await executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+    }
 
     [Fact]
     public async Task ExecuteAsync_WhenAnErrorIsRedirected_TagsTheErrorCode()

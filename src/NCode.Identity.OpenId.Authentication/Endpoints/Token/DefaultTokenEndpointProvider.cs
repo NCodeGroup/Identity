@@ -28,6 +28,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Authentication.Tokens;
+using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -50,6 +51,7 @@ internal class DefaultTokenEndpointProvider(
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
     IProofOfPossessionService proofOfPossessionService,
     IRequestRateLimiter requestRateLimiter,
+    ITenantUsageRecorder usageRecorder,
     ILogger<DefaultTokenEndpointProvider> logger
 ) : IEndpointProvider
 {
@@ -59,6 +61,8 @@ internal class DefaultTokenEndpointProvider(
         knownParameterCollectionProvider;
     private IProofOfPossessionService ProofOfPossessionService { get; } = proofOfPossessionService;
     private IRequestRateLimiter RequestRateLimiter { get; } = requestRateLimiter;
+
+    private ITenantUsageRecorder UsageRecorder { get; } = usageRecorder;
     private ILogger<DefaultTokenEndpointProvider> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -155,6 +159,8 @@ internal class DefaultTokenEndpointProvider(
             );
             if (quotaDecision.RetryAfter is { } retryAfter)
                 return RateLimitErrors.Create(openIdContext, retryAfter).AsHttpResult();
+
+            UsageRecorder.Record(openIdContext.Tenant.TenantId, TenantUsageMeters.TokenRequests);
         }
 
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);

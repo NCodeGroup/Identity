@@ -965,6 +965,27 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   API, not a setting scope. The judgements are counted under the partitions `daily_requests` and
   `daily_token_requests`. Durable usage history for billing is split out as `F81`._
 
+- **`F81` — Per-tenant usage history for billing.** Split from `F79`. The daily quotas of
+  [ADR-0198](docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) keep only the current UTC
+  day's count, which expires at midnight. Record each tenant's daily request and token-request counts durably, with
+  their own retention, readable through the management API, so the platform can bill a plan, report usage to a
+  customer, and later admit and bill an overage instead of refusing it. Decide in an ADR where the count is persisted
+  (rolled up from the day's counter, or appended per request through the event seam) and how long it is kept; usage
+  stays out of metric series
+  ([ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) §6). Builds on
+  `F79` (done).
+  _Closed: 2026-10-21. [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0199](docs/adr/0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md). Usage is a `TenantUsage` ledger in
+  the OpenID database, one row per tenant, UTC day, and meter (`requests`, `token_requests`; open vocabulary through
+  `ITenantUsageRecorder`), with no foreign key so a deleted tenant's usage survives for its final bill. Every tenant
+  is metered: a request once the rate limits and daily quota admit it (`RateLimitEndpointFilter`), a confidential
+  client's token request once the token quota admits it. Each replica counts in memory and
+  `TenantUsageFlushService` adds the counts every minute in one unit of work guarded by the row's concurrency token; a
+  failed save returns the counts for the next flush. Retention is 400 days, pruned once per UTC day
+  (`TenantUsageOptions`). `GET /api/tenants/{tenantId}/usage?from=&to=` reads up to 366 days. Rolling up the quota
+  counter and appending per request through the event seam were rejected. Admitting and billing an overage is split
+  out as `F82`._
+
 - **`F80` — Metrics for the protocol endpoints.** Implement
   [ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md): one owner per
   signal, only bounded attributes, and nothing measured twice. Done so far: the `NCode.Identity.OpenId.Authentication`

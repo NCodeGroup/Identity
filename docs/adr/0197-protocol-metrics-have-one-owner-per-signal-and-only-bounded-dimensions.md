@@ -116,7 +116,8 @@ A future mechanism (key resolution, signing, the dispatcher) follows the same pa
 
 They belong to traces and logs, where cardinality costs nothing per series: the request's span carries the tenant and
 client, and a metric's exemplar links a slow bucket to that span. Per-tenant **usage** — what a tenant consumed, for
-plans and billing — is a stored count with its own retention (backlog `F81`), not a metric series.
+plans and billing — is a stored count with its own retention
+([ADR-0199](0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)), not a metric series.
 
 ### 7. Hosts opt in; the reference host wires OpenTelemetry
 
@@ -147,7 +148,7 @@ renaming an instrument or attribute is a deliberate change.
   provides and lets the two counts drift (ADR-0047).
 - **A tenant attribute, opt-in or allow-listed.** Rejected: an operator who enables it on a multi-tenant platform
   creates a series per tenant per endpoint per status, which exhausts any bounded backend. Per-tenant views come from
-  traces, logs, and the usage counts of `F81`.
+  traces, logs, and the usage ledger of [ADR-0199](0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md).
 - **Publishing rate-limit refusals as events.** Rejected: a flood of refused requests would become a flood through the
   event pipeline and its sinks, the load the limiter exists to shed.
 - **Depending on the OpenTelemetry API in the library packages.** Rejected: `System.Diagnostics.Metrics` is the .NET

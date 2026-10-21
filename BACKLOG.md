@@ -74,7 +74,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
-| `F` — Feature gaps                    | `F82`     | `F81`      |
+| `F` — Feature gaps                    | `F83`     | `F82`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U26`     | `U25`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
@@ -299,15 +299,12 @@ entry and/or ADR that closed it.
   [`src/NCode.Identity.Jose/Algorithms/KeyManagement`](src/NCode.Identity.Jose/Algorithms/KeyManagement),
   [`src/NCode.Identity.Jose.Abstractions/Algorithms`](src/NCode.Identity.Jose.Abstractions/Algorithms).
 
-- **`F81` — Per-tenant usage history for billing.** Split from `F79`. The daily quotas of
-  [ADR-0198](docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) keep only the current UTC
-  day's count, which expires at midnight. Record each tenant's daily request and token-request counts durably, with
-  their own retention, readable through the management API, so the platform can bill a plan, report usage to a
-  customer, and later admit and bill an overage instead of refusing it. Decide in an ADR where the count is persisted
-  (rolled up from the day's counter, or appended per request through the event seam) and how long it is kept; usage
-  stays out of metric series
-  ([ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) §6). Builds on
-  `F79` (done).
+- **`F82` — Admit and bill usage past a daily quota.** Split from `F81`. A daily quota
+  ([ADR-0198](docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)) refuses a tenant for the
+  rest of the UTC day once it is spent. A plan tier may instead admit the overage and bill it from the usage ledger
+  ([ADR-0199](docs/adr/0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)). Decide in an ADR how a tier opts
+  in (a per-quota policy setting such as refuse or admit), whether an admitting tier still has a hard ceiling, and how
+  the overage is reported to the customer through the management API. Builds on `F79` and `F81` (done).
 
 - **`F48` — Publish the deployment artifacts the platform runs.** Per
   [ADR-0133](docs/adr/0133-we-ship-and-run-the-same-deployment-artifacts.md), the hosted platform consumes only the

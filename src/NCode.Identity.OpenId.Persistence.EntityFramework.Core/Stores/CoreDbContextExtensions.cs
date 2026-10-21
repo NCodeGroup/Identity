@@ -68,5 +68,7 @@ internal static class CoreDbContextExtensions
         public DbSet<RetiredTenantEntity> RetiredTenants => context.Set<RetiredTenantEntity>();
 
         public DbSet<RetiredIssuerEntity> RetiredIssuers => context.Set<RetiredIssuerEntity>();
+
+        public DbSet<TenantUsageEntity> TenantUsage => context.Set<TenantUsageEntity>();
     }
 }

@@ -118,6 +118,11 @@ internal class TenantApiEndpointHandler(
         resourceOwnershipService;
     private ILogger<TenantApiEndpointHandler> Logger { get; } = logger;
 
+    /// <summary>
+    /// Gets the most days one read of a tenant's usage spans: a year of the ledger's retention (ADR-0199).
+    /// </summary>
+    internal const int MaxUsageDays = 366;
+
     /// <inheritdoc />
     protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
 
@@ -140,6 +145,10 @@ internal class TenantApiEndpointHandler(
             .MapDelete("/{tenantId}", DeleteTenantAsync)
             .Produces(StatusCodes.Status204NoContent);
         tenants.MapGet("/{tenantId}/address", GetAddressAsync).Produces<TenantAddressResource>();
+        tenants
+            .MapGet("/{tenantId}/usage", GetUsageAsync)
+            .Produces<TenantUsageResource>()
+            .ProducesValidationProblem();
 
         tenants.MapGet("/{tenantId}/settings", GetSettingsAsync).Produces<TenantSettingsResource>();
         tenants
@@ -667,6 +676,76 @@ internal class TenantApiEndpointHandler(
         );
 
         return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Gets a tenant's usage from the durable daily ledger: the count of each meter on each UTC calendar day of a range,
+    /// which the platform bills a plan by and reports to the customer. The ledger keeps a deleted tenant's usage, so it
+    /// can still be read.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="from">The first UTC calendar day, inclusive; when omitted, 30 days before <paramref name="to"/>.</param>
+    /// <param name="to">The last UTC calendar day, inclusive; when omitted, the current UTC day.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The tenant's usage on the range.</response>
+    /// <response code="400">The range is reversed or longer than <see cref="MaxUsageDays"/> days.</response>
+    // See ADR-0199.
+    [EndpointName("api/tenants/usage/get")]
+    internal virtual async ValueTask<IResult> GetUsageAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
+        CancellationToken cancellationToken
+    )
+    {
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            node,
+            Operations.Read
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var lastDay = to ?? DateOnly.FromDateTime(TimeProvider.GetUtcNow().UtcDateTime);
+        var firstDay = from ?? lastDay.AddDays(-30);
+        if (firstDay > lastDay || lastDay.DayNumber - firstDay.DayNumber >= MaxUsageDays)
+        {
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    ["from"] =
+                    [
+                        $"The range must run forward from 'from' to 'to' and span at most {MaxUsageDays} days.",
+                    ],
+                }
+            );
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantUsageStore>();
+        var usage = await store.ListAsync(tenantId, firstDay, lastDay, cancellationToken);
+
+        return TypedResults.Ok(
+            new TenantUsageResource
+            {
+                TenantId = tenantId,
+                From = firstDay,
+                To = lastDay,
+                Entries = usage
+                    .Select(entry => new TenantUsageEntry
+                    {
+                        Day = entry.Day,
+                        Meter = entry.Meter,
+                        Count = entry.Count,
+                    })
+                    .ToList(),
+            }
+        );
     }
 
     /// <summary>

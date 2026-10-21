@@ -50,5 +50,9 @@ replica is replaced. The fallback happens inside the key manager, so `KeyManagem
   `PreviousCertificates`. A key stays in the ring after it expires and still unprotects the data it protected, and
   persisted secrets are long-lived. Keep the old certificate until no stored data depends on a key it wrapped, which
   means until those secrets are re-protected or retired, not merely until the keys expire.
+- The certificate is therefore long-lived and rotated by hand. A key is unwrapped only by the certificate that wrapped
+  it, matched by thumbprint, so a renewal written in place over the current certificate, which is cert-manager's
+  default, leaves the ring unreadable after the next restart. The host chart's README describes the rotation steps and
+  warns against in-place renewal.
 - Envelope encryption of individual stored secrets (`S9`) and external keystores (`S7`) remain separate, complementary
   work. This decision protects only the ring itself.

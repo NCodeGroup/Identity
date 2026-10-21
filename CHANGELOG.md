@@ -1278,6 +1278,18 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **The host chart suggested a key-protection certificate that cert-manager renews in place.** A renewal written
+  into the same Secret replaces the only certificate that can unwrap the existing Data Protection keys, so after the
+  next restart the key ring could not be read. The chart's README now documents hand rotation through
+  `keyProtection.previousCertificateSecrets` and warns against in-place renewal
+  ([ADR-0177](docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)).
+
+- **Deleting the root tenant broke every tenant.** A deleted tenant identifier is never reissued, so the root tenant —
+  or the static single-tenant strategy's tenant — could not be created again, and every request that needed it failed.
+  `DELETE /api/tenants/{tenantId}` now answers `409 Conflict` for a tenant the deployment requires. `ITenantStrategy`
+  and `ITenantResolver` gain `IsRequiredTenant`, so a custom strategy can name the tenants it requires
+  ([ADR-0189](docs/adr/0189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)).
+
 - **The multi-architecture host image build failed in restore.** The `amd64` and `arm64` builds
   shared the NuGet cache mount concurrently, so one read a package the other was still extracting (`Could not find
   file '/root/.nuget/packages/…'`). The Dockerfile now locks the cache mount, so the two publishes take turns.

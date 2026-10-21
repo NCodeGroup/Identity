@@ -18,10 +18,10 @@ change to the public API is a **major** version bump.
   - `ConformanceClientSeed` gains `Jwks`, the public key set a client registers by value, and `SecurityProfiles`. A
     client with a key set and no secret is seeded with exactly the keys the client-key policy imports, and a key set
     the policy refuses stops the seeding with an error naming the client.
-  - `AddDirectClientCertificates()` (`NCode.Identity.Server`) lets a host that terminates TLS itself receive
-    mutual-TLS client certificates. An HTTPS endpoint that requests one accepts any certificate at the handshake, and
-    the OP validates it against the client it authenticates. The reference host wires it; it is inert while no endpoint
-    requests a certificate.
+  - The reference host receives mutual-TLS client certificates when it terminates TLS itself: its HTTPS defaults
+    accept any client certificate an endpoint requests (`Kestrel:EndpointDefaults:ClientCertificateMode`), and the OP
+    validates it against the client it authenticates. It is inert while no endpoint requests a certificate. A host
+    that terminates TLS itself and serves mutual-TLS clients does the same in its own `ConfigureHttpsDefaults`.
 - **FAPI 1.0 Advanced security profile (`fapi1-advanced`).** A tenant or client that selects it through
   `security_profiles` gets the following ceilings:
   - `code` with a JWT-secured (JARM) response mode, or `code id_token` once the tenant lists it;

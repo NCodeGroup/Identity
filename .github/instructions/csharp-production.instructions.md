@@ -319,7 +319,11 @@ rationale.
   (`AddDeveloperKeys`/`GetDeveloperKeysOptions`, `AddDeveloperCors`/`UseDeveloperCors`) and are exposed through the server's
   turnkey surface so a host opts in with one call. Default to "it goes in the package"; only the genuinely host-specific,
   unsafe-to-default inputs called out below (database provider/connection string, production signing key) stay in
-  `Program.cs`.
+  `Program.cs`. Kestrel's HTTPS defaults are one of them: `ConfigureHttpsDefaults` keeps only its last action, so a
+  package that called it would silently replace, or be replaced by, the host's own TLS settings. A package never calls
+  it; the host makes one `ConfigureKestrel(k => k.ConfigureHttpsDefaults(...))` call that holds every HTTPS default,
+  such as the reference host's `AllowAnyClientCertificate()` for mutual TLS
+  ([ADR-0202](../../docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
 - ✅ Use the **C# 14 `extension` member syntax** (`extension(ReceiverType r) { … }` blocks), not classic
   `this`-parameter static methods — matching the `DefaultRegistration.cs` composition pattern
   (`extension(IServiceBuilder<IdentityLibrary> builder) { … }`).

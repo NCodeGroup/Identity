@@ -354,18 +354,22 @@ entry and/or ADR that closed it.
   Workload images and charts get build-provenance attestations and signatures that Flux verifies before the first
   production rollout.
 
-- **`F50` — Serve the interactive login and consent surface under the tenant route.** The protocol endpoints are served
-  under the tenant route ([ADR-0138](docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md)), but the
-  interactive surface is still mounted at absolute routes (`/account/*`) with a fixed cookie `LoginPath`, a single
-  cookie, and its bundle's static assets at the root. A static or host-selected tenant does not notice, but under
-  `DynamicByPath` the surface's environment filter has no `{tenantId}` to resolve, so interactive flows fail — and
-  path tenants sharing an origin would share one session cookie, which must not happen. Mount the surface's group under
-  the tenant route, make the login and logout redirects tenant-relative, scope the cookie (name or path) per tenant,
-  serve the bundle beneath the tenant route, and have the `apps/auth` bundle derive its API base from its own location.
-  Touch points: `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointGroup.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs`,
+- **`F50` — Serve the `apps/auth` bundle beneath the tenant route (remaining).** The interactive endpoints are served
+  under the tenant route, with tenant-relative redirects and a session cookie scoped to the tenant's path
+  ([ADR-0193](docs/adr/0193-the-interactive-surface-is-served-under-the-tenant-route.md) decisions 1–4). Decision 5
+  remains. The bundle's static assets are still mounted at the root `/account` by `UseInteractiveAuthentication`, and
+  `apps/auth` calls absolute `/account/...` paths, so under `DynamicByPath` only the server-rendered no-JavaScript pages
+  work. Serve the bundle's assets from a catch-all `GET /account/{**asset}` endpoint in the interactive group, using a
+  `PhysicalFileProvider` rooted at the bundle so traversal is rejected. Inject `<base href="{tenant path}/account/">`
+  into the HTML the server serves, and remove `UseInteractiveAuthentication` and its host call. Build `apps/auth` with
+  a relative Vite `base` (`defineBackendServedSurfaceConfig` in `@ncode/vite-config` accepts only an absolute base
+  today), and resolve its API and page paths (`src/params.ts`) against `document.baseURI`, keeping 100% coverage.
+  Touch points:
   `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationApplicationBuilderExtensions.cs`,
-  `src/frontend/apps/auth`. Capture the design in an ADR.
+  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveBundleShell.cs`,
+  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs`,
+  `src/NCode.Identity.OpenId.Host/Program.cs`, `src/frontend/packages/vite-config/src/preset.ts`,
+  `src/frontend/apps/auth/vite.config.ts`, `src/frontend/apps/auth/src/params.ts`.
 
 ## Conformance & interop testing (group `T`)
 

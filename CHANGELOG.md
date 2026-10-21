@@ -1283,6 +1283,19 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **A JWT signed with a certificate key was checked against the certificate's validity in the host's local time.**
+  The certificate-lifetime check compared the certificate's local-time validity with the UTC clock, so on a host
+  outside UTC a client assertion, request object, or CIBA request signed with an expired certificate could still pass,
+  or a current one fail. Validity is now compared in UTC. A client key registered or published with an `x5c`
+  certificate is now subject to this check, which ADR-0161 records.
+
+- **Dynamic registration accepted a response-encryption `alg` whose default `enc` the tenant does not permit.** A
+  client registering `id_token_encrypted_response_alg`, `userinfo_encrypted_response_alg`,
+  `introspection_encrypted_response_alg`, or `authorization_encrypted_response_alg` without the matching `enc` gets the
+  default `enc` (the tenant's, normally `A128CBC-HS256`). Registration now refuses it with `invalid_client_metadata`
+  when the tenant's supported `enc` values exclude that default, rather than registering a client whose responses
+  cannot be encrypted.
+
 - **The host chart's migration Job ignored the host's extra settings and volumes.** `extraEnv`, `extraEnvFrom`,
   `extraVolumes`, and `extraVolumeMounts` reached only the host's pods, so a setup whose database connection needs a
   CA bundle or SSL setting failed every install at the migration Job. The Job now receives them too, and runs with

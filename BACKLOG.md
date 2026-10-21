@@ -127,88 +127,6 @@ entry and/or ADR that closed it.
   [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md).)
   Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/Handlers/`.
-- **`F16` — FAPI (Financial-grade API) readiness epic.** An umbrella tracking the work to make the OP certifiable
-  against the OpenID Foundation **FAPI** security profiles ([FAPI 1.0 Advanced](https://openid.net/specs/openid-financial-api-part-2-1_0.html),
-  [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0.html)).
-
-    **Target decision (2026-10-14).** **FAPI 2.0 is the primary certification target**; it is the modern, formally-analyzed
-    profile and matches the repo's secure-by-default posture (code-only authorization responses, PAR, PKCE `S256`,
-    sender-constrained tokens). **FAPI 1.0 Advanced is a separate future item** — it mandates hybrid `code id_token`
-    flows, front-channel ID tokens, `s_hash` detached signatures, and JARM, which conflict with the posture forbidding
-    hybrid/front-channel-token flows. Scope decisions: deliver **both** `private_key_jwt` **and** mTLS client auth; client
-    **`jwks_uri` is the primary** public-key onboarding path with **BYOK static import secondary** (`S3`); the FAPI
-    constraints are enforced via a **named security-profile mechanism** (a `security_profiles` setting that tightens the
-    merged setting ceilings and feeds discovery, per [ADR-0038](docs/adr/0038-setting-merge-lattice-duals.md) /
-    [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)); **JARM is deferred** to its own item (not required
-    by FAPI 2.0, which reduces the authorization response to `code`+`iss`).
-
-    **Already implemented (FAPI 2.0 building blocks).** Sender-constrained tokens — DPoP + mTLS with `dpop_jkt`
-    authorization-code binding (`F7`, [ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md)); PAR +
-    `require_pushed_authorization_requests` ([ADR-0089](docs/adr/0089-pushed-authorization-requests.md)); JAR signed
-    request objects (inline `request` + remote `request_uri`); asymmetric-only token signing `PS256`/`ES256`
-    ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)); PKCE `S256` enforcement and
-    `response_type=code` secure default ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)); RFC 9207
-    `iss` authorization-response parameter (the ticket carries `Issuer` and the OP advertises
-    `authorization_response_iss_parameter_supported`); resource indicators RFC 8707
-    ([ADR-0078](docs/adr/0078-resource-indicators-rfc-8707.md)); reused-authorization-code rejection. **Strong client
-    authentication `private_key_jwt` + `client_secret_jwt`** is **done**
-    ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)), and the **verify-only public-key `SecretKey`
-    primitive** that `private_key_jwt` needs is **done** ([ADR-0103](docs/adr/0103-public-only-asymmetric-secret-keys.md)).
-    **Client public-key onboarding** is **done**: inline JWK Set import at registration
-    ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md)) and **runtime `jwks_uri` resolution** via the
-    `IClientKeyResolver` seam, consumed by the `client_assertion` handlers and the JAR loader, with the
-    `sector_identifier_uri` SSRF floor generalized into a shared, injectable, additive-deny-extensible
-    `IOutboundHttpForgeryGuard` now applied to every outbound client-URL fetch (including the previously-unguarded JAR
-    `request_uri` fetch) ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)).
-    **mTLS client authentication** is **done**: `tls_client_auth` (subject-DN / SAN match) + `self_signed_tls_client_auth`
-    (registered-certificate thumbprint match), gated by the client's `token_endpoint_auth_method`, reusing
-    `IClientCertificateResolver` and auto-advertised in `token_endpoint_auth_methods_supported`
-    ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)).
-    **The FAPI security-profile mechanism** is **done**: a `security_profiles` setting selecting `fapi2`, resolved through an
-    extensible **profile registry** (`ISecurityProfileCatalog` over `ISecurityProfile` definitions) that injects the
-    FAPI 2.0 ceilings into the merge lattice (algorithms `PS256`/`ES256`/`EdDSA`, strong-client-auth-only,
-    `response_type=code`, PKCE `S256`, require PKCE + PAR, short code/PAR lifetimes, a ≤ 60s `clock_skew` ceiling, and a
-    pinned five-minute `client_assertion_max_lifetime` ceiling ([ADR-0124](docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md))),
-    plus permitted-`token_endpoint_auth_methods_supported` enforcement in the client-auth service (rejecting weak/public
-    auth under `fapi2`) ([ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
-    **The FAPI behavioral rules and discovery/validation details** are **done**
-    ([ADR-0109](docs/adr/0109-fapi-behavioral-rules-and-discovery-validation-details.md)): the rules that cannot be
-    expressed as a setting ceiling are modeled as composable **requirement objects** a profile composes and the catalog
-    runs per enforcement phase — a confidential-client rule (public clients rejected at the authorization endpoint), a
-    sender-constrained-access-token rule (DPoP **or** mTLS required at the token endpoint), and an issuer-only
-    `client_assertion` audience rule — so a new requirement kind or a whole new profile is additive. The OP also
-    advertises `authorization_response_iss_parameter_supported` (RFC 9207), uses **303 See Other** for the authorization
-    response (FAPI §5.2.2 / OAuth 2.1), honors the operator-configured `clock_skew` when validating signed request
-    objects / client assertions (rejecting an `iat` or `nbf` beyond it, FAPI 2.0 §5.3.2.1), and enforces single-use
-    authorization codes with an exact-matched, required `redirect_uri`.
-
-    **Remaining work.** The OP-side FAPI 2.0 implementation is **complete** (the building blocks plus the security-profile
-    mechanism, behavioral rules, and discovery/validation details above). Dynamic Client Registration accepts the strong
-    client-authentication methods (2026-10-21, ADR-0145 amendment): the tenant's effective
-    `token_endpoint_auth_methods_supported` replaces the fixed list, the key-based methods require their key material,
-    `tls_client_auth` requires exactly one `tls_client_auth_*` identity, and only `client_secret_*` methods get a
-    `client_secret`. What is left is conformance wiring and one hardening item.
-    - **Conformance wiring — handed to the conformance track (`T1` / `T6`).** The FAPI 2.0 conformance pieces are owned
-      by the conformance work-stream (the spec-coverage harness and headless probe runner), not this OP item. The
-      `coverage.ts` `profile-fapi2` row needs no change: it classifies from discovery and reports `implemented` once
-      PAR + a sender-constraining mechanism + PKCE `S256` are advertised, which the OP does. Still to do: add a
-      FAPI-2.0 seed client (`security_profiles` = `[fapi2]`, `private_key_jwt`) to `AddConformanceSeed` (this first
-      needs the conformance seed model extended — `ConformanceClientSeed` is secret-only today, with no asymmetric-key /
-      `security_profiles` fields); and wire the OpenID Foundation FAPI 2.0 test plan into `T1` and the `T6` matrix.
-    - **Hardening — no CORS on the front-channel endpoints (FAPI 2.0).** A production host adds no CORS middleware, so
-      it has no exposure, but in Development `UseDeveloperCors` applies the developer policy to every endpoint and
-      `/oauth2/authorize`, `/oauth2/continue`, `/oauth2/end_session`, and the interactive surface answer the local Vite
-      origins with `Access-Control-Allow-Origin` (verified 2026-10-21). **Do not use `DisableCorsAttribute`:** it is
-      `ICorsMetadata`, and ASP.NET Core's endpoint middleware throws for an endpoint carrying it when no CORS middleware
-      ran, so it turns every production request to those endpoints into a 500 (caught in review of a first attempt).
-      Planned shape: a non-CORS front-channel marker metadata on those endpoints, honored by `UseDeveloperCors` (apply
-      the policy only to unmarked endpoints, after routing), with integration tests in both Development (no CORS header
-      from an allowed origin; discovery still allowed) and a host without CORS (the endpoints still answer).
-
-    **Spun-out items (record when starting):** a **JARM + authorization response-mode extensibility seam** work item (the
-    response modes are a hardcoded switch in `DefaultAuthorizationResultExecutor` today); **FAPI 1.0 Advanced**; and **S3**
-    BYOK static public-key import (secondary to `jwks_uri`).
-
 - **`F27` — JARM (JWT Secured Authorization Response Mode) + response-mode extensibility seam.** Signed/encrypted
   authorization responses (`query.jwt`, `fragment.jwt`, `form_post.jwt`, `jwt`). **Not required by FAPI 2.0** (which
   reduces the response to `code`+`iss`), so this was spun out of `F16`; it **is** required by FAPI 1.0 Advanced and is
@@ -334,8 +252,9 @@ entry and/or ADR that closed it.
 ## Conformance & interop testing (group `T`)
 
 - **`T1` (subsumes `T6`) — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite,
-  delivered through the in-house spec-coverage harness (remaining: nightly CI).** An independent, spec-author-maintained
-  oracle to catch misreadings our own integration tests share, driven by an **in-house measurement harness** (the
+  delivered through the in-house spec-coverage harness (remaining: nightly CI, the FAPI 2.0 plan).** An independent,
+  spec-author-maintained oracle to catch misreadings our own integration tests share, driven by an **in-house
+  measurement harness** (the
   spec-coverage matrix + the headless probe-runner pre-flight) **and** the committed automation
   ([`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1)) that drives the external certified
   suite. Everything runs **locally in Docker** against the OpenID host over `host.docker.internal:5001` — nothing is
@@ -350,7 +269,12 @@ failures, 0 warnings`); the **Basic OP** (browser-driven) plan runs end-to-end u
   (opt-in via `-IncludeBrowserPlans`). The harness is a **measurement** surface — it tracks backend gaps, it does not
   implement them. **Remaining:** a **nightly / opt-in CI pipeline** (not `dod.ps1`) that invokes `run-conformance.ps1`
   (Docker + Python 3, no local Java) and publishes the `.results/` zips — deferred until the repo's broader CI bootstrap
-  lands (no `.github/workflows` exists yet). Design and phases are in
+  lands (no `.github/workflows` exists yet); and the **FAPI 2.0 plan** (moved from `F16`, whose OP side is complete):
+  extend `ConformanceClientSeed` with public keys (`jwks`), `security_profiles`, and the signing algorithm, seed the two
+  `fapi2` / `private_key_jwt` clients the plan needs in `AddConformanceSeed`, add a FAPI 2.0 plan config to
+  `run-conformance.ps1` (the `private_key_jwt` + DPoP variant avoids passing client certificates through Docker),
+  and run it end to end and commit its baseline. The `coverage.ts` `profile-fapi2` row already classifies from discovery and
+  needs no change. Design and phases are in
   [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md),
   [`docs/conformance-testing.md`](docs/conformance-testing.md), and
   [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md). Touch points:

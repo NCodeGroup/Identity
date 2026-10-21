@@ -28,6 +28,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.StaticFiles;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Consent;
+using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Sessions;
@@ -77,43 +78,47 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet(InteractiveAuthenticationDefaults.AccountPath, GetAccountPageAsync);
-        endpoints.MapGet(InteractiveAuthenticationDefaults.MePath, GetMeAsync);
-        endpoints.MapGet(InteractiveAuthenticationDefaults.BrandingPath, GetBranding);
-        endpoints.MapGet(InteractiveAuthenticationDefaults.LoginPath, GetLoginPageAsync);
-        endpoints.MapPost(InteractiveAuthenticationDefaults.LoginPath, PostLoginAsync);
-        endpoints.MapGet(InteractiveAuthenticationDefaults.ConsentPath, GetConsentPageAsync);
-        endpoints.MapGet(
+        // The user agent navigates to the surface, and its own pages call it from the same origin; no CORS policy
+        // applies to it (FAPI 2.0 Security Profile §5.3.2.1).
+        var surface = endpoints.MapGroup(string.Empty).WithOpenIdFrontChannel();
+
+        surface.MapGet(InteractiveAuthenticationDefaults.AccountPath, GetAccountPageAsync);
+        surface.MapGet(InteractiveAuthenticationDefaults.MePath, GetMeAsync);
+        surface.MapGet(InteractiveAuthenticationDefaults.BrandingPath, GetBranding);
+        surface.MapGet(InteractiveAuthenticationDefaults.LoginPath, GetLoginPageAsync);
+        surface.MapPost(InteractiveAuthenticationDefaults.LoginPath, PostLoginAsync);
+        surface.MapGet(InteractiveAuthenticationDefaults.ConsentPath, GetConsentPageAsync);
+        surface.MapGet(
             InteractiveAuthenticationDefaults.ConsentDetailsPath,
             GetConsentDetailsAsync
         );
-        endpoints.MapPost(InteractiveAuthenticationDefaults.ConsentPath, PostConsentAsync);
-        endpoints.MapPost(InteractiveAuthenticationDefaults.LogoutPath, PostLogoutAsync);
-        endpoints.MapGet(
+        surface.MapPost(InteractiveAuthenticationDefaults.ConsentPath, PostConsentAsync);
+        surface.MapPost(InteractiveAuthenticationDefaults.LogoutPath, PostLogoutAsync);
+        surface.MapGet(
             InteractiveAuthenticationDefaults.ApplicationsPath,
             GetApplicationsPageAsync
         );
-        endpoints.MapGet(
+        surface.MapGet(
             InteractiveAuthenticationDefaults.ApplicationsListPath,
             GetApplicationsAsync
         );
-        endpoints.MapPost(
+        surface.MapPost(
             InteractiveAuthenticationDefaults.ApplicationsRevokePath,
             PostRevokeApplicationAsync
         );
-        endpoints.MapGet(InteractiveAuthenticationDefaults.SessionsPath, GetSessionsPageAsync);
-        endpoints.MapGet(InteractiveAuthenticationDefaults.SessionsListPath, GetSessionsAsync);
-        endpoints.MapPost(
+        surface.MapGet(InteractiveAuthenticationDefaults.SessionsPath, GetSessionsPageAsync);
+        surface.MapGet(InteractiveAuthenticationDefaults.SessionsListPath, GetSessionsAsync);
+        surface.MapPost(
             InteractiveAuthenticationDefaults.SessionsRevokePath,
             PostRevokeSessionAsync
         );
-        endpoints.MapPost(
+        surface.MapPost(
             InteractiveAuthenticationDefaults.SessionsRevokeAllPath,
             PostRevokeAllSessionsAsync
         );
         // The bundle's files are served beneath the tenant's surface, where the pages' base resolves them (ADR-0193).
         // Every page and API route above is a literal route, which takes precedence; the order makes that explicit.
-        endpoints
+        surface
             .MapMethods(
                 $"{InteractiveAuthenticationDefaults.BasePath}/{{**{AssetRouteParameterName}}}",
                 [HttpMethods.Get, HttpMethods.Head],

@@ -51,5 +51,27 @@ public static class SharedStateLibraryRegistration
 
             return builder;
         }
+
+        /// <summary>
+        /// Registers the built-in in-process <see cref="IExpiringCounterSet"/> adapter. Its counters live in the memory
+        /// of one process, so it is correct only for a deployment that runs a single replica: a request counted by one
+        /// replica is not seen by another, and every counter is lost when the process restarts. The registration is a
+        /// default (<c>TryAdd</c>), so a deployment that registered its own <see cref="IExpiringCounterSet"/> first
+        /// keeps that adapter.
+        /// </summary>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
+        [PublicAPI]
+        public IServiceBuilder<SharedStateLibrary> AddInProcessExpiringCounterSet()
+        {
+            var serviceCollection = builder.ServiceCollection;
+
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddSingleton<
+                IExpiringCounterSet,
+                DefaultInProcessExpiringCounterSet
+            >();
+
+            return builder;
+        }
     }
 }

@@ -542,6 +542,11 @@ rationale.
   (`ExpiringKeys.Create`), so tenants sharing a store never collide and an attacker-supplied value cannot make a key
   ambiguous or unbounded. A library never registers a host-wide cache. See
   [ADR-0164](../../docs/adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md).
+- 👁 **A count every replica must agree on increments `IExpiringCounterSet`, never a get-then-set.** A rate limit or a
+  quota counts with the port's atomic `IncrementAsync`, which starts a counter for one fixed window; a read followed by
+  a write loses concurrent requests. Read a count with `GetAsync` only for a counter this request does not add to (the
+  previous window). See
+  [ADR-0196](../../docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.

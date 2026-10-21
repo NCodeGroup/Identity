@@ -1,4 +1,7 @@
 #nullable enable
+NCode.Identity.SharedState.IExpiringCounterSet
+NCode.Identity.SharedState.IExpiringCounterSet.GetAsync(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
+NCode.Identity.SharedState.IExpiringCounterSet.IncrementAsync(string! key, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
 NCode.Identity.SharedState.IExpiringKeySet
 NCode.Identity.SharedState.IExpiringKeySet.ContainsAsync(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.SharedState.IExpiringKeySet.TryAddAsync(string! key, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>

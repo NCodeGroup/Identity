@@ -47,12 +47,12 @@ public static class DefaultRegistration
     extension(IServiceBuilder<SharedStateLibrary> builder)
     {
         /// <summary>
-        /// Registers the Valkey <see cref="IExpiringKeySet"/> adapter, in place of any adapter registered before it,
-        /// when the <c>ConnectionStrings:valkey</c> connection string is configured, so every replica of the deployment
-        /// shares one set of keys. The <c>Valkey</c> section binds <see cref="ValkeyOptions"/> strictly. A
+        /// Registers the Valkey <see cref="IExpiringKeySet"/> and <see cref="IExpiringCounterSet"/> adapters, in
+        /// place of any adapters registered before them, when the <c>ConnectionStrings:valkey</c> connection string
+        /// is configured, so every replica of the deployment shares one set of keys and one set of counters. The <c>Valkey</c> section binds <see cref="ValkeyOptions"/> strictly. A
         /// <c>valkey</c> health check, tagged <c>ready</c>, reports whether the server answers. Without the connection
-        /// string the call registers nothing and the adapter registered before it stays in force — the in-process
-        /// adapter, correct only for a single replica.
+        /// string the call registers nothing and the adapters registered before it stay in force — the in-process
+        /// adapters, correct only for a single replica.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> holding the connection string and the <c>Valkey</c> section.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
@@ -98,6 +98,9 @@ public static class DefaultRegistration
 
             serviceCollection.RemoveAll<IExpiringKeySet>();
             serviceCollection.AddSingleton<IExpiringKeySet, ValkeyExpiringKeySet>();
+
+            serviceCollection.RemoveAll<IExpiringCounterSet>();
+            serviceCollection.AddSingleton<IExpiringCounterSet, ValkeyExpiringCounterSet>();
 
             serviceCollection
                 .AddHealthChecks()

@@ -231,3 +231,4 @@ standards.
 | [0193](./0193-the-interactive-surface-is-served-under-the-tenant-route.md) | The interactive surface is served under the tenant route, and its session is scoped to the tenant's path | Accepted |
 | [0194](./0194-a-tenant-brands-its-interactive-surface-through-settings.md) | A tenant brands its interactive surface through settings | Accepted |
 | [0195](./0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md) | A tenant's mTLS endpoint alias is a routed tenant property | Accepted |
+| [0196](./0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) | Tenants are rate limited through a shared expiring counter set | Accepted |

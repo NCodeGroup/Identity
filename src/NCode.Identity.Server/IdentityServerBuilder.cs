@@ -89,11 +89,13 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
         // distributed backend (outbox, broker, scheduler cluster) by registering its own IJobDispatcher first.
         serviceCollection.AddDispatchServices().AddInProcessJobDispatcher();
 
-        // The in-process expiring key set is the default shared-state adapter, correct for a single replica; a
-        // deployment that runs several replicas swaps in a shared adapter (AddValkey) on SharedStateLibraryBuilder.
+        // The in-process expiring key and counter sets are the default shared-state adapters, correct for a single
+        // replica; a deployment that runs several replicas swaps in shared adapters (AddValkey) on
+        // SharedStateLibraryBuilder.
         SharedStateLibraryBuilder = serviceCollection
             .AddSharedStateServices()
-            .AddInProcessExpiringKeySet();
+            .AddInProcessExpiringKeySet()
+            .AddInProcessExpiringCounterSet();
 
         DataProtectionBuilder = serviceCollection.AddDataProtection();
         SecretsLibraryBuilder = serviceCollection.AddSecretsLibrary();

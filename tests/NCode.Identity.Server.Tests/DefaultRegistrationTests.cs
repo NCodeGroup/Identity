@@ -183,6 +183,23 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public async Task AddIdentityServer_RegistersAnExpiringCounterSet()
+    {
+        using var host = BuildHost([]);
+        var counterSet = host.Services.GetRequiredService<IExpiringCounterSet>();
+        var expiresWhen = DateTimeOffset.UtcNow.AddMinutes(1);
+
+        Assert.Equal(
+            1,
+            await counterSet.IncrementAsync("key", expiresWhen, CancellationToken.None)
+        );
+        Assert.Equal(
+            2,
+            await counterSet.IncrementAsync("key", expiresWhen, CancellationToken.None)
+        );
+    }
+
+    [Fact]
     public void AddIdentityServer_RegistersTheClientJwtCredentialSelectorBesideTheTokenService()
     {
         // A replacement ITokenService resolves the selector to protect ID tokens exactly as the client registered.

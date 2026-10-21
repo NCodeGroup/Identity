@@ -30,6 +30,7 @@ import {
   type SettingsResource,
   type TenantAddressResource,
   type TenantResource,
+  type TenantUsageResource,
   type UpdateClientFields,
   type UpdateResourceServerFields,
   type UpdateScopeRequest,
@@ -549,6 +550,20 @@ export const managementApi = createApi({
         { type: 'Settings', id: tenantTag(tenantId, 'tenant-effective') },
       ],
     }),
+    // The usage ledger is append-only and written by the server's periodic flush (ADR-0199), so it is not tagged:
+    // every mount reads the current ledger.
+    getTenantUsage: build.query<
+      TenantUsageResource,
+      { tenantId: string; from?: string | undefined; to?: string | undefined }
+    >({
+      query: ({ tenantId, from, to }) => {
+        const params = new URLSearchParams();
+        if (from) params.set('from', from);
+        if (to) params.set('to', to);
+        const search = params.toString();
+        return `api/tenants/${encodeURIComponent(tenantId)}/usage${search ? `?${search}` : ''}`;
+      },
+    }),
     // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
     updateTenantSettings: build.mutation<
       void,
@@ -796,6 +811,7 @@ export const {
   useLazyGetTenantSecretPublicKeyQuery,
   useGetTenantSettingsQuery,
   useGetTenantEffectiveSettingsQuery,
+  useGetTenantUsageQuery,
   useUpdateTenantSettingsMutation,
   useListServerSecretsQuery,
   useCreateServerSecretMutation,

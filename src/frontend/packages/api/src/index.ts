@@ -29,6 +29,8 @@ export type {
   TenantAddressFailure,
   TenantAddressResource,
   TenantResource,
+  TenantUsageEntry,
+  TenantUsageResource,
   UpdateClientFields,
   UpdateResourceServerFields,
   UpdateScopeRequest,

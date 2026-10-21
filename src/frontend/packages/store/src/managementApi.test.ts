@@ -733,6 +733,43 @@ describe('managementApi tenant secret + settings endpoints', () => {
     expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/effective-settings');
     expect(captured[0]?.method).toBe('GET');
   });
+
+  it('getTenantUsage GETs the tenant usage path without a range by default', async () => {
+    const captured = mockFetch(
+      new Response(JSON.stringify({ tenantId: 'acme', from: '', to: '', entries: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const store = createStore();
+
+    await store.dispatch(managementApi.endpoints.getTenantUsage.initiate({ tenantId: 'acme' }));
+
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/usage');
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it('getTenantUsage sends the range as from/to query parameters', async () => {
+    const captured = mockFetch(
+      new Response(JSON.stringify({ tenantId: 'acme', from: '', to: '', entries: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.getTenantUsage.initiate({
+        tenantId: 'acme',
+        from: '2026-10-01',
+        to: '2026-10-21',
+      }),
+    );
+
+    expect(captured[0]?.url).toBe(
+      'https://api.test/api/tenants/acme/usage?from=2026-10-01&to=2026-10-21',
+    );
+  });
 });
 
 describe('managementApi server CRUD endpoints (global scope)', () => {

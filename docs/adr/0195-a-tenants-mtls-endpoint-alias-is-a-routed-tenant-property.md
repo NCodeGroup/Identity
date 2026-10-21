@@ -77,7 +77,7 @@ request host.
 - Under the hosted platform, `DynamicByHost:MtlsEndpointAliasTemplate = https://{tenantId}.mtls.<apex>` and
   `Root:MtlsEndpointAliasAuthority = https://mtls.<apex>` give every tenant its alias without an API call; an explicit
   alias still overrides the derived one. Under a template, a tenant cannot opt out of an alias: an empty alias restores
-  the derived one. The console fields for the alias are tracked in `BACKLOG.md`.
+  the derived one. The management console edits the alias beside the issuer and previews its derived default.
 - Migrated aliases are not checked for uniqueness, because the migration cannot run the strategy. An ambiguous host
   serves no tenant until an operator fixes one of the tenants, and the next write to either tenant reports the conflict.
 

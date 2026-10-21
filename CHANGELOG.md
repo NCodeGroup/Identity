@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The management console shows and edits a tenant's mTLS endpoint alias (RFC 8705 §5).** The `@ncode/api` mirrors
+  carry `mtlsEndpointAliasAuthority` on `TenantResource`, `CreateTenantRequest`, and `UpdateTenantFields`, and
+  `TenantAddressResource` gains it with `isMtlsEndpointAliasAuthorityDerived`. The store's `getTenantAddress` takes an
+  optional `mtlsEndpointAliasAuthority`. The tenant dialog edits the alias beside the issuer and shows the derived
+  default as its hint and placeholder, the tenant table shows it in its own column, and `TenantsPage` previews a
+  proposed alias, re-judges an existing tenant's address only when its issuer or alias changes, and sends the alias on
+  create and update, where an empty alias restores the derived one
+  ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), backlog `U25`).
 - **A tenant's mTLS endpoint alias takes a derived default, as its issuer does (RFC 8705 §5).** The new
   `DynamicByHost:MtlsEndpointAliasTemplate` (for example `https://{tenantId}.mtls.example`) gives every tenant written
   without an alias its expansion, and `Root:MtlsEndpointAliasAuthority` and `StaticSingle:MtlsEndpointAliasAuthority`

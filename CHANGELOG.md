@@ -10,6 +10,18 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **A tenant's mTLS endpoint-alias host routes to the tenant (RFC 8705 §5).** The alias is now the tenant property
+  `PersistedTenant.MtlsEndpointAliasAuthority` (an `https` origin), exposed as `OpenIdTenant.MtlsEndpointAliasAuthority`,
+  and discovery builds `mtls_endpoint_aliases` from it. The host strategy routes a request to a tenant by its issuer host
+  or its alias host, through `ITenantStore.GetOrDefaultByHostAsync` (renamed from `GetOrDefaultByIssuerHostAsync`), which
+  resolves no tenant when more than one matches. Validation judges both hosts: the alias must be an `https` origin, the
+  host pattern must map its host back to the tenant, it must differ from the issuer host, and no other tenant may serve
+  it. `ITenantResolver.ValidateTenantAsync` and `ITenantStrategy.ValidateTenantAsync` take the alias beside the issuer.
+  The management API carries `mtlsEndpointAliasAuthority` on tenant create, update, and read. **Breaking:** the
+  `mtls_endpoint_alias_authority` setting (and `OpenIdSettingNames`/`OpenIdSettingKeys.MtlsEndpointAliasAuthority`) is
+  removed; the `PromoteMtlsEndpointAliasAuthority` migration moves each stored value into the new
+  `MtlsEndpointAliasAuthority` and derived, indexed `NormalizedMtlsEndpointAliasHost` columns. Design and rationale:
+  [ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md).
 - **A tenant brands its login, consent, and account pages.** The interactive surface registers the tenant settings
   `branding_display_name`, `branding_logo_uri` (absolute `https`), `branding_primary_color` and
   `branding_secondary_color` (hexadecimal), and `branding_color_mode` (`light` or `dark`). It serves them at

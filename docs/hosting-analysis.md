@@ -153,8 +153,9 @@ flowchart LR
 - Traefik terminates TLS, **requests** the client certificate on the mTLS host, and forwards it with the
   `passTLSClientCert` middleware; the server reads it via `OpenId:MutualTls:CertificateHeaderName`
   ([ADR-0097](adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md)).
-- RFC 8705 §5 mTLS endpoint aliases map naturally to a dedicated mTLS hostname (`mtls_endpoint_alias_authority`), so
-  only that host asks for client certificates (per-tenant alias hosts need backlog `F47`).
+- RFC 8705 §5 mTLS endpoint aliases map naturally to a dedicated mTLS hostname (the tenant's
+  `mtlsEndpointAliasAuthority`), so only that host asks for client certificates; per-tenant alias hosts route to their
+  tenant ([ADR-0195](adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)).
 
 ### Domain and DNS — `nidentity.io`
 
@@ -196,7 +197,7 @@ dashboard):
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------ |
 | `auth.nidentity.io`                             | Root (control-plane) tenant issuer — where admins sign in and management-API tokens are issued ([ADR-0031](adr/0031-control-plane-management-resource-server-and-root-tenant-seeding.md)) | `auth.nidentity.io`            |
 | `{tenant}.auth.nidentity.io`                    | Workload tenant issuers, resolved by `DynamicByHost` (e.g. `acme.auth.nidentity.io`)                     | `*.auth.nidentity.io`          |
-| `mtls.nidentity.io`, `{tenant}.mtls.nidentity.io` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. Per-tenant alias hosts need `F47`: `DynamicByHost` routes only on the issuer's host today | `mtls.…` + `*.mtls.nidentity.io` |
+| `mtls.nidentity.io`, `{tenant}.mtls.nidentity.io` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-0195) | `mtls.…` + `*.mtls.nidentity.io` |
 | `manage.nidentity.io`                           | Management API (`/api`) and admin console — the control-plane surface ([ADR-0042](adr/0042-management-api-route-driven-tenant-scope.md)) | `manage.nidentity.io`          |
 | `nidentity.io`, `www.nidentity.io`              | Project site / docs                                                                                      | Hosting provider               |
 
@@ -447,10 +448,10 @@ Verified against Traefik v3.7 documentation and source:
   validity, `tls_client_auth_revocation_mode`) before matching the subject, and trusts no certificate when no anchor is
   configured. The proxy only requests and forwards the certificate
   ([ADR-0173](adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
-- **`F47` — the mTLS alias host doesn't route to a tenant.** `mtls_endpoint_alias_authority` advertises
-  `{tenant}.mtls…`, but `DynamicByHost` resolves tenants only by the host of their issuer
-  ([ADR-0129](adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)), so requests to a per-tenant alias
-  host find no tenant.
+- **`F47` — the mTLS alias host routes to its tenant (resolved).** The alias is the tenant property
+  `MtlsEndpointAliasAuthority`; `DynamicByHost` routes its derived host as well as the issuer's, and validation keeps
+  both hosts unique ([ADR-0195](adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). Each tenant's
+  alias is set through the management API; a template-derived default alias is backlog `F78`.
 
 **Proxy rule:** on the mTLS host, use `RequireAnyClientCert` (request, don't verify) and forward the certificate. The
 server validates `tls_client_auth` chains itself, so `tls_client_auth` and `self_signed_tls_client_auth` clients share
@@ -628,7 +629,7 @@ speed-test endpoint from the Denver network the users are on.
   each rollout it migrates the database in a Job from the same image, and every migration keeps the previous release
   working ([ADR-0180](adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Still
   needed: publishing the image and chart (`F48`).
-- **mTLS gap** `F47` (`F43` and `F44` are done) and **per-tenant rate limits** `F45` (above).
+- **mTLS default alias** `F78` (`F43`, `F44`, and `F47` are done) and **per-tenant rate limits** `F45` (above).
 
 **Operations:**
 
@@ -681,6 +682,6 @@ the provider's SPF include and DKIM keys, and keep DMARC at `p=reject`.
    customer dev/test/prod are tenants on production; the platform runs production plus a private lab
    on the OCI Pay-As-You-Go A1 allowance (~$4) and ephemeral Azure runs on the Visual Studio credit (§2, §10,
    backlog `T9`).
-5. **Server prerequisites before mTLS goes live:** `F47` (route per-tenant mTLS alias hosts); `F43` (in-app chain
-   validation) and `F44` (Traefik header format) are done.
+5. **Server prerequisites before mTLS goes live:** done — `F47` (route per-tenant mTLS alias hosts), `F43` (in-app
+   chain validation), and `F44` (Traefik header format). `F78` would derive each tenant's alias from a template.
 6. **Primary domain:** acquire `nidentity.com` ($250 offer pending) or stay on `nidentity.io` (§3).

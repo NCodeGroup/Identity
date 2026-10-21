@@ -19,8 +19,10 @@
 using System.Diagnostics.Metrics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests.Telemetry;
@@ -98,6 +100,19 @@ public sealed class TelemetryRegistrationTests
         serviceCollection.AddOpenTelemetryMetrics(CreateConfiguration("http://localhost:4317"));
 
         Assert.True(HasOtlpRegistration(serviceCollection));
+    }
+
+    [Fact]
+    public void AddOpenTelemetryMetrics_WhenAnEndpointIsConfigured_ExportsNoLogsOrTraces()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddOpenTelemetryMetrics(CreateConfiguration("http://localhost:4317"));
+
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        Assert.NotNull(serviceProvider.GetService<MeterProvider>());
+        Assert.Null(serviceProvider.GetService<TracerProvider>());
+        Assert.Empty(serviceProvider.GetServices<ILoggerProvider>());
     }
 
     [Fact]

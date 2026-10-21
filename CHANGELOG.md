@@ -12,8 +12,9 @@ change to the public API is a **major** version bump.
 
 - **Protocol-endpoint metrics.** The protocol endpoints tag ASP.NET Core's `http.server.request.duration` with
   `ncode.identity.openid.endpoint` (the endpoint's registered name, stable when routes or tenant routing change),
-  `ncode.identity.openid.error` (the OAuth error code of every error response, including the rate limiter's `429`), and,
-  on the token endpoint, `ncode.identity.openid.grant_type` (a registered grant type, else `_OTHER`); the attribute
+  `ncode.identity.openid.error` (the OAuth error code of every error response, including the rate limiter's `429` and an
+  authorization error redirected to the client), and, on token requests that reach grant-handler selection,
+  `ncode.identity.openid.grant_type` (a registered grant type, else `_OTHER`); the attribute
   names are constants on `OpenIdMetricAttributes`. `NCode.Identity.OpenId.Authentication` owns the meter
   `OpenIdAuthenticationMetrics.MeterName` and the counter `ncode.identity.rate_limiting.requests` (`{request}`) by
   `ncode.identity.rate_limiting.partition` and `ncode.identity.rate_limiting.result` (`admitted`, `rejected`,
@@ -24,7 +25,8 @@ change to the public API is a **major** version bump.
   `ClientAuthenticationFailedAuditEvent` adds `ncode.identity.client_authentication.method`. `NCode.Identity.Server`
   adds `AddOpenTelemetryMetrics(configuration)`, which the reference host calls: the family's meters, ASP.NET Core,
   Kestrel, `System.Net.Http` (bounded attributes only), and the runtime, exported over OTLP when
-  `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Every meter comes from `IMeterFactory`. The catalog is
+  `OTEL_EXPORTER_OTLP_ENDPOINT` is set; the exporter is added to the metrics pipeline only, so logs and traces stay the
+  host's choice. Every meter comes from `IMeterFactory`. The catalog is
   [`docs/metrics.md`](docs/metrics.md) ([ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md),
   backlog `F80`).
 - **Per-tenant rate limits.** Three settings limit the requests per minute a tenant's protocol endpoints serve:

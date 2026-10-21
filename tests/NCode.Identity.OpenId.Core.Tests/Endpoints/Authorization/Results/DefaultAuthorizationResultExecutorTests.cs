@@ -18,12 +18,16 @@
 
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
+using NCode.Identity.OpenId.Core.Tests.Metrics;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
+using NCode.Identity.OpenId.Metrics;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Results;
@@ -118,6 +122,38 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     #endregion
 
     #region ExecuteAsync Tests
+
+    [Fact]
+    public async Task ExecuteAsync_WhenAnErrorIsRedirected_TagsTheErrorCode()
+    {
+        var mockError = CreateLooseMock<IOpenIdError>();
+        mockError.SetupGet(x => x.Code).Returns(OpenIdConstants.ErrorCodes.AccessDenied);
+        mockError
+            .SetupGet(x => x.OpenIdEnvironment)
+            .Returns(CreateStrictMock<OpenIdEnvironment>().Object);
+        mockError
+            .SetupGet(x => x.Parameters)
+            .Returns(new ParameterCollection([], cloneParameters: false));
+        var result = new AuthorizationResult(
+            RedirectUri,
+            OpenIdConstants.ResponseModes.Query,
+            mockError.Object
+        );
+        var metricsTags = new TestHttpMetricsTagsFeature();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Features.Set<IHttpMetricsTagsFeature>(metricsTags);
+
+        await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        var tag = Assert.Single(metricsTags.Tags);
+        Assert.Equal(OpenIdMetricAttributes.Error, tag.Key);
+        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, tag.Value);
+        Assert.StartsWith(
+            RedirectUri.AbsoluteUri,
+            httpContext.Response.Headers.Location.ToString(),
+            StringComparison.Ordinal
+        );
+    }
 
     [Fact]
     public async Task ExecuteAsync_WhenResponseModeQuery_OmitsInternalParameters()

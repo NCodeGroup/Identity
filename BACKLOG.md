@@ -186,11 +186,11 @@ entry and/or ADR that closed it.
     mechanism, behavioral rules, and discovery/validation details above); what is left is conformance wiring and one
     independent registration feature.
     - **Conformance wiring — handed to the conformance track (`T1` / `T6`).** The FAPI 2.0 conformance pieces are owned
-      by the conformance work-stream (the spec-coverage harness and headless probe runner), not this OP item: flip the
-      `apps/conformance` `coverage.ts` FAPI rows (today they already classify from discovery — `profile-fapi2` reports
-      `implemented` once PAR + a sender-constraining mechanism + PKCE `S256` are advertised, which the OP now does); add a
-      FAPI-2.0 seed client (`security_profiles` = `[fapi2]`, `private_key_jwt`) to `AddConformanceSeed` (this first needs the
-      conformance seed model extended — `ConformanceClientSeed` is secret-only today, with no asymmetric-key /
+      by the conformance work-stream (the spec-coverage harness and headless probe runner), not this OP item. The
+      `coverage.ts` `profile-fapi2` row needs no change: it classifies from discovery and reports `implemented` once
+      PAR + a sender-constraining mechanism + PKCE `S256` are advertised, which the OP does. Still to do: add a
+      FAPI-2.0 seed client (`security_profiles` = `[fapi2]`, `private_key_jwt`) to `AddConformanceSeed` (this first
+      needs the conformance seed model extended — `ConformanceClientSeed` is secret-only today, with no asymmetric-key /
       `security_profiles` fields); and wire the OpenID Foundation FAPI 2.0 test plan into `T1` and the `T6` matrix.
     - **OP-side follow-up — accept non-secret `token_endpoint_auth_method` values at Dynamic Client Registration.**
       Extend DCR so `private_key_jwt`, `client_secret_jwt`, `tls_client_auth`, and `self_signed_tls_client_auth` are
@@ -200,11 +200,22 @@ entry and/or ADR that closed it.
       client cannot use an advertised strong-auth method at all and must be provisioned through the management API —
       and project the `tls_client_auth_*` metadata from the registration request. An asymmetric method needs its key
       material at registration (`jwks` / `jwks_uri` for `private_key_jwt` and `self_signed_tls_client_auth`), and only
-      the secret-based methods (`client_secret_*`) are issued a `client_secret`.
-    - **Deferred hardening — disable CORS on the authorization endpoint (FAPI §5.2.3).** No current exposure: the
-      repository ships only a development-only, explicit-origin CORS policy that is not applied to the authorization
-      endpoint in production. Add a defense-in-depth guard that asserts no CORS policy can ever attach to the
-      front-channel endpoints (low priority).
+      the secret-based methods (`client_secret_*`) are issued a `client_secret`. Planned shape: replace the fixed list
+      with the tenant's effective `token_endpoint_auth_methods_supported`, so the vocabulary stays open and a `fapi2`
+      tenant refuses `client_secret_*` at registration rather than at the first token request; require exactly one
+      `tls_client_auth_*` identity for `tls_client_auth`; never accept trust anchors from a registering client (the
+      tenant's anchors apply and none fails closed, [ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md));
+      return the new fields from the registration read and update responses; record the decision in an ADR or an
+      ADR-0145 amendment.
+    - **Hardening — no CORS on the front-channel endpoints (FAPI 2.0).** A production host adds no CORS middleware, so
+      it has no exposure, but in Development `UseDeveloperCors` applies the developer policy to every endpoint and
+      `/oauth2/authorize`, `/oauth2/continue`, `/oauth2/end_session`, and the interactive surface answer the local Vite
+      origins with `Access-Control-Allow-Origin` (verified 2026-10-21). **Do not use `DisableCorsAttribute`:** it is
+      `ICorsMetadata`, and ASP.NET Core's endpoint middleware throws for an endpoint carrying it when no CORS middleware
+      ran, so it turns every production request to those endpoints into a 500 (caught in review of a first attempt).
+      Planned shape: a non-CORS front-channel marker metadata on those endpoints, honored by `UseDeveloperCors` (apply
+      the policy only to unmarked endpoints, after routing), with integration tests in both Development (no CORS header
+      from an allowed origin; discovery still allowed) and a host without CORS (the endpoints still answer).
 
     **Spun-out items (record when starting):** a **JARM + authorization response-mode extensibility seam** work item (the
     response modes are a hardcoded switch in `DefaultAuthorizationResultExecutor` today); **FAPI 1.0 Advanced**; and **S3**

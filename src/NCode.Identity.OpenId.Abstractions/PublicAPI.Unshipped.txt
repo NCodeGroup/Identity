@@ -767,6 +767,7 @@ NCode.Identity.OpenId.Tenants.ITenantResolver.ResolveControlPlaneTenantAsync(Mic
 NCode.Identity.OpenId.Tenants.ITenantResolver.ResolveTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantResolver.TryGetTenantId(Microsoft.AspNetCore.Http.HttpContext! httpContext, out string? tenantId) -> bool
 NCode.Identity.OpenId.Tenants.ITenantResolver.ValidateTenantAsync(string! tenantId, string? issuer, string? mtlsEndpointAliasAuthority, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Tenants.TenantValidationFailure>!>
+NCode.Identity.OpenId.Tenants.ITenantResolver.IsRequiredTenant(string! tenantId) -> bool
 NCode.Identity.OpenId.Tenants.ITenantStrategy
 NCode.Identity.OpenId.Tenants.ITenantStrategy.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
 NCode.Identity.OpenId.Tenants.ITenantStrategy.ResolveControlPlaneTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
@@ -774,6 +775,7 @@ NCode.Identity.OpenId.Tenants.ITenantStrategy.ResolveTenantAsync(Microsoft.AspNe
 NCode.Identity.OpenId.Tenants.ITenantStrategy.StrategyCode.get -> string!
 NCode.Identity.OpenId.Tenants.ITenantStrategy.TryGetTenantId(Microsoft.AspNetCore.Http.HttpContext! httpContext, out string? tenantId) -> bool
 NCode.Identity.OpenId.Tenants.ITenantStrategy.ValidateTenantAsync(string! tenantId, System.Uri? issuer, System.Uri? mtlsEndpointAliasAuthority, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Tenants.TenantValidationFailure>!>
+NCode.Identity.OpenId.Tenants.ITenantStrategy.IsRequiredTenant(string! tenantId) -> bool
 NCode.Identity.OpenId.Tenants.TenantValidationFailure
 NCode.Identity.OpenId.Tenants.TenantValidationFailure.Detail.get -> string!
 NCode.Identity.OpenId.Tenants.TenantValidationFailure.Detail.init -> void

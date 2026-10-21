@@ -182,6 +182,18 @@ internal class DefaultTenantValidator(
             return error;
         }
 
+        // Retired tenant identifiers are never reissued, so a deleted root or static tenant could never be recreated and
+        // every request needing it would fail.
+        if (TenantResolver.IsRequiredTenant(tenant.TenantId))
+        {
+            return new ManagementError
+            {
+                StatusCode = StatusCodes.Status409Conflict,
+                Detail =
+                    "The tenant is required by the deployment (the root tenant, or the static strategy's tenant) and cannot be deleted.",
+            };
+        }
+
         var store = storeManager.GetStore<ITenantStore>();
         var hasDependents = await store.HasDependentsAsync(tenant.TenantId, cancellationToken);
         if (hasDependents)

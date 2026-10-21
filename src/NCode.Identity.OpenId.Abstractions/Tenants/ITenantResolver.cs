@@ -106,6 +106,15 @@ public interface ITenantResolver
     );
 
     /// <summary>
+    /// Determines whether the deployment requires the specified tenant: one that is created on demand — the root tenant
+    /// under every strategy, and the configured tenant under the static single-tenant strategy. A required tenant cannot
+    /// be deleted, because retired tenant identifiers are never reissued and the next request would fail to recreate it.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant.</param>
+    /// <returns><see langword="true"/> when the deployment requires the tenant; otherwise, <see langword="false"/>.</returns>
+    bool IsRequiredTenant(string tenantId);
+
+    /// <summary>
     /// Validates that a tenant with the specified identifier and issuer can be served: the identifier is 1 to 63
     /// lowercase letters, digits, or hyphens that starts and ends with a letter or digit; the issuer, when present, is
     /// an absolute <c>https</c> URL (<c>http</c> only for a loopback host) with no user information, query, or fragment;

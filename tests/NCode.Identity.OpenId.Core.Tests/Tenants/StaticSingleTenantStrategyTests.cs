@@ -165,6 +165,29 @@ public sealed class StaticSingleTenantStrategyTests
 
     #endregion
 
+    #region IsRequiredTenant Tests
+
+    [Theory]
+    [InlineData("tenant-1", true)]
+    [InlineData(RootTenantOptions.DefaultTenantId, true)]
+    [InlineData("tenant-2", false)]
+    public void IsRequiredTenant_RequiresTheConfiguredAndRootTenantsOnly(
+        string tenantId,
+        bool expected
+    )
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions { TenantId = "tenant-1" }
+        );
+
+        Assert.Equal(expected, strategy.IsRequiredTenant(tenantId));
+        mocks.Verify();
+    }
+
+    #endregion
+
     #region GetDefaultIssuerAsync Tests
 
     [Fact]

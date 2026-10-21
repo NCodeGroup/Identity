@@ -983,7 +983,8 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   counts every minute in batches of 256 rows, each one unit of work guarded by the rows' concurrency tokens; a failed
   batch returns its counts for the next flush. Retention is 400 days, pruned once per UTC day (`TenantUsageOptions`).
   `GET /api/tenants/{tenantId}/usage?from=&to=` reads up to 366 days. Rolling up the quota counter and appending per
-  request through the event seam were rejected. Admitting and billing an overage is split out as `F82`._
+  request through the event seam were rejected. The admin UI shows the ledger on the tenant page's Usage tab. Admitting
+  and billing an overage is split out as `F82`._
 
 - **`F80` — Metrics for the protocol endpoints.** Implement
   [ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md): one owner per

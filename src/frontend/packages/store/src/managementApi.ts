@@ -550,8 +550,8 @@ export const managementApi = createApi({
         { type: 'Settings', id: tenantTag(tenantId, 'tenant-effective') },
       ],
     }),
-    // The usage ledger is append-only and written by the server's periodic flush (ADR-0199), so it is not tagged:
-    // every mount reads the current ledger.
+    // The usage ledger grows with every flush of the server (ADR-0199), so nothing is cached once unused: every mount
+    // reads the current ledger.
     getTenantUsage: build.query<
       TenantUsageResource,
       { tenantId: string; from?: string | undefined; to?: string | undefined }
@@ -563,6 +563,7 @@ export const managementApi = createApi({
         const search = params.toString();
         return `api/tenants/${encodeURIComponent(tenantId)}/usage${search ? `?${search}` : ''}`;
       },
+      keepUnusedDataFor: 0,
     }),
     // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
     updateTenantSettings: build.mutation<

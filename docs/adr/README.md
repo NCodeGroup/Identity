@@ -228,3 +228,4 @@ standards.
 | [0190](./0190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md) | Hashing names the framework algorithm, and binary encodings are registered strategies | Accepted |
 | [0191](./0191-the-management-api-authenticates-against-the-control-plane-tenant.md) | The management API authenticates against the control-plane tenant | Accepted |
 | [0192](./0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md) | Dynamic registration binds a client to the resource server its initial access token names | Accepted |
+| [0193](./0193-the-interactive-surface-is-served-under-the-tenant-route.md) | The interactive surface is served under the tenant route, and its session is scoped to the tenant's path | Accepted |

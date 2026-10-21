@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The interactive surface is served under the tenant route.** The login, consent, logout, and account endpoints
+  share the protocol endpoints' tenant route, so interactive flows work under `DynamicByPath` at
+  `/{tenantId}/account/*`.
+  Every redirect the surface issues, the consent challenge, and the cookie scheme's login challenge are tenant-relative.
+  The server-rendered forms post to page-relative `login` and `consent`. The session cookie is scoped to the tenant's
+  path, so tenants that share an origin keep separate sessions. Path scoping is not an isolation boundary within an
+  origin; select tenants by host when they must be isolated. Serving the `apps/auth` bundle beneath the tenant route is
+  still pending (backlog `F50`). See
+  [ADR-0193](docs/adr/0193-the-interactive-surface-is-served-under-the-tenant-route.md).
 - **The Management console scopes an initial access token to a resource server.** The Grants page's mint dialog
   offers an optional picker of the tenant's non-system resource servers, loaded while the dialog is open. It sends the
   choice as `resourceServerId`, and the one-time reveal names the resource server the registered client will be bound

@@ -354,6 +354,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         await recorder.RecordClientAuthenticationFailedAsync(
             mockContext.Object,
             "client-1",
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
             "client_not_found",
             CancellationToken.None
         );
@@ -362,6 +363,10 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal("client.authentication", captured.Action);
         Assert.Equal(AuditOutcome.Failure, captured.Outcome);
         Assert.Equal("client-1", captured.ClientId);
+        Assert.Equal(
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            captured.AuthenticationMethod
+        );
         Assert.Equal("client_not_found", captured.Reason);
         Assert.Null(captured.SubjectId);
     }

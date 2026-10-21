@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using Microsoft.Extensions.Options;
 using NCode.Identity.SharedState.Valkey.Facades;
 using NCode.Identity.SharedState.Valkey.Options;
@@ -34,7 +35,8 @@ namespace NCode.Identity.SharedState.Valkey;
 internal class ValkeyExpiringKeySet(
     IValkeyConnection connection,
     IOptions<ValkeyOptions> optionsAccessor,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    ValkeySharedStateMetrics metrics
 ) : IExpiringKeySet
 {
     private static RedisValue Marker => 1;
@@ -44,6 +46,8 @@ internal class ValkeyExpiringKeySet(
     private string KeyPrefix { get; } = optionsAccessor.Value.KeyPrefix;
 
     private TimeProvider TimeProvider { get; } = timeProvider;
+
+    private ValkeySharedStateMetrics Metrics { get; } = metrics;
 
     /// <inheritdoc />
     public async ValueTask<bool> TryAddAsync(
@@ -63,10 +67,30 @@ internal class ValkeyExpiringKeySet(
             TimeSpan.FromMilliseconds(Math.Ceiling(timeToLive.TotalMilliseconds))
         );
 
-        var database = await Connection.GetDatabaseAsync(cancellationToken);
-        return await database
-            .StringSetAsync(GetKey(key), Marker, expiration, ValueCondition.NotExists)
-            .WaitAsync(cancellationToken);
+        var startTimestamp = Stopwatch.GetTimestamp();
+        try
+        {
+            var database = await Connection.GetDatabaseAsync(cancellationToken);
+            var added = await database
+                .StringSetAsync(GetKey(key), Marker, expiration, ValueCondition.NotExists)
+                .WaitAsync(cancellationToken);
+
+            Metrics.OperationCompleted(
+                ValkeySharedStateMetrics.KeySetTryAddOperation,
+                startTimestamp,
+                exception: null
+            );
+            return added;
+        }
+        catch (Exception exception)
+        {
+            Metrics.OperationCompleted(
+                ValkeySharedStateMetrics.KeySetTryAddOperation,
+                startTimestamp,
+                exception
+            );
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -74,8 +98,28 @@ internal class ValkeyExpiringKeySet(
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        var database = await Connection.GetDatabaseAsync(cancellationToken);
-        return await database.KeyExistsAsync(GetKey(key)).WaitAsync(cancellationToken);
+        var startTimestamp = Stopwatch.GetTimestamp();
+        try
+        {
+            var database = await Connection.GetDatabaseAsync(cancellationToken);
+            var exists = await database.KeyExistsAsync(GetKey(key)).WaitAsync(cancellationToken);
+
+            Metrics.OperationCompleted(
+                ValkeySharedStateMetrics.KeySetContainsOperation,
+                startTimestamp,
+                exception: null
+            );
+            return exists;
+        }
+        catch (Exception exception)
+        {
+            Metrics.OperationCompleted(
+                ValkeySharedStateMetrics.KeySetContainsOperation,
+                startTimestamp,
+                exception
+            );
+            throw;
+        }
     }
 
     private RedisKey GetKey(string key) => KeyPrefix + key;

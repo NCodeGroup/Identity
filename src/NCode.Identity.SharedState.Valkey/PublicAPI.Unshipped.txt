@@ -9,3 +9,5 @@ NCode.Identity.SharedState.Valkey.Options.ValkeyOptions
 NCode.Identity.SharedState.Valkey.Options.ValkeyOptions.KeyPrefix.get -> string!
 NCode.Identity.SharedState.Valkey.Options.ValkeyOptions.KeyPrefix.set -> void
 NCode.Identity.SharedState.Valkey.Options.ValkeyOptions.ValkeyOptions() -> void
+NCode.Identity.SharedState.Valkey.ValkeyMetrics
+const NCode.Identity.SharedState.Valkey.ValkeyMetrics.MeterName = "NCode.Identity.SharedState.Valkey" -> string!

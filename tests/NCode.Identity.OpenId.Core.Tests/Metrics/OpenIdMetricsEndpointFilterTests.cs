@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.OpenId.Authentication.Metrics;
+using NCode.Identity.OpenId.Metrics;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Metrics;
@@ -31,13 +32,6 @@ public sealed class OpenIdMetricsEndpointFilterTests : BaseTests
     private OpenIdMetricsEndpointFilter Filter { get; } = new();
 
     #region Scaffolding
-
-    private sealed class TestMetricsTagsFeature : IHttpMetricsTagsFeature
-    {
-        public ICollection<KeyValuePair<string, object?>> Tags { get; } = [];
-
-        public bool MetricsDisabled { get; set; }
-    }
 
     private static DefaultHttpContext CreateHttpContext(string? endpointName)
     {
@@ -67,7 +61,7 @@ public sealed class OpenIdMetricsEndpointFilterTests : BaseTests
     public async Task InvokeAsync_WhenTheEndpointIsNamed_TagsTheRequestWithTheEndpointName()
     {
         var httpContext = CreateHttpContext(EndpointName);
-        var tagsFeature = new TestMetricsTagsFeature();
+        var tagsFeature = new TestHttpMetricsTagsFeature();
         httpContext.Features.Set<IHttpMetricsTagsFeature>(tagsFeature);
         var expectedResult = new object();
 
@@ -75,7 +69,7 @@ public sealed class OpenIdMetricsEndpointFilterTests : BaseTests
 
         Assert.Same(expectedResult, result);
         var tag = Assert.Single(tagsFeature.Tags);
-        Assert.Equal(OpenIdMetricsEndpointFilter.EndpointAttribute, tag.Key);
+        Assert.Equal(OpenIdMetricAttributes.Endpoint, tag.Key);
         Assert.Equal(EndpointName, tag.Value);
     }
 
@@ -83,7 +77,7 @@ public sealed class OpenIdMetricsEndpointFilterTests : BaseTests
     public async Task InvokeAsync_WhenTheEndpointIsUnnamed_AddsNoTag()
     {
         var httpContext = CreateHttpContext(endpointName: null);
-        var tagsFeature = new TestMetricsTagsFeature();
+        var tagsFeature = new TestHttpMetricsTagsFeature();
         httpContext.Features.Set<IHttpMetricsTagsFeature>(tagsFeature);
 
         await InvokeAsync(Filter, httpContext, result: null);

@@ -40,6 +40,11 @@ public abstract class ClientAuthenticationHandlerTestBase : BaseTests
 {
     protected const string ClientId = "client-1";
 
+    /// <summary>
+    /// Gets the client-authentication method of the handler under test, which it audits on a failure.
+    /// </summary>
+    protected abstract string AuthenticationMethod { get; }
+
     protected Mock<IOpenIdClientResolver> MockClientResolver { get; }
     protected Mock<IOpenIdClientFactory> MockClientFactory { get; }
     protected Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
@@ -101,6 +106,7 @@ public abstract class ClientAuthenticationHandlerTestBase : BaseTests
                 x.RecordClientAuthenticationFailedAsync(
                     MockContext.Object,
                     ClientId,
+                    AuthenticationMethod,
                     reason,
                     CancellationToken.None
                 )

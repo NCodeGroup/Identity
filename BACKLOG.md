@@ -304,28 +304,6 @@ entry and/or ADR that closed it.
   ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)). Decide in an ADR the
   window (calendar day in UTC or rolling), what happens at the quota (reject with `429`, or allow and report an
   overage), and how a plan tier sets the quota through the settings cascade. Builds on `F45` (done).
-- **`F80` — Metrics for the protocol endpoints.** Implement
-  [ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md): one owner per
-  signal, only bounded attributes, and nothing measured twice. Done so far: the `NCode.Identity.OpenId.Authentication`
-  meter (`OpenIdAuthenticationMetrics.MeterName`, instruments in the internal `AuthenticationMetrics` singleton from
-  `IMeterFactory`), `ncode.identity.rate_limiting.requests` in `DefaultRequestRateLimiter`, and the
-  `ncode.identity.openid.endpoint` tag from `OpenIdMetricsEndpointFilter`. Remaining:
-  - **Event meter.** Move `DefaultEventMetricsHandler` to `IMeterFactory` with a public meter-name constant, and rename
-    its attributes to `ncode.identity.event.type`, `ncode.identity.audit.action`, and `ncode.identity.audit.outcome`.
-  - **Endpoint enrichment.** On the token endpoint, tag `ncode.identity.openid.grant_type` (`_OTHER` for an
-    unregistered value). Tag `ncode.identity.openid.error` where the error response is written, so the endpoints, the
-    exception filter, and the rate-limit filter all tag it.
-  - **Event attributes.** An interface through which an event type declares bounded metric attributes (the grant and
-    token type of `token.issued`, the method of a client-authentication failure), read by the event metrics handler.
-  - **Shared-state instrument.** `ncode.identity.shared_state.operation.duration` (operation, adapter, `error.type`) in
-    the in-process and Valkey adapters, under an `NCode.Identity.SharedState` meter.
-  - **Reference host.** The OpenTelemetry SDK and OTLP exporter, the family's meters plus ASP.NET Core, Kestrel,
-    `System.Net.Http`, and runtime instrumentation, and a view that drops `server.address` and `server.port` from
-    `http.client.request.duration`. Pin current upstream versions and check them against the advisory database.
-  - **Tests and catalog.** Adopt `MetricCollector<T>` (`Microsoft.Extensions.Diagnostics.Testing`) for the instrument
-    tests, which read a factory-scoped `MeterListener` today, and add the instrument catalog beside the event catalog.
-  Touch points: `src/NCode.Identity.Events/DefaultEventMetricsHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Metrics/`, the shared-state adapters, and the host's `Program.cs`.
 
 - **`F48` — Publish the deployment artifacts the platform runs.** Per
   [ADR-0133](docs/adr/0133-we-ship-and-run-the-same-deployment-artifacts.md), the hosted platform consumes only the

@@ -156,12 +156,13 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
         return mockClient.Object;
     }
 
-    private void SetupAudit(string reason) =>
+    private void SetupAudit(string authenticationMethod, string reason) =>
         MockAuditEventRecorder
             .Setup(x =>
                 x.RecordClientAuthenticationFailedAsync(
                     MockContext.Object,
                     ClientId,
+                    authenticationMethod,
                     reason,
                     CancellationToken.None
                 )
@@ -242,7 +243,10 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
             isRefused: true
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
-        SetupAudit("authentication_method_not_registered");
+        SetupAudit(
+            OpenIdConstants.ClientAuthenticationMethods.None,
+            "authentication_method_not_registered"
+        );
 
         var result = await service.AuthenticateClientAsync(
             MockContext.Object,
@@ -286,7 +290,10 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
             isRefused: true
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
-        SetupAudit("authentication_method_not_registered");
+        SetupAudit(
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            "authentication_method_not_registered"
+        );
 
         var result = await service.AuthenticateClientAsync(
             MockContext.Object,
@@ -310,7 +317,10 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
             isRefused: true
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
-        SetupAudit("authentication_method_not_permitted");
+        SetupAudit(
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            "authentication_method_not_permitted"
+        );
 
         var result = await service.AuthenticateClientAsync(
             MockContext.Object,
@@ -335,7 +345,10 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
             isRefused: true
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
-        SetupAudit("authentication_method_not_permitted");
+        SetupAudit(
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            "authentication_method_not_permitted"
+        );
 
         var result = await service.AuthenticateClientAsync(
             MockContext.Object,

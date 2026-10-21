@@ -200,6 +200,7 @@ internal class DefaultClientAuthenticationService(
         await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
             openIdContext,
             client.ClientId,
+            method,
             reason,
             cancellationToken
         );

@@ -10,14 +10,23 @@ change to the public API is a **major** version bump.
 
 ### Added
 
-- **Protocol-endpoint metrics, first slice.** `NCode.Identity.OpenId.Authentication` records through a meter named by
-  `OpenIdAuthenticationMetrics.MeterName` (`NCode.Identity.OpenId.Authentication`), created from `IMeterFactory`. The
-  counter `ncode.identity.rate_limiting.requests` (`{request}`) counts every request judged against a rate-limit
-  partition by `ncode.identity.rate_limiting.partition` (`tenant`, `address`, `client`) and
-  `ncode.identity.rate_limiting.result` (`admitted`, `rejected`, `store_unavailable`), so the fail-open path is
-  visible. Every protocol endpoint also tags ASP.NET Core's `http.server.request.duration` with
-  `ncode.identity.openid.endpoint`, its registered name (`token_endpoint`, …), which stays stable when routes or tenant
-  routing change. See ADR-0197; the rest of the design is tracked as `F80`.
+- **Protocol-endpoint metrics.** The protocol endpoints tag ASP.NET Core's `http.server.request.duration` with
+  `ncode.identity.openid.endpoint` (the endpoint's registered name, stable when routes or tenant routing change),
+  `ncode.identity.openid.error` (the OAuth error code of every error response, including the rate limiter's `429`), and,
+  on the token endpoint, `ncode.identity.openid.grant_type` (a registered grant type, else `_OTHER`); the attribute
+  names are constants on `OpenIdMetricAttributes`. `NCode.Identity.OpenId.Authentication` owns the meter
+  `OpenIdAuthenticationMetrics.MeterName` and the counter `ncode.identity.rate_limiting.requests` (`{request}`) by
+  `ncode.identity.rate_limiting.partition` and `ncode.identity.rate_limiting.result` (`admitted`, `rejected`,
+  `store_unavailable`). `NCode.Identity.SharedState.Valkey` owns the meter `ValkeyMetrics.MeterName` and the histogram
+  `ncode.identity.shared_state.operation.duration` (`s`) of each Valkey round trip by operation, adapter, and
+  `error.type`. An event adds bounded attributes to `ncode.identity.events.published` by implementing
+  `ISupportMetricAttributes`: `TokenIssuedAuditEvent` adds `ncode.identity.token.type` and
+  `ClientAuthenticationFailedAuditEvent` adds `ncode.identity.client_authentication.method`. `NCode.Identity.Server`
+  adds `AddOpenTelemetryMetrics(configuration)`, which the reference host calls: the family's meters, ASP.NET Core,
+  Kestrel, `System.Net.Http` (bounded attributes only), and the runtime, exported over OTLP when
+  `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Every meter comes from `IMeterFactory`. The catalog is
+  [`docs/metrics.md`](docs/metrics.md) ([ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md),
+  backlog `F80`).
 - **Per-tenant rate limits.** Three settings limit the requests per minute a tenant's protocol endpoints serve:
   `rate_limit_tenant_per_minute` (every request), `rate_limit_address_per_minute` (one remote address, an IPv6 address
   counted by its `/64`), and `rate_limit_client_per_minute` (one authenticated confidential client, set on the tenant or
@@ -339,6 +348,13 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Breaking:** the event metric `ncode.identity.events.published` is recorded through a meter created from
+  `IMeterFactory`, whose name moves from `DefaultEventMetricsHandler.MeterName` to `EventMetrics.MeterName`
+  (`NCode.Identity.Events`, unchanged), and its attributes are renamed from `event.type`, `audit.action`, and
+  `audit.outcome` to `ncode.identity.event.type`, `ncode.identity.audit.action`, and `ncode.identity.audit.outcome`.
+  `DefaultEventMetricsHandler` is no longer `IDisposable`.
+- **Breaking:** `IAuditEventRecorder.RecordClientAuthenticationFailedAsync` takes the attempted `authenticationMethod`,
+  and `ClientAuthenticationFailedAuditEvent` requires `AuthenticationMethod`.
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto the server's and provisions a configured algorithm only when one of the tenant's effective algorithm
   lists names it — by default the ID token, UserInfo, introspection, and access-token signing lists and the

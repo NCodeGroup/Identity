@@ -16,7 +16,9 @@
 
 #endregion
 
+using System.Diagnostics;
 using JetBrains.Annotations;
+using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 
 namespace NCode.Identity.OpenId.Authentication.Auditing;
@@ -26,7 +28,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 /// metadata only; the token value itself is never present on the event.
 /// </summary>
 [PublicAPI]
-public sealed record TokenIssuedAuditEvent : AuditEvent
+public sealed record TokenIssuedAuditEvent : AuditEvent, ISupportMetricAttributes
 {
     /// <inheritdoc />
     public override string Action => OpenIdAuditActions.TokenIssued;
@@ -36,4 +38,13 @@ public sealed record TokenIssuedAuditEvent : AuditEvent
     /// authorization code).
     /// </summary>
     public required string TokenType { get; init; }
+
+    /// <summary>
+    /// The name of the metric attribute that carries <see cref="TokenType"/> on the counter of published events.
+    /// </summary>
+    public const string TokenTypeMetricAttribute = "ncode.identity.token.type";
+
+    /// <inheritdoc />
+    public void AddMetricAttributes(ref TagList tags) =>
+        tags.Add(TokenTypeMetricAttribute, TokenType);
 }

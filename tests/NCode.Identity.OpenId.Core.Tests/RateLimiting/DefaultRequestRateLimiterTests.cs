@@ -21,6 +21,7 @@ using System.Globalization;
 using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -61,43 +62,33 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
     private ServiceProvider MetricsProvider { get; }
 
-    private MeterListener Listener { get; }
+    private MetricCollector<long> Collector { get; }
 
-    private List<(string? Partition, string? Result)> Judgements { get; } = [];
+    private List<(string? Partition, string? Result)> Judgements =>
+        Collector
+            .GetMeasurementSnapshot()
+            .Select(measurement =>
+                (
+                    measurement.Tags.GetValueOrDefault(
+                        AuthenticationMetrics.RateLimitingPartitionAttribute
+                    ) as string,
+                    measurement.Tags.GetValueOrDefault(
+                        AuthenticationMetrics.RateLimitingResultAttribute
+                    ) as string
+                )
+            )
+            .ToList();
 
     public DefaultRequestRateLimiterTests()
     {
-        // The meter factory scopes the meter to this test, so the listener sees only this limiter's measurements.
+        // The meter factory scopes the meter to this test, so the collector sees only this limiter's measurements.
         MetricsProvider = new ServiceCollection().AddMetrics().BuildServiceProvider();
         var meterFactory = MetricsProvider.GetRequiredService<IMeterFactory>();
-        Listener = new MeterListener
-        {
-            InstrumentPublished = (instrument, listener) =>
-            {
-                if (
-                    ReferenceEquals(instrument.Meter.Scope, meterFactory)
-                    && instrument.Name == AuthenticationMetrics.RateLimitingRequestsName
-                )
-                    listener.EnableMeasurementEvents(instrument);
-            },
-        };
-        Listener.SetMeasurementEventCallback<long>(
-            (_, _, tags, _) =>
-            {
-                string? partition = null;
-                string? result = null;
-                foreach (var tag in tags)
-                {
-                    if (tag.Key == AuthenticationMetrics.RateLimitingPartitionAttribute)
-                        partition = tag.Value as string;
-                    else if (tag.Key == AuthenticationMetrics.RateLimitingResultAttribute)
-                        result = tag.Value as string;
-                }
-
-                Judgements.Add((partition, result));
-            }
+        Collector = new MetricCollector<long>(
+            meterFactory,
+            OpenIdAuthenticationMetrics.MeterName,
+            AuthenticationMetrics.RateLimitingRequestsName
         );
-        Listener.Start();
 
         MockCounterSet = CreateStrictMock<IExpiringCounterSet>();
         MockTimeProvider = CreateStrictMock<TimeProvider>();
@@ -115,7 +106,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     {
         if (disposing)
         {
-            Listener.Dispose();
+            Collector.Dispose();
             MetricsProvider.Dispose();
         }
 

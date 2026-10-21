@@ -935,13 +935,18 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   `IHttpMetricsTagsFeature`), outbound calls to `System.Net.Http`, and domain outcomes to the event seam's counter.
   Add a family instrument only for a mechanism that is none of these, such as rate limiting or shared state.
 - 👁 **Create meters through `IMeterFactory`, never `new Meter(…)`**: one meter per package, named after the package
-  as a public constant, with its instruments in one internal `…Metrics` singleton that call sites use.
+  as a public constant, with its instruments in one internal `…Metrics` singleton that call sites use. A meter name
+  starts with `NCode.Identity.`, so the host's `AddOpenTelemetryMetrics` subscribes to it without a change.
+- 👁 **An event adds metric dimensions by implementing `ISupportMetricAttributes`**, never through a counter at its
+  call site; an endpoint tags the request through `OpenIdMetricAttributes.Add`.
 - 👁 **Name instruments and attributes `ncode.identity.{area}.…`**, keep an OpenTelemetry semantic-convention name
   (`error.type`) where one exists, and use UCUM units: durations as histograms in seconds, counts as `{noun}`.
 - 👁 **A metric attribute's value comes from a vocabulary the server controls**: a registered name, a server-chosen
   error code, or `_OTHER`. Never a tenant, client, subject, or address, and never a value echoed from the request;
   those belong to traces and logs.
 - 👁 **Test every instrument with `MetricCollector<T>`**, asserting its name, unit, and attributes.
+- 👁 **A new or renamed instrument or attribute updates [`docs/metrics.md`](../../docs/metrics.md)** in the same
+  change; the catalog is the contract dashboards and alerts are built against.
 
 ## 12. Configuration & options
 

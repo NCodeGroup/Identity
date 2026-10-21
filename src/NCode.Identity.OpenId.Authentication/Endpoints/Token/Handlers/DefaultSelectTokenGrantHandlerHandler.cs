@@ -19,6 +19,7 @@
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Metrics;
 using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 
@@ -59,6 +60,14 @@ internal class DefaultSelectTokenGrantHandlerHandler(IEnumerable<ITokenGrantHand
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
         }
+
+        // Tags the request's duration measurement with the grant type, or _OTHER for one no handler serves, so a caller
+        // cannot create a series per value it invents (ADR-0197).
+        OpenIdMetricAttributes.Add(
+            openIdContext.Http,
+            OpenIdMetricAttributes.GrantType,
+            HandlersByGrantType.Contains(grantType) ? grantType : OpenIdMetricAttributes.OtherValue
+        );
 
         // grant_types_supported
         if (

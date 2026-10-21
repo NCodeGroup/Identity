@@ -79,6 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U26`     | `U25`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
+| `R` — Review findings                 | `R48`     | `R47`      |
 
 ---
 
@@ -367,3 +368,155 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
 ## Tooling & agent customization (group `X`)
 
 _No pending items. Completed `X` items are archived in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)._
+
+## Review findings for the feature-gaps branch (group `R`)
+
+A principal-level review of the `copilot/work-through-feature-gaps-frontend` branch against `main` (93 commits, 670
+files) recorded these items. Severity follows the review: **P1** blocks merging the branch, **P2** should follow soon,
+**P3** is hardening, and **Refactor** removes duplicated or convention-based code. Items marked _pre_ already exist on
+`main`; the branch makes them matter. The pull request tracks them as a checklist; when an item is done, move it to
+[`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md) as usual.
+
+### P1 — before the branch merges
+
+- **`R1` — Merge `main` and reconcile clashing backlog IDs.** `BACKLOG.md` conflicts, and
+  `tests/NCode.Identity.Jose.Tests/Extensions/WithPrecisionInSecondsExtensionsTests.cs` is deleted here (D11 moved it
+  to `NCode.Time.Tests`) but edited on `main` (CA1825). Keep the deletion. `main`'s `e66d7bf3` uses `F78`/`U23` for the
+  Backend-for-Frontend design, which this branch already used for the mTLS alias template and secret rotation;
+  renumber one side across `BACKLOG*.md`, `CHANGELOG.md`, and the ADRs.
+- **`R2` — Accept a pushed request object that carries every authorization parameter (RFC 9126 §3).**
+  `ValidateRequestMessage` requires `response_type` and `redirect_uri` on the outer message, `/par` runs the same
+  check, and the request object's `redirect_uri` must equal an outer one, so PAR + JAR — the only path
+  `fapi1-advanced` allows — fails. Take `response_type`, `redirect_uri`, and `client_id` from the verified object and
+  compare outer values only when sent. Touch points: `DefaultValidateAuthorizationRequestHandler.cs:115-130, 199-213`,
+  `DefaultPushedAuthorizationRequestEndpointHandler.cs:145`. Add a PAR test whose body is only `request` plus client
+  authentication.
+- **`R3` — Deliver errors raised after the request object is verified with its `state` and `response_mode`.** _pre._
+  The processor's `catch` uses the redirect context built from the outer query, so a request whose `state` and
+  `response_mode=jwt` are only inside the object gets an unsigned error without `state` (RFC 6749 §4.1.2.1). Touch
+  point: `DefaultAuthorizationRequestProcessor.cs:68-79`.
+- **`R4` — Keep unauthenticated metadata endpoints out of the daily quota and overage.** `RateLimitEndpointFilter`
+  covers discovery and JWKS, so anonymous traffic can spend a tenant's quota, bill its overage, and then refuse its
+  clients until 00:00 UTC. Keep those endpoints under the per-minute limits only, and update ADR-0198 and ADR-0200.
+  Touch points: `RateLimitEndpointFilter.cs:56-65`, `OpenIdEndpointGroup.cs:82`.
+- **`R5` — Bound the cost of failing open when Valkey is unreachable.** Each counter call waits for the client's
+  async timeout (about 5 s), the checks run in sequence (about 15 s per request, 25 s per confidential token request),
+  and each failure logs a warning with a stack trace. Add a 50–100 ms per-call timeout, a breaker (or an
+  `IsConnected` check), and a rate-limited warning; decide whether Valkey should affect readiness. Touch points:
+  `DefaultRequestRateLimiter.cs:193-214, 247-264`, `ValkeyExpiringCounterSet.cs:83`,
+  `SharedState.Valkey/DefaultRegistration.cs:109, 137`.
+- **`R6` — Re-seed a running tenant's keys when its settings change.** Key seeding skips algorithms the current
+  settings don't permit and runs only when a tenant is created or cached; the 4 h sliding cache keeps busy tenants
+  loaded, so an algorithm permitted later is advertised without a key until every replica restarts. Publish one
+  "tenant changed" notification from settings, secret, and delete writes that evicts the cached tenant and re-seeds
+  it, and add `AuthorizationSigningAlgValuesSupported` to the key-provisioning defaults. Touch points:
+  `TenantKeySeedHandler.cs:107, 163`, `DefaultOpenIdTenantFactory.cs:218, 429-453`,
+  `OpenIdTenantKeyProvisioningOptions.cs:71-79`.
+- **`R7` — Document rotating the key-protection certificate.** The chart suggests cert-manager, which renews into the
+  same Secret; after the next restart the new thumbprint cannot decrypt the key ring. State that the certificate is
+  long-lived and rotated by hand through `previousCertificateSecrets`, warn against in-place renewal, and optionally
+  fail readiness when the default key cannot be decrypted. Touch points: `charts/ncode-identity-host/values.yaml:68-72`,
+  `charts/ncode-identity-host/README.md:14-15`, ADR-0177.
+- **`R8` — Refuse deleting the root tenant.** Retired tenant IDs are never reissued, so deleting the root makes
+  `EnsureCreatedAsync(root)` throw for every tenant. Return 409 for the root and the static strategy's tenant, with a
+  test. Touch point: `DefaultTenantValidator.cs:166-198`.
+
+### P2
+
+- **`R9` — Read `scope` and `response_type` only from a request object.** They still fall back to the unsigned outer
+  query (FAPI 1.0 Advanced §5.2.2-10); an outer copy must match when present. Touch point:
+  `Messages/AuthorizationRequest.cs:166-172`.
+- **`R10` — Stop a client setting from overriding the FAPI request-object audience.** `request_object_expected_audience`
+  is client-scoped and replace-merged, so no profile can cap it. Add a profile requirement that refuses a non-empty
+  value. Touch point: `DefaultLoadAuthorizationRequestHandler.cs:221-228`.
+- **`R11` — Match redirect URIs exactly and cap loopback redirects under FAPI.** _pre._ The query is not compared,
+  `allow_loopback_redirect` defaults to `true`, and the response writer keeps request-supplied query parameters.
+  Touch points: `DefaultAuthorizationEndpointHandler.cs:354-363`, `AuthorizationResponseWriter.cs:80-81`.
+- **`R12` — Require `nonce` (with `openid`) or `state` under `fapi1-advanced`.** Touch point:
+  `DefaultValidateAuthorizationRequestHandler.cs:285-289, 325-331`.
+- **`R13` — Record request usage after the endpoint runs.** Requests the per-client limit or token quota refuse are
+  billed, including as overage (contradicts ADR-0199 §2). Touch point: `RateLimitEndpointFilter.cs:63-67`.
+- **`R14` — Close the gaps in `ExpandOnlyRule`.** It ignores raw SQL, allows nullable→required with a default (a test
+  asserts it), and misses new unique indexes, foreign keys, and check constraints on existing tables. Touch points:
+  `ExpandOnlyRule.cs:30, 98`, `ExpandOnlyRuleTests.cs:195, 326`.
+- **`R15` — Make `PromoteMtlsEndpointAliasAuthority` safe for the previous release and rollback.** Its SQL removes the
+  settings key the previous release reads, and `Down()` does not restore it. Copy now and remove in a later contract
+  step. Touch point: `20261021021124_PromoteMtlsEndpointAliasAuthority.cs:41-77`.
+- **`R16` — Route CRL/OCSP fetches through the outbound-request guard.** `DisableCertificateDownloads` does not stop
+  revocation fetches, so a tenant-anchored CA can make the server fetch internal URLs. Fetch revocation data through
+  the guarded `HttpClient` and validate offline, or default to offline; record it in ADR-0173. Touch point:
+  `DefaultClientCertificateChainValidator.cs:70-85, 132-137`.
+- **`R17` — Limit initial access tokens scoped to a resource server.** They are reusable and may never expire.
+  Consume after a successful registration or require a lifetime. Touch points:
+  `DefaultInitialAccessTokenValidator.cs:57`, `GrantApiEndpointHandler.cs:261-272`.
+- **`R18` — Match `tls_client_auth_subject_dn` by RFC 4517 `distinguishedNameMatch`.** _pre._ Comparing DER bytes
+  fails for UTF8String-encoded names, which most CAs issue. Touch point:
+  `TlsClientAuthClientAuthenticationHandler.cs:159-168`.
+- **`R19` — Give the migration Job the host's extra environment and volumes.** It ignores `extraEnv`, `extraEnvFrom`,
+  `extraVolumes`, and `extraVolumeMounts`, so TLS-to-Postgres setups fail every install. Touch point:
+  `charts/ncode-identity-host/templates/migration-job.yaml:60-78`.
+- **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
+  replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
+  `src/frontend/apps/auth/src/main.tsx:12-21`.
+- **`R21` — Bound the cost of a server settings PATCH.** It loads every tenant and client, with secrets and tracking,
+  even for an unrelated change. Skip when the permitted algorithm lists are unchanged; otherwise use an untracked
+  projection. Touch point: `ServerApiEndpointHandler.cs:700-735`.
+
+### P3
+
+- **`R22` — Check `response_modes_supported` consistently for the `jwt` shorthand.** Touch points:
+  `DefaultAuthorizationEndpointHandler.cs:309-321`, `DefaultValidateAuthorizationRequestHandler.cs:576`.
+- **`R23` — Select JARM signing credentials during validation, not when the response is written.** Touch point:
+  `JwtAuthorizationResponseModeHandler.cs:77-93`.
+- **`R24` — Cover FAPI 1.0 Advanced and JARM failure paths with tests.** Profile ceilings and defaults, `/authorize`
+  integration (plain `code` refused, `code` + `jwt` accepted, public client refused, `nbf` required), JARM handler
+  failures and encryption, PAR + JAR, and error `state` for a request-object request.
+- **`R25` — Make the usage-ledger flush idempotent, or document that it may overcount.** Touch point:
+  `TenantUsageFlushService.cs:117-123`.
+- **`R26` — Prune the usage ledger with a set-based delete.** Touch point: `TenantUsageStore.RemoveBeforeAsync`.
+- **`R27` — Compare certificate validity in UTC, and document the `x5c` expiry check F72 added.** Touch points:
+  `CertificateLifetimeRequirementHandler.cs:55-69`, ADR-0161, `CHANGELOG.md`.
+- **`R28` — Check the default response-encryption `enc` at dynamic registration.** Touch point:
+  `DefaultClientRegistrationEndpointHandler.cs:1305-1309`.
+- **`R29` — Reject a usage query whose range would precede the minimum date (400, not 500).** Touch point:
+  `TenantApiEndpointHandler.cs:714-716`.
+- **`R30` — Serve interactive bundle assets without resolving the tenant.** Touch point:
+  `InteractiveAuthenticationEndpointGroup.cs:55`.
+- **`R31` — Probe the tenant cache before loading the control-plane tenant.** Touch point:
+  `DefaultOpenIdTenantFactory.cs:178-181`.
+- **`R32` — Tidy the host's readiness code and the stale `/health` references.** Move `readinessTag` away from the
+  data-protection comment in `Program.cs:128-133`; update `docs/adr/0071-aspire-local-dev-orchestrator.md`,
+  `src/frontend/README.md:263`, and `.vscode/launch.json:11`.
+- **`R33` — Keep the migration Job name within 63 characters.** Touch point: `migration-job.yaml:10`.
+- **`R34` — Use the `Recreate` strategy when Valkey is disabled.** `maxSurge: 0` does not wait for terminating pods.
+  Touch point: `charts/ncode-identity-host/templates/deployment.yaml:21-26`.
+- **`R35` — Pin container base images by digest and let Dependabot track them.** Touch points:
+  `src/NCode.Identity.OpenId.Host/Dockerfile:17, 28, 60`, `.github/dependabot.yml`.
+- **`R36` — Test the bundle-shell split against the built bundle's real `index.html`.** Touch point:
+  `InteractiveBundleShell.cs:51-100`.
+
+### Refactor
+
+- **`R37` — One response-mode provider with handler-declared traits.** Replace the three registries (one silently
+  drops duplicates), `EndsWith(".jwt")`, the hard-coded `is Query or QueryJwt`, and the `jwt` alias `switch`
+  (ADR-0150).
+- **`R38` — Derive authorization-response delivery in one place.** One function for redirect URI, mode, and state, plus
+  one declarative policy for outer parameters; lands with `R2`, `R3`, and `R9`.
+- **`R39` — One effective-settings resolver.** It is rebuilt in `TenantKeySeedHandler`, both management handlers, the
+  client handler, and the tenant factory.
+- **`R40` — One coherence validator for client settings.** Shared by dynamic registration, management, and the
+  conformance seed; move `ClientResponseAlgorithmRule` into Authentication.
+- **`R41` — Rate-limit policy as data.** One descriptor table for partitions, quotas, and meters, a batched Valkey
+  round trip, and one metrics wrapper in the Valkey adapters.
+- **`R42` — Split `tls_client_certificate_bound_access_tokens`.** _pre._ Separate advertised server support from the
+  per-client requirement, as DPoP does; today enabling it for a tenant forces every client to present a certificate.
+- **`R43` — Share the readiness tag as a public constant.** `Program.cs:132` and
+  `SharedState.Valkey/DefaultRegistration.cs:44` each write `"ready"`.
+- **`R44` — Key the conformance seed by `client_id`.** Stop passing keys by array position
+  (`run-conformance.ps1:318-321`), generate both FAPI templates from one source, and derive `discoveryUrl` from
+  `$IssuerUrl`.
+- **`R45` — Deduplicate the frontend data and routing code.** An owner-generic builder for `managementApi.ts`'s
+  secrets and settings endpoints, one `fetchSurfaceJson` helper for the 401 redirect, and tenant detail tabs in the URL.
+- **`R46` — Share the chart's pod blocks through `_helpers.tpl`.**
+- **`R47` — Small cleanups.** A capped setting for the JARM response lifetime, required `AuthorizationResult`
+  context arguments, and one login-redirect helper in the interactive handler.

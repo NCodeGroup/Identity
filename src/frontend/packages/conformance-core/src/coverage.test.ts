@@ -74,6 +74,20 @@ describe('buildCoverageReport — gaps surface as missing with backlog ids', () 
     expect(entry(report, 'grant-token-exchange')?.status).toBe('missing');
     expect(entry(report, 'profile-fapi2')?.status).toBe('missing');
     expect(entry(report, 'profile-fapi2')?.detail).toContain('PAR');
+    expect(entry(report, 'profile-fapi1-advanced')?.status).toBe('missing');
+    expect(entry(report, 'profile-fapi1-advanced')?.backlog).toBe('T1');
+  });
+
+  it('lights up FAPI 1.0 Advanced once every prerequisite is advertised', () => {
+    const report = buildCoverageReport({
+      ...baseline,
+      pushed_authorization_request_endpoint: 'https://op.test/par',
+      tls_client_certificate_bound_access_tokens: true,
+      code_challenge_methods_supported: ['S256'],
+      request_object_signing_alg_values_supported: ['PS256', 'ES256'],
+      authorization_signing_alg_values_supported: ['PS256'],
+    });
+    expect(entry(report, 'profile-fapi1-advanced')?.status).toBe('implemented');
   });
 });
 

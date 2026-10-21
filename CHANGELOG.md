@@ -429,6 +429,8 @@ change to the public API is a **major** version bump.
   parameter sent only outside the request object, such as `response_mode` or `nonce`, is now ignored instead of being
   merged in, so an unsigned parameter can no longer change a signed request. The outer `client_id`, `response_type`,
   and `scope` are still used when the object omits them, and `client_id` and `response_type` must match the object's.
+  A request object must now carry `redirect_uri`, equal to the outer value, or it is refused as
+  `invalid_request_object`.
   See [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md).
 
 - **Breaking:** the event metric `ncode.identity.events.published` is recorded through a meter created from

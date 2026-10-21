@@ -192,6 +192,27 @@ internal class DefaultValidateAuthorizationRequestHandler(
         }
 
         /*
+         * Only the request object's parameters are used (RFC 9101 §6.3, ADR-0202), so it must carry the redirect_uri, and that
+         * value must be the outer one the response is redirected to, which was checked against the client's registered URIs.
+         */
+
+        if (requestObject.RedirectUri is null)
+            throw errorFactory
+                .MissingParameter(
+                    "The 'redirect_uri' parameter in the JWT request object is missing.",
+                    errorCode
+                )
+                .AsException();
+
+        if (requestObject.RedirectUri != requestMessage.RedirectUri)
+            throw errorFactory
+                .InvalidRequest(
+                    "The 'redirect_uri' parameter in the JWT request object must match the same value from the request message.",
+                    errorCode
+                )
+                .AsException();
+
+        /*
          * The Client ID values in the "client_id" request parameter and in the Request Object "client_id" claim MUST be identical.
          */
 

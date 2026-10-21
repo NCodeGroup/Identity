@@ -123,6 +123,11 @@ internal class TenantApiEndpointHandler(
     /// </summary>
     internal const int MaxUsageDays = 366;
 
+    /// <summary>
+    /// Gets how many days before the last day a read of a tenant's usage starts when it names no first day.
+    /// </summary>
+    internal const int DefaultUsageDays = 30;
+
     /// <inheritdoc />
     protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
 
@@ -689,7 +694,8 @@ internal class TenantApiEndpointHandler(
     /// <param name="to">The last UTC calendar day, inclusive; when omitted, the current UTC day.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's usage on the range.</response>
-    /// <response code="400">The range is reversed or longer than <see cref="MaxUsageDays"/> days.</response>
+    /// <response code="400">The range is reversed, longer than <see cref="MaxUsageDays"/> days, or would start before the
+    /// first representable day.</response>
     // See ADR-0199.
     [EndpointName("api/tenants/usage/get")]
     internal virtual async ValueTask<IResult> GetUsageAsync(
@@ -712,7 +718,21 @@ internal class TenantApiEndpointHandler(
         }
 
         var lastDay = to ?? DateOnly.FromDateTime(TimeProvider.GetUtcNow().UtcDateTime);
-        var firstDay = from ?? lastDay.AddDays(-30);
+        if (from is null && lastDay.DayNumber < DefaultUsageDays)
+        {
+            // The default range would start before DateOnly.MinValue, which AddDays refuses by throwing.
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    ["to"] =
+                    [
+                        $"Without 'from', 'to' must be at least {DefaultUsageDays} days after the first representable day.",
+                    ],
+                }
+            );
+        }
+
+        var firstDay = from ?? lastDay.AddDays(-DefaultUsageDays);
         if (firstDay > lastDay || lastDay.DayNumber - firstDay.DayNumber >= MaxUsageDays)
         {
             return TypedResults.ValidationProblem(

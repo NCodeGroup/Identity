@@ -20,6 +20,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
+using NCode.Identity.OpenId.Authentication.Metrics;
 using NCode.Identity.Settings;
 using NCode.Registration;
 
@@ -45,7 +46,9 @@ internal static class DefaultRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
+            serviceCollection.AddMetrics();
             serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddSingleton<AuthenticationMetrics>();
             serviceCollection.TryAddSingleton<IRequestRateLimiter, DefaultRequestRateLimiter>();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

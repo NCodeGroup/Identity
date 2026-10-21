@@ -22,6 +22,7 @@ using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.Metrics;
 using NCode.Identity.OpenId.Authentication.SharedState;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
@@ -37,11 +38,13 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// one more request.
 /// The counter is incremented before the limit is judged, so a refused request still counts. A counter store that
 /// throws admits the request and logs a warning: the limit protects capacity, so an outage of the store must not refuse
-/// every request.
+/// every request. Every judged partition is counted in <c>ncode.identity.rate_limiting.requests</c> with its result, so
+/// the fail-open path is as visible as a refusal.
 /// </summary>
 internal class DefaultRequestRateLimiter(
     IExpiringCounterSet counterSet,
     TimeProvider timeProvider,
+    AuthenticationMetrics metrics,
     ILogger<DefaultRequestRateLimiter> logger
 ) : IRequestRateLimiter
 {
@@ -58,6 +61,8 @@ internal class DefaultRequestRateLimiter(
     private IExpiringCounterSet CounterSet { get; } = counterSet;
 
     private TimeProvider TimeProvider { get; } = timeProvider;
+
+    private AuthenticationMetrics Metrics { get; } = metrics;
 
     private ILogger<DefaultRequestRateLimiter> Logger { get; } = logger;
 
@@ -162,6 +167,7 @@ internal class DefaultRequestRateLimiter(
             )
         {
             Logger.RateLimitStoreUnavailable(tenantId, partition, exception);
+            Metrics.RateLimitJudged(partition, AuthenticationMetrics.StoreUnavailableResult);
             return RateLimitDecision.Admitted;
         }
 
@@ -169,9 +175,13 @@ internal class DefaultRequestRateLimiter(
         var previousWeight = 1.0 - elapsed / Window;
         var estimate = previous * previousWeight + current;
         if (estimate <= limit)
+        {
+            Metrics.RateLimitJudged(partition, AuthenticationMetrics.AdmittedResult);
             return RateLimitDecision.Admitted;
+        }
 
         Logger.RateLimitExceeded(tenantId, partition, limit);
+        Metrics.RateLimitJudged(partition, AuthenticationMetrics.RejectedResult);
         return new RateLimitDecision(GetRetryAt(windowStart, current, previous, limit) - now);
     }
 

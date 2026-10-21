@@ -21,6 +21,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -642,6 +643,189 @@ public class ClientRegistrationEndpointTests
             update.RootElement.GetProperty("jwks_uri").GetString()
         );
         Assert.False(update.RootElement.TryGetProperty("jwks", out _));
+    }
+
+    #endregion
+
+    #region Client Authentication Methods
+
+    private static string BuildPrivateKeyJwt(string clientId, RSA privateKey, string audience)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var header = new Dictionary<string, object> { ["alg"] = "RS256", ["typ"] = "JWT" };
+        var payload = new Dictionary<string, object>
+        {
+            ["iss"] = clientId,
+            ["sub"] = clientId,
+            ["aud"] = audience,
+            ["jti"] = Guid.NewGuid().ToString("N"),
+            ["iat"] = now.ToUnixTimeSeconds(),
+            ["exp"] = now.AddMinutes(5).ToUnixTimeSeconds(),
+        };
+
+        var encodedHeader = Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(header));
+        var encodedPayload = Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(payload));
+        var signingInput = $"{encodedHeader}.{encodedPayload}";
+        var signature = privateKey.SignData(
+            Encoding.ASCII.GetBytes(signingInput),
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+
+        return $"{signingInput}.{Base64Url.EncodeToString(signature)}";
+    }
+
+    [Fact]
+    public async Task PostRegister_WithPrivateKeyJwt_RegistersAClientThatAuthenticatesWithItsKey()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+        var registration = CreateKeyRegistration(CreateRsaJwk(rsa, "client-key"));
+        registration["token_endpoint_auth_method"] = OpenIdConstants
+            .ClientAuthenticationMethods
+            .PrivateKeyJwt;
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            registration
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registered = JsonDocument.Parse(registrationBody);
+        var root = registered.RootElement;
+        Assert.Equal(
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            root.GetProperty("token_endpoint_auth_method").GetString()
+        );
+        // A key-based client verifies with its keys; a shared secret would be a second, weaker credential.
+        Assert.False(root.TryGetProperty("client_secret", out _));
+
+        var clientId = root.GetProperty("client_id").GetString() ?? string.Empty;
+        using var discovery = JsonDocument.Parse(
+            await client.GetStringAsync("/.well-known/openid-configuration")
+        );
+        var issuer = discovery.RootElement.GetProperty("issuer").GetString() ?? string.Empty;
+        using var tokenResponse = await client.PostAsync(
+            "/oauth2/token",
+            new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["client_assertion_type"] = OpenIdConstants.ClientAssertionTypes.JwtBearer,
+                    ["client_assertion"] = BuildPrivateKeyJwt(clientId, rsa, issuer),
+                }
+            )
+        );
+
+        var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
+        using var token = JsonDocument.Parse(tokenBody);
+        Assert.False(
+            token.RootElement.TryGetProperty("error", out var error)
+                && error.GetString() == OpenIdConstants.ErrorCodes.InvalidClient,
+            tokenBody
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithPrivateKeyJwtWithoutKeys_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .PrivateKeyJwt,
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            "jwks_uri"
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithTlsClientAuth_StoresAndReportsTheCertificateIdentity()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .TlsClientAuth,
+                ["tls_client_auth_san_dns"] = "client.example.com",
+            }
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registered = JsonDocument.Parse(registrationBody);
+        var root = registered.RootElement;
+        Assert.False(root.TryGetProperty("client_secret", out _));
+        Assert.Equal("client.example.com", root.GetProperty("tls_client_auth_san_dns").GetString());
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        using var read = JsonDocument.Parse(readBody);
+        Assert.Equal(
+            "client.example.com",
+            read.RootElement.GetProperty("tls_client_auth_san_dns").GetString()
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithTlsClientAuthWithoutIdentity_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .TlsClientAuth,
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            "tls_client_auth_subject_dn"
+        );
     }
 
     #endregion

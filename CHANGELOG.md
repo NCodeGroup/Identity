@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Strong client-authentication methods at Dynamic Client Registration.** A self-registered client can register
+  `private_key_jwt`, `client_secret_jwt`, `tls_client_auth`, or `self_signed_tls_client_auth`: registration accepts
+  every method the tenant's effective `token_endpoint_auth_methods_supported` permits instead of a fixed list, so a
+  `fapi2` tenant refuses `client_secret_*` when the client registers. `private_key_jwt` and
+  `self_signed_tls_client_auth` require `jwks` or `jwks_uri` (a `jwks` by value with an `x5c` certificate for the
+  latter); `tls_client_auth` requires exactly one new `tls_client_auth_*` identity parameter, which the read and update
+  responses report. Only the `client_secret_*` methods are issued a `client_secret`. See the ADR-0145 amendment.
+
 - **Billed overage past a daily quota.** A plan tier can admit requests past its daily quota and bill them instead of
   refusing at the quota: `quota_tenant_requests_overage_per_day` and `quota_tenant_token_requests_overage_per_day` set
   how many more requests (or confidential clients' token requests) are served past the matching quota in a UTC day.

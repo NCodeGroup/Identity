@@ -52,6 +52,7 @@ export {
   useLazyGetTenantSecretPublicKeyQuery,
   useGetTenantSettingsQuery,
   useGetTenantEffectiveSettingsQuery,
+  useGetTenantUsageQuery,
   useUpdateTenantSettingsMutation,
   useListServerSecretsQuery,
   useCreateServerSecretMutation,

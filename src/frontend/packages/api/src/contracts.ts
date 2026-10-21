@@ -354,6 +354,27 @@ export type EffectiveSettingsResource = {
 };
 
 /**
+ * Mirror of `TenantUsageEntry` — one row of the durable usage ledger (ADR-0199): a tenant's `count` of a `meter` (an
+ * open vocabulary, e.g. `requests` or `token_requests`) on a UTC calendar `day` (`YYYY-MM-DD` on the wire).
+ */
+export type TenantUsageEntry = {
+  readonly day: string;
+  readonly meter: string;
+  readonly count: number;
+};
+
+/**
+ * Mirror of `TenantUsageResource` — a tenant's usage ledger for the inclusive range of UTC days `from`..`to`
+ * (`YYYY-MM-DD`), ordered by day then meter. The server defaults the range to the last 30 days and caps it at 366.
+ */
+export type TenantUsageResource = {
+  readonly tenantId: string;
+  readonly from: string;
+  readonly to: string;
+  readonly entries: readonly TenantUsageEntry[];
+};
+
+/**
  * Mirror of `CreateInitialAccessTokenRequest` (RFC 7591). Mints a token that authorizes its bearer to register a new
  * client at the protected dynamic client registration endpoint. `description` is an optional administrative note;
  * `lifetimeSeconds` is an optional positive lifetime (`null` means the token does not expire). `resourceServerId`

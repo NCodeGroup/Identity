@@ -16,6 +16,8 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Persistence;
+
 namespace NCode.Identity.OpenId.Authentication.Usage;
 
 /// <summary>
@@ -29,6 +31,8 @@ public interface ITenantUsageRecorder
     /// </summary>
     /// <param name="tenantId">The identifier of the tenant.</param>
     /// <param name="meter">The name of the meter, such as <see cref="TenantUsageMeters.Requests"/>. Meters are an open
-    /// vocabulary, so a package may record its own.</param>
+    /// vocabulary, so a package may record its own; a name is at most <see cref="OpenIdMaxLengths.UsageMeter"/>
+    /// characters.</param>
+    /// <exception cref="ArgumentException">The tenant or meter is empty, or the meter's name is too long.</exception>
     void Record(string tenantId, string meter);
 }

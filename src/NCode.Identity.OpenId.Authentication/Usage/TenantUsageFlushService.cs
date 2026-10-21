@@ -20,6 +20,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
 
@@ -27,9 +28,10 @@ namespace NCode.Identity.OpenId.Authentication.Usage;
 
 /// <summary>
 /// Adds the usage each replica recorded to the durable daily ledger every <see cref="TenantUsageOptions.FlushInterval"/>
-/// and once more on shutdown, and removes the days the ledger no longer keeps (ADR-0199). Usage that cannot be added —
-/// the database is unreachable, or another replica updated the same entry first — is returned to the recorder and added
-/// by the next flush.
+/// and once more on shutdown, and removes the days the ledger no longer keeps (ADR-0199). Usage is added in batches of
+/// <see cref="BatchSize"/> entries, each its own unit of work, so a conflict holds back only its batch. A batch that
+/// cannot be added — the database is unreachable, or another replica updated one of its entries first — is returned to
+/// the recorder and added by the next flush.
 /// </summary>
 internal sealed class TenantUsageFlushService(
     DefaultTenantUsageRecorder recorder,
@@ -39,6 +41,11 @@ internal sealed class TenantUsageFlushService(
     ILogger<TenantUsageFlushService> logger
 ) : BackgroundService
 {
+    /// <summary>
+    /// The number of ledger entries added in one unit of work.
+    /// </summary>
+    internal const int BatchSize = 256;
+
     private DateOnly? _lastPrunedDay;
 
     private DefaultTenantUsageRecorder Recorder { get; } = recorder;
@@ -77,31 +84,44 @@ internal sealed class TenantUsageFlushService(
     }
 
     /// <summary>
-    /// Adds the usage recorded since the last flush to the ledger in one unit of work.
+    /// Adds the usage recorded since the last flush to the ledger, one batch per unit of work.
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     internal async ValueTask FlushAsync(CancellationToken cancellationToken)
     {
-        var usage = Recorder.Drain();
-        if (usage.Count == 0)
-            return;
+        // Ordered so a batch spans few days and its reads stay narrow.
+        var batches = Recorder
+            .Drain()
+            .OrderBy(pair => pair.Key.Day)
+            .ThenBy(pair => pair.Key.TenantId, StringComparer.Ordinal)
+            .Chunk(BatchSize);
 
-        try
+        foreach (var batch in batches)
         {
-            await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-            var store = storeManager.GetStore<ITenantUsageStore>();
-            foreach (var (key, count) in usage)
+            try
             {
-                await store.AddAsync(key.TenantId, key.Day, key.Meter, count, cancellationToken);
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                var store = storeManager.GetStore<ITenantUsageStore>();
+                var usage = batch
+                    .Select(pair => new PersistedTenantUsage
+                    {
+                        TenantId = pair.Key.TenantId,
+                        Day = pair.Key.Day,
+                        Meter = pair.Key.Meter,
+                        Count = pair.Value,
+                    })
+                    .ToList();
+                await store.AddAsync(usage, cancellationToken);
+                await storeManager.SaveChangesAsync(cancellationToken);
             }
-
-            await storeManager.SaveChangesAsync(cancellationToken);
-        }
-        catch (Exception exception)
-        {
-            Recorder.Restore(usage);
-            Logger.TenantUsageFlushFailed(usage.Count, exception);
+            catch (Exception exception)
+            {
+                Recorder.Restore(batch);
+                Logger.TenantUsageFlushFailed(batch.Length, exception);
+            }
         }
     }
 

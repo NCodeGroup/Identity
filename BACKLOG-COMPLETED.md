@@ -977,14 +977,13 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: 2026-10-21. [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
   [ADR-0199](docs/adr/0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md). Usage is a `TenantUsage` ledger in
   the OpenID database, one row per tenant, UTC day, and meter (`requests`, `token_requests`; open vocabulary through
-  `ITenantUsageRecorder`), with no foreign key so a deleted tenant's usage survives for its final bill. Every tenant
-  is metered: a request once the rate limits and daily quota admit it (`RateLimitEndpointFilter`), a confidential
-  client's token request once the token quota admits it. Each replica counts in memory and
-  `TenantUsageFlushService` adds the counts every minute in one unit of work guarded by the row's concurrency token; a
-  failed save returns the counts for the next flush. Retention is 400 days, pruned once per UTC day
-  (`TenantUsageOptions`). `GET /api/tenants/{tenantId}/usage?from=&to=` reads up to 366 days. Rolling up the quota
-  counter and appending per request through the event seam were rejected. Admitting and billing an overage is split
-  out as `F82`._
+  `ITenantUsageRecorder`), with no foreign key so a deleted tenant's usage survives for its final bill. Every tenant is
+  metered: a request once the rate limits and daily quota admit it (`RateLimitEndpointFilter`), a confidential client's
+  token request once the token quota admits it. Each replica counts in memory and `TenantUsageFlushService` adds the
+  counts every minute in batches of 256 rows, each one unit of work guarded by the rows' concurrency tokens; a failed
+  batch returns its counts for the next flush. Retention is 400 days, pruned once per UTC day (`TenantUsageOptions`).
+  `GET /api/tenants/{tenantId}/usage?from=&to=` reads up to 366 days. Rolling up the quota counter and appending per
+  request through the event seam were rejected. Admitting and billing an overage is split out as `F82`._
 
 - **`F80` — Metrics for the protocol endpoints.** Implement
   [ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md): one owner per

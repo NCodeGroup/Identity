@@ -60,11 +60,26 @@ public sealed class TenantUsageStoreTests : IDisposable
     private TenantUsageStore CreateStore(OpenIdDbContext context) =>
         new(Mock.Of<IStoreProvider>(), _provider.GetRequiredService<IIdGenerator<long>>(), context);
 
+    private static DataContracts.PersistedTenantUsage Usage(
+        string tenantId,
+        DateOnly day,
+        string meter,
+        long count
+    ) =>
+        new()
+        {
+            TenantId = tenantId,
+            Day = day,
+            Meter = meter,
+            Count = count,
+        };
+
     private async Task AddAsync(string tenantId, DateOnly day, string meter, long count)
     {
         using var scope = _provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        await CreateStore(context).AddAsync(tenantId, day, meter, count, CancellationToken.None);
+        await CreateStore(context)
+            .AddAsync([Usage(tenantId, day, meter, count)], CancellationToken.None);
         await context.SaveChangesAsync();
     }
 
@@ -104,8 +119,10 @@ public sealed class TenantUsageStoreTests : IDisposable
         using var secondScope = _provider.CreateScope();
         var first = firstScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var second = secondScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        await CreateStore(first).AddAsync(TenantId, Day, Requests, 2, CancellationToken.None);
-        await CreateStore(second).AddAsync(TenantId, Day, Requests, 5, CancellationToken.None);
+        await CreateStore(first)
+            .AddAsync([Usage(TenantId, Day, Requests, 2)], CancellationToken.None);
+        await CreateStore(second)
+            .AddAsync([Usage(TenantId, Day, Requests, 5)], CancellationToken.None);
 
         await first.SaveChangesAsync();
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => second.SaveChangesAsync());
@@ -121,14 +138,56 @@ public sealed class TenantUsageStoreTests : IDisposable
         using var secondScope = _provider.CreateScope();
         var first = firstScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var second = secondScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        await CreateStore(first).AddAsync(TenantId, Day, Requests, 2, CancellationToken.None);
-        await CreateStore(second).AddAsync(TenantId, Day, Requests, 5, CancellationToken.None);
+        await CreateStore(first)
+            .AddAsync([Usage(TenantId, Day, Requests, 2)], CancellationToken.None);
+        await CreateStore(second)
+            .AddAsync([Usage(TenantId, Day, Requests, 5)], CancellationToken.None);
 
         await first.SaveChangesAsync();
         await Assert.ThrowsAsync<DbUpdateException>(() => second.SaveChangesAsync());
 
         var entry = Assert.Single(await ListAsync(Day, Day));
         Assert.Equal(2, entry.Count);
+    }
+
+    [Fact]
+    public async Task AddAsync_WhenABatchSpansDaysAndRepeatsAnEntry_AddsEachToItsDay()
+    {
+        await AddAsync(TenantId, Day, Requests, 1);
+
+        using (var scope = _provider.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+            var store = CreateStore(context);
+            await store.AddAsync(
+                [
+                    Usage(TenantId, Day, Requests, 2),
+                    Usage(TenantId, Day.AddDays(1), Requests, 3),
+                    Usage(TenantId, Day.AddDays(1), Requests, 4),
+                ],
+                CancellationToken.None
+            );
+            await store.AddAsync(
+                [Usage(TenantId, Day.AddDays(1), TokenRequests, 5)],
+                CancellationToken.None
+            );
+            await store.AddAsync(
+                [Usage(TenantId, Day.AddDays(1), TokenRequests, 6)],
+                CancellationToken.None
+            );
+            await context.SaveChangesAsync();
+        }
+
+        Assert.Equal(
+            [
+                (Day, Requests, 3L),
+                (Day.AddDays(1), Requests, 7L),
+                (Day.AddDays(1), TokenRequests, 11L),
+            ],
+            (await ListAsync(Day, Day.AddDays(1))).Select(entry =>
+                (entry.Day, entry.Meter, entry.Count)
+            )
+        );
     }
 
     #endregion

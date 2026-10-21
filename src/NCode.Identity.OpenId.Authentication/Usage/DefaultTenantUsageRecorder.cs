@@ -16,6 +16,8 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Persistence;
+
 namespace NCode.Identity.OpenId.Authentication.Usage;
 
 /// <summary>
@@ -32,6 +34,15 @@ internal sealed class DefaultTenantUsageRecorder(TimeProvider timeProvider) : IT
     /// <inheritdoc />
     public void Record(string tenantId, string meter)
     {
+        // A name the ledger cannot store would fail every flush of its batch, so it is refused here, at the caller.
+        ArgumentException.ThrowIfNullOrEmpty(tenantId);
+        ArgumentException.ThrowIfNullOrEmpty(meter);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(
+            meter.Length,
+            OpenIdMaxLengths.UsageMeter,
+            nameof(meter)
+        );
+
         var day = DateOnly.FromDateTime(TimeProvider.GetUtcNow().UtcDateTime);
         var key = new TenantUsageKey(tenantId, day, meter);
         lock (_sync)
@@ -58,7 +69,7 @@ internal sealed class DefaultTenantUsageRecorder(TimeProvider timeProvider) : IT
     /// Returns usage that could not be added to the ledger, so the next flush adds it.
     /// </summary>
     /// <param name="usage">The usage to return.</param>
-    public void Restore(IReadOnlyDictionary<TenantUsageKey, long> usage)
+    public void Restore(IEnumerable<KeyValuePair<TenantUsageKey, long>> usage)
     {
         lock (_sync)
         {

@@ -63,6 +63,10 @@ public interface ITenantUsageStore : IStore
     /// <summary>
     /// Removes every tenant's usage counted before <paramref name="day"/>, the end of the ledger's retention.
     /// </summary>
+    /// <remarks>
+    /// The removal is one set-based delete that takes effect immediately rather than when the unit of work is saved, so
+    /// pruning a large ledger never loads its entries.
+    /// </remarks>
     /// <param name="day">The first UTC calendar day to keep.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the count of entries removed.</returns>

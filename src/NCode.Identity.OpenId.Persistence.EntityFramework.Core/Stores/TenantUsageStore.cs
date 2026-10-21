@@ -131,13 +131,11 @@ internal sealed class TenantUsageStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<int> RemoveBeforeAsync(DateOnly day, CancellationToken cancellationToken)
-    {
-        var entities = await DbContext
+    public async ValueTask<int> RemoveBeforeAsync(
+        DateOnly day,
+        CancellationToken cancellationToken
+    ) =>
+        await DbContext
             .TenantUsage.Where(usage => usage.Day < day)
-            .ToListAsync(cancellationToken);
-
-        DbContext.TenantUsage.RemoveRange(entities);
-        return entities.Count;
-    }
+            .ExecuteDeleteAsync(cancellationToken);
 }

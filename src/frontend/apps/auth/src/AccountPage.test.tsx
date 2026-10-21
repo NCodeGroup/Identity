@@ -200,7 +200,7 @@ describe('AccountPage', () => {
 
       await waitFor(() => expect(assignMock).toHaveBeenCalledTimes(1));
       expect(fetchMock).toHaveBeenCalledWith('/account/me', expect.anything());
-      expect(assignMock.mock.calls[0]![0]).toBe('/account/login?ReturnUrl=%2Faccount');
+      expect(assignMock.mock.calls[0]![0]).toBe('/account/login?ReturnUrl=%2Faccount%2F');
       expect(screen.getByTestId('account-loading')).toBeInTheDocument();
     });
 

@@ -117,7 +117,7 @@ describe('AuthorizedAppsPage', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Authorized applications');
     expect(screen.getByRole('link', { name: 'Back to your account' })).toHaveAttribute(
       'href',
-      '/account',
+      '/account/',
     );
   });
 

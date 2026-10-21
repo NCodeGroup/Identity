@@ -24,7 +24,10 @@ namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;
 public class InteractiveAuthenticationPageRendererTests
 {
     private const string BundleShell =
-        "<!doctype html><html><body><div id=\"root\"></div><script src=\"/app.js\"></script></body></html>";
+        "<!doctype html><html><head><title>t</title></head><body><div id=\"root\"></div>"
+        + "<script src=\"./app.js\"></script></body></html>";
+
+    private const string SurfaceBase = "/acme/account/";
 
     #region RenderLoginPage Tests
 
@@ -35,6 +38,7 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
             shell: null,
+            surfaceBase: SurfaceBase,
             returnUrl: "/connect/authorize",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "token-123",
@@ -65,6 +69,7 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
             shell: null,
+            surfaceBase: SurfaceBase,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -83,6 +88,7 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
             shell: null,
+            surfaceBase: SurfaceBase,
             returnUrl: "\"><script>alert(1)</script>",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -100,6 +106,7 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
             shell: InteractiveBundleShell.TryCreate(BundleShell),
+            surfaceBase: SurfaceBase,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -110,7 +117,7 @@ public class InteractiveAuthenticationPageRendererTests
         // The empty mount point is replaced by the form, and the SPA script tag is preserved.
         Assert.DoesNotContain("<div id=\"root\"></div>", html, StringComparison.Ordinal);
         Assert.Contains("<div id=\"root\"><main", html, StringComparison.Ordinal);
-        Assert.Contains("<script src=\"/app.js\">", html, StringComparison.Ordinal);
+        Assert.Contains("<script src=\"./app.js\">", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -120,6 +127,7 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
             shell: InteractiveBundleShell.TryCreate(BundleShell),
+            surfaceBase: SurfaceBase,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -127,13 +135,15 @@ public class InteractiveAuthenticationPageRendererTests
         );
         var html = writer.WrittenSpan.ToString();
 
+        // The document's base is written first inside <head>, so it resolves the bundle's relative asset URLs.
         Assert.StartsWith(
-            "<!doctype html><html><body><div id=\"root\"><main",
+            "<!doctype html><html><head><base href=\"/acme/account/\" /><title>t</title></head>"
+                + "<body><div id=\"root\"><main",
             html,
             StringComparison.Ordinal
         );
         Assert.EndsWith(
-            "</main></div><script src=\"/app.js\"></script></body></html>",
+            "</main></div><script src=\"./app.js\"></script></body></html>",
             html,
             StringComparison.Ordinal
         );
@@ -146,6 +156,7 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             writer,
             shell: null,
+            surfaceBase: SurfaceBase,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -171,6 +182,7 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderConsentPage(
             writer,
             shell: null,
+            surfaceBase: SurfaceBase,
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -192,6 +204,7 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderConsentPage(
             writer,
             shell: null,
+            surfaceBase: SurfaceBase,
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -228,6 +241,7 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             writer,
             shell: null,
+            surfaceBase: SurfaceBase,
             errorCode: "unauthorized_client",
             errorDescription: "The specified 'redirect_uri' is not valid for the associated 'client_id'."
         );
@@ -251,6 +265,7 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             writer,
             shell: null,
+            surfaceBase: SurfaceBase,
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -271,6 +286,7 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             writer,
             shell: null,
+            surfaceBase: SurfaceBase,
             errorCode: "\"><script>alert(1)</script>",
             errorDescription: null
         );
@@ -286,6 +302,7 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             writer,
             shell: InteractiveBundleShell.TryCreate(BundleShell),
+            surfaceBase: SurfaceBase,
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -293,7 +310,48 @@ public class InteractiveAuthenticationPageRendererTests
 
         Assert.DoesNotContain("<div id=\"root\"></div>", html, StringComparison.Ordinal);
         Assert.Contains("<div id=\"root\"><main", html, StringComparison.Ordinal);
-        Assert.Contains("<script src=\"/app.js\">", html, StringComparison.Ordinal);
+        Assert.Contains("<script src=\"./app.js\">", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderErrorPage_WhenBundleIsAbsent_WritesTheSurfaceBase()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            writer,
+            shell: null,
+            surfaceBase: "/a&b/account/",
+            errorCode: "invalid_client",
+            errorDescription: null
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.Contains(
+            "<head><meta charset=\"utf-8\" /><base href=\"/a&amp;b/account/\" />",
+            html,
+            StringComparison.Ordinal
+        );
+    }
+
+    #endregion
+
+    #region RenderBundlePage Tests
+
+    [Fact]
+    public void RenderBundlePage_Always_WritesTheBundleWithItsBaseAndAnEmptyMountPoint()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderBundlePage(
+            writer,
+            InteractiveBundleShell.TryCreate(BundleShell)!,
+            SurfaceBase
+        );
+
+        Assert.Equal(
+            "<!doctype html><html><head><base href=\"/acme/account/\" /><title>t</title></head><body>"
+                + "<div id=\"root\"></div><script src=\"./app.js\"></script></body></html>",
+            writer.WrittenSpan.ToString()
+        );
     }
 
     #endregion

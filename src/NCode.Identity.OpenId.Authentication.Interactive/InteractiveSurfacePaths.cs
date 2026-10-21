@@ -78,4 +78,14 @@ internal sealed class InteractiveSurfacePaths(
     /// <returns>The surface path beneath the request's tenant path.</returns>
     public string GetSurfacePath(HttpContext httpContext, string surfacePath) =>
         GetTenantPath(httpContext).Add(new PathString(surfacePath)).ToString();
+
+    /// <summary>
+    /// Gets the base of the interactive surface as the request's tenant serves it (for example <c>/acme/account/</c>):
+    /// the <c>&lt;base href&gt;</c> of every page the surface serves, against which the bundle resolves its assets,
+    /// API calls, and page links.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <returns>The surface's base path, ending with <c>/</c>.</returns>
+    public string GetSurfaceBase(HttpContext httpContext) =>
+        GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.BasePath) + "/";
 }

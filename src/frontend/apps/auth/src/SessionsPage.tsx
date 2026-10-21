@@ -15,6 +15,7 @@ import {
   SESSIONS_PATH,
   SESSIONS_REVOKE_ACTION,
   SESSIONS_REVOKE_ALL_ACTION,
+  resolveSurfacePath,
 } from './params.js';
 
 /** One active session of the end-user (mirrors the OP's `/account/sessions/list` payload). */
@@ -48,9 +49,13 @@ async function fetchSessions(): Promise<readonly ActiveSession[] | null> {
   if (typeof fetch !== 'function') {
     return null;
   }
-  const response = await fetch(SESSIONS_LIST_ENDPOINT, { headers: { accept: 'application/json' } });
+  const response = await fetch(resolveSurfacePath(SESSIONS_LIST_ENDPOINT), {
+    headers: { accept: 'application/json' },
+  });
   if (response.status === 401) {
-    window.location.assign(`${LOGIN_ACTION}?ReturnUrl=${encodeURIComponent(SESSIONS_PATH)}`);
+    window.location.assign(
+      `${resolveSurfacePath(LOGIN_ACTION)}?ReturnUrl=${encodeURIComponent(resolveSurfacePath(SESSIONS_PATH))}`,
+    );
     return null;
   }
   if (!response.ok) {
@@ -143,7 +148,11 @@ export function SessionsPage({
                           data-testid="session-current"
                         />
                       ) : (
-                        <Stack component="form" method="post" action={SESSIONS_REVOKE_ACTION}>
+                        <Stack
+                          component="form"
+                          method="post"
+                          action={resolveSurfacePath(SESSIONS_REVOKE_ACTION)}
+                        >
                           <input type="hidden" name="sid" value={session.sessionId} />
                           <input type="hidden" name={ANTIFORGERY_FIELD} value={antiforgeryToken} />
                           <Button
@@ -186,7 +195,7 @@ export function SessionsPage({
               <Stack
                 component="form"
                 method="post"
-                action={SESSIONS_REVOKE_ALL_ACTION}
+                action={resolveSurfacePath(SESSIONS_REVOKE_ALL_ACTION)}
                 data-testid="sessions-revoke-others"
               >
                 <input type="hidden" name="scope" value="others" />
@@ -200,7 +209,7 @@ export function SessionsPage({
             <Stack
               component="form"
               method="post"
-              action={SESSIONS_REVOKE_ALL_ACTION}
+              action={resolveSurfacePath(SESSIONS_REVOKE_ALL_ACTION)}
               data-testid="sessions-revoke-all"
             >
               <input type="hidden" name="scope" value="all" />
@@ -210,7 +219,7 @@ export function SessionsPage({
               </Button>
             </Stack>
 
-            <Button href={ACCOUNT_PATH} variant="text">
+            <Button href={resolveSurfacePath(ACCOUNT_PATH)} variant="text">
               Back to your account
             </Button>
           </Stack>

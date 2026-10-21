@@ -8,7 +8,12 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import FormGroup from '@mui/material/FormGroup';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { ANTIFORGERY_FIELD, CONSENT_ACTION, CONSENT_DETAILS_ENDPOINT } from './params.js';
+import {
+  ANTIFORGERY_FIELD,
+  CONSENT_ACTION,
+  CONSENT_DETAILS_ENDPOINT,
+  resolveSurfacePath,
+} from './params.js';
 
 /** A single requested scope, with a friendly description and whether the subject has already granted it. */
 export type ConsentScope = {
@@ -44,7 +49,7 @@ async function fetchDetails(returnUrl: string): Promise<ConsentDetails | null> {
     return null;
   }
   const response = await fetch(
-    `${CONSENT_DETAILS_ENDPOINT}?ReturnUrl=${encodeURIComponent(returnUrl)}`,
+    `${resolveSurfacePath(CONSENT_DETAILS_ENDPOINT)}?ReturnUrl=${encodeURIComponent(returnUrl)}`,
     { headers: { accept: 'application/json' } },
   );
   if (!response.ok) {
@@ -98,7 +103,12 @@ export function ConsentForm({
     >
       <Card sx={{ width: '100%', maxWidth: 400 }}>
         <CardContent>
-          <Stack spacing={3} component="form" method="post" action={CONSENT_ACTION}>
+          <Stack
+            spacing={3}
+            component="form"
+            method="post"
+            action={resolveSurfacePath(CONSENT_ACTION)}
+          >
             <Typography variant="h5" component="h1">
               Authorize access
             </Typography>

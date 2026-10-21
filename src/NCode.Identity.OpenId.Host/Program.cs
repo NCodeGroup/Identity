@@ -163,9 +163,6 @@ app.MapIdentityServerApiReference();
 app.UseHttpLogging();
 app.UseHttpsRedirection();
 
-// Serve the interactive login/consent bundle's static assets under /account/* (a no-op unless a bundle is configured).
-app.UseInteractiveAuthentication();
-
 app.UseRouting();
 
 // Must run after UseRouting and before the authN/authZ + endpoint middleware. A no-op unless AddDeveloperCors

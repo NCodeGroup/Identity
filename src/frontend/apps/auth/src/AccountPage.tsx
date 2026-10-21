@@ -13,6 +13,7 @@ import {
   LOGOUT_ACTION,
   ME_ENDPOINT,
   SESSIONS_PATH,
+  resolveSurfacePath,
 } from './params.js';
 
 /** The current end-user session the account page renders (mirrors the OP's `/account/me` payload). */
@@ -43,9 +44,13 @@ async function fetchSession(): Promise<AccountSession | null> {
   if (typeof fetch !== 'function') {
     return null;
   }
-  const response = await fetch(ME_ENDPOINT, { headers: { accept: 'application/json' } });
+  const response = await fetch(resolveSurfacePath(ME_ENDPOINT), {
+    headers: { accept: 'application/json' },
+  });
   if (response.status === 401) {
-    window.location.assign(`${LOGIN_ACTION}?ReturnUrl=${encodeURIComponent(ACCOUNT_PATH)}`);
+    window.location.assign(
+      `${resolveSurfacePath(LOGIN_ACTION)}?ReturnUrl=${encodeURIComponent(resolveSurfacePath(ACCOUNT_PATH))}`,
+    );
     return null;
   }
   if (!response.ok) {
@@ -134,9 +139,9 @@ export function AccountPage({
               </Typography>
             )}
 
-            <Stack component="form" method="post" action={LOGOUT_ACTION}>
+            <Stack component="form" method="post" action={resolveSurfacePath(LOGOUT_ACTION)}>
               <input type="hidden" name={ANTIFORGERY_FIELD} value={antiforgeryToken} />
-              <input type="hidden" name="ReturnUrl" value={LOGIN_ACTION} />
+              <input type="hidden" name="ReturnUrl" value={resolveSurfacePath(LOGIN_ACTION)} />
               <Button
                 id="logout"
                 name="logout"
@@ -150,7 +155,7 @@ export function AccountPage({
               </Button>
             </Stack>
 
-            <Button href={SESSIONS_PATH} variant="text">
+            <Button href={resolveSurfacePath(SESSIONS_PATH)} variant="text">
               Manage active sessions
             </Button>
           </Stack>

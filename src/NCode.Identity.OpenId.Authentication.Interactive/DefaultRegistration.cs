@@ -58,8 +58,9 @@ public static class DefaultRegistration
         /// bound from the <c>InteractiveAuthentication</c> configuration section and may be further configured through
         /// <paramref name="configureOptions"/>; a relative bundle path is resolved against the content root. Its
         /// endpoints register as an <see cref="InteractiveAuthenticationEndpointGroup"/> discovered by
-        /// <c>MapEndpointGroups</c> alongside the protocol endpoints; apply the static-asset middleware to the pipeline
-        /// with <c>UseInteractiveAuthentication</c>. The cookie scheme is registered as a named scheme and does not
+        /// <c>MapEndpointGroups</c> alongside the protocol endpoints, and those endpoints also serve the bundle's files
+        /// beneath the tenant route, so no middleware is added to the pipeline. The cookie scheme is registered as a
+        /// named scheme and does not
         /// itself set the host's default authentication scheme. Credential verification is deferred to a registered
         /// <see cref="IInteractiveCredentialVerifier"/>, which the host must supply separately.
         /// </summary>

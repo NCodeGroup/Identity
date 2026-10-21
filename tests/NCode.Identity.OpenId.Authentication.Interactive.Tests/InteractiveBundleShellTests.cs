@@ -25,15 +25,38 @@ public class InteractiveBundleShellTests
     #region TryCreate Tests
 
     [Fact]
-    public void TryCreate_WhenTheDocumentHasAMountPoint_SplitsItInsideTheMountPoint()
+    public void TryCreate_WhenTheDocumentHasAMountPoint_SplitsItAfterTheHeadStartTagAndInsideTheMountPoint()
     {
         var shell = InteractiveBundleShell.TryCreate(
-            "<head></head><body><div id=\"root\"></div><script></script></body>"
+            "<html><HEAD lang=\"en\"><title>t</title></HEAD><body><div id=\"root\"></div><script></script></body></html>"
         );
 
         Assert.NotNull(shell);
-        Assert.Equal("<head></head><body><div id=\"root\">", shell.Head.ToString());
-        Assert.Equal("</div><script></script></body>", shell.Tail.ToString());
+        Assert.Equal("<html><HEAD lang=\"en\">", shell.Prelude.ToString());
+        Assert.Equal("<title>t</title></HEAD><body><div id=\"root\">", shell.Head.ToString());
+        Assert.Equal("</div><script></script></body></html>", shell.Tail.ToString());
+    }
+
+    [Fact]
+    public void TryCreate_WhenAHeaderPrecedesTheHead_SplitsAfterTheHeadStartTag()
+    {
+        var shell = InteractiveBundleShell.TryCreate(
+            "<!-- <header> --><head></head><body><div id=\"root\"></div></body>"
+        );
+
+        Assert.NotNull(shell);
+        Assert.Equal("<!-- <header> --><head>", shell.Prelude.ToString());
+    }
+
+    [Theory]
+    [InlineData("<body><div id=\"root\"></div></body>")]
+    [InlineData("<header></header><body><div id=\"root\"></div></body>")]
+    [InlineData("<head")]
+    public void TryCreate_WhenNoHeadStartTagPrecedesTheMountPoint_ReturnsNull(string html)
+    {
+        var shell = InteractiveBundleShell.TryCreate(html + "<div id=\"root\"></div>");
+
+        Assert.Null(shell);
     }
 
     [Fact]

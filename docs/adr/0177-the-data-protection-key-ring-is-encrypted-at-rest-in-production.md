@@ -39,15 +39,6 @@ replica is replaced. The fallback happens inside the key manager, so `KeyManagem
    a wrong password, a certificate without an RSA key, or previous certificates without a current one each stop the
    host while it is composed. The error names the configuration path.
 
-5. **Readiness fails while the replica cannot unwrap a live key it found in the ring.** `AddIdentityServer` registers
-   a readiness check (`HealthCheckTags.Readiness`) that asks the `IKeyManager` for every key and creates each live key's
-   encryptor, which unwraps it. A key is live until it expires or is revoked. The check is provider-agnostic like
-   decision 2. It considers only the keys that existed when the replica first checked its readiness: a replica started
-   with the wrong certificate cannot read the existing keys, and Data Protection quietly creates a new default key it
-   can read. That replica stays out of service, which stops a rolling update before it replaces the healthy replicas.
-   The replicas that were already serving do not check the new key, so the misconfigured one cannot take them out of
-   service too.
-
 ## Consequences
 
 - A Production deployment must supply a protection key held outside the database. That can be a certificate from the
@@ -62,9 +53,6 @@ replica is replaced. The fallback happens inside the key manager, so `KeyManagem
 - The certificate is therefore long-lived and rotated by hand. A key is unwrapped only by the certificate that wrapped
   it, matched by thumbprint, so a renewal written in place over the current certificate, which is cert-manager's
   default, leaves the ring unreadable after the next restart. The host chart's README describes the rotation steps and
-  warns against in-place renewal. The readiness check of decision 5 catches such a renewal, and a previous certificate
-  removed while a key it wrapped is still live, when a replica starts.
-- Each readiness probe reads the ring and unwraps every live key, which is one repository read and one RSA decryption
-  per key. A ring holds a handful of live keys, so the cost is small beside the database check.
+  warns against in-place renewal.
 - Envelope encryption of individual stored secrets (`S9`) and external keystores (`S7`) remain separate, complementary
   work. This decision protects only the ring itself.

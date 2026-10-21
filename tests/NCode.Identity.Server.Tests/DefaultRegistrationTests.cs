@@ -20,7 +20,6 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -30,7 +29,6 @@ using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Server.KeyRingProtection;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 using NCode.Persistence.Stores;
@@ -222,24 +220,6 @@ public sealed class DefaultRegistrationTests
 
         using var serviceProvider = services.BuildServiceProvider();
         Assert.Same(selector, serviceProvider.GetRequiredService<IClientJwtCredentialSelector>());
-    }
-
-    [Fact]
-    public void AddIdentityServer_RegistersTheKeyRingReadinessCheckAsASingleton()
-    {
-        var services = new ServiceCollection();
-
-        services.AddIdentityServer();
-
-        using var serviceProvider = services.BuildServiceProvider();
-        var registration = Assert.Single(
-            serviceProvider
-                .GetRequiredService<IOptions<HealthCheckServiceOptions>>()
-                .Value.Registrations,
-            x => x.Name == KeyRingHealthCheck.Name
-        );
-        Assert.Contains(HealthCheckTags.Readiness, registration.Tags);
-        Assert.Same(registration.Factory(serviceProvider), registration.Factory(serviceProvider));
     }
 
     [Fact]

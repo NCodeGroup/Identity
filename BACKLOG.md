@@ -492,6 +492,17 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   `src/NCode.Identity.OpenId.Host/Dockerfile:17, 28, 60`, `.github/dependabot.yml`.
 - **`R36` — Test the bundle-shell split against the built bundle's real `index.html`.** Touch point:
   `InteractiveBundleShell.cs:51-100`.
+- **`R48` — Refuse to start while a live Data Protection key cannot be unwrapped.** Split from R7, which documented
+  hand rotation of the key-protection certificate. A certificate renewed in place leaves the ring unreadable after a
+  restart. A readiness check is the wrong shape: Data Protection's hosted service runs at startup, finds no default
+  key it can unwrap, and writes a new key (live for 90 days) wrapped by the wrong certificate. Once the certificate is
+  fixed, that key keeps every correctly configured replica unready, because from one replica's view an unreadable key
+  written by a misconfigured pod looks the same as an unreadable key the ring depends on. A first attempt was reverted
+  for this reason. Instead, run the check as a start gate (`ValidateOnStart`, which runs before hosted services) that
+  fails while any live, unrevoked key cannot be unwrapped, so a misconfigured replica stops before it writes a key.
+  Also add a supported way to revoke a key by ID (`IKeyManager.RevokeKey`) for recovery, and document both in
+  ADR-0177 and the chart README. Touch points: `NCode.Identity.Server` (`ProductionSafetyRegistration` pattern),
+  `DataProtection:KeyProtection`, ADR-0177.
 
 ### Refactor
 

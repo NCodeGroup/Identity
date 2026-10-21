@@ -947,6 +947,24 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   metric, since the family has no protocol meter yet. Unit tests cover the estimate, each partition, fail-open, and
   cancellation; an integration test drives discovery past a server-wide limit. Quotas remain as `F79`._
 
+- **`F79` — Per-tenant quotas for plan tiers.** Split from `F45`. Count requests per day and token issuances per tenant
+  for plan tiers, reusing `IExpiringCounterSet`
+  ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)). Decide in an ADR the
+  window (calendar day in UTC or rolling), what happens at the quota (reject with `429`, or allow and report an
+  overage), and how a plan tier sets the quota through the settings cascade. Builds on `F45` (done).
+  _Closed: 2026-10-21. [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0198](docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md). The window is the UTC
+  calendar day (one fixed window, counter expires at the next midnight); a request over a quota is refused with the
+  rate limiter's `429`, `temporarily_unavailable`, and `Retry-After` until midnight UTC; a store outage fails open. Two
+  tenant-scope settings, merged with `Min` so the server's value is the platform's ceiling:
+  `quota_tenant_requests_per_day`, judged in `DefaultRequestRateLimiter.AcquireForTenantAsync` after the per-minute
+  limits, and `quota_tenant_token_requests_per_day`, judged by `AcquireForTokenRequestAsync` at the token endpoint
+  after a confidential client authenticates (a public client is named by its `client_id` alone, so counting it would
+  let anyone spend the quota). Token requests rather than issued tokens are counted, because counting only success
+  needs a non-atomic read-then-increment. A plan tier is the set of these settings written through the management
+  API, not a setting scope. The judgements are counted under the partitions `daily_requests` and
+  `daily_token_requests`. Durable usage history for billing is split out as `F81`._
+
 - **`F80` — Metrics for the protocol endpoints.** Implement
   [ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md): one owner per
   signal, only bounded attributes, and nothing measured twice. Done so far: the `NCode.Identity.OpenId.Authentication`

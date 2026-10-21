@@ -73,7 +73,7 @@ Decided in [ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-sc
   with a customer's `-dev` tenant; `dev`, `test`, and `staging` are reserved for customers' tenants and never name a
   platform environment ([ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-scheme.md)).
 - **Production therefore carries customers' dev/test traffic too:** per-tenant rate limits (done, backlog `F45`) and
-  quotas (`F79`) keep one tenant's load test from starving another.
+  quotas (done, backlog `F79`) keep one tenant's load test from starving another.
 
 ### Recommended plan
 
@@ -632,8 +632,10 @@ speed-test endpoint from the Denver network the users are on.
   each rollout it migrates the database in a Job from the same image, and every migration keeps the previous release
   working ([ADR-0180](adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Still
   needed: publishing the image and chart (`F48`).
-- **Per-tenant quotas** `F79` (above); the per-tenant rate limits (`F45`) and the mTLS work (`F43`, `F44`, `F47`, and
-  `F78`) are done.
+- **Per-tenant rate limits and quotas** — backlog `F45` and `F79`, done
+  ([ADR-0196](adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
+  [ADR-0198](adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)); the mTLS work (`F43`, `F44`,
+  `F47`, and `F78`) is done.
 
 **Operations:**
 

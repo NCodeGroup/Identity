@@ -970,4 +970,16 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<int> RateLimitClientPerMinute =>
         new(OpenIdSettingNames.RateLimitClientPerMinute);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'quota_tenant_requests_per_day' setting.
+    /// </summary>
+    public static SettingKey<int> QuotaTenantRequestsPerDay =>
+        new(OpenIdSettingNames.QuotaTenantRequestsPerDay);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'quota_tenant_token_requests_per_day' setting.
+    /// </summary>
+    public static SettingKey<int> QuotaTenantTokenRequestsPerDay =>
+        new(OpenIdSettingNames.QuotaTenantTokenRequestsPerDay);
 }

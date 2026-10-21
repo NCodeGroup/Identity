@@ -1066,3 +1066,7 @@ const NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.Error = "ncode.identi
 const NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.GrantType = "ncode.identity.openid.grant_type" -> string!
 const NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.OtherValue = "_OTHER" -> string!
 static NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.Add(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! name, string! value) -> void
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.QuotaTenantRequestsPerDay = "quota_tenant_requests_per_day" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.QuotaTenantTokenRequestsPerDay = "quota_tenant_token_requests_per_day" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.QuotaTenantRequestsPerDay.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay.get -> NCode.Identity.Settings.SettingKey<int>

@@ -78,6 +78,26 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
                 Rule = SettingRules.AtLeast(1),
                 OnMerge = SettingMerge.Min,
             };
+
+            // quota_tenant_requests_per_day: the most requests the tenant's protocol endpoints serve in one UTC calendar
+            // day; a plan tier writes it on the tenant, beneath the server's ceiling (ADR-0198).
+            yield return new SettingDescriptor<int>
+            {
+                Name = OpenIdSettingNames.QuotaTenantRequestsPerDay,
+                AppliesTo = Tenants,
+                Rule = SettingRules.AtLeast(1),
+                OnMerge = SettingMerge.Min,
+            };
+
+            // quota_tenant_token_requests_per_day: the most token requests from confidential clients the tenant's token
+            // endpoint serves in one UTC calendar day (ADR-0198).
+            yield return new SettingDescriptor<int>
+            {
+                Name = OpenIdSettingNames.QuotaTenantTokenRequestsPerDay,
+                AppliesTo = Tenants,
+                Rule = SettingRules.AtLeast(1),
+                OnMerge = SettingMerge.Min,
+            };
         }
     }
 }

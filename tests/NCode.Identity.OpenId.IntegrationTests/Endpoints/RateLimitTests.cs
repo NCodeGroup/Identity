@@ -26,11 +26,55 @@ using Xunit;
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
 /// <summary>
-/// Drives a tenant past its <c>rate_limit_tenant_per_minute</c> limit through the real host and confirms the refused
-/// request is answered <c>429 Too Many Requests</c> with <c>Retry-After</c> (ADR-0196).
+/// Drives a tenant past its <c>rate_limit_tenant_per_minute</c> limit and its daily quotas through the real host and
+/// confirms the refused request is answered <c>429 Too Many Requests</c> with <c>Retry-After</c> (ADR-0196, ADR-0198).
 /// </summary>
 public class RateLimitTests
 {
+    private const string ClientId = "it-quota-client";
+    private const string ClientSecret = "confidential-secret-value";
+    private const string TokenPath = "/oauth2/token";
+
+    private static ConfiguredHostApplicationFactory CreateFactory(
+        string settingName,
+        string value
+    ) => new(new Dictionary<string, string?> { [$"OpenId:Server:Settings:{settingName}"] = value });
+
+    private static HttpClient CreateClient(HostApplicationFactory factory) =>
+        factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+    private static FormUrlEncodedContent ConfidentialBody() =>
+        new(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["client_id"] = ClientId,
+                ["client_secret"] = ClientSecret,
+                ["scope"] = TestServerSettingsProvider.ApiScope,
+            }
+        );
+
+    private static async Task AssertTooManyRequestsAsync(
+        HttpResponseMessage response,
+        TimeSpan maxRetryAfter
+    )
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.TooManyRequests, body);
+        var retryAfter = response.Headers.RetryAfter?.Delta;
+        Assert.NotNull(retryAfter);
+        Assert.InRange(retryAfter.Value, TimeSpan.FromSeconds(1), maxRetryAfter);
+        Assert.True(response.Headers.CacheControl?.NoStore);
+
+        using var document = JsonDocument.Parse(body);
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.TemporarilyUnavailable,
+            document.RootElement.GetProperty("error").GetString()
+        );
+    }
+
+    #region Rate Limit Tests
+
     [Fact]
     public async Task Discovery_WhenTheTenantIsOverItsRateLimit_ReturnsTooManyRequests()
     {
@@ -55,16 +99,69 @@ public class RateLimitTests
 
         using var response = await client.GetAsync("/.well-known/openid-configuration");
 
-        Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
-        var retryAfter = response.Headers.RetryAfter?.Delta;
-        Assert.NotNull(retryAfter);
-        Assert.InRange(retryAfter.Value, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(120));
-        Assert.True(response.Headers.CacheControl?.NoStore);
-
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        Assert.Equal(
-            OpenIdConstants.ErrorCodes.TemporarilyUnavailable,
-            document.RootElement.GetProperty("error").GetString()
-        );
+        await AssertTooManyRequestsAsync(response, TimeSpan.FromSeconds(120));
     }
+
+    #endregion
+
+    #region Quota Tests
+
+    [Fact]
+    public async Task Discovery_WhenTheTenantHasSpentItsDailyQuota_ReturnsTooManyRequestsUntilMidnight()
+    {
+        using var factory = CreateFactory(OpenIdSettingNames.QuotaTenantRequestsPerDay, "2");
+        var client = CreateClient(factory);
+
+        // A quota is one fixed window per UTC day, so the third request is refused unless midnight UTC passes between
+        // the requests; Retry-After then points at most one day ahead.
+        for (var i = 0; i < 2; ++i)
+        {
+            using var admitted = await client.GetAsync("/.well-known/openid-configuration");
+            Assert.Equal(HttpStatusCode.OK, admitted.StatusCode);
+        }
+
+        using var response = await client.GetAsync("/.well-known/openid-configuration");
+
+        await AssertTooManyRequestsAsync(response, TimeSpan.FromDays(1));
+    }
+
+    [Fact]
+    public async Task PostToken_WhenAConfidentialClientHasSpentTheTokenQuota_ReturnsTooManyRequests()
+    {
+        using var factory = CreateFactory(OpenIdSettingNames.QuotaTenantTokenRequestsPerDay, "1");
+        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        var client = CreateClient(factory);
+
+        using var first = await client.PostAsync(TokenPath, ConfidentialBody());
+        using var second = await client.PostAsync(TokenPath, ConfidentialBody());
+
+        Assert.NotEqual(HttpStatusCode.TooManyRequests, first.StatusCode);
+        await AssertTooManyRequestsAsync(second, TimeSpan.FromDays(1));
+    }
+
+    [Fact]
+    public async Task PostToken_WhenAPublicClientRequestsTokens_DoesNotSpendTheTokenQuota()
+    {
+        // A public client is named by its client_id alone, so its requests must not spend the tenant's token quota.
+        using var factory = CreateFactory(OpenIdSettingNames.QuotaTenantTokenRequestsPerDay, "1");
+        await factory.SeedPublicClientAsync(ClientId, "https://client.example/callback");
+        var client = CreateClient(factory);
+
+        for (var i = 0; i < 3; ++i)
+        {
+            using var content = new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["client_id"] = ClientId,
+                }
+            );
+            using var response = await client.PostAsync(TokenPath, content);
+
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.True(response.StatusCode != HttpStatusCode.TooManyRequests, body);
+        }
+    }
+
+    #endregion
 }

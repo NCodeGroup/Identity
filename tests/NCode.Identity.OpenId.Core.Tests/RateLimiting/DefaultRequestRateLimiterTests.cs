@@ -115,15 +115,28 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
     #region Scaffolding
 
-    private void SetupTenant(bool readsSettings = true)
+    private void SetupTenant(bool readsSettings = true, bool readsTenantId = true)
     {
         var mockTenant = CreateStrictMock<OpenIdTenant>();
-        mockTenant.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
+        var tenantIdSetup = mockTenant.Setup(x => x.TenantId).Returns(TenantId);
+        if (readsTenantId)
+            tenantIdSetup.Verifiable();
         if (readsSettings)
         {
             var mockProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
             mockProvider.Setup(x => x.Collection).Returns(MockTenantSettings.Object).Verifiable();
             mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object).Verifiable();
+
+            // The daily quotas are unset unless a test sets them; not verifiable, since a refused request never reads them.
+            var unset = 0;
+            MockTenantSettings
+                .Setup(x => x.TryGetValue(OpenIdSettingKeys.QuotaTenantRequestsPerDay, out unset))
+                .Returns(false);
+            MockTenantSettings
+                .Setup(x =>
+                    x.TryGetValue(OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, out unset)
+                )
+                .Returns(false);
         }
 
         MockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
@@ -170,6 +183,23 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             .Verifiable();
     }
 
+    private static DateTimeOffset DayStart { get; } = new(2026, 10, 19, 0, 0, 0, TimeSpan.Zero);
+
+    private void SetupQuotaCounter(string partition, long count)
+    {
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        MockCounterSet
+            .Setup(x =>
+                x.IncrementAsync(
+                    CreateKey(partition, string.Empty, DayStart),
+                    DayStart.AddDays(1),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(count)
+            .Verifiable();
+    }
+
     private static string CreateKey(string partition, string value, DateTimeOffset windowStart) =>
         ExpiringKeys.Create(
             "rate-limit",
@@ -182,6 +212,100 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     #endregion
 
     #region AcquireForTenantAsync Tests
+
+    [Fact]
+    public async Task AcquireForTenantAsync_WhenWithinTheDailyQuota_Admits()
+    {
+        SetupTenant();
+        SetupRemoteAddress();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsPerDay, 100);
+        SetupQuotaCounter(DefaultRequestRateLimiter.DailyRequestsPartition, count: 100);
+
+        var decision = await Limiter.AcquireForTenantAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.False(decision.IsRejected);
+        Assert.Equal(
+            [
+                (
+                    DefaultRequestRateLimiter.DailyRequestsPartition,
+                    AuthenticationMetrics.AdmittedResult
+                ),
+            ],
+            Judgements
+        );
+    }
+
+    [Fact]
+    public async Task AcquireForTenantAsync_WhenTheDailyQuotaIsSpent_RejectsUntilMidnightUtc()
+    {
+        SetupTenant();
+        SetupRemoteAddress();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsPerDay, 100);
+        SetupQuotaCounter(DefaultRequestRateLimiter.DailyRequestsPartition, count: 101);
+
+        var decision = await Limiter.AcquireForTenantAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(decision.IsRejected);
+        Assert.Equal(DayStart.AddDays(1) - Now, decision.RetryAfter);
+        Assert.Equal(
+            [
+                (
+                    DefaultRequestRateLimiter.DailyRequestsPartition,
+                    AuthenticationMetrics.RejectedResult
+                ),
+            ],
+            Judgements
+        );
+    }
+
+    [Fact]
+    public async Task AcquireForTenantAsync_WhenTheTenantLimitRejects_DoesNotSpendTheDailyQuota()
+    {
+        SetupTenant();
+        SetupRemoteAddress();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, 1);
+        SetupCounters(
+            DefaultRequestRateLimiter.TenantPartition,
+            string.Empty,
+            current: 2,
+            previous: 0
+        );
+
+        var decision = await Limiter.AcquireForTenantAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(decision.IsRejected);
+        Assert.Equal(
+            [(DefaultRequestRateLimiter.TenantPartition, AuthenticationMetrics.RejectedResult)],
+            Judgements
+        );
+        MockCounterSet.Verify(
+            x =>
+                x.IncrementAsync(
+                    CreateKey(
+                        DefaultRequestRateLimiter.DailyRequestsPartition,
+                        string.Empty,
+                        DayStart
+                    ),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Never
+        );
+    }
 
     [Fact]
     public async Task AcquireForTenantAsync_WhenNoLimitIsSet_AdmitsWithoutCounting()
@@ -415,6 +539,83 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         Assert.True(decision.IsRejected);
         Assert.Equal(TimeSpan.FromSeconds(65), decision.RetryAfter);
+    }
+
+    #endregion
+
+    #region AcquireForTokenRequestAsync Tests
+
+    [Fact]
+    public async Task AcquireForTokenRequestAsync_WhenNoQuotaIsSet_AdmitsWithoutCounting()
+    {
+        SetupTenant(readsTenantId: false);
+
+        var decision = await Limiter.AcquireForTokenRequestAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.False(decision.IsRejected);
+        Assert.Empty(Judgements);
+    }
+
+    [Fact]
+    public async Task AcquireForTokenRequestAsync_WhenTheQuotaIsSpent_RejectsUntilMidnightUtc()
+    {
+        SetupTenant();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, 5);
+        SetupQuotaCounter(DefaultRequestRateLimiter.DailyTokenRequestsPartition, count: 6);
+
+        var decision = await Limiter.AcquireForTokenRequestAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(decision.IsRejected);
+        Assert.Equal(DayStart.AddDays(1) - Now, decision.RetryAfter);
+        Assert.Equal(
+            [
+                (
+                    DefaultRequestRateLimiter.DailyTokenRequestsPartition,
+                    AuthenticationMetrics.RejectedResult
+                ),
+            ],
+            Judgements
+        );
+    }
+
+    [Fact]
+    public async Task AcquireForTokenRequestAsync_WhenTheStoreThrows_AdmitsAndCountsTheFailure()
+    {
+        SetupTenant();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, 5);
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        MockCounterSet
+            .Setup(x =>
+                x.IncrementAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    CancellationToken.None
+                )
+            )
+            .ThrowsAsync(new InvalidOperationException("store unavailable"))
+            .Verifiable();
+
+        var decision = await Limiter.AcquireForTokenRequestAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.False(decision.IsRejected);
+        Assert.Equal(
+            [
+                (
+                    DefaultRequestRateLimiter.DailyTokenRequestsPartition,
+                    AuthenticationMetrics.StoreUnavailableResult
+                ),
+            ],
+            Judgements
+        );
     }
 
     #endregion

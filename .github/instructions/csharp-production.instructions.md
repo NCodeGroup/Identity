@@ -545,8 +545,10 @@ rationale.
 - 👁 **A count every replica must agree on increments `IExpiringCounterSet`, never a get-then-set.** A rate limit or a
   quota counts with the port's atomic `IncrementAsync`, which starts a counter for one fixed window; a read followed by
   a write loses concurrent requests. Read a count with `GetAsync` only for a counter this request does not add to (the
-  previous window). See
-  [ADR-0196](../../docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md).
+  previous window). Count what is requested, not what later succeeds: counting only an outcome needs a read before the
+  work and an increment after it. See
+  [ADR-0196](../../docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) and
+  [ADR-0198](../../docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.

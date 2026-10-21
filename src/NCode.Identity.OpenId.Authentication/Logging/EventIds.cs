@@ -72,4 +72,5 @@ internal static class EventIds
     public const int ClientCertificateUntrusted = Base + 41;
     public const int RateLimitExceeded = Base + 42;
     public const int RateLimitStoreUnavailable = Base + 43;
+    public const int QuotaExceeded = Base + 44;
 }

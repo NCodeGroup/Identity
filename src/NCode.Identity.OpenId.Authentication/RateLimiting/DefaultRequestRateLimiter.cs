@@ -56,7 +56,13 @@ internal class DefaultRequestRateLimiter(
 
     internal const string ClientPartition = "client";
 
+    internal const string DailyRequestsPartition = "daily_requests";
+
+    internal const string DailyTokenRequestsPartition = "daily_token_requests";
+
     internal static TimeSpan Window => TimeSpan.FromMinutes(1);
+
+    internal static TimeSpan QuotaWindow => TimeSpan.FromDays(1);
 
     private IExpiringCounterSet CounterSet { get; } = counterSet;
 
@@ -99,16 +105,47 @@ internal class DefaultRequestRateLimiter(
 
         if (settings.TryGetValue(OpenIdSettingKeys.RateLimitTenantPerMinute, out var tenantLimit))
         {
-            return await AcquireAsync(
+            var decision = await AcquireAsync(
                 tenantId,
                 TenantPartition,
                 string.Empty,
                 tenantLimit,
                 cancellationToken
             );
+            if (decision.IsRejected)
+                return decision;
+        }
+
+        // The daily quota is judged last, so a request a per-minute limit refuses does not spend the tenant's quota.
+        if (settings.TryGetValue(OpenIdSettingKeys.QuotaTenantRequestsPerDay, out var quota))
+        {
+            return await AcquireQuotaAsync(
+                tenantId,
+                DailyRequestsPartition,
+                quota,
+                cancellationToken
+            );
         }
 
         return RateLimitDecision.Admitted;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<RateLimitDecision> AcquireForTokenRequestAsync(
+        OpenIdContext openIdContext,
+        CancellationToken cancellationToken
+    )
+    {
+        var settings = openIdContext.Tenant.SettingsProvider.Collection;
+        if (!settings.TryGetValue(OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, out var quota))
+            return RateLimitDecision.Admitted;
+
+        return await AcquireQuotaAsync(
+            openIdContext.Tenant.TenantId,
+            DailyTokenRequestsPartition,
+            quota,
+            cancellationToken
+        );
     }
 
     /// <inheritdoc />
@@ -183,6 +220,49 @@ internal class DefaultRequestRateLimiter(
         Logger.RateLimitExceeded(tenantId, partition, limit);
         Metrics.RateLimitJudged(partition, AuthenticationMetrics.RejectedResult);
         return new RateLimitDecision(GetRetryAt(windowStart, current, previous, limit) - now);
+    }
+
+    // A quota counts one fixed window per UTC calendar day, so it resets at midnight UTC for every tenant and a refused
+    // caller is told to retry then. The count is incremented before it is judged, as the per-minute limits are.
+    private async ValueTask<RateLimitDecision> AcquireQuotaAsync(
+        string tenantId,
+        string partition,
+        int quota,
+        CancellationToken cancellationToken
+    )
+    {
+        var now = TimeProvider.GetUtcNow();
+        var dayStart = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);
+        var dayEnd = dayStart + QuotaWindow;
+
+        long count;
+        try
+        {
+            count = await CounterSet.IncrementAsync(
+                CreateKey(tenantId, partition, string.Empty, dayStart),
+                dayEnd,
+                cancellationToken
+            );
+        }
+        catch (Exception exception)
+            when (exception is not OperationCanceledException
+                || !cancellationToken.IsCancellationRequested
+            )
+        {
+            Logger.RateLimitStoreUnavailable(tenantId, partition, exception);
+            Metrics.RateLimitJudged(partition, AuthenticationMetrics.StoreUnavailableResult);
+            return RateLimitDecision.Admitted;
+        }
+
+        if (count <= quota)
+        {
+            Metrics.RateLimitJudged(partition, AuthenticationMetrics.AdmittedResult);
+            return RateLimitDecision.Admitted;
+        }
+
+        Logger.QuotaExceeded(tenantId, partition, quota);
+        Metrics.RateLimitJudged(partition, AuthenticationMetrics.RejectedResult);
+        return new RateLimitDecision(dayEnd - now);
     }
 
     // The earliest time one more request would be admitted, assuming no other request arrives meanwhile. Within the

@@ -52,12 +52,13 @@ A rate-limited request is therefore `http.response.status_code=429` with
 ### `ncode.identity.rate_limiting.requests`
 
 Counter, unit `{request}`, meter `NCode.Identity.OpenId.Authentication`. Recorded once for each partition that judges a
-protocol request ([ADR-0196](adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)).
+protocol request ([ADR-0196](adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)), including
+the daily quotas ([ADR-0198](adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)).
 
-| Attribute                                | Values                                                           |
-| ---------------------------------------- | ---------------------------------------------------------------- |
-| `ncode.identity.rate_limiting.partition` | `tenant`, `address`, `client`                                    |
-| `ncode.identity.rate_limiting.result`    | `admitted`, `rejected`, `store_unavailable` (the fail-open path) |
+| Attribute                                | Values                                                                  |
+| ---------------------------------------- | ----------------------------------------------------------------------- |
+| `ncode.identity.rate_limiting.partition` | `tenant`, `address`, `client`, `daily_requests`, `daily_token_requests` |
+| `ncode.identity.rate_limiting.result`    | `admitted`, `rejected`, `store_unavailable` (the fail-open path)        |
 
 ### `ncode.identity.events.published`
 

@@ -121,10 +121,10 @@ rationale.
 - 👁 **Keep CORS off a front-channel endpoint with `WithOpenIdFrontChannel()`, never CORS metadata.** An endpoint the
   user agent navigates to (authorization, continue, end-session, the interactive surface) carries
   `IOpenIdEndpointFrontChannelMetadata`, and the CORS middleware is branched around it (`UseDeveloperCors`); the same
-  call routes a CORS preflight to the endpoint, which refuses it, since routing's own 405 endpoint has no marker. Do not
-  use `DisableCors()` / `DisableCorsAttribute` or any other `ICorsMetadata`: the endpoint middleware throws for an
-  endpoint carrying CORS metadata when no CORS middleware ran, so it fails every request a production host without
-  CORS serves. See [ADR-0109](../../docs/adr/0109-fapi-behavioral-rules-and-discovery-validation-details.md).
+  call routes a CORS preflight to the endpoint, which refuses it, since routing's own 405 endpoint has no marker, and a
+  preflight that selects no endpoint (an unmapped method) gets no policy either. Do not use `DisableCors()` /
+  `DisableCorsAttribute` or any other `ICorsMetadata`: the endpoint middleware throws for an endpoint carrying CORS
+  metadata when no CORS middleware ran, so it fails every request a production host without CORS serves. See [ADR-0109](../../docs/adr/0109-fapi-behavioral-rules-and-discovery-validation-details.md).
 - 👁 **Extensibility is the default: a vocabulary is open unless it is provably closed.** The family exists to be
   extended — by consumers and by sibling packages — without editing it, so every set of named values (kinds, types,
   modes, scopes, formats, methods, reasons, statuses, plans) is **open** by default and modeled as:

@@ -59,9 +59,25 @@ public static class DeveloperCorsApplicationBuilderExtensions
             return policy is null
                 ? app
                 : app.UseWhen(
-                    context => !context.GetEndpoint().IsOpenIdFrontChannel,
+                    AppliesDeveloperCors,
                     branch => branch.UseCors(DeveloperCorsRegistration.PolicyName)
                 );
         }
+    }
+
+    // A preflight that asks a front-channel path for a method it does not map selects no endpoint at all (routing adds
+    // no 405 endpoint for a preflight), so it carries no marker either; neither does one to an unknown path, which no
+    // policy needs to answer. Every other preflight selects an endpoint: the real one, or routing's 405 endpoint.
+    private static bool AppliesDeveloperCors(HttpContext context)
+    {
+        var endpoint = context.GetEndpoint();
+        if (endpoint is null)
+        {
+            var request = context.Request;
+            return !HttpMethods.IsOptions(request.Method)
+                || !request.Headers.ContainsKey(CorsConstants.AccessControlRequestMethod);
+        }
+
+        return !endpoint.IsOpenIdFrontChannel;
     }
 }

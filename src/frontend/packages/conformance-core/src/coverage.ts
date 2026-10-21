@@ -418,7 +418,6 @@ const SECURITY: Catalog = {
       feature: 'JARM — signed authorization responses',
       reference: 'OAuth JARM / FAPI',
       channel: 'browser',
-      backlog: 'F16',
       classify: (raw) => {
         const modes = asStringArray(raw, 'response_modes_supported');
         const signing = asStringArray(raw, 'authorization_signing_alg_values_supported');

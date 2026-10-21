@@ -612,6 +612,24 @@ WWW-Authenticate header`). (Device Code is implemented; CIBA is `F3`.) Touch poi
   managed `string`) so the seed handlers keep the secret in their pinned, zeroed-on-return buffers. All three sites now
   route through it._
 
+- **`F27` — JARM (JWT Secured Authorization Response Mode) + response-mode extensibility seam.** Signed/encrypted
+  authorization responses (`query.jwt`, `fragment.jwt`, `form_post.jwt`, `jwt`). **Not required by FAPI 2.0** (which
+  reduces the response to `code`+`iss`), so this was spun out of `F16`; it is one of FAPI 1.0 Advanced's two permitted
+  responses and the one its profile (`F83`, which depends on this item) defaults to, and it is independently useful.
+  Current state: the inbound JAR half (RFC 9101 request objects) is fully implemented, but **outbound** response modes
+  are a hardcoded switch (`query` / `fragment` / `form_post`) in
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Results/DefaultAuthorizationResultExecutor.cs` with
+  **no extensibility point** (unlike token grants' `ITokenGrantHandler` strategy collection). Deliverables: **(a)** a
+  response-mode strategy seam (e.g. `IAuthorizationResponseMode`) replacing the switch; **(b)** a JWT-composition
+  service (sign with the tenant key, optionally encrypt with the client key) that wraps the response ticket
+  (`code`/`state`/`iss`/…) as JWT claims before serialization; **(c)** the `query.jwt`/`fragment.jwt`/`form_post.jwt`/
+  `jwt` response-mode constants (`OpenIdConstants.ResponseModes`); **(d)** discovery settings
+  `authorization_signing_alg_values_supported` (+ `_encryption_alg_`/`_enc_values_supported`) and the `.jwt` entries in
+  `response_modes_supported`. The `apps/conformance` `coverage.ts` `sec-jarm` row flips to `verified` once the signing
+  alg / `.jwt` modes are advertised. Touch points: `DefaultAuthorizationResultExecutor`,
+  `OpenIdConstants.ResponseModes`, `IAuthorizationTicket`, `DefaultSettingsProvider` (`response_modes_supported`),
+  `DefaultSettingDescriptorDataSource`. Needs its own ADR.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]; [ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md)._
 - **`F28` — Complete outbound-fetch SSRF coverage and bound the `request_uri` fetch.** The shared
   `IOutboundHttpForgeryGuard` ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md))
   guarded the `sector_identifier_uri`, `jwks_uri`, and JAR `request_uri` fetches, but two gaps remained. **(a)** The JAR

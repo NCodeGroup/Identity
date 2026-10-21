@@ -220,7 +220,7 @@ public sealed class TenantUsageStoreTests : IDisposable
     #region RemoveBeforeAsync Tests
 
     [Fact]
-    public async Task RemoveBeforeAsync_RemovesOnlyEarlierDaysOfEveryTenant()
+    public async Task RemoveBeforeAsync_RemovesOnlyEarlierDaysOfEveryTenantWithoutSaving()
     {
         await AddAsync(TenantId, Day.AddDays(-1), Requests, 1);
         await AddAsync("tenant-2", Day.AddDays(-2), Requests, 1);
@@ -231,7 +231,6 @@ public sealed class TenantUsageStoreTests : IDisposable
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             removed = await CreateStore(context).RemoveBeforeAsync(Day, CancellationToken.None);
-            await context.SaveChangesAsync();
         }
 
         Assert.Equal(2, removed);

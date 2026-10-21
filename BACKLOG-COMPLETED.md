@@ -2667,3 +2667,8 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   response-encryption `enc` (ID token, UserInfo, introspection, authorization) to the tenant's default `enc`, falling
   back to `A128CBC-HS256`, whenever the matching `alg` is registered, and checks it against the tenant's supported `enc`
   values; changelog entry under Fixed._
+
+- **`R26` — Prune the usage ledger with a set-based delete.** Touch point: `TenantUsageStore.RemoveBeforeAsync`.
+  _Closed: `TenantUsageStore.RemoveBeforeAsync` uses `ExecuteDeleteAsync`, so a prune never loads the expired entries;
+  the interface documents that the delete is immediate, and the store test now checks the rows are gone without saving
+  the unit of work. Changelog entry under Fixed._

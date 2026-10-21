@@ -479,7 +479,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   failures and encryption, PAR + JAR, and error `state` for a request-object request.
 - **`R25` — Make the usage-ledger flush idempotent, or document that it may overcount.** Touch point:
   `TenantUsageFlushService.cs:117-123`.
-- **`R26` — Prune the usage ledger with a set-based delete.** Touch point: `TenantUsageStore.RemoveBeforeAsync`.
 - **`R30` — Serve interactive bundle assets without resolving the tenant.** Touch point:
   `InteractiveAuthenticationEndpointGroup.cs:55`.
 - **`R31` — Probe the tenant cache before loading the control-plane tenant.** Touch point:

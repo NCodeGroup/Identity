@@ -1283,6 +1283,10 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **Pruning the tenant usage ledger loaded every expired entry into memory.** `ITenantUsageStore.RemoveBeforeAsync`
+  now removes them with one set-based delete, which takes effect immediately rather than when the unit of work is
+  saved.
+
 - **A JWT signed with a certificate key was checked against the certificate's validity in the host's local time.**
   The certificate-lifetime check compared the certificate's local-time validity with the UTC clock, so on a host
   outside UTC a client assertion, request object, or CIBA request signed with an expired certificate could still pass,

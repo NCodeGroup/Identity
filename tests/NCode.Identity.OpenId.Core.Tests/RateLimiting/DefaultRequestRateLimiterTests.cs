@@ -137,6 +137,21 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
                     x.TryGetValue(OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, out unset)
                 )
                 .Returns(false);
+
+            // The overages are unset unless a test sets them; read only once a quota is spent.
+            MockTenantSettings
+                .Setup(x =>
+                    x.TryGetValue(OpenIdSettingKeys.QuotaTenantRequestsOveragePerDay, out unset)
+                )
+                .Returns(false);
+            MockTenantSettings
+                .Setup(x =>
+                    x.TryGetValue(
+                        OpenIdSettingKeys.QuotaTenantTokenRequestsOveragePerDay,
+                        out unset
+                    )
+                )
+                .Returns(false);
         }
 
         MockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
@@ -266,6 +281,84 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             ],
             Judgements
         );
+    }
+
+    [Fact]
+    public async Task AcquireForTenantAsync_WhenPastTheQuotaWithinTheOverage_AdmitsAsOverage()
+    {
+        SetupTenant();
+        SetupRemoteAddress();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsPerDay, 100);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsOveragePerDay, 10);
+        SetupQuotaCounter(DefaultRequestRateLimiter.DailyRequestsPartition, count: 110);
+
+        var decision = await Limiter.AcquireForTenantAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.False(decision.IsRejected);
+        Assert.True(decision.IsOverage);
+        Assert.Equal(
+            [
+                (
+                    DefaultRequestRateLimiter.DailyRequestsPartition,
+                    AuthenticationMetrics.OverageResult
+                ),
+            ],
+            Judgements
+        );
+    }
+
+    [Fact]
+    public async Task AcquireForTenantAsync_WhenPastTheQuotaAndTheOverage_RejectsUntilMidnightUtc()
+    {
+        SetupTenant();
+        SetupRemoteAddress();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsPerDay, 100);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsOveragePerDay, 10);
+        SetupQuotaCounter(DefaultRequestRateLimiter.DailyRequestsPartition, count: 111);
+
+        var decision = await Limiter.AcquireForTenantAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(decision.IsRejected);
+        Assert.False(decision.IsOverage);
+        Assert.Equal(DayStart.AddDays(1) - Now, decision.RetryAfter);
+        Assert.Equal(
+            [
+                (
+                    DefaultRequestRateLimiter.DailyRequestsPartition,
+                    AuthenticationMetrics.RejectedResult
+                ),
+            ],
+            Judgements
+        );
+    }
+
+    [Fact]
+    public async Task AcquireForTenantAsync_WhenTheOverageIsZero_RejectsAtTheQuota()
+    {
+        SetupTenant();
+        SetupRemoteAddress();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsPerDay, 100);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsOveragePerDay, 0);
+        SetupQuotaCounter(DefaultRequestRateLimiter.DailyRequestsPartition, count: 101);
+
+        var decision = await Limiter.AcquireForTenantAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(decision.IsRejected);
     }
 
     [Fact]
@@ -578,6 +671,32 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
                 (
                     DefaultRequestRateLimiter.DailyTokenRequestsPartition,
                     AuthenticationMetrics.RejectedResult
+                ),
+            ],
+            Judgements
+        );
+    }
+
+    [Fact]
+    public async Task AcquireForTokenRequestAsync_WhenPastTheQuotaWithinTheOverage_AdmitsAsOverage()
+    {
+        SetupTenant();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, 5);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantTokenRequestsOveragePerDay, 2);
+        SetupQuotaCounter(DefaultRequestRateLimiter.DailyTokenRequestsPartition, count: 7);
+
+        var decision = await Limiter.AcquireForTokenRequestAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.False(decision.IsRejected);
+        Assert.True(decision.IsOverage);
+        Assert.Equal(
+            [
+                (
+                    DefaultRequestRateLimiter.DailyTokenRequestsPartition,
+                    AuthenticationMetrics.OverageResult
                 ),
             ],
             Judgements

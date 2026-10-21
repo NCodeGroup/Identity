@@ -38,6 +38,8 @@ internal sealed class AuthenticationMetrics
 
     internal const string RejectedResult = "rejected";
 
+    internal const string OverageResult = "overage";
+
     internal const string StoreUnavailableResult = "store_unavailable";
 
     private Counter<long> RateLimitingRequests { get; }

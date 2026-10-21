@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Authentication.Metrics;
 using NCode.Identity.OpenId.Authentication.SharedState;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 
 namespace NCode.Identity.OpenId.Authentication.RateLimiting;
@@ -123,6 +124,8 @@ internal class DefaultRequestRateLimiter(
                 tenantId,
                 DailyRequestsPartition,
                 quota,
+                settings,
+                OpenIdSettingKeys.QuotaTenantRequestsOveragePerDay,
                 cancellationToken
             );
         }
@@ -144,6 +147,8 @@ internal class DefaultRequestRateLimiter(
             openIdContext.Tenant.TenantId,
             DailyTokenRequestsPartition,
             quota,
+            settings,
+            OpenIdSettingKeys.QuotaTenantTokenRequestsOveragePerDay,
             cancellationToken
         );
     }
@@ -223,11 +228,15 @@ internal class DefaultRequestRateLimiter(
     }
 
     // A quota counts one fixed window per UTC calendar day, so it resets at midnight UTC for every tenant and a refused
-    // caller is told to retry then. The count is incremented before it is judged, as the per-minute limits are.
+    // caller is told to retry then. The count is incremented before it is judged, as the per-minute limits are. A tier
+    // that sets an overage admits that many more requests past the quota as billable overage, and refuses past both, so
+    // its bill stays bounded (ADR-0200).
     private async ValueTask<RateLimitDecision> AcquireQuotaAsync(
         string tenantId,
         string partition,
         int quota,
+        IReadOnlySettingCollection settings,
+        SettingKey<int> overageKey,
         CancellationToken cancellationToken
     )
     {
@@ -258,6 +267,12 @@ internal class DefaultRequestRateLimiter(
         {
             Metrics.RateLimitJudged(partition, AuthenticationMetrics.AdmittedResult);
             return RateLimitDecision.Admitted;
+        }
+
+        if (settings.TryGetValue(overageKey, out var overage) && count <= (long)quota + overage)
+        {
+            Metrics.RateLimitJudged(partition, AuthenticationMetrics.OverageResult);
+            return RateLimitDecision.Overage;
         }
 
         Logger.QuotaExceeded(tenantId, partition, quota);

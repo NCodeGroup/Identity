@@ -232,3 +232,4 @@ standards.
 | [0194](./0194-a-tenant-brands-its-interactive-surface-through-settings.md) | A tenant brands its interactive surface through settings | Accepted |
 | [0195](./0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md) | A tenant's mTLS endpoint alias is a routed tenant property | Accepted |
 | [0196](./0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) | Tenants are rate limited through a shared expiring counter set | Accepted |
+| [0197](./0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) | Protocol metrics have one owner per signal and only bounded dimensions | Accepted |

@@ -885,7 +885,7 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   rules above, limited to performance-critical primitives. See
   [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md).
 
-## 11. Logging
+## 11. Logging & metrics
 
 - 👁 **Log through source-generated `[LoggerMessage]` methods**, never `ILogger.Log*` calls with an interpolated
   message — the generator gives allocation-free, strongly-typed, structured logging. Group the partial methods for a
@@ -926,6 +926,22 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
     | `15000`–`15999` | `NCode.Identity.Dispatch`                           |
     | `16000`–`16999` | `NCode.Identity.SharedState`                        |
     | `17000`–`17999` | `NCode.Identity.SharedState.Valkey`                 |
+
+### Metrics
+
+- 👁 **Measure a signal once, through its owner**
+  ([ADR-0197](../../docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md)): request
+  count, latency, and status belong to ASP.NET Core's `http.server.request.duration` (enrich it through
+  `IHttpMetricsTagsFeature`), outbound calls to `System.Net.Http`, and domain outcomes to the event seam's counter.
+  Add a family instrument only for a mechanism that is none of these, such as rate limiting or shared state.
+- 👁 **Create meters through `IMeterFactory`, never `new Meter(…)`**: one meter per package, named after the package
+  as a public constant, with its instruments in one internal `…Metrics` singleton that call sites use.
+- 👁 **Name instruments and attributes `ncode.identity.{area}.…`**, keep an OpenTelemetry semantic-convention name
+  (`error.type`) where one exists, and use UCUM units: durations as histograms in seconds, counts as `{noun}`.
+- 👁 **A metric attribute's value comes from a vocabulary the server controls**: a registered name, a server-chosen
+  error code, or `_OTHER`. Never a tenant, client, subject, or address, and never a value echoed from the request;
+  those belong to traces and logs.
+- 👁 **Test every instrument with `MetricCollector<T>`**, asserting its name, unit, and attributes.
 
 ## 12. Configuration & options
 

@@ -2,7 +2,7 @@
 {{ include "identity-host.fullname" . }} Service on port {{ .Values.service.port }}.
 
 {{- if .Values.migrations.enabled }}
-The {{ include "identity-host.fullname" . }}-migrations Job applied the database migrations before the rollout.
+The {{ include "identity-host.migrationsJobName" . }} Job applied the database migrations before the rollout.
 {{- else }}
 Apply the database migrations before a new version starts: the host does not migrate on boot.
 {{- end }}

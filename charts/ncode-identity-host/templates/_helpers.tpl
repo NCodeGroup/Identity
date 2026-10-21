@@ -6,6 +6,14 @@ The chart name, overridable by nameOverride.
 {{- end }}
 
 {{/*
+The name of the migration Job. The fully qualified name is shortened first so the name, with its suffix, fits the
+63-character label value Kubernetes copies it into (batch.kubernetes.io/job-name).
+*/}}
+{{- define "identity-host.migrationsJobName" -}}
+{{- printf "%s-migrations" (include "identity-host.fullname" . | trunc 52 | trimSuffix "-") }}
+{{- end }}
+
+{{/*
 The fully qualified name of the release's resources.
 */}}
 {{- define "identity-host.fullname" -}}

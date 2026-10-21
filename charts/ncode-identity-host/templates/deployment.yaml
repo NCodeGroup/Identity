@@ -12,18 +12,18 @@ spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 5
   strategy:
+    {{- if $valkey }}
+    # A new replica is ready before an old one stops, so the release never drops below its replica count.
     type: RollingUpdate
     rollingUpdate:
-      {{- if $valkey }}
-      # A new replica is ready before an old one stops, so the release never drops below its replica count.
       maxSurge: 1
       maxUnavailable: 0
-      {{- else }}
-      # Without Valkey each replica holds single-use state in process, so two replicas must never run at once — not
-      # even during an update.
-      maxSurge: 0
-      maxUnavailable: 1
-      {{- end }}
+    {{- else }}
+    # Without Valkey each replica holds single-use state in process, so two replicas must never run at once, not even
+    # during an update. Recreate waits until the old pod has terminated; a rolling update with maxSurge 0 starts the new
+    # pod as soon as the old one begins terminating, while it may still be serving.
+    type: Recreate
+    {{- end }}
   selector:
     matchLabels:
       {{- include "identity-host.selectorLabels" . | nindent 6 }}

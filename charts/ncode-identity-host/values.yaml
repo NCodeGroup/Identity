@@ -145,7 +145,8 @@ tolerations: []
 affinity: {}
 priorityClassName: ""
 
-# Any other host setting, as environment variables (for example Logging__LogLevel__Default).
+# Any other host setting, as environment variables (for example Logging__LogLevel__Default), and extra volumes. The
+# migration Job receives them too, so a setting the database connection needs (a CA bundle, say) reaches both.
 extraEnv: []
 extraEnvFrom: []
 extraVolumes: []

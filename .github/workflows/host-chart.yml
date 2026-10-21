@@ -80,3 +80,32 @@ jobs:
             echo "::error::The chart rendered a migration Job with migrations.enabled=false."
             exit 1
           fi
+
+      - name: Give the migration Job the host's extra settings and a valid name
+        run: |
+          base="$CHART/ci/single-replica-values.yaml"
+          job=$(helm template release "$CHART" --values "$base" --show-only templates/migration-job.yaml \
+            --set-json 'extraEnv=[{"name":"PGSSLMODE","value":"verify-full"}]' \
+            --set-json 'extraVolumes=[{"name":"pg-ca","secret":{"secretName":"pg-ca"}}]' \
+            --set-json 'extraVolumeMounts=[{"name":"pg-ca","mountPath":"/etc/pg-ca"}]')
+          for expected in 'name: PGSSLMODE' 'mountPath: /etc/pg-ca' 'secretName: pg-ca'; do
+            if ! grep -q "$expected" <<< "$job"; then
+              echo "::error::The migration Job lacks the host's extra setting or volume: $expected"
+              exit 1
+            fi
+          done
+          # Kubernetes copies the Job's name into a label value, which is limited to 63 characters.
+          name=$(helm template a-fifty-three-character-release-name-for-the-job-test "$CHART" --values "$base" \
+            --show-only templates/migration-job.yaml | awk '/^  name:/ { print $2; exit }')
+          if [ "${#name}" -gt 63 ]; then
+            echo "::error::The migration Job name '$name' is longer than 63 characters."
+            exit 1
+          fi
+
+      - name: Never run two replicas at once without Valkey
+        run: |
+          if ! helm template release "$CHART" --values "$CHART/ci/single-replica-values.yaml" \
+            --show-only templates/deployment.yaml | grep -q 'type: Recreate'; then
+            echo "::error::A release without Valkey must use the Recreate strategy."
+            exit 1
+          fi

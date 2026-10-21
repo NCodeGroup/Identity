@@ -155,6 +155,28 @@ public sealed class DefaultTenantResolverTests
     }
 
     [Fact]
+    public async Task ValidateTenantAsync_WhenMtlsEndpointAliasAuthorityIsNotAnHttpsOrigin_FailsWithoutConsultingTheStrategy()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = mocks.Create<ITenantStrategy>();
+        var storeManager = mocks.Create<IStoreManager>();
+
+        var failures = await CreateResolver(strategy.Object)
+            .ValidateTenantAsync(
+                TenantId,
+                null,
+                "https://mtls.example/path",
+                storeManager.Object,
+                CancellationToken.None
+            );
+
+        var failure = Assert.Single(failures);
+        Assert.False(failure.IsConflict);
+        Assert.Contains("'https://mtls.example/path'", failure.Detail, StringComparison.Ordinal);
+        mocks.Verify();
+    }
+
+    [Fact]
     public async Task ValidateTenantAsync_WhenIssuerIsAbsent_DelegatesToTheStrategyWithoutAnIssuerLookup()
     {
         var mocks = new MockRepository(MockBehavior.Strict);

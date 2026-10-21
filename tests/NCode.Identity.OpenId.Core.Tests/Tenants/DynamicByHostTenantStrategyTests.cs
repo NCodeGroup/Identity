@@ -35,6 +35,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
 {
     private const string TenantId = "acme";
     private const string IssuerHost = "acme.auth.example";
+    private const string AliasHost = "acme.mtls.example";
 
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
     private Mock<IStoreManager> MockStoreManager { get; }
@@ -67,6 +68,18 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .Verifiable();
         MockTenantStore
             .Setup(x => x.GetOrDefaultByHostAsync(IssuerHost, CancellationToken.None))
+            .ReturnsAsync(holderTenantId is null ? null : CreatePersistedTenant(holderTenantId))
+            .Verifiable();
+    }
+
+    private void SetupHostHolder(string host, string? holderTenantId)
+    {
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultByHostAsync(host, CancellationToken.None))
             .ReturnsAsync(holderTenantId is null ? null : CreatePersistedTenant(holderTenantId))
             .Verifiable();
     }
@@ -223,6 +236,94 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
 
         var failure = Assert.Single(failures);
         Assert.Contains("must end with '/identity'", failure.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenAliasHostIsFree_Succeeds()
+    {
+        SetupIssuerHostHolder(holderTenantId: null);
+        SetupHostHolder(AliasHost, holderTenantId: null);
+
+        var failures = await CreateStrategy()
+            .ValidateTenantAsync(
+                TenantId,
+                new Uri($"https://{IssuerHost}"),
+                new Uri($"https://{AliasHost}"),
+                MockStoreManager.Object,
+                CancellationToken.None
+            );
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenAnotherTenantHoldsTheAliasHost_ReportsAConflict()
+    {
+        SetupIssuerHostHolder(holderTenantId: null);
+        SetupHostHolder(AliasHost, "globex");
+
+        var failures = await CreateStrategy()
+            .ValidateTenantAsync(
+                TenantId,
+                new Uri($"https://{IssuerHost}"),
+                new Uri($"https://{AliasHost}"),
+                MockStoreManager.Object,
+                CancellationToken.None
+            );
+
+        var failure = Assert.Single(failures);
+        Assert.True(failure.IsConflict);
+        Assert.Contains($"'{AliasHost}'", failure.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenAliasHostIsTheIssuerHost_Fails()
+    {
+        SetupIssuerHostHolder(holderTenantId: null);
+
+        var failures = await CreateStrategy()
+            .ValidateTenantAsync(
+                TenantId,
+                new Uri($"https://{IssuerHost}"),
+                new Uri($"https://{IssuerHost.ToUpperInvariant()}"),
+                MockStoreManager.Object,
+                CancellationToken.None
+            );
+
+        var failure = Assert.Single(failures);
+        Assert.False(failure.IsConflict);
+        Assert.Contains(
+            "must differ from the issuer host",
+            failure.Detail,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenHostPatternMapsTheAliasHostElsewhere_Fails()
+    {
+        const string aliasHost = "acme.mtls.example.internal";
+        SetupIssuerHostHolder(holderTenantId: null);
+        SetupHostHolder(aliasHost, holderTenantId: null);
+
+        var failures = await CreateStrategy(
+                new DynamicByHostTenantOptions { RegexPattern = "^[^.]+\\.(auth|mtls)\\.example" }
+            )
+            .ValidateTenantAsync(
+                TenantId,
+                new Uri($"https://{IssuerHost}"),
+                new Uri($"https://{aliasHost}"),
+                MockStoreManager.Object,
+                CancellationToken.None
+            );
+
+        var failure = Assert.Single(failures);
+        Assert.False(failure.IsConflict);
+        Assert.Contains(
+            $"mTLS endpoint alias host '{aliasHost}' does not reach the tenant",
+            failure.Detail,
+            StringComparison.Ordinal
+        );
     }
 
     #endregion

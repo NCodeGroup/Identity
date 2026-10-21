@@ -977,7 +977,7 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   - **Management contract.** `CreateTenantRequest`, `UpdateTenantRequest`, `TenantResource`, and
     `TenantAddressResource` carry the alias authority, and `TenantAddressResource` gains an
     `IsMtlsEndpointAliasAuthorityDerived` flag beside `IsIssuerDerived`. `TenantApiEndpointHandler` handles it the way
-    it handles the issuer. Editing it in the console is `U25`.
+    it handles the issuer. Editing it in the console is `U25` (done).
   - **Migration (expand-only).** Add the column and its index. Then move each tenant's stored
     `mtls_endpoint_alias_authority` out of `SettingsJson` into the column, removing the key and rewriting the settings
     concurrency token. This is the same retirement `RetireAllowUnsafeTokenResponse` performs
@@ -995,7 +995,7 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   the derived `NormalizedMtlsEndpointAliasHost` column and index, `GetOrDefaultByHostAsync`, validation of both hosts,
   discovery from the tenant, the create/update/read contract, the migration, and the tests. The template default and its
   options-validator rules, the `TenantAddressResource` alias and derived flag, and their tests moved to `F78`; console
-  editing remains `U25`._
+  editing moved to `U25` (done)._
 
 - **`F49` — Shared `IDistributedCache` for multi-replica deployments.** The DPoP nonce service, the DPoP proof replay
   cache, and the client-assertion replay cache (RFC 7523 §3) run over `IDistributedCache`, and the server registers
@@ -1713,7 +1713,7 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `StaticSingle:MtlsEndpointAliasAuthority` (mirroring the configured issuers),
   `ITenantStrategy`/`ITenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync`, the derived alias stored by management
   create and update and by the provisioner, the preview's `mtlsEndpointAliasAuthority` parameter and the
-  `TenantAddressResource` alias and derived flag, and unit and integration tests. Console editing remains `U25`._
+  `TenantAddressResource` alias and derived flag, and unit and integration tests. Console editing is `U25` (done)._
 
 ## Frontend presentation platform (group `U`)
 
@@ -2061,6 +2061,27 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   tokens through `@ncode/config`'s shared `parseBrandingConfig`, themes through `AppThemeProvider`, draws the logo, and
   titles the login and account pages with the display name. `InteractiveTenantRouteTests` proves two path tenants
   receive their own branding._
+
+- **`U25` — Edit a tenant's mTLS endpoint-alias authority in the console.** `F47` made the alias authority a tenant
+  property that the management API carries as `mtlsEndpointAliasAuthority`
+  ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). Add it to the `@ncode/api`
+  mirrors (`TenantResource`, `CreateTenantRequest`, `UpdateTenantFields` in `packages/api/src/contracts.ts`), then show
+  and edit it beside the issuer in the management console's tenant pages (`apps/mgmt` `TenantsPage.tsx` and
+  `TenantDetailPage.tsx`, and `TenantFormDialog`). Preview its derived default through `TenantAddressResource`, the way
+  the create and edit dialog already previews the issuer, and re-judge it only when it changes. The preview's
+  `mtlsEndpointAliasAuthority` query parameter and the resource's `mtlsEndpointAliasAuthority` and
+  `isMtlsEndpointAliasAuthorityDerived` fields exist (`F78`, done); add them to the `@ncode/api` `TenantAddressResource`
+  mirror as well.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md) (consequences amended). The
+  `@ncode/api` mirrors carry `mtlsEndpointAliasAuthority` on `TenantResource`, `CreateTenantRequest`,
+  `UpdateTenantFields`, and `TenantAddressResource` (with `isMtlsEndpointAliasAuthorityDerived`), and the store's
+  `getTenantAddress` sends a proposed alias. `TenantFormDialog` edits the alias beside the issuer and shows the derived
+  default as its hint and placeholder, `TenantTable` shows it in its own column, and `TenantsPage` previews it,
+  re-judges an existing tenant's address only when its issuer or alias changes, and sends it on create and update (empty
+  restores the derived one). `TenantDetailPage` shows no address (it is the tenant's secrets and settings tabs), so the
+  alias is shown and edited where the issuer is._
 
 ## Secrets management (group `S`)
 

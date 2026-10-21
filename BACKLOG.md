@@ -409,16 +409,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml),
   [`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml),
   [`build/frontend-install.ps1`](build/frontend-install.ps1), the AppHost's `EnsurePinnedNodeOnPath`.
-- **`U25` — Edit a tenant's mTLS endpoint-alias authority in the console.** `F47` made the alias authority a tenant
-  property that the management API carries as `mtlsEndpointAliasAuthority`
-  ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). Add it to the `@ncode/api`
-  mirrors (`TenantResource`, `CreateTenantRequest`, `UpdateTenantFields` in `packages/api/src/contracts.ts`), then show
-  and edit it beside the issuer in the management console's tenant pages (`apps/mgmt` `TenantsPage.tsx` and
-  `TenantDetailPage.tsx`, and `TenantFormDialog`). Preview its derived default through `TenantAddressResource`, the way
-  the create and edit dialog already previews the issuer, and re-judge it only when it changes. The preview's
-  `mtlsEndpointAliasAuthority` query parameter and the resource's `mtlsEndpointAliasAuthority` and
-  `isMtlsEndpointAliasAuthorityDerived` fields exist (`F78`, done); add them to the `@ncode/api` `TenantAddressResource`
-  mirror as well.
 
 ## Secrets management (group `S`)
 

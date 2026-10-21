@@ -334,6 +334,46 @@ public static class OpenIdSettingNames
     public const string IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported";
 
     /// <summary>
+    /// Contains the name of the per-client <c>authorization_encrypted_response_alg</c> setting (JARM §3): the key-management algorithm a
+    /// client registers for encrypting its JWT-secured authorization responses to its public key. When it is absent,
+    /// authorization responses are signed only.
+    /// </summary>
+    public const string AuthorizationEncryptedResponseAlg = "authorization_encrypted_response_alg";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>authorization_encrypted_response_enc</c> setting (JARM §3): the content-encryption
+    /// algorithm of the client's encrypted authorization responses (<c>A128CBC-HS256</c> unless registered).
+    /// </summary>
+    public const string AuthorizationEncryptedResponseEnc = "authorization_encrypted_response_enc";
+
+    /// <summary>
+    /// Contains the name of the <c>authorization_encryption_alg_values_supported</c> setting (JARM §4): the key-management
+    /// algorithms a JWT-secured authorization response may be encrypted with.
+    /// </summary>
+    public const string AuthorizationEncryptionAlgValuesSupported =
+        "authorization_encryption_alg_values_supported";
+
+    /// <summary>
+    /// Contains the name of the <c>authorization_encryption_enc_values_supported</c> setting (JARM §4): the content-encryption
+    /// algorithms a JWT-secured authorization response may be encrypted with.
+    /// </summary>
+    public const string AuthorizationEncryptionEncValuesSupported =
+        "authorization_encryption_enc_values_supported";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>authorization_signed_response_alg</c> setting (JARM §3): the signature algorithm of the
+    /// client's JWT-secured authorization responses (<c>RS256</c> unless registered).
+    /// </summary>
+    public const string AuthorizationSignedResponseAlg = "authorization_signed_response_alg";
+
+    /// <summary>
+    /// Contains the name of the <c>authorization_signing_alg_values_supported</c> setting (JARM §4): the signature algorithms a
+    /// JWT-secured authorization response may be signed with.
+    /// </summary>
+    public const string AuthorizationSigningAlgValuesSupported =
+        "authorization_signing_alg_values_supported";
+
+    /// <summary>
     /// Contains the name of the per-client <c>introspection_encrypted_response_alg</c> setting (RFC 9701 §6): the
     /// key-management algorithm a client acting for a resource server registers for encrypting its JWT introspection
     /// responses to its public key. When it is absent, introspection responses are not encrypted.

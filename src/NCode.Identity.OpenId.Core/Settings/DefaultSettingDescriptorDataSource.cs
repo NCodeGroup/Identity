@@ -2064,6 +2064,90 @@ internal class DefaultSettingDescriptorDataSource(
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
             };
+
+            // authorization_signed_response_alg: the signature "alg" a client registers for
+            // its JWT-secured authorization responses (JARM) (JARM §3: RS256 unless registered).
+            // Override (Replace): a child fully replaces the parent value. The effective
+            // authorization_signing_alg_values_supported must permit it (ADR-0155, ADR-0168).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.AuthorizationSignedResponseAlg,
+                AppliesTo = Clients,
+                Rule = AsymmetricSignatureAlgorithm(),
+                Default = AlgorithmCodes.DigitalSignature.RsaSha256,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // authorization_signing_alg_values_supported: permitted "alg" values for signing a JWT introspection
+            // response (JARM §4). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
+            // (ADR-0010). Advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.AuthorizationSigningAlgValuesSupported,
+                AppliesTo = TenantsAndClients,
+                Rule = AsymmetricSignatureAlgorithms(),
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // authorization_encrypted_response_alg: the key-management "alg" a client acting for a resource server
+            // registers for encrypting its JWT-secured authorization responses (JARM) to its public key (JARM §3); absent = not
+            // encrypted. Override (Replace): a child fully replaces the parent value. The effective
+            // authorization_encryption_alg_values_supported must permit it (ADR-0155).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.AuthorizationEncryptedResponseAlg,
+                AppliesTo = Clients,
+                Rule = AsymmetricKeyManagementAlgorithm(),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // authorization_encrypted_response_enc: the content-encryption "enc" of the client's encrypted JWT
+            // introspection responses (JARM §3: A128CBC-HS256 unless registered).
+            // Override (Replace): a child fully replaces the parent value. The effective
+            // authorization_encryption_enc_values_supported must permit it (ADR-0155).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.AuthorizationEncryptedResponseEnc,
+                AppliesTo = Clients,
+                Rule = ContentEncryptionAlgorithm(),
+                Default = AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // authorization_encryption_alg_values_supported: permitted "alg" values for encrypting a JWT introspection
+            // response (JARM §4). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
+            // (ADR-0010). The response is encrypted to the client's public key, so only asymmetric key management
+            // applies; advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.AuthorizationEncryptionAlgValuesSupported,
+                AppliesTo = TenantsAndClients,
+                Rule = AsymmetricKeyManagementAlgorithms(),
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // authorization_encryption_enc_values_supported: permitted "enc" values for encrypting a JWT introspection
+            // response (JARM §4). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
+            // (ADR-0010). Advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.AuthorizationEncryptionEncValuesSupported,
+                AppliesTo = TenantsAndClients,
+                Rule = ContentEncryptionAlgorithms(),
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
         }
     }
 

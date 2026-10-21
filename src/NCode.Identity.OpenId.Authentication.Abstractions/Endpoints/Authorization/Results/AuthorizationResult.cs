@@ -21,6 +21,8 @@ using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.Results;
@@ -78,6 +80,19 @@ public sealed class AuthorizationResult : IResult, ISupportOpenIdError
     /// Gets the <see cref="Uri"/> where the authorization response should be sent to.
     /// </summary>
     public Uri RedirectUri { get; }
+
+    /// <summary>
+    /// Gets the <see cref="Contexts.OpenIdContext"/> of the request, which a response mode that protects the response
+    /// (such as a JWT-secured authorization response) needs; <see langword="null"/> when the result was created without
+    /// it.
+    /// </summary>
+    public OpenIdContext? OpenIdContext { get; init; }
+
+    /// <summary>
+    /// Gets the client the response is addressed to, which a response mode that protects the response (such as a
+    /// JWT-secured authorization response) needs; <see langword="null"/> when the result was created without it.
+    /// </summary>
+    public OpenIdClient? OpenIdClient { get; init; }
 
     /// <summary>
     /// Gets the mechanism that should be used for sending the authorization response.

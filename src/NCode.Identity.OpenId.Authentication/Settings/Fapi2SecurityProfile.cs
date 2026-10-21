@@ -68,6 +68,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         ceiling.Set(OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(OpenIdSettingKeys.UserInfoSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported, SigningAlgorithms);
+        ceiling.Set(OpenIdSettingKeys.AuthorizationSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(
             OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported,
@@ -119,6 +120,10 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         );
         defaults.Set(
             OpenIdSettingKeys.IntrospectionSignedResponseAlg,
+            AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
+        );
+        defaults.Set(
+            OpenIdSettingKeys.AuthorizationSignedResponseAlg,
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
         );
     }

@@ -1538,3 +1538,15 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.Authorizati
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationResponseModeHandler
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationResponseModeHandler.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResult! result, NCode.Identity.OpenId.Messages.IOpenIdMessageResponse! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationResponseModeHandler.ResponseMode.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.AuthorizationSignedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.AuthorizationSignedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.AuthorizationEncryptedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.AuthorizationEncryptedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.AuthorizationEncryptedResponseEnc.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.AuthorizationEncryptedResponseEnc.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.AuthorizationSignedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.AuthorizationSignedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.AuthorizationEncryptedResponseAlg.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.AuthorizationEncryptedResponseAlg.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.AuthorizationEncryptedResponseEnc.get -> string?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.AuthorizationEncryptedResponseEnc.init -> void

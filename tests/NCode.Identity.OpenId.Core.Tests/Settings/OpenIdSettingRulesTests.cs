@@ -73,7 +73,11 @@ public class OpenIdSettingRulesTests
     [Theory]
     [InlineData("query", true)]
     [InlineData("form_post", true)]
-    [InlineData("query.jwt", false)]
+    [InlineData("query.jwt", true)]
+    [InlineData("fragment.jwt", true)]
+    [InlineData("form_post.jwt", true)]
+    [InlineData("jwt", true)]
+    [InlineData("web_message", false)]
     public void ResponseMode_AcceptsTheImplementedModes(string value, bool expected)
     {
         Assert.Equal(expected, IsValid(OpenIdSettingRules.ResponseMode(), value));

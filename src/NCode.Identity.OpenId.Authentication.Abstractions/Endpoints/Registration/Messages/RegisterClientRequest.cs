@@ -259,6 +259,27 @@ public sealed class RegisterClientRequest
     public string? IntrospectionEncryptedResponseEnc { get; init; }
 
     /// <summary>
+    /// Gets the JWS <c>alg</c> the client requires for signing its JWT-secured authorization responses (JARM §3); <c>RS256</c> when omitted.
+    /// </summary>
+    [JsonPropertyName("authorization_signed_response_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AuthorizationSignedResponseAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>alg</c> the client requires for encrypting its JWT-secured authorization responses to its public key (JARM §3); authorization responses are signed only when omitted.
+    /// </summary>
+    [JsonPropertyName("authorization_encrypted_response_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AuthorizationEncryptedResponseAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>enc</c> the client requires for encrypting its JWT-secured authorization responses (JARM §3); <c>A128CBC-HS256</c> when omitted, and allowed only with <see cref="AuthorizationEncryptedResponseAlg"/>.
+    /// </summary>
+    [JsonPropertyName("authorization_encrypted_response_enc")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AuthorizationEncryptedResponseEnc { get; init; }
+
+    /// <summary>
     /// Gets the JWS <c>alg</c> every request object from the client must be signed with (OpenID Connect Dynamic Client Registration 1.0 §2); any algorithm the server permits when omitted.
     /// </summary>
     [JsonPropertyName("request_object_signing_alg")]

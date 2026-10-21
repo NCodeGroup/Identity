@@ -105,6 +105,29 @@ public class ResponseTypeValuesTests
 
     #endregion
 
+    #region ResolveResponseMode Tests
+
+    [Theory]
+    [InlineData(null, new[] { "code" }, "query")]
+    [InlineData(null, new[] { "code", "id_token" }, "fragment")]
+    [InlineData("jwt", new[] { "code" }, "query.jwt")]
+    [InlineData("jwt", new[] { "code", "id_token" }, "fragment.jwt")]
+    [InlineData("jwt", new[] { "token" }, "fragment.jwt")]
+    [InlineData("form_post.jwt", new[] { "code" }, "form_post.jwt")]
+    [InlineData("form_post", new[] { "id_token" }, "form_post")]
+    public void ResolveResponseMode_ResolvesTheDefaultAndTheJwtShorthand(
+        string? responseMode,
+        string[] names,
+        string expected
+    )
+    {
+        var result = ResponseTypeValues.ResolveResponseMode(responseMode, names);
+
+        Assert.Equal(expected, result);
+    }
+
+    #endregion
+
     #region GetGrantTypes Tests
 
     [Theory]

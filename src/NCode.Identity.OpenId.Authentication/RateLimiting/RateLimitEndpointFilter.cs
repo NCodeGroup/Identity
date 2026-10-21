@@ -61,6 +61,9 @@ internal sealed class RateLimitEndpointFilter(
             return RateLimitErrors.Create(openIdContext, retryAfter).AsHttpResult();
 
         UsageRecorder.Record(openIdContext.Tenant.TenantId, TenantUsageMeters.Requests);
+        if (decision.IsOverage)
+            UsageRecorder.Record(openIdContext.Tenant.TenantId, TenantUsageMeters.RequestsOverage);
+
         return await next(context);
     }
 }

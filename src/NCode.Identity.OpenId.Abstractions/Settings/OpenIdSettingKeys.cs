@@ -982,4 +982,16 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<int> QuotaTenantTokenRequestsPerDay =>
         new(OpenIdSettingNames.QuotaTenantTokenRequestsPerDay);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'quota_tenant_requests_overage_per_day' setting.
+    /// </summary>
+    public static SettingKey<int> QuotaTenantRequestsOveragePerDay =>
+        new(OpenIdSettingNames.QuotaTenantRequestsOveragePerDay);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'quota_tenant_token_requests_overage_per_day' setting.
+    /// </summary>
+    public static SettingKey<int> QuotaTenantTokenRequestsOveragePerDay =>
+        new(OpenIdSettingNames.QuotaTenantTokenRequestsOveragePerDay);
 }

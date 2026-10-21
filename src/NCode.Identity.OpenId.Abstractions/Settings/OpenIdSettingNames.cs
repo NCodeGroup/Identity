@@ -985,4 +985,19 @@ public static class OpenIdSettingNames
     /// means unlimited.
     /// </summary>
     public const string QuotaTenantTokenRequestsPerDay = "quota_tenant_token_requests_per_day";
+
+    /// <summary>
+    /// Contains the name of the <c>quota_tenant_requests_overage_per_day</c> setting: the most requests a tenant's
+    /// protocol endpoints serve past <see cref="QuotaTenantRequestsPerDay"/> in one UTC calendar day, each recorded as
+    /// billable overage. Unset means none: the quota refuses once it is spent.
+    /// </summary>
+    public const string QuotaTenantRequestsOveragePerDay = "quota_tenant_requests_overage_per_day";
+
+    /// <summary>
+    /// Contains the name of the <c>quota_tenant_token_requests_overage_per_day</c> setting: the most token requests from
+    /// confidential clients a tenant's token endpoint serves past <see cref="QuotaTenantTokenRequestsPerDay"/> in one UTC
+    /// calendar day, each recorded as billable overage. Unset means none: the quota refuses once it is spent.
+    /// </summary>
+    public const string QuotaTenantTokenRequestsOveragePerDay =
+        "quota_tenant_token_requests_overage_per_day";
 }

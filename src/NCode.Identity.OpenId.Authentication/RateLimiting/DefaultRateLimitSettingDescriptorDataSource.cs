@@ -98,6 +98,27 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
                 Rule = SettingRules.AtLeast(1),
                 OnMerge = SettingMerge.Min,
             };
+
+            // quota_tenant_requests_overage_per_day: the most requests admitted past the daily request quota in one UTC
+            // calendar day, each billed as overage; unset refuses at the quota. Merged with Min, so the server's value
+            // caps every tier's overage (ADR-0200).
+            yield return new SettingDescriptor<int>
+            {
+                Name = OpenIdSettingNames.QuotaTenantRequestsOveragePerDay,
+                AppliesTo = Tenants,
+                Rule = SettingRules.AtLeast(0),
+                OnMerge = SettingMerge.Min,
+            };
+
+            // quota_tenant_token_requests_overage_per_day: the most confidential clients' token requests admitted past
+            // the daily token-request quota in one UTC calendar day, each billed as overage (ADR-0200).
+            yield return new SettingDescriptor<int>
+            {
+                Name = OpenIdSettingNames.QuotaTenantTokenRequestsOveragePerDay,
+                AppliesTo = Tenants,
+                Rule = SettingRules.AtLeast(0),
+                OnMerge = SettingMerge.Min,
+            };
         }
     }
 }

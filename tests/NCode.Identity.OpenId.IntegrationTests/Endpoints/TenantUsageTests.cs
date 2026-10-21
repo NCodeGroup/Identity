@@ -28,6 +28,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
+using NCode.Identity.OpenId.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
@@ -53,17 +54,43 @@ public class TenantUsageTests
             )
         );
 
-    private static ConfiguredHostApplicationFactory CreateHost() =>
-        new(
-            new Dictionary<string, string?>
-            {
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    Encoding.UTF8.GetBytes(BootstrapClientSecret)
-                ),
-                ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-            }
-        );
+    private static ConfiguredHostApplicationFactory CreateHost(
+        IReadOnlyDictionary<string, string?>? settings = null
+    )
+    {
+        var configuration = new Dictionary<string, string?>
+        {
+            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
+            ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
+                Encoding.UTF8.GetBytes(BootstrapClientSecret)
+            ),
+            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
+        };
+        foreach (var (name, value) in settings ?? new Dictionary<string, string?>())
+            configuration[$"OpenId:Server:Settings:{name}"] = value;
+
+        return new ConfiguredHostApplicationFactory(configuration);
+    }
+
+    // The ledger is written by the periodic flush, so poll until the meter reaches the expected count.
+    private static async Task<JsonElement> WaitForUsageAsync(
+        HttpClient administrator,
+        string meter,
+        long expected
+    )
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (true)
+        {
+            using var response = await administrator.GetAsync(UsagePath);
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+            var usage = JsonDocument.Parse(body).RootElement.Clone();
+            if (GetCount(usage, meter) >= expected || DateTime.UtcNow > deadline)
+                return usage;
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        }
+    }
 
     private static HttpClient CreateClient(WebApplicationFactory<HostApiMarker> factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -153,6 +180,45 @@ public class TenantUsageTests
         );
         Assert.True(GetCount(usage, TenantUsageMeters.Requests) >= 4, usage.ToString());
         Assert.True(GetCount(usage, TenantUsageMeters.TokenRequests) >= 1, usage.ToString());
+    }
+
+    [Fact]
+    public async Task GetUsage_WhenTheTierAdmitsOverage_ReportsTheOverageUntilItsCeiling()
+    {
+        using var host = CreateHost(
+            new Dictionary<string, string?>
+            {
+                [OpenIdSettingNames.QuotaTenantRequestsPerDay] = "2",
+                [OpenIdSettingNames.QuotaTenantRequestsOveragePerDay] = "2",
+            }
+        );
+        using var factory = CreateFactory(host);
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var client = CreateClient(factory);
+
+        // The administrator's token request spent the first of the two requests the quota allows; the first discovery
+        // request spends the second, the next two are admitted as overage, and the overage ceiling refuses the last.
+        var statusCodes = new List<HttpStatusCode>();
+        for (var i = 0; i < 4; ++i)
+        {
+            using var discovery = await client.GetAsync("/.well-known/openid-configuration");
+            statusCodes.Add(discovery.StatusCode);
+        }
+
+        Assert.Equal(
+            [
+                HttpStatusCode.OK,
+                HttpStatusCode.OK,
+                HttpStatusCode.OK,
+                HttpStatusCode.TooManyRequests,
+            ],
+            statusCodes
+        );
+
+        var usage = await WaitForUsageAsync(administrator, TenantUsageMeters.Requests, 4);
+        usage = await WaitForUsageAsync(administrator, TenantUsageMeters.RequestsOverage, 2);
+        Assert.Equal(4, GetCount(usage, TenantUsageMeters.Requests));
+        Assert.Equal(2, GetCount(usage, TenantUsageMeters.RequestsOverage));
     }
 
     [Fact]

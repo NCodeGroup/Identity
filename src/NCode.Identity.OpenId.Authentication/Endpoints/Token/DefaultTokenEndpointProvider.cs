@@ -161,6 +161,13 @@ internal class DefaultTokenEndpointProvider(
                 return RateLimitErrors.Create(openIdContext, retryAfter).AsHttpResult();
 
             UsageRecorder.Record(openIdContext.Tenant.TenantId, TenantUsageMeters.TokenRequests);
+            if (quotaDecision.IsOverage)
+            {
+                UsageRecorder.Record(
+                    openIdContext.Tenant.TenantId,
+                    TenantUsageMeters.TokenRequestsOverage
+                );
+            }
         }
 
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);

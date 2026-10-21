@@ -35,4 +35,16 @@ public static class TenantUsageMeters
     /// token-request quota admitted.
     /// </summary>
     public const string TokenRequests = "token_requests";
+
+    /// <summary>
+    /// Contains the name of the meter that counts the requests a tenant's protocol endpoints served past its daily
+    /// request quota, the billable overage (ADR-0200). Each is also counted by <see cref="Requests"/>.
+    /// </summary>
+    public const string RequestsOverage = "requests_overage";
+
+    /// <summary>
+    /// Contains the name of the meter that counts the token requests of a tenant's confidential clients served past its
+    /// daily token-request quota, the billable overage (ADR-0200). Each is also counted by <see cref="TokenRequests"/>.
+    /// </summary>
+    public const string TokenRequestsOverage = "token_requests_overage";
 }

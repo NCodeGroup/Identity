@@ -316,6 +316,8 @@ const NCode.Identity.OpenId.Authentication.Metrics.OpenIdAuthenticationMetrics.M
 NCode.Identity.OpenId.Authentication.Metrics.OpenIdAuthenticationMetrics
 const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.Requests = "requests" -> string!
 const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.TokenRequests = "token_requests" -> string!
+const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.RequestsOverage = "requests_overage" -> string!
+const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.TokenRequestsOverage = "token_requests_overage" -> string!
 NCode.Identity.OpenId.Authentication.Usage.ITenantUsageRecorder
 NCode.Identity.OpenId.Authentication.Usage.ITenantUsageRecorder.Record(string! tenantId, string! meter) -> void
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters

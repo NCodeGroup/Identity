@@ -19,16 +19,22 @@
 namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 
 /// <summary>
-/// The outcome of judging a request against a rate limit: admitted, or refused until <see cref="RetryAfter"/> has
-/// elapsed. The default value admits the request.
+/// The outcome of judging a request against a rate limit: admitted, admitted past a daily quota as billable overage, or
+/// refused until <see cref="RetryAfter"/> has elapsed. The default value admits the request.
 /// </summary>
 /// <param name="RetryAfter">How long the caller waits before retrying; <see langword="null"/> when admitted.</param>
-internal readonly record struct RateLimitDecision(TimeSpan? RetryAfter)
+/// <param name="IsOverage">Whether the request is admitted past a daily quota and is billed as overage (ADR-0200).</param>
+internal readonly record struct RateLimitDecision(TimeSpan? RetryAfter, bool IsOverage = false)
 {
     /// <summary>
     /// Gets the decision that admits a request.
     /// </summary>
     public static RateLimitDecision Admitted => default;
+
+    /// <summary>
+    /// Gets the decision that admits a request past a daily quota, as billable overage.
+    /// </summary>
+    public static RateLimitDecision Overage => new(null, IsOverage: true);
 
     /// <summary>
     /// Gets a value indicating whether the request is refused.

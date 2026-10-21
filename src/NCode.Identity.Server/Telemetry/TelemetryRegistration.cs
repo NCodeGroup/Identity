@@ -19,7 +19,6 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OpenTelemetry;
 using OpenTelemetry.Metrics;
 
 namespace NCode.Identity.Server;
@@ -80,9 +79,16 @@ public static class TelemetryRegistration
             ArgumentNullException.ThrowIfNull(serviceCollection);
             ArgumentNullException.ThrowIfNull(configuration);
 
-            var builder = serviceCollection
+            // The exporter is added to the metrics pipeline only: UseOtlpExporter would also export every log record
+            // and enable tracing, and could not be combined with a host's own signal-specific exporters.
+            var exportOverOtlp = !string.IsNullOrWhiteSpace(
+                configuration[OtlpEndpointConfigurationKey]
+            );
+
+            serviceCollection
                 .AddOpenTelemetry()
                 .WithMetrics(metrics =>
+                {
                     metrics
                         .AddMeter(FamilyMeters)
                         .AddMeter(PlatformMeters)
@@ -93,11 +99,11 @@ public static class TelemetryRegistration
                                     TagKeys = BoundedHttpClientAttributes,
                                 }
                                 : null
-                        )
-                );
+                        );
 
-            if (!string.IsNullOrWhiteSpace(configuration[OtlpEndpointConfigurationKey]))
-                builder.UseOtlpExporter();
+                    if (exportOverOtlp)
+                        metrics.AddOtlpExporter();
+                });
 
             return serviceCollection;
         }

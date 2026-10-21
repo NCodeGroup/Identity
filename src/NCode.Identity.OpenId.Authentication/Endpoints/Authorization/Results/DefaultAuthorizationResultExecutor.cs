@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Metrics;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.Results;
 using Nerdbank.Streams;
@@ -55,6 +56,15 @@ internal class DefaultAuthorizationResultExecutor : IResultExecutor<Authorizatio
             await httpResult.ExecuteAsync(httpContext);
             return;
         }
+
+        // An error returned to the client through its redirect URI never reaches the JSON result executor, so it is
+        // tagged here with the same server-chosen error code (ADR-0197).
+        if (result.Error is not null)
+            OpenIdMetricAttributes.Add(
+                httpContext,
+                OpenIdMetricAttributes.Error,
+                result.Error.Code
+            );
 
         IOpenIdMessageResponse? error = result.Error;
         IOpenIdMessageResponse? ticket = result.Ticket;

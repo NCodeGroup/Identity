@@ -73,10 +73,13 @@ than recording a request instrument of its own:
   switches between host- and path-based tenant routing, which change `http.route`.
 - `ncode.identity.openid.error` — the OAuth error code of an error response (`invalid_grant`, `invalid_client`,
   `temporarily_unavailable`, …), set where the error response is written so every path — an endpoint, the exception
-  filter, the rate-limit filter — tags it the same way. HTTP status alone cannot tell `invalid_grant` from
+  filter, the rate-limit filter — tags it the same way. Two writers exist: the executor of JSON protocol results, and
+  the authorization result executor for an error redirected back to the client. HTTP status alone cannot tell `invalid_grant` from
   `invalid_client`. Error codes are server-chosen, never echoed from the request.
 - `ncode.identity.openid.grant_type` — on the token endpoint only, the grant type when it is a registered one, else
-  `_OTHER` (OpenTelemetry's convention for an unrecognized value), because the grants differ greatly in cost.
+  `_OTHER` (OpenTelemetry's convention for an unrecognized value), because the grants differ greatly in cost. It is set
+  where the grant handler is selected, the one place that knows the registered grant types, so a request refused
+  earlier (client authentication, request validation) carries no grant type.
 
 The rate limiter's `429` is therefore visible as `http.response.status_code=429` with
 `ncode.identity.openid.error=temporarily_unavailable`, with no instrument of its own for the response.
@@ -122,8 +125,10 @@ composition is the server package's job, not `Program.cs`'s. It adds the OpenTel
 `NCode.Identity.*` wildcard, ASP.NET Core's hosting, Kestrel, routing, and diagnostics meters, `System.Net.Http`, and
 the .NET runtime, all of which are built into .NET, so no instrumentation package is needed. A view keeps only bounded
 attributes on `System.Net.Http`'s instruments: their `server.address` and `server.port` name the hosts of
-client-registered URIs, which are unbounded. The OTLP exporter is added only when `OTEL_EXPORTER_OTLP_ENDPOINT` is
-configured, so a host without a collector does not retry a missing endpoint. The Aspire orchestrator
+client-registered URIs, which are unbounded. The OTLP exporter is added to the metrics pipeline only, and only when
+`OTEL_EXPORTER_OTLP_ENDPOINT` is configured, so a host without a collector does not retry a missing endpoint. It is
+not OpenTelemetry's cross-signal `UseOtlpExporter`, which would also export every log record and enable tracing, and
+cannot be combined with a host's own signal-specific exporters. The Aspire orchestrator
 ([ADR-0071](0071-aspire-local-dev-orchestrator.md)) sets that variable and shows the same metrics in its dashboard.
 
 ### 8. Every instrument is tested and catalogued

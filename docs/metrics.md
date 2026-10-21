@@ -17,7 +17,8 @@ opts in with `AddOpenTelemetryMetrics(configuration)` from `NCode.Identity.Serve
   `Microsoft.AspNetCore.Routing`, `Microsoft.AspNetCore.Diagnostics`), `System.Net.Http`, and `System.Runtime`;
 - a view that keeps only bounded attributes on `System.Net.Http`'s instruments, because their `server.address` and
   `server.port` name the hosts of client-registered URIs;
-- the OTLP exporter, when `OTEL_EXPORTER_OTLP_ENDPOINT` is configured.
+- the OTLP exporter on the metrics pipeline only, when `OTEL_EXPORTER_OTLP_ENDPOINT` is configured; logs and traces
+  are left to the host.
 
 ## Meters
 
@@ -33,11 +34,15 @@ The protocol endpoints record no request instrument of their own. They enrich AS
 `http.server.request.duration` (meter `Microsoft.AspNetCore.Hosting`) through `IHttpMetricsTagsFeature`. The attribute
 names are public constants on `OpenIdMetricAttributes`.
 
-| Attribute                          | Present on                         | Values                                                                                                     |
-| ---------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `ncode.identity.openid.endpoint`   | Every protocol endpoint request    | The endpoint's registered name, such as `token_endpoint` or `authorization_endpoint`                       |
-| `ncode.identity.openid.error`      | Every OAuth or OpenID error result | The error code the server wrote, such as `invalid_grant`, `invalid_client`, or `temporarily_unavailable`   |
-| `ncode.identity.openid.grant_type` | Token endpoint requests            | A registered grant type, such as `authorization_code` or `refresh_token`; `_OTHER` for an unregistered one |
+| Attribute                          | Present on                                | Values                                                                                                     |
+| ---------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `ncode.identity.openid.endpoint`   | Every protocol endpoint request           | The endpoint's registered name, such as `token_endpoint` or `authorization_endpoint`                       |
+| `ncode.identity.openid.error`      | Every OAuth or OpenID error result        | The error code the server wrote, such as `invalid_grant`, `invalid_client`, or `temporarily_unavailable`   |
+| `ncode.identity.openid.grant_type` | Token requests that reach grant selection | A registered grant type, such as `authorization_code` or `refresh_token`; `_OTHER` for an unregistered one |
+
+The error code is tagged both where a JSON error response is written and where an authorization error is redirected
+back to the client. The grant type is tagged when the token endpoint selects a grant handler, after client
+authentication and request validation, so a request refused before then carries no grant type.
 
 A rate-limited request is therefore `http.response.status_code=429` with
 `ncode.identity.openid.error=temporarily_unavailable`.

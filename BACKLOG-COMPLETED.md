@@ -971,16 +971,18 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `src/NCode.Identity.OpenId.Authentication/Metrics/`, the shared-state adapters, and the host's `Program.cs`.
   _Closed: 2026-10-21. [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
   [ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md), amended with
-  what was built, and the instrument catalog [`docs/metrics.md`](docs/metrics.md). The error attribute is tagged once,
-  in `DefaultOpenIdResultExecutor`, which writes every OpenID response, and the grant-type attribute in the grant
-  handler selector, which knows the registered grant types; the attribute names are public on `OpenIdMetricAttributes`.
+  what was built, and the instrument catalog [`docs/metrics.md`](docs/metrics.md). The error attribute is tagged where
+  error responses are written — `DefaultOpenIdResultExecutor` for JSON results and the authorization result executor
+  for an error redirected to the client — and the grant-type attribute in the grant handler selector, which knows the
+  registered grant types, so a token request refused before selection carries none; the attribute names are public on `OpenIdMetricAttributes`.
   Events declare their attributes through `ISupportMetricAttributes`: `token.issued` adds its token type, and a
   client-authentication failure adds the method the client attempted, which `IAuditEventRecorder` now takes. The grant
   type stays on the HTTP instrument rather than being repeated on the event. The shared-state histogram is recorded by
   the Valkey adapter only, in its own `NCode.Identity.SharedState.Valkey` meter; the in-process adapter has no latency
   worth a series. The host wiring is `AddOpenTelemetryMetrics` in `NCode.Identity.Server`, which subscribes to the
   family by the `NCode.Identity.*` wildcard, needs no instrumentation packages because every meter it adds is built
-  into .NET, and adds the OTLP exporter only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Every instrument test reads
+  into .NET, and adds the OTLP exporter to the metrics pipeline only (not the cross-signal `UseOtlpExporter`, which also
+  exports logs and enables tracing) when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Every instrument test reads
   through `MetricCollector<T>`._
 
 - **`F46` — Kubernetes deployment artifacts for the host.** `NCode.Identity.OpenId.Host` is the deployable

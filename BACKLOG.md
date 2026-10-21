@@ -423,8 +423,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml),
   [`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml),
   [`build/frontend-install.ps1`](build/frontend-install.ps1), the AppHost's `EnsurePinnedNodeOnPath`.
-- **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
-  end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
 
 ## Secrets management (group `S`)
 

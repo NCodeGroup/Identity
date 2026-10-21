@@ -79,6 +79,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     {
         endpoints.MapGet(InteractiveAuthenticationDefaults.AccountPath, GetAccountPageAsync);
         endpoints.MapGet(InteractiveAuthenticationDefaults.MePath, GetMeAsync);
+        endpoints.MapGet(InteractiveAuthenticationDefaults.BrandingPath, GetBranding);
         endpoints.MapGet(InteractiveAuthenticationDefaults.LoginPath, GetLoginPageAsync);
         endpoints.MapPost(InteractiveAuthenticationDefaults.LoginPath, PostLoginAsync);
         endpoints.MapGet(InteractiveAuthenticationDefaults.ConsentPath, GetConsentPageAsync);
@@ -257,6 +258,23 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         }
 
         return await ServeBundleAsync(httpContext);
+    }
+
+    /// <summary>
+    /// Returns the branding of the tenant the request is served for as JSON, which the bundle themes itself with. It is
+    /// shown to every visitor of the login page, so it is served without authentication.
+    /// </summary>
+    // See ADR-0194.
+    public static IResult GetBranding(HttpContext httpContext)
+    {
+        var openIdContext = httpContext.GetOpenIdContext();
+        var branding = InteractiveBrandingResponse.FromSettings(
+            openIdContext.Tenant.SettingsProvider.Collection
+        );
+
+        // A tenant's branding changes when its settings do, so a browser revalidates rather than reuse a stale copy.
+        httpContext.Response.Headers.CacheControl = "no-cache";
+        return TypedResults.Json(branding);
     }
 
     /// <summary>

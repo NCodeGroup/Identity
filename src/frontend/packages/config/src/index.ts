@@ -10,6 +10,7 @@ export {
   mergeRuntimeConfig,
   normalizeBaseUrl,
   parseBootstrapDocument,
+  parseBrandingConfig,
   parseOpenIdDiscovery,
   RuntimeConfigError,
 } from './parse.js';

@@ -1970,6 +1970,18 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `DefaultAuthorizationResultExecutor` renders the `form_post` page the same way, which also fixed its values being
   url-encoded before the browser's own form encoding._
 
+- **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
+  end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
+
+  _Closed: [ADR-0194](docs/adr/0194-a-tenant-brands-its-interactive-surface-through-settings.md);
+  [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. The interactive package registers the tenant settings
+  `branding_display_name`, `branding_logo_uri`, `branding_primary_color`, `branding_secondary_color`, and
+  `branding_color_mode`, validated against the shapes the theme draws, and serves them at
+  `GET {tenant}/account/branding`. `apps/auth` fetches them relative to its document base, keeps the well-formed
+  tokens through `@ncode/config`'s shared `parseBrandingConfig`, themes through `AppThemeProvider`, draws the logo, and
+  titles the login and account pages with the display name. `InteractiveTenantRouteTests` proves two path tenants
+  receive their own branding._
+
 ## Secrets management (group `S`)
 
 - **`S1` — Client-secret rotate endpoint.** Rotation is create-new + delete-old (two calls) per

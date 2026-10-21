@@ -24,8 +24,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Registration;
 using NCode.Registration.AspNetCore;
@@ -115,6 +117,14 @@ public static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<InteractiveBundleReader>();
             serviceCollection.TryAddSingleton<InteractiveSurfacePaths>();
+
+            // The branding settings join the descriptor catalog only where the surface that shows them is registered.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<SettingDescriptor>,
+                    InteractiveSettingDescriptorDataSource
+                >()
+            );
 
             // The content-negotiation seam in OpenIdResult selects this formatter when an interactive browser
             // explicitly requests text/html, rendering a non-redirectable authorization error as a styled HTML page.

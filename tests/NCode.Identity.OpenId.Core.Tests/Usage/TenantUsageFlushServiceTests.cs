@@ -20,6 +20,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Usage;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -76,6 +77,19 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
+    private static IReadOnlyCollection<PersistedTenantUsage> IsUsage(
+        string tenantId,
+        string meter,
+        long count
+    ) =>
+        It.Is<IReadOnlyCollection<PersistedTenantUsage>>(usage =>
+            usage.Count == 1
+            && usage.Single().TenantId == tenantId
+            && usage.Single().Day == Today
+            && usage.Single().Meter == meter
+            && usage.Single().Count == count
+        );
+
     #region FlushAsync Tests
 
     [Fact]
@@ -93,7 +107,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
         Recorder.Record("tenant-1", TenantUsageMeters.Requests);
         MockTenantUsageStore
             .Setup(x =>
-                x.AddAsync("tenant-1", Today, TenantUsageMeters.Requests, 2, cancellationToken)
+                x.AddAsync(IsUsage("tenant-1", TenantUsageMeters.Requests, 2), cancellationToken)
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -115,7 +129,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
         Recorder.Record("tenant-1", TenantUsageMeters.Requests);
         MockTenantUsageStore
             .Setup(x =>
-                x.AddAsync("tenant-1", Today, TenantUsageMeters.Requests, 1, cancellationToken)
+                x.AddAsync(IsUsage("tenant-1", TenantUsageMeters.Requests, 1), cancellationToken)
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -129,6 +143,32 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
         var usage = Assert.Single(Recorder.Drain());
         Assert.Equal(new TenantUsageKey("tenant-1", Today, TenantUsageMeters.Requests), usage.Key);
         Assert.Equal(1, usage.Value);
+    }
+
+    [Fact]
+    public async Task FlushAsync_WhenOneBatchFails_KeepsOnlyThatBatchForTheNextFlush()
+    {
+        var cancellationToken = CancellationToken.None;
+        SetupStores();
+        for (var index = 0; index <= TenantUsageFlushService.BatchSize; ++index)
+        {
+            Recorder.Record($"tenant-{index:D4}", TenantUsageMeters.Requests);
+        }
+
+        MockTenantUsageStore
+            .Setup(x =>
+                x.AddAsync(It.IsAny<IReadOnlyCollection<PersistedTenantUsage>>(), cancellationToken)
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Exactly(2));
+        MockStoreManager
+            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
+            .ThrowsAsync(new InvalidOperationException("conflict"))
+            .Returns(ValueTask.CompletedTask);
+
+        await Service.FlushAsync(cancellationToken);
+
+        Assert.Equal(TenantUsageFlushService.BatchSize, Recorder.Drain().Count);
     }
 
     #endregion

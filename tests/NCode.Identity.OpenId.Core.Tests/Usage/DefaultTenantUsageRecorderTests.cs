@@ -18,6 +18,7 @@
 
 using Moq;
 using NCode.Identity.OpenId.Authentication.Usage;
+using NCode.Identity.OpenId.Persistence;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Usage;
@@ -78,6 +79,23 @@ public sealed class DefaultTenantUsageRecorderTests : IDisposable
             1,
             usage[new TenantUsageKey("tenant-1", Today.AddDays(1), TenantUsageMeters.Requests)]
         );
+    }
+
+    [Theory]
+    [InlineData("tenant-1", "")]
+    [InlineData("", "requests")]
+    [InlineData("tenant-1", null)]
+    public void Record_WhenATenantOrMeterIsEmpty_Throws(string tenantId, string? meter)
+    {
+        Assert.ThrowsAny<ArgumentException>(() => Recorder.Record(tenantId, meter!));
+    }
+
+    [Fact]
+    public void Record_WhenTheMeterIsTooLongToStore_Throws()
+    {
+        var meter = new string('m', OpenIdMaxLengths.UsageMeter + 1);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => Recorder.Record("tenant-1", meter));
     }
 
     #endregion

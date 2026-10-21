@@ -31,21 +31,16 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 public interface ITenantUsageStore : IStore
 {
     /// <summary>
-    /// Adds <paramref name="count"/> to a tenant's usage of a meter on a day, creating the day's entry when it does not
-    /// exist. The change is committed by the unit of work; a concurrent writer to the same entry makes the commit fail,
-    /// and the caller retries with a new unit of work.
+    /// Adds each entry's count to its tenant's usage of the meter on the day, creating the day's entry when it does not
+    /// exist. The entries are read together, so a batch costs one read per day it spans rather than one per entry. The
+    /// change is committed by the unit of work; a concurrent writer to the same entry makes the commit fail, and the
+    /// caller retries with a new unit of work.
     /// </summary>
-    /// <param name="tenantId">The identifier of the tenant.</param>
-    /// <param name="day">The UTC calendar day.</param>
-    /// <param name="meter">The name of the meter.</param>
-    /// <param name="count">The count to add.</param>
+    /// <param name="usage">The usage to add.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask AddAsync(
-        string tenantId,
-        DateOnly day,
-        string meter,
-        long count,
+        IReadOnlyCollection<PersistedTenantUsage> usage,
         CancellationToken cancellationToken
     );
 

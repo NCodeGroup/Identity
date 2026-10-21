@@ -27,8 +27,9 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 
 /// <summary>
 /// Provides a default implementation of <see cref="ITenantUsageStore"/> that uses Entity Framework Core for
-/// persistence. An addition reads the day's entry and updates it under its concurrency token, which every provider
-/// supports, so two replicas adding to the same entry cannot lose either count: the second commit fails and is retried.
+/// persistence. An addition reads the batch's entries for each day in one query and updates them under their
+/// concurrency tokens, which every provider supports, so two replicas adding to the same entry cannot lose either count:
+/// the second commit fails and is retried.
 /// </summary>
 internal sealed class TenantUsageStore(
     IStoreProvider storeProvider,
@@ -51,42 +52,54 @@ internal sealed class TenantUsageStore(
 
     /// <inheritdoc />
     public async ValueTask AddAsync(
-        string tenantId,
-        DateOnly day,
-        string meter,
-        long count,
+        IReadOnlyCollection<PersistedTenantUsage> usage,
         CancellationToken cancellationToken
     )
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(count);
-
-        var entity =
-            DbContext.TenantUsage.Local.FirstOrDefault(usage =>
-                usage.TenantId == tenantId && usage.Day == day && usage.Meter == meter
-            )
-            ?? await DbContext.TenantUsage.SingleOrDefaultAsync(
-                usage => usage.TenantId == tenantId && usage.Day == day && usage.Meter == meter,
-                cancellationToken
-            );
-
-        if (entity is not null)
+        foreach (var dayUsage in usage.GroupBy(entry => entry.Day))
         {
-            entity.Count += count;
-            return;
-        }
+            var day = dayUsage.Key;
+            var tenantIds = dayUsage
+                .Select(entry => entry.TenantId)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
 
-        await DbContext.TenantUsage.AddAsync(
-            new TenantUsageEntity
+            var entities = await DbContext
+                .TenantUsage.Where(entity =>
+                    entity.Day == day && tenantIds.Contains(entity.TenantId)
+                )
+                .ToDictionaryAsync(entity => (entity.TenantId, entity.Meter), cancellationToken);
+
+            // An entry added earlier in this unit of work is not yet in the database.
+            foreach (var entity in DbContext.TenantUsage.Local)
             {
-                Id = IdGenerator.CreateId(),
-                TenantId = tenantId,
-                Day = day,
-                Meter = meter,
-                Count = count,
-                ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            },
-            cancellationToken
-        );
+                if (entity.Day == day && tenantIds.Contains(entity.TenantId))
+                    entities.TryAdd((entity.TenantId, entity.Meter), entity);
+            }
+
+            foreach (var entry in dayUsage)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegative(entry.Count, nameof(usage));
+
+                if (entities.TryGetValue((entry.TenantId, entry.Meter), out var entity))
+                {
+                    entity.Count += entry.Count;
+                    continue;
+                }
+
+                entity = new TenantUsageEntity
+                {
+                    Id = IdGenerator.CreateId(),
+                    TenantId = entry.TenantId,
+                    Day = day,
+                    Meter = entry.Meter,
+                    Count = entry.Count,
+                    ConcurrencyToken = Guid.NewGuid().ToString("N"),
+                };
+                entities.Add((entry.TenantId, entry.Meter), entity);
+                await DbContext.TenantUsage.AddAsync(entity, cancellationToken);
+            }
+        }
     }
 
     /// <inheritdoc />

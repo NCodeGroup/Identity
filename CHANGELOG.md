@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Billed overage past a daily quota.** A plan tier can admit requests past its daily quota and bill them instead of
+  refusing at the quota: `quota_tenant_requests_overage_per_day` and `quota_tenant_token_requests_overage_per_day` set
+  how many more requests (or confidential clients' token requests) are served past the matching quota in a UTC day.
+  Unset or `0` refuses at the quota as before; a set allowance is also the hard ceiling, past which the tenant is
+  refused until midnight UTC. Like the quotas, a server-scope allowance is every tenant's default and caps a
+  tenant-scope one. Each request admitted past a quota is recorded in the usage ledger under the new meters
+  `requests_overage` and `token_requests_overage`, which the usage report and the admin UI's Usage tab show with the
+  others, and is counted in `ncode.identity.rate_limiting.requests` with the result `overage`. See
+  [ADR-0200](docs/adr/0200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md).
 - **Per-tenant usage ledger.** Every tenant's daily usage is recorded durably for billing and customer reports in a new
   `TenantUsage` table (migration `AddTenantUsage`), one row per tenant, UTC day, and meter: `requests` (requests
   admitted by the rate limits and the daily quota) and `token_requests` (confidential clients' token requests admitted

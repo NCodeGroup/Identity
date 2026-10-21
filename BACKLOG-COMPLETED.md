@@ -965,6 +965,23 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   API, not a setting scope. The judgements are counted under the partitions `daily_requests` and
   `daily_token_requests`. Durable usage history for billing is split out as `F81`._
 
+- **`F82` — Admit and bill usage past a daily quota.** Split from `F81`. A daily quota
+  ([ADR-0198](docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)) refuses a tenant for the
+  rest of the UTC day once it is spent. A plan tier may instead admit the overage and bill it from the usage ledger
+  ([ADR-0199](docs/adr/0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)). Decide in an ADR how a tier opts
+  in (a per-quota policy setting such as refuse or admit), whether an admitting tier still has a hard ceiling, and how
+  the overage is reported to the customer through the management API. Builds on `F79` and `F81` (done).
+  _Closed: 2026-10-21. [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0200](docs/adr/0200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md). Each quota
+  has an overage allowance (`quota_tenant_requests_overage_per_day`, `quota_tenant_token_requests_overage_per_day`;
+  at least `0`, merged with `Min`, so a server-scope value is every tenant's default and cap, as for the quotas).
+  Setting it is the opt-in and its value the hard ceiling: unset or `0` refuses at the quota, otherwise the tenant is
+  served up to the quota plus the allowance, judged on the quota's shared counter, and refused past both until midnight
+  UTC. A refuse-or-admit policy setting was rejected because it could leave an admitting tier unbounded. Each request
+  admitted past a quota is recorded under the ledger meters `requests_overage` / `token_requests_overage` and counted
+  with the metric result `overage`; the customer sees it in `GET /api/tenants/{tenantId}/usage` and the admin UI's
+  Usage tab, which list every meter, so no new endpoint was needed._
+
 - **`F81` — Per-tenant usage history for billing.** Split from `F79`. The daily quotas of
   [ADR-0198](docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) keep only the current UTC
   day's count, which expires at midnight. Record each tenant's daily request and token-request counts durably, with

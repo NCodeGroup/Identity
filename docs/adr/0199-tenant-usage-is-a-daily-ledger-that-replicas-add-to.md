@@ -65,8 +65,9 @@ default and the management API reads it.**
 - A request costs one in-memory increment per meter; the database sees one small unit of work per replica per minute.
 - The ledger can lag by up to one flush interval, and an abrupt stop of a replica loses up to one interval of its
   usage. Billing tolerates both; a quota, which must be exact, keeps using the shared counter.
-- Overage billing — admitting a request past the quota and billing it — can now be built on the ledger. It is tracked
-  in [`BACKLOG.md`](../../BACKLOG.md) as `F82`.
+- Overage billing — admitting a request past the quota and billing it — is built on the ledger: the admitted overage
+  is recorded under its own meters
+  ([ADR-0200](0200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md)).
 - The ledger is not exposed as a metric; dashboards that need per-tenant usage read the management API. The admin UI
   shows it on the tenant page's Usage tab, one column per meter present, so a new meter appears without a UI change.
 

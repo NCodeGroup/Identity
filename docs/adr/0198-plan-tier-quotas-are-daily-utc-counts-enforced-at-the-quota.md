@@ -68,8 +68,10 @@ ceiling.**
   every tenant, which a plan cannot state.
 - **The tenant's own time zone.** Rejected: the boundary would differ per tenant, and a tenant that changes its time
   zone could reset its count.
-- **Admit and report an overage.** Deferred: it is a billing policy over a durable usage record, which does not exist
-  yet; enforcement bounds consumption today and does not prevent it later.
+- **Admit and report an overage.** Deferred: it is a billing policy over a durable usage record, which did not exist
+  yet; enforcement bounds consumption today and does not prevent it later. Since decided in
+  [ADR-0200](0200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md): a tier opts in
+  with a bounded overage allowance per quota.
 - **Counting issued tokens rather than token requests.** Rejected: it needs a non-atomic read-then-increment, so
   replicas overshoot the quota under load.
 - **A plan-tier setting scope.** Rejected for now: one tenant has one tier, so the scope would duplicate the tenant

@@ -299,13 +299,6 @@ entry and/or ADR that closed it.
   [`src/NCode.Identity.Jose/Algorithms/KeyManagement`](src/NCode.Identity.Jose/Algorithms/KeyManagement),
   [`src/NCode.Identity.Jose.Abstractions/Algorithms`](src/NCode.Identity.Jose.Abstractions/Algorithms).
 
-- **`F82` — Admit and bill usage past a daily quota.** Split from `F81`. A daily quota
-  ([ADR-0198](docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)) refuses a tenant for the
-  rest of the UTC day once it is spent. A plan tier may instead admit the overage and bill it from the usage ledger
-  ([ADR-0199](docs/adr/0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)). Decide in an ADR how a tier opts
-  in (a per-quota policy setting such as refuse or admit), whether an admitting tier still has a hard ceiling, and how
-  the overage is reported to the customer through the management API. Builds on `F79` and `F81` (done).
-
 - **`F48` — Publish the deployment artifacts the platform runs.** Per
   [ADR-0133](docs/adr/0133-we-ship-and-run-the-same-deployment-artifacts.md), the hosted platform consumes only the
   artifacts offered to self-hosters. Deliver: the host's Helm chart in this repository

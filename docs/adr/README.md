@@ -235,3 +235,4 @@ standards.
 | [0197](./0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) | Protocol metrics have one owner per signal and only bounded dimensions | Accepted |
 | [0198](./0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) | Plan-tier quotas are daily UTC counts enforced at the quota | Accepted |
 | [0199](./0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) | Tenant usage is a daily ledger that replicas add to | Accepted |
+| [0200](./0200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md) | A tier admits a bounded overage past its quota and bills it from the ledger | Accepted |

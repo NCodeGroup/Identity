@@ -498,6 +498,23 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task GetUsageAsync_WhenTheDefaultRangeWouldPrecedeTheFirstDay_ReturnsValidationProblem()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var result = await Handler.GetUsageAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            from: null,
+            to: DateOnly.MinValue.AddDays(TenantApiEndpointHandler.DefaultUsageDays - 1),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Contains("to", problem.ProblemDetails.Errors.Keys);
+    }
+
+    [Fact]
     public async Task GetUsageAsync_WhenUnauthenticated_ReturnsUnauthorized()
     {
         SetupAuthorization(AuthorizationResult.Failed());

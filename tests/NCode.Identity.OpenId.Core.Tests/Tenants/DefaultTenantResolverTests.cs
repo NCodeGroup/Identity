@@ -551,6 +551,25 @@ public sealed class DefaultTenantResolverTests
 
     #endregion
 
+    #region IsRequiredTenant Tests
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void IsRequiredTenant_DelegatesToTheSelectedStrategy(bool isRequired)
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks);
+        strategy.Setup(x => x.IsRequiredTenant(TenantId)).Returns(isRequired).Verifiable();
+
+        var result = CreateResolver(strategy.Object).IsRequiredTenant(TenantId);
+
+        Assert.Equal(isRequired, result);
+        mocks.Verify();
+    }
+
+    #endregion
+
     #region GetDefaultIssuerAsync Tests
 
     [Fact]

@@ -94,6 +94,13 @@ internal class StaticSingleTenantStrategy(
 
     /// <inheritdoc />
     /// <remarks>
+    /// The strategy also requires its configured tenant, which it creates on first use.
+    /// </remarks>
+    public override bool IsRequiredTenant(string tenantId) =>
+        base.IsRequiredTenant(tenantId) || IsConfiguredTenant(tenantId);
+
+    /// <inheritdoc />
+    /// <remarks>
     /// The strategy serves only the configured tenant, so only it needs an issuer.
     /// </remarks>
     protected override bool RequiresIssuer(string tenantId) => IsConfiguredTenant(tenantId);

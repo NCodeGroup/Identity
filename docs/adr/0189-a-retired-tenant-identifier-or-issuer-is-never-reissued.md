@@ -41,6 +41,12 @@ row, so the server must remember an identity after the tenant that held it is go
   holder is always the same tenant, and relying parties that trusted the issuer trusted that tenant. The retired row
   stays when the tenant takes the issuer back, so retiring it again adds nothing.
 - **`ITenantStore` exposes the lookups** as `IsTenantIdRetiredAsync` and `GetRetiredIssuerHolderOrDefaultAsync`.
+- **A tenant the deployment requires cannot be deleted.** The root tenant is created on demand under every strategy,
+  and the static single-tenant strategy also creates its configured tenant. Because a deleted identifier is never
+  reissued, deleting either would make every later attempt to create it fail, and with it every request. The strategy
+  reports these tenants through `ITenantStrategy.IsRequiredTenant`, which `ITenantResolver` delegates to, so a custom
+  strategy can name its own. The management API answers `409 Conflict` to a delete of a required tenant, before it
+  checks for dependents.
 
 ## Options considered
 

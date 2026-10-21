@@ -107,6 +107,9 @@ internal class DefaultTenantResolver(
     }
 
     /// <inheritdoc />
+    public bool IsRequiredTenant(string tenantId) => Selected.IsRequiredTenant(tenantId);
+
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
         string tenantId,
         string? issuer,

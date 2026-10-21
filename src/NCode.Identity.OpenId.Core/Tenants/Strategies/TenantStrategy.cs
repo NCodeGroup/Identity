@@ -169,6 +169,13 @@ internal abstract class TenantStrategy(
 
     /// <inheritdoc />
     /// <remarks>
+    /// The base implementation requires the root tenant, which every strategy can create on demand.
+    /// </remarks>
+    public virtual bool IsRequiredTenant(string tenantId) =>
+        string.Equals(tenantId, RootOptions.TenantId, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    /// <remarks>
     /// The base rules are that a tenant this strategy serves has an issuer, and that the issuer ends with the tenant route
     /// bound for the tenant, the path its endpoints and its discovery document are served under.
     /// </remarks>

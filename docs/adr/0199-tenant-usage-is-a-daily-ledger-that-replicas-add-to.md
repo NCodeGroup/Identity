@@ -67,7 +67,8 @@ default and the management API reads it.**
   usage. Billing tolerates both; a quota, which must be exact, keeps using the shared counter.
 - Overage billing — admitting a request past the quota and billing it — can now be built on the ledger. It is tracked
   in [`BACKLOG.md`](../../BACKLOG.md) as `F82`.
-- The ledger is not exposed as a metric; dashboards that need per-tenant usage read the management API.
+- The ledger is not exposed as a metric; dashboards that need per-tenant usage read the management API. The admin UI
+  shows it on the tenant page's Usage tab, one column per meter present, so a new meter appears without a UI change.
 
 ## References
 

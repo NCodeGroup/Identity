@@ -16,7 +16,8 @@ change to the public API is a **major** version bump.
   by the token quota). The meter vocabulary is open: a package records its own through `ITenantUsageRecorder`. Each
   replica counts in memory and adds to the ledger every minute (`TenantUsageOptions.FlushInterval`), and the ledger
   keeps 400 days (`TenantUsageOptions.Retention`). `GET /api/tenants/{tenantId}/usage?from=&to=` reads a tenant's
-  usage for up to 366 days, the last 30 by default. See
+  usage for up to 366 days, the last 30 by default; the admin UI shows it on the tenant page's **Usage** tab, a column
+  per meter with a total row, over a chosen UTC date range. See
   [ADR-0199](docs/adr/0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md).
 - **Per-tenant daily quotas.** Two tenant settings bound a tenant's consumption per UTC calendar day for plan tiers:
   `quota_tenant_requests_per_day` (requests to its protocol endpoints, judged after the per-minute rate limits) and

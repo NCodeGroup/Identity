@@ -31,7 +31,9 @@ ARG TARGETARCH
 ENV NBGV_GitEngine=Disabled
 WORKDIR /source
 COPY . .
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+# A multi-arch build runs this stage once per target at the same time. The NuGet cache is locked, not shared, because
+# NuGet extracts a package through a temporary file that a concurrent restore of the same package cannot see.
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages,sharing=locked \
     dotnet publish src/NCode.Identity.OpenId.Host/NCode.Identity.OpenId.Host.csproj \
         --configuration Release \
         --arch "$TARGETARCH" \

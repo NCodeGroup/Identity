@@ -1274,6 +1274,10 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **The multi-architecture host image build failed in restore.** The `amd64` and `arm64` builds
+  shared the NuGet cache mount concurrently, so one read a package the other was still extracting (`Could not find
+  file '/root/.nuget/packages/…'`). The Dockerfile now locks the cache mount, so the two publishes take turns.
+
 - **The management API authenticated callers against the tenant the request addressed.** Under `DynamicByPath` a
   collection route such as `POST /api/tenants` had no tenant to resolve, and `/api/tenants/{tenantId}/…` validated the
   caller's token with the target tenant rather than the tenant that issued it; under `DynamicByHost` the

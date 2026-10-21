@@ -1292,7 +1292,9 @@ change to the public API is a **major** version bump.
 
 - **The host chart's migration Job ignored the host's extra settings and volumes.** `extraEnv`, `extraEnvFrom`,
   `extraVolumes`, and `extraVolumeMounts` reached only the host's pods, so a setup whose database connection needs a
-  CA bundle or SSL setting failed every install at the migration Job. The Job now receives them too.
+  CA bundle or SSL setting failed every install at the migration Job. The Job now receives them too, and runs with
+  the host's `fsGroup` so its non-root user can read a mounted secret. Both pod specs now share their security
+  contexts, image pull secrets, and scheduling constraints through `_helpers.tpl`.
 
 - **The host chart's migration Job name could exceed 63 characters.** A long release name made the `-migrations`
   suffix push the name past the label-value limit Kubernetes copies it into. The name is now shortened to fit.

@@ -42,9 +42,8 @@ spec:
       serviceAccountName: {{ include "identity-host.serviceAccountName" . }}
       # The host never calls the Kubernetes API.
       automountServiceAccountToken: false
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+      {{- with include "identity-host.imagePullSecrets" . }}
+      {{- . | trim | nindent 6 }}
       {{- end }}
       {{- with .Values.priorityClassName }}
       priorityClassName: {{ . }}
@@ -52,12 +51,7 @@ spec:
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       # The restricted Pod Security Standard: the image's non-root 'app' user, whose group can read the mounted keys.
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1654
-        runAsGroup: 1654
-        fsGroup: 1654
-        seccompProfile:
-          type: RuntimeDefault
+        {{- include "identity-host.podSecurityContext" . | nindent 8 }}
       {{- if .Values.topologySpread.enabled }}
       topologySpreadConstraints:
         - maxSkew: {{ .Values.topologySpread.maxSkew }}
@@ -72,11 +66,7 @@ spec:
           image: {{ include "identity-host.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
+            {{- include "identity-host.containerSecurityContext" . | nindent 12 }}
           ports:
             - name: http
               containerPort: 8080
@@ -213,15 +203,6 @@ spec:
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
+      {{- with include "identity-host.scheduling" . }}
+      {{- . | trim | nindent 6 }}
       {{- end }}

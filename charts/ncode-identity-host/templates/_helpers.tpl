@@ -116,3 +116,52 @@ applied. Rendered for its side effect only.
 {{- fail "replicaCount above 1 requires valkey.existingSecret: replicas share single-use state through Valkey." }}
 {{- end }}
 {{- end }}
+
+{{/*
+The pod security context of every pod the chart runs: the restricted Pod Security Standard as the image's non-root
+'app' user, whose group can read the mounted secrets.
+*/}}
+{{- define "identity-host.podSecurityContext" -}}
+runAsNonRoot: true
+runAsUser: 1654
+runAsGroup: 1654
+fsGroup: 1654
+seccompProfile:
+  type: RuntimeDefault
+{{- end }}
+
+{{/*
+The security context of every container the chart runs.
+*/}}
+{{- define "identity-host.containerSecurityContext" -}}
+allowPrivilegeEscalation: false
+readOnlyRootFilesystem: true
+capabilities:
+  drop:
+    - ALL
+{{- end }}
+
+{{/*
+The image pull secrets and scheduling constraints of every pod the chart runs, as pod spec fields.
+*/}}
+{{- define "identity-host.imagePullSecrets" -}}
+{{- with .Values.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{- define "identity-host.scheduling" -}}
+{{- with .Values.nodeSelector }}
+nodeSelector:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.affinity }}
+affinity:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.tolerations }}
+tolerations:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}

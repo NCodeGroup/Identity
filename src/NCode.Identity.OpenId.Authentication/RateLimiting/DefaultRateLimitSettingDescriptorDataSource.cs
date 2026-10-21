@@ -100,8 +100,8 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
             };
 
             // quota_tenant_requests_overage_per_day: the most requests admitted past the daily request quota in one UTC
-            // calendar day, each billed as overage; unset refuses at the quota. Merged with Min, so the server's value
-            // caps every tier's overage (ADR-0200).
+            // calendar day, each billed as overage; unset refuses at the quota. Merged with Min, so a server value is
+            // every tenant's default allowance and caps a tenant's own, as for the quotas (ADR-0200).
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.QuotaTenantRequestsOveragePerDay,

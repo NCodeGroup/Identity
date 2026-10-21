@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **A tenant brands its login, consent, and account pages.** The interactive surface registers the tenant settings
+  `branding_display_name`, `branding_logo_uri` (absolute `https`), `branding_primary_color` and
+  `branding_secondary_color` (hexadecimal), and `branding_color_mode` (`light` or `dark`). It serves them at
+  `GET {tenant}/account/branding`, in the bootstrap document's `branding` shape. The `apps/auth` bundle loads them
+  before it renders: it themes the surface with the colors and mode, draws the logo, and titles the login and account
+  pages with the display name. A failed load keeps the default theme. `@ncode/config` exports `parseBrandingConfig`,
+  which the bootstrap parser now uses too, so a malformed branding token is dropped instead of trusted. New public API:
+  `InteractiveSettingNames`, `InteractiveSettingKeys`, and `InteractiveAuthenticationDefaults.BrandingPath`. See
+  [ADR-0194](docs/adr/0194-a-tenant-brands-its-interactive-surface-through-settings.md).
 - **The interactive surface is served under the tenant route.** The login, consent, logout, and account endpoints
   share the protocol endpoints' tenant route, so interactive flows work under `DynamicByPath` at
   `/{tenantId}/account/*`. Every redirect the surface issues, the consent challenge, and the cookie scheme's login

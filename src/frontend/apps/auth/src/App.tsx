@@ -1,3 +1,5 @@
+import type { BrandingConfig } from '@ncode/config';
+import { BrandHeader } from './BrandHeader.js';
 import { ANTIFORGERY_COOKIE, describeLoginError, getQueryParam, readCookie } from './params.js';
 import { resolveRoute } from './routes.js';
 
@@ -8,6 +10,8 @@ export type AppProps = {
   readonly search?: string;
   /** The current `document.cookie` string (defaults to the live document). */
   readonly cookie?: string;
+  /** The tenant's branding the host serves, or `undefined` for the default presentation. */
+  readonly branding?: BrandingConfig;
 };
 
 /**
@@ -19,11 +23,18 @@ export function App({
   pathname = window.location.pathname,
   search = window.location.search,
   cookie = document.cookie,
+  branding,
 }: AppProps) {
-  return resolveRoute({
-    pathname,
-    returnUrl: getQueryParam(search, 'ReturnUrl') ?? '/',
-    antiforgeryToken: readCookie(cookie, ANTIFORGERY_COOKIE) ?? '',
-    errorMessage: describeLoginError(getQueryParam(search, 'error')),
-  });
+  return (
+    <>
+      {branding ? <BrandHeader branding={branding} /> : null}
+      {resolveRoute({
+        pathname,
+        returnUrl: getQueryParam(search, 'ReturnUrl') ?? '/',
+        antiforgeryToken: readCookie(cookie, ANTIFORGERY_COOKIE) ?? '',
+        errorMessage: describeLoginError(getQueryParam(search, 'error')),
+        ...(branding ? { branding } : {}),
+      })}
+    </>
+  );
 }

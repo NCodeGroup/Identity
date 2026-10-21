@@ -103,8 +103,9 @@ src/frontend/
    `/config/bootstrap.json` + the OP's `/.well-known/openid-configuration`.
 6. **The global vs tenant security boundary is first-class** — distinct browsing contexts, cache tags,
    and authorization gating, never one list with a filter.
-7. **Branding is a runtime seam.** `@ncode/ui` themes from runtime `BrandingConfig`; per-tenant
-   branding is additive later through the same discovery channel.
+7. **Branding is a runtime seam.** `@ncode/ui` themes from runtime `BrandingConfig`. The interactive
+   surface (`apps/auth`) loads its tenant's branding from the surface-relative `branding` endpoint before
+   it renders, parsed by `parseBrandingConfig` (ADR-0194).
 8. **`type` over `interface`, always.** All declarations — DTOs, props, unions — use `type` aliases,
    standardizing on the single most capable mechanism (unions, intersections, mapped/conditional
    types) rather than mixing the two.

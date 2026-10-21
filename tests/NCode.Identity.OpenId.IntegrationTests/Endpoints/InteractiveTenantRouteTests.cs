@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Authentication.Interactive;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -297,6 +298,42 @@ public class InteractiveTenantRouteTests
 
     #endregion
 
+    #region Branding Tests
+
+    [Fact]
+    public async Task GetBranding_WhenTenantIsSelectedByPath_ReturnsThatTenantsBranding()
+    {
+        await using var factory = CreatePathFactory();
+        await SeedTenantAsync(
+            factory,
+            "acme",
+            new Dictionary<string, object>
+            {
+                [InteractiveSettingNames.BrandingDisplayName] = "Acme",
+                [InteractiveSettingNames.BrandingPrimaryColor] = "#1565c0",
+                [InteractiveSettingNames.BrandingColorMode] = "dark",
+            }
+        );
+        await SeedTenantAsync(factory, "beta");
+        using var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var acmeResponse = await client.GetAsync("/acme/account/branding");
+        using var betaResponse = await client.GetAsync("/beta/account/branding");
+
+        Assert.Equal(HttpStatusCode.OK, acmeResponse.StatusCode);
+        Assert.Equal("no-cache", acmeResponse.Headers.CacheControl?.ToString());
+        Assert.Equal(
+            "{\"displayName\":\"Acme\",\"primaryColor\":\"#1565c0\",\"mode\":\"dark\"}",
+            await acmeResponse.Content.ReadAsStringAsync()
+        );
+        Assert.Equal(HttpStatusCode.OK, betaResponse.StatusCode);
+        Assert.Equal("{}", await betaResponse.Content.ReadAsStringAsync());
+    }
+
+    #endregion
+
     private static async Task<HttpResponseMessage> SignInAsync(HttpClient client, string tenantPath)
     {
         var loginPath = $"{tenantPath}/account/login";
@@ -349,7 +386,11 @@ public class InteractiveTenantRouteTests
         return firstPart is null ? null : Uri.UnescapeDataString(firstPart[(name.Length + 1)..]);
     }
 
-    private static async Task SeedTenantAsync(HostApplicationFactory factory, string tenantId)
+    private static async Task SeedTenantAsync(
+        HostApplicationFactory factory,
+        string tenantId,
+        IReadOnlyDictionary<string, object>? settings = null
+    )
     {
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
@@ -371,7 +412,9 @@ public class InteractiveTenantRouteTests
                     {
                         TenantId = tenantId,
                         ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                        Value = JsonSerializer.SerializeToElement(null, typeof(object)),
+                        Value = settings is null
+                            ? JsonSerializer.SerializeToElement(null, typeof(object))
+                            : JsonSerializer.SerializeToElement(settings),
                     },
                     Secrets = new PersistedTenantSecrets
                     {

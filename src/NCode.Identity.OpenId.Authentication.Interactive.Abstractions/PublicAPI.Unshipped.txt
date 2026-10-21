@@ -22,3 +22,16 @@ const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthentication
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.SessionsRevokePath = "/account/sessions/revoke" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.SessionsRevokeAllPath = "/account/sessions/revoke-all" -> string!
 static readonly NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.CookieSchemeName -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.BrandingPath = "/account/branding" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingColorMode = "branding_color_mode" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingDisplayName = "branding_display_name" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingLogoUri = "branding_logo_uri" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingPrimaryColor = "branding_primary_color" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingSecondaryColor = "branding_secondary_color" -> string!
+static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingColorMode.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingDisplayName.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingLogoUri.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingPrimaryColor.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingSecondaryColor.get -> NCode.Identity.Settings.SettingKey<string!>

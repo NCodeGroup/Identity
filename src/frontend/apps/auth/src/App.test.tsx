@@ -93,3 +93,25 @@ describe('App account surface', () => {
     expect(token?.value).toBe('the-token');
   });
 });
+
+describe('App branding', () => {
+  it('shows the tenant logo and titles the surface with its display name', () => {
+    const { container } = renderApp({
+      pathname: '/account/login',
+      search: '',
+      cookie: '',
+      branding: { displayName: 'Acme', logoUrl: 'https://cdn.acme.example/logo.svg' },
+    });
+
+    expect(container.querySelector('header img')?.getAttribute('src')).toBe(
+      'https://cdn.acme.example/logo.svg',
+    );
+    expect(container.textContent).toContain('Sign in to Acme');
+  });
+
+  it('draws no header without branding', () => {
+    const { container } = renderApp({ pathname: '/account/login', search: '', cookie: '' });
+
+    expect(container.querySelector('header')).toBeNull();
+  });
+});

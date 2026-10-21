@@ -112,4 +112,28 @@ describe('resolveRoute', () => {
     expect(container.querySelector('#login')).not.toBeNull();
     expect(screen.queryByTestId('sessions-loading')).not.toBeInTheDocument();
   });
+
+  it.each([
+    ['/account/login', 'Sign in to Acme'],
+    ['/account', 'Acme account'],
+    ['/account/applications', 'Acme — authorized applications'],
+    ['/account/sessions', 'Acme — active sessions'],
+  ])('titles %s with the tenant display name', (pathname, title) => {
+    renderRoute({ ...baseContext, pathname, branding: { displayName: 'Acme' } });
+    expect(screen.getByText(title)).toBeInTheDocument();
+  });
+
+  it('names the requesting application, not the tenant, on the consent surface', () => {
+    renderRoute({
+      ...baseContext,
+      pathname: '/account/consent',
+      branding: { displayName: 'Acme' },
+    });
+    expect(screen.queryByText(/Acme/)).toBeNull();
+  });
+
+  it('keeps the default titles when the branding has no display name', () => {
+    renderRoute({ ...baseContext, branding: { primaryColor: '#1565c0' } });
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+  });
 });

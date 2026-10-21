@@ -2574,3 +2574,13 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   types; and shortened columns. `[ContractMigration("why")]` marks a deliberate contract step, and the test fails a
   marker on a migration that only expands. `ReplaceTenantDomainNameWithIssuerHost`, which shipped before any release,
   is the one marked migration. Raw SQL stays a review item._
+
+## Review findings for the feature-gaps branch (group `R`)
+
+- **`R1` — Merge `main` and reconcile clashing backlog IDs.** `BACKLOG.md` conflicts, and
+  `tests/NCode.Identity.Jose.Tests/Extensions/WithPrecisionInSecondsExtensionsTests.cs` is deleted here (D11 moved it
+  to `NCode.Time.Tests`) but edited on `main` (CA1825). Keep the deletion. `main`'s `e66d7bf3` uses `F78`/`U23` for the
+  Backend-for-Frontend design, which this branch already used for the mTLS alias template and secret rotation;
+  renumber one side across `BACKLOG*.md`, `CHANGELOG.md`, and the ADRs.
+  _Closed: merged `main` into the branch, kept D11's deletion of the old Jose test (the moved `NCode.Time.Tests` build
+  no `TheoryData`), and renumbered `main`'s Backend-for-Frontend items to `F84` and `U26`._

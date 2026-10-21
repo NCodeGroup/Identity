@@ -178,12 +178,14 @@ internal class DynamicByHostTenantStrategy(
             );
         }
 
-        // The lookup matches issuer hosts and alias hosts alike, so a host is judged against both kinds at once.
+        // The lookup matches issuer hosts and alias hosts alike, so a host is judged against both kinds at once. It
+        // lists every holder rather than routing, so a host that is already ambiguous is still reported as taken.
         var store = storeManager.GetStore<ITenantStore>();
-        var holder = await store.GetOrDefaultByHostAsync(host, cancellationToken);
+        var holders = await store.ListTenantIdsByHostAsync(host, cancellationToken);
         if (
-            holder is not null
-            && !string.Equals(holder.TenantId, tenantId, StringComparison.OrdinalIgnoreCase)
+            holders.Any(holder =>
+                !string.Equals(holder, tenantId, StringComparison.OrdinalIgnoreCase)
+            )
         )
         {
             failures.Add(

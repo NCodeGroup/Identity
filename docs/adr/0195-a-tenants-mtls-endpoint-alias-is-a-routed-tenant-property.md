@@ -32,7 +32,9 @@ the tenant's address is validated as two hosts.**
    cannot drift from the published alias.
 3. **A host lookup checks both columns and fails closed.** `ITenantStore.GetOrDefaultByHostAsync` returns the one tenant
    whose issuer host or alias host matches. When more than one tenant matches, it returns nothing rather than picking
-   one, so a conflict carried in by migrated data cannot route a request to the wrong tenant.
+   one, so a conflict carried in by migrated data cannot route a request to the wrong tenant. Validation does not route:
+   it uses `ListTenantIdsByHostAsync`, which returns every holder, so a host that is already ambiguous still counts as
+   taken.
 4. **The address is judged as two hosts.** The resolver rejects an alias that is not an `https` origin. The host
    strategy applies the same rules to the alias host as to the issuer host: the configured host pattern must map it back
    to the tenant, and no other tenant may serve it. The alias host must differ from the tenant's own issuer host,

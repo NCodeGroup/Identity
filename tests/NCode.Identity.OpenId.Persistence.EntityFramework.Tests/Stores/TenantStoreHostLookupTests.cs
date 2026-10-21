@@ -148,6 +148,21 @@ public sealed class TenantStoreHostLookupTests : IDisposable
     }
 
     [Fact]
+    public async Task ListTenantIdsByHostAsync_WhenTwoTenantsHoldTheHost_ReturnsBoth()
+    {
+        await SeedTenantAsync("acme", "https://acme.auth.example", "https://shared.example");
+        await SeedTenantAsync("globex", "https://shared.example", null);
+        await SeedTenantAsync("initech", "https://initech.auth.example", null);
+
+        var tenantIds = await _store.ListTenantIdsByHostAsync(
+            "SHARED.example",
+            CancellationToken.None
+        );
+
+        Assert.Equal(["acme", "globex"], tenantIds.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
     public async Task UpdateAsync_WhenTheAliasIsCleared_TheAliasHostNoLongerRoutes()
     {
         await SeedTenantAsync("acme", "https://acme.auth.example", "https://acme.mtls.example");

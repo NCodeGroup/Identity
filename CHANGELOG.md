@@ -14,7 +14,8 @@ change to the public API is a **major** version bump.
   `PersistedTenant.MtlsEndpointAliasAuthority` (an `https` origin), exposed as `OpenIdTenant.MtlsEndpointAliasAuthority`,
   and discovery builds `mtls_endpoint_aliases` from it. The host strategy routes a request to a tenant by its issuer host
   or its alias host, through `ITenantStore.GetOrDefaultByHostAsync` (renamed from `GetOrDefaultByIssuerHostAsync`), which
-  resolves no tenant when more than one matches. Validation judges both hosts: the alias must be an `https` origin, the
+  resolves no tenant when more than one matches; validation lists every holder through the new
+  `ITenantStore.ListTenantIdsByHostAsync`. Validation judges both hosts: the alias must be an `https` origin, the
   host pattern must map its host back to the tenant, it must differ from the issuer host, and no other tenant may serve
   it. `ITenantResolver.ValidateTenantAsync` and `ITenantStrategy.ValidateTenantAsync` take the alias beside the issuer.
   The management API carries `mtlsEndpointAliasAuthority` on tenant create, update, and read. **Breaking:** the

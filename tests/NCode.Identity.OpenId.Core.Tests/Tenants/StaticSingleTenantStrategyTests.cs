@@ -235,6 +235,7 @@ public sealed class StaticSingleTenantStrategyTests
         var failures = await strategy.ValidateTenantAsync(
             "default",
             new Uri(issuer),
+            null,
             mocks.Create<IStoreManager>().Object,
             CancellationToken.None
         );
@@ -255,6 +256,7 @@ public sealed class StaticSingleTenantStrategyTests
         var failures = await strategy.ValidateTenantAsync(
             "tenant-1",
             issuer: null,
+            null,
             mocks.Create<IStoreManager>().Object,
             CancellationToken.None
         );
@@ -278,6 +280,7 @@ public sealed class StaticSingleTenantStrategyTests
         var failures = await strategy.ValidateTenantAsync(
             RootTenantOptions.DefaultTenantId,
             issuer: null,
+            null,
             mocks.Create<IStoreManager>().Object,
             CancellationToken.None
         );

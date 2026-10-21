@@ -191,6 +191,7 @@ internal class TenantApiEndpointHandler(
             TenantId = tenant.TenantId,
             ConcurrencyToken = tenant.ConcurrencyToken,
             Issuer = tenant.Issuer,
+            MtlsEndpointAliasAuthority = tenant.MtlsEndpointAliasAuthority,
             IsDisabled = tenant.IsDisabled,
             DisplayName = tenant.DisplayName,
         };
@@ -345,6 +346,7 @@ internal class TenantApiEndpointHandler(
             TenantId = tenantId,
             ConcurrencyToken = string.Empty,
             Issuer = issuer,
+            MtlsEndpointAliasAuthority = NullIfEmpty(request.MtlsEndpointAliasAuthority),
             IsDisabled = request.IsDisabled,
             DisplayName = request.DisplayName,
             Settings = new PersistedTenantSettings
@@ -476,6 +478,7 @@ internal class TenantApiEndpointHandler(
         var failures = await TenantResolver.ValidateTenantAsync(
             tenantId,
             effectiveIssuer,
+            tenant?.MtlsEndpointAliasAuthority,
             storeManager,
             cancellationToken
         );
@@ -528,6 +531,7 @@ internal class TenantApiEndpointHandler(
         var model = new UpdateTenantRequest
         {
             Issuer = tenant.Issuer,
+            MtlsEndpointAliasAuthority = tenant.MtlsEndpointAliasAuthority,
             DisplayName = tenant.DisplayName,
             IsDisabled = tenant.IsDisabled,
         };
@@ -549,6 +553,7 @@ internal class TenantApiEndpointHandler(
         model.Issuer =
             NullIfEmpty(model.Issuer)
             ?? await TenantResolver.GetDefaultIssuerAsync(tenant.TenantId, cancellationToken);
+        model.MtlsEndpointAliasAuthority = NullIfEmpty(model.MtlsEndpointAliasAuthority);
 
         // Core preconditions (authorization + If-Match + required fields + the tenant's address + issuer uniqueness)
         // are asserted by the validator against the hydrated model (ADR-0014, ADR-0160).
@@ -566,6 +571,7 @@ internal class TenantApiEndpointHandler(
         }
 
         tenant.Issuer = model.Issuer;
+        tenant.MtlsEndpointAliasAuthority = model.MtlsEndpointAliasAuthority;
         tenant.IsDisabled = model.IsDisabled;
         tenant.DisplayName = model.DisplayName;
 

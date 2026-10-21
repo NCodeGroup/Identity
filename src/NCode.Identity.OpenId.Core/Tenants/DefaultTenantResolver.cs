@@ -94,6 +94,7 @@ internal class DefaultTenantResolver(
     public async ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
         string tenantId,
         string? issuer,
+        string? mtlsEndpointAliasAuthority,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
@@ -122,6 +123,25 @@ internal class DefaultTenantResolver(
                 {
                     Detail =
                         $"The issuer '{issuer}' must be {TenantAddressRules.IssuerRequirement}.",
+                }
+            );
+        }
+
+        Uri? mtlsEndpointAliasAuthorityUri = null;
+        if (
+            !string.IsNullOrEmpty(mtlsEndpointAliasAuthority)
+            && !TenantAddressRules.TryParseMtlsEndpointAliasAuthority(
+                mtlsEndpointAliasAuthority,
+                out mtlsEndpointAliasAuthorityUri
+            )
+        )
+        {
+            failures.Add(
+                new TenantValidationFailure
+                {
+                    Detail =
+                        $"The mTLS endpoint alias authority '{mtlsEndpointAliasAuthority}' must be "
+                        + $"{TenantAddressRules.MtlsEndpointAliasAuthorityRequirement}.",
                 }
             );
         }
@@ -204,6 +224,7 @@ internal class DefaultTenantResolver(
         var strategyFailures = await Selected.ValidateTenantAsync(
             tenantId,
             issuerUri,
+            mtlsEndpointAliasAuthorityUri,
             storeManager,
             cancellationToken
         );

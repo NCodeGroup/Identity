@@ -622,3 +622,9 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Issuer.
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.TenantAddressResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.MtlsEndpointAliasAuthority.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.MtlsEndpointAliasAuthority.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.MtlsEndpointAliasAuthority.set -> void

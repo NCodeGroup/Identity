@@ -47,6 +47,13 @@ public abstract class OpenIdTenant : IAsyncDisposable
     public abstract string Issuer { get; }
 
     /// <summary>
+    /// Gets the mutual-TLS endpoint-alias authority for the tenant (RFC 8705 §5) — the <c>https</c> origin the discovery
+    /// document mirrors the tenant's endpoints under in <c>mtls_endpoint_aliases</c> — or <c>null</c> when the tenant
+    /// publishes no aliases.
+    /// </summary>
+    public abstract string? MtlsEndpointAliasAuthority { get; }
+
+    /// <summary>
     /// Gets the base address for the tenant.
     /// Includes the server base address and tenant path.
     /// </summary>

@@ -113,6 +113,45 @@ internal static partial class TenantAddressRules
         return true;
     }
 
+    /// <summary>
+    /// Describes the form a tenant's mutual-TLS endpoint-alias authority must have.
+    /// </summary>
+    public const string MtlsEndpointAliasAuthorityRequirement =
+        "an https origin such as 'https://acme.mtls.example' — a scheme and authority with no path, query, fragment, or "
+        + "user information";
+
+    /// <summary>
+    /// Parses the specified mutual-TLS endpoint-alias authority (RFC 8705 §5): an <c>https</c> origin — a scheme and
+    /// authority with no path, query, fragment, or user information — whose host is a valid DNS host. Unlike an issuer, a
+    /// loopback <c>http</c> origin is not accepted: the alias exists only to request a client certificate over TLS.
+    /// </summary>
+    /// <param name="authority">The authority to parse.</param>
+    /// <param name="authorityUri">When this method returns <see langword="true"/>, contains the parsed authority.</param>
+    /// <returns><see langword="true"/> when the authority is valid; otherwise, <see langword="false"/>.</returns>
+    public static bool TryParseMtlsEndpointAliasAuthority(
+        [NotNullWhen(true)] string? authority,
+        [NotNullWhen(true)] out Uri? authorityUri
+    )
+    {
+        authorityUri = null;
+
+        if (
+            !TryParseIssuer(authority, out var uri)
+            || uri.Scheme != Uri.UriSchemeHttps
+            || !string.Equals(
+                uri.GetLeftPart(UriPartial.Authority),
+                authority.TrimEnd('/'),
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
+            return false;
+        }
+
+        authorityUri = uri;
+        return true;
+    }
+
     // A host name whose labels exceed 63 characters, or whose whole exceeds 253, parses as a URI (the parser reports it as
     // a basic rather than a DNS host) but cannot be resolved or certified — the shape a template produces when it embeds
     // a long tenant identifier in a longer label.

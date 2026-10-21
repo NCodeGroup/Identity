@@ -97,6 +97,7 @@ internal class TenantStore(
         {
             TenantId = tenantEntity.TenantId,
             Issuer = tenantEntity.Issuer,
+            MtlsEndpointAliasAuthority = tenantEntity.MtlsEndpointAliasAuthority,
             ConcurrencyToken = tenantEntity.ConcurrencyToken,
             IsDisabled = tenantEntity.IsDisabled,
             DisplayName = tenantEntity.DisplayName,
@@ -168,16 +169,27 @@ internal class TenantStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedTenant?> GetOrDefaultByIssuerHostAsync(
+    public async ValueTask<PersistedTenant?> GetOrDefaultByHostAsync(
         string host,
         CancellationToken cancellationToken
     )
     {
         var normalizedHost = Normalize(host);
-        return await GetOrDefaultAsync(
-            entity => entity.NormalizedIssuerHost == normalizedHost,
-            cancellationToken
-        );
+        var holders = await DbContext
+            .Tenants.Where(entity =>
+                entity.NormalizedIssuerHost == normalizedHost
+                || entity.NormalizedMtlsEndpointAliasHost == normalizedHost
+            )
+            .Select(entity => entity.Id)
+            .Take(2)
+            .ToListAsync(cancellationToken);
+
+        // An ambiguous host routes nowhere rather than to whichever tenant the database returns first.
+        if (holders.Count != 1)
+            return null;
+
+        var id = holders[0];
+        return await GetOrDefaultAsync(entity => entity.Id == id, cancellationToken);
     }
 
     /// <summary>
@@ -230,6 +242,10 @@ internal class TenantStore(
             Issuer = persistedTenant.Issuer,
             NormalizedIssuer = Normalize(persistedTenant.Issuer),
             NormalizedIssuerHost = NormalizeIssuerHost(persistedTenant.Issuer),
+            MtlsEndpointAliasAuthority = persistedTenant.MtlsEndpointAliasAuthority,
+            NormalizedMtlsEndpointAliasHost = NormalizeIssuerHost(
+                persistedTenant.MtlsEndpointAliasAuthority
+            ),
             ConcurrencyToken = persistedTenant.ConcurrencyToken,
             SettingsConcurrencyToken = persistedTenant.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedTenant.Secrets.ConcurrencyToken,
@@ -297,6 +313,10 @@ internal class TenantStore(
         tenantEntity.Issuer = persistedTenant.Issuer;
         tenantEntity.NormalizedIssuer = Normalize(persistedTenant.Issuer);
         tenantEntity.NormalizedIssuerHost = NormalizeIssuerHost(persistedTenant.Issuer);
+        tenantEntity.MtlsEndpointAliasAuthority = persistedTenant.MtlsEndpointAliasAuthority;
+        tenantEntity.NormalizedMtlsEndpointAliasHost = NormalizeIssuerHost(
+            persistedTenant.MtlsEndpointAliasAuthority
+        );
 
         DbContext.Tenants.Update(tenantEntity);
 

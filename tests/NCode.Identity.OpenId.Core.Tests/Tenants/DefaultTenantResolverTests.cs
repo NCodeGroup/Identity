@@ -142,6 +142,7 @@ public sealed class DefaultTenantResolverTests
             .ValidateTenantAsync(
                 "Acme",
                 "http://op.example",
+                null,
                 storeManager.Object,
                 CancellationToken.None
             );
@@ -163,7 +164,13 @@ public sealed class DefaultTenantResolverTests
 
         strategy
             .Setup(x =>
-                x.ValidateTenantAsync(TenantId, null, storeManager.Object, CancellationToken.None)
+                x.ValidateTenantAsync(
+                    TenantId,
+                    null,
+                    null,
+                    storeManager.Object,
+                    CancellationToken.None
+                )
             )
             .ReturnsAsync([])
             .Verifiable();
@@ -172,6 +179,7 @@ public sealed class DefaultTenantResolverTests
             .ValidateTenantAsync(
                 TenantId,
                 string.Empty,
+                null,
                 storeManager.Object,
                 CancellationToken.None
             );
@@ -196,6 +204,7 @@ public sealed class DefaultTenantResolverTests
                 x.ValidateTenantAsync(
                     TenantId,
                     It.Is<Uri>(uri => uri.OriginalString == Issuer),
+                    null,
                     storeManager.Object,
                     CancellationToken.None
                 )
@@ -204,7 +213,13 @@ public sealed class DefaultTenantResolverTests
             .Verifiable();
 
         var failures = await CreateResolver(strategy.Object)
-            .ValidateTenantAsync(TenantId, Issuer, storeManager.Object, CancellationToken.None);
+            .ValidateTenantAsync(
+                TenantId,
+                Issuer,
+                null,
+                storeManager.Object,
+                CancellationToken.None
+            );
 
         Assert.Equal(2, failures.Count);
         Assert.True(failures[0].IsConflict);
@@ -239,6 +254,7 @@ public sealed class DefaultTenantResolverTests
                 x.ValidateTenantAsync(
                     TenantId,
                     It.IsAny<Uri>(),
+                    null,
                     storeManager.Object,
                     CancellationToken.None
                 )
@@ -247,7 +263,13 @@ public sealed class DefaultTenantResolverTests
             .Verifiable();
 
         var failures = await CreateResolver(strategy.Object)
-            .ValidateTenantAsync(TenantId, Issuer, storeManager.Object, CancellationToken.None);
+            .ValidateTenantAsync(
+                TenantId,
+                Issuer,
+                null,
+                storeManager.Object,
+                CancellationToken.None
+            );
 
         Assert.Empty(failures);
         mocks.Verify();
@@ -283,6 +305,7 @@ public sealed class DefaultTenantResolverTests
                 x.ValidateTenantAsync(
                     TenantId,
                     It.IsAny<Uri>(),
+                    null,
                     storeManager.Object,
                     CancellationToken.None
                 )
@@ -291,7 +314,13 @@ public sealed class DefaultTenantResolverTests
             .Verifiable();
 
         var failures = await CreateResolver(strategy.Object)
-            .ValidateTenantAsync(TenantId, issuer, storeManager.Object, CancellationToken.None);
+            .ValidateTenantAsync(
+                TenantId,
+                issuer,
+                null,
+                storeManager.Object,
+                CancellationToken.None
+            );
 
         var failure = Assert.Single(failures);
         Assert.True(failure.IsConflict);
@@ -321,6 +350,7 @@ public sealed class DefaultTenantResolverTests
                 x.ValidateTenantAsync(
                     RootTenantOptions.DefaultTenantId,
                     It.IsAny<Uri>(),
+                    null,
                     storeManager.Object,
                     CancellationToken.None
                 )
@@ -332,6 +362,7 @@ public sealed class DefaultTenantResolverTests
             .ValidateTenantAsync(
                 RootTenantOptions.DefaultTenantId,
                 rootIssuer,
+                null,
                 storeManager.Object,
                 CancellationToken.None
             );
@@ -350,13 +381,19 @@ public sealed class DefaultTenantResolverTests
 
         strategy
             .Setup(x =>
-                x.ValidateTenantAsync(TenantId, null, storeManager.Object, CancellationToken.None)
+                x.ValidateTenantAsync(
+                    TenantId,
+                    null,
+                    null,
+                    storeManager.Object,
+                    CancellationToken.None
+                )
             )
             .ReturnsAsync([])
             .Verifiable();
 
         var failures = await CreateResolver(strategy.Object)
-            .ValidateTenantAsync(TenantId, null, storeManager.Object, CancellationToken.None);
+            .ValidateTenantAsync(TenantId, null, null, storeManager.Object, CancellationToken.None);
 
         var failure = Assert.Single(failures);
         Assert.True(failure.IsConflict);
@@ -386,6 +423,7 @@ public sealed class DefaultTenantResolverTests
                 x.ValidateTenantAsync(
                     TenantId,
                     It.IsAny<Uri>(),
+                    null,
                     storeManager.Object,
                     CancellationToken.None
                 )
@@ -394,7 +432,13 @@ public sealed class DefaultTenantResolverTests
             .Verifiable();
 
         var failures = await CreateResolver(strategy.Object)
-            .ValidateTenantAsync(TenantId, Issuer, storeManager.Object, CancellationToken.None);
+            .ValidateTenantAsync(
+                TenantId,
+                Issuer,
+                null,
+                storeManager.Object,
+                CancellationToken.None
+            );
 
         var failure = Assert.Single(failures);
         Assert.True(failure.IsConflict);
@@ -430,6 +474,7 @@ public sealed class DefaultTenantResolverTests
                 x.ValidateTenantAsync(
                     TenantId,
                     It.IsAny<Uri>(),
+                    null,
                     storeManager.Object,
                     CancellationToken.None
                 )
@@ -438,7 +483,13 @@ public sealed class DefaultTenantResolverTests
             .Verifiable();
 
         var failures = await CreateResolver(strategy.Object)
-            .ValidateTenantAsync(TenantId, Issuer, storeManager.Object, CancellationToken.None);
+            .ValidateTenantAsync(
+                TenantId,
+                Issuer,
+                null,
+                storeManager.Object,
+                CancellationToken.None
+            );
 
         Assert.Empty(failures);
         mocks.Verify();

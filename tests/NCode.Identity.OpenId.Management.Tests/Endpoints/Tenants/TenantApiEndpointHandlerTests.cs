@@ -1713,6 +1713,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                 x.ValidateTenantAsync(
                     tenantId,
                     issuer,
+                    null,
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
                 )

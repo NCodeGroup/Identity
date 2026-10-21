@@ -72,18 +72,20 @@ public interface ITenantStore : IStore<PersistedTenant>
     );
 
     /// <summary>
-    /// Attempts to get a <see cref="PersistedTenant"/> instance from the store whose issuer has the specified host.
+    /// Attempts to get a <see cref="PersistedTenant"/> instance from the store whose issuer or mutual-TLS endpoint-alias
+    /// authority has the specified host.
     /// </summary>
     /// <remarks>
-    /// The host is derived from the tenant's issuer rather than stored independently, so the value routed on cannot
-    /// drift from the identity published to clients. More than one tenant may share a host (path-based tenants do), so
-    /// a host-based deployment is responsible for keeping its issuer hosts distinct.
+    /// Both hosts are derived from the tenant's addresses rather than stored independently, so the value routed on cannot
+    /// drift from the identity and aliases published to clients. More than one tenant may share a host (path-based
+    /// tenants do), so a host-based deployment is responsible for keeping its hosts distinct; when more than one tenant
+    /// holds the host, none is returned, so an ambiguous host never routes to an arbitrary tenant.
     /// </remarks>
-    /// <param name="host">The issuer host of the <see cref="PersistedTenant"/> instance to retrieve.</param>
+    /// <param name="host">The issuer or alias host of the <see cref="PersistedTenant"/> instance to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="PersistedTenant"/> instance matching the specified entity if it exists.</returns>
-    ValueTask<PersistedTenant?> GetOrDefaultByIssuerHostAsync(
+    /// <see cref="PersistedTenant"/> instance that alone holds the host, if any.</returns>
+    ValueTask<PersistedTenant?> GetOrDefaultByHostAsync(
         string host,
         CancellationToken cancellationToken
     );

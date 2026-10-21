@@ -127,6 +127,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
                 x.ValidateTenantAsync(
                     TenantId,
                     issuer,
+                    null,
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
                 )

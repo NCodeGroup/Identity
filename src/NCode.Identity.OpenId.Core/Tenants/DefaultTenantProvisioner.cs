@@ -72,6 +72,7 @@ internal sealed class DefaultTenantProvisioner(
         var failures = await TenantResolver.ValidateTenantAsync(
             tenantId,
             issuer,
+            mtlsEndpointAliasAuthority: null,
             storeManager,
             cancellationToken
         );

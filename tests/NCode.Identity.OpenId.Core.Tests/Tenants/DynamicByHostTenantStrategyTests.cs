@@ -66,7 +66,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .Returns(MockTenantStore.Object)
             .Verifiable();
         MockTenantStore
-            .Setup(x => x.GetOrDefaultByIssuerHostAsync(IssuerHost, CancellationToken.None))
+            .Setup(x => x.GetOrDefaultByHostAsync(IssuerHost, CancellationToken.None))
             .ReturnsAsync(holderTenantId is null ? null : CreatePersistedTenant(holderTenantId))
             .Verifiable();
     }
@@ -121,6 +121,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .ValidateTenantAsync(
                 TenantId,
                 issuer: null,
+                null,
                 MockStoreManager.Object,
                 CancellationToken.None
             );
@@ -139,6 +140,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .ValidateTenantAsync(
                 TenantId,
                 new Uri($"https://{IssuerHost}"),
+                null,
                 MockStoreManager.Object,
                 CancellationToken.None
             );
@@ -155,6 +157,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .ValidateTenantAsync(
                 TenantId,
                 new Uri($"https://{IssuerHost}"),
+                null,
                 MockStoreManager.Object,
                 CancellationToken.None
             );
@@ -171,6 +174,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .ValidateTenantAsync(
                 TenantId,
                 new Uri($"https://{IssuerHost}/other"),
+                null,
                 MockStoreManager.Object,
                 CancellationToken.None
             );
@@ -191,6 +195,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .ValidateTenantAsync(
                 TenantId,
                 new Uri($"https://{IssuerHost}"),
+                null,
                 MockStoreManager.Object,
                 CancellationToken.None
             );
@@ -211,6 +216,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .ValidateTenantAsync(
                 TenantId,
                 new Uri($"https://{IssuerHost}"),
+                null,
                 MockStoreManager.Object,
                 CancellationToken.None
             );
@@ -316,7 +322,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .Verifiable();
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         MockTenantStore
-            .Setup(x => x.GetOrDefaultByIssuerHostAsync(issuerHost, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultByHostAsync(issuerHost, It.IsAny<CancellationToken>()))
             .ReturnsAsync(holder)
             .Verifiable();
 

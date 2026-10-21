@@ -427,3 +427,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Nor
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedIssuer.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedIssuerHost.get -> string?
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedIssuerHost.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.MtlsEndpointAliasAuthority.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedMtlsEndpointAliasHost.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedMtlsEndpointAliasHost.set -> void

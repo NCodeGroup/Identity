@@ -182,6 +182,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
                 x.ValidateTenantAsync(
                     WorkloadTenantId,
                     WorkloadIssuer,
+                    null,
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
                 )
@@ -227,6 +228,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
                 x.ValidateTenantAsync(
                     WorkloadTenantId,
                     null,
+                    null,
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
                 )
@@ -262,6 +264,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
                 x.ValidateTenantAsync(
                     WorkloadTenantId,
                     WorkloadIssuer,
+                    null,
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
                 )
@@ -300,6 +303,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
                 x.ValidateTenantAsync(
                     WorkloadTenantId,
                     WorkloadIssuer,
+                    null,
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
                 )
@@ -392,6 +396,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
                 x.ValidateTenantAsync(
                     RootTenantId,
                     rootIssuer,
+                    null,
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
                 )

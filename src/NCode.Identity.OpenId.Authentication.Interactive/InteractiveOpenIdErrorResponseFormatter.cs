@@ -29,10 +29,13 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// programmatic callers keep the JSON body. It handles only an <see cref="IOpenIdError"/>, so other response types are
 /// unaffected.
 /// </summary>
-internal sealed class InteractiveOpenIdErrorResponseFormatter(InteractiveBundleReader bundleReader)
-    : IOpenIdResponseFormatter
+internal sealed class InteractiveOpenIdErrorResponseFormatter(
+    InteractiveBundleReader bundleReader,
+    InteractiveSurfacePaths surfacePaths
+) : IOpenIdResponseFormatter
 {
     private InteractiveBundleReader BundleReader { get; } = bundleReader;
+    private InteractiveSurfacePaths SurfacePaths { get; } = surfacePaths;
 
     /// <inheritdoc />
     public IReadOnlyList<string> MediaTypes { get; } = [OpenIdConstants.MediaTypes.Html];
@@ -52,6 +55,8 @@ internal sealed class InteractiveOpenIdErrorResponseFormatter(InteractiveBundleR
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             html,
             await BundleReader.TryReadShellAsync(cancellationToken),
+            // The page is served at the protocol endpoint, so its base points the bundle's assets at the surface.
+            SurfacePaths.GetSurfaceBase(context.HttpContext),
             error.Code,
             error.Description
         );

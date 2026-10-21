@@ -274,20 +274,14 @@ describe('defineStandaloneSurfaceConfig', () => {
 });
 
 describe('defineBackendServedSurfaceConfig', () => {
-  it('builds the bundle under the base the host serves it from, with no dev server', () => {
-    const config = defineBackendServedSurfaceConfig({ base: '/account/', coverage: floors });
+  it('builds a bundle that resolves its assets against the document base, with no dev server', () => {
+    const config = defineBackendServedSurfaceConfig({ coverage: floors });
 
-    expect(config.base).toBe('/account/');
+    expect(config.base).toBe('./');
     expect(config).not.toHaveProperty('server');
     expect(config.build).toStrictEqual(expectedBuild);
     expect(config.test).toStrictEqual(testGates({ environment: 'jsdom', coverage: floors }));
     expect(pluginNames(config.plugins ?? [])).toContain('vite:react-babel');
     expect(pluginNames(config.plugins ?? [])).toContain('ncode:fail-on-oversized-chunks');
-  });
-
-  it.each(['account/', '/account', ''])('rejects base %j', (base) => {
-    expect(() => defineBackendServedSurfaceConfig({ base, coverage: floors })).toThrow(
-      new RangeError(`Base '${base}' must start and end with '/'.`),
-    );
   });
 });

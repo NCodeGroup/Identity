@@ -46,8 +46,6 @@ export type StandaloneSurfaceConfigOptions = {
 };
 
 export type BackendServedSurfaceConfigOptions = {
-  /** The path the serving host publishes the bundle under; assets resolve from it. */
-  readonly base: string;
   readonly coverage: CoverageFloors;
 };
 
@@ -242,17 +240,15 @@ export function defineStandaloneSurfaceConfig({
 
 /**
  * The configuration of a backend-served surface: a bundle the OpenID Provider host serves from its `dist` folder. It has
- * no dev server; its `dev` script rebuilds `dist` on change instead.
+ * no dev server; its `dev` script rebuilds `dist` on change instead. The bundle is built with a relative base, so it
+ * does not assume where it is mounted: the host serves it beneath each tenant's route and sets the document's
+ * `<base href>` to that location, which the bundle's asset URLs resolve against (ADR-0193).
  */
 export function defineBackendServedSurfaceConfig({
-  base,
   coverage,
 }: BackendServedSurfaceConfigOptions): ViteUserConfig {
-  if (!base.startsWith('/') || !base.endsWith('/')) {
-    throw new RangeError(`Base '${base}' must start and end with '/'.`);
-  }
   return {
-    base,
+    base: './',
     plugins: [react(), failOnOversizedChunks()],
     build: buildOptions(),
     test: testGates({ environment: 'jsdom', coverage }),

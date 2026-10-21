@@ -6,7 +6,7 @@ import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { ANTIFORGERY_FIELD, LOGIN_ACTION } from './params.js';
+import { ANTIFORGERY_FIELD, LOGIN_ACTION, resolveSurfacePath } from './params.js';
 
 export type LoginFormProps = {
   /** The validated local return URL the server redirects to after a successful sign-in. */
@@ -42,7 +42,12 @@ export function LoginForm({
     >
       <Card sx={{ width: '100%', maxWidth: 400 }}>
         <CardContent>
-          <Stack spacing={3} component="form" method="post" action={LOGIN_ACTION}>
+          <Stack
+            spacing={3}
+            component="form"
+            method="post"
+            action={resolveSurfacePath(LOGIN_ACTION)}
+          >
             <Typography variant="h5" component="h1">
               {productName ? `Sign in to ${productName}` : 'Sign in'}
             </Typography>

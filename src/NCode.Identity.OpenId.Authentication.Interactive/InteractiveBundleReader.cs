@@ -16,6 +16,7 @@
 
 #endregion
 
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
@@ -32,14 +33,21 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 // request is far cheaper than the file read it replaces.
 internal sealed class InteractiveBundleReader(
     IOptions<InteractiveAuthenticationOptions> optionsAccessor
-)
+) : IDisposable
 {
     private const string IndexFileName = "index.html";
+
+    private string? BundleRootPath { get; } = optionsAccessor.Value.BundleRootPath;
 
     private string? IndexPath { get; } =
         string.IsNullOrEmpty(optionsAccessor.Value.BundleRootPath)
             ? null
             : Path.Combine(optionsAccessor.Value.BundleRootPath, IndexFileName);
+
+    // Rooted at the bundle, so a requested asset path that navigates above the root, or names a hidden or system file,
+    // resolves to no file. Created once the bundle's directory exists, which a development build may create after the
+    // host starts.
+    private PhysicalFileProvider? _assetProvider;
 
     // Replaced as a whole, so a request sees either the previous or the new version, never a mix of the two.
     private InteractiveBundleIndex? CachedIndex { get; set; }
@@ -48,6 +56,44 @@ internal sealed class InteractiveBundleReader(
     /// Reads the single-page bundle's <c>index.html</c>, or returns <see langword="null"/> when no bundle is
     /// configured or available.
     /// </summary>
+    /// <inheritdoc />
+    public void Dispose() => _assetProvider?.Dispose();
+
+    /// <summary>
+    /// Gets a file of the bundle by its path relative to the bundle's root.
+    /// </summary>
+    /// <param name="assetPath">The file's path relative to the bundle's root, such as <c>assets/index.js</c>.</param>
+    /// <returns>The file, or <c>null</c> when no bundle is present or the bundle has no such file.</returns>
+    public IFileInfo? TryGetAsset(string assetPath)
+    {
+        if (string.IsNullOrEmpty(assetPath))
+        {
+            return null;
+        }
+
+        var provider = Volatile.Read(ref _assetProvider) ?? TryCreateAssetProvider();
+        var file = provider?.GetFileInfo(assetPath);
+        return file is { Exists: true, IsDirectory: false, PhysicalPath: not null } ? file : null;
+    }
+
+    private PhysicalFileProvider? TryCreateAssetProvider()
+    {
+        if (string.IsNullOrEmpty(BundleRootPath) || !Directory.Exists(BundleRootPath))
+        {
+            return null;
+        }
+
+        var provider = new PhysicalFileProvider(BundleRootPath);
+        var existing = Interlocked.CompareExchange(ref _assetProvider, provider, null);
+        if (existing is null)
+        {
+            return provider;
+        }
+
+        provider.Dispose();
+        return existing;
+    }
+
     public async ValueTask<string?> TryReadIndexHtmlAsync(CancellationToken cancellationToken) =>
         (await TryReadIndexAsync(cancellationToken))?.Html;
 

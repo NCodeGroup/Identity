@@ -166,7 +166,9 @@ served:
 - **Backend-served SPAs** — served by the .NET host from a static `dist` (e.g. `apps/auth`, which the
   Playground serves through the interactive-login endpoint) — use **`vite build --watch`**. This keeps
   `dist` continuously rebuilt so a browser refresh shows edits. (There is no HMR dev server because the
-  .NET host, not Vite, serves these bundles.) Their config is `defineBackendServedSurfaceConfig({ base, coverage })`.
+  .NET host, not Vite, serves these bundles.) Their config is `defineBackendServedSurfaceConfig({ coverage })`, which
+  builds with a relative base: the host serves the bundle beneath each tenant's route and sets the document's
+  `<base href>` there.
 - **Standalone SPAs** — served directly by Vite on their own port (e.g. `apps/mgmt`) — use **`vite`**,
   a full HMR dev server. Their config is `defineStandaloneSurfaceConfig({ port, bootstrapHost, coverage })`, which pins
   the port with `strictPort` (the surface's redirect URI, CORS origin, and AppHost endpoint all assume it) and proxies

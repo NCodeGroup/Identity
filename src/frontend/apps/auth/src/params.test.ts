@@ -5,8 +5,12 @@ import {
   isAccountPath,
   isApplicationsPath,
   isConsentPath,
+  isSessionsPath,
   readCookie,
+  resolveSurfacePath,
 } from './params.js';
+
+const TENANT_BASE = 'https://op.example/acme/account/';
 
 describe('getQueryParam', () => {
   it('reads a value with or without a leading question mark', () => {
@@ -26,6 +30,35 @@ describe('readCookie', () => {
 
   it('returns null when the cookie is absent', () => {
     expect(readCookie('a=1; b=2', 'XSRF-TOKEN')).toBeNull();
+  });
+});
+
+describe('resolveSurfacePath', () => {
+  it('resolves a surface path against the document base by default', () => {
+    expect(resolveSurfacePath('me')).toBe('/account/me');
+    expect(resolveSurfacePath('./')).toBe('/account/');
+  });
+
+  it('resolves a surface path beneath the tenant the base names', () => {
+    expect(resolveSurfacePath('consent/details', TENANT_BASE)).toBe(
+      '/acme/account/consent/details',
+    );
+    expect(resolveSurfacePath('./', TENANT_BASE)).toBe('/acme/account/');
+  });
+});
+
+describe('surface page matching beneath a tenant', () => {
+  it('matches each page beneath the tenant the base names', () => {
+    expect(isConsentPath('/acme/account/consent', TENANT_BASE)).toBe(true);
+    expect(isAccountPath('/acme/account', TENANT_BASE)).toBe(true);
+    expect(isAccountPath('/acme/account/', TENANT_BASE)).toBe(true);
+    expect(isApplicationsPath('/acme/account/applications', TENANT_BASE)).toBe(true);
+    expect(isSessionsPath('/acme/account/sessions/', TENANT_BASE)).toBe(true);
+  });
+
+  it('does not match a page of another tenant', () => {
+    expect(isConsentPath('/account/consent', TENANT_BASE)).toBe(false);
+    expect(isAccountPath('/beta/account', TENANT_BASE)).toBe(false);
   });
 });
 

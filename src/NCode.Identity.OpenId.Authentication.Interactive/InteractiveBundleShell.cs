@@ -19,32 +19,81 @@
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
-/// The single-page bundle's <c>index.html</c> split once at its empty <c>#root</c> mount point, so a server-rendered
-/// page is written as the head, the page's markup, and the tail without composing the document as one string.
+/// The single-page bundle's <c>index.html</c> split once at the end of its <c>&lt;head&gt;</c> start tag and at its
+/// empty <c>#root</c> mount point, so a served page is written as the prelude, the document's <c>&lt;base&gt;</c>, the
+/// head, the page's markup, and the tail without composing the document as one string.
 /// </summary>
-/// <param name="Head">The document up to and including the mount point's opening tag.</param>
+/// <param name="Prelude">The document up to and including the <c>&lt;head&gt;</c> start tag.</param>
+/// <param name="Head">The document from the end of the <c>&lt;head&gt;</c> start tag up to and including the mount
+/// point's opening tag.</param>
 /// <param name="Tail">The document from the mount point's closing tag to its end.</param>
-internal sealed record InteractiveBundleShell(ReadOnlyMemory<char> Head, ReadOnlyMemory<char> Tail)
+internal sealed record InteractiveBundleShell(
+    ReadOnlyMemory<char> Prelude,
+    ReadOnlyMemory<char> Head,
+    ReadOnlyMemory<char> Tail
+)
 {
     // The empty SPA mount point; the server form is written inside it so the React SPA replaces it on mount rather than
     // rendering alongside it.
     private const string RootElement = "<div id=\"root\"></div>";
     private const string RootOpenTag = "<div id=\"root\">";
+    private const string HeadTagStart = "<head";
 
     /// <summary>
-    /// Splits <paramref name="html"/> at its first empty <c>#root</c> mount point.
+    /// Splits <paramref name="html"/> at the end of its <c>&lt;head&gt;</c> start tag and at its first empty
+    /// <c>#root</c> mount point.
     /// </summary>
     /// <param name="html">The bundle's <c>index.html</c>.</param>
-    /// <returns>The split document, or <c>null</c> when the document has no empty mount point.</returns>
+    /// <returns>The split document, or <c>null</c> when the document has no <c>&lt;head&gt;</c> start tag before an
+    /// empty mount point.</returns>
     public static InteractiveBundleShell? TryCreate(string html)
     {
-        var index = html.IndexOf(RootElement, StringComparison.Ordinal);
-        if (index < 0)
+        var rootIndex = html.IndexOf(RootElement, StringComparison.Ordinal);
+        if (rootIndex < 0)
         {
             return null;
         }
 
-        var headLength = index + RootOpenTag.Length;
-        return new InteractiveBundleShell(html.AsMemory(0, headLength), html.AsMemory(headLength));
+        var preludeLength = FindHeadStartTagEnd(html, rootIndex);
+        if (preludeLength < 0)
+        {
+            return null;
+        }
+
+        var headEnd = rootIndex + RootOpenTag.Length;
+        return new InteractiveBundleShell(
+            html.AsMemory(0, preludeLength),
+            html.AsMemory(preludeLength, headEnd - preludeLength),
+            html.AsMemory(headEnd)
+        );
+    }
+
+    // The base must precede every element whose URL it resolves, so it is written first inside <head>. The tag name is
+    // matched whole, so a <header> element is not mistaken for it.
+    private static int FindHeadStartTagEnd(string html, int limit)
+    {
+        var index = 0;
+        while (true)
+        {
+            index = html.IndexOf(
+                HeadTagStart,
+                index,
+                limit - index,
+                StringComparison.OrdinalIgnoreCase
+            );
+            if (index < 0)
+            {
+                return -1;
+            }
+
+            var next = index + HeadTagStart.Length;
+            if (next < limit && (html[next] == '>' || char.IsWhiteSpace(html[next])))
+            {
+                var close = html.IndexOf('>', next, limit - next);
+                return close < 0 ? -1 : close + 1;
+            }
+
+            index = next;
+        }
     }
 }

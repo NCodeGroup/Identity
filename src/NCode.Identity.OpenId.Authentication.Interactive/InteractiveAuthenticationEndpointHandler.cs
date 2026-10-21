@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -24,6 +25,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.StaticFiles;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Consent;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
@@ -58,6 +60,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     // The `scope` form value that selects "sign out everywhere else" (retain the current session); any other value is
     // a full "sign out everywhere".
     private const string SignOutOthersScope = "others";
+
+    private const string AssetRouteParameterName = "asset";
+
+    private static FileExtensionContentTypeProvider AssetContentTypes { get; } = new();
 
     private IInteractiveCredentialVerifier CredentialVerifier { get; } = credentialVerifier;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
@@ -104,6 +110,45 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             InteractiveAuthenticationDefaults.SessionsRevokeAllPath,
             PostRevokeAllSessionsAsync
         );
+        // The bundle's files are served beneath the tenant's surface, where the pages' base resolves them (ADR-0193).
+        // Every page and API route above is a literal route, which takes precedence; the order makes that explicit.
+        endpoints
+            .MapMethods(
+                $"{InteractiveAuthenticationDefaults.BasePath}/{{**{AssetRouteParameterName}}}",
+                [HttpMethods.Get, HttpMethods.Head],
+                GetAsset
+            )
+            .WithOrder(1);
+    }
+
+    /// <summary>
+    /// Serves a file of the single-page bundle, such as its hashed scripts and styles, with validators so a browser
+    /// revalidates it cheaply. A path the bundle has no file for, or whose type is unknown, is answered <c>404</c>.
+    /// </summary>
+    public IResult GetAsset(HttpContext httpContext)
+    {
+        var assetPath =
+            httpContext.GetRouteValue(AssetRouteParameterName) as string ?? string.Empty;
+        var file = BundleReader.TryGetAsset(assetPath);
+        if (
+            file is not { PhysicalPath: { } physicalPath }
+            || !AssetContentTypes.TryGetContentType(file.Name, out var contentType)
+        )
+        {
+            return TypedResults.NotFound();
+        }
+
+        var lastModified = file.LastModified;
+        var entityTag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue(
+            $"\"{(lastModified.ToFileTime() ^ file.Length).ToString("x", CultureInfo.InvariantCulture)}\""
+        );
+        return TypedResults.PhysicalFile(
+            physicalPath,
+            contentType,
+            lastModified: lastModified,
+            entityTag: entityTag,
+            enableRangeProcessing: true
+        );
     }
 
     /// <summary>
@@ -119,6 +164,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             html,
             await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
+            SurfacePaths.GetSurfaceBase(httpContext),
             query["ReturnUrl"].ToString(),
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
@@ -178,6 +224,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         InteractiveAuthenticationPageRenderer.RenderConsentPage(
             html,
             await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
+            SurfacePaths.GetSurfaceBase(httpContext),
             rawReturnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
@@ -906,17 +953,23 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
     }
 
-    private async ValueTask<ContentHttpResult> ServeBundleAsync(HttpContext httpContext)
+    private async ValueTask<IResult> ServeBundleAsync(HttpContext httpContext)
     {
         IssueAntiforgeryTokens(httpContext);
 
-        var html = await BundleReader.TryReadIndexHtmlAsync(httpContext.RequestAborted);
-        if (html is null)
+        var shell = await BundleReader.TryReadShellAsync(httpContext.RequestAborted);
+        if (shell is null)
         {
             return BundleMissingResult();
         }
 
-        return TypedResults.Content(html, "text/html");
+        var html = InteractiveHtmlResult.CreateBuffer();
+        InteractiveAuthenticationPageRenderer.RenderBundlePage(
+            html,
+            shell,
+            SurfacePaths.GetSurfaceBase(httpContext)
+        );
+        return new InteractiveHtmlResult(html);
     }
 
     // Mirrors the apps/auth describeLoginError mapping so the no-JS login form shows the same messages.

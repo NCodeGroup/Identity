@@ -34,8 +34,10 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 internal static class InteractiveAuthenticationPageRenderer
 {
     private const string StandaloneHeadStart =
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\" />"
-        + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /><title>";
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\" />";
+
+    private const string StandaloneTitleStart =
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" /><title>";
 
     private const string StandaloneHeadEnd = "</title></head><body><div id=\"root\">";
     private const string StandaloneTail = "</div></body></html>";
@@ -52,13 +54,14 @@ internal static class InteractiveAuthenticationPageRenderer
     public static void RenderLoginPage(
         IBufferWriter<char> writer,
         InteractiveBundleShell? shell,
+        string surfaceBase,
         string returnUrl,
         string antiforgeryFieldName,
         string antiforgeryToken,
         string? errorMessage
     )
     {
-        WriteHead(writer, shell, "Sign in");
+        WriteHead(writer, shell, surfaceBase, "Sign in");
         Write(
             writer,
             // The action is relative to the page, so the form posts to the login endpoint of the tenant that served it.
@@ -90,6 +93,7 @@ internal static class InteractiveAuthenticationPageRenderer
     public static void RenderConsentPage(
         IBufferWriter<char> writer,
         InteractiveBundleShell? shell,
+        string surfaceBase,
         string returnUrl,
         string antiforgeryFieldName,
         string antiforgeryToken,
@@ -97,7 +101,7 @@ internal static class InteractiveAuthenticationPageRenderer
         IReadOnlyList<ScopeView> scopes
     )
     {
-        WriteHead(writer, shell, "Authorize access");
+        WriteHead(writer, shell, surfaceBase, "Authorize access");
         Write(
             writer,
             "<main class=\"auth-card\"><form method=\"post\" action=\"consent\"><h1>Authorize access</h1><p>"
@@ -133,11 +137,12 @@ internal static class InteractiveAuthenticationPageRenderer
     public static void RenderErrorPage(
         IBufferWriter<char> writer,
         InteractiveBundleShell? shell,
+        string surfaceBase,
         string errorCode,
         string? errorDescription
     )
     {
-        WriteHead(writer, shell, "Authorization error");
+        WriteHead(writer, shell, surfaceBase, "Authorization error");
         Write(
             writer,
             "<main class=\"auth-card\"><h1>Authorization error</h1>"
@@ -176,23 +181,51 @@ internal static class InteractiveAuthenticationPageRenderer
         Write(writer, "\" />");
     }
 
+    /// <summary>
+    /// Renders a page the single-page bundle draws entirely (the account, applications, and sessions pages): the
+    /// bundle's document with its base set to the surface beneath the tenant and its mount point left empty.
+    /// </summary>
+    public static void RenderBundlePage(
+        IBufferWriter<char> writer,
+        InteractiveBundleShell shell,
+        string surfaceBase
+    )
+    {
+        WriteHead(writer, shell, surfaceBase, title: string.Empty);
+        WriteTail(writer, shell);
+    }
+
     // Writes the bundle's head, which ends inside its #root, so the SPA enhances the form on mount; without the bundle,
-    // a minimal standalone document keeps the form working.
+    // a minimal standalone document keeps the form working. Either way the document's base is the surface beneath the
+    // request's tenant, so the bundle's relative asset URLs, its API calls, and the forms' relative actions resolve
+    // there whatever path the page itself was served at (ADR-0193).
     private static void WriteHead(
         IBufferWriter<char> writer,
         InteractiveBundleShell? shell,
+        string surfaceBase,
         string title
     )
     {
         if (shell is not null)
         {
+            Write(writer, shell.Prelude.Span);
+            WriteBase(writer, surfaceBase);
             Write(writer, shell.Head.Span);
             return;
         }
 
         Write(writer, StandaloneHeadStart);
+        WriteBase(writer, surfaceBase);
+        Write(writer, StandaloneTitleStart);
         WriteEncoded(writer, title);
         Write(writer, StandaloneHeadEnd);
+    }
+
+    private static void WriteBase(IBufferWriter<char> writer, string surfaceBase)
+    {
+        Write(writer, "<base href=\"");
+        WriteEncoded(writer, surfaceBase);
+        Write(writer, "\" />");
     }
 
     private static void WriteTail(IBufferWriter<char> writer, InteractiveBundleShell? shell) =>

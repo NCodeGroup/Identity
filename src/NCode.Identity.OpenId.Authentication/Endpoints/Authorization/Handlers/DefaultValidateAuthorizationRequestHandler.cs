@@ -257,11 +257,17 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 .InvalidRequest("The 'openid' scope is required when requesting id tokens.")
                 .AsException();
 
-        // A token never travels in a query string (OAuth 2.0 Multiple Response Type Encoding Practices §2.1).
-        if (request.ResponseMode == OpenIdConstants.ResponseModes.Query && returnsTokens)
+        // A token never travels in a query string (OAuth 2.0 Multiple Response Type Encoding Practices §2.1), not even
+        // inside a JWT-secured authorization response (JARM §2.3.1).
+        if (
+            returnsTokens
+            && request.ResponseMode
+                is OpenIdConstants.ResponseModes.Query
+                    or OpenIdConstants.ResponseModes.QueryJwt
+        )
             throw errorFactory
                 .InvalidRequest(
-                    "The 'query' response mode must not be used with a response type that returns a token or an ID token."
+                    $"The '{request.ResponseMode}' response mode must not be used with a response type that returns a token or an ID token."
                 )
                 .AsException();
 

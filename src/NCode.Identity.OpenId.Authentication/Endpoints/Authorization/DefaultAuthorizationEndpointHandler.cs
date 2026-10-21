@@ -278,6 +278,13 @@ internal class DefaultAuthorizationEndpointHandler(
             OpenIdConstants.Parameters.ResponseMode,
             out var responseModeStringValues
         );
+        // The default follows the response type, so a response that returns a token is never redirected in a query
+        // string, whether it carries the tokens or an error (ADR-0141); the JARM 'jwt' shorthand resolves the same way.
+        requestValues.TryGetValue(
+            OpenIdConstants.Parameters.ResponseType,
+            out var responseTypeStringValues
+        );
+        var responseTypeNames = SplitResponseTypeNames(responseTypeStringValues);
         string effectiveResponseMode;
 
         if (hasResponseMode)
@@ -291,7 +298,10 @@ internal class DefaultAuthorizationEndpointHandler(
                     .AsException();
             }
 
-            effectiveResponseMode = responseModeStringValues.ToString();
+            effectiveResponseMode = ResponseTypeValues.ResolveResponseMode(
+                responseModeStringValues.ToString(),
+                responseTypeNames
+            );
             if (
                 settings.TryGetValue(
                     OpenIdSettingKeys.ResponseModesSupported,
@@ -308,13 +318,6 @@ internal class DefaultAuthorizationEndpointHandler(
         }
         else
         {
-            // The default follows the response type, so a response that returns a token is never redirected in a
-            // query string, whether it carries the tokens or an error (ADR-0141).
-            requestValues.TryGetValue(
-                OpenIdConstants.Parameters.ResponseType,
-                out var responseTypeStringValues
-            );
-            var responseTypeNames = SplitResponseTypeNames(responseTypeStringValues);
             effectiveResponseMode = ResponseTypeValues.GetDefaultResponseMode(responseTypeNames);
         }
 

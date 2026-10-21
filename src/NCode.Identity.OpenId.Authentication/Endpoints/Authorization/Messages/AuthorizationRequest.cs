@@ -174,9 +174,10 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
 
     /// <inheritdoc />
     public string ResponseMode =>
-        OriginalRequestObject?.ResponseMode
-        ?? OriginalRequestMessage.ResponseMode
-        ?? ResponseTypeValues.GetDefaultResponseMode(ResponseTypes);
+        ResponseTypeValues.ResolveResponseMode(
+            OriginalRequestObject?.ResponseMode ?? OriginalRequestMessage.ResponseMode,
+            ResponseTypes
+        );
 
     /// <inheritdoc />
     public IReadOnlyList<string> ResponseTypes =>

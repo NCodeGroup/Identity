@@ -70,7 +70,11 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
             var errorFactory = openIdContext.ErrorFactory;
             var (redirectUri, responseMode, state) = clientRedirectContext;
             var openIdError = GetOpenIdError(errorFactory, exception, state);
-            var httpResult = new AuthorizationResult(redirectUri, responseMode, openIdError);
+            var httpResult = new AuthorizationResult(redirectUri, responseMode, openIdError)
+            {
+                OpenIdContext = openIdContext,
+                OpenIdClient = openIdClient,
+            };
             return ReadOnlyEndpointDisposition.Handled(httpResult);
         }
     }
@@ -137,6 +141,10 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
                     effectiveResponseMode,
                     authenticateSubjectDisposition.Error
                 )
+                {
+                    OpenIdContext = openIdContext,
+                    OpenIdClient = openIdClient,
+                }
             );
         }
 
@@ -152,6 +160,10 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
                         effectiveResponseMode,
                         openIdContext.ErrorFactory.LoginRequired().WithState(state)
                     )
+                    {
+                        OpenIdContext = openIdContext,
+                        OpenIdClient = openIdClient,
+                    }
                 );
             }
 
@@ -186,6 +198,10 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
                     effectiveResponseMode,
                     authorizeSubjectDisposition.Error
                 )
+                {
+                    OpenIdContext = openIdContext,
+                    OpenIdClient = openIdClient,
+                }
             );
         }
 
@@ -220,6 +236,10 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
                     effectiveResponseMode,
                     openIdContext.ErrorFactory.InteractionRequired().WithState(state)
                 )
+                {
+                    OpenIdContext = openIdContext,
+                    OpenIdClient = openIdClient,
+                }
             );
         }
 
@@ -238,6 +258,10 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
 
         return ReadOnlyEndpointDisposition.Handled(
             new AuthorizationResult(redirectUri, effectiveResponseMode, authorizationTicket)
+            {
+                OpenIdContext = openIdContext,
+                OpenIdClient = openIdClient,
+            }
         );
     }
 

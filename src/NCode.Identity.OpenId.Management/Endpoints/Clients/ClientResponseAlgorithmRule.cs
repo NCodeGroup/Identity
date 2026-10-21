@@ -37,6 +37,7 @@ internal static class ClientResponseAlgorithmRule
         ClientJwtProtectionSettings.IdToken,
         ClientJwtProtectionSettings.UserInfo,
         ClientJwtProtectionSettings.Introspection,
+        ClientJwtProtectionSettings.Authorization,
     ];
 
     /// <summary>

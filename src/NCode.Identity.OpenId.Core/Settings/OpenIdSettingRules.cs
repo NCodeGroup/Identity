@@ -98,7 +98,11 @@ internal static class OpenIdSettingRules
         SettingRules.OneOf(
             OpenIdConstants.ResponseModes.Query,
             OpenIdConstants.ResponseModes.Fragment,
-            OpenIdConstants.ResponseModes.FormPost
+            OpenIdConstants.ResponseModes.FormPost,
+            OpenIdConstants.ResponseModes.QueryJwt,
+            OpenIdConstants.ResponseModes.FragmentJwt,
+            OpenIdConstants.ResponseModes.FormPostJwt,
+            OpenIdConstants.ResponseModes.Jwt
         );
 
     /// <summary>

@@ -1530,3 +1530,11 @@ NCode.Identity.OpenId.Authentication.Endpoints.OpenIdFrontChannelEndpointConvent
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdFrontChannelEndpointConventionBuilderExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?).IsOpenIdFrontChannel.get -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdFrontChannelEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdFrontChannelEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithOpenIdFrontChannel() -> TBuilder
+static NCode.Identity.OpenId.Authentication.Clients.ClientJwtProtectionSettings.Authorization.get -> NCode.Identity.OpenId.Authentication.Clients.ClientJwtProtectionSettings
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResult.OpenIdClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient?
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResult.OpenIdClient.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResult.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext?
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResult.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationResponseModeHandler
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationResponseModeHandler.ExecuteAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResult! result, NCode.Identity.OpenId.Messages.IOpenIdMessageResponse! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationResponseModeHandler.ResponseMode.get -> string!

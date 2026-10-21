@@ -339,6 +339,46 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.IdTokenSigningAlgValuesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_encrypted_response_alg' setting.
+    /// </summary>
+    public static SettingKey<string> AuthorizationEncryptedResponseAlg =>
+        new(OpenIdSettingNames.AuthorizationEncryptedResponseAlg);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_encrypted_response_enc' setting.
+    /// </summary>
+    public static SettingKey<string> AuthorizationEncryptedResponseEnc =>
+        new(OpenIdSettingNames.AuthorizationEncryptedResponseEnc);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_encryption_alg_values_supported' setting.
+    /// </summary>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > AuthorizationEncryptionAlgValuesSupported =>
+        new(OpenIdSettingNames.AuthorizationEncryptionAlgValuesSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_encryption_enc_values_supported' setting.
+    /// </summary>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > AuthorizationEncryptionEncValuesSupported =>
+        new(OpenIdSettingNames.AuthorizationEncryptionEncValuesSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_signed_response_alg' setting.
+    /// </summary>
+    public static SettingKey<string> AuthorizationSignedResponseAlg =>
+        new(OpenIdSettingNames.AuthorizationSignedResponseAlg);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_signing_alg_values_supported' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> AuthorizationSigningAlgValuesSupported =>
+        new(OpenIdSettingNames.AuthorizationSigningAlgValuesSupported);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'introspection_encrypted_response_alg' setting.
     /// </summary>
     public static SettingKey<string> IntrospectionEncryptedResponseAlg =>

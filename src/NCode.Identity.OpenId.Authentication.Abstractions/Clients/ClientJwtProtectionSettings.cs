@@ -27,7 +27,8 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// client registers (OpenID Connect Dynamic Client Registration 1.0 §2) and the lists that bound them.
 /// </summary>
 /// <remarks>
-/// The kinds the server issues are <see cref="IdToken"/>, <see cref="UserInfo"/>, and <see cref="Introspection"/>. A
+/// The kinds the server issues are <see cref="IdToken"/>, <see cref="UserInfo"/>, <see cref="Introspection"/>, and
+/// <see cref="Authorization"/>. A
 /// package that addresses a further kind of JWT to a client describes its own settings with a new instance.
 /// </remarks>
 // See ADR-0155.
@@ -84,6 +85,25 @@ public readonly record struct ClientJwtProtectionSettings
                 OpenIdSettingKeys.IntrospectionEncryptionAlgValuesSupported,
             EncryptionEncValuesSupported =
                 OpenIdSettingKeys.IntrospectionEncryptionEncValuesSupported,
+        };
+
+    /// <summary>
+    /// Gets the settings for a JWT-secured authorization response (JARM). It is signed with the client's
+    /// <c>authorization_signed_response_alg</c>, which defaults to <c>RS256</c>, and encrypted when the client registers
+    /// an encryption algorithm for it.
+    /// </summary>
+    public static ClientJwtProtectionSettings Authorization { get; } =
+        new()
+        {
+            ResponseName = "authorization response",
+            SignedResponseAlg = OpenIdSettingKeys.AuthorizationSignedResponseAlg,
+            SigningAlgValuesSupported = OpenIdSettingKeys.AuthorizationSigningAlgValuesSupported,
+            EncryptedResponseAlg = OpenIdSettingKeys.AuthorizationEncryptedResponseAlg,
+            EncryptedResponseEnc = OpenIdSettingKeys.AuthorizationEncryptedResponseEnc,
+            EncryptionAlgValuesSupported =
+                OpenIdSettingKeys.AuthorizationEncryptionAlgValuesSupported,
+            EncryptionEncValuesSupported =
+                OpenIdSettingKeys.AuthorizationEncryptionEncValuesSupported,
         };
 
     /// <summary>

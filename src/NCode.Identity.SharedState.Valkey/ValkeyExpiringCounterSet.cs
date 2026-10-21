@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using Microsoft.Extensions.Options;
 using NCode.Identity.SharedState.Valkey.Facades;
 using NCode.Identity.SharedState.Valkey.Options;
@@ -34,7 +35,8 @@ namespace NCode.Identity.SharedState.Valkey;
 internal class ValkeyExpiringCounterSet(
     IValkeyConnection connection,
     IOptions<ValkeyOptions> optionsAccessor,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    ValkeySharedStateMetrics metrics
 ) : IExpiringCounterSet
 {
     /// <summary>
@@ -55,6 +57,8 @@ internal class ValkeyExpiringCounterSet(
 
     private TimeProvider TimeProvider { get; } = timeProvider;
 
+    private ValkeySharedStateMetrics Metrics { get; } = metrics;
+
     /// <inheritdoc />
     public async ValueTask<long> IncrementAsync(
         string key,
@@ -71,12 +75,30 @@ internal class ValkeyExpiringCounterSet(
         // The server counts a time-to-live in whole milliseconds and rejects zero, so round up.
         var milliseconds = (long)Math.Ceiling(timeToLive.TotalMilliseconds);
 
-        var database = await Connection.GetDatabaseAsync(cancellationToken);
-        var result = await database
-            .ScriptEvaluateAsync(IncrementScript, [GetKey(key)], [milliseconds])
-            .WaitAsync(cancellationToken);
+        var startTimestamp = Stopwatch.GetTimestamp();
+        try
+        {
+            var database = await Connection.GetDatabaseAsync(cancellationToken);
+            var result = await database
+                .ScriptEvaluateAsync(IncrementScript, [GetKey(key)], [milliseconds])
+                .WaitAsync(cancellationToken);
 
-        return (long)result;
+            Metrics.OperationCompleted(
+                ValkeySharedStateMetrics.CounterIncrementOperation,
+                startTimestamp,
+                exception: null
+            );
+            return (long)result;
+        }
+        catch (Exception exception)
+        {
+            Metrics.OperationCompleted(
+                ValkeySharedStateMetrics.CounterIncrementOperation,
+                startTimestamp,
+                exception
+            );
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -84,10 +106,28 @@ internal class ValkeyExpiringCounterSet(
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        var database = await Connection.GetDatabaseAsync(cancellationToken);
-        var value = await database.StringGetAsync(GetKey(key)).WaitAsync(cancellationToken);
+        var startTimestamp = Stopwatch.GetTimestamp();
+        try
+        {
+            var database = await Connection.GetDatabaseAsync(cancellationToken);
+            var value = await database.StringGetAsync(GetKey(key)).WaitAsync(cancellationToken);
 
-        return value.IsNull ? 0L : (long)value;
+            Metrics.OperationCompleted(
+                ValkeySharedStateMetrics.CounterGetOperation,
+                startTimestamp,
+                exception: null
+            );
+            return value.IsNull ? 0L : (long)value;
+        }
+        catch (Exception exception)
+        {
+            Metrics.OperationCompleted(
+                ValkeySharedStateMetrics.CounterGetOperation,
+                startTimestamp,
+                exception
+            );
+            throw;
+        }
     }
 
     private RedisKey GetKey(string key) => KeyPrefix + key;

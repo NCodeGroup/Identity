@@ -110,8 +110,8 @@ client, against per-minute limits that are settings bounded by the merge lattice
   [`BACKLOG.md`](../../BACKLOG.md) as `F79`.
 - Every judged partition is counted in `ncode.identity.rate_limiting.requests` by partition and result (`admitted`,
   `rejected`, `store_unavailable`), per
-  [ADR-0197](0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md). The `429`'s
-  `ncode.identity.openid.error` attribute is still tracked as `F80`.
+  [ADR-0197](0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md), and the `429` itself
+  is visible on `http.server.request.duration` with `ncode.identity.openid.error=temporarily_unavailable`.
 - A deployment behind a proxy must forward the client's address (`UseForwardedHeaders`) for the address limit to count
   callers rather than the proxy.
 - A deployment that runs several replicas must configure Valkey for its limits to hold; with the in-process adapter

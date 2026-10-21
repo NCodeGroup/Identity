@@ -1060,3 +1060,9 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RateLimitTenantPerMinute
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RateLimitAddressPerMinute.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RateLimitClientPerMinute.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RateLimitTenantPerMinute.get -> NCode.Identity.Settings.SettingKey<int>
+NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes
+const NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.Endpoint = "ncode.identity.openid.endpoint" -> string!
+const NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.Error = "ncode.identity.openid.error" -> string!
+const NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.GrantType = "ncode.identity.openid.grant_type" -> string!
+const NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.OtherValue = "_OTHER" -> string!
+static NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.Add(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! name, string! value) -> void

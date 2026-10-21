@@ -91,7 +91,9 @@ public static class DefaultRegistration
                 .Configure(options => section.BindStrictly(options))
                 .ValidateOnStart();
 
+            serviceCollection.AddMetrics();
             serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddSingleton<ValkeySharedStateMetrics>();
             serviceCollection.TryAddSingleton<IValkeyConnection>(_ => new DefaultValkeyConnection(
                 configurationOptions
             ));

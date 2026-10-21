@@ -16,6 +16,8 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token;
@@ -23,9 +25,11 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Core.Tests.Metrics;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Metrics;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using Xunit;
@@ -35,6 +39,8 @@ namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Token.Handlers;
 public class DefaultSelectTokenGrantHandlerHandlerTests : BaseTests
 {
     private const string GrantType = OpenIdConstants.GrantTypes.ClientCredentials;
+
+    private TestHttpMetricsTagsFeature MetricsTags { get; } = new();
 
     #region Scaffolding
 
@@ -61,6 +67,10 @@ public class DefaultSelectTokenGrantHandlerHandlerTests : BaseTests
         var mockError = CreateLooseMock<IOpenIdError>();
 
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
+        // Not verifiable: a request without a grant type is refused before the grant type is tagged.
+        var httpContext = new DefaultHttpContext();
+        httpContext.Features.Set<IHttpMetricsTagsFeature>(MetricsTags);
+        mockContext.SetupGet(x => x.Http).Returns(httpContext);
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object).Verifiable();
         mockErrorFactory.Setup(x => x.Create(It.IsAny<string>())).Returns(mockError.Object);
 
@@ -127,6 +137,16 @@ public class DefaultSelectTokenGrantHandlerHandlerTests : BaseTests
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await handler.HandleAsync(command, CancellationToken.None)
         );
+        // A grant type no handler serves is tagged _OTHER, so a caller cannot mint a series per invented value.
+        Assert.Equal(
+            [
+                new KeyValuePair<string, object?>(
+                    OpenIdMetricAttributes.GrantType,
+                    OpenIdMetricAttributes.OtherValue
+                ),
+            ],
+            MetricsTags.Tags
+        );
     }
 
     [Fact]
@@ -159,6 +179,10 @@ public class DefaultSelectTokenGrantHandlerHandlerTests : BaseTests
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.Same(mockGrantHandler.Object, result);
+        Assert.Equal(
+            [new KeyValuePair<string, object?>(OpenIdMetricAttributes.GrantType, GrantType)],
+            MetricsTags.Tags
+        );
     }
 
     #endregion

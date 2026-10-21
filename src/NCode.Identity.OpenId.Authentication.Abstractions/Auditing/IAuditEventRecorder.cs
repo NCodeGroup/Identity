@@ -121,6 +121,9 @@ public interface IAuditEventRecorder
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
     /// <param name="clientId">The identifier of the client that failed authentication.</param>
+    /// <param name="authenticationMethod">
+    /// The registered client-authentication method the client attempted, such as <c>private_key_jwt</c>.
+    /// </param>
     /// <param name="reason">A short, non-sensitive reason authentication failed.</param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
@@ -131,6 +134,7 @@ public interface IAuditEventRecorder
     ValueTask RecordClientAuthenticationFailedAsync(
         OpenIdContext openIdContext,
         string clientId,
+        string authenticationMethod,
         string? reason,
         CancellationToken cancellationToken
     );

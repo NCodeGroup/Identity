@@ -227,6 +227,7 @@ internal abstract class CommonClientAuthenticationHandler(
         await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
             openIdContext,
             clientId,
+            AuthenticationMethod,
             reason,
             cancellationToken
         );

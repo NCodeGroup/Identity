@@ -19,6 +19,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Metrics;
 using NCode.Identity.Results;
 
 namespace NCode.Identity.OpenId.Results;
@@ -42,6 +43,12 @@ internal sealed class DefaultOpenIdResultExecutor : IResultExecutor<IOpenIdResul
     )
     {
         var response = result.Response;
+
+        // Every protocol error response is written here, so an endpoint, the exception filter, and the rate-limit
+        // filter all tag the request's duration measurement with the same server-chosen error code (ADR-0197).
+        if (response is IOpenIdError error)
+            OpenIdMetricAttributes.Add(httpContext, OpenIdMetricAttributes.Error, error.Code);
+
         var statusCode = response is ISupportStatusCode supportStatusCode
             ? supportStatusCode.StatusCode
             : null;

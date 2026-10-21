@@ -17,8 +17,8 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
+using NCode.Identity.OpenId.Metrics;
 
 namespace NCode.Identity.OpenId.Authentication.Metrics;
 
@@ -30,8 +30,6 @@ namespace NCode.Identity.OpenId.Authentication.Metrics;
 // See ADR-0197.
 internal sealed class OpenIdMetricsEndpointFilter : IEndpointFilter
 {
-    internal const string EndpointAttribute = "ncode.identity.openid.endpoint";
-
     /// <inheritdoc />
     public async ValueTask<object?> InvokeAsync(
         EndpointFilterInvocationContext context,
@@ -43,11 +41,8 @@ internal sealed class OpenIdMetricsEndpointFilter : IEndpointFilter
             .GetEndpoint()
             ?.Metadata.GetMetadata<IEndpointNameMetadata>()
             ?.EndpointName;
-        var tagsFeature = httpContext.Features.Get<IHttpMetricsTagsFeature>();
-        if (endpointName is not null && tagsFeature is not null)
-            tagsFeature.Tags.Add(
-                new KeyValuePair<string, object?>(EndpointAttribute, endpointName)
-            );
+        if (endpointName is not null)
+            OpenIdMetricAttributes.Add(httpContext, OpenIdMetricAttributes.Endpoint, endpointName);
 
         return await next(context);
     }

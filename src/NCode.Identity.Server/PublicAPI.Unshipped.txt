@@ -218,3 +218,7 @@ NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.Certificate.set
 NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.KeyRingProtectionOptions() -> void
 NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.PreviousCertificates.get -> NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions![]!
 NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.PreviousCertificates.set -> void
+NCode.Identity.Server.TelemetryRegistration
+NCode.Identity.Server.TelemetryRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Server.TelemetryRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddOpenTelemetryMetrics(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+const NCode.Identity.Server.TelemetryRegistration.OtlpEndpointConfigurationKey = "OTEL_EXPORTER_OTLP_ENDPOINT" -> string!

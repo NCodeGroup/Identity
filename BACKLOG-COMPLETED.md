@@ -947,6 +947,42 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   metric, since the family has no protocol meter yet. Unit tests cover the estimate, each partition, fail-open, and
   cancellation; an integration test drives discovery past a server-wide limit. Quotas remain as `F79`._
 
+- **`F80` — Metrics for the protocol endpoints.** Implement
+  [ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md): one owner per
+  signal, only bounded attributes, and nothing measured twice. Done so far: the `NCode.Identity.OpenId.Authentication`
+  meter (`OpenIdAuthenticationMetrics.MeterName`, instruments in the internal `AuthenticationMetrics` singleton from
+  `IMeterFactory`), `ncode.identity.rate_limiting.requests` in `DefaultRequestRateLimiter`, and the
+  `ncode.identity.openid.endpoint` tag from `OpenIdMetricsEndpointFilter`. Remaining:
+  - **Event meter.** Move `DefaultEventMetricsHandler` to `IMeterFactory` with a public meter-name constant, and rename
+    its attributes to `ncode.identity.event.type`, `ncode.identity.audit.action`, and `ncode.identity.audit.outcome`.
+  - **Endpoint enrichment.** On the token endpoint, tag `ncode.identity.openid.grant_type` (`_OTHER` for an
+    unregistered value). Tag `ncode.identity.openid.error` where the error response is written, so the endpoints, the
+    exception filter, and the rate-limit filter all tag it.
+  - **Event attributes.** An interface through which an event type declares bounded metric attributes (the grant and
+    token type of `token.issued`, the method of a client-authentication failure), read by the event metrics handler.
+  - **Shared-state instrument.** `ncode.identity.shared_state.operation.duration` (operation, adapter, `error.type`) in
+    the in-process and Valkey adapters, under an `NCode.Identity.SharedState` meter.
+  - **Reference host.** The OpenTelemetry SDK and OTLP exporter, the family's meters plus ASP.NET Core, Kestrel,
+    `System.Net.Http`, and runtime instrumentation, and a view that drops `server.address` and `server.port` from
+    `http.client.request.duration`. Pin current upstream versions and check them against the advisory database.
+  - **Tests and catalog.** Adopt `MetricCollector<T>` (`Microsoft.Extensions.Diagnostics.Testing`) for the instrument
+    tests, which read a factory-scoped `MeterListener` today, and add the instrument catalog beside the event catalog.
+  Touch points: `src/NCode.Identity.Events/DefaultEventMetricsHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Metrics/`, the shared-state adapters, and the host's `Program.cs`.
+  _Closed: 2026-10-21. [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md), amended with
+  what was built, and the instrument catalog [`docs/metrics.md`](docs/metrics.md). The error attribute is tagged once,
+  in `DefaultOpenIdResultExecutor`, which writes every OpenID response, and the grant-type attribute in the grant
+  handler selector, which knows the registered grant types; the attribute names are public on `OpenIdMetricAttributes`.
+  Events declare their attributes through `ISupportMetricAttributes`: `token.issued` adds its token type, and a
+  client-authentication failure adds the method the client attempted, which `IAuditEventRecorder` now takes. The grant
+  type stays on the HTTP instrument rather than being repeated on the event. The shared-state histogram is recorded by
+  the Valkey adapter only, in its own `NCode.Identity.SharedState.Valkey` meter; the in-process adapter has no latency
+  worth a series. The host wiring is `AddOpenTelemetryMetrics` in `NCode.Identity.Server`, which subscribes to the
+  family by the `NCode.Identity.*` wildcard, needs no instrumentation packages because every meter it adds is built
+  into .NET, and adds the OTLP exporter only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Every instrument test reads
+  through `MetricCollector<T>`._
+
 - **`F46` — Kubernetes deployment artifacts for the host.** `NCode.Identity.OpenId.Host` is the deployable
   ([ADR-0130](docs/adr/0130-distinct-names-for-host-local-dev-orchestrator-and-library.md)); it already trusts forwarded
   headers only from configured proxies (`ReverseProxy:KnownNetworks` — set it to the cluster's pod CIDR), refuses

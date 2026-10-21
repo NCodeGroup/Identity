@@ -6,3 +6,5 @@ NCode.Identity.Events.EventLibraryRegistration
 NCode.Identity.Events.EventLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!)
 NCode.Identity.Events.EventLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!).AddBackgroundEventDelivery() -> NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!
 NCode.Identity.Events.EventLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!).AddEventHandler<TEvent, THandler>() -> NCode.Registration.IServiceBuilder<NCode.Identity.Events.EventsLibrary>!
+NCode.Identity.Events.EventMetrics
+const NCode.Identity.Events.EventMetrics.MeterName = "NCode.Identity.Events" -> string!

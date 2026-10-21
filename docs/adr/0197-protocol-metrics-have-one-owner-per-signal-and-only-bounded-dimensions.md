@@ -48,8 +48,9 @@ of refusals must not flood the event pipeline — so it gets a direct instrument
 ### 2. Meters, names, and units
 
 - **One meter per package that owns instruments**, named after the package (`NCode.Identity.OpenId.Authentication`,
-  `NCode.Identity.SharedState`, `NCode.Identity.Events`). The meter names are public constants, so a host lists them
-  in `AddMeter`.
+  `NCode.Identity.Events`, `NCode.Identity.SharedState.Valkey`). The meter names are public constants, and every one
+  starts with `NCode.Identity.`, so a host subscribes to the whole family with one wildcard and a package that adds a
+  meter needs no change to the host.
 - **Meters come from `IMeterFactory`**, never `new Meter(…)`: the factory scopes a meter to its service provider, so
   two hosts in one process (tests, the Aspire orchestrator) never share instruments, and tests read them with
   `MetricCollector<T>`. A package's instruments live in one internal singleton `…Metrics` class that the factory's
@@ -83,9 +84,12 @@ The rate limiter's `429` is therefore visible as `http.response.status_code=429`
 ### 4. Domain outcomes come from the event seam
 
 `DefaultEventMetricsHandler` stays the single counter of domain outcomes (`ncode.identity.events.published`). An event
-type may declare additional **bounded** metric attributes — the grant type and token type of a `token.issued` event,
-the method of a client-authentication failure — through an interface the handler reads, so the curated event catalog
-(ADR-0047) also governs the metric's dimensions. An event never contributes its tenant, client, or subject.
+type may declare additional **bounded** metric attributes by implementing `ISupportMetricAttributes`, which the handler
+reads, so the curated event catalog (ADR-0047) also governs the metric's dimensions: a `token.issued` event adds its
+server-set token type (`ncode.identity.token.type`) and a client-authentication failure adds the registered method the
+client attempted (`ncode.identity.client_authentication.method`). The grant type is not repeated on the event; it is
+already an attribute of the token endpoint's requests (§3). An event never contributes its tenant, client, or
+subject.
 
 ### 5. Mechanism instruments
 
@@ -94,11 +98,13 @@ the method of a client-authentication failure — through an interface the handl
   `ncode.identity.rate_limiting.result` (`admitted`, `rejected`, `store_unavailable`), recorded once per judged
   partition, mirroring ASP.NET Core's `aspnetcore.rate_limiting.requests`. `store_unavailable` makes the fail-open path
   of ADR-0196 alertable.
-- **Shared state** (`NCode.Identity.SharedState` and its adapters): histogram
-  `ncode.identity.shared_state.operation.duration` (`s`) with `ncode.identity.shared_state.operation`
-  (`key_set.try_add`, `counter.increment`, `counter.get`, …), `ncode.identity.shared_state.adapter` (`in_process`,
-  `valkey`, or the name a registered adapter declares), and `error.type` on failure. Replay checks, DPoP nonces, and
-  rate limits all depend on it, so its latency and failures are one view.
+- **Shared state** (each networked adapter, in its own package's meter — `NCode.Identity.SharedState.Valkey`):
+  histogram `ncode.identity.shared_state.operation.duration` (`s`) with `ncode.identity.shared_state.operation`
+  (`key_set.try_add`, `key_set.contains`, `counter.increment`, `counter.get`), `ncode.identity.shared_state.adapter`
+  (`valkey`, or the name another adapter declares), and `error.type` on failure, timing the server round trip only.
+  Replay checks, DPoP nonces, and rate limits all depend on it, so its latency and failures are one view. The
+  in-process adapter records nothing: a dictionary operation in memory has no latency or failure worth a series, and
+  the abstractions package stays free of a meter it would only hand to adapters.
 
 A future mechanism (key resolution, signing, the dispatcher) follows the same pattern in its own package.
 
@@ -111,18 +117,21 @@ plans and billing — is a stored count with its own retention (backlog `F79`), 
 ### 7. Hosts opt in; the reference host wires OpenTelemetry
 
 The library packages depend only on `System.Diagnostics.Metrics`; recording costs nothing until a listener subscribes.
-The reference host adds the OpenTelemetry SDK with an OTLP exporter, the family's meters, ASP.NET Core, Kestrel,
-`System.Net.Http`, and the .NET runtime, and a view that keeps only bounded attributes on
-`http.client.request.duration`: its `server.address` and `server.port` name the hosts of client-registered URIs, which
-are unbounded. The Aspire orchestrator ([ADR-0071](0071-aspire-local-dev-orchestrator.md)) shows the same metrics in
-its dashboard.
+`NCode.Identity.Server` provides `AddOpenTelemetryMetrics(configuration)`, which the reference host calls — host
+composition is the server package's job, not `Program.cs`'s. It adds the OpenTelemetry SDK, the family's meters by the
+`NCode.Identity.*` wildcard, ASP.NET Core's hosting, Kestrel, routing, and diagnostics meters, `System.Net.Http`, and
+the .NET runtime, all of which are built into .NET, so no instrumentation package is needed. A view keeps only bounded
+attributes on `System.Net.Http`'s instruments: their `server.address` and `server.port` name the hosts of
+client-registered URIs, which are unbounded. The OTLP exporter is added only when `OTEL_EXPORTER_OTLP_ENDPOINT` is
+configured, so a host without a collector does not retry a missing endpoint. The Aspire orchestrator
+([ADR-0071](0071-aspire-local-dev-orchestrator.md)) sets that variable and shows the same metrics in its dashboard.
 
 ### 8. Every instrument is tested and catalogued
 
 Each instrument has a unit test that reads it through `MetricCollector<T>` and asserts its name, unit, and attributes.
-The instrument catalog — every meter, instrument, unit, and attribute with its allowed values — is maintained beside
-the event catalog, so dashboards and alerts are built against a reviewed contract, and adding or renaming an
-instrument or attribute is a deliberate change.
+The instrument catalog — every meter, instrument, unit, and attribute with its allowed values — is
+[`docs/metrics.md`](../metrics.md), so dashboards and alerts are built against a reviewed contract, and adding or
+renaming an instrument or attribute is a deliberate change.
 
 ## Options considered
 
@@ -140,9 +149,9 @@ instrument or attribute is a deliberate change.
 
 ## Consequences
 
-- The design is implemented under backlog `F80`. The authentication meter, the rate-limiting counter, and the endpoint
-  attribute are in place; the error and grant-type attributes, event attributes, the shared-state histogram, the host's
-  OpenTelemetry wiring, and the catalog remain.
+- The design is implemented (backlog `F80`): the endpoint, error, and grant-type attributes on
+  `http.server.request.duration`, the rate-limiting counter, the event metric's attributes, the Valkey shared-state
+  histogram, the reference host's OpenTelemetry wiring, and the instrument catalog.
 - An operator gets latency, traffic, and errors per endpoint and per OAuth error code from one histogram, and can build
   service-level indicators on it: availability as the share of protocol requests that are not `5xx`, and latency as a
   percentile of the token endpoint's duration.

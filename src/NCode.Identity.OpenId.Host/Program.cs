@@ -52,6 +52,11 @@ serviceCollection.AddProductionSafety(configuration, hostEnvironment);
 serviceCollection.AddAntiforgery();
 
 serviceCollection.AddHealthChecks();
+
+// Metrics: the family's meters plus ASP.NET Core, Kestrel, outbound HTTP, and the runtime, exported over OTLP when
+// OTEL_EXPORTER_OTLP_ENDPOINT is configured (the Aspire AppHost injects it, so its dashboard shows them). ADR-0197.
+serviceCollection.AddOpenTelemetryMetrics(configuration);
+
 serviceCollection.AddHttpLogging(options =>
 {
     options.LoggingFields = HttpLoggingFields.All;

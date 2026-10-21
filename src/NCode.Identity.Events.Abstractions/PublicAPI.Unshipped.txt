@@ -76,3 +76,5 @@ static NCode.Identity.Events.DefaultHandlerPriorities.High.set -> void
 static NCode.Identity.Events.DefaultHandlerPriorities.Low.get -> int
 static NCode.Identity.Events.DefaultHandlerPriorities.Low.set -> void
 virtual NCode.Identity.Events.Audit.AuditEvent.SchemaVersion.get -> int
+NCode.Identity.Events.ISupportMetricAttributes
+NCode.Identity.Events.ISupportMetricAttributes.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void

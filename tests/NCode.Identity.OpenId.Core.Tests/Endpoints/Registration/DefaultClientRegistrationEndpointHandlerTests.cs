@@ -1237,6 +1237,60 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     }
 
     [Fact]
+    public void ValidateAlgorithmMetadata_WhenTheOmittedDefaultEncIsNotPermitted_ReturnsInvalidClientMetadata()
+    {
+        // An id_token_encrypted_response_alg registered without its enc uses the default enc (A128CBC-HS256), which a
+        // tenant permitting only A256GCM excludes, so the client must register a permitted enc.
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
+        IReadOnlyCollection<string>? permittedEnc = ["A256GCM"];
+        mockTenantSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported,
+                    out permittedEnc
+                )
+            )
+            .Returns(true);
+        var request = new RegisterClientRequest { IdTokenEncryptedResponseAlg = "RSA-OAEP-256" };
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateAlgorithmMetadata_WhenTheTenantDefaultEncIsPermitted_ReturnsNull()
+    {
+        // The tenant's own default enc, not the specification's, is the one an omitted enc resolves to.
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
+        IReadOnlyCollection<string>? permittedEnc = ["A256GCM"];
+        mockTenantSettings
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported,
+                    out permittedEnc
+                )
+            )
+            .Returns(true);
+        string? defaultEnc = "A256GCM";
+        mockTenantSettings
+            .Setup(x =>
+                x.TryGetValue(OpenIdSettingKeys.UserInfoEncryptedResponseEnc, out defaultEnc)
+            )
+            .Returns(true);
+        var request = new RegisterClientRequest { UserInfoEncryptedResponseAlg = "RSA-OAEP-256" };
+
+        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
+
+        Assert.Null(error);
+    }
+
+    [Fact]
     public void ValidateAlgorithmMetadata_WhenTheTokenEndpointAuthSigningAlgIsNotPermitted_ReturnsInvalidClientMetadata()
     {
         var handler = CreateHandler();

@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
@@ -1304,7 +1305,12 @@ internal class DefaultClientRegistrationEndpointHandler(
             ),
             (
                 OpenIdSettingNames.IdTokenEncryptedResponseEnc,
-                request.IdTokenEncryptedResponseEnc,
+                EffectiveResponseEnc(
+                    tenantSettings,
+                    request.IdTokenEncryptedResponseAlg,
+                    request.IdTokenEncryptedResponseEnc,
+                    OpenIdSettingKeys.IdTokenEncryptedResponseEnc
+                ),
                 OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported
             ),
             (
@@ -1319,7 +1325,12 @@ internal class DefaultClientRegistrationEndpointHandler(
             ),
             (
                 OpenIdSettingNames.UserInfoEncryptedResponseEnc,
-                request.UserInfoEncryptedResponseEnc,
+                EffectiveResponseEnc(
+                    tenantSettings,
+                    request.UserInfoEncryptedResponseAlg,
+                    request.UserInfoEncryptedResponseEnc,
+                    OpenIdSettingKeys.UserInfoEncryptedResponseEnc
+                ),
                 OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported
             ),
             (
@@ -1334,7 +1345,12 @@ internal class DefaultClientRegistrationEndpointHandler(
             ),
             (
                 OpenIdSettingNames.IntrospectionEncryptedResponseEnc,
-                request.IntrospectionEncryptedResponseEnc,
+                EffectiveResponseEnc(
+                    tenantSettings,
+                    request.IntrospectionEncryptedResponseAlg,
+                    request.IntrospectionEncryptedResponseEnc,
+                    OpenIdSettingKeys.IntrospectionEncryptedResponseEnc
+                ),
                 OpenIdSettingKeys.IntrospectionEncryptionEncValuesSupported
             ),
             (
@@ -1349,7 +1365,12 @@ internal class DefaultClientRegistrationEndpointHandler(
             ),
             (
                 OpenIdSettingNames.AuthorizationEncryptedResponseEnc,
-                request.AuthorizationEncryptedResponseEnc,
+                EffectiveResponseEnc(
+                    tenantSettings,
+                    request.AuthorizationEncryptedResponseAlg,
+                    request.AuthorizationEncryptedResponseEnc,
+                    OpenIdSettingKeys.AuthorizationEncryptedResponseEnc
+                ),
                 OpenIdSettingKeys.AuthorizationEncryptionEncValuesSupported
             ),
             (
@@ -1425,6 +1446,26 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         return ValidateBackchannelMetadata(errorFactory, tenantSettings, request);
+    }
+
+    // OpenID Connect Dynamic Client Registration 1.0 §2, RFC 9701 §6, JARM §3: a registered response-encryption "alg"
+    // without its "enc" uses the default "enc" (A128CBC-HS256, unless the tenant sets another), so that default must be
+    // permitted too.
+    private static string? EffectiveResponseEnc(
+        IReadOnlySettingCollection tenantSettings,
+        string? alg,
+        string? enc,
+        SettingKey<string> defaultEncKey
+    )
+    {
+        if (!string.IsNullOrEmpty(enc) || string.IsNullOrEmpty(alg))
+            return enc;
+
+        return
+            tenantSettings.TryGetValue(defaultEncKey, out var defaultEnc)
+            && !string.IsNullOrEmpty(defaultEnc)
+            ? defaultEnc
+            : AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256;
     }
 
     // CIBA Core 1.0 §4: a ping or push client must register the endpoint its notifications go to, and a client may claim

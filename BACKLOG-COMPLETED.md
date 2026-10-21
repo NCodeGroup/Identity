@@ -2654,3 +2654,16 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   constraints that the Deployment and the migration Job include. The renders are unchanged except that the Job gains
   the host's `fsGroup`, which it needs to read a secret mounted through `extraVolumes` (R19); the Host chart workflow
   checks it._
+
+- **`R27` — Compare certificate validity in UTC, and document the `x5c` expiry check F72 added.** Touch points:
+  `CertificateLifetimeRequirementHandler.cs:55-69`, ADR-0161, `CHANGELOG.md`. _Closed:
+  `CertificateLifetimeRequirementHandler` converts the certificate's local-time `NotBefore`/`NotAfter` to UTC before
+  comparing them with the UTC clock; a test run under `TZ=Pacific/Auckland` fails four of five new cases without the
+  fix. ADR-0161 records that a JWK imported with `x5c` is subject to the certificate-lifetime check; changelog entry
+  under Fixed._
+
+- **`R28` — Check the default response-encryption `enc` at dynamic registration.** Touch point:
+  `DefaultClientRegistrationEndpointHandler.cs:1305-1309`. _Closed: `ValidateAlgorithmMetadata` resolves an omitted
+  response-encryption `enc` (ID token, UserInfo, introspection, authorization) to the tenant's default `enc`, falling
+  back to `A128CBC-HS256`, whenever the matching `alg` is registered, and checks it against the tenant's supported `enc`
+  values; changelog entry under Fixed._

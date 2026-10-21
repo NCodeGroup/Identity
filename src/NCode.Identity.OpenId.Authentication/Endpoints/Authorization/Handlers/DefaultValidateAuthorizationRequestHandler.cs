@@ -77,7 +77,11 @@ internal class DefaultValidateAuthorizationRequestHandler(
         // Apply any security-profile authorization-request requirements (e.g. FAPI's confidential-client rule).
         await SecurityProfileCatalog.EvaluateRequirementsAsync(
             openIdClient.Settings,
-            new AuthorizationRequestProfileContext(openIdContext, openIdClient),
+            new AuthorizationRequestProfileContext(
+                openIdContext,
+                openIdClient,
+                authorizationRequest
+            ),
             cancellationToken
         );
 

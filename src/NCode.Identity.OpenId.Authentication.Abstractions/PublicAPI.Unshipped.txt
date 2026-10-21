@@ -927,11 +927,13 @@ NCode.Identity.OpenId.Authentication.Tokens.IIssuedTokenValidator.ValidateAccess
 NCode.Identity.OpenId.Authentication.Tokens.IIssuedTokenValidator.ValidateIdTokenAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! idToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Jwt.Validation.JwtValidationResult!>
 NCode.Identity.OpenId.Authentication.Tokens.IIssuedTokenValidator.ValidateIdTokenHintAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! idTokenHint, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Jwt.Validation.JwtValidationResult!>
 NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext
-NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.AuthorizationRequestProfileContext(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! Client) -> void
+NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.AuthorizationRequestProfileContext(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! Client, NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest! Request) -> void
 NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.Client.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient!
 NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.Client.init -> void
 NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.OpenIdContext.init -> void
+NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.Request.get -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest!
+NCode.Identity.OpenId.Settings.AuthorizationRequestProfileContext.Request.init -> void
 NCode.Identity.OpenId.Settings.ClientAuthenticationProfileContext
 NCode.Identity.OpenId.Settings.ClientAuthenticationProfileContext.AssertionPayload.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Settings.ClientAuthenticationProfileContext.AssertionPayload.init -> void

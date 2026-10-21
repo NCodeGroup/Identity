@@ -656,6 +656,7 @@ NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods
 NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods
 NCode.Identity.OpenId.OpenIdConstants.ContinueCodes
 NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles
+const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Fapi1Advanced = "fapi1-advanced" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Fapi2 = "fapi2" -> string!
 NCode.Identity.OpenId.OpenIdConstants.DisplayTypes
 NCode.Identity.OpenId.OpenIdConstants.EndpointNames

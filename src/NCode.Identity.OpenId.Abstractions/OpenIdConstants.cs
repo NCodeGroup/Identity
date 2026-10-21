@@ -557,6 +557,14 @@ public static partial class OpenIdConstants
         /// signing (<c>PS256</c> / <c>ES256</c> / <c>EdDSA</c>).
         /// </summary>
         public const string Fapi2 = "fapi2";
+
+        /// <summary>
+        /// The OpenID Foundation <c>FAPI 1.0 Advanced</c> Security Profile (Final): <c>code</c> with a JWT-secured
+        /// authorization response (JARM) or <c>code id_token</c>, PAR, PKCE <c>S256</c>, signed request objects,
+        /// mutual-TLS sender-constrained tokens, strong (asymmetric / mutual-TLS) client authentication, and
+        /// asymmetric-only signing (<c>PS256</c> / <c>ES256</c>).
+        /// </summary>
+        public const string Fapi1Advanced = "fapi1-advanced";
     }
 
     /// <summary>

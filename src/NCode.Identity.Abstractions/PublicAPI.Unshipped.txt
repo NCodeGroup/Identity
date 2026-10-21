@@ -86,3 +86,5 @@ const NCode.Identity.Cryptography.BinaryEncodings.Hex = "hex" -> string!
 NCode.Identity.Cryptography.IBinaryEncoder
 NCode.Identity.Cryptography.IBinaryEncoder.Encode(System.ReadOnlySpan<byte> data) -> string!
 NCode.Identity.Cryptography.IBinaryEncoder.Name.get -> string!
+const NCode.Identity.HealthCheckTags.Readiness = "ready" -> string!
+NCode.Identity.HealthCheckTags

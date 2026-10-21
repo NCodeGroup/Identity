@@ -2639,3 +2639,13 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: without Valkey the Deployment uses the `Recreate` strategy, so the new replica starts only after the old
   one has terminated; the Host chart workflow checks it. ADR-0179 and the chart README explain why `maxSurge: 0` was not
   enough._
+- **`R32` — Tidy the host's readiness code and the stale `/health` references.** Move `readinessTag` away from the
+  data-protection comment in `Program.cs:128-133`; update `docs/adr/0071-aspire-local-dev-orchestrator.md`,
+  `src/frontend/README.md:263`, and `.vscode/launch.json:11`.
+  _Closed: the host no longer declares its own readiness tag beneath the data-protection comment; it uses
+  `HealthCheckTags.Readiness` (R43). ADR-0071, the frontend README, and `.vscode/launch.json` name `/health/ready`, the
+  endpoint the AppHost actually waits on._
+- **`R43` — Share the readiness tag as a public constant.** `Program.cs:132` and
+  `SharedState.Valkey/DefaultRegistration.cs:44` each write `"ready"`.
+  _Closed: `NCode.Identity.HealthCheckTags.Readiness` in `NCode.Identity.Abstractions` is the one definition; the
+  Valkey adapter (which now references that package) and the reference host both use it._

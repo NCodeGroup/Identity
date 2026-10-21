@@ -38,11 +38,6 @@ public static class DefaultRegistration
     /// </summary>
     internal const string HealthCheckName = "valkey";
 
-    /// <summary>
-    /// The tag of the health checks that decide whether a replica is ready to serve requests.
-    /// </summary>
-    internal const string ReadinessTag = "ready";
-
     /// <param name="builder">The shared-state-library builder returned by <c>AddSharedStateServices</c>.</param>
     extension(IServiceBuilder<SharedStateLibrary> builder)
     {
@@ -106,7 +101,7 @@ public static class DefaultRegistration
 
             serviceCollection
                 .AddHealthChecks()
-                .AddCheck<ValkeyHealthCheck>(HealthCheckName, tags: [ReadinessTag]);
+                .AddCheck<ValkeyHealthCheck>(HealthCheckName, tags: [HealthCheckTags.Readiness]);
 
             return builder;
         }

@@ -260,7 +260,7 @@ Pick **`Aspire: Full stack (F5)`** in the Run and Debug view (or press F5) — a
 as one resource graph: the Playground OP host (`api`), the interactive-login build-watcher (`auth`), the
 Management console Vite dev server (`mgmt`), the flow-explorer Vite dev server (`playground`, :5174), and the
 conformance-dashboard Vite dev server (`conformance`, :5175). Aspire gates each UI resource on the API being
-**healthy** (`WaitFor` + `/health`), so the browser UIs no longer race the API, and its **dashboard** is one place
+**healthy** (`WaitFor` + `/health/ready`), so the browser UIs no longer race the API, and its **dashboard** is one place
 for ordered startup, logs, and traces.
 
 One-time setup (**required** before the first launch, and again whenever dependencies or the pinned Node/pnpm change):

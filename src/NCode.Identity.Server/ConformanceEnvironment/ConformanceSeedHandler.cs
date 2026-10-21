@@ -25,6 +25,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -39,7 +40,8 @@ using NCode.Mediator;
 namespace NCode.Identity.Server.ConformanceEnvironment;
 
 /// <summary>
-/// A <strong>conformance-only</strong> seed handler that provisions the confidential clients and the deterministic
+/// A <strong>conformance-only</strong> seed handler that provisions the confidential clients — authenticated by a
+/// secret or by the public keys they register — and the deterministic
 /// test user that the OpenID Foundation conformance suite drives, into the one tenant its options name, so a launched
 /// OpenID host always exposes the same identities with no manual API calls. It is idempotent and inert unless its
 /// inputs are configured. It must not be used in production.
@@ -47,12 +49,14 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 /// <remarks>
 /// A seeded client's settings come from configuration, so the document is validated against the registered setting
 /// descriptors before it is stored: a value the server cannot honor stops the seeding with an error naming the client,
-/// rather than storing a client that fails every request that loads it.
+/// rather than storing a client that fails every request that loads it. Its key set is imported under the client-key
+/// policy a dynamically registered <c>jwks</c> follows, and a key set the policy refuses stops the seeding the same way.
 /// </remarks>
 // See ADR-0140.
 internal sealed class ConformanceSeedHandler(
     ConformanceSeedOptions options,
     ISecretGenerator secretGenerator,
+    IClientKeyImporter clientKeyImporter,
     ICryptoService cryptoService,
     TimeProvider timeProvider,
     ISettingSerializer settingSerializer,
@@ -68,6 +72,7 @@ internal sealed class ConformanceSeedHandler(
     ];
     private ConformanceSeedOptions Options { get; } = options;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
@@ -111,8 +116,7 @@ internal sealed class ConformanceSeedHandler(
     )
     {
         var clientId = client.ClientId;
-        var secret = client.ClientSecret;
-        if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(secret))
+        if (string.IsNullOrEmpty(clientId))
         {
             return;
         }
@@ -126,13 +130,6 @@ internal sealed class ConformanceSeedHandler(
             return;
         }
 
-        // The secret is supplied Base64Url-encoded (not plaintext) so a raw process-memory snapshot does not expose it
-        // directly; decode it straight into a pinned, zeroed-on-return buffer threaded as ReadOnlyMemory.
-        var secretMaxLength = Base64Url.GetMaxDecodedLength(secret.Length);
-        using var secretOwner = SecureMemoryPool<byte>.Shared.Rent(secretMaxLength);
-        var secretWritten = Base64Url.DecodeFromChars(secret, secretOwner.Memory.Span);
-        var clientSecretBytes = secretOwner.Memory[..secretWritten];
-
         // The registered method (RFC 7591 §2) decides the client type, and it is the only method the client may use.
         var settingValues = new Dictionary<string, object>
         {
@@ -144,9 +141,17 @@ internal sealed class ConformanceSeedHandler(
         if (client.CodeChallengeMethods.Length > 0)
             settingValues[OpenIdSettingNames.CodeChallengeMethodsSupported] =
                 client.CodeChallengeMethods;
+        if (client.SecurityProfiles.Length > 0)
+            settingValues[OpenIdSettingNames.SecurityProfiles] = client.SecurityProfiles;
 
         var settings = JsonSerializer.SerializeToElement(settingValues);
         EnsureSettingsCanBeHonored(clientId, settings);
+
+        var secrets = new List<PersistedSecret>();
+        if (!string.IsNullOrEmpty(client.ClientSecret))
+            secrets.Add(CreatePersistedSecret(client.ClientSecret));
+        if (!string.IsNullOrEmpty(client.Jwks))
+            secrets.AddRange(ImportKeys(clientId, client.Jwks));
 
         var persistedClient = new PersistedClient
         {
@@ -163,7 +168,7 @@ internal sealed class ConformanceSeedHandler(
             {
                 TenantId = tenantId,
                 ClientId = clientId,
-                Value = [CreatePersistedSecret(clientSecretBytes)],
+                Value = secrets,
             },
         };
 
@@ -188,6 +193,41 @@ internal sealed class ConformanceSeedHandler(
         throw new InvalidOperationException(
             $"The conformance client '{clientId}' cannot be seeded: {details}"
         );
+    }
+
+    private IReadOnlyList<PersistedSecret> ImportKeys(string clientId, string jwks)
+    {
+        using var document = ParseKeySet(clientId, jwks);
+        if (
+            ClientKeyImporter.TryImportRegisteredKeySet(
+                document.RootElement,
+                TimeProvider.GetUtcNow(),
+                out var keys,
+                out var error
+            )
+        )
+        {
+            return keys;
+        }
+
+        throw new InvalidOperationException(
+            $"The conformance client '{clientId}' cannot be seeded: its key set is invalid. {error}"
+        );
+    }
+
+    private static JsonDocument ParseKeySet(string clientId, string jwks)
+    {
+        try
+        {
+            return JsonDocument.Parse(jwks);
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidOperationException(
+                $"The conformance client '{clientId}' cannot be seeded: its key set is not JSON.",
+                exception
+            );
+        }
     }
 
     private async ValueTask SeedTestUserAsync(
@@ -299,8 +339,15 @@ internal sealed class ConformanceSeedHandler(
         // runtime must not inherit the conformance clients and test user.
         string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 
-    private PersistedSecret CreatePersistedSecret(ReadOnlyMemory<byte> clientSecret)
+    private PersistedSecret CreatePersistedSecret(string encodedSecret)
     {
+        // The secret is supplied Base64Url-encoded (not plaintext) so a raw process-memory snapshot does not expose it
+        // directly; decode it straight into a pinned, zeroed-on-return buffer.
+        var secretMaxLength = Base64Url.GetMaxDecodedLength(encodedSecret.Length);
+        using var secretOwner = SecureMemoryPool<byte>.Shared.Rent(secretMaxLength);
+        var secretWritten = Base64Url.DecodeFromChars(encodedSecret, secretOwner.Memory.Span);
+        var clientSecret = secretOwner.Memory.Span[..secretWritten];
+
         var now = TimeProvider.GetUtcNow();
 
         // Persist the given client_secret through the single shared-secret primitive (ADR-0110) so its stored UTF-8
@@ -315,7 +362,7 @@ internal sealed class ConformanceSeedHandler(
                 CreatedWhen = now,
                 ExpiresWhen = now.AddYears(100),
             },
-            clientSecret.Span
+            clientSecret
         );
     }
 }

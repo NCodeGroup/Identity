@@ -66,6 +66,11 @@ serviceCollection.AddHttpLogging(options =>
 // section. Inert when none are configured, which is the correct posture for a direct-TLS deployment.
 serviceCollection.AddReverseProxy(configuration);
 
+// Receive mutual-TLS client certificates when this host terminates TLS itself: an endpoint configured to request one
+// (Kestrel:EndpointDefaults:ClientCertificateMode) accepts any certificate at the handshake, and the client-
+// authentication handlers and certificate-bound tokens validate it (RFC 8705). Inert while no endpoint requests one.
+serviceCollection.AddDirectClientCertificates();
+
 var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
 
 // TODO

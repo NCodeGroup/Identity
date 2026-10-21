@@ -22,9 +22,10 @@ using NCode.Identity.OpenId;
 namespace NCode.Identity.Server.ConformanceEnvironment;
 
 /// <summary>
-/// Describes a single <strong>conformance-only</strong> confidential client to seed: its client id, its
-/// <c>Base64Url</c>-encoded secret, and the exact-match redirect URIs, grant types, token-endpoint authentication
-/// method, and PKCE code-challenge methods it registers. The scopes it may request are not part of the seed: they
+/// Describes a single <strong>conformance-only</strong> confidential client to seed: its client id, its credential —
+/// a <c>Base64Url</c>-encoded secret, the public keys of a JSON Web Key Set, or both — and the exact-match redirect
+/// URIs, grant types, token-endpoint authentication method, PKCE code-challenge methods, and security profiles it
+/// registers. The scopes it may request are not part of the seed: they
 /// come from the tenant's resource servers, and the OpenID Connect scopes are available to every client.
 /// </summary>
 /// <remarks>
@@ -42,9 +43,17 @@ public sealed class ConformanceClientSeed
     /// <summary>
     /// Gets or sets the client secret, supplied <c>Base64Url</c>-encoded (not plaintext) so a raw process-memory
     /// snapshot does not expose it directly. The decoded bytes are the credential the conformance suite presents.
-    /// When empty, this entry is skipped.
+    /// A client with neither a secret nor <see cref="Jwks"/> is skipped.
     /// </summary>
     public string? ClientSecret { get; set; }
+
+    /// <summary>
+    /// Gets or sets the JSON text of the JSON Web Key Set whose public keys the client registers by value, imported
+    /// under the same client-key policy as a dynamically registered <c>jwks</c>. The keys verify the client's
+    /// assertions and request objects, and a key carrying an <c>x5c</c> certificate is the one a
+    /// <c>self_signed_tls_client_auth</c> client presents. A client with neither a secret nor a key set is skipped.
+    /// </summary>
+    public string? Jwks { get; set; }
 
     /// <summary>
     /// Gets or sets the exact-match redirect URIs registered for this client (the suite's callback). When empty, this
@@ -73,10 +82,17 @@ public sealed class ConformanceClientSeed
     public string[] CodeChallengeMethods { get; set; } = [];
 
     /// <summary>
-    /// Gets a value indicating whether this client should be seeded.
+    /// Gets or sets the security profiles the client selects, such as <c>fapi1-advanced</c>. When none are configured,
+    /// the client selects none and takes the tenant's.
+    /// </summary>
+    public string[] SecurityProfiles { get; set; } = [];
+
+    /// <summary>
+    /// Gets a value indicating whether this client should be seeded: it has a client id, a redirect URI, and a
+    /// credential.
     /// </summary>
     public bool ShouldSeed =>
         !string.IsNullOrEmpty(ClientId)
-        && !string.IsNullOrEmpty(ClientSecret)
+        && (!string.IsNullOrEmpty(ClientSecret) || !string.IsNullOrEmpty(Jwks))
         && RedirectUris.Length > 0;
 }

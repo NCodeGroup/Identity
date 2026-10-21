@@ -23,8 +23,12 @@ NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.CodeChallenge
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ConformanceClientSeed() -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.GrantTypes.get -> string![]!
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.GrantTypes.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.Jwks.get -> string?
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.Jwks.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.RedirectUris.get -> string![]!
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.RedirectUris.set -> void
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.SecurityProfiles.get -> string![]!
+NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.SecurityProfiles.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ShouldSeed.get -> bool
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.TokenEndpointAuthMethod.get -> string!
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.TokenEndpointAuthMethod.set -> void
@@ -170,6 +174,9 @@ NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Features.set -> void
 NCode.Identity.Server.Frontend.FrontendSurfaceOptions.FrontendSurfaceOptions() -> void
 NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Scopes.get -> string![]?
 NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Scopes.set -> void
+NCode.Identity.Server.DirectClientCertificateRegistration
+NCode.Identity.Server.DirectClientCertificateRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Server.DirectClientCertificateRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDirectClientCertificates() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Server.ReverseProxyApplicationBuilderExtensions
 NCode.Identity.Server.ReverseProxyApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
 NCode.Identity.Server.ReverseProxyApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseReverseProxy() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!

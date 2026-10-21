@@ -2659,3 +2659,8 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   key would not work, because Data Protection replaces an unreadable default key with a new one. Keys created later
   are skipped so a misconfigured replica cannot make the serving replicas unready. ADR-0177 decision 5 and the chart
   README describe it._
+- **`R46` — Share the chart's pod blocks through `_helpers.tpl`.**
+  _Closed: `_helpers.tpl` defines the pod and container security contexts, image pull secrets, and scheduling
+  constraints that the Deployment and the migration Job include. The renders are unchanged except that the Job gains
+  the host's `fsGroup`, which it needs to read a secret mounted through `extraVolumes` (R19); the Host chart workflow
+  checks it._

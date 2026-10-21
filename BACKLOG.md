@@ -513,6 +513,5 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   `$IssuerUrl`.
 - **`R45` — Deduplicate the frontend data and routing code.** An owner-generic builder for `managementApi.ts`'s
   secrets and settings endpoints, one `fetchSurfaceJson` helper for the 401 redirect, and tenant detail tabs in the URL.
-- **`R46` — Share the chart's pod blocks through `_helpers.tpl`.**
 - **`R47` — Small cleanups.** A capped setting for the JARM response lifetime, required `AuthorizationResult`
   context arguments, and one login-redirect helper in the interactive handler.

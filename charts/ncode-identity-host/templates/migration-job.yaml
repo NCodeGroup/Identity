@@ -32,16 +32,11 @@ spec:
       # The worker never calls the Kubernetes API. The chart's own service account does not exist yet when a first
       # install runs this hook, so the Job uses the namespace's default account unless the operator names one.
       automountServiceAccountToken: false
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+      {{- with include "identity-host.imagePullSecrets" . }}
+      {{- . | trim | nindent 6 }}
       {{- end }}
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1654
-        runAsGroup: 1654
-        seccompProfile:
-          type: RuntimeDefault
+        {{- include "identity-host.podSecurityContext" . | nindent 8 }}
       containers:
         - name: migrations
           image: {{ include "identity-host.image" . | quote }}
@@ -52,11 +47,7 @@ spec:
             - dotnet
             - NCode.Identity.OpenId.Host.MigrationService.dll
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
+            {{- include "identity-host.containerSecurityContext" . | nindent 12 }}
           env:
             - name: DOTNET_ENVIRONMENT
               value: {{ .Values.environment | quote }}
@@ -91,16 +82,7 @@ spec:
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
+      {{- with include "identity-host.scheduling" . }}
+      {{- . | trim | nindent 6 }}
       {{- end }}
 {{- end }}

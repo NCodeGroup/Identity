@@ -112,6 +112,8 @@ redirect status to the spec-required 303 unconditionally (it is correct for ever
 - The latent bug where `clock_skew` was ignored by JWT validation is fixed, so operators who configured a non-default
   `clock_skew` now have it honored for client assertions and request objects.
 - Not implemented here (backlog `F16` follow-up): an explicit "no CORS on the authorization endpoint" guard
-  (FAPI §5.2.3). The repository ships only a development-only, explicit-origin CORS policy that is not applied to the
-  authorization endpoint in production, so there is no current exposure; a defense-in-depth guard that asserts no CORS
-  policy can ever attach to the front-channel endpoints remains a low-priority hardening item.
+  (FAPI 2.0). The repository ships only a development-only, explicit-origin CORS policy, so a production host has no
+  exposure; in Development, though, `UseDeveloperCors` applies that policy to every endpoint, and `/oauth2/authorize`
+  answers the local Vite origins with `Access-Control-Allow-Origin` (verified 2026-10-21). The guard cannot be
+  `DisableCorsAttribute` metadata: it is CORS metadata, and the endpoint middleware throws for an endpoint that carries
+  it when no CORS middleware ran, which is every request in a production host that adds none.

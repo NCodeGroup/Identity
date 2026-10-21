@@ -439,10 +439,13 @@ change to the public API is a **major** version bump.
 
 - **Breaking:** a request object's parameters are the only parameters of an authorization request (RFC 9101 §6.3). A
   parameter sent only outside the request object, such as `response_mode` or `nonce`, is now ignored instead of being
-  merged in, so an unsigned parameter can no longer change a signed request. The outer `client_id`, `response_type`,
-  and `scope` are still used when the object omits them, and `client_id` and `response_type` must match the object's.
-  A request object must now carry `redirect_uri`, equal to the outer value, or it is refused as
-  `invalid_request_object`.
+  merged in, so an unsigned parameter can no longer change a signed request. The outer `response_type` and `scope`
+  are still used when the object omits them. A request object must now carry `redirect_uri` and a `client_id` that
+  names the requesting client. An outer `client_id`, `response_type`, or `redirect_uri` is optional, but one that is
+  sent must equal the object's value, or the request is refused as `invalid_request_object`. A pushed authorization
+  request may therefore carry only `request` and client authentication (RFC 9126 §3): the authorization endpoint
+  verifies the object before it redirects, takes `redirect_uri`, `response_mode`, and `state` from it, and returns an
+  error raised before then without redirecting.
   See [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md).
 
 - **Breaking:** the event metric `ncode.identity.events.published` is recorded through a meter created from

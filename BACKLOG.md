@@ -408,13 +408,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
 
 ### P1 — before the branch merges
 
-- **`R2` — Accept a pushed request object that carries every authorization parameter (RFC 9126 §3).**
-  `ValidateRequestMessage` requires `response_type` and `redirect_uri` on the outer message, `/par` runs the same
-  check, and the request object's `redirect_uri` must equal an outer one, so PAR + JAR — the only path
-  `fapi1-advanced` allows — fails. Take `response_type`, `redirect_uri`, and `client_id` from the verified object and
-  compare outer values only when sent. Touch points: `DefaultValidateAuthorizationRequestHandler.cs:115-130, 199-213`,
-  `DefaultPushedAuthorizationRequestEndpointHandler.cs:145`. Add a PAR test whose body is only `request` plus client
-  authentication.
 - **`R3` — Deliver errors raised after the request object is verified with its `state` and `response_mode`.** _pre._
   The processor's `catch` uses the redirect context built from the outer query, so a request whose `state` and
   `response_mode=jwt` are only inside the object gets an unsigned error without `state` (RFC 6749 §4.1.2.1). Touch

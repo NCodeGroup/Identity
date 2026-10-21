@@ -201,9 +201,10 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             "Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials))
         );
-        request.Content = new FormUrlEncodedContent(
-            [new("request", requestObject), .. outerParameters ?? []]
-        );
+        request.Content = new FormUrlEncodedContent([
+            new("request", requestObject),
+            .. outerParameters ?? [],
+        ]);
         return await client.SendAsync(request);
     }
 

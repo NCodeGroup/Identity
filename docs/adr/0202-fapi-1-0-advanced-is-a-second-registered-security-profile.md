@@ -58,15 +58,21 @@ outer parameter such as `response_mode` could change a signed request.
 6. **A request object's parameters are the only parameters (RFC 9101 §6.3), for every request object.** When a
    request object is present, `AuthorizationRequest` reads every value, and its `Parameters` collection, from the
    object alone. Three outer values are still used when the object omits them:
-   - `client_id`, which the object must also carry and match;
-   - `response_type`, which OpenID Connect Core requires outside the object and which must match the object's value;
-   - `scope`, which OpenID Connect Core also requires outside the object.
+   - `client_id`, which the object must also carry, naming the requesting client;
+   - `response_type`, which OpenID Connect Core sends outside the object as well;
+   - `scope`, which OpenID Connect Core also sends outside the object.
 
    Any other parameter sent only outside the object is ignored. The rule is not limited to FAPI profiles, because no
-   client should be able to change a signed request with an unsigned parameter. The object must carry `redirect_uri`,
-   equal to the outer value. The response is redirected to the outer value, which is checked against the client's
-   registered URIs. The token endpoint compares against the object's value. Requiring the two to be equal keeps them
-   the same URI, so a code is never sent to one URI and redeemable only with another.
+   client should be able to change a signed request with an unsigned parameter. The object must carry `redirect_uri`.
+   The response is redirected to it once it is checked against the client's registered URIs, and the token endpoint
+   compares against the same value. An outer `client_id`, `response_type`, or `redirect_uri` is optional, but one that
+   is sent must equal the object's value, so a code is never sent to one URI and redeemable only with another.
+
+   A pushed authorization request may therefore carry only the request object and client authentication (RFC 9126
+   §3), which is the only path `fapi1-advanced` allows. When neither the request nor its pushed parameters carry an
+   outer `redirect_uri`, the authorization endpoint verifies the object first and takes `redirect_uri`,
+   `response_mode`, and `state` from it. Until the object is verified the endpoint does not know a safe redirect target,
+   so an error raised before then is returned to the user agent and not redirected.
 
 ## Consequences
 

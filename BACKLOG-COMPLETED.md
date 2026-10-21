@@ -2584,3 +2584,19 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   renumber one side across `BACKLOG*.md`, `CHANGELOG.md`, and the ADRs.
   _Closed: merged `main` into the branch, kept D11's deletion of the old Jose test (the moved `NCode.Time.Tests` build
   no `TheoryData`), and renumbered `main`'s Backend-for-Frontend items to `F84` and `U26`._
+
+- **`R2` — Accept a pushed request object that carries every authorization parameter (RFC 9126 §3).**
+  `ValidateRequestMessage` requires `response_type` and `redirect_uri` on the outer message, `/par` runs the same
+  check, and the request object's `redirect_uri` must equal an outer one, so PAR + JAR — the only path
+  `fapi1-advanced` allows — fails. Take `response_type`, `redirect_uri`, and `client_id` from the verified object and
+  compare outer values only when sent. Touch points: `DefaultValidateAuthorizationRequestHandler.cs:115-130, 199-213`,
+  `DefaultPushedAuthorizationRequestEndpointHandler.cs:145`. Add a PAR test whose body is only `request` plus client
+  authentication.
+  _Closed: `DefaultValidateAuthorizationRequestHandler` requires `response_type` and `redirect_uri` from the effective
+  request (the verified object when there is one), compares an outer `response_type`, `redirect_uri`, or `client_id`
+  only when sent, and requires the object's `client_id` to name the requesting client. When neither the request nor
+  its pushed parameters carry an outer `redirect_uri`, `DefaultAuthorizationEndpointHandler` verifies the object first
+  and builds the redirect context from it, applying the same registered-URI and response-mode checks; an error before
+  then is not redirected. `AuthorizationRequestObjectTests` pushes a body of only `request` plus `client_secret_basic`
+  and receives a code at the object's `redirect_uri`. See
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)._

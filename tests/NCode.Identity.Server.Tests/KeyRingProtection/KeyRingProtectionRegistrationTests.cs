@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.AspNetCore.DataProtection.XmlEncryption;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Server.KeyRingProtection;
 using Xunit;
@@ -286,6 +287,68 @@ public sealed class KeyRingProtectionRegistrationTests : BaseTests
             .Unprotect(protectedPayload);
 
         Assert.Equal("payload", payload);
+    }
+
+    [Theory]
+    [InlineData(false, HealthStatus.Unhealthy)]
+    [InlineData(true, HealthStatus.Healthy)]
+    public async Task AddKeyRingProtection_WhenCertificateReplaced_KeyRingHealthCheckReportsWhetherTheRingIsReadable(
+        bool listsPreviousCertificate,
+        HealthStatus expectedStatus
+    )
+    {
+        var (oldCertificatePath, oldPrivateKeyPath) = WriteRsaPem("old");
+        var (newCertificatePath, newPrivateKeyPath) = WriteRsaPem("new");
+        var repository = new InMemoryXmlRepository();
+        using (
+            var oldProvider = BuildServiceProvider(
+                new Dictionary<string, string?>
+                {
+                    [$"{Section}:Certificate:CertificatePath"] = oldCertificatePath,
+                    [$"{Section}:Certificate:PrivateKeyPath"] = oldPrivateKeyPath,
+                },
+                repository
+            )
+        )
+        {
+            oldProvider
+                .GetRequiredService<IDataProtectionProvider>()
+                .CreateProtector(Purpose)
+                .Protect("payload");
+        }
+
+        // Without the previous certificate this is a renewal written in place over the current one (ADR-0177).
+        var configurationData = new Dictionary<string, string?>
+        {
+            [$"{Section}:Certificate:CertificatePath"] = newCertificatePath,
+            [$"{Section}:Certificate:PrivateKeyPath"] = newPrivateKeyPath,
+        };
+        if (listsPreviousCertificate)
+        {
+            configurationData[$"{Section}:PreviousCertificates:0:CertificatePath"] =
+                oldCertificatePath;
+            configurationData[$"{Section}:PreviousCertificates:0:PrivateKeyPath"] =
+                oldPrivateKeyPath;
+        }
+
+        using var replacedProvider = BuildServiceProvider(configurationData, repository);
+        var healthCheck = new KeyRingHealthCheck(
+            replacedProvider.GetRequiredService<IKeyManager>(),
+            TimeProvider.System
+        );
+        var context = new HealthCheckContext
+        {
+            Registration = new HealthCheckRegistration(
+                KeyRingHealthCheck.Name,
+                healthCheck,
+                HealthStatus.Unhealthy,
+                [HealthCheckTags.Readiness]
+            ),
+        };
+
+        var result = await healthCheck.CheckHealthAsync(context);
+
+        Assert.Equal(expectedStatus, result.Status);
     }
 
     [Fact]

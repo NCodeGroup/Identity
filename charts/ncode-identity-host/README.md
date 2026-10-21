@@ -82,6 +82,12 @@ read, so sign-in sessions, antiforgery tokens, and protected stored secrets stop
 certificate, give it a `duration` longer than your rotation period and issue each replacement into a new Secret
 through a new `Certificate` resource.
 
+The host's readiness probe fails while the pod cannot unwrap a live key that was in the ring when it started. A pod
+started with a renewed or wrong certificate, or without a previous certificate whose keys are still live, never
+receives traffic, and with Valkey the rolling update stops before it replaces the pods that are serving. Without
+Valkey the `Recreate` strategy has already stopped the old pod, so the release is unavailable until the certificate is
+fixed.
+
 ## Other settings
 
 The chart models the settings it validates. Pass any other host setting as an environment variable through `extraEnv`

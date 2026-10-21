@@ -2649,3 +2649,13 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `SharedState.Valkey/DefaultRegistration.cs:44` each write `"ready"`.
   _Closed: `NCode.Identity.HealthCheckTags.Readiness` in `NCode.Identity.Abstractions` is the one definition; the
   Valkey adapter (which now references that package) and the reference host both use it._
+- **`R48` — Fail readiness when the default Data Protection key cannot be unwrapped.** Split from R7, which documented
+  hand rotation of the key-protection certificate. A certificate renewed in place still leaves the ring unreadable
+  after a restart; a readiness check that unwraps the default key would keep such a pod out of service and stop a
+  rollout before it replaces the healthy replicas. Touch points: the host's readiness checks (`Program.cs`),
+  `DataProtection:KeyProtection`, ADR-0177.
+  _Closed: `KeyRingHealthCheck` (`NCode.Identity.Server`, registered by `AddIdentityServer` as a readiness check)
+  unwraps every live key that was in the ring when the replica first checked its readiness. Checking only the default
+  key would not work, because Data Protection replaces an unreadable default key with a new one. Keys created later
+  are skipped so a misconfigured replica cannot make the serving replicas unready. ADR-0177 decision 5 and the chart
+  README describe it._

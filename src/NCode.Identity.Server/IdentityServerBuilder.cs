@@ -32,6 +32,7 @@ using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Server.DevelopmentEnvironment.OpenApi;
+using NCode.Identity.Server.KeyRingProtection;
 using NCode.Identity.Server.OpenApi;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
@@ -97,7 +98,17 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
             .AddInProcessExpiringKeySet()
             .AddInProcessExpiringCounterSet();
 
+        // Readiness fails while a live key the replica found in the key ring cannot be unwrapped, for whatever
+        // encryptor wraps the ring (ADR-0177).
         DataProtectionBuilder = serviceCollection.AddDataProtection();
+        serviceCollection.TryAddSingleton(TimeProvider.System);
+        serviceCollection.TryAddSingleton<KeyRingHealthCheck>();
+        serviceCollection
+            .AddHealthChecks()
+            .AddCheck<KeyRingHealthCheck>(
+                KeyRingHealthCheck.Name,
+                tags: [HealthCheckTags.Readiness]
+            );
         SecretsLibraryBuilder = serviceCollection.AddSecretsLibrary();
         SecretPersistenceLibraryBuilder = SecretsLibraryBuilder.AddPersistenceLibrary();
 

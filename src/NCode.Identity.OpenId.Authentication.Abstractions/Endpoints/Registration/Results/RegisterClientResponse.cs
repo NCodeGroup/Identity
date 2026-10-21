@@ -186,6 +186,46 @@ public sealed record RegisterClientResponse
     public string? JwksUri { get; init; }
 
     /// <summary>
+    /// Gets the expected subject distinguished name (RFC 4514) of the certificate a PKI-validated
+    /// <c>tls_client_auth</c> client presents (RFC 8705 §2.1.2); such a client registers exactly one identity.
+    /// </summary>
+    [JsonPropertyName("tls_client_auth_subject_dn")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TlsClientAuthSubjectDn { get; init; }
+
+    /// <summary>
+    /// Gets the expected <c>dNSName</c> subject alternative name of the certificate a PKI-validated
+    /// <c>tls_client_auth</c> client presents (RFC 8705 §2.1.2); such a client registers exactly one identity.
+    /// </summary>
+    [JsonPropertyName("tls_client_auth_san_dns")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TlsClientAuthSanDns { get; init; }
+
+    /// <summary>
+    /// Gets the expected <c>uniformResourceIdentifier</c> subject alternative name of the certificate a PKI-validated
+    /// <c>tls_client_auth</c> client presents (RFC 8705 §2.1.2); such a client registers exactly one identity.
+    /// </summary>
+    [JsonPropertyName("tls_client_auth_san_uri")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TlsClientAuthSanUri { get; init; }
+
+    /// <summary>
+    /// Gets the expected <c>iPAddress</c> subject alternative name of the certificate a PKI-validated
+    /// <c>tls_client_auth</c> client presents (RFC 8705 §2.1.2); such a client registers exactly one identity.
+    /// </summary>
+    [JsonPropertyName("tls_client_auth_san_ip")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TlsClientAuthSanIp { get; init; }
+
+    /// <summary>
+    /// Gets the expected <c>rfc822Name</c> subject alternative name of the certificate a PKI-validated
+    /// <c>tls_client_auth</c> client presents (RFC 8705 §2.1.2); such a client registers exactly one identity.
+    /// </summary>
+    [JsonPropertyName("tls_client_auth_san_email")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TlsClientAuthSanEmail { get; init; }
+
+    /// <summary>
     /// Gets the client's JSON Web Key Set document value, which contains the client's public keys.
     /// </summary>
     [JsonPropertyName("jwks")]

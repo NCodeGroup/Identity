@@ -93,11 +93,11 @@ internal class DefaultClientRegistrationEndpointHandler(
     ];
     private static readonly string[] DefaultResponseTypes = [OpenIdConstants.ResponseTypes.Code];
 
-    private static readonly string[] SupportedTokenEndpointAuthMethods =
+    private static readonly string[] ClientSecretAuthenticationMethods =
     [
-        OpenIdConstants.ClientAuthenticationMethods.None,
         OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
         OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+        OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt,
     ];
 
     private static readonly string[] SupportedSubjectTypes =
@@ -294,7 +294,7 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         var secretsError = BuildClientSecrets(
             request,
-            isConfidential,
+            IssuesClientSecret(resolved.TokenEndpointAuthMethod),
             createdWhen,
             errorFactory,
             out var secrets,
@@ -823,10 +823,12 @@ internal class DefaultClientRegistrationEndpointHandler(
             request.TokenEndpointAuthMethod
             ?? OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
 
-        if (!SupportedTokenEndpointAuthMethods.Contains(tokenEndpointAuthMethod))
+        // The method vocabulary is open: the settings validation accepts every method a registered handler serves, and
+        // the tenant's effective token_endpoint_auth_methods_supported narrows it (ValidateSupportedMetadata).
+        if (string.IsNullOrEmpty(tokenEndpointAuthMethod))
         {
             return errorFactory.InvalidRequest(
-                $"The 'token_endpoint_auth_method' value '{tokenEndpointAuthMethod}' is not supported.",
+                "The 'token_endpoint_auth_method' value must be a non-empty string.",
                 OpenIdConstants.ErrorCodes.InvalidClientMetadata
             );
         }
@@ -899,7 +901,9 @@ internal class DefaultClientRegistrationEndpointHandler(
             );
         }
 
-        var keysError = ValidateKeyMetadata(errorFactory, request);
+        var keysError =
+            ValidateKeyMetadata(errorFactory, request)
+            ?? ValidateAuthenticationMetadata(errorFactory, request, tokenEndpointAuthMethod);
         if (keysError is not null)
         {
             return keysError;
@@ -1151,6 +1155,106 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
+    /// Verifies that a registration request carries what its client-authentication method verifies against (RFC 8705
+    /// §2, RFC 7523 §2.2): the public keys in <c>jwks</c> or <c>jwks_uri</c> for <c>private_key_jwt</c>; those keys,
+    /// with a registered certificate when given by value, for <c>self_signed_tls_client_auth</c>; and exactly one
+    /// <c>tls_client_auth_*</c> certificate identity for <c>tls_client_auth</c>, which is refused for any other method.
+    /// A registering client never supplies trust anchors: a <c>tls_client_auth</c> certificate chains to the tenant's
+    /// anchors, and with none configured the method fails closed (ADR-0173). Returns an <c>invalid_client_metadata</c>
+    /// error, or <see langword="null"/> when the metadata is consistent.
+    /// </summary>
+    /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
+    /// <param name="request">The registration request.</param>
+    /// <param name="tokenEndpointAuthMethod">The client-authentication method the client registers.</param>
+    /// <returns>The error, or <see langword="null"/> when the metadata is consistent.</returns>
+    // See ADR-0145.
+    internal virtual IOpenIdError? ValidateAuthenticationMetadata(
+        IOpenIdErrorFactory errorFactory,
+        RegisterClientRequest request,
+        string tokenEndpointAuthMethod
+    )
+    {
+        var hasJwks = request.Jwks is { ValueKind: JsonValueKind.Object };
+        var hasJwksUri = !string.IsNullOrEmpty(request.JwksUri);
+        var hasCertificate =
+            request.Jwks is { ValueKind: JsonValueKind.Object } jwks && HasCertificate(jwks);
+
+        string?[] identities =
+        [
+            request.TlsClientAuthSubjectDn,
+            request.TlsClientAuthSanDns,
+            request.TlsClientAuthSanUri,
+            request.TlsClientAuthSanIp,
+            request.TlsClientAuthSanEmail,
+        ];
+        var identityCount = identities.Count(identity => !string.IsNullOrEmpty(identity));
+
+        switch (tokenEndpointAuthMethod)
+        {
+            case OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+                when !hasJwks && !hasJwksUri:
+                return InvalidClientMetadata(
+                    errorFactory,
+                    "The 'private_key_jwt' method requires the client's public keys in 'jwks' or 'jwks_uri'."
+                );
+
+            case OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+                when !hasJwks && !hasJwksUri:
+                return InvalidClientMetadata(
+                    errorFactory,
+                    "The 'self_signed_tls_client_auth' method requires the client's certificates in 'jwks' or 'jwks_uri'."
+                );
+
+            case OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+                when hasJwks && !hasCertificate:
+                return InvalidClientMetadata(
+                    errorFactory,
+                    "The 'self_signed_tls_client_auth' method requires a 'jwks' key with an 'x5c' certificate."
+                );
+
+            case OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth when identityCount != 1:
+                return InvalidClientMetadata(
+                    errorFactory,
+                    "The 'tls_client_auth' method requires exactly one of 'tls_client_auth_subject_dn', "
+                        + "'tls_client_auth_san_dns', 'tls_client_auth_san_uri', 'tls_client_auth_san_ip', or "
+                        + "'tls_client_auth_san_email'."
+                );
+
+            case not OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+                when identityCount != 0:
+                return InvalidClientMetadata(
+                    errorFactory,
+                    "The 'tls_client_auth_*' parameters apply only to the 'tls_client_auth' method."
+                );
+        }
+
+        return null;
+    }
+
+    private static bool HasCertificate(JsonElement jwks) =>
+        jwks.TryGetProperty("keys", out var keys)
+        && keys.ValueKind == JsonValueKind.Array
+        && keys.EnumerateArray()
+            .Any(key =>
+                key.ValueKind == JsonValueKind.Object
+                && key.TryGetProperty("x5c", out var x5c)
+                && x5c.ValueKind == JsonValueKind.Array
+                && x5c.GetArrayLength() > 0
+            );
+
+    /// <summary>
+    /// Determines whether the registration issues a <c>client_secret</c> to a client that registers the specified
+    /// client-authentication method: only the methods that verify a shared secret (<c>client_secret_basic</c>,
+    /// <c>client_secret_post</c>, and <c>client_secret_jwt</c>) do; a key- or certificate-based method and a public
+    /// client receive none.
+    /// </summary>
+    /// <param name="tokenEndpointAuthMethod">The client-authentication method the client registers.</param>
+    /// <returns><see langword="true"/> when the client is issued a <c>client_secret</c>.</returns>
+    // See ADR-0145.
+    internal virtual bool IssuesClientSecret(string tokenEndpointAuthMethod) =>
+        ClientSecretAuthenticationMethods.Contains(tokenEndpointAuthMethod, StringComparer.Ordinal);
+
+    /// <summary>
     /// Verifies that the tenant permits the algorithms a registration requests for the responses addressed to the client
     /// and for its request objects, and that a client of a tenant that requires encrypted ID tokens registers an
     /// encryption algorithm for them. An omitted <c>id_token_signed_response_alg</c> is the tenant's effective default
@@ -1390,13 +1494,13 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Builds the new client's secrets: a generated symmetric secret for a confidential client, plus the public keys of
+    /// Builds the new client's secrets: a generated symmetric secret for a client whose method verifies one, plus the public keys of
     /// the <c>jwks</c> set the client registers by value, imported under the client-key policy. Returns an error result
     /// when the set is refused; otherwise <see langword="null"/> with the secrets and one-time client secret.
     /// </summary>
     private IResult? BuildClientSecrets(
         RegisterClientRequest request,
-        bool isConfidential,
+        bool issuesClientSecret,
         DateTimeOffset createdWhen,
         IOpenIdErrorFactory errorFactory,
         out List<PersistedSecret> secrets,
@@ -1406,7 +1510,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         secrets = [];
         clientSecret = null;
 
-        if (isConfidential)
+        if (issuesClientSecret)
         {
             // A client_secret is an opaque string the client later presents verbatim. GenerateSharedSecret stores it
             // as the UTF-8 bytes client authentication compares against (see CommonClientAuthenticationHandler.
@@ -1562,6 +1666,19 @@ internal class DefaultClientRegistrationEndpointHandler(
         SetIfPresent(settings, OpenIdSettingNames.TosUri, request.TosUri);
         SetIfPresent(settings, OpenIdSettingNames.PolicyUri, request.PolicyUri);
         SetIfPresent(settings, OpenIdSettingNames.JwksUri, request.JwksUri);
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.TlsClientAuthSubjectDn,
+            request.TlsClientAuthSubjectDn
+        );
+        SetIfPresent(settings, OpenIdSettingNames.TlsClientAuthSanDns, request.TlsClientAuthSanDns);
+        SetIfPresent(settings, OpenIdSettingNames.TlsClientAuthSanUri, request.TlsClientAuthSanUri);
+        SetIfPresent(settings, OpenIdSettingNames.TlsClientAuthSanIp, request.TlsClientAuthSanIp);
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.TlsClientAuthSanEmail,
+            request.TlsClientAuthSanEmail
+        );
         SetIfPresent(settings, OpenIdSettingNames.SoftwareId, request.SoftwareId);
         SetIfPresent(settings, OpenIdSettingNames.SoftwareVersion, request.SoftwareVersion);
 
@@ -1714,6 +1831,14 @@ internal class DefaultClientRegistrationEndpointHandler(
             TosUri = ReadString(settings, OpenIdSettingNames.TosUri),
             PolicyUri = ReadString(settings, OpenIdSettingNames.PolicyUri),
             JwksUri = ReadString(settings, OpenIdSettingNames.JwksUri),
+            TlsClientAuthSubjectDn = ReadString(
+                settings,
+                OpenIdSettingNames.TlsClientAuthSubjectDn
+            ),
+            TlsClientAuthSanDns = ReadString(settings, OpenIdSettingNames.TlsClientAuthSanDns),
+            TlsClientAuthSanUri = ReadString(settings, OpenIdSettingNames.TlsClientAuthSanUri),
+            TlsClientAuthSanIp = ReadString(settings, OpenIdSettingNames.TlsClientAuthSanIp),
+            TlsClientAuthSanEmail = ReadString(settings, OpenIdSettingNames.TlsClientAuthSanEmail),
             Jwks = jwks,
             SoftwareId = ReadString(settings, OpenIdSettingNames.SoftwareId),
             SoftwareVersion = ReadString(settings, OpenIdSettingNames.SoftwareVersion),

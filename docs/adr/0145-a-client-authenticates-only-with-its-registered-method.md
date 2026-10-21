@@ -107,12 +107,34 @@ that authenticates the client, at every endpoint that authenticates clients, and
 - A FAPI 2.0 client reaches the authorization endpoint, where the profile's rules (PAR, a confidential client) apply.
 - A management-API client that registers no method is a `client_secret_basic` client; one that authenticates otherwise
   must register its method. A tenant can change the default for its clients.
-- Dynamic client registration accepts only `none`, `client_secret_basic`, and `client_secret_post`, so a dynamically
-  registered client cannot use a strong method until registration accepts them (backlog `F16`).
+- Dynamic client registration accepts every method the tenant's effective `token_endpoint_auth_methods_supported`
+  permits (amendment below), so a dynamically registered client can use a strong method.
 - The bootstrap administrator authenticates with HTTP Basic, and the API reference sends header credentials.
 - The authorization endpoint refuses a request that carries a `client_secret` with `invalid_request`.
 - The `RegisterClientAuthenticationMethod` migration rewrites stored settings documents; a deployment storing them
   elsewhere applies the same rule.
+
+## Amendment (2026-10-21): registration accepts the strong methods
+
+Dynamic Client Registration no longer keeps its own list of `none`, `client_secret_basic`, and `client_secret_post`.
+The method vocabulary is open: the settings validation accepts every method a registered handler serves, and the
+tenant's effective `token_endpoint_auth_methods_supported` narrows it, so a `fapi2` tenant refuses `client_secret_*`
+when the client registers rather than at its first token request. Registration then requires what the method
+verifies against:
+
+- `private_key_jwt` requires the client's public keys in `jwks` or `jwks_uri` (RFC 7523 §2.2).
+- `self_signed_tls_client_auth` requires its certificates in `jwks` or `jwks_uri`; a `jwks` given by value needs a key
+  with an `x5c` certificate (RFC 8705 §2.2).
+- `tls_client_auth` requires exactly one `tls_client_auth_subject_dn`, `_san_dns`, `_san_uri`, `_san_ip`, or
+  `_san_email` (RFC 8705 §2.1.2); those parameters are refused for every other method. A registering client never
+  supplies trust anchors: its certificate chains to the tenant's anchors, and with none configured the method fails
+  closed ([ADR-0173](0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
+- Only the shared-secret methods (`client_secret_basic`, `client_secret_post`, `client_secret_jwt`) are issued a
+  `client_secret`. A key- or certificate-based client gets none, so it holds no second, weaker credential.
+
+The registration, read, and update responses report the `tls_client_auth_*` identity. An update that changes the
+method keeps the client's stored secret and issues none; switching a client to a shared-secret method is a management
+API operation.
 
 ## References
 
@@ -129,4 +151,5 @@ that authenticates the client, at every endpoint that authenticates clients, and
   `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/DefaultAuthorizationEndpointHandler.cs`,
   `src/NCode.Identity.OpenId.Authentication/Settings/DefaultClientSettingDescriptorDataSource.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
   `src/NCode.Identity.OpenId.Host.Database/Migrations/OpenId/20261019163430_RegisterClientAuthenticationMethod.cs`.

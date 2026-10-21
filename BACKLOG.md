@@ -183,8 +183,11 @@ entry and/or ADR that closed it.
     authorization codes with an exact-matched, required `redirect_uri`.
 
     **Remaining work.** The OP-side FAPI 2.0 implementation is **complete** (the building blocks plus the security-profile
-    mechanism, behavioral rules, and discovery/validation details above); what is left is conformance wiring and one
-    independent registration feature.
+    mechanism, behavioral rules, and discovery/validation details above). Dynamic Client Registration accepts the strong
+    client-authentication methods (2026-10-21, ADR-0145 amendment): the tenant's effective
+    `token_endpoint_auth_methods_supported` replaces the fixed list, the key-based methods require their key material,
+    `tls_client_auth` requires exactly one `tls_client_auth_*` identity, and only `client_secret_*` methods get a
+    `client_secret`. What is left is conformance wiring and one hardening item.
     - **Conformance wiring — handed to the conformance track (`T1` / `T6`).** The FAPI 2.0 conformance pieces are owned
       by the conformance work-stream (the spec-coverage harness and headless probe runner), not this OP item. The
       `coverage.ts` `profile-fapi2` row needs no change: it classifies from discovery and reports `implemented` once
@@ -192,21 +195,6 @@ entry and/or ADR that closed it.
       FAPI-2.0 seed client (`security_profiles` = `[fapi2]`, `private_key_jwt`) to `AddConformanceSeed` (this first
       needs the conformance seed model extended — `ConformanceClientSeed` is secret-only today, with no asymmetric-key /
       `security_profiles` fields); and wire the OpenID Foundation FAPI 2.0 test plan into `T1` and the `T6` matrix.
-    - **OP-side follow-up — accept non-secret `token_endpoint_auth_method` values at Dynamic Client Registration.**
-      Extend DCR so `private_key_jwt`, `client_secret_jwt`, `tls_client_auth`, and `self_signed_tls_client_auth` are
-      accepted — the DCR `SupportedTokenEndpointAuthMethods` allow-list currently lists only the secret-based + `none`
-      methods, and a client authenticates only with the method it registers
-      ([ADR-0145](docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md)), so a dynamically registered
-      client cannot use an advertised strong-auth method at all and must be provisioned through the management API —
-      and project the `tls_client_auth_*` metadata from the registration request. An asymmetric method needs its key
-      material at registration (`jwks` / `jwks_uri` for `private_key_jwt` and `self_signed_tls_client_auth`), and only
-      the secret-based methods (`client_secret_*`) are issued a `client_secret`. Planned shape: replace the fixed list
-      with the tenant's effective `token_endpoint_auth_methods_supported`, so the vocabulary stays open and a `fapi2`
-      tenant refuses `client_secret_*` at registration rather than at the first token request; require exactly one
-      `tls_client_auth_*` identity for `tls_client_auth`; never accept trust anchors from a registering client (the
-      tenant's anchors apply and none fails closed, [ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md));
-      return the new fields from the registration read and update responses; record the decision in an ADR or an
-      ADR-0145 amendment.
     - **Hardening — no CORS on the front-channel endpoints (FAPI 2.0).** A production host adds no CORS middleware, so
       it has no exposure, but in Development `UseDeveloperCors` applies the developer policy to every endpoint and
       `/oauth2/authorize`, `/oauth2/continue`, `/oauth2/end_session`, and the interactive surface answer the local Vite

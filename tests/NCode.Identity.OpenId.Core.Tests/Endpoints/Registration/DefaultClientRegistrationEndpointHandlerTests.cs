@@ -96,11 +96,28 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     #region ValidateMetadata
 
     [Fact]
-    public void ValidateMetadata_UnsupportedAuthMethod_ReturnsInvalidClientMetadata()
+    public void ValidateMetadata_EmptyAuthMethod_ReturnsInvalidClientMetadata()
     {
         var handler = CreateHandler();
         var (factory, capturedCode) = CreateErrorFactory();
-        var request = new RegisterClientRequest { TokenEndpointAuthMethod = "private_key_jwt" };
+        var request = new RegisterClientRequest { TokenEndpointAuthMethod = string.Empty };
+
+        var error = handler.ValidateMetadata(factory, request, out _);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateMetadata_PrivateKeyJwtWithoutKeys_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback"],
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+        };
 
         var error = handler.ValidateMetadata(factory, request, out _);
 
@@ -517,7 +534,222 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
     #endregion
 
+    #region ValidateAuthenticationMetadata
+
+    private const string KeySetWithoutCertificate = """
+        {"keys":[{"kty":"EC","crv":"P-256","kid":"k1","x":"x","y":"y"}]}
+        """;
+
+    private const string KeySetWithCertificate = """
+        {"keys":[{"kty":"EC","crv":"P-256","kid":"k1","x":"x","y":"y","x5c":["MIIB"]}]}
+        """;
+
+    private static JsonElement ParseKeySet(string json) =>
+        JsonSerializer.Deserialize<JsonElement>(json);
+
+    [Fact]
+    public void ValidateAuthenticationMetadata_PrivateKeyJwtWithJwksUri_ReturnsNull()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest { JwksUri = "https://client.example.com/jwks" };
+
+        var error = handler.ValidateAuthenticationMetadata(
+            factory,
+            request,
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void ValidateAuthenticationMetadata_PrivateKeyJwtWithoutKeys_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest();
+
+        var error = handler.ValidateAuthenticationMetadata(
+            factory,
+            request,
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateAuthenticationMetadata_SelfSignedWithoutKeys_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest();
+
+        var error = handler.ValidateAuthenticationMetadata(
+            factory,
+            request,
+            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateAuthenticationMetadata_SelfSignedWithJwksWithoutCertificate_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest { Jwks = ParseKeySet(KeySetWithoutCertificate) };
+
+        var error = handler.ValidateAuthenticationMetadata(
+            factory,
+            request,
+            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateAuthenticationMetadata_SelfSignedWithJwksCertificate_ReturnsNull()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest { Jwks = ParseKeySet(KeySetWithCertificate) };
+
+        var error = handler.ValidateAuthenticationMetadata(
+            factory,
+            request,
+            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void ValidateAuthenticationMetadata_TlsClientAuthWithOneIdentity_ReturnsNull()
+    {
+        var handler = CreateHandler();
+        var (factory, _) = CreateErrorFactory();
+        var request = new RegisterClientRequest { TlsClientAuthSanDns = "client.example.com" };
+
+        var error = handler.ValidateAuthenticationMetadata(
+            factory,
+            request,
+            OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void ValidateAuthenticationMetadata_TlsClientAuthWithoutIdentity_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest();
+
+        var error = handler.ValidateAuthenticationMetadata(
+            factory,
+            request,
+            OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateAuthenticationMetadata_TlsClientAuthWithTwoIdentities_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest
+        {
+            TlsClientAuthSubjectDn = "CN=client",
+            TlsClientAuthSanDns = "client.example.com",
+        };
+
+        var error = handler.ValidateAuthenticationMetadata(
+            factory,
+            request,
+            OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateAuthenticationMetadata_IdentityForAnotherMethod_ReturnsInvalidClientMetadata()
+    {
+        var handler = CreateHandler();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var request = new RegisterClientRequest { TlsClientAuthSanDns = "client.example.com" };
+
+        var error = handler.ValidateAuthenticationMetadata(
+            factory,
+            request,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Theory]
+    [InlineData(OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic, true)]
+    [InlineData(OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost, true)]
+    [InlineData(OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt, true)]
+    [InlineData(OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt, false)]
+    [InlineData(OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth, false)]
+    [InlineData(OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth, false)]
+    [InlineData(OpenIdConstants.ClientAuthenticationMethods.None, false)]
+    public void IssuesClientSecret_ForMethod_IssuesOnlyForSecretMethods(
+        string method,
+        bool expected
+    )
+    {
+        var handler = CreateHandler();
+
+        var issues = handler.IssuesClientSecret(method);
+
+        Assert.Equal(expected, issues);
+    }
+
+    #endregion
+
     #region BuildSettingsObject
+
+    [Fact]
+    public void BuildSettingsObject_MapsTlsClientAuthIdentity()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest
+        {
+            RedirectUris = ["https://example.com/callback"],
+            TlsClientAuthSubjectDn = "CN=client",
+        };
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
+            GrantTypes = [OpenIdConstants.GrantTypes.AuthorizationCode],
+            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+            RedirectUris = ["https://example.com/callback"],
+        };
+
+        var settings = handler.BuildSettingsObject(request, resolved);
+
+        Assert.Equal(
+            "CN=client",
+            settings[OpenIdSettingNames.TlsClientAuthSubjectDn]!.GetValue<string>()
+        );
+        Assert.False(settings.ContainsKey(OpenIdSettingNames.TlsClientAuthSanDns));
+    }
 
     [Fact]
     public void BuildSettingsObject_MapsFunctionalAndInformationalFields()

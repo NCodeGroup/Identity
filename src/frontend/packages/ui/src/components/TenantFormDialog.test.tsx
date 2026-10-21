@@ -6,6 +6,7 @@ const acme = {
   tenantId: 'acme',
   displayName: 'Acme',
   issuer: 'https://acme.auth.example',
+  mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
   isDisabled: false,
 };
 
@@ -25,6 +26,9 @@ describe('TenantFormDialog', () => {
     expect(screen.getByTestId('tenant-id')).toHaveValue('acme');
     expect(screen.getByTestId('tenant-display-name')).toHaveValue('Acme');
     expect(screen.getByTestId('tenant-issuer')).toHaveValue('https://acme.auth.example');
+    expect(screen.getByTestId('tenant-mtls-endpoint-alias')).toHaveValue(
+      'https://acme.mtls.example',
+    );
     expect(screen.getByRole('switch', { name: 'Disabled' })).toBeChecked();
   });
 
@@ -100,11 +104,15 @@ describe('TenantFormDialog', () => {
     fireEvent.change(screen.getByTestId('tenant-issuer'), {
       target: { value: ' https://acme-dev.auth.example ' },
     });
+    fireEvent.change(screen.getByTestId('tenant-mtls-endpoint-alias'), {
+      target: { value: ' https://acme-dev.mtls.example ' },
+    });
     fireEvent.click(screen.getByTestId('tenant-form-submit'));
     expect(onSubmit).toHaveBeenCalledWith({
       tenantId: 'acme-dev',
       displayName: 'Acme',
       issuer: 'https://acme-dev.auth.example',
+      mtlsEndpointAliasAuthority: 'https://acme-dev.mtls.example',
       isDisabled: false,
     });
   });
@@ -136,7 +144,7 @@ describe('TenantFormDialog', () => {
         open
         title="Edit tenant"
         submitLabel="Save"
-        initialValues={{ ...acme, issuer: '' }}
+        initialValues={{ ...acme, issuer: '', mtlsEndpointAliasAuthority: '' }}
         isTenantIdLocked
         onSubmit={onSubmit}
         onCancel={vi.fn()}
@@ -150,6 +158,7 @@ describe('TenantFormDialog', () => {
       tenantId: 'acme',
       displayName: 'Acme',
       issuer: '',
+      mtlsEndpointAliasAuthority: '',
       isDisabled: true,
     });
   });
@@ -166,6 +175,7 @@ describe('TenantFormDialog', () => {
       tenantId: 'globex',
       displayName: 'Globex',
       issuer: 'https://globex.auth.example',
+      mtlsEndpointAliasAuthority: '',
       isDisabled: true,
     };
     const { rerender } = render(<TenantFormDialog {...props} open initialValues={acme} />);
@@ -181,6 +191,7 @@ describe('TenantFormDialog', () => {
     expect(screen.getByTestId('tenant-id')).toHaveValue('globex');
     expect(screen.getByTestId('tenant-display-name')).toHaveValue('Globex');
     expect(screen.getByTestId('tenant-issuer')).toHaveValue('https://globex.auth.example');
+    expect(screen.getByTestId('tenant-mtls-endpoint-alias')).toHaveValue('');
     expect(screen.getByRole('switch', { name: 'Disabled' })).toBeChecked();
   });
 
@@ -217,13 +228,17 @@ describe('TenantFormDialog', () => {
     fireEvent.change(screen.getByTestId('tenant-issuer'), {
       target: { value: ' https://acme.example ' },
     });
+    fireEvent.change(screen.getByTestId('tenant-mtls-endpoint-alias'), {
+      target: { value: ' https://acme.mtls.example ' },
+    });
     expect(onAddressChange).toHaveBeenLastCalledWith({
       tenantId: 'acme',
       issuer: 'https://acme.example',
+      mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
     });
   });
 
-  it('shows the derived issuer an empty issuer field resolves to', () => {
+  it('shows the derived issuer and mTLS endpoint alias that empty fields resolve to', () => {
     render(
       <TenantFormDialog
         open
@@ -233,6 +248,8 @@ describe('TenantFormDialog', () => {
         addressPreview={{
           issuer: 'https://acme.auth.example',
           isIssuerDerived: true,
+          mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
+          isMtlsEndpointAliasAuthorityDerived: true,
           exists: false,
           failures: [],
         }}
@@ -245,6 +262,11 @@ describe('TenantFormDialog', () => {
       'placeholder',
       'https://acme.auth.example',
     );
+    expect(screen.getByText('Leave empty to use https://acme.mtls.example.')).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-mtls-endpoint-alias')).toHaveAttribute(
+      'placeholder',
+      'https://acme.mtls.example',
+    );
     expect(screen.getByTestId('tenant-form-submit')).toBeEnabled();
   });
 
@@ -255,7 +277,14 @@ describe('TenantFormDialog', () => {
         title="Create tenant"
         submitLabel="Create"
         initialValues={{ ...emptyTenantFormValues, tenantId: 'acme', displayName: 'Acme' }}
-        addressPreview={{ issuer: null, isIssuerDerived: false, exists: true, failures: [] }}
+        addressPreview={{
+          issuer: null,
+          isIssuerDerived: false,
+          mtlsEndpointAliasAuthority: null,
+          isMtlsEndpointAliasAuthorityDerived: false,
+          exists: true,
+          failures: [],
+        }}
         onSubmit={vi.fn()}
         onCancel={vi.fn()}
       />,
@@ -276,6 +305,8 @@ describe('TenantFormDialog', () => {
         addressPreview={{
           issuer: 'https://acme.auth.example',
           isIssuerDerived: false,
+          mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
+          isMtlsEndpointAliasAuthorityDerived: false,
           exists: true,
           failures: [],
         }}
@@ -296,6 +327,8 @@ describe('TenantFormDialog', () => {
         addressPreview={{
           issuer: 'https://taken.example',
           isIssuerDerived: false,
+          mtlsEndpointAliasAuthority: null,
+          isMtlsEndpointAliasAuthorityDerived: false,
           exists: false,
           failures: [{ detail: 'Another tenant already has the issuer.', isConflict: true }],
         }}
@@ -307,5 +340,33 @@ describe('TenantFormDialog', () => {
       'Another tenant already has the issuer.',
     );
     expect(screen.getByTestId('tenant-form-submit')).toBeDisabled();
+  });
+
+  it('describes the mTLS endpoint alias when the deployment derives none', () => {
+    render(
+      <TenantFormDialog
+        open
+        title="Create tenant"
+        submitLabel="Create"
+        initialValues={{ ...emptyTenantFormValues, tenantId: 'acme', displayName: 'Acme' }}
+        addressPreview={{
+          issuer: 'https://acme.auth.example',
+          isIssuerDerived: true,
+          mtlsEndpointAliasAuthority: null,
+          isMtlsEndpointAliasAuthorityDerived: false,
+          exists: false,
+          failures: [],
+        }}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText(/The https origin where clients authenticate with a certificate/),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-mtls-endpoint-alias')).toHaveAttribute(
+      'placeholder',
+      'e.g. https://acme.mtls.example.com',
+    );
   });
 });

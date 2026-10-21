@@ -45,6 +45,7 @@ const acmeTenant = {
   tenantId: 'acme',
   displayName: 'Acme',
   issuer: null,
+  mtlsEndpointAliasAuthority: null,
   isDisabled: false,
   concurrencyToken: 'c',
 };
@@ -78,6 +79,7 @@ describe('App (global ↔ tenant boundary)', () => {
               tenantId: 'acme',
               displayName: 'Acme',
               issuer: null,
+              mtlsEndpointAliasAuthority: null,
               isDisabled: false,
               concurrencyToken: 'c',
             },
@@ -137,6 +139,7 @@ describe('App (global ↔ tenant boundary)', () => {
               tenantId: 'acme',
               displayName: 'Acme',
               issuer: null,
+              mtlsEndpointAliasAuthority: null,
               isDisabled: false,
               concurrencyToken: 'c',
             },

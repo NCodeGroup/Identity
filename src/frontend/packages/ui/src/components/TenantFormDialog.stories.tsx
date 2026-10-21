@@ -26,6 +26,7 @@ const acme = {
   tenantId: 'acme',
   displayName: 'Acme Inc',
   issuer: 'https://acme.auth.example',
+  mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
   isDisabled: false,
 };
 
@@ -57,7 +58,7 @@ export const WithError: Story = {
   },
 };
 
-export const WithDerivedIssuer: Story = {
+export const WithDerivedAddress: Story = {
   args: {
     title: 'Create tenant',
     submitLabel: 'Create',
@@ -65,6 +66,8 @@ export const WithDerivedIssuer: Story = {
     addressPreview: {
       issuer: 'https://acme.auth.example',
       isIssuerDerived: true,
+      mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
+      isMtlsEndpointAliasAuthorityDerived: true,
       exists: false,
       failures: [],
     },
@@ -79,6 +82,8 @@ export const WithUnavailableAddress: Story = {
     addressPreview: {
       issuer: 'https://auth.example',
       isIssuerDerived: false,
+      mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
+      isMtlsEndpointAliasAuthorityDerived: false,
       exists: true,
       failures: [
         {

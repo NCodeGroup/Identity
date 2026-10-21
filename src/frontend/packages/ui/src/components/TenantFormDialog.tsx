@@ -11,13 +11,14 @@ import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 
 /**
- * The tenant form's own field shape. `issuer` is a string here; empty means the tenant takes the issuer
- * the server derives for it.
+ * The tenant form's own field shape. `issuer` and `mtlsEndpointAliasAuthority` are strings here; empty
+ * means the tenant takes the one the server derives for it.
  */
 export type TenantFormValues = {
   readonly tenantId: string;
   readonly displayName: string;
   readonly issuer: string;
+  readonly mtlsEndpointAliasAuthority: string;
   readonly isDisabled: boolean;
 };
 
@@ -28,12 +29,15 @@ export type TenantAddressPreviewFailure = {
 };
 
 /**
- * The server's preview of the address being entered (its tenant ID and issuer): the issuer the tenant
- * would take, whether the ID is taken, and every reason the tenant could not be served there.
+ * The server's preview of the address being entered (its tenant ID, issuer, and mTLS endpoint alias): the
+ * issuer and alias the tenant would take, whether the ID is taken, and every reason the tenant could not
+ * be served there.
  */
 export type TenantAddressPreview = {
   readonly issuer: string | null;
   readonly isIssuerDerived: boolean;
+  readonly mtlsEndpointAliasAuthority: string | null;
+  readonly isMtlsEndpointAliasAuthorityDerived: boolean;
   readonly exists: boolean;
   readonly failures: readonly TenantAddressPreviewFailure[];
 };
@@ -42,6 +46,7 @@ export type TenantAddressPreview = {
 export type TenantAddressInput = {
   readonly tenantId: string;
   readonly issuer: string;
+  readonly mtlsEndpointAliasAuthority: string;
 };
 
 export type TenantFormDialogProps = {
@@ -65,6 +70,7 @@ export const emptyTenantFormValues: TenantFormValues = {
   tenantId: '',
   displayName: '',
   issuer: '',
+  mtlsEndpointAliasAuthority: '',
   isDisabled: false,
 };
 
@@ -85,7 +91,8 @@ export function isValidTenantId(value: string): boolean {
  * each time the dialog opens), so the component still renders in isolation under Storybook/RTL. All
  * persistence and server-error handling lives in the container that wires the mutation, as does the
  * address preview: the dialog reports the address as it is entered and renders the preview it is given
- * — the issuer an empty field resolves to, a taken ID, and every reason the address cannot be served.
+ * — the issuer and mTLS endpoint alias an empty field resolves to, a taken ID, and every reason the
+ * address cannot be served.
  */
 export function TenantFormDialog({
   open,
@@ -115,6 +122,7 @@ export function TenantFormDialog({
   const tenantId = values.tenantId.trim();
   const displayName = values.displayName.trim();
   const issuer = values.issuer.trim();
+  const mtlsEndpointAliasAuthority = values.mtlsEndpointAliasAuthority.trim();
   const isTenantIdValid = isTenantIdLocked || isValidTenantId(tenantId);
   const isTenantIdTaken = !isTenantIdLocked && addressPreview?.exists === true;
   const showTenantIdError =
@@ -122,6 +130,10 @@ export function TenantFormDialog({
   const addressFailures = addressPreview?.failures ?? [];
   const derivedIssuer =
     addressPreview?.isIssuerDerived === true ? (addressPreview.issuer ?? undefined) : undefined;
+  const derivedAlias =
+    addressPreview?.isMtlsEndpointAliasAuthorityDerived === true
+      ? (addressPreview.mtlsEndpointAliasAuthority ?? undefined)
+      : undefined;
   const canSubmit =
     isTenantIdValid &&
     !isTenantIdTaken &&
@@ -131,9 +143,9 @@ export function TenantFormDialog({
 
   useEffect(() => {
     if (open) {
-      onAddressChange?.({ tenantId, issuer });
+      onAddressChange?.({ tenantId, issuer, mtlsEndpointAliasAuthority });
     }
-  }, [open, tenantId, issuer, onAddressChange]);
+  }, [open, tenantId, issuer, mtlsEndpointAliasAuthority, onAddressChange]);
 
   const handleSubmit = () => {
     if (!canSubmit) {
@@ -143,6 +155,7 @@ export function TenantFormDialog({
       tenantId,
       displayName,
       issuer,
+      mtlsEndpointAliasAuthority,
       isDisabled: values.isDisabled,
     });
   };
@@ -204,6 +217,21 @@ export function TenantFormDialog({
             placeholder={derivedIssuer ?? 'e.g. https://acme.auth.example.com'}
             fullWidth
             slotProps={{ htmlInput: { 'data-testid': 'tenant-issuer' } }}
+          />
+          <TextField
+            label="mTLS endpoint alias"
+            value={values.mtlsEndpointAliasAuthority}
+            onChange={(event) =>
+              setValues((v) => ({ ...v, mtlsEndpointAliasAuthority: event.target.value }))
+            }
+            helperText={
+              derivedAlias && mtlsEndpointAliasAuthority.length === 0
+                ? `Leave empty to use ${derivedAlias}.`
+                : "The https origin where clients authenticate with a certificate (RFC 8705). Leave empty to use the deployment's default, if it has one."
+            }
+            placeholder={derivedAlias ?? 'e.g. https://acme.mtls.example.com'}
+            fullWidth
+            slotProps={{ htmlInput: { 'data-testid': 'tenant-mtls-endpoint-alias' } }}
           />
           <FormControlLabel
             control={

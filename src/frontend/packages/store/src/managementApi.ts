@@ -77,11 +77,20 @@ export const managementApi = createApi({
     }),
     // A preview of the address a tenant has or would have. It is never cached beyond its subscriber,
     // so it always reflects the tenants that exist when it is asked.
-    getTenantAddress: build.query<TenantAddressResource, { tenantId: string; issuer?: string }>({
-      query: ({ tenantId, issuer }) => ({
-        url: `api/tenants/${encodeURIComponent(tenantId)}/address`,
-        ...(issuer ? { params: { issuer } } : {}),
-      }),
+    getTenantAddress: build.query<
+      TenantAddressResource,
+      { tenantId: string; issuer?: string; mtlsEndpointAliasAuthority?: string }
+    >({
+      query: ({ tenantId, issuer, mtlsEndpointAliasAuthority }) => {
+        const params = {
+          ...(issuer ? { issuer } : {}),
+          ...(mtlsEndpointAliasAuthority ? { mtlsEndpointAliasAuthority } : {}),
+        };
+        return {
+          url: `api/tenants/${encodeURIComponent(tenantId)}/address`,
+          ...(Object.keys(params).length > 0 ? { params } : {}),
+        };
+      },
       keepUnusedDataFor: 0,
     }),
     listServers: build.query<CollectionResource<ServerResource>, void>({

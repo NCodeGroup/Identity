@@ -1061,6 +1061,69 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   API, not a setting scope. The judgements are counted under the partitions `daily_requests` and
   `daily_token_requests`. Durable usage history for billing is split out as `F81`._
 
+- **`F83` — FAPI 1.0 Advanced security profile (`fapi1-advanced`). Its JARM prerequisite (`F27`) is done.**
+  FAPI 1.0 Part 2: Advanced (Final, 2021) is not obsolete. FAPI 2.0 (Final, February 2025) succeeds it and is what the OpenID Foundation
+  recommends for new deployments, but the Foundation still certifies FAPI 1.0 Advanced, and UK Open Banking,
+  Australia's Consumer Data Right, and Brazil's Open Finance still mandate it while they plan their moves to FAPI 2.0.
+  Supporting it lets a tenant serve those ecosystems; FAPI 2.0 stays the primary target (`F16`, archived). `F16`
+  deferred it as conflicting with the posture against front-channel tokens, but the profile permits a code-only
+  response through JARM, so it fits. Deliver it as a second registered `ISecurityProfile` beside
+  `Fapi2SecurityProfile` ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)): a new
+  `OpenIdConstants.SecurityProfiles` name, its ceilings and defaults, and its request-time requirements, with no
+  profile-specific branch at any enforcement point.
+
+    **Decisions (2026-10-21), from FAPI 1.0 Part 2 §5.2.2 unless noted:**
+    - **Response.** The profile requires `response_type=code id_token` (the ID token as a detached signature, with
+      `s_hash` and `c_hash`) or `response_type=code` with a JARM response mode. Its ceiling lists both, and a new
+      requirement refuses `code` without a `.jwt` response mode. Because the baseline lists only `code`
+      ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)), the default is code with JARM and no
+      front-channel ID token; a tenant serving a hybrid-flow ecosystem (UK Open Banking) lists `code id_token` itself
+      ([ADR-0142](docs/adr/0142-listed-response-types-are-the-only-front-channel-token-control.md)). The hybrid path
+      exists today (`DefaultGetIdTokenPayloadClaimsHandler` emits `s_hash`); verify the ID token carries it whenever the
+      request sends `state`.
+    - **PAR and PKCE `S256` required.** PAR is optional in FAPI 1.0 Advanced, which requires PKCE `S256` whenever PAR
+      is used. Requiring both matches the Consumer Data Right, the conformance suite's `pushed` variant, and PKCE by
+      default ([ADR-0144](docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)).
+    - **Sender-constrained access tokens through mutual TLS.** The profile issues only sender-constrained access
+      tokens and names mTLS (RFC 8705) as the mechanism; DPoP is not part of FAPI 1.0. The ceiling sets
+      `access_token_sender_constraint_required` and `tls_client_certificate_bound_access_tokens`; the ADR decides
+      whether a `fapi1-advanced` client may also bind with DPoP alone.
+    - **Signed request object required.** The ceiling sets `require_request_object` and pins the `nbf`/`exp` (at most
+      60 minutes apart) and issuer-`aud` rules of
+      [ADR-0187](docs/adr/0187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md), as FAPI 2.0's
+      profile does.
+    - **PS256 and ES256 only** (§8.6), so no EdDSA, unlike FAPI 2.0; PS256 is the default for ID tokens and
+      introspection responses, as `Fapi2SecurityProfile.ApplyDefaultSettings` sets.
+    - **Client authentication** is `private_key_jwt`, `tls_client_auth`, or `self_signed_tls_client_auth`, and public
+      clients are refused (`ConfidentialClientRequirement`). The client-assertion audience is not narrowed to the
+      issuer; that rule is FAPI 2.0's alone.
+    - **Lifetimes.** The authorization code keeps FAPI 2.0's 60-second ceiling, well inside the 10 minutes FAPI 1.0
+      Part 1 allows, and the PAR `request_uri` keeps its 90-second ceiling.
+
+    **Gap found while scoping.** With a request object, `AuthorizationRequest.ComposeParameters` falls back to the
+    outer query parameters for any parameter the object omits (the OpenID Connect Core §6.3.3 merge). FAPI 1.0
+    Advanced, FAPI 2.0 Message Signing, and RFC 9101 §6.3 all require using only the request object's parameters.
+    Apply that rule to every request object, not just this profile, keeping only `client_id` (and the outer
+    `response_type`/`scope` duplicates OpenID Connect requires, which must match) outside it.
+
+    **Conformance.** Add the `fapi1-advanced-final-test-plan` to `build/conformance/run-conformance.ps1` (`T1`), with
+    `private_key_jwt` and `mtls` client authentication, the `pushed` request method, and the `jarm` and
+    `plain_response` response modes. Seed `fapi1-advanced` clients, record the baseline, and add the profile's rows to
+    `src/frontend/packages/conformance-core/src/coverage.ts`. Touch points:
+    `src/NCode.Identity.OpenId.Authentication/Settings/` (the profile beside `Fapi2SecurityProfile`, registered in its
+    `DefaultRegistration`), `OpenIdConstants.SecurityProfiles`, `AuthorizationRequest`, and the authorization
+    validation handlers. Needs its own ADR.
+
+  _Closed: delivered as the registered `Fapi1AdvancedSecurityProfile` with the decisions above. DPoP alone does not
+  satisfy the profile: its ceiling requires certificate-bound access tokens, so a client that wants DPoP selects
+  `fapi2`. The new `JwtSecuredAuthorizationResponseRequirement` refuses plain `code` without a `.jwt` response mode,
+  and the ID token's `s_hash` was verified for the hybrid path. RFC 9101 §6.3 now applies to every request object, so
+  only `client_id`, `response_type`, and `scope` fall back to the outer query. The spec-coverage matrix gained the
+  `profile-fapi1-advanced` row. Running the suite's `fapi1-advanced-final-test-plan` moved to `T1`, beside the FAPI
+  2.0 plan. See [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md) and the
+  `CHANGELOG.md` entries "FAPI 1.0 Advanced security profile" and "a request object's parameters are the only
+  parameters"._
+
 - **`F82` — Admit and bill usage past a daily quota.** Split from `F81`. A daily quota
   ([ADR-0198](docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)) refuses a tenant for the
   rest of the UTC day once it is spent. A plan tier may instead admit the overage and bill it from the usage ledger

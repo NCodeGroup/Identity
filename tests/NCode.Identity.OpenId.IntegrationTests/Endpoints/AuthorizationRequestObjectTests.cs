@@ -157,7 +157,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         HttpClient client,
         string sessionCookie,
         string clientId,
-        string requestObject
+        string requestObject,
+        string outerParameters = ""
     )
     {
         var query =
@@ -165,7 +166,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
             + "&response_type=code"
             + "&scope=openid"
-            + $"&request={Uri.EscapeDataString(requestObject)}";
+            + $"&request={Uri.EscapeDataString(requestObject)}"
+            + outerParameters;
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
@@ -233,6 +235,33 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var parameters = HttpUtility.ParseQueryString(location.Query);
         Assert.Null(parameters["code"]);
         Assert.False(string.IsNullOrEmpty(parameters["response"]));
+    }
+
+    [Fact]
+    public async Task Authorize_WhenAParameterIsSentOnlyOutsideTheRequestObject_IgnoresIt()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var clientId = await RegisterClientAsync(client);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var issuer = await GetIssuerAsync(client);
+        var requestObject = CreateRequestObject(factory, clientId, "RS256", issuer);
+
+        // The request object omits response_mode, so the unsigned outer 'fragment' must not apply (RFC 9101 §6.3).
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            requestObject,
+            $"&response_mode={OpenIdConstants.ResponseModes.Fragment}"
+        );
+
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.DoesNotContain("code=", location.Fragment, StringComparison.Ordinal);
+        var parameters = HttpUtility.ParseQueryString(location.Query);
+        Assert.False(string.IsNullOrEmpty(parameters["code"]), location.ToString());
     }
 
     [Fact]

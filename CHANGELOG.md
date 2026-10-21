@@ -10,6 +10,22 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **FAPI 1.0 Advanced security profile (`fapi1-advanced`).** A tenant or client that selects it through
+  `security_profiles` gets the following ceilings:
+  - `code` with a JWT-secured (JARM) response mode, or `code id_token` once the tenant lists it;
+  - PAR, PKCE `S256`, and signed request objects that carry `nbf`, live at most 60 minutes, and are addressed to the
+    issuer;
+  - access tokens bound to the client's certificate through mutual TLS;
+  - `private_key_jwt`, `tls_client_auth`, or `self_signed_tls_client_auth` client authentication, with public clients
+    refused;
+  - PS256 or ES256 signing only, with PS256 the default for ID tokens, introspection, and authorization responses;
+  - authorization codes that live at most 60 seconds and PAR `request_uri`s at most 90.
+
+  A request for plain `code` without a `.jwt` response mode is refused with `invalid_request`.
+  `AuthorizationRequestProfileContext` now carries the composed `IAuthorizationRequest` for request-time requirements.
+  The spec-coverage matrix gains a `profile-fapi1-advanced` row. See
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md).
+
 - **JWT-secured authorization responses (JARM).** The authorization endpoint serves the `query.jwt`, `fragment.jwt`,
   `form_post.jwt`, and `jwt` response modes. They deliver the response, an error included, as one JWT in the `response`
   parameter. The JWT is issued by the tenant, addressed to the client, and expires after 5 minutes. It is signed with
@@ -408,6 +424,12 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **Breaking:** a request object's parameters are the only parameters of an authorization request (RFC 9101 §6.3). A
+  parameter sent only outside the request object, such as `response_mode` or `nonce`, is now ignored instead of being
+  merged in, so an unsigned parameter can no longer change a signed request. The outer `client_id`, `response_type`,
+  and `scope` are still used when the object omits them, and `client_id` and `response_type` must match the object's.
+  See [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md).
 
 - **Breaking:** the event metric `ncode.identity.events.published` is recorded through a meter created from
   `IMeterFactory`, whose name moves from `DefaultEventMetricsHandler.MeterName` to `EventMetrics.MeterName`

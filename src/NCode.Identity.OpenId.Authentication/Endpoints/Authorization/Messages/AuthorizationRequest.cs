@@ -74,12 +74,7 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
     public IParameterCollection Parameters => ParametersOrNull ??= ComposeParameters();
 
     private IParameterCollection ComposeParameters() =>
-        OriginalRequestObject is not null
-            ? new CompositeParameterCollection(
-                OriginalRequestObject.Parameters,
-                OriginalRequestMessage.Parameters
-            )
-            : OriginalRequestMessage.Parameters;
+        OriginalRequestObject?.Parameters ?? OriginalRequestMessage.Parameters;
 
     /// <inheritdoc />
     public bool IsContinuation { get; set; }
@@ -94,23 +89,27 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
     public IAuthorizationRequestObject? OriginalRequestObject { get; }
 
     /*
-     * The Authorization Server MUST assemble the set of Authorization Request parameters to be used from the Request Object value and the
-     * OAuth 2.0 Authorization Request parameters (minus the request or request_uri parameters). If the same parameter exists both in the
-     * Request Object and the OAuth Authorization Request parameters, the parameter in the Request Object is used. Using the assembled set
-     * of Authorization Request parameters, the Authorization Server then validates the request the normal manner for the flow being used,
-     * as specified in Sections 3.1.2.2, 3.2.2.2, or 3.3.2.2.
+     * RFC 9101 §6.3 (which updates OpenID Connect Core §6.1's merge): when a request object is used, the
+     * Authorization Server MUST only use the parameters in the Request Object, even if the same parameter is provided
+     * in the query parameter. A parameter sent only outside the request object is therefore ignored rather than merged
+     * in, so it can never bypass the request object's signature (FAPI 1.0 Advanced §5.2.2-10). The OAuth syntax still
+     * carries 'client_id' (which identifies the client and must match the request object's), and OpenID Connect Core
+     * still has a client send 'response_type' and 'scope' outside: those three fall back to the outer value, and an
+     * outer 'response_type' must match the request object's (validated with the request object).
      */
 
-    /// <inheritdoc />
-    public IReadOnlyList<string> AcrValues =>
-        Coalesce(OriginalRequestObject?.AcrValues, OriginalRequestMessage.AcrValues);
+    // The values every parameter except client_id, response_type and scope is read from.
+    private IBaseAuthorizationRequestValues Values =>
+        (IBaseAuthorizationRequestValues?)OriginalRequestObject ?? OriginalRequestMessage;
 
     /// <inheritdoc />
-    public IRequestClaims? Claims => OriginalRequestObject?.Claims ?? OriginalRequestMessage.Claims;
+    public IReadOnlyList<string> AcrValues => Values.AcrValues ?? [];
 
     /// <inheritdoc />
-    public IReadOnlyList<string> ClaimsLocales =>
-        Coalesce(OriginalRequestObject?.ClaimsLocales, OriginalRequestMessage.ClaimsLocales);
+    public IRequestClaims? Claims => Values.Claims;
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> ClaimsLocales => Values.ClaimsLocales ?? [];
 
     /// <inheritdoc />
     public string ClientId =>
@@ -121,63 +120,48 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
             .AsException();
 
     /// <inheritdoc />
-    public string? CodeChallenge =>
-        OriginalRequestObject?.CodeChallenge ?? OriginalRequestMessage.CodeChallenge;
+    public string? CodeChallenge => Values.CodeChallenge;
 
     /// <inheritdoc />
-    public string? CodeChallengeMethod =>
-        OriginalRequestObject?.CodeChallengeMethod ?? OriginalRequestMessage.CodeChallengeMethod;
+    public string? CodeChallengeMethod => Values.CodeChallengeMethod;
 
     /// <inheritdoc />
-    public string? CodeVerifier =>
-        OriginalRequestObject?.CodeVerifier ?? OriginalRequestMessage.CodeVerifier;
+    public string? CodeVerifier => Values.CodeVerifier;
 
     /// <inheritdoc />
-    public string? DPoPJwkThumbprint =>
-        OriginalRequestObject?.DPoPJwkThumbprint ?? OriginalRequestMessage.DPoPJwkThumbprint;
+    public string? DPoPJwkThumbprint => Values.DPoPJwkThumbprint;
 
     /// <inheritdoc />
-    public string DisplayType =>
-        OriginalRequestObject?.DisplayType
-        ?? OriginalRequestMessage.DisplayType
-        ?? OpenIdConstants.DisplayTypes.Page;
+    public string DisplayType => Values.DisplayType ?? OpenIdConstants.DisplayTypes.Page;
 
     /// <inheritdoc />
-    public string? IdTokenHint =>
-        OriginalRequestObject?.IdTokenHint ?? OriginalRequestMessage.IdTokenHint;
+    public string? IdTokenHint => Values.IdTokenHint;
 
     /// <inheritdoc />
-    public string? LoginHint =>
-        OriginalRequestObject?.LoginHint ?? OriginalRequestMessage.LoginHint;
+    public string? LoginHint => Values.LoginHint;
 
     /// <inheritdoc />
-    public TimeSpan? MaxAge => OriginalRequestObject?.MaxAge ?? OriginalRequestMessage.MaxAge;
+    public TimeSpan? MaxAge => Values.MaxAge;
 
     /// <inheritdoc />
-    public string? Nonce => OriginalRequestObject?.Nonce ?? OriginalRequestMessage.Nonce;
+    public string? Nonce => Values.Nonce;
 
     /// <inheritdoc />
-    public IReadOnlyList<string> PromptTypes =>
-        Coalesce(OriginalRequestObject?.PromptTypes, OriginalRequestMessage.PromptTypes);
+    public IReadOnlyList<string> PromptTypes => Values.PromptTypes ?? [];
 
     /// <inheritdoc />
     public Uri RedirectUri =>
-        OriginalRequestObject?.RedirectUri
-        ?? OriginalRequestMessage.RedirectUri
+        Values.RedirectUri
         ?? throw OpenIdEnvironment
             .ErrorFactory.MissingParameter(OpenIdConstants.Parameters.RedirectUri)
             .AsException();
 
     /// <inheritdoc />
-    public IReadOnlyList<string> Resources =>
-        Coalesce(OriginalRequestObject?.Resources, OriginalRequestMessage.Resources);
+    public IReadOnlyList<string> Resources => Values.Resources ?? [];
 
     /// <inheritdoc />
     public string ResponseMode =>
-        ResponseTypeValues.ResolveResponseMode(
-            OriginalRequestObject?.ResponseMode ?? OriginalRequestMessage.ResponseMode,
-            ResponseTypes
-        );
+        ResponseTypeValues.ResolveResponseMode(Values.ResponseMode, ResponseTypes);
 
     /// <inheritdoc />
     public IReadOnlyList<string> ResponseTypes =>
@@ -188,11 +172,10 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
         GrantedScopes ?? Coalesce(OriginalRequestObject?.Scopes, OriginalRequestMessage.Scopes);
 
     /// <inheritdoc />
-    public string? State => OriginalRequestObject?.State ?? OriginalRequestMessage.State;
+    public string? State => Values.State;
 
     /// <inheritdoc />
-    public IReadOnlyList<string> UiLocales =>
-        Coalesce(OriginalRequestObject?.UiLocales, OriginalRequestMessage.UiLocales);
+    public IReadOnlyList<string> UiLocales => Values.UiLocales ?? [];
 
     /// <inheritdoc />
     public IAuthorizationRequest Clone() => new AuthorizationRequest(this);

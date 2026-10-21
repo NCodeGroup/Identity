@@ -628,6 +628,38 @@ const PROFILES: Catalog = {
           : { status: 'missing', detail: `Unmet FAPI 2.0 prerequisites: ${missing.join(', ')}.` };
       },
     },
+    {
+      id: 'profile-fapi1-advanced',
+      feature: 'FAPI 1.0 Advanced Security Profile',
+      reference: 'FAPI 1.0 Part 2: Advanced',
+      channel: 'external-suite',
+      backlog: 'T1',
+      classify: (raw) => {
+        // FAPI 1.0 Advanced (as the fapi1-advanced profile serves it) requires PAR, mTLS-bound tokens, PKCE S256,
+        // PS256/ES256-signed request objects, and JARM for a code response. Derive readiness from those signals.
+        const missing: string[] = [];
+        if (!hasString(raw, 'pushed_authorization_request_endpoint')) missing.push('PAR');
+        if (!isTrue(raw, 'tls_client_certificate_bound_access_tokens'))
+          missing.push('mTLS-bound tokens');
+        if (!asStringArray(raw, 'code_challenge_methods_supported').includes('S256'))
+          missing.push('PKCE S256');
+        const requestObjectAlgs = asStringArray(raw, 'request_object_signing_alg_values_supported');
+        if (!requestObjectAlgs.some((alg) => alg === 'PS256' || alg === 'ES256'))
+          missing.push('PS256/ES256 request objects');
+        if (asStringArray(raw, 'authorization_signing_alg_values_supported').length === 0)
+          missing.push('JARM');
+        return missing.length === 0
+          ? {
+              status: 'implemented',
+              detail:
+                'PAR, mTLS-bound tokens, PKCE S256, signed request objects, and JARM are all advertised.',
+            }
+          : {
+              status: 'missing',
+              detail: `Unmet FAPI 1.0 Advanced prerequisites: ${missing.join(', ')}.`,
+            };
+      },
+    },
   ],
 };
 

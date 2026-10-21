@@ -28,6 +28,7 @@ using NCode.Identity.OpenId.Authentication.Messages;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Pkce;
+using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Settings;
@@ -82,6 +83,7 @@ public static class DefaultRegistration
                 .AddOutboundHttpServices()
                 .AddPersistenceServices()
                 .AddPkceServices()
+                .AddRateLimitingServices()
                 .AddResourceServerServices()
                 .AddSessionServices()
                 .AddSubjectServices()

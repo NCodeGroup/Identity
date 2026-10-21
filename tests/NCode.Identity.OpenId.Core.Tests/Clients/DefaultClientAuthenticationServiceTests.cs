@@ -21,6 +21,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -35,11 +36,24 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     private const string ClientId = "client-1";
 
     private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
+    private Mock<IRequestRateLimiter> MockRateLimiter { get; }
     private Mock<OpenIdContext> MockContext { get; }
 
     public DefaultClientAuthenticationServiceTests()
     {
         MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
+
+        // Every authenticated client is counted against its rate limit; admitted unless a test says otherwise.
+        MockRateLimiter = CreateStrictMock<IRequestRateLimiter>();
+        MockRateLimiter
+            .Setup(x =>
+                x.AcquireForClientAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(RateLimitDecision.Admitted);
 
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         mockErrorFactory
@@ -65,6 +79,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
         new(
             handlers,
             MockAuditEventRecorder.Object,
+            MockRateLimiter.Object,
             CreateLooseMock<ILogger<DefaultClientAuthenticationService>>().Object
         );
 
@@ -408,6 +423,34 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
         );
 
         Assert.True(result.IsUndefined);
+    }
+
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenTheClientIsOverItsRateLimit_ReturnsTooManyRequests()
+    {
+        var client = CreateConfidentialClient(
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt],
+            isRefused: false
+        );
+        MockRateLimiter
+            .Setup(x => x.AcquireForClientAsync(MockContext.Object, client, CancellationToken.None))
+            .ReturnsAsync(new RateLimitDecision(TimeSpan.FromSeconds(1.5)))
+            .Verifiable(Times.Once);
+        var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
+
+        await service.AuthenticateClientAsync(MockContext.Object, CancellationToken.None);
+        var result = await service.AuthenticateClientAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        AssertError(
+            result,
+            OpenIdConstants.ErrorCodes.TemporarilyUnavailable,
+            StatusCodes.Status429TooManyRequests
+        );
     }
 
     #endregion

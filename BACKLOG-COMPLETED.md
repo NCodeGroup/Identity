@@ -910,6 +910,40 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   value that cannot be decoded is `invalid_request` rather than no certificate; behind a proxy the connection's
   certificate is never read._
 
+- **`F45` — Per-tenant rate limits.** Customers run their dev, test, and prod environments as separate tenants on the
+  one production platform ([hosting analysis](docs/hosting-analysis.md#environment-model)), so a customer's load test
+  against a `-dev` tenant shares hardware with every other tenant's production. Nothing limits a tenant's request rate
+  today. The design is
+  [ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), and its shared counter
+  port exists: `IExpiringCounterSet`, its in-process default (registered by `AddIdentityServer`), and the Valkey
+  adapter `AddValkey` registers. Remaining, per the ADR:
+  - **Settings.** The tenant-wide and per-client limits (requests per window) as integer settings at the server and
+    tenant scopes, the per-client limit also at the client scope, merged with `Min` and unset meaning unlimited; with
+    their descriptors, domain validation, and scope declarations.
+  - **The limiter.** The two-window sliding estimate over `IExpiringCounterSet` (count first, so rejected requests
+    count), keyed `rate-limit:{tenantId}:{partition}:{windowStart}` with counters kept for two windows; failing open
+    with a warning when the store throws.
+  - **Where it runs.** An endpoint filter on the OpenID endpoint group after `OpenIdEnvironmentEndpointFilter` for the
+    tenant-wide and per-address limits; the per-client limit where client authentication succeeds, so a request cannot
+    spend another client's allowance by naming its `client_id`.
+  - **The response.** `429 Too Many Requests` (RFC 6585 §4) with `Retry-After` (whole seconds to the window's end,
+    rounded up) and `Cache-Control: no-store`, plus a rejection metric and log.
+  - **Tests.** Unit tests for the estimate, the partitions, and fail-open; an integration test that drives a tenant past
+    its limit and reads `429` and `Retry-After`.
+  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/OpenIdEndpointGroup.cs`, the setting descriptor
+  data sources, `src/NCode.Identity.SharedState.Abstractions/IExpiringCounterSet.cs`.
+
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), amended with what was
+  built. The limits are per minute: `rate_limit_tenant_per_minute` and `rate_limit_address_per_minute` at the tenant
+  scope, and `rate_limit_client_per_minute` at the tenant and client scopes. The per-address limit became its own
+  setting, so the many clients behind one NAT or backend address are not throttled as one client.
+  `RateLimitEndpointFilter` runs between the environment and exception filters, so a refused request is not audited.
+  The client authentication service judges the per-client limit once per request. A refusal is `temporarily_unavailable` with `429`,
+  `Retry-After`, and `Cache-Control: no-store`. Rejections are logged with stable event IDs rather than counted in a
+  metric, since the family has no protocol meter yet. Unit tests cover the estimate, each partition, fail-open, and
+  cancellation; an integration test drives discovery past a server-wide limit. Quotas remain as `F79`._
+
 - **`F46` — Kubernetes deployment artifacts for the host.** `NCode.Identity.OpenId.Host` is the deployable
   ([ADR-0130](docs/adr/0130-distinct-names-for-host-local-dev-orchestrator-and-library.md)); it already trusts forwarded
   headers only from configured proxies (`ReverseProxy:KnownNetworks` — set it to the cluster's pod CIDR), refuses

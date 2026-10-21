@@ -70,4 +70,6 @@ internal static class EventIds
     public const int ForwardedClientCertificateMalformed = Base + 39;
     public const int ClientCertificateTrustAnchorsMissing = Base + 40;
     public const int ClientCertificateUntrusted = Base + 41;
+    public const int RateLimitExceeded = Base + 42;
+    public const int RateLimitStoreUnavailable = Base + 43;
 }

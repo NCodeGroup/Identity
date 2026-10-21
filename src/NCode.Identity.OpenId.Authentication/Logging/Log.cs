@@ -370,4 +370,28 @@ internal static partial class Log
         string headerName,
         string format
     );
+
+    [LoggerMessage(
+        EventId = EventIds.RateLimitExceeded,
+        Level = LogLevel.Information,
+        Message = "A request to tenant '{TenantId}' exceeded its '{Partition}' rate limit of {Limit} requests per minute and was refused."
+    )]
+    internal static partial void RateLimitExceeded(
+        this ILogger logger,
+        string tenantId,
+        string partition,
+        int limit
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.RateLimitStoreUnavailable,
+        Level = LogLevel.Warning,
+        Message = "The '{Partition}' rate limit of tenant '{TenantId}' was not enforced because its request counter could not be read; the request is admitted."
+    )]
+    internal static partial void RateLimitStoreUnavailable(
+        this ILogger logger,
+        string tenantId,
+        string partition,
+        Exception exception
+    );
 }

@@ -86,7 +86,7 @@ public sealed class DefaultRegistrationTests : BaseTests
             provider.GetRequiredService<IOptions<HealthCheckServiceOptions>>().Value.Registrations
         );
         Assert.Equal(DefaultRegistration.HealthCheckName, registration.Name);
-        Assert.Contains(DefaultRegistration.ReadinessTag, registration.Tags);
+        Assert.Contains(HealthCheckTags.Readiness, registration.Tags);
     }
 
     [Fact]

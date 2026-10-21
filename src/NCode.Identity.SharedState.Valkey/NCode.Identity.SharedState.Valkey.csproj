@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.Abstractions\NCode.Identity.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.SharedState.Abstractions\NCode.Identity.SharedState.Abstractions.csproj" />
     </ItemGroup>
 

@@ -488,9 +488,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   `InteractiveAuthenticationEndpointGroup.cs:55`.
 - **`R31` — Probe the tenant cache before loading the control-plane tenant.** Touch point:
   `DefaultOpenIdTenantFactory.cs:178-181`.
-- **`R32` — Tidy the host's readiness code and the stale `/health` references.** Move `readinessTag` away from the
-  data-protection comment in `Program.cs:128-133`; update `docs/adr/0071-aspire-local-dev-orchestrator.md`,
-  `src/frontend/README.md:263`, and `.vscode/launch.json:11`.
 - **`R35` — Pin container base images by digest and let Dependabot track them.** Touch points:
   `src/NCode.Identity.OpenId.Host/Dockerfile:17, 28, 60`, `.github/dependabot.yml`.
 - **`R36` — Test the bundle-shell split against the built bundle's real `index.html`.** Touch point:
@@ -516,8 +513,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   round trip, and one metrics wrapper in the Valkey adapters.
 - **`R42` — Split `tls_client_certificate_bound_access_tokens`.** _pre._ Separate advertised server support from the
   per-client requirement, as DPoP does; today enabling it for a tenant forces every client to present a certificate.
-- **`R43` — Share the readiness tag as a public constant.** `Program.cs:132` and
-  `SharedState.Valkey/DefaultRegistration.cs:44` each write `"ready"`.
 - **`R44` — Key the conformance seed by `client_id`.** Stop passing keys by array position
   (`run-conformance.ps1:318-321`), generate both FAPI templates from one source, and derive `discoveryUrl` from
   `$IssuerUrl`.

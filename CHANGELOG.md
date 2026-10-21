@@ -10,6 +10,11 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **`HealthCheckTags.Readiness`.** `NCode.Identity.Abstractions` publishes the tag (`"ready"`) of every health check
+  that decides whether a replica can serve requests. The Valkey adapter tags its check with it and the reference host's
+  `/health/ready` endpoint runs the checks that carry it, so a package that adds a readiness check uses the constant
+  instead of repeating the string.
+
 - **FAPI 1.0 Advanced conformance harness.** `build/conformance/run-conformance.ps1 -Fapi1Advanced` runs the
   conformance suite's `fapi1-advanced-final-test-plan` with `private_key_jwt` and `self_signed_tls_client_auth`
   clients, pushed authorization requests, and plain and JARM responses. It generates each client's key and self-signed

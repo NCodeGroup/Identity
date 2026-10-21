@@ -2619,3 +2619,23 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   key is unwrapped only by the certificate that wrapped it. `values.yaml` and ADR-0177 carry the same warning. The
   optional readiness check is split out as `R48`. See
   [ADR-0177](docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)._
+- **`R19` — Give the migration Job the host's extra environment and volumes.** It ignores `extraEnv`, `extraEnvFrom`,
+  `extraVolumes`, and `extraVolumeMounts`, so TLS-to-Postgres setups fail every install. Touch point:
+  `charts/ncode-identity-host/templates/migration-job.yaml:60-78`.
+  _Closed: the migration Job receives `extraEnv`, `extraEnvFrom`, `extraVolumes`, and `extraVolumeMounts`, as the
+  host's pods do; the Host chart workflow renders a Job with an extra setting and volume and fails without them.
+  `values.yaml` and the chart README say so._
+- **`R29` — Reject a usage query whose range would precede the minimum date (400, not 500).** Touch point:
+  `TenantApiEndpointHandler.cs:714-716`.
+  _Closed: `TenantApiEndpointHandler.GetUsageAsync` answers a validation problem on `to` when no `from` is given and
+  the default 30-day range (`DefaultUsageDays`) would start before `DateOnly.MinValue`, instead of letting `AddDays`
+  throw; `TenantApiEndpointHandlerTests` covers it._
+- **`R33` — Keep the migration Job name within 63 characters.** Touch point: `migration-job.yaml:10`.
+  _Closed: the `identity-host.migrationsJobName` helper shortens the full name to 52 characters before appending
+  `-migrations`, so the name fits the 63-character `batch.kubernetes.io/job-name` label; `NOTES.txt` uses it, and the
+  Host chart workflow renders a 53-character release name and checks the length._
+- **`R34` — Use the `Recreate` strategy when Valkey is disabled.** `maxSurge: 0` does not wait for terminating pods.
+  Touch point: `charts/ncode-identity-host/templates/deployment.yaml:21-26`.
+  _Closed: without Valkey the Deployment uses the `Recreate` strategy, so the new replica starts only after the old
+  one has terminated; the Host chart workflow checks it. ADR-0179 and the chart README explain why `maxSurge: 0` was not
+  enough._

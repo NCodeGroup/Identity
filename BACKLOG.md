@@ -461,9 +461,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
 - **`R18` — Match `tls_client_auth_subject_dn` by RFC 4517 `distinguishedNameMatch`.** _pre._ Comparing DER bytes
   fails for UTF8String-encoded names, which most CAs issue. Touch point:
   `TlsClientAuthClientAuthenticationHandler.cs:159-168`.
-- **`R19` — Give the migration Job the host's extra environment and volumes.** It ignores `extraEnv`, `extraEnvFrom`,
-  `extraVolumes`, and `extraVolumeMounts`, so TLS-to-Postgres setups fail every install. Touch point:
-  `charts/ncode-identity-host/templates/migration-job.yaml:60-78`.
 - **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
   replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
   `src/frontend/apps/auth/src/main.tsx:12-21`.
@@ -487,8 +484,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   `CertificateLifetimeRequirementHandler.cs:55-69`, ADR-0161, `CHANGELOG.md`.
 - **`R28` — Check the default response-encryption `enc` at dynamic registration.** Touch point:
   `DefaultClientRegistrationEndpointHandler.cs:1305-1309`.
-- **`R29` — Reject a usage query whose range would precede the minimum date (400, not 500).** Touch point:
-  `TenantApiEndpointHandler.cs:714-716`.
 - **`R30` — Serve interactive bundle assets without resolving the tenant.** Touch point:
   `InteractiveAuthenticationEndpointGroup.cs:55`.
 - **`R31` — Probe the tenant cache before loading the control-plane tenant.** Touch point:
@@ -496,9 +491,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
 - **`R32` — Tidy the host's readiness code and the stale `/health` references.** Move `readinessTag` away from the
   data-protection comment in `Program.cs:128-133`; update `docs/adr/0071-aspire-local-dev-orchestrator.md`,
   `src/frontend/README.md:263`, and `.vscode/launch.json:11`.
-- **`R33` — Keep the migration Job name within 63 characters.** Touch point: `migration-job.yaml:10`.
-- **`R34` — Use the `Recreate` strategy when Valkey is disabled.** `maxSurge: 0` does not wait for terminating pods.
-  Touch point: `charts/ncode-identity-host/templates/deployment.yaml:21-26`.
 - **`R35` — Pin container base images by digest and let Dependabot track them.** Touch points:
   `src/NCode.Identity.OpenId.Host/Dockerfile:17, 28, 60`, `.github/dependabot.yml`.
 - **`R36` — Test the bundle-shell split against the built bundle's real `index.html`.** Touch point:

@@ -74,7 +74,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
-| `F` — Feature gaps                    | `F80`     | `F79`      |
+| `F` — Feature gaps                    | `F81`     | `F80`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U26`     | `U25`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
@@ -304,6 +304,31 @@ entry and/or ADR that closed it.
   ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)). Decide in an ADR the
   window (calendar day in UTC or rolling), what happens at the quota (reject with `429`, or allow and report an
   overage), and how a plan tier sets the quota through the settings cascade. Builds on `F45` (done).
+- **`F80` — Metrics for the protocol endpoints.** Implement
+  [ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md): one owner per
+  signal, only bounded attributes, and nothing measured twice. Remaining:
+  - **Meters.** One meter per instrument-owning package, created through `IMeterFactory`, with its instruments in one
+    internal `…Metrics` singleton and its name a public constant. Move `DefaultEventMetricsHandler` to the factory and
+    rename its attributes to `ncode.identity.event.type`, `ncode.identity.audit.action`, and
+    `ncode.identity.audit.outcome`.
+  - **Endpoint enrichment.** Tag `http.server.request.duration` through `IHttpMetricsTagsFeature` with
+    `ncode.identity.openid.endpoint` (the registered endpoint name) and, on the token endpoint,
+    `ncode.identity.openid.grant_type` (`_OTHER` for an unregistered value). Tag `ncode.identity.openid.error` where
+    the error response is written, so the endpoints, the exception filter, and the rate-limit filter all tag it.
+  - **Event attributes.** An interface through which an event type declares bounded metric attributes (the grant and
+    token type of `token.issued`, the method of a client-authentication failure), read by the event metrics handler.
+  - **Mechanism instruments.** `ncode.identity.rate_limiting.requests` (partition and result: `admitted`, `rejected`,
+    `store_unavailable`) in `DefaultRequestRateLimiter`; `ncode.identity.shared_state.operation.duration` (operation,
+    adapter, `error.type`) in the in-process and Valkey adapters.
+  - **Reference host.** The OpenTelemetry SDK and OTLP exporter, the family's meters plus ASP.NET Core, Kestrel,
+    `System.Net.Http`, and runtime instrumentation, and a view that drops `server.address` and `server.port` from
+    `http.client.request.duration`. Pin current upstream versions and check them against the advisory database.
+  - **Tests and catalog.** A `MetricCollector<T>` unit test per instrument and attribute, and the instrument catalog
+    beside the event catalog.
+  Touch points: `src/NCode.Identity.Events/DefaultEventMetricsHandler.cs`,
+  `src/NCode.Identity.OpenId.Authentication/RateLimiting/DefaultRequestRateLimiter.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/OpenIdEndpointGroup.cs`, the shared-state adapters, and the
+  host's `Program.cs`.
 
 - **`F48` — Publish the deployment artifacts the platform runs.** Per
   [ADR-0133](docs/adr/0133-we-ship-and-run-the-same-deployment-artifacts.md), the hosted platform consumes only the

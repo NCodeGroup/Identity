@@ -288,6 +288,9 @@ correlation/trace id so a sink can correlate a record to the originating `Activi
 are just handlers, a host adds OpenTelemetry — or Prometheus, or a custom `Meter` — by registering one
 more `IEventHandler`, with no change to any publishing site. Event, action, tenant, and outcome names
 form a **stable tag/dimension vocabulary**, so the taxonomy that names events also names the metrics.
+[ADR-0197](0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) refines this: the event
+counter owns domain outcomes, tenant is never a metric dimension, and request latency and flood-path mechanisms such as
+rate limiting have instruments of their own.
 
 ### A curated event catalog, not an ad-hoc vocabulary
 

@@ -123,6 +123,10 @@ client key enters.**
   another key is refused. A `self_signed_tls_client_auth` client can therefore register its certificates through
   `jwks` or publish them at a `jwks_uri` (RFC 8705 §2.2). The rest of the chain is not kept, since a self-signed
   certificate is matched by thumbprint, not by chain.
+- Because such a key now carries its certificate, a JWT the client signs with it — a client assertion, a request
+  object, or a CIBA request — is refused once that certificate has expired or before it becomes valid (the
+  certificate-lifetime requirement those validations add, with the usual clock skew). A key published without `x5c` is
+  unaffected. The certificate's validity is compared with the UTC clock, so the host's time zone does not shift it.
 - Tenant, server, and resource-server key imports and updates keep their existing checks; applying the key-to-algorithm
   rule to them is a follow-up recorded in the backlog.
 

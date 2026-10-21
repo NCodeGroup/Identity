@@ -217,5 +217,17 @@ public class JwtSecuredAuthorizationResponseTests
         Assert.Equal("abc123", payload.GetProperty("state").GetString());
     }
 
+    [Fact]
+    public async Task Authorize_WithAResponseModeNoHandlerServes_IsRefusedWithoutARedirect()
+    {
+        using var factory = new HostApplicationFactory();
+        var (client, sessionCookie) = await SignInAsync(factory);
+
+        using var response = await AuthorizeAsync(client, sessionCookie, "web_message");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Null(response.Headers.Location);
+    }
+
     #endregion
 }

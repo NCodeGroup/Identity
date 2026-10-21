@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -28,6 +29,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Models;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Messages;
@@ -52,9 +54,15 @@ internal class DefaultAuthorizationEndpointHandler(
     IOpenIdClientResolver clientResolver,
     IAuthorizationRequestProcessor authorizationRequestProcessor,
     IPushedAuthorizationRequestService pushedAuthorizationRequestService,
-    IKnownParameterCollectionProvider knownParameterCollectionProvider
+    IKnownParameterCollectionProvider knownParameterCollectionProvider,
+    IEnumerable<IAuthorizationResponseModeHandler> responseModeHandlers
 ) : IEndpointProvider
 {
+    private FrozenSet<string> ServedResponseModes { get; } =
+        responseModeHandlers
+            .Select(handler => handler.ResponseMode)
+            .ToFrozenSet(StringComparer.Ordinal);
+
     private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
     private IOpenIdClientResolver ClientResolver { get; } = clientResolver;
     private IAuthorizationRequestProcessor AuthorizationRequestProcessor { get; } =
@@ -256,7 +264,7 @@ internal class DefaultAuthorizationEndpointHandler(
         return true;
     }
 
-    private static ClientRedirectContext GetClientRedirectContext(
+    private ClientRedirectContext GetClientRedirectContext(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IRequestValues requestValues
@@ -302,11 +310,15 @@ internal class DefaultAuthorizationEndpointHandler(
                 responseModeStringValues.ToString(),
                 responseTypeNames
             );
+            // A response mode no registered handler serves could not carry even an error back to the client.
             if (
-                settings.TryGetValue(
-                    OpenIdSettingKeys.ResponseModesSupported,
-                    out var responseModesSupported
-                ) && !responseModesSupported.Contains(effectiveResponseMode)
+                !ServedResponseModes.Contains(effectiveResponseMode)
+                || (
+                    settings.TryGetValue(
+                        OpenIdSettingKeys.ResponseModesSupported,
+                        out var responseModesSupported
+                    ) && !responseModesSupported.Contains(effectiveResponseMode)
+                )
             )
             {
                 throw errorFactory

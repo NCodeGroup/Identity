@@ -110,11 +110,9 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
         // interaction_required) bypass that pipeline, so echo the request's state onto them here (OIDC Core 3.1.2.6).
         var state = authorizationRequest.State;
 
-        // the request object may have changed the response mode
-        var requestObject = authorizationRequest.OriginalRequestObject;
-        var effectiveResponseMode = !string.IsNullOrEmpty(requestObject?.ResponseMode)
-            ? requestObject.ResponseMode
-            : clientRedirectContext.ResponseMode;
+        // The request object may have changed the response mode; the request resolves it, including the JARM 'jwt'
+        // shorthand, exactly as validation sees it (ADR-0201).
+        var effectiveResponseMode = authorizationRequest.ResponseMode;
 
         await mediator.SendAsync(
             new ValidateAuthorizationRequestCommand(

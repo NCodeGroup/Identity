@@ -237,6 +237,7 @@ describe('buildCoverageReport — empty discovery document', () => {
     expect(entry(report, 'ep-authorize')).not.toHaveProperty('backlog');
     expect(entry(report, 'grant-code')).not.toHaveProperty('backlog');
     expect(entry(report, 'sec-jar')).not.toHaveProperty('backlog');
+    expect(entry(report, 'sec-jarm')).not.toHaveProperty('backlog');
   });
 
   it('assigns each row the channel that can exercise it', () => {

@@ -16,12 +16,14 @@
 
 #endregion
 
+using System.Collections.Frozen;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Encoders;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Authentication.Pkce;
 using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Contexts;
@@ -37,9 +39,15 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// </summary>
 internal class DefaultValidateAuthorizationRequestHandler(
     IClientScopeService clientScopeService,
-    ISecurityProfileCatalog securityProfileCatalog
+    ISecurityProfileCatalog securityProfileCatalog,
+    IEnumerable<IAuthorizationResponseModeHandler> responseModeHandlers
 ) : ICommandHandler<ValidateAuthorizationRequestCommand>, ISupportMediatorPriority
 {
+    private FrozenSet<string> ServedResponseModes { get; } =
+        responseModeHandlers
+            .Select(handler => handler.ResponseMode)
+            .ToFrozenSet(StringComparer.Ordinal);
+
     private IClientScopeService ClientScopeService { get; } = clientScopeService;
     private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
 
@@ -207,7 +215,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
     }
 
     [AssertionMethod]
-    private static void ValidateRequest(
+    private void ValidateRequest(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IAuthorizationRequest request
@@ -220,6 +228,11 @@ internal class DefaultValidateAuthorizationRequestHandler(
         ValidateConfiguredConstraints(errorFactory, settings, request);
         ValidateResponseType(openIdContext, openIdClient, request);
         ValidateCodeChallenge(errorFactory, openIdClient, request);
+
+        // A response mode is served only by a registered handler (ADR-0201).
+        if (!ServedResponseModes.Contains(request.ResponseMode))
+            throw errorFactory.NotSupported(OpenIdConstants.Parameters.ResponseMode).AsException();
+
         ValidateSupportedValues(errorFactory, settings, request);
     }
 

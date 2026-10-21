@@ -92,17 +92,14 @@ internal static class OpenIdSettingRules
         );
 
     /// <summary>
-    /// Gets the rule for a <c>response_mode</c> value.
+    /// Gets the rule for a <c>response_mode</c> value: a non-empty name with no whitespace. Response modes are an open
+    /// vocabulary — a package adds one by registering its handler — so the rule cannot list them; a request whose
+    /// response mode no registered handler serves is refused at the authorization endpoint (ADR-0150, ADR-0201).
     /// </summary>
     public static SettingRule<string> ResponseMode() =>
-        SettingRules.OneOf(
-            OpenIdConstants.ResponseModes.Query,
-            OpenIdConstants.ResponseModes.Fragment,
-            OpenIdConstants.ResponseModes.FormPost,
-            OpenIdConstants.ResponseModes.QueryJwt,
-            OpenIdConstants.ResponseModes.FragmentJwt,
-            OpenIdConstants.ResponseModes.FormPostJwt,
-            OpenIdConstants.ResponseModes.Jwt
+        SettingRules.Must<string>(
+            "a response mode such as 'query' or 'form_post.jwt': a non-empty value with no whitespace",
+            IsToken
         );
 
     /// <summary>

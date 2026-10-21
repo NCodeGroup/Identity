@@ -127,25 +127,8 @@ entry and/or ADR that closed it.
   [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md).)
   Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/Handlers/`.
-- **`F27` — JARM (JWT Secured Authorization Response Mode) + response-mode extensibility seam.** Signed/encrypted
-  authorization responses (`query.jwt`, `fragment.jwt`, `form_post.jwt`, `jwt`). **Not required by FAPI 2.0** (which
-  reduces the response to `code`+`iss`), so this was spun out of `F16`; it is one of FAPI 1.0 Advanced's two permitted
-  responses and the one its profile (`F83`, which depends on this item) defaults to, and it is independently useful.
-  Current state: the inbound JAR half (RFC 9101 request objects) is fully implemented, but **outbound** response modes
-  are a hardcoded switch (`query` / `fragment` / `form_post`) in
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Results/DefaultAuthorizationResultExecutor.cs` with
-  **no extensibility point** (unlike token grants' `ITokenGrantHandler` strategy collection). Deliverables: **(a)** a
-  response-mode strategy seam (e.g. `IAuthorizationResponseMode`) replacing the switch; **(b)** a JWT-composition
-  service (sign with the tenant key, optionally encrypt with the client key) that wraps the response ticket
-  (`code`/`state`/`iss`/…) as JWT claims before serialization; **(c)** the `query.jwt`/`fragment.jwt`/`form_post.jwt`/
-  `jwt` response-mode constants (`OpenIdConstants.ResponseModes`); **(d)** discovery settings
-  `authorization_signing_alg_values_supported` (+ `_encryption_alg_`/`_enc_values_supported`) and the `.jwt` entries in
-  `response_modes_supported`. The `apps/conformance` `coverage.ts` `sec-jarm` row flips to `verified` once the signing
-  alg / `.jwt` modes are advertised. Touch points: `DefaultAuthorizationResultExecutor`,
-  `OpenIdConstants.ResponseModes`, `IAuthorizationTicket`, `DefaultSettingsProvider` (`response_modes_supported`),
-  `DefaultSettingDescriptorDataSource`. Needs its own ADR.
-- **`F83` — FAPI 1.0 Advanced security profile (`fapi1-advanced`). Depends on `F27`.** FAPI 1.0 Part 2: Advanced
-  (Final, 2021) is not obsolete. FAPI 2.0 (Final, February 2025) succeeds it and is what the OpenID Foundation
+- **`F83` — FAPI 1.0 Advanced security profile (`fapi1-advanced`). Its JARM prerequisite (`F27`) is done.**
+  FAPI 1.0 Part 2: Advanced (Final, 2021) is not obsolete. FAPI 2.0 (Final, February 2025) succeeds it and is what the OpenID Foundation
   recommends for new deployments, but the Foundation still certifies FAPI 1.0 Advanced, and UK Open Banking,
   Australia's Consumer Data Right, and Brazil's Open Finance still mandate it while they plan their moves to FAPI 2.0.
   Supporting it lets a tenant serve those ecosystems; FAPI 2.0 stays the primary target (`F16`, archived). `F16`

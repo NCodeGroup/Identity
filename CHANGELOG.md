@@ -10,6 +10,21 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **JWT-secured authorization responses (JARM).** The authorization endpoint serves the `query.jwt`, `fragment.jwt`,
+  `form_post.jwt`, and `jwt` response modes. They deliver the response, an error included, as one JWT in the `response`
+  parameter. The JWT is issued by the tenant, addressed to the client, and expires after 5 minutes. It is signed with
+  the client's new `authorization_signed_response_alg` (default `RS256`, `PS256` under `fapi2`) and encrypted when the
+  client registers `authorization_encrypted_response_alg`/`_enc`. Discovery advertises the modes and the new
+  `authorization_signing_alg_values_supported` and `authorization_encryption_alg_values_supported`/`_enc_values_supported`
+  ceilings, and Dynamic Client Registration accepts and reports the client metadata. `jwt` resolves to `fragment.jwt`
+  when the response type returns a token, and `query.jwt` is refused for such a response type. See ADR-0201.
+
+- **Response modes are an open vocabulary.** The authorization result executor delivers each response through the
+  `IAuthorizationResponseModeHandler` registered for its response mode instead of a fixed switch, so a package adds a
+  response mode by registering a handler. The `response_mode` setting rule accepts any whitespace-free name, and a
+  request whose response mode no handler serves is refused with `400` and no redirect. `AuthorizationResult` now
+  carries the request's `OpenIdContext` and `OpenIdClient`. See ADR-0201.
+
 - **No CORS on the front-channel endpoints.** The authorization, continue, and end-session endpoints and the
   interactive login/consent surface carry the new `IOpenIdEndpointFrontChannelMetadata` (`WithOpenIdFrontChannel()`),
   and `UseDeveloperCors` applies the developer policy only to endpoints without it, so in Development they no longer

@@ -110,7 +110,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         string clientId,
         string algorithmCode,
         string? audience,
-        TimeSpan? lifetime = null
+        TimeSpan? lifetime = null,
+        string? responseMode = null
     )
     {
         var now = DateTimeOffset.UtcNow;
@@ -123,6 +124,20 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             .Services.GetRequiredService<ISecretKeyFactory>()
             .CreateRsa(new KeyMetadata { KeyId = "client-sig" }, ClientRsa);
 
+        var claims = new Dictionary<string, object>
+        {
+            ["client_id"] = clientId,
+            ["response_type"] = "code",
+            ["redirect_uri"] = RedirectUri,
+            ["scope"] = "openid",
+            ["state"] = State,
+            ["prompt"] = "none",
+            ["code_challenge"] = TestPkce.CodeChallenge,
+            ["code_challenge_method"] = "S256",
+        };
+        if (responseMode is not null)
+            claims["response_mode"] = responseMode;
+
         var encoder = factory.Services.GetRequiredService<IJwtEncoder>();
         return encoder.Encode(
             new JwtEncodingParameters
@@ -133,17 +148,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
                 IssuedAt = now,
                 NotBefore = now,
                 Expires = now + (lifetime ?? TimeSpan.FromMinutes(5)),
-                ExtraPayloadClaims = new Dictionary<string, object>
-                {
-                    ["client_id"] = clientId,
-                    ["response_type"] = "code",
-                    ["redirect_uri"] = RedirectUri,
-                    ["scope"] = "openid",
-                    ["state"] = State,
-                    ["prompt"] = "none",
-                    ["code_challenge"] = TestPkce.CodeChallenge,
-                    ["code_challenge_method"] = "S256",
-                },
+                ExtraPayloadClaims = claims,
             }
         );
     }
@@ -201,6 +206,33 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
 
         var (code, error) = await ReadResultAsync(response);
         Assert.True(!string.IsNullOrEmpty(code), $"error='{error}'");
+    }
+
+    [Fact]
+    public async Task Authorize_WhenRequestObjectRequestsTheJwtResponseMode_ReturnsTheResponseAsAJwt()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var clientId = await RegisterClientAsync(client);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var issuer = await GetIssuerAsync(client);
+        var requestObject = CreateRequestObject(
+            factory,
+            clientId,
+            "RS256",
+            issuer,
+            responseMode: OpenIdConstants.ResponseModes.Jwt
+        );
+
+        using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
+
+        // The 'jwt' shorthand resolves to 'query.jwt' for a code response (JARM §2.3.4).
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        var parameters = HttpUtility.ParseQueryString(location.Query);
+        Assert.Null(parameters["code"]);
+        Assert.False(string.IsNullOrEmpty(parameters["response"]));
     }
 
     [Fact]

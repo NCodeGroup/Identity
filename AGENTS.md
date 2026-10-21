@@ -72,8 +72,9 @@ any step that needs a decision comes back to Opus to be re-planned.
   run `/execute-step` one step at a time, and switch back to the planning model for verification or re-planning.
   Do not hand-edit generated agents to work around a session-specific model-availability error.
 - **Done-when commands** prove one step: the narrowest test that fails until the step is done, such as
-  `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>"` (xUnit v2 on VSTest).
-  `./build/dod.ps1 -Fast` stays the gate for the whole change.
+  `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>" -- RunConfiguration.TreatNoTestsAsError=true`
+  (xUnit v2 on VSTest). Keep the trailing setting: without it a filter that matches no test exits `0`, so the check
+  passes before its test exists. `./build/dod.ps1 -Fast` stays the gate for the whole change.
 - **`PLAN.md` is transient:** the push protocol in [`copilot-instructions.md`](.github/copilot-instructions.md) promotes
   its Decisions, deletes it, and squashes the `Plan step N` / `Re-plan step N` checkpoint commits before anything is
   pushed.

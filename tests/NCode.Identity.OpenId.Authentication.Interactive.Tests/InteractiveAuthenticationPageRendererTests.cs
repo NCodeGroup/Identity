@@ -45,11 +45,7 @@ public class InteractiveAuthenticationPageRendererTests
         Assert.Contains("id=\"username\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"password\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"login\"", html, StringComparison.Ordinal);
-        Assert.Contains(
-            "method=\"post\" action=\"/account/login\"",
-            html,
-            StringComparison.Ordinal
-        );
+        Assert.Contains("method=\"post\" action=\"login\"", html, StringComparison.Ordinal);
         Assert.Contains(
             "name=\"ReturnUrl\" value=\"/connect/authorize\"",
             html,
@@ -185,11 +181,7 @@ public class InteractiveAuthenticationPageRendererTests
 
         Assert.Contains("id=\"consent-allow\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"consent-deny\"", html, StringComparison.Ordinal);
-        Assert.Contains(
-            "method=\"post\" action=\"/account/consent\"",
-            html,
-            StringComparison.Ordinal
-        );
+        Assert.Contains("method=\"post\" action=\"consent\"", html, StringComparison.Ordinal);
         Assert.Contains("Conformance Client", html, StringComparison.Ordinal);
     }
 

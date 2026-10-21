@@ -61,9 +61,8 @@ internal static class InteractiveAuthenticationPageRenderer
         WriteHead(writer, shell, "Sign in");
         Write(
             writer,
-            "<main class=\"auth-card\"><form method=\"post\" action=\""
-                + InteractiveAuthenticationDefaults.LoginPath
-                + "\"><h1>Sign in</h1>"
+            // The action is relative to the page, so the form posts to the login endpoint of the tenant that served it.
+            "<main class=\"auth-card\"><form method=\"post\" action=\"login\"><h1>Sign in</h1>"
         );
         if (!string.IsNullOrEmpty(errorMessage))
         {
@@ -101,9 +100,7 @@ internal static class InteractiveAuthenticationPageRenderer
         WriteHead(writer, shell, "Authorize access");
         Write(
             writer,
-            "<main class=\"auth-card\"><form method=\"post\" action=\""
-                + InteractiveAuthenticationDefaults.ConsentPath
-                + "\"><h1>Authorize access</h1><p>"
+            "<main class=\"auth-card\"><form method=\"post\" action=\"consent\"><h1>Authorize access</h1><p>"
         );
         WriteEncoded(writer, appName);
         Write(writer, " is requesting access to your account. Choose what to allow:</p>");

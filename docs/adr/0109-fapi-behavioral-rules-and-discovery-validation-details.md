@@ -124,6 +124,8 @@ redirect status to the spec-required 303 unconditionally (it is correct for ever
   an endpoint that accepts one and otherwise selects its own 405 endpoint, which carries no metadata, so the CORS
   middleware answered it. `WithOpenIdFrontChannel()` therefore also marks the endpoint's `HttpMethodMetadata` as
   accepting a preflight and wraps its request delegate to refuse one with `405` and an `Allow` header, as routing did,
-  in every host. `FrontChannelCorsTests` asserts the front-channel endpoints answer an allowed origin's request and
-  preflight with no CORS headers, discovery and the token endpoint's preflight still get them, and no front-channel
-  endpoint carries CORS metadata.
+  in every host. A preflight for a method the path does not map then selects no endpoint at all (routing adds no 405
+  endpoint for a preflight, so production now answers it `404`), and `UseDeveloperCors` applies no policy to a
+  preflight without an endpoint either. `FrontChannelCorsTests` asserts the front-channel endpoints answer an allowed
+  origin's request and preflight (mapped or unmapped method) with no CORS headers, discovery and the token endpoint's
+  preflight still get them, and no front-channel endpoint carries CORS metadata.

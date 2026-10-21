@@ -168,6 +168,45 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         );
     }
 
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task UseDeveloperCors_WhenNoEndpoint_AppliesItOnlyToNonPreflightRequests(
+        bool isPreflight,
+        bool expectsAllowOrigin
+    )
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddDeveloperCors(configuration, CreateEnvironment("Development"));
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var app = new ApplicationBuilder(serviceProvider);
+        app.UseDeveloperCors();
+        app.Run(_ => Task.CompletedTask);
+        var pipeline = app.Build();
+
+        var responseFeature = new StartingResponseFeature();
+        var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
+        httpContext.Features.Set<IHttpResponseFeature>(responseFeature);
+        httpContext.Request.Method = isPreflight ? HttpMethods.Options : HttpMethods.Get;
+        httpContext.Request.Headers.Origin = "http://localhost:5173";
+        if (isPreflight)
+        {
+            httpContext.Request.Headers.AccessControlRequestMethod = HttpMethods.Put;
+        }
+
+        await pipeline(httpContext);
+        await responseFeature.StartAsync();
+
+        // A preflight that selects no endpoint may target a front-channel path for a method it does not map.
+        Assert.Equal(
+            expectsAllowOrigin,
+            httpContext.Response.Headers.ContainsKey("Access-Control-Allow-Origin")
+        );
+    }
+
     #endregion
 
     // The CORS middleware writes its headers as the response starts, which DefaultHttpContext never signals.

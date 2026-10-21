@@ -86,6 +86,28 @@ public class FrontChannelCorsTests
         );
     }
 
+    [Theory]
+    [InlineData("/oauth2/authorize")]
+    [InlineData("/oauth2/end_session")]
+    [InlineData("/account/login")]
+    public async Task Preflight_FrontChannelEndpointForAnUnmappedMethod_ReturnsNoCorsHeaders(
+        string path
+    )
+    {
+        using var factory = new HostApplicationFactory();
+        var client = CreateClient(factory);
+        using var request = new HttpRequestMessage(HttpMethod.Options, path);
+        request.Headers.Add("Origin", AllowedOrigin);
+        request.Headers.Add("Access-Control-Request-Method", "PUT");
+
+        using var response = await client.SendAsync(request);
+
+        Assert.False(
+            response.Headers.Contains("Access-Control-Allow-Origin"),
+            $"{path} answered a CORS preflight request with CORS headers."
+        );
+    }
+
     [Fact]
     public async Task Preflight_TokenEndpointFromAnAllowedOrigin_ReturnsCorsHeaders()
     {

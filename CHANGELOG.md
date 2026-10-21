@@ -15,8 +15,9 @@ change to the public API is a **major** version bump.
   and `UseDeveloperCors` applies the developer policy only to endpoints without it, so in Development they no longer
   answer a cross-origin request with `Access-Control-Allow-Origin` (FAPI 2.0 Security Profile §5.3.2.1). The marker
   also makes routing send a CORS preflight to the endpoint itself, which refuses it with `405` and no CORS headers,
-  instead of to routing's metadata-less 405 endpoint, which the CORS middleware answered. A host that adds its own CORS
-  middleware should skip the endpoints whose `Endpoint.IsOpenIdFrontChannel` is `true`. See the ADR-0109 amendment.
+  instead of to routing's metadata-less 405 endpoint, which the CORS middleware answered; `UseDeveloperCors` also
+  answers no preflight that selects no endpoint, such as one for a method a front-channel path does not map. A host
+  that adds its own CORS middleware should skip both. See the ADR-0109 amendment.
 
 - **Strong client-authentication methods at Dynamic Client Registration.** A self-registered client can register
   `private_key_jwt`, `client_secret_jwt`, `tls_client_auth`, or `self_signed_tls_client_auth`: registration accepts

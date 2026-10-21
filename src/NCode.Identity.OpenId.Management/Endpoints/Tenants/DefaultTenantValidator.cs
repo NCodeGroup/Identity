@@ -64,6 +64,7 @@ internal class DefaultTenantValidator(
         var failures = await TenantResolver.ValidateTenantAsync(
             tenant.TenantId,
             tenant.Issuer,
+            tenant.MtlsEndpointAliasAuthority,
             storeManager,
             cancellationToken
         );
@@ -132,12 +133,17 @@ internal class DefaultTenantValidator(
             };
         }
 
-        // The address is judged only when the issuer changes, so a tenant written under an earlier configuration can
-        // still have its other metadata edited.
+        // The address is judged only when the issuer or the mTLS endpoint alias changes, so a tenant written under an
+        // earlier configuration can still have its other metadata edited.
         if (
             string.Equals(
                 model.Issuer ?? string.Empty,
                 tenant.Issuer ?? string.Empty,
+                StringComparison.Ordinal
+            )
+            && string.Equals(
+                model.MtlsEndpointAliasAuthority ?? string.Empty,
+                tenant.MtlsEndpointAliasAuthority ?? string.Empty,
                 StringComparison.Ordinal
             )
         )
@@ -148,6 +154,7 @@ internal class DefaultTenantValidator(
         var failures = await TenantResolver.ValidateTenantAsync(
             tenant.TenantId,
             model.Issuer,
+            model.MtlsEndpointAliasAuthority,
             storeManager,
             cancellationToken
         );

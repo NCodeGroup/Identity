@@ -101,6 +101,9 @@ public interface ITenantResolver
     /// </summary>
     /// <param name="tenantId">The identifier of the tenant.</param>
     /// <param name="issuer">The proposed issuer of the tenant, or <c>null</c> or empty when it has none.</param>
+    /// <param name="mtlsEndpointAliasAuthority">The proposed mutual-TLS endpoint-alias authority of the tenant (RFC 8705
+    /// §5), or <c>null</c> or empty when it has none. When present, it must be an <c>https</c> origin, and the configured
+    /// <see cref="ITenantStrategy"/> judges whether a request to it reaches the tenant.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the unit of work the tenant is written in.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the failures; empty
@@ -108,6 +111,7 @@ public interface ITenantResolver
     ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
         string tenantId,
         string? issuer,
+        string? mtlsEndpointAliasAuthority,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     );

@@ -913,12 +913,6 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.TlsClientAuthSanEmail);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'mtls_endpoint_alias_authority' setting (RFC 8705 §5).
-    /// </summary>
-    public static SettingKey<string> MtlsEndpointAliasAuthority =>
-        new(OpenIdSettingNames.MtlsEndpointAliasAuthority);
-
-    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'client_name' setting (RFC 7591 §2).
     /// </summary>
     public static SettingKey<string> ClientName => new(OpenIdSettingNames.ClientName);

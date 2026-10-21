@@ -146,6 +146,7 @@ internal abstract class TenantStrategy(
     public virtual ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
         string tenantId,
         Uri? issuer,
+        Uri? mtlsEndpointAliasAuthority,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )

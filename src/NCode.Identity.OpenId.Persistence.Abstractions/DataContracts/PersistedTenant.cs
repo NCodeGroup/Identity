@@ -50,6 +50,18 @@ public sealed class PersistedTenant : BasePersistedTenantResource
     public required string? Issuer { get; set; }
 
     /// <summary>
+    /// Gets or sets the RFC 8705 §5 mutual-TLS endpoint-alias authority for this tenant — an <c>https</c> origin (for
+    /// example <c>https://acme.mtls.example</c>) the discovery document mirrors the tenant's endpoints under in
+    /// <c>mtls_endpoint_aliases</c>, so mutual-TLS clients reach them on a host that requests a client certificate. The
+    /// host-based tenant strategy routes a request to this host to the tenant, exactly as it routes the issuer's host.
+    /// </summary>
+    /// <remarks>
+    /// Optional. When <c>null</c>, the tenant publishes no aliases and mutual-TLS clients call the issuer's endpoints.
+    /// </remarks>
+    [MaxLength(OpenIdMaxLengths.Issuer)]
+    public string? MtlsEndpointAliasAuthority { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the tenant is disabled.
     /// </summary>
     public required bool IsDisabled { get; set; }

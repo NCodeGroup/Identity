@@ -647,6 +647,7 @@ public class DefaultOpenIdTenantFactory(
             persistedTenant.TenantId,
             persistedTenant.DisplayName,
             tenantIssuer,
+            persistedTenant.MtlsEndpointAliasAuthority,
             tenantBaseAddress,
             tenantSettings,
             tenantSecrets,

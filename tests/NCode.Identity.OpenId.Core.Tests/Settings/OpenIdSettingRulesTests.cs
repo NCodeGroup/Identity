@@ -263,19 +263,6 @@ public class OpenIdSettingRulesTests
     }
 
     [Theory]
-    [InlineData("https://mtls.example.com", true)]
-    [InlineData("https://mtls.example.com/", true)]
-    [InlineData("https://mtls.example.com:8443", true)]
-    [InlineData("http://mtls.example.com", false)]
-    [InlineData("https://mtls.example.com/path", false)]
-    [InlineData("https://mtls.example.com/?x=1", false)]
-    [InlineData("https://user@mtls.example.com", false)]
-    public void HttpsOrigin_AcceptsOnlyAnHttpsOrigin(string value, bool expected)
-    {
-        Assert.Equal(expected, IsValid(OpenIdSettingRules.HttpsOrigin(), value));
-    }
-
-    [Theory]
     [InlineData("application/oauth-authz-req+jwt", true)]
     [InlineData("application/jwt", true)]
     [InlineData("application/jwt; charset=utf-8", false)]

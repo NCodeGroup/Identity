@@ -68,6 +68,36 @@ public sealed class TenantAddressRulesTests
 
     #endregion
 
+    #region TryParseMtlsEndpointAliasAuthority Tests
+
+    [Theory]
+    [InlineData("https://mtls.example.com", true)]
+    [InlineData("https://mtls.example.com/", true)]
+    [InlineData("https://mtls.example.com:8443", true)]
+    [InlineData("http://mtls.example.com", false)]
+    [InlineData("http://localhost", false)]
+    [InlineData("https://mtls.example.com/path", false)]
+    [InlineData("https://mtls.example.com/?x=1", false)]
+    [InlineData("https://mtls.example.com#x", false)]
+    [InlineData("https://user@mtls.example.com", false)]
+    [InlineData("mtls.example.com", false)]
+    [InlineData("", false)]
+    public void TryParseMtlsEndpointAliasAuthority_AcceptsOnlyAnHttpsOrigin(
+        string authority,
+        bool expected
+    )
+    {
+        var result = TenantAddressRules.TryParseMtlsEndpointAliasAuthority(
+            authority,
+            out var authorityUri
+        );
+
+        Assert.Equal(expected, result);
+        Assert.Equal(expected, authorityUri is not null);
+    }
+
+    #endregion
+
     #region TryParseIssuer Tests
 
     [Theory]

@@ -69,6 +69,8 @@ internal static class TestOpenIdDbContextSetup
             Issuer = null,
             NormalizedIssuer = null,
             NormalizedIssuerHost = null,
+            MtlsEndpointAliasAuthority = null,
+            NormalizedMtlsEndpointAliasHost = null,
             ConcurrencyToken = string.Empty,
             SettingsConcurrencyToken = string.Empty,
             SecretsConcurrencyToken = string.Empty,

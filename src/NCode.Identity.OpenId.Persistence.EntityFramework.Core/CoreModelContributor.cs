@@ -72,5 +72,12 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
             .Entity<TenantEntity>()
             .HasIndex(entity => entity.NormalizedIssuerHost)
             .HasFilter("\"NormalizedIssuerHost\" IS NOT NULL");
+
+        // The second routing key for the host-based strategy: the host of the tenant's mutual-TLS endpoint-alias
+        // authority (RFC 8705 §5). NOT unique, for the same reason as the issuer host.
+        modelBuilder
+            .Entity<TenantEntity>()
+            .HasIndex(entity => entity.NormalizedMtlsEndpointAliasHost)
+            .HasFilter("\"NormalizedMtlsEndpointAliasHost\" IS NOT NULL");
     }
 }

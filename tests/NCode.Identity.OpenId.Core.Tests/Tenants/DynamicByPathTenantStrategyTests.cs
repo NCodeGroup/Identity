@@ -143,6 +143,7 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
         var failures = await strategy.ValidateTenantAsync(
             "acme",
             new Uri(issuer),
+            null,
             mocks.Create<IStoreManager>().Object,
             CancellationToken.None
         );
@@ -166,6 +167,7 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
         var failures = await strategy.ValidateTenantAsync(
             "acme",
             new Uri(issuer),
+            null,
             mocks.Create<IStoreManager>().Object,
             CancellationToken.None
         );
@@ -189,12 +191,14 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
         var nested = await strategy.ValidateTenantAsync(
             "acme",
             new Uri("https://op.example/tenants/acme"),
+            null,
             storeManager,
             CancellationToken.None
         );
         var flat = await strategy.ValidateTenantAsync(
             "acme",
             new Uri("https://op.example/acme"),
+            null,
             storeManager,
             CancellationToken.None
         );
@@ -213,6 +217,7 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
         var failures = await strategy.ValidateTenantAsync(
             "acme",
             issuer: null,
+            null,
             mocks.Create<IStoreManager>().Object,
             CancellationToken.None
         );

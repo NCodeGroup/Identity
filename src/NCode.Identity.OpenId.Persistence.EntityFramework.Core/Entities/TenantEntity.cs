@@ -87,6 +87,21 @@ public sealed class TenantEntity : ISupportConcurrencyToken
     [MaxLength(OpenIdMaxLengths.TenantIssuerHost)]
     public required string? NormalizedIssuerHost { get; set; }
 
+    /// <summary>
+    /// Gets or sets the mutual-TLS endpoint-alias authority of the tenant (RFC 8705 §5).
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(OpenIdMaxLengths.Issuer)]
+    public required string? MtlsEndpointAliasAuthority { get; set; }
+
+    /// <summary>
+    /// Gets or sets the normalized host component of <see cref="MtlsEndpointAliasAuthority"/>, the second routing key of
+    /// the host-based tenant strategy. Derived from the authority on every write and never written independently.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(OpenIdMaxLengths.TenantIssuerHost)]
+    public required string? NormalizedMtlsEndpointAliasHost { get; set; }
+
     //
 
     /// <inheritdoc />

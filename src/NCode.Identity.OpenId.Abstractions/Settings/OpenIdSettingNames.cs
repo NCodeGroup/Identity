@@ -910,13 +910,6 @@ public static class OpenIdSettingNames
     public const string TlsClientAuthRevocationMode = "tls_client_auth_revocation_mode";
 
     /// <summary>
-    /// Contains the name of <c>mtls_endpoint_alias_authority</c> setting (RFC 8705 §5): when set to a
-    /// scheme-and-authority (for example <c>https://mtls.op.example</c>), the discovery document advertises an
-    /// <c>mtls_endpoint_aliases</c> object whose endpoint URLs are rewritten to that mutual-TLS authority.
-    /// </summary>
-    public const string MtlsEndpointAliasAuthority = "mtls_endpoint_alias_authority";
-
-    /// <summary>
     /// Contains the name of the per-client <c>client_name</c> setting (RFC 7591 §2): the human-readable name of the
     /// client presented to the end-user, for example on the consent page.
     /// </summary>

@@ -1366,20 +1366,6 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Or,
             };
 
-            // mtls_endpoint_alias_authority: scheme-and-authority that the discovery handler uses to synthesize the
-            // mtls_endpoint_aliases object (RFC 8705 §5). Not itself advertised (the handler emits the derived object);
-            // Override (Replace): a child fully replaces the parent value.
-            yield return new SettingDescriptor<string>
-            {
-                Name = OpenIdSettingNames.MtlsEndpointAliasAuthority,
-                AppliesTo = Tenants,
-                Rule = SettingRules.EmptyOr(OpenIdSettingRules.HttpsOrigin()),
-                Default = string.Empty,
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Replace,
-            };
-
             // tls_client_auth_trust_anchors: the PEM CA certificates a tls_client_auth certificate must chain to; a
             // self-issued certificate is an anchor, any other an intermediate. Empty (the default) trusts no
             // certificate, so tls_client_auth fails closed until a tenant or client configures its PKI. Not

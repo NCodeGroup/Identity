@@ -32,6 +32,7 @@ internal class DefaultOpenIdTenant(
     string tenantId,
     string displayName,
     string issuer,
+    string? mtlsEndpointAliasAuthority,
     UriDescriptor baseAddress,
     AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> settingsReference,
     AsyncSharedReferenceLease<ISecretKeyCollectionProvider> secretsReference,
@@ -51,6 +52,9 @@ internal class DefaultOpenIdTenant(
 
     /// <inheritdoc />
     public override string Issuer { get; } = issuer;
+
+    /// <inheritdoc />
+    public override string? MtlsEndpointAliasAuthority { get; } = mtlsEndpointAliasAuthority;
 
     /// <inheritdoc />
     public override UriDescriptor BaseAddress { get; } = baseAddress;

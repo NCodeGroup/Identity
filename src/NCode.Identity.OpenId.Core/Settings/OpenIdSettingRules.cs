@@ -248,24 +248,6 @@ internal static class OpenIdSettingRules
         );
 
     /// <summary>
-    /// Gets the rule for the scheme and authority under which the mutual-TLS endpoint aliases are published: an
-    /// <c>https</c> origin with no path, query, fragment, or user information.
-    /// </summary>
-    public static SettingRule<string> HttpsOrigin() =>
-        SettingRules.Must<string>(
-            "an https origin such as 'https://mtls.example.com'",
-            value =>
-                TryParseAbsoluteUri(value, out var uri)
-                && IsHttpsScheme(uri)
-                && uri.UserInfo.Length == 0
-                && string.Equals(
-                    uri.GetLeftPart(UriPartial.Authority),
-                    value.TrimEnd('/'),
-                    StringComparison.OrdinalIgnoreCase
-                )
-        );
-
-    /// <summary>
     /// Gets the rule for a media type that is compared verbatim with a response's content type: a <c>type/subtype</c>
     /// with no parameters.
     /// </summary>

@@ -431,3 +431,17 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Mtl
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.MtlsEndpointAliasAuthority.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedMtlsEndpointAliasHost.get -> string?
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedMtlsEndpointAliasHost.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.Count.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.Count.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.Day.get -> System.DateOnly
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.Day.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.Meter.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.Meter.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.TenantId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.TenantUsageEntity() -> void

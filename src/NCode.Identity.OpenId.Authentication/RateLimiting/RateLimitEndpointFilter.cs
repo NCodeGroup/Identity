@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Results;
 
@@ -28,10 +29,15 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// <c>429 Too Many Requests</c> before its endpoint runs. It sits outside the exception filter, so a refused request is
 /// not audited as a protocol error: an attacker flooding the endpoint must not flood the audit log as well.
 /// </summary>
-// See ADR-0196.
-internal sealed class RateLimitEndpointFilter(IRequestRateLimiter rateLimiter) : IEndpointFilter
+// See ADR-0196; a request every limit admits is the tenant's usage (ADR-0199).
+internal sealed class RateLimitEndpointFilter(
+    IRequestRateLimiter rateLimiter,
+    ITenantUsageRecorder usageRecorder
+) : IEndpointFilter
 {
     private IRequestRateLimiter RateLimiter { get; } = rateLimiter;
+
+    private ITenantUsageRecorder UsageRecorder { get; } = usageRecorder;
 
     /// <inheritdoc />
     public async ValueTask<object?> InvokeAsync(
@@ -54,6 +60,7 @@ internal sealed class RateLimitEndpointFilter(IRequestRateLimiter rateLimiter) :
         if (decision.RetryAfter is { } retryAfter)
             return RateLimitErrors.Create(openIdContext, retryAfter).AsHttpResult();
 
+        UsageRecorder.Record(openIdContext.Tenant.TenantId, TenantUsageMeters.Requests);
         return await next(context);
     }
 }

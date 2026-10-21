@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Per-tenant usage ledger.** Every tenant's daily usage is recorded durably for billing and customer reports in a new
+  `TenantUsage` table (migration `AddTenantUsage`), one row per tenant, UTC day, and meter: `requests` (requests
+  admitted by the rate limits and the daily quota) and `token_requests` (confidential clients' token requests admitted
+  by the token quota). The meter vocabulary is open: a package records its own through `ITenantUsageRecorder`. Each
+  replica counts in memory and adds to the ledger every minute (`TenantUsageOptions.FlushInterval`), and the ledger
+  keeps 400 days (`TenantUsageOptions.Retention`). `GET /api/tenants/{tenantId}/usage?from=&to=` reads a tenant's
+  usage for up to 366 days, the last 30 by default. See
+  [ADR-0199](docs/adr/0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md).
 - **Per-tenant daily quotas.** Two tenant settings bound a tenant's consumption per UTC calendar day for plan tiers:
   `quota_tenant_requests_per_day` (requests to its protocol endpoints, judged after the per-minute rate limits) and
   `quota_tenant_token_requests_per_day` (token requests from confidential clients, judged at the token endpoint after

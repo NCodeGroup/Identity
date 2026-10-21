@@ -234,3 +234,4 @@ standards.
 | [0196](./0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) | Tenants are rate limited through a shared expiring counter set | Accepted |
 | [0197](./0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) | Protocol metrics have one owner per signal and only bounded dimensions | Accepted |
 | [0198](./0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) | Plan-tier quotas are daily UTC counts enforced at the quota | Accepted |
+| [0199](./0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) | Tenant usage is a daily ledger that replicas add to | Accepted |

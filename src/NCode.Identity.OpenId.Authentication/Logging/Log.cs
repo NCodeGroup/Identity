@@ -406,4 +406,22 @@ internal static partial class Log
         string partition,
         Exception exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantUsageFlushFailed,
+        Level = LogLevel.Warning,
+        Message = "The usage of {EntryCount} tenant-day meters could not be added to the usage ledger; it is kept in memory and added by the next flush."
+    )]
+    internal static partial void TenantUsageFlushFailed(
+        this ILogger logger,
+        int entryCount,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantUsagePruneFailed,
+        Level = LogLevel.Warning,
+        Message = "The usage ledger's expired days could not be removed; the removal is retried at the next flush."
+    )]
+    internal static partial void TenantUsagePruneFailed(this ILogger logger, Exception exception);
 }

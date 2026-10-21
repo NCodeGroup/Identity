@@ -81,8 +81,8 @@ ceiling.**
 - Anonymous traffic spends the request quota, as it spends the tenant's per-minute limit; the per-address limit bounds
   how much of it one address can spend. The token-request quota cannot be spent without a confidential client's
   credentials.
-- A tenant's current consumption is the day's counter, which lives only until midnight. A durable usage history for
-  billing and overage reporting is tracked in [`BACKLOG.md`](../../BACKLOG.md) as `F81`.
+- A tenant's current consumption is the day's counter, which lives only until midnight. The durable usage history for
+  billing is the ledger of [ADR-0199](0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md).
 - A deployment that runs several replicas must configure Valkey for quotas to hold, as for rate limits.
 - A Valkey outage lets requests through uncounted, so a tenant may exceed its quota by the traffic served during the
   outage.

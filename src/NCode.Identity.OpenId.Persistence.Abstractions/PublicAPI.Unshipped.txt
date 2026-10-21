@@ -407,3 +407,18 @@ NCode.Identity.OpenId.Persistence.Stores.ITenantStore.GetOrDefaultByHostAsync(st
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.ListTenantIdsByHostAsync(string! host, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.MtlsEndpointAliasAuthority.get -> string?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.MtlsEndpointAliasAuthority.set -> void
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.UsageMeter = 100 -> int
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.Count.get -> long
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.Count.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.Day.get -> System.DateOnly
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.Day.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.Meter.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.Meter.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.PersistedTenantUsage() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.TenantId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.TenantId.init -> void
+NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore
+NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore.AddAsync(string! tenantId, System.DateOnly day, string! meter, long count, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore.ListAsync(string! tenantId, System.DateOnly firstDay, System.DateOnly lastDay, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage!>!>
+NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore.RemoveBeforeAsync(System.DateOnly day, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>

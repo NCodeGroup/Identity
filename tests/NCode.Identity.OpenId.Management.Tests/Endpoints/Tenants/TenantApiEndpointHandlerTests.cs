@@ -427,6 +427,94 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     #endregion
 
+    #region GetUsageAsync Tests
+
+    [Fact]
+    public async Task GetUsageAsync_WhenAuthorized_ReturnsTheLedgerForTheRange()
+    {
+        var from = new DateOnly(2026, 10, 1);
+        var to = new DateOnly(2026, 10, 2);
+        SetupAuthorization(AuthorizationResult.Success());
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        var mockUsageStore = MockRepository.Create<ITenantUsageStore>();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantUsageStore>())
+            .Returns(mockUsageStore.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        mockUsageStore
+            .Setup(x => x.ListAsync(TenantId, from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new PersistedTenantUsage
+                {
+                    TenantId = TenantId,
+                    Day = from,
+                    Meter = "requests",
+                    Count = 42,
+                },
+            ])
+            .Verifiable();
+
+        var result = await Handler.GetUsageAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            from,
+            to,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<TenantUsageResource>>(result);
+        Assert.Equal(TenantId, ok.Value?.TenantId);
+        Assert.Equal(from, ok.Value?.From);
+        Assert.Equal(to, ok.Value?.To);
+        var entry = Assert.Single(ok.Value!.Entries);
+        Assert.Equal((from, "requests", 42L), (entry.Day, entry.Meter, entry.Count));
+    }
+
+    [Theory]
+    [InlineData(2, 1)]
+    [InlineData(1, 367)]
+    public async Task GetUsageAsync_WhenTheRangeIsReversedOrTooLong_ReturnsValidationProblem(
+        int fromDay,
+        int toDay
+    )
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        var start = new DateOnly(2026, 1, 1);
+
+        var result = await Handler.GetUsageAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            start.AddDays(fromDay - 1),
+            start.AddDays(toDay - 1),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Contains("from", problem.ProblemDetails.Errors.Keys);
+    }
+
+    [Fact]
+    public async Task GetUsageAsync_WhenUnauthenticated_ReturnsUnauthorized()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetUsageAsync(
+            CreateHttpContext(authenticated: false),
+            TenantId,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<UnauthorizedHttpResult>(result);
+    }
+
+    #endregion
+
     #region GetSettingsAsync Tests
 
     [Fact]

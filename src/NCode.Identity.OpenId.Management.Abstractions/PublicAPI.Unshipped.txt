@@ -632,3 +632,21 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.MtlsEndpointAl
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.MtlsEndpointAliasAuthority.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.MtlsEndpointAliasAuthority.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.MtlsEndpointAliasAuthority.set -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.Count.get -> long
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.Count.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.Day.get -> System.DateOnly
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.Day.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.Meter.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.Meter.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.TenantUsageEntry() -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.Entries.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry!>!
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.Entries.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.From.get -> System.DateOnly
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.From.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.To.get -> System.DateOnly
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.To.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.TenantUsageResource() -> void

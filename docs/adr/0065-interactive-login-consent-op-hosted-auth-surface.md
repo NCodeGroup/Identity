@@ -1,6 +1,9 @@
 # 65. Interactive login/consent as the OP-hosted `apps/auth` surface
 
-- **Status:** Accepted (packaging superseded by [ADR-0070](0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md))
+- **Status:** Accepted (packaging superseded by
+  [ADR-0070](0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md); amended by
+  [ADR-0193](0193-the-interactive-surface-is-served-under-the-tenant-route.md): the surface and its bundle are served
+  beneath the tenant route by the surface's own endpoints, and `UseInteractiveAuthentication()` is removed)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

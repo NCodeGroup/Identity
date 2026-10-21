@@ -46,7 +46,15 @@ public class InteractiveTenantRouteTests
     private const string AntiforgeryFieldName = "__RequestVerificationToken";
     private const string AntiforgeryCookiePrefix = ".AspNetCore.Antiforgery";
 
-    private static ConfiguredHostApplicationFactory CreatePathFactory() =>
+    private const string BundleIndexHtml =
+        "<!doctype html><html><head><script type=\"module\" src=\"./assets/app.js\"></script></head>"
+        + "<body><div id=\"root\"></div></body></html>";
+
+    private const string BundleScript = "console.log('app');";
+
+    private static ConfiguredHostApplicationFactory CreatePathFactory(
+        string? bundleRootPath = null
+    ) =>
         new(
             new Dictionary<string, string?>
             {
@@ -55,8 +63,18 @@ public class InteractiveTenantRouteTests
                     .DynamicByPath,
                 ["OpenId:TenantResolution:DynamicByPath:IssuerTemplate"] =
                     "http://localhost/{tenantId}",
+                ["InteractiveAuthentication:BundleRootPath"] = bundleRootPath,
             }
         );
+
+    private static DirectoryInfo CreateBundle()
+    {
+        var bundleRoot = Directory.CreateTempSubdirectory("bundle-");
+        File.WriteAllText(Path.Combine(bundleRoot.FullName, "index.html"), BundleIndexHtml);
+        var assets = bundleRoot.CreateSubdirectory("assets");
+        File.WriteAllText(Path.Combine(assets.FullName, "app.js"), BundleScript);
+        return bundleRoot;
+    }
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
         factory.CreateClient(
@@ -109,6 +127,110 @@ public class InteractiveTenantRouteTests
             "/acme/account/login?ReturnUrl=%2Facme%2Faccount",
             response.Headers.Location?.OriginalString
         );
+    }
+
+    [Fact]
+    public async Task GetAccount_WhenRequestedWithATrailingSlash_IsServedAsTheAccountPage()
+    {
+        using var factory = CreatePathFactory();
+        await SeedTenantAsync(factory, "acme");
+        using var client = CreateClient(factory);
+
+        // The bundle links to the account page as its base, `/acme/account/`.
+        using var response = await client.GetAsync("/acme/account/");
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.StartsWith(
+            "/acme/account/login?ReturnUrl=",
+            response.Headers.Location?.OriginalString,
+            StringComparison.Ordinal
+        );
+    }
+
+    #endregion
+
+    #region Bundle Tests
+
+    [Fact]
+    public async Task GetLogin_WhenBundlePresent_SetsTheDocumentBaseToTheTenantsSurface()
+    {
+        var bundleRoot = CreateBundle();
+        try
+        {
+            using var factory = CreatePathFactory(bundleRoot.FullName);
+            await SeedTenantAsync(factory, "acme");
+            using var client = CreateClient(factory);
+
+            using var response = await client.GetAsync("/acme/account/login");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var html = await response.Content.ReadAsStringAsync();
+            Assert.StartsWith(
+                "<!doctype html><html><head><base href=\"/acme/account/\" /><script",
+                html,
+                StringComparison.Ordinal
+            );
+        }
+        finally
+        {
+            bundleRoot.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GetAsset_WhenTenantIsSelectedByPath_ServesTheBundleFileBeneathTheTenantRoute()
+    {
+        var bundleRoot = CreateBundle();
+        try
+        {
+            using var factory = CreatePathFactory(bundleRoot.FullName);
+            await SeedTenantAsync(factory, "acme");
+            using var client = CreateClient(factory);
+
+            using var response = await client.GetAsync("/acme/account/assets/app.js");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
+            Assert.Equal(BundleScript, await response.Content.ReadAsStringAsync());
+            var entityTag = response.Headers.ETag;
+            Assert.NotNull(entityTag);
+
+            // The validator lets the browser revalidate the file without downloading it again.
+            using var revalidation = new HttpRequestMessage(
+                HttpMethod.Get,
+                "/acme/account/assets/app.js"
+            );
+            revalidation.Headers.IfNoneMatch.Add(entityTag);
+            using var revalidated = await client.SendAsync(revalidation);
+            Assert.Equal(HttpStatusCode.NotModified, revalidated.StatusCode);
+        }
+        finally
+        {
+            bundleRoot.Delete(recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("/account/assets/app.js")]
+    [InlineData("/acme/account/assets/missing.js")]
+    [InlineData("/acme/account/assets")]
+    public async Task GetAsset_WhenThePathNamesNoFileOfTheTenantsBundle_ReturnsNotFound(string path)
+    {
+        var bundleRoot = CreateBundle();
+        try
+        {
+            using var factory = CreatePathFactory(bundleRoot.FullName);
+            await SeedTenantAsync(factory, "acme");
+            using var client = CreateClient(factory);
+
+            using var response = await client.GetAsync(path);
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+        finally
+        {
+            bundleRoot.Delete(recursive: true);
+        }
     }
 
     #endregion

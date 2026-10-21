@@ -26,6 +26,10 @@ public sealed class InteractiveBundleReaderTests : IDisposable
     private const string IndexHtml =
         "<!doctype html><html><head></head><body><div id=\"root\"></div></body></html>";
 
+    // The same length as IndexHtml, so only the last-write time tells the two versions apart.
+    private const string RebuiltIndexHtml =
+        "<!doctype html><html><head></head><body><div id=\"root\"></div></body></HTML>";
+
     private DirectoryInfo BundleRoot { get; } = Directory.CreateTempSubdirectory("bundle-");
 
     private string IndexPath => Path.Combine(BundleRoot.FullName, "index.html");
@@ -43,86 +47,6 @@ public sealed class InteractiveBundleReaderTests : IDisposable
     {
         File.WriteAllText(IndexPath, html);
         File.SetLastWriteTimeUtc(IndexPath, lastWriteTimeUtc);
-    }
-
-    #endregion
-
-    #region TryReadIndexHtmlAsync Tests
-
-    [Fact]
-    public async Task TryReadIndexHtmlAsync_WhenNoBundleIsConfigured_ReturnsNull()
-    {
-        var reader = CreateReader(bundleRootPath: null);
-
-        var html = await reader.TryReadIndexHtmlAsync(CancellationToken.None);
-
-        Assert.Null(html);
-    }
-
-    [Fact]
-    public async Task TryReadIndexHtmlAsync_WhenTheIndexIsMissing_ReturnsNull()
-    {
-        var reader = CreateReader(BundleRoot.FullName);
-
-        var html = await reader.TryReadIndexHtmlAsync(CancellationToken.None);
-
-        Assert.Null(html);
-    }
-
-    [Fact]
-    public async Task TryReadIndexHtmlAsync_WhenTheIndexExists_ReturnsItsContents()
-    {
-        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        var reader = CreateReader(BundleRoot.FullName);
-
-        var html = await reader.TryReadIndexHtmlAsync(CancellationToken.None);
-
-        Assert.Equal(IndexHtml, html);
-    }
-
-    [Fact]
-    public async Task TryReadIndexHtmlAsync_WhenTheIndexIsUnchanged_ReturnsTheCachedContents()
-    {
-        var lastWriteTimeUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        WriteIndex(IndexHtml, lastWriteTimeUtc);
-        var reader = CreateReader(BundleRoot.FullName);
-        await reader.TryReadIndexHtmlAsync(CancellationToken.None);
-
-        // Same length and last-write time: only a cached copy can still return the original contents.
-        WriteIndex(IndexHtml.ToUpperInvariant(), lastWriteTimeUtc);
-
-        var html = await reader.TryReadIndexHtmlAsync(CancellationToken.None);
-
-        Assert.Equal(IndexHtml, html);
-    }
-
-    [Fact]
-    public async Task TryReadIndexHtmlAsync_WhenTheIndexIsRewritten_ReturnsTheNewContents()
-    {
-        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        var reader = CreateReader(BundleRoot.FullName);
-        await reader.TryReadIndexHtmlAsync(CancellationToken.None);
-
-        var rebuilt = IndexHtml.ToUpperInvariant();
-        WriteIndex(rebuilt, new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc));
-
-        var html = await reader.TryReadIndexHtmlAsync(CancellationToken.None);
-
-        Assert.Equal(rebuilt, html);
-    }
-
-    [Fact]
-    public async Task TryReadIndexHtmlAsync_WhenTheIndexIsRemoved_ReturnsNull()
-    {
-        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        var reader = CreateReader(BundleRoot.FullName);
-        await reader.TryReadIndexHtmlAsync(CancellationToken.None);
-
-        File.Delete(IndexPath);
-
-        var html = await reader.TryReadIndexHtmlAsync(CancellationToken.None);
-
-        Assert.Null(html);
     }
 
     #endregion
@@ -173,6 +97,62 @@ public sealed class InteractiveBundleReaderTests : IDisposable
     public async Task TryReadShellAsync_WhenNoBundleIsConfigured_ReturnsNull()
     {
         var reader = CreateReader(bundleRootPath: null);
+
+        var shell = await reader.TryReadShellAsync(CancellationToken.None);
+
+        Assert.Null(shell);
+    }
+
+    [Fact]
+    public async Task TryReadShellAsync_WhenTheIndexIsMissing_ReturnsNull()
+    {
+        var reader = CreateReader(BundleRoot.FullName);
+
+        var shell = await reader.TryReadShellAsync(CancellationToken.None);
+
+        Assert.Null(shell);
+    }
+
+    [Fact]
+    public async Task TryReadShellAsync_WhenTheIndexMetadataIsUnchanged_ReturnsTheCachedContents()
+    {
+        var lastWriteTimeUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        WriteIndex(IndexHtml, lastWriteTimeUtc);
+        var reader = CreateReader(BundleRoot.FullName);
+        await reader.TryReadShellAsync(CancellationToken.None);
+
+        // Same length and last-write time: only a cached copy can still return the original contents.
+        WriteIndex(RebuiltIndexHtml, lastWriteTimeUtc);
+
+        var shell = await reader.TryReadShellAsync(CancellationToken.None);
+
+        Assert.NotNull(shell);
+        Assert.Equal("</div></body></html>", shell.Tail.ToString());
+    }
+
+    [Fact]
+    public async Task TryReadShellAsync_WhenTheIndexIsRewritten_ReturnsTheNewContents()
+    {
+        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var reader = CreateReader(BundleRoot.FullName);
+        await reader.TryReadShellAsync(CancellationToken.None);
+
+        WriteIndex(RebuiltIndexHtml, new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc));
+
+        var shell = await reader.TryReadShellAsync(CancellationToken.None);
+
+        Assert.NotNull(shell);
+        Assert.Equal("</div></body></HTML>", shell.Tail.ToString());
+    }
+
+    [Fact]
+    public async Task TryReadShellAsync_WhenTheIndexIsRemoved_ReturnsNull()
+    {
+        WriteIndex(IndexHtml, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var reader = CreateReader(BundleRoot.FullName);
+        await reader.TryReadShellAsync(CancellationToken.None);
+
+        File.Delete(IndexPath);
 
         var shell = await reader.TryReadShellAsync(CancellationToken.None);
 

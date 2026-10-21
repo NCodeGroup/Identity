@@ -52,10 +52,6 @@ internal sealed class InteractiveBundleReader(
     // Replaced as a whole, so a request sees either the previous or the new version, never a mix of the two.
     private InteractiveBundleIndex? CachedIndex { get; set; }
 
-    /// <summary>
-    /// Reads the single-page bundle's <c>index.html</c>, or returns <see langword="null"/> when no bundle is
-    /// configured or available.
-    /// </summary>
     /// <inheritdoc />
     public void Dispose() => _assetProvider?.Dispose();
 
@@ -93,9 +89,6 @@ internal sealed class InteractiveBundleReader(
         provider.Dispose();
         return existing;
     }
-
-    public async ValueTask<string?> TryReadIndexHtmlAsync(CancellationToken cancellationToken) =>
-        (await TryReadIndexAsync(cancellationToken))?.Html;
 
     /// <summary>
     /// Reads the single-page bundle's <c>index.html</c> split at its <c>#root</c> mount point, or returns
@@ -140,7 +133,6 @@ internal sealed class InteractiveBundleReader(
         var index = new InteractiveBundleIndex(
             lastWriteTimeUtc,
             length,
-            html,
             InteractiveBundleShell.TryCreate(html)
         );
         CachedIndex = index;

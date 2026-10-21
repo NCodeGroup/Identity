@@ -39,11 +39,21 @@ cookie is scoped to the tenant's path.**
    returns a tenant's session only to that tenant's endpoints. RFC 6265 §5.1.4 path-matching treats `/acme` as matching
    `/acme/...` but not `/acme2`. A per-tenant cookie name was rejected: `CookieBuilder.Name` is resolved without the
    request, and a name alone still sends every tenant's cookie to every tenant.
-5. **The bundle is served beneath the tenant route and finds itself.** The server serves the `apps/auth` bundle's
-   assets from a catch-all `GET {tenant}/account/{**asset}` endpoint in the group, and injects
-   `<base href="{tenant path}/account/">` into the HTML it serves. The bundle is built with a relative base and resolves
-   its API and page paths against `document.baseURI`, not against absolute `/account/...` constants. This replaces the
-   root static-file mount (`UseInteractiveAuthentication`). Decision 5 is not yet implemented (backlog `F50`).
+5. **The bundle is served beneath the tenant route and finds itself.**
+   - The surface's own endpoints serve the `apps/auth` bundle's files from a catch-all
+     `GET|HEAD {tenant}/account/{**asset}` route, ordered after the literal page and API routes. A
+     `PhysicalFileProvider` rooted at the bundle resolves the file, so a path that navigates above the root or names a
+     hidden file is answered `404`, as is a file type with no known content type. Files carry `ETag` and
+     `Last-Modified` validators and support range requests. This replaces the root static-file middleware
+     (`UseInteractiveAuthentication`), which could serve the bundle at one path only.
+   - Every page the surface serves sets the document's base to the surface beneath the request's tenant:
+     `<base href="{tenant path}/account/">` is written first inside `<head>`. That covers the login and consent pages,
+     the pages the bundle draws entirely, and the authorization error page served at the authorize endpoint. The
+     pages without the bundle carry the base too, so their relative form actions resolve the same way.
+   - The bundle is built with a relative base (`./`), so its asset URLs resolve against that `<base href>`. It resolves
+     its API and page paths, which are relative to the surface, against `document.baseURI`. It never assumes where it
+     is mounted. `/acme/account/` (with a trailing slash) is the account page's URL beneath `acme`, which routing
+     matches as `/acme/account`.
 
 ## Options considered
 
@@ -63,8 +73,9 @@ cookie is scoped to the tenant's path.**
   isolated from each other selects tenants by host.
 - `StaticSingle` with no tenant path behaves as before, except that the session cookie and the form actions are now
   relative to the tenant.
-- Until decision 5 lands, the server-rendered no-JavaScript pages work under `DynamicByPath`, but the `apps/auth`
-  bundle's absolute asset and API paths do not.
+- The `apps/auth` bundle works beneath any tenant path without being rebuilt, and a host no longer adds middleware to
+  serve it: `UseInteractiveAuthentication()` is removed. `defineBackendServedSurfaceConfig` no longer takes a `base`.
+- Requesting a bundle file under the path strategy resolves the tenant first, so an unknown tenant's files are `404`.
 
 ## References
 

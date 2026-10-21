@@ -1615,6 +1615,26 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `resource_server_id`. `TokenIntrospectionEndpointTests` registers a bound client and introspects with it, plain and
   encrypted; the admin console's mint dialog follows as `U24`._
 
+- **`F50` — Serve the interactive login and consent surface under the tenant route.** The protocol endpoints are served
+  under the tenant route ([ADR-0138](docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md)), but the
+  interactive surface is still mounted at absolute routes (`/account/*`) with a fixed cookie `LoginPath`, a single
+  cookie, and its bundle's static assets at the root. A static or host-selected tenant does not notice, but under
+  `DynamicByPath` the surface's environment filter has no `{tenantId}` to resolve, so interactive flows fail — and
+  path tenants sharing an origin would share one session cookie, which must not happen. Mount the surface's group under
+  the tenant route, make the login and logout redirects tenant-relative, scope the cookie (name or path) per tenant,
+  serve the bundle beneath the tenant route, and have the `apps/auth` bundle derive its API base from its own location.
+  Capture the design in an ADR.
+
+  _Closed: [ADR-0193](docs/adr/0193-the-interactive-surface-is-served-under-the-tenant-route.md);
+  [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. The interactive endpoint group takes the tenant route as its prefix;
+  `InteractiveSurfacePaths` makes every redirect, the consent challenge, and the cookie login challenge
+  tenant-relative; the server-rendered forms post page-relative; and `InteractiveSessionCookieManager` scopes the
+  session cookie to the tenant's path. The group serves the bundle's files from `GET|HEAD /account/{**asset}`
+  (`UseInteractiveAuthentication` is removed), every page carries `<base href="{tenant path}/account/">`, the bundle
+  builds with a relative base, and `apps/auth` resolves its paths against `document.baseURI`.
+  `InteractiveTenantRouteTests` proves the routing, redirects, cookie path, logout, asset serving, and document base
+  under `DynamicByPath`._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

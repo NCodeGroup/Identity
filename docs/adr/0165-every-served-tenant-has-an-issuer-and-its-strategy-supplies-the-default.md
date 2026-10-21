@@ -43,7 +43,9 @@ with it, or the one its strategy derives for it — and that issuer is stored wi
    in order: the root tenant's configured `Root:Issuer`; the static tenant's `StaticSingle:Issuer`; otherwise the
    expansion of the strategy's issuer template — `DynamicByHost:IssuerTemplate` (`https://{tenantId}.auth.example`) or
    `DynamicByPath:IssuerTemplate` (`https://op.example/{tenantId}`), an RFC 6570 level-1 template with the single
-   variable `{tenantId}`. A tenant identifier is a lowercase host label, so it is substituted without escaping.
+   variable `{tenantId}`. A tenant identifier is a lowercase host label, so it is substituted without escaping. A
+   tenant's mTLS endpoint alias takes its default the same way
+   ([ADR-0195](0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), decision 5).
 3. **Every write path derives, then judges.** Management create and update, and the provisioner that creates a
    configuration-defined tenant, apply `issuer ??= default` and then `ValidateTenantAsync`, which judges a derived issuer
    exactly like an explicit one ([ADR-0160](0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)). An

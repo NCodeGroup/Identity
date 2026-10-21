@@ -10,6 +10,17 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **A tenant's mTLS endpoint alias takes a derived default, as its issuer does (RFC 8705 §5).** The new
+  `DynamicByHost:MtlsEndpointAliasTemplate` (for example `https://{tenantId}.mtls.example`) gives every tenant written
+  without an alias its expansion, and `Root:MtlsEndpointAliasAuthority` and `StaticSingle:MtlsEndpointAliasAuthority`
+  configure the root and static tenants' alias beside their issuers. `ITenantStrategy` and `ITenantResolver` gain
+  `GetDefaultMtlsEndpointAliasAuthorityAsync`. Management create and update, and the provisioner, store the derived alias
+  so a later template change never moves a tenant, and an update that clears the alias restores the derived one. The
+  template is checked at startup: an `https` origin template with `{tenantId}` in its host, whose host the host pattern
+  maps to itself and which differs from the issuer template's host. The address preview
+  (`GET /tenants/{tenantId}/address`) takes an optional `mtlsEndpointAliasAuthority` and returns the effective
+  `MtlsEndpointAliasAuthority` and `IsMtlsEndpointAliasAuthorityDerived` on `TenantAddressResource`
+  ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), backlog `F78`).
 - **A tenant's mTLS endpoint-alias host routes to the tenant (RFC 8705 §5).** The alias is now the tenant property
   `PersistedTenant.MtlsEndpointAliasAuthority` (an `https` origin), exposed as `OpenIdTenant.MtlsEndpointAliasAuthority`,
   and discovery builds `mtls_endpoint_aliases` from it. The host strategy routes a request to a tenant by its issuer host

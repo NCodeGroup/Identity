@@ -1694,6 +1694,27 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `InteractiveTenantRouteTests` proves the routing, redirects, cookie path, logout, asset serving, and document base
   under `DynamicByPath`._
 
+- **`F78` — Derive a tenant's default mTLS endpoint alias from a template, and preview it.** `F47` made the alias a
+  routed tenant property ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)), but
+  it is only ever set explicitly. Finish the shape the issuer already has
+  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)):
+  - **Each strategy supplies the default, persisted on write.** `TenantStrategy` gains a default-alias method beside
+    `GetDefaultIssuerAsync`. `DynamicByHostTenantOptions` gains `MtlsEndpointAliasTemplate`, for example
+    `https://{tenantId}.mtls.example`. `DynamicByHostTenantOptionsValidator` checks it like `IssuerTemplate`, and it
+    must also be an origin whose host `RegexPattern` maps to itself. Provisioning and the management create path store
+    the expansion when no alias is given, so changing the template never moves an existing tenant. The other strategies
+    have no template.
+  - **Preview it.** `TenantAddressResource` carries the alias authority and an `IsMtlsEndpointAliasAuthorityDerived`
+    flag beside `IsIssuerDerived`, and the address preview endpoint takes the proposed alias.
+  - **Tests.** The template default in `DynamicByHostTenantStrategyTests`, the options validator, and the preview.
+  _Closed: [`CHANGELOG.md`](CHANGELOG.md) [Unreleased];
+  [ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md) decision 5. Delivered:
+  `DynamicByHost:MtlsEndpointAliasTemplate` and its startup rules, `Root:MtlsEndpointAliasAuthority` and
+  `StaticSingle:MtlsEndpointAliasAuthority` (mirroring the configured issuers),
+  `ITenantStrategy`/`ITenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync`, the derived alias stored by management
+  create and update and by the provisioner, the preview's `mtlsEndpointAliasAuthority` parameter and the
+  `TenantAddressResource` alias and derived flag, and unit and integration tests. Console editing remains `U25`._
+
 ## Frontend presentation platform (group `U`)
 
 - **`U1` — Management auth bootstrap: silent renewal + end-to-end sign-in.** _Done._

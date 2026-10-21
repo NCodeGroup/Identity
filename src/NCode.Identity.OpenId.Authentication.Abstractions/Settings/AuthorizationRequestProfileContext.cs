@@ -18,6 +18,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Contexts;
 
 namespace NCode.Identity.OpenId.Settings;
@@ -28,8 +29,13 @@ namespace NCode.Identity.OpenId.Settings;
 /// </summary>
 /// <param name="OpenIdContext">The ambient <see cref="OpenIdContext"/> (environment, error factory, tenant, services).</param>
 /// <param name="Client">The resolved client the authorization request targets.</param>
+/// <param name="Request">
+/// The composed authorization request (request object, PAR and query parameters resolved), so a requirement can judge
+/// the requested response type and response mode.
+/// </param>
 [PublicAPI]
 public sealed record AuthorizationRequestProfileContext(
     OpenIdContext OpenIdContext,
-    OpenIdClient Client
+    OpenIdClient Client,
+    IAuthorizationRequest Request
 );

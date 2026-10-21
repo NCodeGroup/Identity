@@ -132,6 +132,30 @@ public class TokenEndpointSecurityProfileTests
     }
 
     [Fact]
+    public async Task PostToken_ClientSecretPost_UnderFapi1Advanced_Returns400()
+    {
+        const string clientId = "it-profile-fapi1-advanced";
+
+        using var factory = new HostApplicationFactory();
+        await SeedClientCredentialsClientAsync(
+            factory,
+            clientId,
+            [OpenIdConstants.SecurityProfiles.Fapi1Advanced]
+        );
+
+        var client = CreateClient(factory);
+        using var response = await client.PostAsync(TokenPath, ClientSecretPostBody(clientId));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidClient,
+            document.RootElement.GetProperty("error").GetString()
+        );
+    }
+
+    [Fact]
     public async Task PostToken_WhenStoredProfileIsNotRegistered_IsRefusedRatherThanServedWithoutIt()
     {
         const string clientId = "it-profile-unknown";
@@ -217,6 +241,40 @@ public class TokenEndpointSecurityProfileTests
     }
 
     [Fact]
+    public async Task GetDiscovery_WhenTheServerSelectsFapi1Advanced_AdvertisesItsCeilings()
+    {
+        using var factory = new ProfiledHostApplicationFactory(
+            OpenIdConstants.SecurityProfiles.Fapi1Advanced
+        );
+
+        var client = CreateClient(factory);
+        using var response = await client.GetAsync(DiscoveryPath);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var metadata = document.RootElement;
+        Assert.True(metadata.GetProperty("require_pushed_authorization_requests").GetBoolean());
+        Assert.True(
+            metadata.GetProperty("tls_client_certificate_bound_access_tokens").GetBoolean()
+        );
+        var authMethods = ReadStrings(metadata, "token_endpoint_auth_methods_supported");
+        Assert.NotEmpty(authMethods);
+        Assert.All(authMethods, method => Assert.Contains(method, StrongAuthMethods));
+        Assert.Equal(
+            [OpenIdConstants.CodeChallengeMethods.S256],
+            ReadStrings(metadata, "code_challenge_methods_supported")
+        );
+        Assert.Equal(
+            [OpenIdConstants.ResponseTypes.Code],
+            ReadStrings(metadata, "response_types_supported")
+        );
+        string[] fapi1SigningAlgorithms = ["PS256", "ES256"];
+        var signingAlgorithms = ReadStrings(metadata, "id_token_signing_alg_values_supported");
+        Assert.NotEmpty(signingAlgorithms);
+        Assert.All(signingAlgorithms, alg => Assert.Contains(alg, fapi1SigningAlgorithms));
+    }
+
+    [Fact]
     public async Task GetDiscovery_WhenThePersistedServerSelectsFapi2_AdvertisesItsCeilings()
     {
         using var factory = new HostApplicationFactory();
@@ -238,6 +296,13 @@ public class TokenEndpointSecurityProfileTests
     }
 
     #region Scaffolding
+
+    private static List<string> ReadStrings(JsonElement metadata, string name) =>
+        metadata
+            .GetProperty(name)
+            .EnumerateArray()
+            .Select(value => value.GetString() ?? string.Empty)
+            .ToList();
 
     /// <summary>
     /// A host whose server settings select the supplied security profiles, with two test profiles registered.

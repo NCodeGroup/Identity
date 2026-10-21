@@ -155,6 +155,22 @@ public sealed class DynamicByHostTenantOptionsValidatorTests
         );
     }
 
+    [Fact]
+    public void Validate_WhenRootMtlsEndpointAliasHostIsNotMappedToItself_Fails()
+    {
+        var options = Selected(new DynamicByHostTenantOptions { RegexPattern = "^[^.]+" });
+        options.Root.MtlsEndpointAliasAuthority = "https://mtls.example";
+
+        var failures = Failures(options);
+
+        Assert.Contains(
+            "Root:MtlsEndpointAliasAuthority 'https://mtls.example' does not reach its tenant: the configured host "
+                + "pattern maps the host 'mtls.example' to 'mtls'",
+            failures,
+            StringComparison.Ordinal
+        );
+    }
+
     [Theory]
     [InlineData("https://auth.example/{tenantId}")]
     [InlineData("https://auth.example/?tenant={tenantId}")]

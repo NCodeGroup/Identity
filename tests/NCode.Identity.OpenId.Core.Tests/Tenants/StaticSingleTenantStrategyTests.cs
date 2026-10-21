@@ -214,6 +214,64 @@ public sealed class StaticSingleTenantStrategyTests
 
     #endregion
 
+    #region GetDefaultMtlsEndpointAliasAuthorityAsync Tests
+
+    [Fact]
+    public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_WhenConfiguredTenant_ReturnsTheConfiguredAlias()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions
+            {
+                TenantId = "tenant-1",
+                Issuer = "https://op.example",
+                MtlsEndpointAliasAuthority = "https://mtls.op.example",
+            }
+        );
+
+        var alias = await strategy.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            "tenant-1",
+            CancellationToken.None
+        );
+
+        Assert.Equal("https://mtls.op.example", alias);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_WhenAnotherTenant_ReturnsNone()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+
+        // Not even the root tenant's configured alias: the strategy does not serve the root tenant.
+        var strategy = new StaticSingleTenantStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            Options.Create(
+                new TenantResolutionOptions
+                {
+                    Root = { MtlsEndpointAliasAuthority = "https://mtls.example" },
+                    StaticSingle = new StaticSingleTenantOptions
+                    {
+                        TenantId = "tenant-1",
+                        Issuer = "https://op.example",
+                        MtlsEndpointAliasAuthority = "https://mtls.op.example",
+                    },
+                }
+            )
+        );
+
+        var alias = await strategy.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            RootTenantOptions.DefaultTenantId,
+            CancellationToken.None
+        );
+
+        Assert.Null(alias);
+        mocks.Verify();
+    }
+
+    #endregion
+
     #region ValidateTenantAsync Tests
 
     [Theory]

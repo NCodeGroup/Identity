@@ -146,8 +146,8 @@ internal abstract class TenantStrategy(
 
     /// <inheritdoc />
     /// <remarks>
-    /// Every tenant, the root tenant included, gets the expansion of the strategy's alias template, or none when the
-    /// strategy has no template.
+    /// The root tenant is given its configured alias when it has one; every tenant otherwise gets the expansion of the
+    /// strategy's alias template, or none when the strategy has no template.
     /// </remarks>
     // See ADR-0195 (a tenant's mTLS endpoint alias is a routed tenant property).
     public virtual ValueTask<string?> GetDefaultMtlsEndpointAliasAuthorityAsync(
@@ -155,6 +155,10 @@ internal abstract class TenantStrategy(
         CancellationToken cancellationToken
     )
     {
+        var rootAlias = RootOptions.MtlsEndpointAliasAuthority;
+        if (IsRootTenant(tenantId) && !string.IsNullOrEmpty(rootAlias))
+            return ValueTask.FromResult<string?>(rootAlias);
+
         var aliasTemplate = MtlsEndpointAliasTemplate;
         var defaultAlias = string.IsNullOrEmpty(aliasTemplate)
             ? null

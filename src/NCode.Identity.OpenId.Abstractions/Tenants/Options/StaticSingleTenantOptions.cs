@@ -60,6 +60,15 @@ public sealed class StaticSingleTenantOptions
     public string? Issuer { get; set; }
 
     /// <summary>
+    /// Gets or sets the mutual-TLS endpoint-alias authority (RFC 8705 §5) for the tenant — an https origin, for example
+    /// <c>https://mtls.example</c>, where the discovery document's <c>mtls_endpoint_aliases</c> are published. Optional.
+    /// </summary>
+    /// <remarks>
+    /// Applied when the tenant is first provisioned; it does not update an existing tenant.
+    /// </remarks>
+    public string? MtlsEndpointAliasAuthority { get; set; }
+
+    /// <summary>
     /// Gets or sets the relative base path for the tenant.
     /// When specified, this value must include a leading slash.
     /// The default value is undefined (empty).

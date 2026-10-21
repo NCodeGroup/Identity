@@ -589,4 +589,46 @@ public sealed class DefaultTenantResolverTests
     }
 
     #endregion
+
+    #region GetDefaultMtlsEndpointAliasAuthorityAsync Tests
+
+    [Fact]
+    public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_DelegatesToTheSelectedStrategy()
+    {
+        const string alias = "https://acme.mtls.example";
+
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks);
+        strategy
+            .Setup(x =>
+                x.GetDefaultMtlsEndpointAliasAuthorityAsync(TenantId, CancellationToken.None)
+            )
+            .ReturnsAsync(alias)
+            .Verifiable();
+
+        var result = await CreateResolver(strategy.Object)
+            .GetDefaultMtlsEndpointAliasAuthorityAsync(TenantId, CancellationToken.None);
+
+        Assert.Equal(alias, result);
+        mocks.Verify();
+    }
+
+    [Theory]
+    [InlineData("Acme")]
+    [InlineData("")]
+    public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_WhenIdentifierIsInvalid_ReturnsNoneWithoutTheStrategy(
+        string tenantId
+    )
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = mocks.Create<ITenantStrategy>();
+
+        var result = await CreateResolver(strategy.Object)
+            .GetDefaultMtlsEndpointAliasAuthorityAsync(tenantId, CancellationToken.None);
+
+        Assert.Null(result);
+        mocks.Verify();
+    }
+
+    #endregion
 }

@@ -56,8 +56,9 @@ public class WithPrecisionInSecondsExtensionsTests : BaseTests
         Assert.Equal(0.0, newValue.Millisecond);
     }
 
+    // Constructor arguments, not a collection expression: '[...]' here fails CA1825 under the 10.0.300 SDK band.
     public static TheoryData<DateTimeOffset> DateTimeOffsetWithPrecisionInSecondsTestData =>
-        [DateTimeOffset.Now, DateTimeOffset.UtcNow];
+        new(DateTimeOffset.Now, DateTimeOffset.UtcNow);
 
     [Theory]
     [MemberData(nameof(DateTimeOffsetWithPrecisionInSecondsTestData))]

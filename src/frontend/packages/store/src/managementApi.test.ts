@@ -119,6 +119,7 @@ describe('managementApi tenant mutations', () => {
           tenantId: 'new',
           concurrencyToken: 'c1',
           issuer: 'https://new.auth.test',
+          mtlsEndpointAliasAuthority: 'https://new.mtls.test',
           isDisabled: false,
           displayName: 'New',
         }),
@@ -131,6 +132,7 @@ describe('managementApi tenant mutations', () => {
       managementApi.endpoints.createTenant.initiate({
         tenantId: 'new',
         issuer: 'https://new.auth.test',
+        mtlsEndpointAliasAuthority: 'https://new.mtls.test',
         displayName: 'New',
         isDisabled: false,
         settings: {},
@@ -145,6 +147,7 @@ describe('managementApi tenant mutations', () => {
     expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual({
       tenantId: 'new',
       issuer: 'https://new.auth.test',
+      mtlsEndpointAliasAuthority: 'https://new.mtls.test',
       displayName: 'New',
       isDisabled: false,
       settings: {},
@@ -159,7 +162,12 @@ describe('managementApi tenant mutations', () => {
       managementApi.endpoints.updateTenant.initiate({
         tenantId: 'acme/1',
         concurrencyToken: 'etag-7',
-        fields: { issuer: 'https://acme.auth.test', displayName: 'Acme', isDisabled: true },
+        fields: {
+          issuer: 'https://acme.auth.test',
+          mtlsEndpointAliasAuthority: 'https://acme.mtls.test',
+          displayName: 'Acme',
+          isDisabled: true,
+        },
       }),
     );
 
@@ -169,6 +177,7 @@ describe('managementApi tenant mutations', () => {
     expect(captured[0]?.ifMatch).toBe('etag-7');
     expect(JSON.parse(captured[0]?.body ?? '[]')).toEqual([
       { op: 'replace', path: '/issuer', value: 'https://acme.auth.test' },
+      { op: 'replace', path: '/mtlsEndpointAliasAuthority', value: 'https://acme.mtls.test' },
       { op: 'replace', path: '/displayName', value: 'Acme' },
       { op: 'replace', path: '/isDisabled', value: true },
     ]);
@@ -1049,6 +1058,29 @@ const queryRequestCases: readonly QueryRequestCase[] = [
         managementApi.endpoints.getTenantAddress.initiate({
           tenantId: 'acme',
           issuer: 'https://acme.example',
+        }),
+      ),
+  },
+  {
+    name: 'getTenantAddress (proposed issuer and mTLS endpoint alias)',
+    url: 'https://api.test/api/tenants/acme/address?issuer=https%3A%2F%2Facme.example&mtlsEndpointAliasAuthority=https%3A%2F%2Facme.mtls.example',
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getTenantAddress.initiate({
+          tenantId: 'acme',
+          issuer: 'https://acme.example',
+          mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
+        }),
+      ),
+  },
+  {
+    name: 'getTenantAddress (proposed mTLS endpoint alias only)',
+    url: 'https://api.test/api/tenants/acme/address?mtlsEndpointAliasAuthority=https%3A%2F%2Facme.mtls.example',
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getTenantAddress.initiate({
+          tenantId: 'acme',
+          mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
         }),
       ),
   },
@@ -1940,6 +1972,7 @@ const invalidationCases: readonly InvalidationCase[] = [
         managementApi.endpoints.createTenant.initiate({
           tenantId: 'new',
           issuer: null,
+          mtlsEndpointAliasAuthority: null,
           displayName: 'New',
           isDisabled: false,
           settings: {},
@@ -1954,7 +1987,12 @@ const invalidationCases: readonly InvalidationCase[] = [
         managementApi.endpoints.updateTenant.initiate({
           tenantId: 'acme',
           concurrencyToken: 'etag',
-          fields: { issuer: null, displayName: 'Acme', isDisabled: false },
+          fields: {
+            issuer: null,
+            mtlsEndpointAliasAuthority: null,
+            displayName: 'Acme',
+            isDisabled: false,
+          },
         }),
       ),
     refetches: ['tenants', 'tenant:acme'],
@@ -2390,7 +2428,12 @@ describe('managementApi cache invalidation', () => {
       managementApi.endpoints.updateTenant.initiate({
         tenantId: 'acme',
         concurrencyToken: 'stale',
-        fields: { issuer: null, displayName: 'Acme', isDisabled: false },
+        fields: {
+          issuer: null,
+          mtlsEndpointAliasAuthority: null,
+          displayName: 'Acme',
+          isDisabled: false,
+        },
       }),
     );
     await settle(store);

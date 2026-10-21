@@ -15,6 +15,8 @@ export type TenantResource = {
   readonly tenantId: string;
   readonly concurrencyToken: string;
   readonly issuer: string | null;
+  /** The https origin of the tenant's RFC 8705 mutual-TLS endpoint aliases, or `null` when it has none. */
+  readonly mtlsEndpointAliasAuthority: string | null;
   readonly isDisabled: boolean;
   readonly displayName: string;
 };
@@ -22,11 +24,13 @@ export type TenantResource = {
 /**
  * Mirror of `CreateTenantRequest`. The tenant id is chosen by its creator and cannot change: 1 to 63
  * lowercase letters, digits, or hyphens that starts and ends with a letter or digit. `settings` is
- * the initial JSON settings object (empty by default; settings have their own PATCH endpoint).
+ * the initial JSON settings object (empty by default; settings have their own PATCH endpoint). A `null`
+ * issuer or mTLS endpoint alias takes the one the server's tenant strategy derives for the tenant.
  */
 export type CreateTenantRequest = {
   readonly tenantId: string;
   readonly issuer: string | null;
+  readonly mtlsEndpointAliasAuthority: string | null;
   readonly displayName: string;
   readonly isDisabled: boolean;
   readonly settings: Readonly<Record<string, unknown>>;
@@ -35,10 +39,12 @@ export type CreateTenantRequest = {
 /**
  * The mutable tenant metadata a JSON Patch may modify (mirror of `UpdateTenantRequest`). The store
  * turns this into a `replace`-only JSON Patch document; keys match the server's wire property names.
- * A `null` issuer restores the one the server's tenant strategy derives for the tenant.
+ * A `null` issuer or mTLS endpoint alias restores the one the server's tenant strategy derives for the
+ * tenant.
  */
 export type UpdateTenantFields = {
   readonly issuer: string | null;
+  readonly mtlsEndpointAliasAuthority: string | null;
   readonly displayName: string;
   readonly isDisabled: boolean;
 };
@@ -51,8 +57,8 @@ export type TenantAddressFailure = {
 };
 
 /**
- * Mirror of `TenantAddressResource`: the preview of a tenant's address (its id and issuer) before it
- * is created or its issuer changes, judged by the same rules as the write itself.
+ * Mirror of `TenantAddressResource`: the preview of a tenant's address (its id, issuer, and mTLS
+ * endpoint alias) before it is created or either changes, judged by the same rules as the write itself.
  */
 export type TenantAddressResource = {
   readonly tenantId: string;
@@ -60,6 +66,10 @@ export type TenantAddressResource = {
   readonly issuer: string | null;
   /** Whether {@link TenantAddressResource.issuer} is the one the tenant strategy derives. */
   readonly isIssuerDerived: boolean;
+  /** The proposed mTLS endpoint alias, else the tenant's current one, else the one its strategy derives; or `null`. */
+  readonly mtlsEndpointAliasAuthority: string | null;
+  /** Whether {@link TenantAddressResource.mtlsEndpointAliasAuthority} is the one the tenant strategy derives. */
+  readonly isMtlsEndpointAliasAuthorityDerived: boolean;
   /** Whether a tenant with the id already exists, so a new tenant cannot take it. */
   readonly exists: boolean;
   readonly failures: readonly TenantAddressFailure[];

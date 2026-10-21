@@ -37,6 +37,7 @@ const acme = {
   tenantId: 'acme',
   displayName: 'Acme',
   issuer: null,
+  mtlsEndpointAliasAuthority: null,
   isDisabled: false,
   concurrencyToken: 'c1',
 };
@@ -45,6 +46,7 @@ const globex = {
   tenantId: 'globex',
   displayName: 'Globex',
   issuer: 'https://globex.auth.test',
+  mtlsEndpointAliasAuthority: 'https://globex.mtls.test',
   isDisabled: true,
   concurrencyToken: 'c2',
 };
@@ -128,12 +130,14 @@ describe('TenantsPage (CRUD wiring)', () => {
     };
   }
 
-  it('previews the issuer a new tenant would be given', async () => {
+  it('previews the issuer and mTLS endpoint alias a new tenant would be given', async () => {
     const calls = installFetch(
       addressHandler({
         tenantId: 'new-co',
         issuer: 'https://new-co.auth.test',
         isIssuerDerived: true,
+        mtlsEndpointAliasAuthority: 'https://new-co.mtls.test',
+        isMtlsEndpointAliasAuthorityDerived: true,
         exists: false,
         failures: [],
       }),
@@ -151,6 +155,11 @@ describe('TenantsPage (CRUD wiring)', () => {
       'placeholder',
       'https://new-co.auth.test',
     );
+    expect(screen.getByText('Leave empty to use https://new-co.mtls.test.')).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-mtls-endpoint-alias')).toHaveAttribute(
+      'placeholder',
+      'https://new-co.mtls.test',
+    );
     expect(calls.some((c) => c.url === 'https://api.test/api/tenants/new-co/address')).toBe(true);
   });
 
@@ -160,6 +169,8 @@ describe('TenantsPage (CRUD wiring)', () => {
         tenantId: 'acme',
         issuer: 'https://acme.auth.test',
         isIssuerDerived: true,
+        mtlsEndpointAliasAuthority: null,
+        isMtlsEndpointAliasAuthorityDerived: false,
         exists: true,
         failures: [],
       }),
@@ -181,6 +192,8 @@ describe('TenantsPage (CRUD wiring)', () => {
         tenantId: 'new-co',
         issuer: 'https://taken.test',
         isIssuerDerived: false,
+        mtlsEndpointAliasAuthority: null,
+        isMtlsEndpointAliasAuthorityDerived: false,
         exists: false,
         failures: [
           {
@@ -237,6 +250,7 @@ describe('TenantsPage (CRUD wiring)', () => {
     expect(JSON.parse(post?.body ?? '{}')).toEqual({
       tenantId: 'new-co',
       issuer: null,
+      mtlsEndpointAliasAuthority: null,
       displayName: 'New Co',
       isDisabled: false,
       settings: {},
@@ -266,6 +280,7 @@ describe('TenantsPage (CRUD wiring)', () => {
     expect(screen.getByTestId('tenant-id')).toBeDisabled();
     expect(screen.getByTestId('tenant-display-name')).toHaveValue('Acme');
     expect(screen.getByTestId('tenant-issuer')).toHaveValue('');
+    expect(screen.getByTestId('tenant-mtls-endpoint-alias')).toHaveValue('');
     expect(screen.getByTestId('tenant-form-submit')).toHaveTextContent('Save');
 
     fireEvent.change(screen.getByTestId('tenant-display-name'), {
@@ -273,6 +288,9 @@ describe('TenantsPage (CRUD wiring)', () => {
     });
     fireEvent.change(screen.getByTestId('tenant-issuer'), {
       target: { value: 'https://acme.auth.test' },
+    });
+    fireEvent.change(screen.getByTestId('tenant-mtls-endpoint-alias'), {
+      target: { value: 'https://acme.mtls.test' },
     });
     fireEvent.click(screen.getByRole('switch', { name: 'Disabled' }));
     fireEvent.click(screen.getByTestId('tenant-form-submit'));
@@ -284,6 +302,7 @@ describe('TenantsPage (CRUD wiring)', () => {
     expect(patch?.ifMatch).toBe('c1');
     expect(JSON.parse(patch?.body ?? '[]')).toEqual([
       { op: 'replace', path: '/issuer', value: 'https://acme.auth.test' },
+      { op: 'replace', path: '/mtlsEndpointAliasAuthority', value: 'https://acme.mtls.test' },
       { op: 'replace', path: '/displayName', value: 'Acme Corp' },
       { op: 'replace', path: '/isDisabled', value: true },
     ]);
@@ -302,12 +321,59 @@ describe('TenantsPage (CRUD wiring)', () => {
 
     expect(screen.getByTestId('tenant-display-name')).toHaveValue('Globex');
     expect(screen.getByTestId('tenant-issuer')).toHaveValue('https://globex.auth.test');
+    expect(screen.getByTestId('tenant-mtls-endpoint-alias')).toHaveValue(
+      'https://globex.mtls.test',
+    );
     expect(screen.getByRole('switch', { name: 'Disabled' })).toBeChecked();
 
     fireEvent.click(screen.getByTestId('tenant-form-cancel'));
 
     await waitFor(() => expect(screen.queryByTestId('tenant-form-submit')).not.toBeInTheDocument());
     expect(calls.every((c) => c.method === 'GET')).toBe(true);
+  });
+
+  it("re-judges an existing tenant's address when only its mTLS endpoint alias changes", async () => {
+    const calls = installFetch((url, method) => {
+      if (url.includes('/address')) {
+        return jsonResponse({
+          tenantId: 'globex',
+          issuer: 'https://globex.auth.test',
+          isIssuerDerived: false,
+          mtlsEndpointAliasAuthority: 'https://globex.auth.test',
+          isMtlsEndpointAliasAuthorityDerived: false,
+          exists: true,
+          failures: [
+            {
+              detail:
+                'The mTLS endpoint alias must be served on a host other than the issuer host.',
+              isConflict: false,
+            },
+          ],
+        });
+      }
+      if (url.endsWith('/api/tenants') && method === 'GET') {
+        return jsonResponse({ items: [acme, globex] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('tenant-edit-globex'));
+    fireEvent.change(screen.getByTestId('tenant-mtls-endpoint-alias'), {
+      target: { value: 'https://globex.auth.test' },
+    });
+
+    expect(await screen.findByTestId('tenant-address-failures')).toHaveTextContent(
+      'The mTLS endpoint alias must be served on a host other than the issuer host.',
+    );
+    expect(screen.getByTestId('tenant-form-submit')).toBeDisabled();
+    expect(
+      calls.some(
+        (c) =>
+          c.url ===
+          'https://api.test/api/tenants/globex/address?issuer=https%3A%2F%2Fglobex.auth.test&mtlsEndpointAliasAuthority=https%3A%2F%2Fglobex.auth.test',
+      ),
+    ).toBe(true);
   });
 
   it('ignores a submit fired while the form dialog is closing', async () => {

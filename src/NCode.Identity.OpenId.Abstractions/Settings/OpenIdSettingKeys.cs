@@ -952,4 +952,22 @@ public static class OpenIdSettingKeys
     /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'software_version' setting (RFC 7591 §2).
     /// </summary>
     public static SettingKey<string> SoftwareVersion => new(OpenIdSettingNames.SoftwareVersion);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'rate_limit_tenant_per_minute' setting.
+    /// </summary>
+    public static SettingKey<int> RateLimitTenantPerMinute =>
+        new(OpenIdSettingNames.RateLimitTenantPerMinute);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'rate_limit_address_per_minute' setting.
+    /// </summary>
+    public static SettingKey<int> RateLimitAddressPerMinute =>
+        new(OpenIdSettingNames.RateLimitAddressPerMinute);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'rate_limit_client_per_minute' setting.
+    /// </summary>
+    public static SettingKey<int> RateLimitClientPerMinute =>
+        new(OpenIdSettingNames.RateLimitClientPerMinute);
 }

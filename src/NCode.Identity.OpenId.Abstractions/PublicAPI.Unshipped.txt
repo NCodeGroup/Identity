@@ -1054,3 +1054,9 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthTrustAnchor
 NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientAuthRevocationMode.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientAuthTrustAnchors.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RateLimitAddressPerMinute = "rate_limit_address_per_minute" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RateLimitClientPerMinute = "rate_limit_client_per_minute" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RateLimitTenantPerMinute = "rate_limit_tenant_per_minute" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RateLimitAddressPerMinute.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RateLimitClientPerMinute.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RateLimitTenantPerMinute.get -> NCode.Identity.Settings.SettingKey<int>

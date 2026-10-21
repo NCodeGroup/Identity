@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 
@@ -31,12 +32,15 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// Provides a default implementation of the <see cref="IClientAuthenticationService"/> abstraction. Every registered
 /// <see cref="IClientAuthenticationHandler"/> examines the request; the service selects the client they authenticated
 /// and accepts it only when the method it authenticated with is the one it is registered to use and its ceiling permits
-/// that method, whichever handler produced it.
+/// that method, whichever handler produced it. An authenticated client is then counted against its
+/// <c>rate_limit_client_per_minute</c> limit, once per request, and refused with <c>429 Too Many Requests</c> when it is
+/// over the limit.
 /// </summary>
-// See ADR-0145.
+// See ADR-0145 and ADR-0196.
 internal class DefaultClientAuthenticationService(
     IEnumerable<IClientAuthenticationHandler> handlers,
     IAuditEventRecorder auditEventRecorder,
+    IRequestRateLimiter rateLimiter,
     ILogger<DefaultClientAuthenticationService> logger
 ) : IClientAuthenticationService
 {
@@ -47,6 +51,8 @@ internal class DefaultClientAuthenticationService(
     private ImmutableArray<IClientAuthenticationHandler> Handlers { get; } = [.. handlers];
 
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
+
+    private IRequestRateLimiter RateLimiter { get; } = rateLimiter;
 
     private ILogger<DefaultClientAuthenticationService> Logger { get; } = logger;
 
@@ -66,6 +72,21 @@ internal class DefaultClientAuthenticationService(
         }
 
         var authenticationResult = await AuthenticateCoreAsync(openIdContext, cancellationToken);
+
+        // Counted on the uncached path only, so a request that authenticates its client more than once counts once.
+        if (authenticationResult.Client is { } client)
+        {
+            var decision = await RateLimiter.AcquireForClientAsync(
+                openIdContext,
+                client,
+                cancellationToken
+            );
+            if (decision.RetryAfter is { } retryAfter)
+                authenticationResult = new ClientAuthenticationResult(
+                    RateLimitErrors.Create(openIdContext, retryAfter)
+                );
+        }
+
         items[CacheKey] = authenticationResult;
         return authenticationResult;
     }

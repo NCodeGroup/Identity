@@ -299,33 +299,11 @@ entry and/or ADR that closed it.
   [`src/NCode.Identity.Jose/Algorithms/KeyManagement`](src/NCode.Identity.Jose/Algorithms/KeyManagement),
   [`src/NCode.Identity.Jose.Abstractions/Algorithms`](src/NCode.Identity.Jose.Abstractions/Algorithms).
 
-- **`F45` — Per-tenant rate limits.** Customers run their dev, test, and prod environments as separate tenants on the
-  one production platform ([hosting analysis](docs/hosting-analysis.md#environment-model)), so a customer's load test
-  against a `-dev` tenant shares hardware with every other tenant's production. Nothing limits a tenant's request rate
-  today. The design is
-  [ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), and its shared counter
-  port exists: `IExpiringCounterSet`, its in-process default (registered by `AddIdentityServer`), and the Valkey
-  adapter `AddValkey` registers. Remaining, per the ADR:
-  - **Settings.** The tenant-wide and per-client limits (requests per window) as integer settings at the server and
-    tenant scopes, the per-client limit also at the client scope, merged with `Min` and unset meaning unlimited; with
-    their descriptors, domain validation, and scope declarations.
-  - **The limiter.** The two-window sliding estimate over `IExpiringCounterSet` (count first, so rejected requests
-    count), keyed `rate-limit:{tenantId}:{partition}:{windowStart}` with counters kept for two windows; failing open
-    with a warning when the store throws.
-  - **Where it runs.** An endpoint filter on the OpenID endpoint group after `OpenIdEnvironmentEndpointFilter` for the
-    tenant-wide and per-address limits; the per-client limit where client authentication succeeds, so a request cannot
-    spend another client's allowance by naming its `client_id`.
-  - **The response.** `429 Too Many Requests` (RFC 6585 §4) with `Retry-After` (whole seconds to the window's end,
-    rounded up) and `Cache-Control: no-store`, plus a rejection metric and log.
-  - **Tests.** Unit tests for the estimate, the partitions, and fail-open; an integration test that drives a tenant past
-    its limit and reads `429` and `Retry-After`.
-  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/OpenIdEndpointGroup.cs`, the setting descriptor
-  data sources, `src/NCode.Identity.SharedState.Abstractions/IExpiringCounterSet.cs`.
 - **`F79` — Per-tenant quotas for plan tiers.** Split from `F45`. Count requests per day and token issuances per tenant
   for plan tiers, reusing `IExpiringCounterSet`
   ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)). Decide in an ADR the
   window (calendar day in UTC or rolling), what happens at the quota (reject with `429`, or allow and report an
-  overage), and how a plan tier sets the quota through the settings cascade. Depends on `F45`.
+  overage), and how a plan tier sets the quota through the settings cascade. Builds on `F45` (done).
 
 - **`F48` — Publish the deployment artifacts the platform runs.** Per
   [ADR-0133](docs/adr/0133-we-ship-and-run-the-same-deployment-artifacts.md), the hosted platform consumes only the

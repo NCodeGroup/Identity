@@ -25,9 +25,9 @@ applied to it) may tighten it but never loosen it. That is the settings cascade'
 
 ## Decision
 
-**Requests are counted in a shared, atomic expiring counter set, partitioned by tenant and then by client, against
-limits that are settings bounded by the merge lattice; a request over a limit is answered `429 Too Many Requests` with
-`Retry-After`.**
+**Requests are counted in a shared, atomic expiring counter set, partitioned by tenant and then by remote address and by
+client, against per-minute limits that are settings bounded by the merge lattice; a request over a limit is answered
+`429 Too Many Requests` with `Retry-After`.**
 
 1. **The port.** `NCode.Identity.SharedState.Abstractions` defines `IExpiringCounterSet`:
    `IncrementAsync(key, expiresWhen)` atomically increments a counter and returns its count, starting an absent or
@@ -40,29 +40,43 @@ limits that are settings bounded by the merge lattice; a request over a limit is
    `INCR`, then `PEXPIRE` when the increment started the counter — so the increment and the expiry are atomic on the
    server and a counter never outlives its window. The time-to-live is computed from the replica's clock, as the key set
    does.
-3. **The algorithm is a sliding-window estimate over two fixed windows.** For a limit of `L` requests per window `W`, a
-   request increments the counter of the current window (keyed by its start, and kept for two windows so it can serve as
-   the previous one) and reads the previous window's count. The estimate is `previous × (1 − elapsed / W) + current`;
-   the request is rejected when the estimate exceeds `L`. This bounds the burst a fixed window allows at its boundary,
-   costs one script and one read per request, and needs only the counter primitive. A rejected request is still counted,
-   so a client that keeps retrying stays limited.
-4. **Partitions.** A tenant-wide limit applies to every request the tenant serves. Within the tenant, a per-client limit
-   applies to the authenticated client, or to the remote address when the request authenticates none (the authorization
-   endpoint, discovery, and the JWKS). The per-client limit is judged only once the client has authenticated, so a
-   request cannot spend another client's allowance by naming its `client_id`. Keys are
-   `rate-limit:{tenantId}:{partition}:{windowStart}`.
-5. **Limits are settings.** The limits are integer settings that apply at the server and tenant scopes (the per-client
-   limit also at the client scope), merged with `Min`, so a tenant or client can only tighten the ceiling the scope
-   above it sets. An unset limit is unlimited ([ADR-0010](0010-supported-settings-unset-means-unrestricted.md)).
-6. **Where it runs.** An endpoint filter on the OpenID endpoint group runs after `OpenIdEnvironmentEndpointFilter`, so
-   the resolved tenant and its merged settings are known, and judges the tenant-wide and per-address limits there; the
-   per-client limit is judged where client authentication succeeds. The management API is not limited by tenant
-   settings; it authenticates against the control-plane tenant
+3. **The algorithm is a sliding-window estimate over two fixed windows.** For a limit of `L` requests per window `W` —
+   one minute, so the limits read as requests per minute — a request increments the counter of the current window (keyed
+   by its start, and kept for two windows so it can serve as the previous one) and reads the previous window's count.
+   The estimate is `previous × (1 − elapsed / W) + current`; the request is rejected when the estimate exceeds `L`. This
+   bounds the burst a fixed window allows at its boundary, costs one script and one read per request, and needs only the
+   counter primitive. A rejected request is still counted, so a client that keeps retrying stays limited.
+4. **Partitions.** Three independent partitions, each with its own limit:
+   - **tenant** — every request the tenant's protocol endpoints serve;
+   - **address** — every request from one remote address, including the ones that authenticate no client (the
+     authorization endpoint, discovery, and the JWKS);
+   - **client** — every request that authenticates as one client. It is judged only once the client has authenticated,
+     so a request cannot spend another client's allowance by naming its `client_id`, and it is counted once per request
+     however many times the request's client is authenticated.
+
+   The address limit is a separate setting rather than the client limit applied by address: many clients may share an
+   address (a NAT gateway or a backend), so a per-client figure would throttle all of them as one. Keys are built with
+   the family's tenant-scoped key builder from `rate-limit`, the tenant, the partition, the partition's value (empty,
+   the address, or the client ID), and the window's start, so a client ID or address never appears in the store.
+5. **Limits are settings.** `rate_limit_tenant_per_minute` and `rate_limit_address_per_minute` apply at the tenant scope
+   and `rate_limit_client_per_minute` at the tenant and client scopes, so a tenant sets every client's ceiling and a
+   client may lower its own. Each is an integer of at least one with no default, merged with `Min`, so a narrower scope
+   can only tighten the ceiling the scope above it sets — the server's settings cascade into every tenant. An unset
+   limit is unlimited ([ADR-0010](0010-supported-settings-unset-means-unrestricted.md)). The limits are not
+   discoverable.
+6. **Where it runs.** `RateLimitEndpointFilter` on the OpenID endpoint group runs after
+   `OpenIdEnvironmentEndpointFilter`, so the resolved tenant and its merged settings are known, and judges the
+   tenant-wide limit and then the address limit there. It runs before `OpenIdExceptionEndpointFilter`, so a refused
+   request is not audited as a protocol error and an attacker who floods an endpoint does not flood the audit log as
+   well. The per-client limit is judged in the client authentication service when a client authenticates; the refusal
+   replaces the authentication result, so every endpoint that authenticates clients refuses the request the same way.
+   The management API is not limited by tenant settings; it authenticates against the control-plane tenant
    ([ADR-0191](0191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
 7. **The response.** A rejected request is answered `429 Too Many Requests`
-   ([RFC 6585 §4](https://www.rfc-editor.org/rfc/rfc6585#section-4)) with `Retry-After` in whole seconds until the
-   current window ends, rounded up, and `Cache-Control: no-store`. The server records a metric and logs the rejection; a
-   rejected request is never handled.
+   ([RFC 6585 §4](https://www.rfc-editor.org/rfc/rfc6585#section-4)) with the `temporarily_unavailable` error code,
+   `Retry-After` in whole seconds until the current window ends (rounded up, and at least one), and
+   `Cache-Control: no-store`. The server logs the rejection with a stable event ID (the tenant, the partition, and the
+   limit, never the address or client ID); a rejected request is never handled.
 8. **An unreachable counter store fails open.** Rate limiting protects capacity, not correctness: unlike a single-use
    check, which fails closed (ADR-0164), a counter that cannot be read admits the request and logs a warning, so a
    Valkey outage does not become an authentication outage.
@@ -84,9 +98,10 @@ limits that are settings bounded by the merge lattice; a request over a limit is
 
 ## Consequences
 
-- The counter port, both adapters, and the host's default registration exist. The endpoint filter, the limit settings,
-  the `429` response, and the integration tests are tracked in [`BACKLOG.md`](../../BACKLOG.md) as `F45`; quotas are
-  `F79`.
+- Every protocol endpoint is limited once a tenant sets a limit; nothing is limited by default. Quotas are tracked in
+  [`BACKLOG.md`](../../BACKLOG.md) as `F79`.
+- A deployment behind a proxy must forward the client's address (`UseForwardedHeaders`) for the address limit to count
+  callers rather than the proxy.
 - A deployment that runs several replicas must configure Valkey for its limits to hold; with the in-process adapter
   each replica enforces the limit alone.
 - A brief Valkey outage lets traffic through unlimited. Brute-force protection for credentials is a separate control
@@ -100,4 +115,5 @@ limits that are settings bounded by the merge lattice; a request over a limit is
 - [ADR-0038](0038-setting-merge-lattice-duals.md) — the setting merge lattice
 - `src/NCode.Identity.SharedState.Abstractions/IExpiringCounterSet.cs`,
   `src/NCode.Identity.SharedState/InProcess/DefaultInProcessExpiringCounterSet.cs`,
-  `src/NCode.Identity.SharedState.Valkey/ValkeyExpiringCounterSet.cs`
+  `src/NCode.Identity.SharedState.Valkey/ValkeyExpiringCounterSet.cs`,
+  `src/NCode.Identity.OpenId.Authentication/RateLimiting/`

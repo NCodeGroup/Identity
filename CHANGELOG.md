@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Per-tenant rate limits.** Three settings limit the requests per minute a tenant's protocol endpoints serve:
+  `rate_limit_tenant_per_minute` (every request), `rate_limit_address_per_minute` (one remote address), and
+  `rate_limit_client_per_minute` (one authenticated client, set on the tenant or the client). Each is unset (unlimited)
+  by default and merges with `Min`, so a tenant or client can only lower the limit above it. The limiter counts in the
+  shared `IExpiringCounterSet` with a two-window sliding estimate, so the limits hold across replicas that share Valkey.
+  A refused request is answered `429 Too Many Requests` with `temporarily_unavailable`, `Retry-After`, and
+  `Cache-Control: no-store`, and is neither handled nor audited. A counter store that fails admits the request and logs
+  a warning ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), backlog
+  `F45`).
 - **A shared expiring counter set for rate limiting.** `NCode.Identity.SharedState.Abstractions` adds
   `IExpiringCounterSet`: `IncrementAsync(key, expiresWhen)` atomically increments a counter that spans one fixed window
   and returns its count, and `GetAsync(key)` reads a count. `AddInProcessExpiringCounterSet` registers the in-process

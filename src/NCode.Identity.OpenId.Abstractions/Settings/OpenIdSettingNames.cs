@@ -954,4 +954,22 @@ public static class OpenIdSettingNames
     /// software identified by <c>software_id</c>.
     /// </summary>
     public const string SoftwareVersion = "software_version";
+
+    /// <summary>
+    /// Contains the name of the <c>rate_limit_tenant_per_minute</c> setting: the most requests per minute a tenant's
+    /// protocol endpoints serve, across every caller. Unset means unlimited.
+    /// </summary>
+    public const string RateLimitTenantPerMinute = "rate_limit_tenant_per_minute";
+
+    /// <summary>
+    /// Contains the name of the <c>rate_limit_address_per_minute</c> setting: the most requests per minute a tenant's
+    /// protocol endpoints serve to one remote address. Unset means unlimited.
+    /// </summary>
+    public const string RateLimitAddressPerMinute = "rate_limit_address_per_minute";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>rate_limit_client_per_minute</c> setting: the most requests per minute a
+    /// tenant's protocol endpoints accept from one authenticated client. Unset means unlimited.
+    /// </summary>
+    public const string RateLimitClientPerMinute = "rate_limit_client_per_minute";
 }

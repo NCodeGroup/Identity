@@ -34,6 +34,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Registration;
 using NCode.Identity.OpenId.Authentication.Endpoints.Revocation;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token;
 using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
+using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Registration.AspNetCore;
@@ -72,8 +73,10 @@ internal sealed class OpenIdEndpointGroup : IEndpointGroup
     public void ConfigureRoutes(RouteGroupBuilder group)
     {
         // The environment filter is outermost so the ambient tenant scope it opens is still active while the exception
-        // filter renders an error.
+        // filter renders an error. The rate-limit filter needs the tenant the environment resolves and sits outside the
+        // exception filter, so a refused request is answered before any endpoint work and is not audited.
         group.AddEndpointFilter<RouteGroupBuilder, OpenIdEnvironmentEndpointFilter>();
+        group.AddEndpointFilter<RouteGroupBuilder, RateLimitEndpointFilter>();
         group.AddEndpointFilter<RouteGroupBuilder, OpenIdExceptionEndpointFilter>();
     }
 

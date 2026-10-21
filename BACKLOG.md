@@ -408,11 +408,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
 
 ### P1 — before the branch merges
 
-- **`R1` — Merge `main` and reconcile clashing backlog IDs.** `BACKLOG.md` conflicts, and
-  `tests/NCode.Identity.Jose.Tests/Extensions/WithPrecisionInSecondsExtensionsTests.cs` is deleted here (D11 moved it
-  to `NCode.Time.Tests`) but edited on `main` (CA1825). Keep the deletion. `main`'s `e66d7bf3` uses `F78`/`U23` for the
-  Backend-for-Frontend design, which this branch already used for the mTLS alias template and secret rotation;
-  renumber one side across `BACKLOG*.md`, `CHANGELOG.md`, and the ADRs.
 - **`R2` — Accept a pushed request object that carries every authorization parameter (RFC 9126 §3).**
   `ValidateRequestMessage` requires `response_type` and `redirect_uri` on the outer message, `/par` runs the same
   check, and the request object's `redirect_uri` must equal an outer one, so PAR + JAR — the only path

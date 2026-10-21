@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Per-tenant daily quotas.** Two tenant settings bound a tenant's consumption per UTC calendar day for plan tiers:
+  `quota_tenant_requests_per_day` (requests to its protocol endpoints, judged after the per-minute rate limits) and
+  `quota_tenant_token_requests_per_day` (token requests from confidential clients, judged at the token endpoint after
+  client authentication, so a caller that knows only a public `client_id` cannot spend it). A request over a quota is
+  refused with `429 Too Many Requests`, `temporarily_unavailable`, and `Retry-After` until midnight UTC. Both are
+  unlimited when unset and merged with `Min`, so the server's value caps every tenant. They are counted in the shared
+  `IExpiringCounterSet` and reported under the rate-limiting partitions `daily_requests` and `daily_token_requests`.
+  `IRequestRateLimiter` gains `AcquireForTokenRequestAsync`. See
+  [ADR-0198](docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
 - **Protocol-endpoint metrics.** The protocol endpoints tag ASP.NET Core's `http.server.request.duration` with
   `ncode.identity.openid.endpoint` (the endpoint's registered name, stable when routes or tenant routing change),
   `ncode.identity.openid.error` (the OAuth error code of every error response, including the rate limiter's `429` and an

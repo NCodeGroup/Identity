@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -48,6 +49,7 @@ internal class DefaultTokenEndpointProvider(
     IClientAuthenticationService clientAuthenticationService,
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
     IProofOfPossessionService proofOfPossessionService,
+    IRequestRateLimiter requestRateLimiter,
     ILogger<DefaultTokenEndpointProvider> logger
 ) : IEndpointProvider
 {
@@ -56,6 +58,7 @@ internal class DefaultTokenEndpointProvider(
     private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } =
         knownParameterCollectionProvider;
     private IProofOfPossessionService ProofOfPossessionService { get; } = proofOfPossessionService;
+    private IRequestRateLimiter RequestRateLimiter { get; } = requestRateLimiter;
     private ILogger<DefaultTokenEndpointProvider> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -71,6 +74,7 @@ internal class DefaultTokenEndpointProvider(
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status429TooManyRequests)
             .DisableAntiforgery()
             .WithOpenIdDiscoverable();
 
@@ -138,6 +142,19 @@ internal class DefaultTokenEndpointProvider(
                 .InvalidClient()
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
+        }
+
+        // The daily token-request quota counts only confidential clients, which proved their identity. A public client is
+        // named by its client_id alone, so counting it would let anyone spend the tenant's quota and refuse every client
+        // until midnight UTC (ADR-0198).
+        if (authResult.IsConfidential)
+        {
+            var quotaDecision = await RequestRateLimiter.AcquireForTokenRequestAsync(
+                openIdContext,
+                cancellationToken
+            );
+            if (quotaDecision.RetryAfter is { } retryAfter)
+                return RateLimitErrors.Create(openIdContext, retryAfter).AsHttpResult();
         }
 
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);

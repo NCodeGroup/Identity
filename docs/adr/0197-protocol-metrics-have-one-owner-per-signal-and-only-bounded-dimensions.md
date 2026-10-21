@@ -97,7 +97,8 @@ subject.
 ### 5. Mechanism instruments
 
 - **Rate limiting** (`NCode.Identity.OpenId.Authentication`): counter `ncode.identity.rate_limiting.requests`
-  (`{request}`) with `ncode.identity.rate_limiting.partition` (`tenant`, `address`, `client`) and
+  (`{request}`) with `ncode.identity.rate_limiting.partition` (`tenant`, `address`, `client`, and the daily quotas'
+  `daily_requests` and `daily_token_requests` of ADR-0198) and
   `ncode.identity.rate_limiting.result` (`admitted`, `rejected`, `store_unavailable`), recorded once per judged
   partition, mirroring ASP.NET Core's `aspnetcore.rate_limiting.requests`. `store_unavailable` makes the fail-open path
   of ADR-0196 alertable.
@@ -115,7 +116,7 @@ A future mechanism (key resolution, signing, the dispatcher) follows the same pa
 
 They belong to traces and logs, where cardinality costs nothing per series: the request's span carries the tenant and
 client, and a metric's exemplar links a slow bucket to that span. Per-tenant **usage** — what a tenant consumed, for
-plans and billing — is a stored count with its own retention (backlog `F79`), not a metric series.
+plans and billing — is a stored count with its own retention (backlog `F81`), not a metric series.
 
 ### 7. Hosts opt in; the reference host wires OpenTelemetry
 
@@ -146,7 +147,7 @@ renaming an instrument or attribute is a deliberate change.
   provides and lets the two counts drift (ADR-0047).
 - **A tenant attribute, opt-in or allow-listed.** Rejected: an operator who enables it on a multi-tenant platform
   creates a series per tenant per endpoint per status, which exhausts any bounded backend. Per-tenant views come from
-  traces, logs, and the usage counts of `F79`.
+  traces, logs, and the usage counts of `F81`.
 - **Publishing rate-limit refusals as events.** Rejected: a flood of refused requests would become a flood through the
   event pipeline and its sinks, the load the limiter exists to shed.
 - **Depending on the OpenTelemetry API in the library packages.** Rejected: `System.Diagnostics.Metrics` is the .NET

@@ -384,6 +384,18 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.QuotaExceeded,
+        Level = LogLevel.Information,
+        Message = "A request to tenant '{TenantId}' exceeded its '{Partition}' quota of {Quota} per UTC day and was refused until midnight UTC."
+    )]
+    internal static partial void QuotaExceeded(
+        this ILogger logger,
+        string tenantId,
+        string partition,
+        int quota
+    );
+
+    [LoggerMessage(
         EventId = EventIds.RateLimitStoreUnavailable,
         Level = LogLevel.Warning,
         Message = "The '{Partition}' rate limit of tenant '{TenantId}' was not enforced because its request counter could not be read; the request is admitted."

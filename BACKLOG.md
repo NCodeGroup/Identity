@@ -74,7 +74,7 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
-| `F` — Feature gaps                    | `F81`     | `F80`      |
+| `F` — Feature gaps                    | `F82`     | `F81`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U26`     | `U25`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
@@ -299,11 +299,15 @@ entry and/or ADR that closed it.
   [`src/NCode.Identity.Jose/Algorithms/KeyManagement`](src/NCode.Identity.Jose/Algorithms/KeyManagement),
   [`src/NCode.Identity.Jose.Abstractions/Algorithms`](src/NCode.Identity.Jose.Abstractions/Algorithms).
 
-- **`F79` — Per-tenant quotas for plan tiers.** Split from `F45`. Count requests per day and token issuances per tenant
-  for plan tiers, reusing `IExpiringCounterSet`
-  ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)). Decide in an ADR the
-  window (calendar day in UTC or rolling), what happens at the quota (reject with `429`, or allow and report an
-  overage), and how a plan tier sets the quota through the settings cascade. Builds on `F45` (done).
+- **`F81` — Per-tenant usage history for billing.** Split from `F79`. The daily quotas of
+  [ADR-0198](docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) keep only the current UTC
+  day's count, which expires at midnight. Record each tenant's daily request and token-request counts durably, with
+  their own retention, readable through the management API, so the platform can bill a plan, report usage to a
+  customer, and later admit and bill an overage instead of refusing it. Decide in an ADR where the count is persisted
+  (rolled up from the day's counter, or appended per request through the event seam) and how long it is kept; usage
+  stays out of metric series
+  ([ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) §6). Builds on
+  `F79` (done).
 
 - **`F48` — Publish the deployment artifacts the platform runs.** Per
   [ADR-0133](docs/adr/0133-we-ship-and-run-the-same-deployment-artifacts.md), the hosted platform consumes only the

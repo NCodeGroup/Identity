@@ -88,9 +88,9 @@ client, against per-minute limits that are settings bounded by the merge lattice
 8. **An unreachable counter store fails open.** Rate limiting protects capacity, not correctness: unlike a single-use
    check, which fails closed (ADR-0164), a counter that cannot be read admits the request and logs a warning, so a
    Valkey outage does not become an authentication outage.
-9. **Quotas are a separate decision.** Daily request and token-issuance quotas for plan tiers count over far longer
-   windows and need billing semantics (reset time zone, overage handling); they reuse the counter port but are decided
-   separately.
+9. **Quotas are a separate decision.** Daily request and token quotas for plan tiers count over far longer windows and
+   need billing semantics (reset time zone, overage handling); they reuse the counter port and are decided in
+   [ADR-0198](0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
 
 ## Options considered
 
@@ -106,8 +106,8 @@ client, against per-minute limits that are settings bounded by the merge lattice
 
 ## Consequences
 
-- Every protocol endpoint is limited once a tenant sets a limit; nothing is limited by default. Quotas are tracked in
-  [`BACKLOG.md`](../../BACKLOG.md) as `F79`.
+- Every protocol endpoint is limited once a tenant sets a limit; nothing is limited by default. Daily quotas are
+  [ADR-0198](0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
 - Every judged partition is counted in `ncode.identity.rate_limiting.requests` by partition and result (`admitted`,
   `rejected`, `store_unavailable`), per
   [ADR-0197](0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md), and the `429` itself

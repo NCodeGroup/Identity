@@ -972,4 +972,17 @@ public static class OpenIdSettingNames
     /// tenant's protocol endpoints accept from one authenticated client. Unset means unlimited.
     /// </summary>
     public const string RateLimitClientPerMinute = "rate_limit_client_per_minute";
+
+    /// <summary>
+    /// Contains the name of the <c>quota_tenant_requests_per_day</c> setting: the most requests a tenant's protocol
+    /// endpoints serve in one UTC calendar day, the quota a plan tier sets. Unset means unlimited.
+    /// </summary>
+    public const string QuotaTenantRequestsPerDay = "quota_tenant_requests_per_day";
+
+    /// <summary>
+    /// Contains the name of the <c>quota_tenant_token_requests_per_day</c> setting: the most token requests from
+    /// confidential clients a tenant's token endpoint serves in one UTC calendar day, the quota a plan tier sets. Unset
+    /// means unlimited.
+    /// </summary>
+    public const string QuotaTenantTokenRequestsPerDay = "quota_tenant_token_requests_per_day";
 }

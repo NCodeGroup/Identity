@@ -41,6 +41,21 @@ the tenant's address is validated as two hosts.**
    because one host cannot both ask for and skip a client certificate. The management API carries
    `mtlsEndpointAliasAuthority` on tenant create, update, and read, and an update re-judges the address when either
    value changes.
+5. **The strategy supplies a default alias, as it does the issuer.**
+   `ITenantStrategy.GetDefaultMtlsEndpointAliasAuthorityAsync` returns the alias a tenant written without one is given,
+   and `ITenantResolver` exposes it beside `GetDefaultIssuerAsync`
+   ([ADR-0165](0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+   The sources, in order: the root tenant's configured `Root:MtlsEndpointAliasAuthority`; the static tenant's
+   `StaticSingle:MtlsEndpointAliasAuthority`; otherwise the expansion of `DynamicByHost:MtlsEndpointAliasTemplate`
+   (`https://{tenantId}.mtls.example`). No other strategy has a template, so its tenants have no default alias.
+   Management create and update, and the provisioner, apply `alias ??= default` and then judge the address, and the
+   derived alias is stored so it does not move when configuration changes. An update that clears the alias restores the
+   derived one, as an update that clears the issuer does. The template is checked at startup: it must be an `https`
+   origin template with `{tenantId}` in its host, the host pattern must map each expanded host to itself, and it must
+   give a tenant a host other than its `DynamicByHost:IssuerTemplate` host; a configured root alias must map to itself
+   too. The address preview
+   (`GET /tenants/{tenantId}/address`) takes an optional `mtlsEndpointAliasAuthority` and returns the effective
+   `mtlsEndpointAliasAuthority` and whether it is derived (`isMtlsEndpointAliasAuthorityDerived`).
 
 ADR-0129 still holds. The issuer remains the single authoritative origin that every published URL and token is anchored
 to. The alias is a routed second origin for the endpoints only, and the published `issuer` never changes with the
@@ -59,9 +74,10 @@ request host.
 
 - A tenant served by the host strategy can publish and serve per-tenant mTLS aliases, which the reference deployment's
   `{tenant}.mtls…` hosts need.
-- The alias is set per tenant through the management API. Not yet built (tracked in `BACKLOG.md`): a default alias
-  derived from a template, in the way ADR-0165 derives the default issuer, and the address preview and console fields
-  for it.
+- Under the hosted platform, `DynamicByHost:MtlsEndpointAliasTemplate = https://{tenantId}.mtls.<apex>` and
+  `Root:MtlsEndpointAliasAuthority = https://mtls.<apex>` give every tenant its alias without an API call; an explicit
+  alias still overrides the derived one. Under a template, a tenant cannot opt out of an alias: an empty alias restores
+  the derived one. The console fields for the alias are tracked in `BACKLOG.md`.
 - Migrated aliases are not checked for uniqueness, because the migration cannot run the strategy. An ambiguous host
   serves no tenant until an operator fixes one of the tenants, and the next write to either tenant reports the conflict.
 

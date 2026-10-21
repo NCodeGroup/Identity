@@ -222,7 +222,10 @@ Why this shape:
   ([ADR-0165](adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)):
   `OpenId:TenantResolution:StrategyCode = DynamicByHost`, `DynamicByHost:IssuerTemplate =
   https://{tenantId}.auth.nidentity.io`, and `Root:Issuer = https://auth.nidentity.io`. A tenant created without an
-  issuer is given (and keeps) the one the template derives; a custom domain is set as an explicit issuer. The root tenant
+  issuer is given (and keeps) the one the template derives; a custom domain is set as an explicit issuer. The mTLS
+  aliases follow the same rule: `DynamicByHost:MtlsEndpointAliasTemplate = https://{tenantId}.mtls.nidentity.io` and
+  `Root:MtlsEndpointAliasAuthority = https://mtls.nidentity.io`
+  ([ADR-0195](adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). The root tenant
   is created when the first request reaches `auth.nidentity.io`, with the bootstrap administrator named into it
   (`BootstrapAdmin:TenantId = root`,
   [ADR-0166](adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). `/api` is served on
@@ -451,7 +454,7 @@ Verified against Traefik v3.7 documentation and source:
 - **`F47` — the mTLS alias host routes to its tenant (resolved).** The alias is the tenant property
   `MtlsEndpointAliasAuthority`; `DynamicByHost` routes its derived host as well as the issuer's, and validation keeps
   both hosts unique ([ADR-0195](adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). Each tenant's
-  alias is set through the management API; a template-derived default alias is backlog `F78`.
+  alias is derived from `DynamicByHost:MtlsEndpointAliasTemplate` unless one is set through the management API (`F78`).
 
 **Proxy rule:** on the mTLS host, use `RequireAnyClientCert` (request, don't verify) and forward the certificate. The
 server validates `tls_client_auth` chains itself, so `tls_client_auth` and `self_signed_tls_client_auth` clients share
@@ -629,7 +632,7 @@ speed-test endpoint from the Denver network the users are on.
   each rollout it migrates the database in a Job from the same image, and every migration keeps the previous release
   working ([ADR-0180](adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Still
   needed: publishing the image and chart (`F48`).
-- **mTLS default alias** `F78` (`F43`, `F44`, and `F47` are done) and **per-tenant rate limits** `F45` (above).
+- **Per-tenant rate limits** `F45` (above); the mTLS work (`F43`, `F44`, `F47`, and `F78`) is done.
 
 **Operations:**
 
@@ -683,5 +686,5 @@ the provider's SPF include and DKIM keys, and keep DMARC at `p=reject`.
    on the OCI Pay-As-You-Go A1 allowance (~$4) and ephemeral Azure runs on the Visual Studio credit (§2, §10,
    backlog `T9`).
 5. **Server prerequisites before mTLS goes live:** done — `F47` (route per-tenant mTLS alias hosts), `F43` (in-app
-   chain validation), and `F44` (Traefik header format). `F78` would derive each tenant's alias from a template.
+   chain validation), `F44` (Traefik header format), and `F78` (each tenant's alias derived from a template).
 6. **Primary domain:** acquire `nidentity.com` ($250 offer pending) or stay on `nidentity.io` (§3).

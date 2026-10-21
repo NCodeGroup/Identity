@@ -340,20 +340,6 @@ entry and/or ADR that closed it.
   Workload images and charts get build-provenance attestations and signatures that Flux verifies before the first
   production rollout.
 
-- **`F78` — Derive a tenant's default mTLS endpoint alias from a template, and preview it.** `F47` made the alias a
-  routed tenant property ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)), but
-  it is only ever set explicitly. Finish the shape the issuer already has
-  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)):
-  - **Each strategy supplies the default, persisted on write.** `TenantStrategy` gains a default-alias method beside
-    `GetDefaultIssuerAsync`. `DynamicByHostTenantOptions` gains `MtlsEndpointAliasTemplate`, for example
-    `https://{tenantId}.mtls.example`. `DynamicByHostTenantOptionsValidator` checks it like `IssuerTemplate`, and it
-    must also be an origin whose host `RegexPattern` maps to itself. Provisioning and the management create path store
-    the expansion when no alias is given, so changing the template never moves an existing tenant. The other strategies
-    have no template.
-  - **Preview it.** `TenantAddressResource` carries the alias authority and an `IsMtlsEndpointAliasAuthorityDerived`
-    flag beside `IsIssuerDerived`, and the address preview endpoint takes the proposed alias.
-  - **Tests.** The template default in `DynamicByHostTenantStrategyTests`, the options validator, and the preview.
-
 ## Conformance & interop testing (group `T`)
 
 - **`T1` (subsumes `T6`) — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite,
@@ -429,8 +415,10 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   mirrors (`TenantResource`, `CreateTenantRequest`, `UpdateTenantFields` in `packages/api/src/contracts.ts`), then show
   and edit it beside the issuer in the management console's tenant pages (`apps/mgmt` `TenantsPage.tsx` and
   `TenantDetailPage.tsx`, and `TenantFormDialog`). Preview its derived default through `TenantAddressResource`, the way
-  the create and edit dialog already previews the issuer, and re-judge it only when it changes. The preview depends on
-  `F78`.
+  the create and edit dialog already previews the issuer, and re-judge it only when it changes. The preview's
+  `mtlsEndpointAliasAuthority` query parameter and the resource's `mtlsEndpointAliasAuthority` and
+  `isMtlsEndpointAliasAuthorityDerived` fields exist (`F78`, done); add them to the `@ncode/api` `TenantAddressResource`
+  mirror as well.
 
 ## Secrets management (group `S`)
 

@@ -73,7 +73,7 @@ Decided in [ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-sc
   with a customer's `-dev` tenant; `dev`, `test`, and `staging` are reserved for customers' tenants and never name a
   platform environment ([ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-scheme.md)).
 - **Production therefore carries customers' dev/test traffic too:** per-tenant rate limits and quotas keep one
-  tenant's load test from starving another (backlog `F45`).
+  tenant's load test from starving another (backlog `F45` and `F79`).
 
 ### Recommended plan
 

@@ -53,4 +53,34 @@ public sealed class SharedStateLibraryRegistrationTests : BaseTests
     }
 
     #endregion
+
+    #region AddInProcessExpiringCounterSet Tests
+
+    [Fact]
+    public void AddInProcessExpiringCounterSet_RegistersTheInProcessAdapter()
+    {
+        var serviceCollection = new ServiceCollection();
+
+        serviceCollection.AddSharedStateServices().AddInProcessExpiringCounterSet();
+
+        using var provider = serviceCollection.BuildServiceProvider();
+        Assert.IsType<DefaultInProcessExpiringCounterSet>(
+            provider.GetRequiredService<IExpiringCounterSet>()
+        );
+    }
+
+    [Fact]
+    public void AddInProcessExpiringCounterSet_WhenAdapterRegisteredFirst_KeepsThatAdapter()
+    {
+        var customCounterSet = CreateStrictMock<IExpiringCounterSet>().Object;
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(customCounterSet);
+
+        serviceCollection.AddSharedStateServices().AddInProcessExpiringCounterSet();
+
+        using var provider = serviceCollection.BuildServiceProvider();
+        Assert.Same(customCounterSet, provider.GetRequiredService<IExpiringCounterSet>());
+    }
+
+    #endregion
 }

@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **A shared expiring counter set for rate limiting.** `NCode.Identity.SharedState.Abstractions` adds
+  `IExpiringCounterSet`: `IncrementAsync(key, expiresWhen)` atomically increments a counter that spans one fixed window
+  and returns its count, and `GetAsync(key)` reads a count. `AddInProcessExpiringCounterSet` registers the in-process
+  default, which `AddIdentityServer` now registers beside the in-process key set, and `AddValkey` replaces it with a
+  Valkey adapter that runs `INCR` and `PEXPIRE` as one script, so every replica counts against one counter. It is the
+  foundation of per-tenant rate limiting
+  ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), backlog `F45`).
+
 - **The management console shows and edits a tenant's mTLS endpoint alias (RFC 8705 §5).** The `@ncode/api` mirrors
   carry `mtlsEndpointAliasAuthority` on `TenantResource`, `CreateTenantRequest`, and `UpdateTenantFields`, and
   `TenantAddressResource` gains it with `isMtlsEndpointAliasAuthorityDerived`. The store's `getTenantAddress` takes an

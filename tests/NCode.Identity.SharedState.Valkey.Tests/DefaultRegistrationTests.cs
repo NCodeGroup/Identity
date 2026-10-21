@@ -32,9 +32,12 @@ public sealed class DefaultRegistrationTests : BaseTests
 
     private IExpiringKeySet AdapterRegisteredBefore { get; }
 
+    private IExpiringCounterSet CounterAdapterRegisteredBefore { get; }
+
     public DefaultRegistrationTests()
     {
         AdapterRegisteredBefore = CreateStrictMock<IExpiringKeySet>().Object;
+        CounterAdapterRegisteredBefore = CreateStrictMock<IExpiringCounterSet>().Object;
     }
 
     private static IConfiguration CreateConfiguration(
@@ -48,6 +51,7 @@ public sealed class DefaultRegistrationTests : BaseTests
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton(AdapterRegisteredBefore);
+        serviceCollection.AddSingleton(CounterAdapterRegisteredBefore);
         serviceCollection.AddSharedStateServices().AddValkey(configuration);
         return serviceCollection;
     }
@@ -64,6 +68,9 @@ public sealed class DefaultRegistrationTests : BaseTests
         await using var provider = serviceCollection.BuildServiceProvider();
 
         Assert.IsType<ValkeyExpiringKeySet>(Assert.Single(provider.GetServices<IExpiringKeySet>()));
+        Assert.IsType<ValkeyExpiringCounterSet>(
+            Assert.Single(provider.GetServices<IExpiringCounterSet>())
+        );
     }
 
     [Fact]
@@ -141,6 +148,10 @@ public sealed class DefaultRegistrationTests : BaseTests
         await using var provider = serviceCollection.BuildServiceProvider();
 
         Assert.Same(AdapterRegisteredBefore, provider.GetRequiredService<IExpiringKeySet>());
+        Assert.Same(
+            CounterAdapterRegisteredBefore,
+            provider.GetRequiredService<IExpiringCounterSet>()
+        );
         Assert.Null(provider.GetService<IValkeyConnection>());
     }
 

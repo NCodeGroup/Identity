@@ -174,9 +174,6 @@ NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Features.set -> void
 NCode.Identity.Server.Frontend.FrontendSurfaceOptions.FrontendSurfaceOptions() -> void
 NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Scopes.get -> string![]?
 NCode.Identity.Server.Frontend.FrontendSurfaceOptions.Scopes.set -> void
-NCode.Identity.Server.DirectClientCertificateRegistration
-NCode.Identity.Server.DirectClientCertificateRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.Server.DirectClientCertificateRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDirectClientCertificates() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.Server.ReverseProxyApplicationBuilderExtensions
 NCode.Identity.Server.ReverseProxyApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
 NCode.Identity.Server.ReverseProxyApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseReverseProxy() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!

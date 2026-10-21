@@ -68,8 +68,12 @@ serviceCollection.AddReverseProxy(configuration);
 
 // Receive mutual-TLS client certificates when this host terminates TLS itself: an endpoint configured to request one
 // (Kestrel:EndpointDefaults:ClientCertificateMode) accepts any certificate at the handshake, and the client-
-// authentication handlers and certificate-bound tokens validate it (RFC 8705). Inert while no endpoint requests one.
-serviceCollection.AddDirectClientCertificates();
+// authentication handlers and certificate-bound tokens validate it (RFC 8705, ADR-0202). Kestrel's own validation
+// would refuse every self-signed or tenant-PKI certificate first. Inert while no endpoint requests one. The host owns
+// this hook: ConfigureHttpsDefaults keeps only the last action, so every HTTPS default belongs in this one call.
+builder.WebHost.ConfigureKestrel(kestrel =>
+    kestrel.ConfigureHttpsDefaults(https => https.AllowAnyClientCertificate())
+);
 
 var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
 

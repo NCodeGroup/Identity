@@ -15,8 +15,9 @@
          exercises the confidential / server-initiated legs a browser cannot, failing early before the slower
          external suite is even started;
       3. brings up the external certified suite from prebuilt Docker images (no Java build);
-      4. drives the Config OP + Basic OP plans headlessly via the suite's `run-test-plan.py`, gated on the
-         committed `expected-failures.json` / `expected-skips.json` baselines;
+      4. drives the Config OP + Basic OP plans (or, with -Fapi1Advanced, the FAPI 1.0 Advanced Final plans) headlessly
+         via the suite's `run-test-plan.py`, gated on the committed `expected-failures.json` / `expected-skips.json`
+         baselines;
       5. tears everything down and surfaces a single non-zero exit code on any unexpected failure.
 
     It is deliberately NOT part of `build/dod.ps1` — the suite needs Docker + Python 3 and is slow, so it runs
@@ -33,6 +34,9 @@
 
 .EXAMPLE
     ./build/conformance/run-conformance.ps1
+
+.EXAMPLE
+    ./build/conformance/run-conformance.ps1 -Fapi1Advanced
 
 .EXAMPLE
     ./build/conformance/run-conformance.ps1 -SkipPreflight -Plans oidcc-basic-certification-test-plan -Configs oidcc-basic.json
@@ -65,6 +69,15 @@ param(
     # serialize into the suite's `alias conflict`. Requires anonymous registration on the OP
     # (`registration_endpoint_allow_anonymous=true`, set in appsettings.Conformance.json).
     [switch] $IncludeBrowserPlans,
+
+    # Run the FAPI 1.0 Advanced Final plans instead of -Plans (backlog `T1`, ADR-0202): private_key_jwt and
+    # self_signed_tls_client_auth clients, pushed authorization requests, and both plain and JARM responses. Each FAPI
+    # client's key and self-signed certificate is generated on first use into the gitignored `.fapi1-keys/` (never
+    # committed) and reused, so the seeded clients keep matching a persistent database. The OP is launched with the
+    # client keys and the FAPI tenant overrides (client certificates requested, certificate-bound access tokens and the
+    # `code id_token` response type advertised), so the run needs a fresh OP and skips the pre-flight, whose client
+    # holds no certificate.
+    [switch] $Fapi1Advanced,
 
     # Skip the in-house probe-runner pre-flight (step 2).
     [switch] $SkipPreflight,
@@ -216,7 +229,112 @@ $failed = $false
 # triggered by entering src/frontend) leaks into the caller's shell. Capture the entry location and restore it on exit.
 $OriginalLocation = Get-Location
 
+# The FAPI 1.0 Advanced Final plans, one per client-authentication method and response mode, each paired with the
+# suite configuration generated from its template.
+$Fapi1PlanName = 'fapi1-advanced-final-test-plan'
+$Fapi1Configurations = @(
+    @{ Template = 'fapi1-advanced-private-key-jwt.template.json'; ClientAuthType = 'private_key_jwt' },
+    @{ Template = 'fapi1-advanced-mtls.template.json'; ClientAuthType = 'mtls' }
+)
+$Fapi1ResponseModes = @('plain_response', 'jarm')
+$Fapi1KeyDir = Join-Path $PSScriptRoot '.fapi1-keys'
+$Fapi1EnvironmentNames = [System.Collections.Generic.List[string]]::new()
+$Fapi1GeneratedConfigs = [System.Collections.Generic.List[string]]::new()
+
+function ConvertTo-Base64Url([byte[]] $Bytes) {
+    return [Convert]::ToBase64String($Bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+}
+
+function Get-Fapi1ClientCredential([string] $ClientId) {
+    # A P-256 key and a self-signed certificate for it: the key signs the client's assertions and request objects, and
+    # the certificate is the one it presents for self_signed_tls_client_auth and certificate-bound access tokens.
+    $certPath = Join-Path $Fapi1KeyDir "$ClientId.crt.pem"
+    $keyPath = Join-Path $Fapi1KeyDir "$ClientId.key.pem"
+    if (-not ((Test-Path $certPath) -and (Test-Path $keyPath))) {
+        New-Item -ItemType Directory -Force -Path $Fapi1KeyDir | Out-Null
+        $newKey = [System.Security.Cryptography.ECDsa]::Create([System.Security.Cryptography.ECCurve+NamedCurves]::nistP256)
+        try {
+            $request = [System.Security.Cryptography.X509Certificates.CertificateRequest]::new(
+                "CN=$ClientId", $newKey, [System.Security.Cryptography.HashAlgorithmName]::SHA256)
+            $now = [DateTimeOffset]::UtcNow
+            $newCert = $request.CreateSelfSigned($now.AddMinutes(-5), $now.AddYears(5))
+            try {
+                Set-Content -Path $certPath -Value $newCert.ExportCertificatePem() -NoNewline
+                Set-Content -Path $keyPath -Value $newKey.ExportPkcs8PrivateKeyPem() -NoNewline
+            }
+            finally { $newCert.Dispose() }
+        }
+        finally { $newKey.Dispose() }
+    }
+
+    $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::CreateFromPemFile($certPath, $keyPath)
+    try {
+        $key = [System.Security.Cryptography.X509Certificates.ECDsaCertificateExtensions]::GetECDsaPrivateKey($cert)
+        try { $parameters = $key.ExportParameters($true) } finally { $key.Dispose() }
+        $x = ConvertTo-Base64Url $parameters.Q.X
+        $y = ConvertTo-Base64Url $parameters.Q.Y
+        # The kid is the key's RFC 7638 thumbprint, so it is stable across runs.
+        $canonical = '{"crv":"P-256","kty":"EC","x":"' + $x + '","y":"' + $y + '"}'
+        $kid = ConvertTo-Base64Url ([System.Security.Cryptography.SHA256]::HashData([System.Text.Encoding]::UTF8.GetBytes($canonical)))
+        $publicJwk = [ordered]@{
+            kty = 'EC'; crv = 'P-256'; kid = $kid; alg = 'ES256'; x = $x; y = $y
+            x5c = @([Convert]::ToBase64String($cert.RawData))
+        }
+        $privateJwk = [ordered]@{} + $publicJwk
+        $privateJwk['d'] = ConvertTo-Base64Url $parameters.D
+        return @{
+            PublicJwks = [ordered]@{ keys = @($publicJwk) }
+            PrivateJwks = [ordered]@{ keys = @($privateJwk) }
+            CertPem = Get-Content -Path $certPath -Raw
+            KeyPem = Get-Content -Path $keyPath -Raw
+        }
+    }
+    finally { $cert.Dispose() }
+}
+
+function Set-Fapi1Environment([string] $Name, [string] $Value) {
+    Set-Item -Path "Env:$Name" -Value $Value
+    $Fapi1EnvironmentNames.Add($Name)
+}
+
+function Initialize-Fapi1Run {
+    # The seeded FAPI clients are listed in appsettings.Conformance.json without a key set, which leaves them unseeded;
+    # each one's public key set is supplied here, by its index in that list, through the environment the OP inherits.
+    $settingsPath = Join-Path $HostProject 'appsettings.Conformance.json'
+    $seededClients = @((Get-Content $settingsPath -Raw | ConvertFrom-Json).ConformanceSeed.Clients)
+
+    # Request client certificates at the handshake, and advertise certificate-bound access tokens and the hybrid
+    # response type the plain_response variant uses; a FAPI client's security profile narrows both to itself.
+    Set-Fapi1Environment 'Kestrel__EndpointDefaults__ClientCertificateMode' 'AllowCertificate'
+    Set-Fapi1Environment 'OpenId__Server__Settings__tls_client_certificate_bound_access_tokens' 'true'
+    Set-Fapi1Environment 'OpenId__Server__Settings__response_types_supported__0' 'code'
+    Set-Fapi1Environment 'OpenId__Server__Settings__response_types_supported__1' 'code id_token'
+
+    foreach ($configuration in $Fapi1Configurations) {
+        $suiteConfig = Get-Content (Join-Path $ConfigDir $configuration.Template) -Raw | ConvertFrom-Json -AsHashtable
+        $suiteConfig.Remove('comment:template')
+        foreach ($pair in @(@('client', 'mtls'), @('client2', 'mtls2'))) {
+            $clientId = $suiteConfig[$pair[0]].client_id
+            $index = [array]::FindIndex($seededClients, [Predicate[object]] { param($c) $c.ClientId -eq $clientId })
+            if ($index -lt 0) { throw "The FAPI client '$clientId' is not listed in $settingsPath." }
+            $credential = Get-Fapi1ClientCredential $clientId
+            Set-Fapi1Environment "ConformanceSeed__Clients__${index}__Jwks" ($credential.PublicJwks | ConvertTo-Json -Depth 5 -Compress)
+            $suiteConfig[$pair[0]].jwks = $credential.PrivateJwks
+            $suiteConfig[$pair[1]] = [ordered]@{ cert = $credential.CertPem; key = $credential.KeyPem }
+        }
+        $generated = Join-Path $ConfigDir ($configuration.Template -replace '\.template\.json$', '.json')
+        Set-Content -Path $generated -Value ($suiteConfig | ConvertTo-Json -Depth 10)
+        $Fapi1GeneratedConfigs.Add($generated)
+    }
+}
+
 try {
+    if ($Fapi1Advanced) {
+        if ($UseRunningOp) { throw '-Fapi1Advanced launches the OP with the FAPI configuration; omit -UseRunningOp.' }
+        if ($IncludeBrowserPlans) { throw '-Fapi1Advanced runs only the FAPI plans; omit -IncludeBrowserPlans.' }
+        Write-Step 'Preparing the FAPI 1.0 Advanced clients (keys under .fapi1-keys/, never committed).'
+        Initialize-Fapi1Run
+    }
     Assert-HostResolves ([uri] $IssuerUrl).Host
     if (-not $PreflightOnly) {
         Test-Command 'docker'
@@ -244,8 +362,8 @@ try {
     Assert-IssuerMatches -DiscoveryUrl $discoveryUrl -ExpectedIssuer $IssuerUrl
 
     # --- 2) In-house probe-runner pre-flight (fast, confidential/server-initiated legs). -----------
-    if ($SkipPreflight) {
-        Write-Step 'Skipping the in-house probe-runner pre-flight (-SkipPreflight).'
+    if ($SkipPreflight -or $Fapi1Advanced) {
+        Write-Step 'Skipping the in-house probe-runner pre-flight.'
     }
     else {
         Write-Step 'Running the in-house probe-runner pre-flight.'
@@ -309,6 +427,16 @@ try {
         Write-Step 'Running the external conformance plans.'
         $plansToRun = @($Plans)
         $configsToRun = @($Configs)
+        if ($Fapi1Advanced) {
+            $plansToRun = @()
+            $configsToRun = @()
+            foreach ($configuration in $Fapi1Configurations) {
+                foreach ($responseMode in $Fapi1ResponseModes) {
+                    $plansToRun += "$Fapi1PlanName[client_auth_type=$($configuration.ClientAuthType)][fapi_auth_request_method=pushed][fapi_profile=plain_fapi][fapi_response_mode=$responseMode]"
+                    $configsToRun += $configuration.Template -replace '\.template\.json$', '.json'
+                }
+            }
+        }
         if ($IncludeBrowserPlans) {
             # The Basic OP modules require explicit variants (server_metadata / client_registration). `dynamic_client`
             # makes the suite register a fresh client per module, avoiding the shared-`alias` serialization conflict.
@@ -409,6 +537,8 @@ finally {
         # Tree-kill: 'dotnet run' spawns the OP as a child, so Stop-Process on the wrapper alone would orphan it.
         Stop-ProcessTree $opProcess.Id
     }
+    foreach ($name in $Fapi1EnvironmentNames) { Remove-Item "Env:$name" -ErrorAction SilentlyContinue }
+    foreach ($path in $Fapi1GeneratedConfigs) { Remove-Item $path -ErrorAction SilentlyContinue }
     Remove-Item Env:CONFORMANCE_SERVER, Env:CONFORMANCE_DEV_MODE, Env:DISABLE_SSL_VERIFY, Env:CONFORMANCE_RETRY_TIMEOUT, Env:CONFORMANCE_RESTART_RETRIES, Env:CONFORMANCE_MAX_CONSECUTIVE_FAILURES -ErrorAction SilentlyContinue
     Set-Location $OriginalLocation
 }

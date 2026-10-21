@@ -54,7 +54,7 @@ public class ConformanceSeedOptionsTests
     }
 
     [Fact]
-    public void ShouldSeed_WhenClientSecretEmpty_IsFalse()
+    public void ShouldSeed_WhenNeitherSecretNorKeySet_IsFalse()
     {
         var client = new ConformanceClientSeed
         {
@@ -64,6 +64,20 @@ public class ConformanceSeedOptionsTests
         };
 
         Assert.False(client.ShouldSeed);
+    }
+
+    [Fact]
+    public void ShouldSeed_WhenKeySetWithoutSecret_IsTrue()
+    {
+        var client = new ConformanceClientSeed
+        {
+            ClientId = "fapi1",
+            ClientSecret = null,
+            Jwks = """{"keys":[]}""",
+            RedirectUris = ["https://localhost.emobix.co.uk:8443/test/a/ncode-fapi1/callback"],
+        };
+
+        Assert.True(client.ShouldSeed);
     }
 
     [Fact]

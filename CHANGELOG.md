@@ -10,6 +10,18 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **FAPI 1.0 Advanced conformance harness.** `build/conformance/run-conformance.ps1 -Fapi1Advanced` runs the
+  conformance suite's `fapi1-advanced-final-test-plan` with `private_key_jwt` and `self_signed_tls_client_auth`
+  clients, pushed authorization requests, and plain and JARM responses. It generates each client's key and self-signed
+  certificate on first use into a gitignored folder, so no private key is committed
+  ([ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  - `ConformanceClientSeed` gains `Jwks`, the public key set a client registers by value, and `SecurityProfiles`. A
+    client with a key set and no secret is seeded with exactly the keys the client-key policy imports, and a key set
+    the policy refuses stops the seeding with an error naming the client.
+  - `AddDirectClientCertificates()` (`NCode.Identity.Server`) lets a host that terminates TLS itself receive
+    mutual-TLS client certificates. An HTTPS endpoint that requests one accepts any certificate at the handshake, and
+    the OP validates it against the client it authenticates. The reference host wires it; it is inert while no endpoint
+    requests a certificate.
 - **FAPI 1.0 Advanced security profile (`fapi1-advanced`).** A tenant or client that selects it through
   `security_profiles` gets the following ceilings:
   - `code` with a JWT-secured (JARM) response mode, or `code id_token` once the tenant lists it;

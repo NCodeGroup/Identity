@@ -23,11 +23,13 @@ using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Server.ConformanceEnvironment;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
@@ -49,7 +51,8 @@ public class ConformanceSeedHandlerTests : BaseTests
     private ConformanceSeedHandler CreateHandler(
         ConformanceSeedOptions options,
         ISettingSerializer settingSerializer,
-        IOpenIdEnvironmentProvider openIdEnvironmentProvider
+        IOpenIdEnvironmentProvider openIdEnvironmentProvider,
+        IClientKeyImporter? clientKeyImporter = null
     )
     {
         // Strict mocks: on the guard paths under test the secret, crypto, and time dependencies are untouched.
@@ -59,6 +62,7 @@ public class ConformanceSeedHandlerTests : BaseTests
         return new ConformanceSeedHandler(
             options,
             mockSecretGenerator.Object,
+            clientKeyImporter ?? CreateStrictMock<IClientKeyImporter>().Object,
             mockCryptoService.Object,
             TimeProvider.System,
             settingSerializer,
@@ -339,6 +343,181 @@ public class ConformanceSeedHandlerTests : BaseTests
             GetStrings(settingsDocument, "grant_types_supported")
         );
         Assert.False(settingsDocument.TryGetProperty("code_challenge_methods_supported", out _));
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenClientHasOnlyKeySet_StoresImportedKeysAndProfiles()
+    {
+        // A FAPI client authenticates with its keys (private_key_jwt or self_signed_tls_client_auth), so it is seeded
+        // without a secret: its credentials are exactly the keys the client-key policy imported from its key set.
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
+        mockEnvironment.Setup(x => x.JsonSerializerOptions).Returns(jsonOptions);
+        var mockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
+        mockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
+
+        var mockSettingSerializer = CreateStrictMock<ISettingSerializer>();
+        mockSettingSerializer
+            .Setup(x => x.ValidateSettings(It.IsAny<JsonElement>(), "client", jsonOptions))
+            .Returns([])
+            .Verifiable();
+
+        var importedKey = new PersistedSecret
+        {
+            SecretId = "key-1",
+            KeyId = "key-1",
+            Use = null,
+            Algorithm = "ES256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.MaxValue,
+            SecretType = "ecc",
+            SecretEncoding = "spki",
+            KeySizeBits = 256,
+            EncodedValue = "public-key",
+        };
+        const string jwks = """{"keys":[{"kty":"EC","kid":"key-1"}]}""";
+        var mockKeyImporter = CreateStrictMock<IClientKeyImporter>();
+        IReadOnlyList<PersistedSecret>? importedKeys = [importedKey];
+        string? importError = null;
+        mockKeyImporter
+            .Setup(x =>
+                x.TryImportRegisteredKeySet(
+                    It.Is<JsonElement>(keySet => keySet.GetRawText() == jwks),
+                    It.IsAny<DateTimeOffset>(),
+                    out importedKeys,
+                    out importError
+                )
+            )
+            .Returns(true)
+            .Verifiable();
+
+        var options = new ConformanceSeedOptions
+        {
+            TenantId = WorkloadTenantId,
+            Clients =
+            [
+                new ConformanceClientSeed
+                {
+                    ClientId = "fapi1",
+                    Jwks = jwks,
+                    RedirectUris = ["https://client.example/callback"],
+                    TokenEndpointAuthMethod = "private_key_jwt",
+                    SecurityProfiles = ["fapi1-advanced"],
+                },
+            ],
+            TestUserPassword = null,
+        };
+        var handler = CreateHandler(
+            options,
+            mockSettingSerializer.Object,
+            mockEnvironmentProvider.Object,
+            mockKeyImporter.Object
+        );
+
+        PersistedClient? storedClient = null;
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        var mockClientStore = CreateStrictMock<IClientStore>();
+        mockStoreManager
+            .Setup(x => x.GetStore<IClientStore>())
+            .Returns(mockClientStore.Object)
+            .Verifiable();
+        mockClientStore
+            .Setup(x => x.GetOrDefaultAsync("fapi1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+        mockClientStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedClient>(), It.IsAny<CancellationToken>()))
+            .Callback((PersistedClient client, CancellationToken _) => storedClient = client)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await handler.HandleAsync(
+            CreateCommand(WorkloadTenantId, TenantPlane.Workload, mockStoreManager.Object),
+            CancellationToken.None
+        );
+
+        Assert.NotNull(storedClient);
+        Assert.Equal([importedKey], storedClient.Secrets.Value);
+        var settingsDocument = storedClient.Settings.Value;
+        Assert.Equal(
+            "private_key_jwt",
+            settingsDocument.GetProperty("token_endpoint_auth_method").GetString()
+        );
+        Assert.Equal(["fapi1-advanced"], GetStrings(settingsDocument, "security_profiles"));
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenKeySetIsRefused_ThrowsNamingTheClient()
+    {
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
+        mockEnvironment.Setup(x => x.JsonSerializerOptions).Returns(jsonOptions);
+        var mockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
+        mockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
+
+        var mockSettingSerializer = CreateStrictMock<ISettingSerializer>();
+        mockSettingSerializer
+            .Setup(x => x.ValidateSettings(It.IsAny<JsonElement>(), "client", jsonOptions))
+            .Returns([])
+            .Verifiable();
+
+        var mockKeyImporter = CreateStrictMock<IClientKeyImporter>();
+        IReadOnlyList<PersistedSecret>? importedKeys = null;
+        string? importError = "The key 'key-1' is a private key.";
+        mockKeyImporter
+            .Setup(x =>
+                x.TryImportRegisteredKeySet(
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<DateTimeOffset>(),
+                    out importedKeys,
+                    out importError
+                )
+            )
+            .Returns(false)
+            .Verifiable();
+
+        var options = new ConformanceSeedOptions
+        {
+            TenantId = WorkloadTenantId,
+            Clients =
+            [
+                new ConformanceClientSeed
+                {
+                    ClientId = "fapi1",
+                    Jwks = """{"keys":[{"kty":"EC","kid":"key-1","d":"private"}]}""",
+                    RedirectUris = ["https://client.example/callback"],
+                    TokenEndpointAuthMethod = "private_key_jwt",
+                },
+            ],
+            TestUserPassword = null,
+        };
+        var handler = CreateHandler(
+            options,
+            mockSettingSerializer.Object,
+            mockEnvironmentProvider.Object,
+            mockKeyImporter.Object
+        );
+
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        var mockClientStore = CreateStrictMock<IClientStore>();
+        mockStoreManager
+            .Setup(x => x.GetStore<IClientStore>())
+            .Returns(mockClientStore.Object)
+            .Verifiable();
+        mockClientStore
+            .Setup(x => x.GetOrDefaultAsync("fapi1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await handler.HandleAsync(
+                CreateCommand(WorkloadTenantId, TenantPlane.Workload, mockStoreManager.Object),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Contains("'fapi1'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("is a private key", exception.Message, StringComparison.Ordinal);
     }
 
     private static IEnumerable<string?> GetStrings(JsonElement document, string propertyName) =>

@@ -74,6 +74,18 @@ outer parameter such as `response_mode` could change a signed request.
   inherits the profile's ceilings wherever it selects the profile in the cascade.
 - An OpenID Connect client that put parameters such as `response_mode` or `nonce` only in the outer query alongside a
   request object loses them. It must move them into the request object, as RFC 9101 requires.
-- Running the conformance suite's `fapi1-advanced-final-test-plan` (with `private_key_jwt` and `mtls` client
-  authentication, the `pushed` request method, and the `jarm` and `plain_response` response modes) is part of `T1`.
-  The spec-coverage matrix gains a `profile-fapi1-advanced` row derived from discovery metadata.
+- The conformance harness runs the suite's `fapi1-advanced-final-test-plan` with `run-conformance.ps1
+  -Fapi1Advanced`: `private_key_jwt` and `mtls` (`self_signed_tls_client_auth`) client authentication, the `pushed`
+  request method, and the `jarm` and `plain_response` response modes. The conformance seed accepts a client
+  authenticated only by the keys it registers (`Jwks`, imported under the same client-key policy as a dynamically
+  registered `jwks`) and the client's `SecurityProfiles`. The script generates each client's key and self-signed
+  certificate on first use into a gitignored folder, so no private key is committed. Running the plans end to end and
+  committing their baseline is part of `T1`. The spec-coverage matrix gains a `profile-fapi1-advanced` row derived
+  from discovery metadata.
+- A host that terminates TLS itself receives mutual-TLS client certificates through `AddDirectClientCertificates()`.
+  An endpoint that requests a client certificate (`Kestrel:EndpointDefaults:ClientCertificateMode`) accepts any
+  certificate at the handshake. Kestrel's default validation would refuse every self-signed certificate and every
+  certificate issued by a tenant's own PKI before the OP could see it. The OP validates the certificate where its
+  meaning is known: the client-authentication handler matches it to the client's registered key or validates its
+  chain against the configured trust anchors, and a certificate-bound access token is bound to its thumbprint. The
+  reference host wires it, and it stays inert while no endpoint requests a certificate.

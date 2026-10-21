@@ -86,6 +86,9 @@ shell-profile snippets in [`src/frontend/README.md`](../../src/frontend/README.m
 
 # Pre-flight only (launch OP + run the probe runner; no Docker/Python needed) — a fast local check:
 ./build/conformance/run-conformance.ps1 -PreflightOnly
+
+# The FAPI 1.0 Advanced Final plans instead of the default ones:
+./build/conformance/run-conformance.ps1 -Fapi1Advanced
 ```
 
 **Default profile scope.** The default run gates on the **Config OP** profile only. The browser-driven **Basic OP**
@@ -93,6 +96,19 @@ profile is opt-in (`-IncludeBrowserPlans`) because it is slower: the suite's hea
 **HtmlUnitDriver** drives the OP's interactive login and consent through the server-rendered no-JS form, under Dynamic
 Client Registration. It runs green; status and triage history are in
 [`docs/conformance/external-suite.md`](../../docs/conformance/external-suite.md).
+
+**FAPI 1.0 Advanced.** `-Fapi1Advanced` runs `fapi1-advanced-final-test-plan` four times, with `private_key_jwt` and
+`mtls` client authentication and the `plain_response` and `jarm` response modes, always with pushed authorization
+requests ([ADR-0202](../../docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)). The
+`mtls` variant uses `self_signed_tls_client_auth`. Each of the four `fapi1-*` clients in
+`appsettings.Conformance.json` gets a P-256 key and a self-signed certificate for it. They are generated on first use
+into `./.fapi1-keys/` (gitignored, never committed) and reused, so the seeded clients keep matching a persistent
+database; delete the folder and purge the database together. The script writes each client's public key set to the
+environment the OP inherits, which seeds the client, and writes the suite configuration with the private keys and
+certificates beside its `fapi1-advanced-*.template.json` (gitignored, deleted when the run ends). FAPI tokens are
+certificate-bound, so the OP is launched requesting client certificates and advertising certificate-bound access
+tokens and the `code id_token` response type. That is why the switch needs a fresh OP (not `-UseRunningOp`) and skips
+the pre-flight, whose client holds no certificate.
 
 The pre-flight step bootstraps the frontend pnpm workspace via
 [`build/frontend-install.ps1`](../frontend-install.ps1) (idempotent; also self-heals a partially-installed

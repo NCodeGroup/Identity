@@ -236,7 +236,7 @@ entry and/or ADR that closed it.
 ## Conformance & interop testing (group `T`)
 
 - **`T1` (subsumes `T6`) — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite,
-  delivered through the in-house spec-coverage harness (remaining: nightly CI, the FAPI 2.0 and FAPI 1.0 Advanced plans).** An independent,
+  delivered through the in-house spec-coverage harness (remaining: nightly CI, the FAPI 2.0 plan, and the FAPI 1.0 Advanced plan's first end-to-end run).** An independent,
   spec-author-maintained oracle to catch misreadings our own integration tests share, driven by an **in-house
   measurement harness** (the
   spec-coverage matrix + the headless probe-runner pre-flight) **and** the committed automation
@@ -254,15 +254,19 @@ failures, 0 warnings`); the **Basic OP** (browser-driven) plan runs end-to-end u
   implement them. **Remaining:** a **nightly / opt-in CI pipeline** (not `dod.ps1`) that invokes `run-conformance.ps1`
   (Docker + Python 3, no local Java) and publishes the `.results/` zips — deferred until the repo's broader CI bootstrap
   lands (no `.github/workflows` exists yet); and the **FAPI 2.0 plan** (moved from `F16`, whose OP side is complete):
-  extend `ConformanceClientSeed` with public keys (`jwks`), `security_profiles`, and the signing algorithm, seed the two
-  `fapi2` / `private_key_jwt` clients the plan needs in `AddConformanceSeed`, add a FAPI 2.0 plan config to
+  seed the two `fapi2` / `private_key_jwt` clients the plan needs (`ConformanceClientSeed` already carries `Jwks` and
+  `SecurityProfiles`, and `-Fapi1Advanced` shows how to generate their keys), add a FAPI 2.0 plan config to
   `run-conformance.ps1` (the `private_key_jwt` + DPoP variant avoids passing client certificates through Docker),
   and run it end to end and commit its baseline. The `coverage.ts` `profile-fapi2` row already classifies from discovery and
-  needs no change. Also the **FAPI 1.0 Advanced plan** (moved from `F83`, whose OP side is complete,
-  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)): seed `fapi1-advanced`
-  clients, add the `fapi1-advanced-final-test-plan` to `run-conformance.ps1` with `private_key_jwt` and `mtls` client
-  authentication, the `pushed` request method, and the `jarm` and `plain_response` response modes (its tokens must be
-  certificate-bound, so this plan does pass client certificates through Docker), run it end to end, and commit its
+  needs no change. Also the **FAPI 1.0 Advanced plan's first end-to-end run** (moved from `F83`, whose OP side is
+  complete, [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)). The harness is
+  built: `run-conformance.ps1 -Fapi1Advanced` seeds the four `fapi1-*` key-authenticated clients from keys and
+  self-signed certificates it generates into a gitignored folder, launches the OP requesting client certificates, and
+  runs `fapi1-advanced-final-test-plan` with `private_key_jwt` and `mtls` client authentication, the `pushed` request
+  method, and the `jarm` and `plain_response` response modes. It has not yet been run against the suite, because the
+  cloud-agent sandbox that built it cannot reach `gitlab.com`. Remaining: run it on a machine with Docker, triage the
+  verdicts (the suite's container must reach the OP with client certificates), and commit the plan's entries in the
+  `expected-failures.json` / `expected-skips.json`
   baseline. The `profile-fapi1-advanced` coverage row already classifies from discovery. Design and phases are in
   [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md),
   [`docs/conformance-testing.md`](docs/conformance-testing.md), and

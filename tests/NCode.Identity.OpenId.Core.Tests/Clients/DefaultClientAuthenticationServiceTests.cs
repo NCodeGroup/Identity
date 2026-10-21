@@ -426,6 +426,29 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task AuthenticateClientAsync_WhenAPublicClientIsAuthenticated_DoesNotCountItsRateLimit()
+    {
+        var client = CreatePublicClient(
+            OpenIdConstants.ClientAuthenticationMethods.None,
+            [OpenIdConstants.ClientAuthenticationMethods.None],
+            isRefused: false
+        );
+        var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
+
+        await service.AuthenticateClientAsync(MockContext.Object, CancellationToken.None);
+
+        MockRateLimiter.Verify(
+            x =>
+                x.AcquireForClientAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Never
+        );
+    }
+
+    [Fact]
     public async Task AuthenticateClientAsync_WhenTheClientIsOverItsRateLimit_ReturnsTooManyRequests()
     {
         var client = CreateConfidentialClient(

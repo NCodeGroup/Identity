@@ -11,8 +11,9 @@ change to the public API is a **major** version bump.
 ### Added
 
 - **Per-tenant rate limits.** Three settings limit the requests per minute a tenant's protocol endpoints serve:
-  `rate_limit_tenant_per_minute` (every request), `rate_limit_address_per_minute` (one remote address), and
-  `rate_limit_client_per_minute` (one authenticated client, set on the tenant or the client). Each is unset (unlimited)
+  `rate_limit_tenant_per_minute` (every request), `rate_limit_address_per_minute` (one remote address, an IPv6 address
+  counted by its `/64`), and `rate_limit_client_per_minute` (one authenticated confidential client, set on the tenant or
+  the client). Each is unset (unlimited)
   by default and merges with `Min`, so a tenant or client can only lower the limit above it. The limiter counts in the
   shared `IExpiringCounterSet` with a two-window sliding estimate, so the limits hold across replicas that share Valkey.
   A refused request is answered `429 Too Many Requests` with `temporarily_unavailable`, `Retry-After`, and

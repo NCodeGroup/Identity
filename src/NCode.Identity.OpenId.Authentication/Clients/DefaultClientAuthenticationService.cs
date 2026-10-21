@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// Provides a default implementation of the <see cref="IClientAuthenticationService"/> abstraction. Every registered
 /// <see cref="IClientAuthenticationHandler"/> examines the request; the service selects the client they authenticated
 /// and accepts it only when the method it authenticated with is the one it is registered to use and its ceiling permits
-/// that method, whichever handler produced it. An authenticated client is then counted against its
+/// that method, whichever handler produced it. An authenticated confidential client is then counted against its
 /// <c>rate_limit_client_per_minute</c> limit, once per request, and refused with <c>429 Too Many Requests</c> when it is
 /// over the limit.
 /// </summary>
@@ -73,8 +73,10 @@ internal class DefaultClientAuthenticationService(
 
         var authenticationResult = await AuthenticateCoreAsync(openIdContext, cancellationToken);
 
-        // Counted on the uncached path only, so a request that authenticates its client more than once counts once.
-        if (authenticationResult.Client is { } client)
+        // Counted on the uncached path only, so a request that authenticates its client more than once counts once. Only
+        // a confidential client proves its identity; a public client is named by its client_id alone, so counting it
+        // would let anyone spend its allowance and refuse its real users.
+        if (authenticationResult.ConfidentialClient is { } client)
         {
             var decision = await RateLimiter.AcquireForClientAsync(
                 openIdContext,

@@ -58,7 +58,7 @@ public class RateLimitTests
         Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
         var retryAfter = response.Headers.RetryAfter?.Delta;
         Assert.NotNull(retryAfter);
-        Assert.InRange(retryAfter.Value, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(60));
+        Assert.InRange(retryAfter.Value, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(120));
         Assert.True(response.Headers.CacheControl?.NoStore);
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());

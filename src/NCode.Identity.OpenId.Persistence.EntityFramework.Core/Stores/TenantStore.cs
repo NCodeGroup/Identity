@@ -192,6 +192,22 @@ internal class TenantStore(
         return await GetOrDefaultAsync(entity => entity.Id == id, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<string>> ListTenantIdsByHostAsync(
+        string host,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedHost = Normalize(host);
+        return await DbContext
+            .Tenants.Where(entity =>
+                entity.NormalizedIssuerHost == normalizedHost
+                || entity.NormalizedMtlsEndpointAliasHost == normalizedHost
+            )
+            .Select(entity => entity.TenantId)
+            .ToListAsync(cancellationToken);
+    }
+
     /// <summary>
     /// Extracts the host component of an issuer and normalizes it for a sargable lookup. Returns <c>null</c> when the
     /// tenant has no issuer, or when the issuer is not an absolute URI — in which case the tenant simply is not

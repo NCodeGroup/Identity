@@ -91,6 +91,22 @@ public interface ITenantStore : IStore<PersistedTenant>
     );
 
     /// <summary>
+    /// Gets the identifiers of every tenant whose issuer or mutual-TLS endpoint-alias authority has the specified host.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="GetOrDefaultByHostAsync"/> routes, so it returns no tenant when a host is ambiguous. This method reports
+    /// every holder instead, so that validating a tenant's address still sees a conflict that is already stored.
+    /// </remarks>
+    /// <param name="host">The issuer or alias host to look up.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the identifiers of the
+    /// tenants that hold the host.</returns>
+    ValueTask<IReadOnlyList<string>> ListTenantIdsByHostAsync(
+        string host,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Gets the <see cref="PersistedTenantSettings"/> instance from the store with the specified identifier.
     /// </summary>
     /// <param name="tenantId">The identifier of the OpenId Tenant.</param>

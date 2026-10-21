@@ -404,5 +404,6 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.Issuer.set -> vo
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.TenantIssuerHost = 300 -> int
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.GetOrDefaultByIssuerAsync(string! issuer, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant?>
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore.GetOrDefaultByHostAsync(string! host, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant?>
+NCode.Identity.OpenId.Persistence.Stores.ITenantStore.ListTenantIdsByHostAsync(string! host, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.MtlsEndpointAliasAuthority.get -> string?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant.MtlsEndpointAliasAuthority.set -> void

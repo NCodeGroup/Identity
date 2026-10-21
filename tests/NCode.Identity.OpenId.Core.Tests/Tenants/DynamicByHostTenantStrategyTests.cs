@@ -67,8 +67,8 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .Returns(MockTenantStore.Object)
             .Verifiable();
         MockTenantStore
-            .Setup(x => x.GetOrDefaultByHostAsync(IssuerHost, CancellationToken.None))
-            .ReturnsAsync(holderTenantId is null ? null : CreatePersistedTenant(holderTenantId))
+            .Setup(x => x.ListTenantIdsByHostAsync(IssuerHost, CancellationToken.None))
+            .ReturnsAsync(holderTenantId is null ? [] : [holderTenantId])
             .Verifiable();
     }
 
@@ -79,8 +79,8 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .Returns(MockTenantStore.Object)
             .Verifiable();
         MockTenantStore
-            .Setup(x => x.GetOrDefaultByHostAsync(host, CancellationToken.None))
-            .ReturnsAsync(holderTenantId is null ? null : CreatePersistedTenant(holderTenantId))
+            .Setup(x => x.ListTenantIdsByHostAsync(host, CancellationToken.None))
+            .ReturnsAsync(holderTenantId is null ? [] : [holderTenantId])
             .Verifiable();
     }
 
@@ -274,6 +274,28 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
         var failure = Assert.Single(failures);
         Assert.True(failure.IsConflict);
         Assert.Contains($"'{AliasHost}'", failure.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenTheTenantAndAnotherAlreadyShareTheAliasHost_ReportsAConflict()
+    {
+        SetupIssuerHostHolder(holderTenantId: null);
+        MockTenantStore
+            .Setup(x => x.ListTenantIdsByHostAsync(AliasHost, CancellationToken.None))
+            .ReturnsAsync([TenantId, "globex"])
+            .Verifiable();
+
+        var failures = await CreateStrategy()
+            .ValidateTenantAsync(
+                TenantId,
+                new Uri($"https://{IssuerHost}"),
+                new Uri($"https://{AliasHost}"),
+                MockStoreManager.Object,
+                CancellationToken.None
+            );
+
+        var failure = Assert.Single(failures);
+        Assert.True(failure.IsConflict);
     }
 
     [Fact]

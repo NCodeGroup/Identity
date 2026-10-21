@@ -437,6 +437,10 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **CI runs once per commit of a pull request.** The workflows ran for both the push to a branch and its pull request,
+  so each check appeared twice. A push now runs CI only on `main`; any other branch is checked through its pull request
+  or by running the workflow by hand.
+
 - **Breaking:** a request object's parameters are the only parameters of an authorization request (RFC 9101 §6.3). A
   parameter sent only outside the request object, such as `response_mode` or `nonce`, is now ignored instead of being
   merged in, so an unsigned parameter can no longer change a signed request. The outer `response_type` and `scope`

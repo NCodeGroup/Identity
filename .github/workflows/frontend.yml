@@ -10,10 +10,9 @@
 name: Frontend CI
 
 on:
+  # See the note in ci.yml: a push gates only main, because a pull request already gates every other branch.
   push:
-    # See the note in ci.yml: bot branches always carry an open pull request, so a push trigger would duplicate the
-    # whole run against the same tree.
-    branches-ignore: ['dependabot/**']
+    branches: [main]
     paths:
       - 'src/frontend/**'
       - '.github/workflows/frontend.yml'

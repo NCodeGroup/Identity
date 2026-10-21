@@ -91,7 +91,9 @@ marked tool-enforced or review-only. The highlights:
 4. Ensure `./build/dod.ps1` passes locally before opening a pull request.
 5. Push to `main`, or open a PR against it for review. While pre-release, `main` carries **no branch protection** —
    CI reports a verdict on every commit but nothing blocks the push, so the gate is the one you run locally
-   (`./build/dod.ps1 -Fast`). See [ADR-0125](docs/adr/0125-trunk-based-development-on-main.md).
+   (`./build/dod.ps1 -Fast`). See [ADR-0125](docs/adr/0125-trunk-based-development-on-main.md). CI runs on a push to
+   `main` and on a pull request, not on a push to any other branch, so a branch's commits are checked once. To check a
+   branch that has no pull request, open a draft pull request or run the workflows by hand (`workflow_dispatch`).
 
 An agent-assisted change of more than a few steps runs as **plan-and-execute**: Claude Opus plans it into `PLAN.md`, a
 lower-cost Copilot model executes one verified step at a time, and Opus re-plans any step that comes back — see

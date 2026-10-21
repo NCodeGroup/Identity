@@ -11,7 +11,9 @@ name: Copilot Setup Steps
 
 on:
   workflow_dispatch:
+  # A push runs only on main, because a pull request already runs every other branch (see ci.yml).
   push:
+    branches: [main]
     paths: [.github/workflows/copilot-setup-steps.yml]
   pull_request:
     paths: [.github/workflows/copilot-setup-steps.yml]

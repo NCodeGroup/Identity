@@ -69,6 +69,7 @@ internal class DynamicByHostTenantOptionsValidator : IValidateOptions<TenantReso
         if (hasLiteralPath && hostPattern is not null)
         {
             ValidateIssuerTemplate(dynamicByHost, hostPattern, failures);
+            ValidateMtlsEndpointAliasTemplate(dynamicByHost, hostPattern, failures);
             ValidateRootIssuer(options.Root, dynamicByHost, hostPattern, failures);
         }
 
@@ -119,6 +120,68 @@ internal class DynamicByHostTenantOptionsValidator : IValidateOptions<TenantReso
             hostPattern,
             failures
         );
+    }
+
+    // See ADR-0195 (a tenant's mTLS endpoint alias is a routed tenant property).
+    private static void ValidateMtlsEndpointAliasTemplate(
+        DynamicByHostTenantOptions options,
+        Regex hostPattern,
+        List<string> failures
+    )
+    {
+        var aliasTemplate = options.MtlsEndpointAliasTemplate;
+        if (string.IsNullOrEmpty(aliasTemplate))
+            return;
+
+        var key = $"{Prefix}:{nameof(options.MtlsEndpointAliasTemplate)}";
+        if (!TenantAddressRules.TryValidateMtlsEndpointAliasTemplate(aliasTemplate, key, failures))
+            return;
+
+        var aliasHosts = TenantAddressRules
+            .ProbeTenantIds.Select(tenantId =>
+                new Uri(TenantAddressRules.ExpandIssuerTemplate(aliasTemplate, tenantId)).Host
+            )
+            .ToList();
+
+        // An alias host routes to its tenant like an issuer host does, so it too must be a host of the tenant's own.
+        if (aliasHosts.Distinct(StringComparer.OrdinalIgnoreCase).Count() != aliasHosts.Count)
+        {
+            failures.Add(
+                $"{key} '{aliasTemplate}' must carry '{TenantResolutionOptions.TenantIdPlaceholder}' in its host: "
+                    + "tenants served by host must each have a host of their own."
+            );
+            return;
+        }
+
+        var aliasHost = aliasHosts[0];
+        var mappedHost = TenantAddressRules.MapToIssuerHost(hostPattern, aliasHost);
+        if (!string.Equals(mappedHost, aliasHost, StringComparison.OrdinalIgnoreCase))
+        {
+            failures.Add(
+                $"{key} '{aliasTemplate}' does not reach its tenant: the configured host pattern maps the host "
+                    + $"'{aliasHost}' to '{mappedHost}'."
+            );
+        }
+
+        // The alias serves the endpoints on a host of its own, where the TLS terminator asks for a client certificate.
+        var issuerTemplate = options.IssuerTemplate;
+        if (
+            !string.IsNullOrEmpty(issuerTemplate)
+            && TenantAddressRules.TryParseIssuer(
+                TenantAddressRules.ExpandIssuerTemplate(
+                    issuerTemplate,
+                    TenantAddressRules.ProbeTenantIds[0]
+                ),
+                out var probeIssuer
+            )
+            && string.Equals(probeIssuer.Host, aliasHost, StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            failures.Add(
+                $"{key} '{aliasTemplate}' must give a tenant a host other than its issuer host from "
+                    + $"{Prefix}:{nameof(options.IssuerTemplate)}."
+            );
+        }
     }
 
     private static void ValidateRootIssuer(

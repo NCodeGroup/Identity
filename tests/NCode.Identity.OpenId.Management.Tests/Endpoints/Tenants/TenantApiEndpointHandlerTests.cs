@@ -1381,6 +1381,14 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             Settings = EmptyObject(),
         };
 
+    private void SetupDefaultAlias(string tenantId, string? alias) =>
+        MockTenantResolver
+            .Setup(x =>
+                x.GetDefaultMtlsEndpointAliasAuthorityAsync(tenantId, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(alias)
+            .Verifiable();
+
     private void SetupDefaultIssuer(string tenantId, string? issuer) =>
         MockTenantResolver
             .Setup(x => x.GetDefaultIssuerAsync(tenantId, It.IsAny<CancellationToken>()))
@@ -1443,6 +1451,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenIssuerIsOmitted_CreatesTheTenantAtItsDerivedIssuer()
     {
+        SetupDefaultAlias("acme", alias: null);
         SetupValidSettings();
         SetupStore();
         SetupDefaultIssuer("acme", DerivedIssuer);
@@ -1470,8 +1479,37 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateTenantAsync_WhenAliasIsOmitted_CreatesTheTenantAtItsDerivedAlias()
+    {
+        const string derivedAlias = "https://acme.mtls.example";
+
+        SetupValidSettings();
+        SetupStore();
+        SetupDefaultIssuer("acme", DerivedIssuer);
+        SetupDefaultAlias("acme", derivedAlias);
+        var assertValidated = SetupCreateValidation();
+        SetupCreatePersistence(CreateSeededTenant(DerivedIssuer));
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateTenantAsync(
+            httpContext,
+            CreateTenantRequest(issuer: string.Empty),
+            CancellationToken.None
+        );
+
+        Assert.IsType<Created<TenantResource>>(result);
+        assertValidated(validated =>
+        {
+            Assert.NotNull(validated);
+            Assert.Equal(derivedAlias, validated.MtlsEndpointAliasAuthority);
+        });
+    }
+
+    [Fact]
     public async Task CreateTenantAsync_WhenIssuerIsGiven_KeepsItWithoutDerivingOne()
     {
+        SetupDefaultAlias("acme", alias: null);
         const string issuer = "https://acme.example";
 
         SetupValidSettings();
@@ -1495,6 +1533,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenCreated_SeedsTheTenantAndReturnsItAsSeeded()
     {
+        SetupDefaultAlias("acme", alias: null);
         SetupValidSettings();
         SetupStore();
         SetupDefaultIssuer("acme", DerivedIssuer);
@@ -1519,6 +1558,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
     {
+        SetupDefaultAlias("acme", alias: null);
         SetupInvalidSettings();
         SetupStore();
         SetupDefaultIssuer("acme", DerivedIssuer);
@@ -1549,6 +1589,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenValidatorReportsConflict_ReturnsProblem()
     {
+        SetupDefaultAlias("acme", alias: null);
         SetupStore();
         SetupDefaultIssuer("acme", DerivedIssuer);
         MockTenantValidator
@@ -1625,6 +1666,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateTenantAsync_WhenPreconditionsPass_ReturnsNoContent()
     {
+        SetupDefaultAlias(TenantId, alias: null);
         UpdateTenantRequest? validated = null;
         var tenant = SetupUpdate(
             CreateTenant("tenant-ct", issuer: "https://op.example/tenant-1"),
@@ -1650,6 +1692,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateTenantAsync_WhenIssuerIsCleared_RestoresTheDerivedIssuer()
     {
+        SetupDefaultAlias(TenantId, alias: null);
         const string derived = "https://op.example/tenant-1";
 
         UpdateTenantRequest? validated = null;
@@ -1724,6 +1767,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task GetAddressAsync_WhenTenantDoesNotExist_PreviewsItsDerivedIssuerUnderCreateAuthority()
     {
+        SetupDefaultAlias("acme", alias: null);
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync("acme", It.IsAny<CancellationToken>()))
@@ -1753,6 +1797,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             httpContext,
             "acme",
             issuer: null,
+            mtlsEndpointAliasAuthority: null,
             CancellationToken.None
         );
 
@@ -1761,14 +1806,65 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         Assert.Equal("acme", address.TenantId);
         Assert.Equal(DerivedIssuer, address.Issuer);
         Assert.True(address.IsIssuerDerived);
+        Assert.Null(address.MtlsEndpointAliasAuthority);
+        Assert.False(address.IsMtlsEndpointAliasAuthorityDerived);
         Assert.False(address.Exists);
         Assert.Empty(address.Failures);
         Assert.Same(Operations.Create, Assert.Single(requirements!));
     }
 
+    [Theory]
+    [InlineData(null, "https://acme.mtls.example", true)]
+    [InlineData("https://other.mtls.example", "https://other.mtls.example", false)]
+    public async Task GetAddressAsync_WhenTenantDoesNotExist_PreviewsTheProposedOrDerivedAlias(
+        string? proposedAlias,
+        string expectedAlias,
+        bool expectedDerived
+    )
+    {
+        if (proposedAlias is null)
+            SetupDefaultAlias("acme", "https://acme.mtls.example");
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync("acme", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupDefaultIssuer("acme", DerivedIssuer);
+        MockTenantResolver
+            .Setup(x =>
+                x.ValidateTenantAsync(
+                    "acme",
+                    DerivedIssuer,
+                    expectedAlias,
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetAddressAsync(
+            httpContext,
+            "acme",
+            issuer: null,
+            mtlsEndpointAliasAuthority: proposedAlias,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<TenantAddressResource>>(result);
+        var address = Assert.IsType<TenantAddressResource>(ok.Value);
+        Assert.Equal(expectedAlias, address.MtlsEndpointAliasAuthority);
+        Assert.Equal(expectedDerived, address.IsMtlsEndpointAliasAuthorityDerived);
+        Assert.Empty(address.Failures);
+    }
+
     [Fact]
     public async Task GetAddressAsync_WhenIssuerIsProposed_ReportsItsFailuresWithoutDerivingOne()
     {
+        SetupDefaultAlias(TenantId, alias: null);
         const string proposed = "https://taken.example";
 
         SetupStore();
@@ -1789,6 +1885,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             httpContext,
             TenantId,
             proposed,
+            mtlsEndpointAliasAuthority: null,
             CancellationToken.None
         );
 
@@ -1806,6 +1903,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task GetAddressAsync_WhenTenantExistsAndNoIssuerIsProposed_PreviewsItsCurrentIssuer()
     {
+        SetupDefaultAlias(TenantId, alias: null);
         const string current = "https://op.example/tenant-1";
 
         SetupStore();
@@ -1822,6 +1920,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             httpContext,
             TenantId,
             issuer: null,
+            mtlsEndpointAliasAuthority: null,
             CancellationToken.None
         );
 
@@ -1850,6 +1949,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             httpContext,
             "acme",
             issuer: null,
+            mtlsEndpointAliasAuthority: null,
             CancellationToken.None
         );
 

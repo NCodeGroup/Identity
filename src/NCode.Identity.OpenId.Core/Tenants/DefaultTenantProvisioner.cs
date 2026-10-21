@@ -69,10 +69,15 @@ internal sealed class DefaultTenantProvisioner(
         // A tenant created on demand is written like any other: at the address its strategy derives for it, judged by
         // the rules every tenant write applies (ADR-0160, ADR-0165).
         var issuer = await TenantResolver.GetDefaultIssuerAsync(tenantId, cancellationToken);
+        var mtlsEndpointAliasAuthority =
+            await TenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync(
+                tenantId,
+                cancellationToken
+            );
         var failures = await TenantResolver.ValidateTenantAsync(
             tenantId,
             issuer,
-            mtlsEndpointAliasAuthority: null,
+            mtlsEndpointAliasAuthority,
             storeManager,
             cancellationToken
         );
@@ -84,7 +89,12 @@ internal sealed class DefaultTenantProvisioner(
             );
         }
 
-        var persistedTenant = CreateEmptyPersistedTenant(tenantId, displayName, issuer);
+        var persistedTenant = CreateEmptyPersistedTenant(
+            tenantId,
+            displayName,
+            issuer,
+            mtlsEndpointAliasAuthority
+        );
         await store.AddAsync(persistedTenant, cancellationToken);
 
         try
@@ -178,7 +188,8 @@ internal sealed class DefaultTenantProvisioner(
     private static PersistedTenant CreateEmptyPersistedTenant(
         string tenantId,
         string displayName,
-        string? issuer
+        string? issuer,
+        string? mtlsEndpointAliasAuthority
     )
     {
         var settings = new PersistedTenantSettings
@@ -200,6 +211,7 @@ internal sealed class DefaultTenantProvisioner(
             TenantId = tenantId,
             // The tenant's request-independent identity; only a tenant its strategy does not serve has none.
             Issuer = issuer,
+            MtlsEndpointAliasAuthority = mtlsEndpointAliasAuthority,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             IsDisabled = false,
             DisplayName = displayName,

@@ -617,6 +617,10 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Failure
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Failures.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.IsIssuerDerived.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.IsIssuerDerived.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.IsMtlsEndpointAliasAuthorityDerived.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.IsMtlsEndpointAliasAuthorityDerived.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.MtlsEndpointAliasAuthority.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Issuer.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Issuer.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.TenantAddressResource() -> void

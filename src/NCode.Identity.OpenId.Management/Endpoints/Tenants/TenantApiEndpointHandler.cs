@@ -340,13 +340,19 @@ internal class TenantApiEndpointHandler(
         var issuer =
             NullIfEmpty(request.Issuer)
             ?? await TenantResolver.GetDefaultIssuerAsync(tenantId, cancellationToken);
+        var mtlsEndpointAliasAuthority =
+            NullIfEmpty(request.MtlsEndpointAliasAuthority)
+            ?? await TenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync(
+                tenantId,
+                cancellationToken
+            );
 
         var tenant = new PersistedTenant
         {
             TenantId = tenantId,
             ConcurrencyToken = string.Empty,
             Issuer = issuer,
-            MtlsEndpointAliasAuthority = NullIfEmpty(request.MtlsEndpointAliasAuthority),
+            MtlsEndpointAliasAuthority = mtlsEndpointAliasAuthority,
             IsDisabled = request.IsDisabled,
             DisplayName = request.DisplayName,
             Settings = new PersistedTenantSettings
@@ -432,14 +438,16 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Previews the address of an OpenID tenant: the issuer it has, or would have, and every reason it could not be served
-    /// there. A caller checks a tenant's name and issuer with it before creating the tenant or changing its issuer; the
-    /// same rules judge the write itself.
+    /// Previews the address of an OpenID tenant: the issuer and mutual-TLS endpoint-alias authority it has, or would have,
+    /// and every reason it could not be served there. A caller checks a tenant's name and addresses with it before creating
+    /// the tenant or changing them; the same rules judge the write itself.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant, whether or not it exists.</param>
     /// <param name="issuer">The proposed issuer; when omitted, the tenant's current issuer, or for a tenant without one
     /// the issuer its strategy derives for it.</param>
+    /// <param name="mtlsEndpointAliasAuthority">The proposed mutual-TLS endpoint-alias authority; when omitted, the
+    /// tenant's current alias, or for a tenant without one the alias its strategy derives for it.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's address and the reasons it cannot be served there, if any.</response>
     // See ADR-0165 (the address is previewed through the seam that judges it).
@@ -448,6 +456,7 @@ internal class TenantApiEndpointHandler(
         HttpContext httpContext,
         [FromRoute] string tenantId,
         [FromQuery] string? issuer,
+        [FromQuery] string? mtlsEndpointAliasAuthority,
         CancellationToken cancellationToken
     )
     {
@@ -475,10 +484,20 @@ internal class TenantApiEndpointHandler(
             proposedIssuer
             ?? await TenantResolver.GetDefaultIssuerAsync(tenantId, cancellationToken);
 
+        var proposedAlias =
+            NullIfEmpty(mtlsEndpointAliasAuthority)
+            ?? NullIfEmpty(tenant?.MtlsEndpointAliasAuthority);
+        var effectiveAlias =
+            proposedAlias
+            ?? await TenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync(
+                tenantId,
+                cancellationToken
+            );
+
         var failures = await TenantResolver.ValidateTenantAsync(
             tenantId,
             effectiveIssuer,
-            tenant?.MtlsEndpointAliasAuthority,
+            effectiveAlias,
             storeManager,
             cancellationToken
         );
@@ -489,6 +508,9 @@ internal class TenantApiEndpointHandler(
                 TenantId = tenantId,
                 Issuer = effectiveIssuer,
                 IsIssuerDerived = proposedIssuer is null && effectiveIssuer is not null,
+                MtlsEndpointAliasAuthority = effectiveAlias,
+                IsMtlsEndpointAliasAuthorityDerived =
+                    proposedAlias is null && effectiveAlias is not null,
                 Exists = exists,
                 Failures = failures
                     .Select(failure => new TenantAddressFailure
@@ -549,11 +571,17 @@ internal class TenantApiEndpointHandler(
             );
         }
 
-        // An update that clears the issuer restores the one the tenant's strategy derives for it (ADR-0165).
+        // An update that clears the issuer or the alias restores the one the tenant's strategy derives for it (ADR-0165,
+        // ADR-0195).
         model.Issuer =
             NullIfEmpty(model.Issuer)
             ?? await TenantResolver.GetDefaultIssuerAsync(tenant.TenantId, cancellationToken);
-        model.MtlsEndpointAliasAuthority = NullIfEmpty(model.MtlsEndpointAliasAuthority);
+        model.MtlsEndpointAliasAuthority =
+            NullIfEmpty(model.MtlsEndpointAliasAuthority)
+            ?? await TenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync(
+                tenant.TenantId,
+                cancellationToken
+            );
 
         // Core preconditions (authorization + If-Match + required fields + the tenant's address + issuer uniqueness)
         // are asserted by the validator against the hydrated model (ADR-0014, ADR-0160).

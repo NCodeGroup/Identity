@@ -18,8 +18,10 @@
 
 using System.Buffers.Text;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -61,7 +63,12 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             }
         );
 
-    private async Task<string> RegisterClientAsync(HttpClient client)
+    private async Task<string> RegisterClientAsync(HttpClient client) =>
+        (await RegisterClientWithSecretAsync(client)).ClientId;
+
+    private async Task<(string ClientId, string ClientSecret)> RegisterClientWithSecretAsync(
+        HttpClient client
+    )
     {
         var parameters = ClientRsa.ExportParameters(includePrivateParameters: false);
         using var response = await client.PostAsJsonAsync(
@@ -95,7 +102,10 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
 
         var registration = JsonElement.Parse(body);
         Assert.Equal("RS256", registration.GetProperty("request_object_signing_alg").GetString());
-        return registration.GetProperty("client_id").GetString() ?? string.Empty;
+        return (
+            registration.GetProperty("client_id").GetString() ?? string.Empty,
+            registration.GetProperty("client_secret").GetString() ?? string.Empty
+        );
     }
 
     private static async Task<string> GetIssuerAsync(HttpClient client)
@@ -170,6 +180,43 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             + "&scope=openid"
             + $"&request={Uri.EscapeDataString(requestObject)}"
             + outerParameters;
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
+        request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
+        return await client.SendAsync(request);
+    }
+
+    // RFC 9126 §3: the body carries only the request object; the client authenticates with client_secret_basic.
+    private static async Task<HttpResponseMessage> PushRequestObjectAsync(
+        HttpClient client,
+        string clientId,
+        string clientSecret,
+        string requestObject,
+        IEnumerable<KeyValuePair<string, string>>? outerParameters = null
+    )
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/par");
+        var credentials = Uri.EscapeDataString(clientId) + ":" + Uri.EscapeDataString(clientSecret);
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            "Basic",
+            Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials))
+        );
+        request.Content = new FormUrlEncodedContent(
+            [new("request", requestObject), .. outerParameters ?? []]
+        );
+        return await client.SendAsync(request);
+    }
+
+    private static async Task<HttpResponseMessage> AuthorizeWithRequestUriAsync(
+        HttpClient client,
+        string sessionCookie,
+        string clientId,
+        string requestUri
+    )
+    {
+        var query =
+            $"?client_id={Uri.EscapeDataString(clientId)}"
+            + $"&request_uri={Uri.EscapeDataString(requestUri)}";
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
         request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
@@ -371,6 +418,111 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             OpenIdConstants.ErrorCodes.InvalidRequestJwt,
             error,
             StringComparison.Ordinal
+        );
+    }
+
+    #endregion
+
+    #region Pushed Request Object Tests
+
+    [Fact]
+    public async Task Authorize_WhenPushedBodyIsOnlyTheRequestObject_IssuesCodeToTheObjectsRedirectUri()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var (clientId, clientSecret) = await RegisterClientWithSecretAsync(client);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var issuer = await GetIssuerAsync(client);
+        var requestObject = CreateRequestObject(factory, clientId, "RS256", issuer);
+
+        using var parResponse = await PushRequestObjectAsync(
+            client,
+            clientId,
+            clientSecret,
+            requestObject
+        );
+        var parBody = await parResponse.Content.ReadAsStringAsync();
+        Assert.True(parResponse.StatusCode == HttpStatusCode.Created, parBody);
+        var requestUri = JsonElement.Parse(parBody).GetProperty("request_uri").GetString();
+        Assert.NotNull(requestUri);
+
+        using var response = await AuthorizeWithRequestUriAsync(
+            client,
+            sessionCookie,
+            clientId,
+            requestUri
+        );
+
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.Equal(RedirectUri, location.GetLeftPart(UriPartial.Path));
+        var parameters = HttpUtility.ParseQueryString(location.Query);
+        Assert.False(string.IsNullOrEmpty(parameters["code"]), location.ToString());
+        Assert.Equal(State, parameters["state"]);
+    }
+
+    [Fact]
+    public async Task Authorize_WhenPushedRequestObjectRedirectUriIsNotRegistered_RefusesWithoutRedirecting()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var (clientId, clientSecret) = await RegisterClientWithSecretAsync(client);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var issuer = await GetIssuerAsync(client);
+        var requestObject = CreateRequestObject(
+            factory,
+            clientId,
+            "RS256",
+            issuer,
+            redirectUri: "https://attacker.example/callback"
+        );
+
+        using var parResponse = await PushRequestObjectAsync(
+            client,
+            clientId,
+            clientSecret,
+            requestObject
+        );
+        var parBody = await parResponse.Content.ReadAsStringAsync();
+        Assert.True(parResponse.StatusCode == HttpStatusCode.Created, parBody);
+        var requestUri = JsonElement.Parse(parBody).GetProperty("request_uri").GetString();
+        Assert.NotNull(requestUri);
+
+        using var response = await AuthorizeWithRequestUriAsync(
+            client,
+            sessionCookie,
+            clientId,
+            requestUri
+        );
+
+        Assert.Null(response.Headers.Location);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PushedAuthorization_WhenOuterRedirectUriDiffersFromTheRequestObject_ReturnsInvalidRequestObject()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = CreateClient(factory);
+        var (clientId, clientSecret) = await RegisterClientWithSecretAsync(client);
+        var issuer = await GetIssuerAsync(client);
+        var requestObject = CreateRequestObject(factory, clientId, "RS256", issuer);
+
+        using var parResponse = await PushRequestObjectAsync(
+            client,
+            clientId,
+            clientSecret,
+            requestObject,
+            [new("redirect_uri", "https://client.example/other")]
+        );
+
+        var parBody = await parResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.BadRequest, parResponse.StatusCode);
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidRequestJwt,
+            JsonElement.Parse(parBody).GetProperty("error").GetString()
         );
     }
 

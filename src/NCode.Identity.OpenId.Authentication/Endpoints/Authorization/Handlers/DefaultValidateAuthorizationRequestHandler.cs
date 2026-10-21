@@ -67,10 +67,10 @@ internal class DefaultValidateAuthorizationRequestHandler(
         var requestMessage = authorizationRequest.OriginalRequestMessage;
         var requestObject = authorizationRequest.OriginalRequestObject;
 
-        ValidateRequestMessage(requestMessage);
-
         if (requestObject != null)
-            ValidateRequestObject(requestMessage, requestObject);
+            ValidateRequestObject(openIdClient, requestMessage, requestObject);
+
+        ValidateRequiredParameters(openIdContext, authorizationRequest);
 
         ValidateRequest(openIdContext, openIdClient, authorizationRequest);
 
@@ -111,26 +111,35 @@ internal class DefaultValidateAuthorizationRequestHandler(
         }
     }
 
+    // The effective request carries response_type and redirect_uri: the request object's values when there is one
+    // (RFC 9101 §6.3), which may be its only copy, as in a pushed request whose body is only the object and client
+    // authentication (RFC 9126 §3).
     [AssertionMethod]
-    private static void ValidateRequestMessage(IAuthorizationRequestMessage requestMessage)
+    private static void ValidateRequiredParameters(
+        OpenIdContext openIdContext,
+        IAuthorizationRequest authorizationRequest
+    )
     {
-        var errorFactory = requestMessage.OpenIdEnvironment.ErrorFactory;
+        var errorFactory = openIdContext.ErrorFactory;
 
-        var responseTypesCount = requestMessage.ResponseTypes?.Count ?? 0;
-        if (responseTypesCount == 0)
+        if (authorizationRequest.ResponseTypes.Count == 0)
             throw errorFactory
                 .MissingParameter(OpenIdConstants.Parameters.ResponseType)
                 .AsException();
 
-        var redirectUri = requestMessage.RedirectUri;
-        if (redirectUri is null)
+        // ValidateRequestObject already requires the object's redirect_uri.
+        if (
+            authorizationRequest.OriginalRequestObject is null
+            && authorizationRequest.OriginalRequestMessage.RedirectUri is null
+        )
             throw errorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
                 .AsException();
     }
 
     [AssertionMethod]
-    private static void ValidateRequestObject(
+    internal static void ValidateRequestObject(
+        OpenIdClient openIdClient,
         IAuthorizationRequestMessage requestMessage,
         IAuthorizationRequestObject requestObject
     )
@@ -163,9 +172,9 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 .AsException();
 
         /*
-         * So that the request is a valid OAuth 2.0 Authorization Request, values for the response_type and client_id parameters MUST
-         * be included using the OAuth 2.0 request syntax, since they are REQUIRED by OAuth 2.0. The values for these parameters MUST
-         * match those in the Request Object, if present.
+         * Only the request object's parameters are used (RFC 9101 §6.3, ADR-0202). An outer copy of response_type, redirect_uri,
+         * or client_id is optional — a pushed request carries none of them (RFC 9126 §3) — but one that is sent must match the
+         * object's value.
          */
 
         if (requestMessage.ResponseTypes != null && requestObject.ResponseTypes != null)
@@ -192,8 +201,8 @@ internal class DefaultValidateAuthorizationRequestHandler(
         }
 
         /*
-         * Only the request object's parameters are used (RFC 9101 §6.3, ADR-0202), so it must carry the redirect_uri, and that
-         * value must be the outer one the response is redirected to, which was checked against the client's registered URIs.
+         * The response is redirected to the object's redirect_uri, which the authorization endpoint checks against the client's
+         * registered URIs, so the object must carry it.
          */
 
         if (requestObject.RedirectUri is null)
@@ -204,7 +213,10 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 )
                 .AsException();
 
-        if (requestObject.RedirectUri != requestMessage.RedirectUri)
+        if (
+            requestMessage.RedirectUri is not null
+            && requestObject.RedirectUri != requestMessage.RedirectUri
+        )
             throw errorFactory
                 .InvalidRequest(
                     "The 'redirect_uri' parameter in the JWT request object must match the same value from the request message.",
@@ -213,7 +225,8 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 .AsException();
 
         /*
-         * The Client ID values in the "client_id" request parameter and in the Request Object "client_id" claim MUST be identical.
+         * The object's client_id must name the client the request was identified or authenticated as, and an outer client_id,
+         * when sent, must be identical to it (RFC 9101 §5).
          */
 
         if (string.IsNullOrEmpty(requestObject.ClientId))
@@ -225,15 +238,19 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 .AsException();
 
         if (
-            !string.Equals(
-                requestObject.ClientId,
-                requestMessage.ClientId,
-                StringComparison.Ordinal
+            !string.Equals(requestObject.ClientId, openIdClient.ClientId, StringComparison.Ordinal)
+            || (
+                requestMessage.ClientId is not null
+                && !string.Equals(
+                    requestObject.ClientId,
+                    requestMessage.ClientId,
+                    StringComparison.Ordinal
+                )
             )
         )
             throw errorFactory
                 .InvalidRequest(
-                    "The 'client_id' parameter in the JWT request object must match the same value from the request message.",
+                    "The 'client_id' parameter in the JWT request object must match the requesting client and the same value from the request message.",
                     errorCode
                 )
                 .AsException();

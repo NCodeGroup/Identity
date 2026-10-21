@@ -184,6 +184,7 @@ const NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.Auth
 const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.Form = "form" -> string!
 const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.PushedAuthorizationRequest = "pushed_authorization_request" -> string!
 const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.Query = "query" -> string!
+const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.RequestObject = "request_object" -> string!
 NCode.Identity.OpenId.Authentication.Auditing.AuthorizationDeniedAuditEvent
 NCode.Identity.OpenId.Authentication.Auditing.AuthorizationGrantedAuditEvent
 NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent

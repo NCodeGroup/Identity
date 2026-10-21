@@ -21,9 +21,11 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
@@ -135,6 +137,139 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         IReadOnlyList<string> values = responseTypes;
         mockRequest.SetupGet(x => x.ResponseTypes).Returns(values);
         return mockRequest;
+    }
+
+    #endregion
+
+    #region ValidateRequestObject Tests
+
+    private const string RequestObjectClientId = "client-1";
+
+    private sealed record RequestObjectScaffold(
+        OpenIdClient Client,
+        Mock<IAuthorizationRequestMessage> Message,
+        Mock<IAuthorizationRequestObject> RequestObject,
+        Func<string?> CapturedCode
+    );
+
+    private RequestObjectScaffold CreateRequestObjectScaffold()
+    {
+        string? capturedCode = null;
+        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
+        var mockError = CreateLooseMock<IOpenIdError>();
+        mockErrorFactory
+            .Setup(x => x.Create(It.IsAny<string>()))
+            .Callback<string>(code => capturedCode = code)
+            .Returns(mockError.Object);
+
+        var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
+        mockEnvironment.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object);
+
+        var mockClient = CreateLooseMock<OpenIdClient>();
+        mockClient.SetupGet(x => x.ClientId).Returns(RequestObjectClientId);
+
+        var mockMessage = CreateLooseMock<IAuthorizationRequestMessage>();
+        mockMessage.SetupGet(x => x.OpenIdEnvironment).Returns(mockEnvironment.Object);
+
+        var mockRequestObject = CreateLooseMock<IAuthorizationRequestObject>();
+        mockRequestObject
+            .SetupGet(x => x.Parameters)
+            .Returns(CreateLooseMock<IParameterCollection>().Object);
+        mockRequestObject.SetupGet(x => x.ClientId).Returns(RequestObjectClientId);
+        mockRequestObject
+            .SetupGet(x => x.RedirectUri)
+            .Returns(new Uri("https://client.example/callback"));
+        mockRequestObject
+            .SetupGet(x => x.ResponseTypes)
+            .Returns([OpenIdConstants.ResponseTypes.Code]);
+
+        return new RequestObjectScaffold(
+            mockClient.Object,
+            mockMessage,
+            mockRequestObject,
+            () => capturedCode
+        );
+    }
+
+    private static void InvokeValidateRequestObject(RequestObjectScaffold scaffold) =>
+        DefaultValidateAuthorizationRequestHandler.ValidateRequestObject(
+            scaffold.Client,
+            scaffold.Message.Object,
+            scaffold.RequestObject.Object
+        );
+
+    [Fact]
+    public void ValidateRequestObject_WhenTheOuterRequestCarriesNoParameters_DoesNotThrow()
+    {
+        // RFC 9126 §3: a pushed request may carry only the request object and client authentication.
+        var scaffold = CreateRequestObjectScaffold();
+
+        InvokeValidateRequestObject(scaffold);
+
+        Assert.Null(scaffold.CapturedCode());
+    }
+
+    [Fact]
+    public void ValidateRequestObject_WhenTheOuterValuesMatch_DoesNotThrow()
+    {
+        var scaffold = CreateRequestObjectScaffold();
+        scaffold.Message.SetupGet(x => x.ClientId).Returns(RequestObjectClientId);
+        scaffold
+            .Message.SetupGet(x => x.RedirectUri)
+            .Returns(new Uri("https://client.example/callback"));
+        scaffold
+            .Message.SetupGet(x => x.ResponseTypes)
+            .Returns([OpenIdConstants.ResponseTypes.Code]);
+
+        InvokeValidateRequestObject(scaffold);
+
+        Assert.Null(scaffold.CapturedCode());
+    }
+
+    [Fact]
+    public void ValidateRequestObject_WhenTheObjectNamesAnotherClient_ThrowsInvalidRequestObject()
+    {
+        var scaffold = CreateRequestObjectScaffold();
+        scaffold.RequestObject.SetupGet(x => x.ClientId).Returns("client-2");
+
+        Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+    }
+
+    [Fact]
+    public void ValidateRequestObject_WhenTheOuterClientIdDiffers_ThrowsInvalidRequestObject()
+    {
+        var scaffold = CreateRequestObjectScaffold();
+        scaffold.Message.SetupGet(x => x.ClientId).Returns("client-2");
+
+        Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+    }
+
+    [Fact]
+    public void ValidateRequestObject_WhenTheOuterRedirectUriDiffers_ThrowsInvalidRequestObject()
+    {
+        var scaffold = CreateRequestObjectScaffold();
+        scaffold
+            .Message.SetupGet(x => x.RedirectUri)
+            .Returns(new Uri("https://client.example/other"));
+
+        Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+    }
+
+    [Fact]
+    public void ValidateRequestObject_WhenTheObjectLacksTheRedirectUri_ThrowsInvalidRequestObject()
+    {
+        var scaffold = CreateRequestObjectScaffold();
+        scaffold.RequestObject.SetupGet(x => x.RedirectUri).Returns((Uri?)null);
+
+        Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
     }
 
     #endregion

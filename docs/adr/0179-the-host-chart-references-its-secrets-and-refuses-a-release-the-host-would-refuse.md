@@ -37,8 +37,10 @@ The platform's values live in a public repository
    fails before anything is applied, rather than leaving a pod in a crash loop.
 4. **The update strategy follows the shared state.** With Valkey, a new replica becomes ready before an old one stops
    (`maxSurge: 1`, `maxUnavailable: 0`). Without Valkey, each replica keeps single-use state in its own process, so two
-   replicas never run at once, not even during an update (`maxSurge: 0`, `maxUnavailable: 1`). A single-replica release
-   therefore has downtime on each update, and high availability comes from adding Valkey.
+   replicas never run at once, not even during an update: the `Recreate` strategy starts the new replica only after the
+   old one has terminated. A rolling update with `maxSurge: 0` would not do, because it starts the new pod as soon as
+   the old one begins terminating, while the old one may still be serving. A single-replica release therefore has
+   downtime on each update, and high availability comes from adding Valkey.
 5. **Pods meet the restricted Pod Security Standard.** Each pod:
    - runs as the image's non-root UID 1654;
    - drops every capability and cannot escalate privileges;

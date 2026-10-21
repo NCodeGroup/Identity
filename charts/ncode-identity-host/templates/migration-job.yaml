@@ -7,7 +7,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "identity-host.fullname" . }}-migrations
+  name: {{ include "identity-host.migrationsJobName" . }}
   labels:
     {{- include "identity-host.commonLabels" . | nindent 4 }}
     app.kubernetes.io/component: migrations
@@ -65,6 +65,15 @@ spec:
                 secretKeyRef:
                   name: {{ $secret }}
                   key: {{ $key }}
+            # The host's extra settings and volumes apply to the worker too, such as the CA bundle and SSL mode a
+            # TLS connection to Postgres needs.
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.migrations.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -72,10 +81,16 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
       volumes:
         - name: tmp
           emptyDir:
             sizeLimit: 64Mi
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

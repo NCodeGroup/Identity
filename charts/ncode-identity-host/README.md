@@ -60,7 +60,8 @@ To apply migrations another way, such as with a generated idempotent script, set
 ## Updates
 
 With Valkey, a new replica becomes ready before an old one stops. Without it, each replica keeps single-use state in its
-own process, so the chart never runs two at once: a single replica is replaced with a short outage on each update.
+own process, so the chart never runs two at once: it uses the `Recreate` strategy, which starts the new replica only
+after the old one has terminated, so each update has a short outage.
 
 ## Rotating the key-protection certificate
 
@@ -84,4 +85,6 @@ through a new `Certificate` resource.
 ## Other settings
 
 The chart models the settings it validates. Pass any other host setting as an environment variable through `extraEnv`
-or `extraEnvFrom`, for example `Logging__LogLevel__Default`.
+or `extraEnvFrom`, for example `Logging__LogLevel__Default`. The migration Job receives `extraEnv`, `extraEnvFrom`,
+`extraVolumes`, and `extraVolumeMounts` as well, so a setting the database connection needs, such as a CA bundle for
+TLS to Postgres, reaches both the host and the migrations.

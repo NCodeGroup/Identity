@@ -114,6 +114,37 @@ public sealed class TenantResolutionOptionsValidatorTests
         Assert.True(result.Succeeded);
     }
 
+    [Theory]
+    [InlineData("mtls.example")]
+    [InlineData("http://mtls.example")]
+    [InlineData("https://mtls.example/path")]
+    public void Validate_WhenRootMtlsEndpointAliasAuthorityIsNotAnOrigin_Fails(string rootAlias)
+    {
+        var failures = Failures(
+            new TenantResolutionOptions { Root = { MtlsEndpointAliasAuthority = rootAlias } }
+        );
+
+        Assert.Contains(
+            $"Root:MtlsEndpointAliasAuthority '{rootAlias}'",
+            failures,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenRootMtlsEndpointAliasAuthorityIsAnOrigin_Succeeds()
+    {
+        var result = Validator.Validate(
+            name: null,
+            new TenantResolutionOptions
+            {
+                Root = { MtlsEndpointAliasAuthority = "https://mtls.example" },
+            }
+        );
+
+        Assert.True(result.Succeeded);
+    }
+
     [Fact]
     public void Validate_WhenStrategyOptionsAreInvalid_LeavesThemToTheStrategy()
     {

@@ -71,6 +71,7 @@ internal class DynamicByHostTenantOptionsValidator : IValidateOptions<TenantReso
             ValidateIssuerTemplate(dynamicByHost, hostPattern, failures);
             ValidateMtlsEndpointAliasTemplate(dynamicByHost, hostPattern, failures);
             ValidateRootIssuer(options.Root, dynamicByHost, hostPattern, failures);
+            ValidateRootMtlsEndpointAliasAuthority(options.Root, hostPattern, failures);
         }
 
         return failures.Count == 0
@@ -180,6 +181,30 @@ internal class DynamicByHostTenantOptionsValidator : IValidateOptions<TenantReso
             failures.Add(
                 $"{key} '{aliasTemplate}' must give a tenant a host other than its issuer host from "
                     + $"{Prefix}:{nameof(options.IssuerTemplate)}."
+            );
+        }
+    }
+
+    private static void ValidateRootMtlsEndpointAliasAuthority(
+        RootTenantOptions? root,
+        Regex hostPattern,
+        List<string> failures
+    )
+    {
+        // A malformed configured alias is reported by the shared validator.
+        var rootAlias = root?.MtlsEndpointAliasAuthority;
+        if (!TenantAddressRules.TryParseMtlsEndpointAliasAuthority(rootAlias, out var rootAliasUri))
+            return;
+
+        var key =
+            $"{nameof(TenantResolutionOptions.Root)}:{nameof(RootTenantOptions.MtlsEndpointAliasAuthority)}";
+        var aliasHost = rootAliasUri.Host;
+        var mappedHost = TenantAddressRules.MapToIssuerHost(hostPattern, aliasHost);
+        if (!string.Equals(mappedHost, aliasHost, StringComparison.OrdinalIgnoreCase))
+        {
+            failures.Add(
+                $"{key} '{rootAlias}' does not reach its tenant: the configured host pattern maps the host "
+                    + $"'{aliasHost}' to '{mappedHost}'."
             );
         }
     }

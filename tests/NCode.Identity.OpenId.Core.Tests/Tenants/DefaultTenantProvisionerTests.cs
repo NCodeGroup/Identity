@@ -169,8 +169,10 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
     }
 
     [Fact]
-    public async Task EnsureCreatedAsync_WhenTenantIsNew_CreatesItAtItsDefaultIssuer()
+    public async Task EnsureCreatedAsync_WhenTenantIsNew_CreatesItAtItsDefaultAddress()
     {
+        const string workloadAlias = "https://acme.mtls.example";
+
         SetupStoreManager();
         SetupGetTenant(WorkloadTenantId, (PersistedTenant?)null);
         MockTenantResolver
@@ -184,14 +186,14 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync((string?)null)
+            .ReturnsAsync(workloadAlias)
             .Verifiable();
         MockTenantResolver
             .Setup(x =>
                 x.ValidateTenantAsync(
                     WorkloadTenantId,
                     WorkloadIssuer,
-                    null,
+                    workloadAlias,
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
                 )
@@ -219,6 +221,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
         Assert.Same(added, result);
         Assert.Equal(WorkloadTenantId, result.TenantId);
         Assert.Equal(WorkloadIssuer, result.Issuer);
+        Assert.Equal(workloadAlias, result.MtlsEndpointAliasAuthority);
         Assert.Equal("Acme", result.DisplayName);
         Assert.False(result.IsDisabled);
     }

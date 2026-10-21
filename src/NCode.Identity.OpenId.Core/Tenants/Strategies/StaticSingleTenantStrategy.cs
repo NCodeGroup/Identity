@@ -81,6 +81,19 @@ internal class StaticSingleTenantStrategy(
 
     /// <inheritdoc />
     /// <remarks>
+    /// The configured tenant's default alias is its configured alias; the strategy assigns no other tenant one.
+    /// </remarks>
+    public override ValueTask<string?> GetDefaultMtlsEndpointAliasAuthorityAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var alias = IsConfiguredTenant(tenantId) ? Options.MtlsEndpointAliasAuthority : null;
+        return ValueTask.FromResult(string.IsNullOrEmpty(alias) ? null : alias);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
     /// The strategy serves only the configured tenant, so only it needs an issuer.
     /// </remarks>
     protected override bool RequiresIssuer(string tenantId) => IsConfiguredTenant(tenantId);

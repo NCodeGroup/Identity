@@ -388,6 +388,37 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
     }
 
     [Fact]
+    public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_WhenRootTenantHasAConfiguredAlias_ReturnsIt()
+    {
+        var strategy = new DynamicByHostTenantStrategy(
+            MockRepository.Create<IStoreManagerFactory>().Object,
+            Options.Create(
+                new TenantResolutionOptions
+                {
+                    Root = { MtlsEndpointAliasAuthority = "https://mtls.example" },
+                    DynamicByHost = new DynamicByHostTenantOptions
+                    {
+                        IssuerTemplate = "https://{tenantId}.auth.example",
+                        MtlsEndpointAliasTemplate = "https://{tenantId}.mtls.example",
+                    },
+                }
+            )
+        );
+
+        var rootAlias = await strategy.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            RootTenantOptions.DefaultTenantId,
+            CancellationToken.None
+        );
+        var tenantAlias = await strategy.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.Equal("https://mtls.example", rootAlias);
+        Assert.Equal($"https://{AliasHost}", tenantAlias);
+    }
+
+    [Fact]
     public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_WhenNoTemplateIsConfigured_ReturnsNull()
     {
         var strategy = CreateStrategy(

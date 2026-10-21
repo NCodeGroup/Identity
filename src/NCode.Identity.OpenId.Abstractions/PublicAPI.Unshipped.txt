@@ -1012,6 +1012,8 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TokenExchangeAllowRefres
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TokenExchangeAllowRefreshToken.get -> NCode.Identity.Settings.SettingKey<bool>
 NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.Issuer.get -> string?
 NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.Issuer.set -> void
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.MtlsEndpointAliasAuthority.set -> void
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Client = "client" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.ResourceServer = "resource_server" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Server = "server" -> string!
@@ -1037,6 +1039,8 @@ NCode.Identity.OpenId.Tenants.RootTenantOptions.DisplayName.get -> string!
 NCode.Identity.OpenId.Tenants.RootTenantOptions.DisplayName.set -> void
 NCode.Identity.OpenId.Tenants.RootTenantOptions.Issuer.get -> string?
 NCode.Identity.OpenId.Tenants.RootTenantOptions.Issuer.set -> void
+NCode.Identity.OpenId.Tenants.RootTenantOptions.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Tenants.RootTenantOptions.MtlsEndpointAliasAuthority.set -> void
 NCode.Identity.OpenId.Tenants.RootTenantOptions.RootTenantOptions() -> void
 NCode.Identity.OpenId.Tenants.RootTenantOptions.TenantId.get -> string!
 NCode.Identity.OpenId.Tenants.RootTenantOptions.TenantId.set -> void

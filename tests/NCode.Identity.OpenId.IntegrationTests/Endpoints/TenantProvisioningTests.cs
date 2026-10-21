@@ -46,10 +46,14 @@ public class TenantProvisioningTests
     private const string BootstrapClientSecret = "bootstrap-secret-value";
     private const string DiscoveryPath = "/.well-known/openid-configuration";
 
-    private static ConfiguredHostApplicationFactory CreateFactory() =>
+    private static ConfiguredHostApplicationFactory CreateFactory(
+        string? mtlsEndpointAliasTemplate = null
+    ) =>
         new(
             new Dictionary<string, string?>
             {
+                ["OpenId:TenantResolution:DynamicByHost:MtlsEndpointAliasTemplate"] =
+                    mtlsEndpointAliasTemplate,
                 ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
                     .TenantStrategyCodes
                     .DynamicByHost,
@@ -187,6 +191,62 @@ public class TenantProvisioningTests
             "https://acme.auth.test",
             discovery.RootElement.GetProperty("issuer").GetString()
         );
+        Assert.Equal(
+            "https://acme.mtls.test/oauth2/token",
+            discovery
+                .RootElement.GetProperty("mtls_endpoint_aliases")
+                .GetProperty("token_endpoint")
+                .GetString()
+        );
+    }
+
+    [Fact]
+    public async Task CreateTenant_WithoutAnMtlsEndpointAlias_IsGivenTheTemplatesAliasAndServedOnItsHost()
+    {
+        using var factory = CreateFactory(
+            mtlsEndpointAliasTemplate: "https://{tenantId}.mtls.test"
+        );
+        using var client = await CreateAdministratorClientAsync(factory);
+
+        using var previewResponse = await client.GetAsync("/api/tenants/acme/address");
+        var previewBody = await previewResponse.Content.ReadAsStringAsync();
+        Assert.True(previewResponse.StatusCode == HttpStatusCode.OK, previewBody);
+
+        using var preview = JsonDocument.Parse(previewBody);
+        Assert.Equal(
+            "https://acme.mtls.test",
+            preview.RootElement.GetProperty("mtlsEndpointAliasAuthority").GetString()
+        );
+        Assert.True(
+            preview.RootElement.GetProperty("isMtlsEndpointAliasAuthorityDerived").GetBoolean()
+        );
+
+        using var createResponse = await client.PostAsJsonAsync(
+            "/api/tenants",
+            new
+            {
+                tenantId = "acme",
+                displayName = "Acme",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
+
+        using var created = JsonDocument.Parse(createBody);
+        Assert.Equal(
+            "https://acme.mtls.test",
+            created.RootElement.GetProperty("mtlsEndpointAliasAuthority").GetString()
+        );
+
+        using var discoveryRequest = new HttpRequestMessage(HttpMethod.Get, DiscoveryPath);
+        discoveryRequest.Headers.Host = "acme.mtls.test";
+        using var discoveryResponse = await client.SendAsync(discoveryRequest);
+        var discoveryBody = await discoveryResponse.Content.ReadAsStringAsync();
+        Assert.True(discoveryResponse.StatusCode == HttpStatusCode.OK, discoveryBody);
+
+        using var discovery = JsonDocument.Parse(discoveryBody);
         Assert.Equal(
             "https://acme.mtls.test/oauth2/token",
             discovery

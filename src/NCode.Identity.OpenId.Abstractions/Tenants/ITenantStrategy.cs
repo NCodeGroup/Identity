@@ -100,6 +100,20 @@ public interface ITenantStrategy
     ValueTask<string?> GetDefaultIssuerAsync(string tenantId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Gets the mutual-TLS endpoint-alias authority (RFC 8705 §5) this strategy assigns a tenant that is written without
+    /// one: the expansion of the strategy's alias template. The derived alias is stored with the tenant and judged by
+    /// <see cref="ValidateTenantAsync"/> like an explicit one.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant, already validated as a tenant identifier.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the default alias
+    /// authority, or <c>null</c> when this strategy assigns the tenant none.</returns>
+    ValueTask<string?> GetDefaultMtlsEndpointAliasAuthorityAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Validates the rules this strategy places on a tenant's issuer: whether the tenant needs one — every tenant this
     /// strategy serves does, because a tenant is served only beneath its issuer — and that a request routed by this
     /// strategy reaches the tenant beneath that issuer. The <see cref="ITenantResolver"/> has already validated the rules

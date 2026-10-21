@@ -179,6 +179,15 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
             .Verifiable();
         MockTenantResolver
             .Setup(x =>
+                x.GetDefaultMtlsEndpointAliasAuthorityAsync(
+                    WorkloadTenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((string?)null)
+            .Verifiable();
+        MockTenantResolver
+            .Setup(x =>
                 x.ValidateTenantAsync(
                     WorkloadTenantId,
                     WorkloadIssuer,
@@ -225,6 +234,15 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
             .Verifiable();
         MockTenantResolver
             .Setup(x =>
+                x.GetDefaultMtlsEndpointAliasAuthorityAsync(
+                    WorkloadTenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((string?)null)
+            .Verifiable();
+        MockTenantResolver
+            .Setup(x =>
                 x.ValidateTenantAsync(
                     WorkloadTenantId,
                     null,
@@ -258,6 +276,15 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
         MockTenantResolver
             .Setup(x => x.GetDefaultIssuerAsync(WorkloadTenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkloadIssuer)
+            .Verifiable();
+        MockTenantResolver
+            .Setup(x =>
+                x.GetDefaultMtlsEndpointAliasAuthorityAsync(
+                    WorkloadTenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((string?)null)
             .Verifiable();
         MockTenantResolver
             .Setup(x =>
@@ -297,6 +324,15 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
         MockTenantResolver
             .Setup(x => x.GetDefaultIssuerAsync(WorkloadTenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(WorkloadIssuer)
+            .Verifiable();
+        MockTenantResolver
+            .Setup(x =>
+                x.GetDefaultMtlsEndpointAliasAuthorityAsync(
+                    WorkloadTenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((string?)null)
             .Verifiable();
         MockTenantResolver
             .Setup(x =>
@@ -390,6 +426,15 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
         MockTenantResolver
             .Setup(x => x.GetDefaultIssuerAsync(RootTenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(rootIssuer)
+            .Verifiable();
+        MockTenantResolver
+            .Setup(x =>
+                x.GetDefaultMtlsEndpointAliasAuthorityAsync(
+                    RootTenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((string?)null)
             .Verifiable();
         MockTenantResolver
             .Setup(x =>

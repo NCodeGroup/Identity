@@ -73,6 +73,12 @@ internal abstract class TenantStrategy(
     /// </summary>
     protected virtual string? IssuerTemplate => null;
 
+    /// <summary>
+    /// Gets the template a tenant's default mutual-TLS endpoint-alias authority is expanded from, or <c>null</c> when the
+    /// strategy has none. The default implementation has none.
+    /// </summary>
+    protected virtual string? MtlsEndpointAliasTemplate => null;
+
     /// <inheritdoc />
     public virtual bool TryGetTenantId(
         HttpContext httpContext,
@@ -136,6 +142,25 @@ internal abstract class TenantStrategy(
             : TenantAddressRules.ExpandIssuerTemplate(issuerTemplate, tenantId);
 
         return ValueTask.FromResult(defaultIssuer);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Every tenant, the root tenant included, gets the expansion of the strategy's alias template, or none when the
+    /// strategy has no template.
+    /// </remarks>
+    // See ADR-0195 (a tenant's mTLS endpoint alias is a routed tenant property).
+    public virtual ValueTask<string?> GetDefaultMtlsEndpointAliasAuthorityAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var aliasTemplate = MtlsEndpointAliasTemplate;
+        var defaultAlias = string.IsNullOrEmpty(aliasTemplate)
+            ? null
+            : TenantAddressRules.ExpandIssuerTemplate(aliasTemplate, tenantId);
+
+        return ValueTask.FromResult(defaultAlias);
     }
 
     /// <inheritdoc />

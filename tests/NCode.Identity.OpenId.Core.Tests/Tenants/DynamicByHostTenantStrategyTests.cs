@@ -366,6 +366,44 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
 
     #endregion
 
+    #region GetDefaultMtlsEndpointAliasAuthorityAsync Tests
+
+    [Fact]
+    public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_WhenTemplateIsConfigured_ExpandsItForTheTenant()
+    {
+        var strategy = CreateStrategy(
+            new DynamicByHostTenantOptions
+            {
+                IssuerTemplate = "https://{tenantId}.auth.example",
+                MtlsEndpointAliasTemplate = "https://{tenantId}.mtls.example",
+            }
+        );
+
+        var alias = await strategy.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.Equal($"https://{AliasHost}", alias);
+    }
+
+    [Fact]
+    public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_WhenNoTemplateIsConfigured_ReturnsNull()
+    {
+        var strategy = CreateStrategy(
+            new DynamicByHostTenantOptions { IssuerTemplate = "https://{tenantId}.auth.example" }
+        );
+
+        var alias = await strategy.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.Null(alias);
+    }
+
+    #endregion
+
     #region ResolveTenantAsync Tests
 
     [Fact]

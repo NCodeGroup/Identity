@@ -91,6 +91,22 @@ internal class DefaultTenantResolver(
     }
 
     /// <inheritdoc />
+    public async ValueTask<string?> GetDefaultMtlsEndpointAliasAuthorityAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        // A strategy derives an alias from a well-formed identifier only; a malformed one is reported by validation.
+        if (!TenantAddressRules.IsValidTenantId(tenantId))
+            return null;
+
+        return await Selected.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            tenantId,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
         string tenantId,
         string? issuer,

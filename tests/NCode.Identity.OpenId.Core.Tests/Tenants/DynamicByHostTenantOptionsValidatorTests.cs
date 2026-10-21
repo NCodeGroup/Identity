@@ -199,5 +199,86 @@ public sealed class DynamicByHostTenantOptionsValidatorTests
         Assert.True(result.Succeeded);
     }
 
+    [Fact]
+    public void Validate_WhenMtlsEndpointAliasTemplateIsAPerTenantOrigin_Succeeds()
+    {
+        var result = Validator.Validate(
+            name: null,
+            Selected(
+                new DynamicByHostTenantOptions
+                {
+                    IssuerTemplate = IssuerTemplate,
+                    MtlsEndpointAliasTemplate = "https://{tenantId}.mtls.example",
+                }
+            )
+        );
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData("https://{tenantId}.mtls.example/oauth2")]
+    [InlineData("http://{tenantId}.mtls.example")]
+    [InlineData("https://mtls.example")]
+    [InlineData("https://{tenantId}.{region}.example")]
+    public void Validate_WhenMtlsEndpointAliasTemplateIsNotAnOriginTemplate_Fails(
+        string aliasTemplate
+    )
+    {
+        var failures = Failures(
+            Selected(
+                new DynamicByHostTenantOptions
+                {
+                    IssuerTemplate = IssuerTemplate,
+                    MtlsEndpointAliasTemplate = aliasTemplate,
+                }
+            )
+        );
+
+        Assert.Contains(
+            $"DynamicByHost:MtlsEndpointAliasTemplate '{aliasTemplate}' must be",
+            failures,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenHostPatternMapsTheAliasHostElsewhere_Fails()
+    {
+        var failures = Failures(
+            Selected(
+                new DynamicByHostTenantOptions
+                {
+                    RegexPattern = "^[^.]+\\.auth\\.example",
+                    IssuerTemplate = "https://{tenantId}.auth.example",
+                    MtlsEndpointAliasTemplate = "https://{tenantId}.auth.example.mtls.example",
+                }
+            )
+        );
+
+        Assert.Contains(
+            "DynamicByHost:MtlsEndpointAliasTemplate 'https://{tenantId}.auth.example.mtls.example' does not reach "
+                + "its tenant",
+            failures,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenMtlsEndpointAliasTemplateGivesTheIssuerHost_Fails()
+    {
+        var failures = Failures(
+            Selected(
+                new DynamicByHostTenantOptions
+                {
+                    IssuerTemplate = "https://{tenantId}.auth.example",
+                    MtlsEndpointAliasTemplate = "https://{tenantId}.auth.example:8443",
+                }
+            )
+        );
+
+        Assert.Contains("a host other than its issuer host", failures, StringComparison.Ordinal);
+    }
+
     #endregion
 }

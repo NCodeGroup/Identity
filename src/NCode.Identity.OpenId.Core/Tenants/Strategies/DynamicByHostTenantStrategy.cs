@@ -56,6 +56,9 @@ internal class DynamicByHostTenantStrategy(
     protected override string? IssuerTemplate => Options.IssuerTemplate;
 
     /// <inheritdoc />
+    protected override string? MtlsEndpointAliasTemplate => Options.MtlsEndpointAliasTemplate;
+
+    /// <inheritdoc />
     /// <remarks>
     /// A request to the host of the root tenant's issuer finds the root tenant even on a fresh deployment: it is created
     /// on demand.

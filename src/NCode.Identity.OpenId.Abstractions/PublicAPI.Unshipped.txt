@@ -1022,12 +1022,16 @@ const NCode.Identity.OpenId.Tenants.RootTenantOptions.DefaultTenantId = "root" -
 const NCode.Identity.OpenId.Tenants.TenantResolutionOptions.TenantIdPlaceholder = "{tenantId}" -> string!
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.IssuerTemplate.get -> string?
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.IssuerTemplate.set -> void
+NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.MtlsEndpointAliasTemplate.get -> string?
+NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.MtlsEndpointAliasTemplate.set -> void
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.IssuerTemplate.get -> string?
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.IssuerTemplate.set -> void
 NCode.Identity.OpenId.Tenants.ITenantProvisioner.EnsureCreatedAsync(string! tenantId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantProvisioner.SeedAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetDefaultIssuerAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
+NCode.Identity.OpenId.Tenants.ITenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
 NCode.Identity.OpenId.Tenants.ITenantStrategy.GetDefaultIssuerAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
+NCode.Identity.OpenId.Tenants.ITenantStrategy.GetDefaultMtlsEndpointAliasAuthorityAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
 NCode.Identity.OpenId.Tenants.RootTenantOptions
 NCode.Identity.OpenId.Tenants.RootTenantOptions.DisplayName.get -> string!
 NCode.Identity.OpenId.Tenants.RootTenantOptions.DisplayName.set -> void

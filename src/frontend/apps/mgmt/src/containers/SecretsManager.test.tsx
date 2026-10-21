@@ -347,6 +347,19 @@ describe('SecretsManager', () => {
       expect(new Date(body.expiresWhen).getFullYear()).toBe(new Date().getFullYear() + 1);
     });
 
+    it('discards the rotate dialog on cancel without rotating', async () => {
+      const onRotate = vi.fn<NonNullable<SecretsManagerProps['onRotate']>>();
+      await renderManager({ onRotate });
+
+      fireEvent.click(screen.getByTestId('secret-rotate-s-sym'));
+      fireEvent.click(screen.getByTestId('confirm-cancel'));
+
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Rotate secret' })).not.toBeInTheDocument(),
+      );
+      expect(onRotate).not.toHaveBeenCalled();
+    });
+
     it('keeps the rotate dialog open with the server problem detail when the rotation is rejected', async () => {
       const onRotate = vi
         .fn<NonNullable<SecretsManagerProps['onRotate']>>()

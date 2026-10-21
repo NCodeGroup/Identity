@@ -214,6 +214,14 @@ describe('TenantDetailPage', () => {
       if (url.endsWith('/api/tenants/acme/secrets')) {
         return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
       }
+      if (url.includes('/api/tenants/acme/usage?from=2026-10-21&to=2026-10-21')) {
+        return jsonResponse({
+          tenantId: 'acme',
+          from: '2026-10-21',
+          to: '2026-10-21',
+          entries: [{ day: '2026-10-21', meter: 'requests', count: 3 }],
+        });
+      }
       if (url.includes('/api/tenants/acme/usage?from=2026-10-21')) {
         return jsonResponse({
           tenantId: 'acme',
@@ -249,6 +257,15 @@ describe('TenantDetailPage', () => {
     );
     expect(
       calls.some((c) => c.url === 'https://api.test/api/tenants/acme/usage?from=2026-10-21'),
+    ).toBe(true);
+
+    fireEvent.change(screen.getByTestId('usage-to'), { target: { value: '2026-10-21' } });
+
+    expect(await screen.findByTestId('usage-row-2026-10-21')).toHaveTextContent('2026-10-213');
+    expect(
+      calls.some(
+        (c) => c.url === 'https://api.test/api/tenants/acme/usage?from=2026-10-21&to=2026-10-21',
+      ),
     ).toBe(true);
   });
 

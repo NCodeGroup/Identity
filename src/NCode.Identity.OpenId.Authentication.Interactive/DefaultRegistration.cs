@@ -17,6 +17,9 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -110,6 +113,7 @@ public static class DefaultRegistration
                 .ValidateOnStart();
 
             serviceCollection.TryAddSingleton<InteractiveBundleReader>();
+            serviceCollection.TryAddSingleton<InteractiveSurfacePaths>();
 
             // The content-negotiation seam in OpenIdResult selects this formatter when an interactive browser
             // explicitly requests text/html, rendering a non-redirectable authorization error as a styled HTML page.
@@ -150,8 +154,49 @@ public static class DefaultRegistration
                     }
                 );
 
+            // The surface is served under the tenant route (ADR-0193): the session cookie is scoped to the tenant's
+            // path, and a challenge redirects to the login page of the tenant that issued it.
+            serviceCollection
+                .AddOptions<CookieAuthenticationOptions>(
+                    InteractiveAuthenticationDefaults.CookieSchemeName
+                )
+                .Configure<InteractiveSurfacePaths>(
+                    (cookie, surfacePaths) =>
+                    {
+                        cookie.CookieManager = new InteractiveSessionCookieManager(surfacePaths);
+                        var redirectToLogin = cookie.Events.OnRedirectToLogin;
+                        cookie.Events.OnRedirectToLogin = context =>
+                        {
+                            context.RedirectUri = BuildLoginRedirectUri(context, surfacePaths);
+                            return redirectToLogin(context);
+                        };
+                    }
+                );
+
             return builder;
         }
+    }
+
+    // Mirrors the cookie handler's own login redirect — an absolute URI whose return URL is the challenge's redirect URI,
+    // or the challenged request itself — with the login page of the request's tenant in place of a fixed login path.
+    private static string BuildLoginRedirectUri(
+        RedirectContext<CookieAuthenticationOptions> context,
+        InteractiveSurfacePaths surfacePaths
+    )
+    {
+        var request = context.Request;
+        var returnUrl = context.Properties.RedirectUri;
+        if (string.IsNullOrEmpty(returnUrl))
+        {
+            returnUrl = request.PathBase + request.Path + request.QueryString;
+        }
+
+        var loginPath = surfacePaths.GetSurfacePath(
+            context.HttpContext,
+            InteractiveAuthenticationDefaults.LoginPath
+        );
+        var query = QueryString.Create(context.Options.ReturnUrlParameter, returnUrl);
+        return $"{request.Scheme}://{request.Host}{loginPath}{query}";
     }
 
     private static string? ResolveBundleRootPath(string? bundleRootPath, string contentRootPath) =>

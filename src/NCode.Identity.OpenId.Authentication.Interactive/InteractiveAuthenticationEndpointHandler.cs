@@ -51,7 +51,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     ISessionService sessionService,
     TimeProvider timeProvider,
     IAntiforgery antiforgery,
-    InteractiveBundleReader bundleReader
+    InteractiveBundleReader bundleReader,
+    InteractiveSurfacePaths surfacePaths
 ) : IEndpointProvider
 {
     // The `scope` form value that selects "sign out everywhere else" (retain the current session); any other value is
@@ -65,6 +66,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IAntiforgery Antiforgery { get; } = antiforgery;
     private InteractiveBundleReader BundleReader { get; } = bundleReader;
+    private InteractiveSurfacePaths SurfacePaths { get; } = surfacePaths;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -197,8 +199,13 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Redirect(
-                $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl="
-                    + Uri.EscapeDataString(InteractiveAuthenticationDefaults.AccountPath)
+                $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl="
+                    + Uri.EscapeDataString(
+                        SurfacePaths.GetSurfacePath(
+                            httpContext,
+                            InteractiveAuthenticationDefaults.AccountPath
+                        )
+                    )
             );
         }
 
@@ -273,7 +280,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
         if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
-            return TypedResults.Redirect(BuildLoginRedirect(safeReturnUrl, "invalid_request"));
+            return TypedResults.Redirect(
+                BuildLoginRedirect(httpContext, safeReturnUrl, "invalid_request")
+            );
         }
 
         var openIdContext = httpContext.GetOpenIdContext();
@@ -285,7 +294,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
         if (principal is null)
         {
-            return TypedResults.Redirect(BuildLoginRedirect(safeReturnUrl, "invalid_credentials"));
+            return TypedResults.Redirect(
+                BuildLoginRedirect(httpContext, safeReturnUrl, "invalid_credentials")
+            );
         }
 
         // Resolve the verified credential to the stable, server-owned principal id and normalize the cookie subject to
@@ -479,14 +490,18 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
         if (!authenticateResult.Succeeded)
         {
-            return TypedResults.Redirect(BuildLoginRedirect(safeReturnUrl, "invalid_request"));
+            return TypedResults.Redirect(
+                BuildLoginRedirect(httpContext, safeReturnUrl, "invalid_request")
+            );
         }
 
         var openIdContext = httpContext.GetOpenIdContext();
         var subjectId = openIdContext.GetSubjectId(authenticateResult.Principal);
         if (string.IsNullOrEmpty(subjectId) || string.IsNullOrEmpty(returnUrl))
         {
-            return TypedResults.Redirect(BuildLoginRedirect(safeReturnUrl, "invalid_request"));
+            return TypedResults.Redirect(
+                BuildLoginRedirect(httpContext, safeReturnUrl, "invalid_request")
+            );
         }
 
         var pending = await ConsentService.ResolvePendingConsentAsync(
@@ -519,7 +534,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// clearing the cookie, revoking the session and the subject's grants, and notifying participating relying parties
     /// via back-channel logout — then redirects to the validated local return URL (the login page by default).
     /// </summary>
-    public static async ValueTask<IResult> PostLogoutAsync(
+    public async ValueTask<IResult> PostLogoutAsync(
         HttpContext httpContext,
         [FromForm(Name = "ReturnUrl")] string? returnUrl
     )
@@ -542,7 +557,10 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var safeReturnUrl = ResolveSafeReturnUrl(
             httpContext,
             string.IsNullOrEmpty(returnUrl)
-                ? InteractiveAuthenticationDefaults.LoginPath
+                ? SurfacePaths.GetSurfacePath(
+                    httpContext,
+                    InteractiveAuthenticationDefaults.LoginPath
+                )
                 : returnUrl
         );
         return TypedResults.Redirect(safeReturnUrl);
@@ -561,8 +579,13 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Redirect(
-                $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl="
-                    + Uri.EscapeDataString(InteractiveAuthenticationDefaults.ApplicationsPath)
+                $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl="
+                    + Uri.EscapeDataString(
+                        SurfacePaths.GetSurfacePath(
+                            httpContext,
+                            InteractiveAuthenticationDefaults.ApplicationsPath
+                        )
+                    )
             );
         }
 
@@ -629,8 +652,13 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Redirect(
-                $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl="
-                    + Uri.EscapeDataString(InteractiveAuthenticationDefaults.ApplicationsPath)
+                $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl="
+                    + Uri.EscapeDataString(
+                        SurfacePaths.GetSurfacePath(
+                            httpContext,
+                            InteractiveAuthenticationDefaults.ApplicationsPath
+                        )
+                    )
             );
         }
 
@@ -646,7 +674,12 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             );
         }
 
-        return TypedResults.Redirect(InteractiveAuthenticationDefaults.ApplicationsPath);
+        return TypedResults.Redirect(
+            SurfacePaths.GetSurfacePath(
+                httpContext,
+                InteractiveAuthenticationDefaults.ApplicationsPath
+            )
+        );
     }
 
     /// <summary>
@@ -661,8 +694,13 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Redirect(
-                $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl="
-                    + Uri.EscapeDataString(InteractiveAuthenticationDefaults.SessionsPath)
+                $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl="
+                    + Uri.EscapeDataString(
+                        SurfacePaths.GetSurfacePath(
+                            httpContext,
+                            InteractiveAuthenticationDefaults.SessionsPath
+                        )
+                    )
             );
         }
 
@@ -739,8 +777,13 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Redirect(
-                $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl="
-                    + Uri.EscapeDataString(InteractiveAuthenticationDefaults.SessionsPath)
+                $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl="
+                    + Uri.EscapeDataString(
+                        SurfacePaths.GetSurfacePath(
+                            httpContext,
+                            InteractiveAuthenticationDefaults.SessionsPath
+                        )
+                    )
             );
         }
 
@@ -781,7 +824,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             }
         }
 
-        return TypedResults.Redirect(InteractiveAuthenticationDefaults.SessionsPath);
+        return TypedResults.Redirect(
+            SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.SessionsPath)
+        );
     }
 
     /// <summary>
@@ -800,8 +845,13 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Redirect(
-                $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl="
-                    + Uri.EscapeDataString(InteractiveAuthenticationDefaults.SessionsPath)
+                $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl="
+                    + Uri.EscapeDataString(
+                        SurfacePaths.GetSurfacePath(
+                            httpContext,
+                            InteractiveAuthenticationDefaults.SessionsPath
+                        )
+                    )
             );
         }
 
@@ -810,7 +860,12 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var subjectId = openIdContext.GetSubjectId(principal);
         if (string.IsNullOrEmpty(subjectId))
         {
-            return TypedResults.Redirect(InteractiveAuthenticationDefaults.SessionsPath);
+            return TypedResults.Redirect(
+                SurfacePaths.GetSurfacePath(
+                    httpContext,
+                    InteractiveAuthenticationDefaults.SessionsPath
+                )
+            );
         }
 
         var currentSessionId = principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
@@ -829,7 +884,12 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                 httpContext.RequestAborted
             );
 
-            return TypedResults.Redirect(InteractiveAuthenticationDefaults.SessionsPath);
+            return TypedResults.Redirect(
+                SurfacePaths.GetSurfacePath(
+                    httpContext,
+                    InteractiveAuthenticationDefaults.SessionsPath
+                )
+            );
         }
 
         await SessionService.RevokeAllAsync(
@@ -841,7 +901,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
         // A full sign-out revokes the request's own session too, so clear the login cookie and return to the login page.
         await httpContext.SignOutAsync(InteractiveAuthenticationDefaults.CookieSchemeName);
-        return TypedResults.Redirect(InteractiveAuthenticationDefaults.LoginPath);
+        return TypedResults.Redirect(
+            SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)
+        );
     }
 
     private async ValueTask<ContentHttpResult> ServeBundleAsync(HttpContext httpContext)
@@ -898,8 +960,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             statusCode: StatusCodes.Status503ServiceUnavailable
         );
 
-    private static string BuildLoginRedirect(string returnUrl, string error) =>
-        $"{InteractiveAuthenticationDefaults.LoginPath}?ReturnUrl={Uri.EscapeDataString(returnUrl)}"
+    private string BuildLoginRedirect(HttpContext httpContext, string returnUrl, string error) =>
+        $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl={Uri.EscapeDataString(returnUrl)}"
         + $"&error={Uri.EscapeDataString(error)}";
 
     // Guards against an open redirect: a local path (single leading slash, not a protocol-relative or

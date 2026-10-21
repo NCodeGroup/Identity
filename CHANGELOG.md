@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Protocol-endpoint metrics, first slice.** `NCode.Identity.OpenId.Authentication` records through a meter named by
+  `OpenIdAuthenticationMetrics.MeterName` (`NCode.Identity.OpenId.Authentication`), created from `IMeterFactory`. The
+  counter `ncode.identity.rate_limiting.requests` (`{request}`) counts every request judged against a rate-limit
+  partition by `ncode.identity.rate_limiting.partition` (`tenant`, `address`, `client`) and
+  `ncode.identity.rate_limiting.result` (`admitted`, `rejected`, `store_unavailable`), so the fail-open path is
+  visible. Every protocol endpoint also tags ASP.NET Core's `http.server.request.duration` with
+  `ncode.identity.openid.endpoint`, its registered name (`token_endpoint`, …), which stays stable when routes or tenant
+  routing change. See ADR-0197; the rest of the design is tracked as `F80`.
 - **Per-tenant rate limits.** Three settings limit the requests per minute a tenant's protocol endpoints serve:
   `rate_limit_tenant_per_minute` (every request), `rate_limit_address_per_minute` (one remote address, an IPv6 address
   counted by its `/64`), and `rate_limit_client_per_minute` (one authenticated confidential client, set on the tenant or

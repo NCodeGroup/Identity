@@ -108,8 +108,10 @@ client, against per-minute limits that are settings bounded by the merge lattice
 
 - Every protocol endpoint is limited once a tenant sets a limit; nothing is limited by default. Quotas are tracked in
   [`BACKLOG.md`](../../BACKLOG.md) as `F79`.
-- Refusals are logged but not yet counted. The rate-limiting instrument and the `429`'s protocol attributes are designed
-  in [ADR-0197](0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) and tracked as `F80`.
+- Every judged partition is counted in `ncode.identity.rate_limiting.requests` by partition and result (`admitted`,
+  `rejected`, `store_unavailable`), per
+  [ADR-0197](0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md). The `429`'s
+  `ncode.identity.openid.error` attribute is still tracked as `F80`.
 - A deployment behind a proxy must forward the client's address (`UseForwardedHeaders`) for the address limit to count
   callers rather than the proxy.
 - A deployment that runs several replicas must configure Valkey for its limits to hold; with the in-process adapter

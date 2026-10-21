@@ -140,7 +140,9 @@ instrument or attribute is a deliberate change.
 
 ## Consequences
 
-- The design is implemented under backlog `F80`; until then the event counter is the only family metric.
+- The design is implemented under backlog `F80`. The authentication meter, the rate-limiting counter, and the endpoint
+  attribute are in place; the error and grant-type attributes, event attributes, the shared-state histogram, the host's
+  OpenTelemetry wiring, and the catalog remain.
 - An operator gets latency, traffic, and errors per endpoint and per OAuth error code from one histogram, and can build
   service-level indicators on it: availability as the share of protocol requests that are not `5xx`, and latency as a
   percentile of the token endpoint's duration.

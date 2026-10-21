@@ -312,3 +312,5 @@ override NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.TokenResp
 static readonly NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdAuthenticationParameters.Claims -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims!>!
 static readonly NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdAuthenticationParameters.RequestObjectSource -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.RequestObjectSource>!
 static readonly NCode.Identity.OpenId.Authentication.Messages.Parsers.AuthenticationParameterParsers.RequestClaims -> NCode.Identity.OpenId.Messages.Parsers.JsonParser<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims!>!
+const NCode.Identity.OpenId.Authentication.Metrics.OpenIdAuthenticationMetrics.MeterName = "NCode.Identity.OpenId.Authentication" -> string!
+NCode.Identity.OpenId.Authentication.Metrics.OpenIdAuthenticationMetrics

@@ -111,7 +111,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         string algorithmCode,
         string? audience,
         TimeSpan? lifetime = null,
-        string? responseMode = null
+        string? responseMode = null,
+        string? redirectUri = RedirectUri
     )
     {
         var now = DateTimeOffset.UtcNow;
@@ -128,7 +129,6 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         {
             ["client_id"] = clientId,
             ["response_type"] = "code",
-            ["redirect_uri"] = RedirectUri,
             ["scope"] = "openid",
             ["state"] = State,
             ["prompt"] = "none",
@@ -137,6 +137,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         };
         if (responseMode is not null)
             claims["response_mode"] = responseMode;
+        if (redirectUri is not null)
+            claims["redirect_uri"] = redirectUri;
 
         var encoder = factory.Services.GetRequiredService<IJwtEncoder>();
         return encoder.Encode(
@@ -262,6 +264,34 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         Assert.DoesNotContain("code=", location.Fragment, StringComparison.Ordinal);
         var parameters = HttpUtility.ParseQueryString(location.Query);
         Assert.False(string.IsNullOrEmpty(parameters["code"]), location.ToString());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("https://client.example/other")]
+    public async Task Authorize_WhenRequestObjectLacksTheOuterRedirectUri_ReturnsInvalidRequestObject(
+        string? requestObjectRedirectUri
+    )
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var clientId = await RegisterClientAsync(client);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var issuer = await GetIssuerAsync(client);
+        var requestObject = CreateRequestObject(
+            factory,
+            clientId,
+            "RS256",
+            issuer,
+            redirectUri: requestObjectRedirectUri
+        );
+
+        using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
+
+        var (code, error) = await ReadResultAsync(response);
+        Assert.Null(code);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, error);
     }
 
     [Fact]

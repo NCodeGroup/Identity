@@ -1118,7 +1118,8 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   satisfy the profile: its ceiling requires certificate-bound access tokens, so a client that wants DPoP selects
   `fapi2`. The new `JwtSecuredAuthorizationResponseRequirement` refuses plain `code` without a `.jwt` response mode,
   and the ID token's `s_hash` was verified for the hybrid path. RFC 9101 §6.3 now applies to every request object, so
-  only `client_id`, `response_type`, and `scope` fall back to the outer query. The spec-coverage matrix gained the
+  only `client_id`, `response_type`, and `scope` fall back to the outer query, and the object must carry the outer
+  `redirect_uri`. The spec-coverage matrix gained the
   `profile-fapi1-advanced` row. Running the suite's `fapi1-advanced-final-test-plan` moved to `T1`, beside the FAPI
   2.0 plan. See [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md) and the
   `CHANGELOG.md` entries "FAPI 1.0 Advanced security profile" and "a request object's parameters are the only

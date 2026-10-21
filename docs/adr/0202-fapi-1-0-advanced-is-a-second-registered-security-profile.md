@@ -63,7 +63,10 @@ outer parameter such as `response_mode` could change a signed request.
    - `scope`, which OpenID Connect Core also requires outside the object.
 
    Any other parameter sent only outside the object is ignored. The rule is not limited to FAPI profiles, because no
-   client should be able to change a signed request with an unsigned parameter.
+   client should be able to change a signed request with an unsigned parameter. The object must carry `redirect_uri`,
+   equal to the outer value. The response is redirected to the outer value, which is checked against the client's
+   registered URIs. The token endpoint compares against the object's value. Requiring the two to be equal keeps them
+   the same URI, so a code is never sent to one URI and redeemable only with another.
 
 ## Consequences
 

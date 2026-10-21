@@ -939,7 +939,10 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   scope, and `rate_limit_client_per_minute` at the tenant and client scopes. The per-address limit became its own
   setting, so the many clients behind one NAT or backend address are not throttled as one client.
   `RateLimitEndpointFilter` runs between the environment and exception filters, so a refused request is not audited.
-  The client authentication service judges the per-client limit once per request. A refusal is `temporarily_unavailable` with `429`,
+  The address limit is judged before the tenant-wide one and a request it refuses does not count against the tenant;
+  an IPv6 address counts by its `/64`. The client authentication service judges the per-client limit once per request,
+  for confidential clients only, since a public client's `client_id` proves nothing. `Retry-After` is solved from the
+  estimate rather than the window's end. A refusal is `temporarily_unavailable` with `429`,
   `Retry-After`, and `Cache-Control: no-store`. Rejections are logged with stable event IDs rather than counted in a
   metric, since the family has no protocol meter yet. Unit tests cover the estimate, each partition, fail-open, and
   cancellation; an integration test drives discovery past a server-wide limit. Quotas remain as `F79`._

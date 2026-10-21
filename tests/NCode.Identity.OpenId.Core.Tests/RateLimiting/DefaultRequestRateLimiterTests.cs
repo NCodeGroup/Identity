@@ -85,10 +85,10 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         MockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
     }
 
-    private void SetupRemoteAddress()
+    private void SetupRemoteAddress(string remoteAddress = RemoteAddress)
     {
         var httpContext = new DefaultHttpContext();
-        httpContext.Connection.RemoteIpAddress = IPAddress.Parse(RemoteAddress);
+        httpContext.Connection.RemoteIpAddress = IPAddress.Parse(remoteAddress);
         MockContext.Setup(x => x.Http).Returns(httpContext).Verifiable();
     }
 
@@ -179,11 +179,14 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenThePreviousWindowPushesTheEstimateOverTheLimit_RejectsUntilTheWindowEnds()
+    public async Task AcquireForTenantAsync_WhenThePreviousWindowPushesTheEstimateOverTheLimit_RejectsUntilTheEstimateAdmitsAnother()
     {
         SetupTenant();
+        SetupRemoteAddress();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
         SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, 10);
-        // 12 × 0.75 + 3 = 12, over the limit although the current window alone is not.
+        // 12 × 0.75 + 3 = 12, over the limit although the current window alone is not. One more request is admitted
+        // once 12 × (1 − e / 60 s) + 4 ≤ 10, half a minute into the window: fifteen seconds from now.
         SetupCounters(
             DefaultRequestRateLimiter.TenantPartition,
             string.Empty,
@@ -197,19 +200,48 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         );
 
         Assert.True(decision.IsRejected);
-        Assert.Equal(TimeSpan.FromSeconds(45), decision.RetryAfter);
+        Assert.Equal(TimeSpan.FromSeconds(15), decision.RetryAfter);
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenTheAddressIsOverItsLimit_Rejects()
+    public async Task AcquireForTenantAsync_WhenTheAddressIsOverItsLimit_RejectsWithoutCountingTheTenant()
     {
         SetupTenant();
         SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
         SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, 1);
         SetupCounters(
             DefaultRequestRateLimiter.AddressPartition,
             RemoteAddress,
+            current: 2,
+            previous: 0
+        );
+
+        var decision = await Limiter.AcquireForTenantAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.True(decision.IsRejected);
+        MockCounterSet.Verify(
+            x =>
+                x.IncrementAsync(
+                    CreateKey(DefaultRequestRateLimiter.TenantPartition, string.Empty, WindowStart),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Never
+        );
+    }
+
+    [Fact]
+    public async Task AcquireForTenantAsync_WhenTheAddressIsIPv6_CountsItsSlash64()
+    {
+        SetupTenant();
+        SetupRemoteAddress("2001:db8:1:2:3:4:5:6");
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, 1);
+        SetupCounters(
+            DefaultRequestRateLimiter.AddressPartition,
+            "2001:db8:1:2::/64",
             current: 2,
             previous: 0
         );
@@ -255,6 +287,8 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         using var cancellationSource = new CancellationTokenSource();
         await cancellationSource.CancelAsync();
         SetupTenant();
+        SetupRemoteAddress();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
         SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, 1);
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         MockCounterSet
@@ -303,6 +337,8 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         var mockClient = CreateStrictMock<OpenIdClient>();
         mockClient.Setup(x => x.Settings).Returns(mockClientSettings.Object).Verifiable();
         mockClient.Setup(x => x.ClientId).Returns(ClientId).Verifiable();
+        // The current window alone is over the limit, so it becomes the next window's previous: one more request is
+        // admitted once 6 × (1 − e / 60 s) + 1 ≤ 5, twenty seconds into the next window: 65 seconds from now.
         SetupCounters(DefaultRequestRateLimiter.ClientPartition, ClientId, current: 6, previous: 0);
 
         var decision = await Limiter.AcquireForClientAsync(
@@ -312,7 +348,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         );
 
         Assert.True(decision.IsRejected);
-        Assert.Equal(TimeSpan.FromSeconds(45), decision.RetryAfter);
+        Assert.Equal(TimeSpan.FromSeconds(65), decision.RetryAfter);
     }
 
     #endregion

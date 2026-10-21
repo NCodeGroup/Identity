@@ -17,6 +17,8 @@
 #endregion
 
 using System.Globalization;
+using System.Net;
+using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Logging;
@@ -31,7 +33,8 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// Provides the default <see cref="IRequestRateLimiter"/>: a sliding-window estimate over two one-minute fixed windows
 /// counted in the shared <see cref="IExpiringCounterSet"/>, so a limit holds across every replica that shares the set.
 /// A request increments the current window's counter and reads the previous window's; it is refused when
-/// <c>previous × (1 − elapsed / window) + current</c> exceeds the limit, and told to retry when the current window ends.
+/// <c>previous × (1 − elapsed / window) + current</c> exceeds the limit, and told to retry when the estimate would admit
+/// one more request.
 /// The counter is incremented before the limit is judged, so a refused request still counts. A counter store that
 /// throws admits the request and logs a warning: the limit protects capacity, so an outage of the store must not refuse
 /// every request.
@@ -67,19 +70,8 @@ internal class DefaultRequestRateLimiter(
         var tenantId = openIdContext.Tenant.TenantId;
         var settings = openIdContext.Tenant.SettingsProvider.Collection;
 
-        if (settings.TryGetValue(OpenIdSettingKeys.RateLimitTenantPerMinute, out var tenantLimit))
-        {
-            var decision = await AcquireAsync(
-                tenantId,
-                TenantPartition,
-                string.Empty,
-                tenantLimit,
-                cancellationToken
-            );
-            if (decision.IsRejected)
-                return decision;
-        }
-
+        // The narrower address limit is judged first, and a request it refuses is not counted against the tenant, so
+        // one address over its own limit cannot spend the allowance every other caller of the tenant shares.
         var remoteAddress = openIdContext.Http.Connection.RemoteIpAddress;
         if (
             remoteAddress is not null
@@ -89,11 +81,24 @@ internal class DefaultRequestRateLimiter(
             )
         )
         {
-            return await AcquireAsync(
+            var decision = await AcquireAsync(
                 tenantId,
                 AddressPartition,
-                remoteAddress.ToString(),
+                GetAddressPartitionValue(remoteAddress),
                 addressLimit,
+                cancellationToken
+            );
+            if (decision.IsRejected)
+                return decision;
+        }
+
+        if (settings.TryGetValue(OpenIdSettingKeys.RateLimitTenantPerMinute, out var tenantLimit))
+        {
+            return await AcquireAsync(
+                tenantId,
+                TenantPartition,
+                string.Empty,
+                tenantLimit,
                 cancellationToken
             );
         }
@@ -167,7 +172,42 @@ internal class DefaultRequestRateLimiter(
             return RateLimitDecision.Admitted;
 
         Logger.RateLimitExceeded(tenantId, partition, limit);
-        return new RateLimitDecision(windowStart + Window - now);
+        return new RateLimitDecision(GetRetryAt(windowStart, current, previous, limit) - now);
+    }
+
+    // The earliest time one more request would be admitted, assuming no other request arrives meanwhile. Within the
+    // current window the previous window's weight decays until previous × (1 − e / W) + current + 1 ≤ limit; when the
+    // current window alone is at the limit, its count becomes the next window's previous and decays the same way.
+    private static DateTimeOffset GetRetryAt(
+        DateTimeOffset windowStart,
+        long current,
+        long previous,
+        int limit
+    )
+    {
+        var room = limit - current - 1;
+        if (room >= 0 && previous > 0)
+            return windowStart + Window * (1.0 - (double)room / previous);
+
+        var nextWindowStart = windowStart + Window;
+        var decay = 1.0 - (double)(limit - 1) / current;
+        return decay > 0 ? nextWindowStart + Window * decay : nextWindowStart;
+    }
+
+    // An IPv6 host is usually assigned at least a /64, so one caller could otherwise spread its requests across many
+    // addresses; an IPv4-mapped address is counted as the IPv4 address it maps.
+    private static string GetAddressPartitionValue(IPAddress address)
+    {
+        if (address.IsIPv4MappedToIPv6)
+            address = address.MapToIPv4();
+
+        if (address.AddressFamily != AddressFamily.InterNetworkV6)
+            return address.ToString();
+
+        Span<byte> bytes = stackalloc byte[16];
+        address.TryWriteBytes(bytes, out _);
+        bytes[8..].Clear();
+        return new IPAddress(bytes).ToString() + "/64";
     }
 
     private static string CreateKey(

@@ -49,10 +49,16 @@ client, against per-minute limits that are settings bounded by the merge lattice
 4. **Partitions.** Three independent partitions, each with its own limit:
    - **tenant** — every request the tenant's protocol endpoints serve;
    - **address** — every request from one remote address, including the ones that authenticate no client (the
-     authorization endpoint, discovery, and the JWKS);
-   - **client** — every request that authenticates as one client. It is judged only once the client has authenticated,
-     so a request cannot spend another client's allowance by naming its `client_id`, and it is counted once per request
-     however many times the request's client is authenticated.
+     authorization endpoint, discovery, and the JWKS). An IPv6 address is counted by its `/64`, the smallest block a
+     host is usually assigned, so one caller cannot spread its requests across its own addresses; an IPv4-mapped
+     address counts as the IPv4 address it maps;
+   - **client** — every request that authenticates as one confidential client. It is judged only once the client has
+     proven its identity, so a request cannot spend another client's allowance by naming its `client_id`; a public
+     client is named by its `client_id` alone, so it is not counted (the address limit covers its callers). It is
+     counted once per request however many times the request's client is authenticated.
+
+   The address limit is judged before the tenant-wide limit, and a request it refuses is not counted against the
+   tenant, so one address over its own limit cannot spend the allowance every other caller of the tenant shares.
 
    The address limit is a separate setting rather than the client limit applied by address: many clients may share an
    address (a NAT gateway or a backend), so a per-client figure would throttle all of them as one. Keys are built with
@@ -66,7 +72,7 @@ client, against per-minute limits that are settings bounded by the merge lattice
    discoverable.
 6. **Where it runs.** `RateLimitEndpointFilter` on the OpenID endpoint group runs after
    `OpenIdEnvironmentEndpointFilter`, so the resolved tenant and its merged settings are known, and judges the
-   tenant-wide limit and then the address limit there. It runs before `OpenIdExceptionEndpointFilter`, so a refused
+   address limit and then the tenant-wide limit there. It runs before `OpenIdExceptionEndpointFilter`, so a refused
    request is not audited as a protocol error and an attacker who floods an endpoint does not flood the audit log as
    well. The per-client limit is judged in the client authentication service when a client authenticates; the refusal
    replaces the authentication result, so every endpoint that authenticates clients refuses the request the same way.
@@ -74,7 +80,9 @@ client, against per-minute limits that are settings bounded by the merge lattice
    ([ADR-0191](0191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
 7. **The response.** A rejected request is answered `429 Too Many Requests`
    ([RFC 6585 §4](https://www.rfc-editor.org/rfc/rfc6585#section-4)) with the `temporarily_unavailable` error code,
-   `Retry-After` in whole seconds until the current window ends (rounded up, and at least one), and
+   `Retry-After` in whole seconds (rounded up, and at least one) until the estimate would admit one more request — later
+   in the current window as the previous window's weight decays, or into the next window when the current window alone
+   is at the limit — and
    `Cache-Control: no-store`. The server logs the rejection with a stable event ID (the tenant, the partition, and the
    limit, never the address or client ID); a rejected request is never handled.
 8. **An unreachable counter store fails open.** Rate limiting protects capacity, not correctness: unlike a single-use

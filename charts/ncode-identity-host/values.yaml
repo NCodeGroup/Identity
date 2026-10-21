@@ -66,8 +66,10 @@ valkey:
   connectionStringKey: connection-string
 
 # The certificates that encrypt the Data Protection key ring at rest (DataProtection:KeyProtection, ADR-0177). Each is a
-# kubernetes.io/tls Secret (tls.crt and an unencrypted tls.key), such as the one cert-manager issues. Required in
-# Production.
+# kubernetes.io/tls Secret (tls.crt and an unencrypted tls.key). Required in Production. The certificate is long-lived
+# and rotated by hand into a new Secret: never let it renew in place (cert-manager's default), because a key is
+# unwrapped only by the certificate that wrapped it, and the old one would be gone. See "Rotating the key-protection
+# certificate" in the chart's README.
 keyProtection:
   certificateSecret: ""
   # Secrets of certificates retired from protecting new keys, kept so the keys they protected still decrypt.

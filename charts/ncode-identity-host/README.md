@@ -12,7 +12,8 @@ The chart takes no secret values. It references Secrets you create in the releas
 
 - `database.existingSecret`: the Postgres connection string, under the `connection-string` key.
 - `keyProtection.certificateSecret`: a `kubernetes.io/tls` Secret with an RSA certificate and its unencrypted key. The
-  certificate encrypts the Data Protection key ring at rest; cert-manager can issue it.
+  certificate encrypts the Data Protection key ring at rest. It is long-lived and must not renew in place; see
+  [Rotating the key-protection certificate](#rotating-the-key-protection-certificate).
 - `valkey.existingSecret`, for more than one replica: the Valkey connection string, under the `connection-string` key.
 - `migrations.database.existingSecret`, optional: a connection string with the right to change the schema, used only
   by the migration Job. It defaults to `database.existingSecret`.
@@ -61,9 +62,26 @@ To apply migrations another way, such as with a generated idempotent script, set
 With Valkey, a new replica becomes ready before an old one stops. Without it, each replica keeps single-use state in its
 own process, so the chart never runs two at once: a single replica is replaced with a short outage on each update.
 
+## Rotating the key-protection certificate
+
+Each Data Protection key is wrapped by the current certificate when the key is created, and only that certificate (by
+thumbprint) can unwrap it again. Treat the certificate as long-lived, for example several years, and rotate it by hand:
+
+1. Create the new certificate in a **new** Secret.
+2. Add the old Secret to `keyProtection.previousCertificateSecrets` and name the new one in
+   `keyProtection.certificateSecret`, then upgrade the release. New keys use the new certificate; keys the old one
+   wrapped keep decrypting.
+3. Keep the old Secret listed until no stored data depends on a key it wrapped: until the secrets those keys protect are
+   re-protected or retired, not merely until the keys expire
+   ([ADR-0177](../../docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)).
+
+**Never renew the certificate in place.** A renewal written into the same Secret, which is what cert-manager does by
+default, replaces the only certificate that can unwrap the existing keys. After the next restart the key ring cannot be
+read, so sign-in sessions, antiforgery tokens, and protected stored secrets stop working. If cert-manager issues the
+certificate, give it a `duration` longer than your rotation period and issue each replacement into a new Secret
+through a new `Certificate` resource.
+
 ## Other settings
 
 The chart models the settings it validates. Pass any other host setting as an environment variable through `extraEnv`
-or `extraEnvFrom`, for example `Logging__LogLevel__Default`. To retire a key-protection certificate, add its Secret to
-`keyProtection.previousCertificateSecrets` and name the new one in `keyProtection.certificateSecret`. Keys the old
-certificate protected keep decrypting.
+or `extraEnvFrom`, for example `Logging__LogLevel__Default`.

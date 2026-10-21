@@ -2600,3 +2600,22 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   then is not redirected. `AuthorizationRequestObjectTests` pushes a body of only `request` plus `client_secret_basic`
   and receives a code at the object's `redirect_uri`. See
   [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)._
+- **`R8` — Refuse deleting the root tenant.** Retired tenant IDs are never reissued, so deleting the root makes
+  `EnsureCreatedAsync(root)` throw for every tenant. Return 409 for the root and the static strategy's tenant, with a
+  test. Touch point: `DefaultTenantValidator.cs:166-198`.
+  _Closed: `ITenantStrategy.IsRequiredTenant` names the tenants a strategy creates on demand — the root tenant under
+  every strategy, plus the static single-tenant strategy's configured tenant — and `ITenantResolver` delegates to the
+  selected strategy. `DefaultTenantValidator.ValidateDeleteAsync` answers `409 Conflict` for a required tenant
+  before it checks dependents, with tests in `DefaultTenantValidatorTests`, `StaticSingleTenantStrategyTests`, and
+  `DefaultTenantResolverTests`. See
+  [ADR-0189](docs/adr/0189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)._
+- **`R7` — Document rotating the key-protection certificate.** The chart suggests cert-manager, which renews into the
+  same Secret; after the next restart the new thumbprint cannot decrypt the key ring. State that the certificate is
+  long-lived and rotated by hand through `previousCertificateSecrets`, warn against in-place renewal, and optionally
+  fail readiness when the default key cannot be decrypted. Touch points: `charts/ncode-identity-host/values.yaml:68-72`,
+  `charts/ncode-identity-host/README.md:14-15`, ADR-0177.
+  _Closed: the chart's README gains "Rotating the key-protection certificate": the certificate is long-lived, rotated
+  by hand into a new Secret through `keyProtection.previousCertificateSecrets`, and never renewed in place, because a
+  key is unwrapped only by the certificate that wrapped it. `values.yaml` and ADR-0177 carry the same warning. The
+  optional readiness check is split out as `R48`. See
+  [ADR-0177](docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)._

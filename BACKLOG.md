@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R48`     | `R47`      |
+| `R` — Review findings                 | `R49`     | `R48`      |
 
 ---
 
@@ -429,14 +429,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   it, and add `AuthorizationSigningAlgValuesSupported` to the key-provisioning defaults. Touch points:
   `TenantKeySeedHandler.cs:107, 163`, `DefaultOpenIdTenantFactory.cs:218, 429-453`,
   `OpenIdTenantKeyProvisioningOptions.cs:71-79`.
-- **`R7` — Document rotating the key-protection certificate.** The chart suggests cert-manager, which renews into the
-  same Secret; after the next restart the new thumbprint cannot decrypt the key ring. State that the certificate is
-  long-lived and rotated by hand through `previousCertificateSecrets`, warn against in-place renewal, and optionally
-  fail readiness when the default key cannot be decrypted. Touch points: `charts/ncode-identity-host/values.yaml:68-72`,
-  `charts/ncode-identity-host/README.md:14-15`, ADR-0177.
-- **`R8` — Refuse deleting the root tenant.** Retired tenant IDs are never reissued, so deleting the root makes
-  `EnsureCreatedAsync(root)` throw for every tenant. Return 409 for the root and the static strategy's tenant, with a
-  test. Touch point: `DefaultTenantValidator.cs:166-198`.
 
 ### P2
 
@@ -511,6 +503,11 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   `src/NCode.Identity.OpenId.Host/Dockerfile:17, 28, 60`, `.github/dependabot.yml`.
 - **`R36` — Test the bundle-shell split against the built bundle's real `index.html`.** Touch point:
   `InteractiveBundleShell.cs:51-100`.
+- **`R48` — Fail readiness when the default Data Protection key cannot be unwrapped.** Split from R7, which documented
+  hand rotation of the key-protection certificate. A certificate renewed in place still leaves the ring unreadable
+  after a restart; a readiness check that unwraps the default key would keep such a pod out of service and stop a
+  rollout before it replaces the healthy replicas. Touch points: the host's readiness checks (`Program.cs`),
+  `DataProtection:KeyProtection`, ADR-0177.
 
 ### Refactor
 

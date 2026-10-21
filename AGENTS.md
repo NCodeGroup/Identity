@@ -139,6 +139,11 @@ everything on it. Only commits pushed from the repository clone survive — work
 
 - **Size a session to fit.** Give one session one dependency chain of backlog items (one to three items), not a whole
   group. Run independent chains as separate sessions; each gets its own runner and its own 59 minutes.
+- **Read the deadline from the runner, not the agent.** The limit is the job's `timeout-minutes: 59` in
+  `copilot-setup-steps.yml`, so it counts from when the job starts and includes the setup steps; the agent can begin
+  ten or more minutes in. `ps -o lstart= -p 1` prints when the runner booted, just before the job started, so it
+  gives a safe estimate. Plan the session to end 59 minutes after that time, and start the final
+  `./build/dod.ps1 -Fast` at least fifteen minutes before then.
 - **Push each finished item at once**, from the clone, before starting the next. Do not leave finished work on a side
   branch or worktree to integrate later.
 - **Do not run parallel sub-agents that build.** The standard runner has four cores; concurrent .NET, pnpm, and Docker

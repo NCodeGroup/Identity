@@ -17,6 +17,7 @@
 #endregion
 
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
@@ -83,6 +84,20 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
                 },
                 rsa
             );
+
+    private SecretKey CreateCertificateKey(DateTimeOffset notBefore, DateTimeOffset notAfter)
+    {
+        var request = new CertificateRequest(
+            "CN=client",
+            _clientRsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+        using var certificate = request.CreateSelfSigned(notBefore, notAfter);
+        return _serviceProvider
+            .GetRequiredService<ISecretKeyFactory>()
+            .Create(new KeyMetadata { KeyId = "client-cert" }, certificate);
+    }
 
     private JoseSigningCredentials CreateSigningCredentials(
         SecretKey secretKey,
@@ -187,6 +202,60 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         Assert.Same(SigningKey, decodedJwt.SigningKey);
         Assert.Null(decodedJwt.EncryptionHeader);
         Assert.Null(decodedJwt.DecryptionKey);
+    }
+
+    [Theory]
+    [InlineData(-60, 60)]
+    [InlineData(1, 60)]
+    [InlineData(-60, -1)]
+    public async Task ValidateAsync_WhenCertificateIsActiveOrWithinClockSkew_Succeeds(
+        int notBeforeMinutes,
+        int notAfterMinutes
+    )
+    {
+        // The default clock skew is five minutes, so a certificate a minute from either edge of its validity is active.
+        var certificateKey = CreateCertificateKey(
+            _utcNow.AddMinutes(notBeforeMinutes),
+            _utcNow.AddMinutes(notAfterMinutes)
+        );
+        var token = EncodeToken(
+            CreateSigningCredentials(certificateKey),
+            encryptionCredentials: null
+        );
+
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([certificateKey]).ValidateCertificateLifeTime()
+        );
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory]
+    [InlineData(60, 120, "not valid before")]
+    [InlineData(-120, -60, "not valid after")]
+    public async Task ValidateAsync_WhenCertificateIsOutsideItsValidity_Fails(
+        int notBeforeMinutes,
+        int notAfterMinutes,
+        string expectedMessage
+    )
+    {
+        var certificateKey = CreateCertificateKey(
+            _utcNow.AddMinutes(notBeforeMinutes),
+            _utcNow.AddMinutes(notAfterMinutes)
+        );
+        var token = EncodeToken(
+            CreateSigningCredentials(certificateKey),
+            encryptionCredentials: null
+        );
+
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([certificateKey]).ValidateCertificateLifeTime()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Contains(expectedMessage, result.Exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -23,7 +23,8 @@ using NCode.Time;
 namespace NCode.Identity.Jwt.Validation;
 
 /// <summary>
-/// Handles <see cref="CertificateLifetimeRequirement"/> by asserting the signing certificate (if any) is non-expired.
+/// Handles <see cref="CertificateLifetimeRequirement"/> by asserting the signing certificate (if any) is active and
+/// non-expired, comparing its validity with the UTC clock.
 /// </summary>
 internal sealed class CertificateLifetimeRequirementHandler
     : JwtValidationHandler<CertificateLifetimeRequirement>
@@ -54,11 +55,17 @@ internal sealed class CertificateLifetimeRequirementHandler
 
         var nowTicks = context.TimeProvider.GetTimestampWithPrecisionInSeconds();
 
-        var notBefore = certificate.NotBefore.WithPrecisionInSeconds();
-        var notBeforeTicks = notBefore.Ticks;
+        // X509Certificate2 reports its validity in local time, so convert it to UTC before comparing it with the UTC
+        // clock; otherwise a host outside UTC shifts the window by its offset.
+        var notBefore = new DateTimeOffset(
+            certificate.NotBefore.ToUniversalTime()
+        ).WithPrecisionInSeconds();
+        var notBeforeTicks = notBefore.UtcTicks;
 
-        var notAfter = certificate.NotAfter.WithPrecisionInSeconds();
-        var notAfterTicks = notAfter.Ticks;
+        var notAfter = new DateTimeOffset(
+            certificate.NotAfter.ToUniversalTime()
+        ).WithPrecisionInSeconds();
+        var notAfterTicks = notAfter.UtcTicks;
 
         if (notBeforeTicks > nowTicks + clockSkewTicks)
         {

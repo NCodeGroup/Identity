@@ -147,22 +147,47 @@ internal class DefaultAuthorizationEndpointHandler(
             cancellationToken
         );
 
-        // this will throw if client_id or redirect_uri are invalid
-        var clientRedirectContext = GetClientRedirectContext(
-            openIdContext,
-            openIdClient,
-            requestValues
-        );
+        ClientRedirectContext clientRedirectContext;
+        IAuthorizationRequest authorizationRequest;
 
-        // everything after this point is safe to redirect to the client
+        if (CarriesRedirectTargetOnlyInRequestObject(requestValues))
+        {
+            // RFC 9126 §3 / RFC 9101 §5: a request object may be the only carrier of the authorization parameters, so
+            // the redirect target is known only once the object is verified; an error until then is not redirected.
+            authorizationRequest = await mediator.SendAsync<
+                LoadAuthorizationRequestCommand,
+                IAuthorizationRequest
+            >(
+                new LoadAuthorizationRequestCommand(openIdContext, openIdClient, requestValues),
+                cancellationToken
+            );
 
-        var authorizationRequest = await mediator.SendAsync<
-            LoadAuthorizationRequestCommand,
-            IAuthorizationRequest
-        >(
-            new LoadAuthorizationRequestCommand(openIdContext, openIdClient, requestValues),
-            cancellationToken
-        );
+            // this will throw if redirect_uri is invalid
+            clientRedirectContext = GetClientRedirectContext(
+                openIdContext,
+                openIdClient,
+                GetRequestObjectValues(openIdContext, authorizationRequest, requestValues)
+            );
+        }
+        else
+        {
+            // this will throw if client_id or redirect_uri are invalid
+            clientRedirectContext = GetClientRedirectContext(
+                openIdContext,
+                openIdClient,
+                requestValues
+            );
+
+            // everything after this point is safe to redirect to the client
+
+            authorizationRequest = await mediator.SendAsync<
+                LoadAuthorizationRequestCommand,
+                IAuthorizationRequest
+            >(
+                new LoadAuthorizationRequestCommand(openIdContext, openIdClient, requestValues),
+                cancellationToken
+            );
+        }
 
         var disposition = await AuthorizationRequestProcessor.ProcessRequestAsync(
             openIdContext,
@@ -262,6 +287,48 @@ internal class DefaultAuthorizationEndpointHandler(
         clientId = value;
         error = null;
         return true;
+    }
+
+    private static bool CarriesRedirectTargetOnlyInRequestObject(IRequestValues requestValues) =>
+        !requestValues.ContainsKey(OpenIdConstants.Parameters.RedirectUri)
+        && (
+            requestValues.ContainsKey(OpenIdConstants.Parameters.Request)
+            || requestValues.ContainsKey(OpenIdConstants.Parameters.RequestUri)
+        );
+
+    // Only the verified request object's values are used (RFC 9101 §6.3); response_type alone may still come from the
+    // outer request, matching IAuthorizationRequest.ResponseTypes.
+    private static RequestValuesUsingCollection GetRequestObjectValues(
+        OpenIdContext openIdContext,
+        IAuthorizationRequest authorizationRequest,
+        IRequestValues requestValues
+    )
+    {
+        var openIdEnvironment = openIdContext.Environment;
+        var values = new Dictionary<string, StringValues>(StringComparer.Ordinal);
+
+        if (authorizationRequest.OriginalRequestObject is { } requestObject)
+        {
+            foreach (var parameter in requestObject.Parameters)
+            {
+                values[parameter.Descriptor.ParameterName] = parameter.GetStringValues(
+                    openIdEnvironment
+                );
+            }
+        }
+
+        if (
+            !values.ContainsKey(OpenIdConstants.Parameters.ResponseType)
+            && requestValues.TryGetValue(
+                OpenIdConstants.Parameters.ResponseType,
+                out var responseTypeStringValues
+            )
+        )
+        {
+            values[OpenIdConstants.Parameters.ResponseType] = responseTypeStringValues;
+        }
+
+        return new RequestValuesUsingCollection(RequestValuesSourceTypes.RequestObject, values);
     }
 
     private ClientRedirectContext GetClientRedirectContext(

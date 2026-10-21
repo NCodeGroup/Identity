@@ -14,3 +14,9 @@ PostgreSQL, Valkey, KMS) with verified monthly pricing, compute sizing, and Trae
 
 [`platform-bootstrap.md`](./platform-bootstrap.md) is the step-by-step runbook for the manual operations that create the
 hosted platform from scratch — accounts, the infrastructure repository, credentials, and registrar delegation.
+
+## Designs
+
+[`backend-for-frontend.md`](./backend-for-frontend.md) is the proposed design for a Backend for Frontend (BFF) library
+— browser cookie sessions with server-side token custody per RFC 10017 — contrasting it with the bearer-token pattern
+(backlog `F78`).

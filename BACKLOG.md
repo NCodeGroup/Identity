@@ -74,9 +74,9 @@ entry and/or ADR that closed it.
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
 | `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
-| `F` — Feature gaps                    | `F78`     | `F77`      |
+| `F` — Feature gaps                    | `F79`     | `F78`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
-| `U` — Frontend presentation platform  | `U23`     | `U22`      |
+| `U` — Frontend presentation platform  | `U24`     | `U23`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X5`      | `X4`       |
 
@@ -601,6 +601,21 @@ entry and/or ADR that closed it.
   Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
   `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/`.
 
+- **`F78` — Backend for Frontend (BFF) library: cookie sessions with server-side token custody.** The family ships no
+  relying-party library, and a browser frontend can use the OP only as a public client that holds its tokens in
+  script-reachable memory — the shape [RFC 10017](https://www.rfc-editor.org/rfc/rfc10017) (BCP 212) discourages. Build
+  the BFF designed in [`docs/backend-for-frontend.md`](docs/backend-for-frontend.md): a confidential client
+  (`private_key_jwt`, PKCE `S256`, PAR, RFC 9207, DPoP) that keeps tokens in a server-side session encrypted under a
+  key derived from an opaque `__Host-Http-` cookie handle, accepts that cookie on local and allow-listed remote APIs
+  behind a static anti-forgery header, CORS, and Fetch Metadata, refreshes single-flight across replicas so rotation
+  never trips reuse detection ([ADR-0087](docs/adr/0087-refresh-token-reuse-detection-and-family-revocation.md)), and
+  ends sessions through RP-initiated and back-channel logout. Deliver it in the design's phases — SharedState versioned
+  expiring values and membership indexes, the `NCode.Identity.OpenId.Client` protocol client, the `NCode.Identity.Bff`
+  core, remote APIs and the YARP package, then multiple frontends — and promote each phase's decisions to ADRs. The
+  design's open questions (a `bff` client profile at the OP, refresh-token lifetime discovery) are decided along the
+  way. Touch points: new `src/NCode.Identity.OpenId.Client*` and `src/NCode.Identity.Bff*` projects,
+  `src/NCode.Identity.SharedState.Abstractions/`, `src/NCode.Identity.SharedState.Valkey/`.
+
 ## Conformance & interop testing (group `T`)
 
 - **`T1` (subsumes `T6`) — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite,
@@ -700,6 +715,21 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   `/tenants/{tenantId}/clients`), derive the `ManagementScope` from the route, and keep the global-versus-tenant security
   boundary of [ADR-0064](docs/adr/0064-frontend-presentation-platform.md) explicit in the route structure. Touch points:
   [`apps/mgmt/src/App.tsx`](src/frontend/apps/mgmt/src/App.tsx), `packages/api/src/scope.ts`.
+- **`U23` — Serve the management console through the BFF instead of as a browser public client.** The console runs
+  authorization code + PKCE in JavaScript through `@ncode/auth`, keeps the access and refresh tokens in the Redux store,
+  and `@ncode/store` attaches `Authorization: Bearer` to every management API call — so the family's most privileged
+  surface holds tokens any injected script can take. Once `F78` lands, register the console as a confidential BFF
+  client of the root tenant, serve it through the BFF so it calls the management API with the session cookie and the
+  anti-forgery header, and retire the console's in-browser token custody (the Playground stays a public client on
+  purpose — showing tokens is its job). Decide whether the BFF runs in the OP host process or a separate host
+  ([`docs/backend-for-frontend.md`](docs/backend-for-frontend.md) §11). Planning found that the console cannot keep its
+  standalone Vite dev server: proxying `/bff` and the API through it hides the browser's origin from the BFF unless the
+  host trusts loopback as a reverse proxy, and the forwarded `http` scheme then trips the host's HTTPS redirection.
+  Serving the console from the OP host under `/mgmt/`, as `apps/auth` is served under `/account/`
+  ([ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md)), keeps the console, `/bff/*`, and the
+  forwarded API on one origin. Touch points:
+  [`apps/mgmt/src/auth.ts`](src/frontend/apps/mgmt/src/auth.ts), `apps/mgmt/src/AuthGate.tsx`,
+  `packages/store/src/baseQuery.ts`, `packages/auth/`, `src/NCode.Identity.OpenId.Host/Program.cs`.
 - **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
   end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
 - **`U13` — Buffer-writer (pipe) render model for the server-rendered interactive surface.** The server-side HTML

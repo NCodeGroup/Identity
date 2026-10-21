@@ -7,9 +7,9 @@
 name: Host image
 
 on:
+  # A push gates only main, because a pull request already gates every other branch (see ci.yml).
   push:
-    # Bot branches always carry a pull request, so a push run would duplicate it (see ci.yml).
-    branches-ignore: ['dependabot/**']
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:

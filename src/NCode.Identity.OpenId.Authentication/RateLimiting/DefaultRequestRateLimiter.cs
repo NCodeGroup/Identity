@@ -38,9 +38,12 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// <c>previous × (1 − elapsed / window) + current</c> exceeds the limit, and told to retry when the estimate would admit
 /// one more request.
 /// The counter is incremented before the limit is judged, so a refused request still counts. A counter store that
-/// throws admits the request and logs a warning: the limit protects capacity, so an outage of the store must not refuse
-/// every request. Every judged partition is counted in <c>ncode.identity.rate_limiting.requests</c> with its result, so
-/// the fail-open path is as visible as a refusal.
+/// throws, or does not answer within <see cref="StoreTimeout"/>, admits the request: the limit protects capacity, so an
+/// outage of the store must not refuse every request, nor make every request wait for it. After a failure the store is
+/// not called again for <see cref="StoreRetryInterval"/>, so an outage costs one bounded wait per interval per replica
+/// rather than one per check; a warning is logged when the store first fails and an information message when it answers
+/// again, so an outage is logged once rather than once per request (ADR-0196). Every judged partition is counted in
+/// <c>ncode.identity.rate_limiting.requests</c> with its result, so the fail-open path is as visible as a refusal.
 /// </summary>
 internal class DefaultRequestRateLimiter(
     IExpiringCounterSet counterSet,
@@ -64,6 +67,19 @@ internal class DefaultRequestRateLimiter(
     internal static TimeSpan Window => TimeSpan.FromMinutes(1);
 
     internal static TimeSpan QuotaWindow => TimeSpan.FromDays(1);
+
+    /// <summary>
+    /// Gets the longest a counter-store call may take before the request is admitted without it.
+    /// </summary>
+    internal static TimeSpan StoreTimeout => TimeSpan.FromMilliseconds(100);
+
+    /// <summary>
+    /// Gets how long the counter store is not called after it fails, before it is tried again.
+    /// </summary>
+    internal static TimeSpan StoreRetryInterval => TimeSpan.FromSeconds(10);
+
+    // The UTC ticks before which the counter store is not called because it failed; zero while it answers.
+    private long _storeUnavailableUntilTicks;
 
     private IExpiringCounterSet CounterSet { get; } = counterSet;
 
@@ -193,18 +209,27 @@ internal class DefaultRequestRateLimiter(
         );
         var previousWindowStart = windowStart - Window;
 
+        if (IsStoreUnavailable(now))
+            return AdmitWithoutStore(partition);
+
         long current;
         long previous;
         try
         {
             // The current window's counter is kept for two windows so the next window can read it as its previous.
-            current = await CounterSet.IncrementAsync(
-                CreateKey(tenantId, partition, value, windowStart),
-                windowStart + Window + Window,
+            current = await WithStoreTimeoutAsync(
+                CounterSet.IncrementAsync(
+                    CreateKey(tenantId, partition, value, windowStart),
+                    windowStart + Window + Window,
+                    cancellationToken
+                ),
                 cancellationToken
             );
-            previous = await CounterSet.GetAsync(
-                CreateKey(tenantId, partition, value, previousWindowStart),
+            previous = await WithStoreTimeoutAsync(
+                CounterSet.GetAsync(
+                    CreateKey(tenantId, partition, value, previousWindowStart),
+                    cancellationToken
+                ),
                 cancellationToken
             );
         }
@@ -213,10 +238,10 @@ internal class DefaultRequestRateLimiter(
                 || !cancellationToken.IsCancellationRequested
             )
         {
-            Logger.RateLimitStoreUnavailable(tenantId, partition, exception);
-            Metrics.RateLimitJudged(partition, AuthenticationMetrics.StoreUnavailableResult);
-            return RateLimitDecision.Admitted;
+            return OnStoreFailed(tenantId, partition, now, exception);
         }
+
+        OnStoreAnswered();
 
         var elapsed = now - windowStart;
         var previousWeight = 1.0 - elapsed / Window;
@@ -249,12 +274,18 @@ internal class DefaultRequestRateLimiter(
         var dayStart = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);
         var dayEnd = dayStart + QuotaWindow;
 
+        if (IsStoreUnavailable(now))
+            return AdmitWithoutStore(partition);
+
         long count;
         try
         {
-            count = await CounterSet.IncrementAsync(
-                CreateKey(tenantId, partition, string.Empty, dayStart),
-                dayEnd,
+            count = await WithStoreTimeoutAsync(
+                CounterSet.IncrementAsync(
+                    CreateKey(tenantId, partition, string.Empty, dayStart),
+                    dayEnd,
+                    cancellationToken
+                ),
                 cancellationToken
             );
         }
@@ -263,10 +294,10 @@ internal class DefaultRequestRateLimiter(
                 || !cancellationToken.IsCancellationRequested
             )
         {
-            Logger.RateLimitStoreUnavailable(tenantId, partition, exception);
-            Metrics.RateLimitJudged(partition, AuthenticationMetrics.StoreUnavailableResult);
-            return RateLimitDecision.Admitted;
+            return OnStoreFailed(tenantId, partition, now, exception);
         }
+
+        OnStoreAnswered();
 
         if (count <= quota)
         {
@@ -283,6 +314,70 @@ internal class DefaultRequestRateLimiter(
         Logger.QuotaExceeded(tenantId, partition, quota);
         Metrics.RateLimitJudged(partition, AuthenticationMetrics.RejectedResult);
         return new RateLimitDecision(dayEnd - now);
+    }
+
+    // A call that has already completed, as every call to the in-process store has, is not given a timer. A call that is
+    // abandoned has its eventual failure observed, so it is not reported as an unobserved task exception.
+    private async ValueTask<long> WithStoreTimeoutAsync(
+        ValueTask<long> operation,
+        CancellationToken cancellationToken
+    )
+    {
+        if (operation.IsCompleted)
+            return await operation;
+
+        var task = operation.AsTask();
+        try
+        {
+            return await task.WaitAsync(StoreTimeout, TimeProvider, cancellationToken);
+        }
+        catch when (!task.IsCompleted)
+        {
+            _ = task.ContinueWith(
+                static abandoned => _ = abandoned.Exception,
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted
+                    | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default
+            );
+            throw;
+        }
+    }
+
+    private bool IsStoreUnavailable(DateTimeOffset now) =>
+        now.UtcTicks < Interlocked.Read(ref _storeUnavailableUntilTicks);
+
+    private RateLimitDecision AdmitWithoutStore(string partition)
+    {
+        Metrics.RateLimitJudged(partition, AuthenticationMetrics.StoreUnavailableResult);
+        return RateLimitDecision.Admitted;
+    }
+
+    // Only the failure of a store that was answering logs a warning; a retry that fails again extends the pause quietly,
+    // so an outage is logged once per replica rather than once per request.
+    private RateLimitDecision OnStoreFailed(
+        string tenantId,
+        string partition,
+        DateTimeOffset now,
+        Exception exception
+    )
+    {
+        var retryWhen = now + StoreRetryInterval;
+        var previous = Interlocked.Exchange(ref _storeUnavailableUntilTicks, retryWhen.UtcTicks);
+        if (previous == 0)
+            Logger.RateLimitStoreUnavailable(tenantId, partition, StoreRetryInterval, exception);
+
+        return AdmitWithoutStore(partition);
+    }
+
+    // Read before it is written, so a store that keeps answering costs no write to the shared field.
+    private void OnStoreAnswered()
+    {
+        if (
+            Interlocked.Read(ref _storeUnavailableUntilTicks) != 0
+            && Interlocked.Exchange(ref _storeUnavailableUntilTicks, 0) != 0
+        )
+            Logger.RateLimitStoreRecovered();
     }
 
     // The earliest time one more request would be admitted, assuming no other request arrives meanwhile. Within the

@@ -23,8 +23,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Metrics;
 using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Authentication.SharedState;
@@ -57,6 +59,8 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     private Mock<OpenIdContext> MockContext { get; }
 
     private Mock<IReadOnlySettingCollection> MockTenantSettings { get; }
+
+    private FakeLogger<DefaultRequestRateLimiter> Logger { get; } = new();
 
     private DefaultRequestRateLimiter Limiter { get; }
 
@@ -98,7 +102,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             MockCounterSet.Object,
             MockTimeProvider.Object,
             new AuthenticationMetrics(meterFactory),
-            CreateLooseMock<ILogger<DefaultRequestRateLimiter>>().Object
+            Logger
         );
     }
 
@@ -214,6 +218,17 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             .ReturnsAsync(count)
             .Verifiable();
     }
+
+    private void SetupTenantLimitOnly()
+    {
+        SetupTenant();
+        SetupRemoteAddress();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, 1);
+    }
+
+    private List<(int EventId, LogLevel Level)> LogEntries =>
+        Logger.Collector.GetSnapshot().Select(record => (record.Id.Id, record.Level)).ToList();
 
     private static string CreateKey(string partition, string value, DateTimeOffset windowStart) =>
         ExpiringKeys.Create(
@@ -560,7 +575,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenTheCounterStoreThrows_Admits()
+    public async Task AcquireForTenantAsync_WhenTheCounterStoreThrows_AdmitsAndLogsAWarning()
     {
         SetupTenant();
         SetupRemoteAddress();
@@ -594,6 +609,172 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             ],
             Judgements
         );
+        Assert.Equal([(EventIds.RateLimitStoreUnavailable, LogLevel.Warning)], LogEntries);
+    }
+
+    [Fact]
+    public async Task AcquireForTenantAsync_AfterTheCounterStoreThrows_AdmitsWithoutCallingItOrLoggingAgain()
+    {
+        SetupTenantLimitOnly();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        MockCounterSet
+            .Setup(x =>
+                x.IncrementAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    CancellationToken.None
+                )
+            )
+            .ThrowsAsync(new InvalidOperationException("The store is unavailable."))
+            .Verifiable(Times.Once);
+
+        await Limiter.AcquireForTenantAsync(MockContext.Object, isMetered: true, default);
+        var decision = await Limiter.AcquireForTenantAsync(
+            MockContext.Object,
+            isMetered: true,
+            CancellationToken.None
+        );
+
+        Assert.False(decision.IsRejected);
+        Assert.Equal(
+            [
+                (
+                    DefaultRequestRateLimiter.TenantPartition,
+                    AuthenticationMetrics.StoreUnavailableResult
+                ),
+                (
+                    DefaultRequestRateLimiter.TenantPartition,
+                    AuthenticationMetrics.StoreUnavailableResult
+                ),
+            ],
+            Judgements
+        );
+        Assert.Equal([(EventIds.RateLimitStoreUnavailable, LogLevel.Warning)], LogEntries);
+    }
+
+    [Fact]
+    public async Task AcquireForTenantAsync_WhenTheRetryIntervalHasPassedAndTheStoreAnswers_EnforcesAndLogsTheRecovery()
+    {
+        SetupTenantLimitOnly();
+        MockTimeProvider
+            .SetupSequence(x => x.GetUtcNow())
+            .Returns(Now)
+            .Returns(Now + DefaultRequestRateLimiter.StoreRetryInterval);
+        MockCounterSet
+            .SetupSequence(x =>
+                x.IncrementAsync(
+                    CreateKey(DefaultRequestRateLimiter.TenantPartition, string.Empty, WindowStart),
+                    WindowStart.AddMinutes(2),
+                    CancellationToken.None
+                )
+            )
+            .ThrowsAsync(new InvalidOperationException("The store is unavailable."))
+            .ReturnsAsync(2L);
+        MockCounterSet
+            .Setup(x =>
+                x.GetAsync(
+                    CreateKey(
+                        DefaultRequestRateLimiter.TenantPartition,
+                        string.Empty,
+                        WindowStart.AddMinutes(-1)
+                    ),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(0L)
+            .Verifiable();
+
+        await Limiter.AcquireForTenantAsync(MockContext.Object, isMetered: true, default);
+        var decision = await Limiter.AcquireForTenantAsync(
+            MockContext.Object,
+            isMetered: true,
+            CancellationToken.None
+        );
+
+        Assert.True(decision.IsRejected);
+        Assert.Equal(
+            [
+                (
+                    DefaultRequestRateLimiter.TenantPartition,
+                    AuthenticationMetrics.StoreUnavailableResult
+                ),
+                (DefaultRequestRateLimiter.TenantPartition, AuthenticationMetrics.RejectedResult),
+            ],
+            Judgements
+        );
+        Assert.Equal(
+            [
+                (EventIds.RateLimitStoreUnavailable, LogLevel.Warning),
+                (EventIds.RateLimitStoreRecovered, LogLevel.Information),
+                (EventIds.RateLimitExceeded, LogLevel.Information),
+            ],
+            LogEntries
+        );
+    }
+
+    [Fact]
+    public async Task AcquireForTenantAsync_WhenTheCounterStoreDoesNotAnswerInTime_Admits()
+    {
+        SetupTenantLimitOnly();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        TimerCallback? timerCallback = null;
+        object? timerState = null;
+        MockTimeProvider
+            .Setup(x =>
+                x.CreateTimer(
+                    It.IsAny<TimerCallback>(),
+                    It.IsAny<object?>(),
+                    DefaultRequestRateLimiter.StoreTimeout,
+                    It.IsAny<TimeSpan>()
+                )
+            )
+            .Callback<TimerCallback, object?, TimeSpan, TimeSpan>(
+                (callback, state, _, _) =>
+                {
+                    timerCallback = callback;
+                    timerState = state;
+                }
+            )
+            .Returns(CreateLooseMock<ITimer>().Object)
+            .Verifiable();
+        var unanswered = new TaskCompletionSource<long>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        MockCounterSet
+            .Setup(x =>
+                x.IncrementAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(new ValueTask<long>(unanswered.Task))
+            .Verifiable();
+
+        var pending = Limiter.AcquireForTenantAsync(
+            MockContext.Object,
+            isMetered: true,
+            CancellationToken.None
+        );
+        Assert.False(pending.IsCompleted);
+        Assert.NotNull(timerCallback);
+        timerCallback(timerState);
+        var decision = await pending;
+
+        // The abandoned call's eventual failure is observed rather than left unobserved.
+        unanswered.SetException(new TimeoutException("The store timed out."));
+
+        Assert.False(decision.IsRejected);
+        Assert.Equal(
+            [
+                (
+                    DefaultRequestRateLimiter.TenantPartition,
+                    AuthenticationMetrics.StoreUnavailableResult
+                ),
+            ],
+            Judgements
+        );
+        Assert.Equal([(EventIds.RateLimitStoreUnavailable, LogLevel.Warning)], LogEntries);
     }
 
     [Fact]
@@ -764,6 +945,45 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         Assert.False(decision.IsRejected);
         Assert.Equal(
             [
+                (
+                    DefaultRequestRateLimiter.DailyTokenRequestsPartition,
+                    AuthenticationMetrics.StoreUnavailableResult
+                ),
+            ],
+            Judgements
+        );
+    }
+
+    [Fact]
+    public async Task AcquireForTokenRequestAsync_AfterTheStoreThrows_AdmitsWithoutCallingIt()
+    {
+        SetupTenant();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, 5);
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        MockCounterSet
+            .Setup(x =>
+                x.IncrementAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    CancellationToken.None
+                )
+            )
+            .ThrowsAsync(new InvalidOperationException("store unavailable"))
+            .Verifiable(Times.Once);
+
+        await Limiter.AcquireForTokenRequestAsync(MockContext.Object, CancellationToken.None);
+        var decision = await Limiter.AcquireForTokenRequestAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        Assert.False(decision.IsRejected);
+        Assert.Equal(
+            [
+                (
+                    DefaultRequestRateLimiter.DailyTokenRequestsPartition,
+                    AuthenticationMetrics.StoreUnavailableResult
+                ),
                 (
                     DefaultRequestRateLimiter.DailyTokenRequestsPartition,
                     AuthenticationMetrics.StoreUnavailableResult

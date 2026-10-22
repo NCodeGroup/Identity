@@ -2748,3 +2748,48 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   returns. `Ephemeral` developer mode keeps one key per tenant per process, so the eviction does not invalidate issued
   tokens. Other replicas pick up the key through their secrets poll; delivering the change to every replica is `R49`, a
   server settings change is `R50`, and deleting a provisioned tenant is `R51` (ADR-0169 decision 10)._
+- **`R11` — Match redirect URIs exactly and cap loopback redirects under FAPI.** _pre._ The query is not compared,
+  `allow_loopback_redirect` defaults to `true`, and the response writer keeps request-supplied query parameters.
+  Touch points: `DefaultAuthorizationEndpointHandler.cs:354-363`, `AuthorizationResponseWriter.cs:80-81`.
+  _Closed: a requested `redirect_uri` must equal a registered one ordinally, as written, and a repeated value is
+  refused. Only the port of a registered `http://127.0.0.1` or `http://[::1]` URI may vary, while
+  `allow_loopback_redirect` (default `true`) allows it; `fapi1-advanced` caps it to `false`. The registered query is
+  kept in the response. The check runs in `IAuthorizationResponseDeliveryResolver` for the authorization endpoint and
+  PAR, which now refuses an unregistered `redirect_uri` at push time. `RedirectUriMatcherTests` pins the bypass vectors
+  (userinfo, zone IDs, trailing dots, `localhost`); ADR-0203 records the rule. Keeping the string as written after
+  acceptance is `R52`, and `https`-only redirect URIs under FAPI is `R53`._
+- **`R22` — Check `response_modes_supported` consistently for the `jwt` shorthand.** Touch points:
+  `DefaultAuthorizationEndpointHandler.cs:309-321`, `DefaultValidateAuthorizationRequestHandler.cs:576`.
+  _Closed: `response_modes_supported` must list both the requested value as written (so `jwt` itself) and the resolved
+  mode, the default mode included. The check runs once, when the delivery is derived, and a refusal is `400` without a
+  redirect. `AuthorizationResponseDeliveryTests` covers the shorthand, the default and a repeated `response_mode`;
+  ADR-0201 decision 2._
+- **`R23` — Select JARM signing credentials during validation, not when the response is written.** Touch point:
+  `JwtAuthorizationResponseModeHandler.cs:77-93`.
+  _Closed: `IAuthorizationResponseDeliveryResolver` selects the JARM credentials when the delivery is derived and
+  carries them as `AuthorizationResponseDelivery.SecuringCredentials`, so an unsignable response is a `500`
+  `server_error`, not redirected, before the user signs in or a code is issued; the JWT handlers sign with the
+  delivery's credentials. ADR-0201 decision 5._
+- **`R37` — One response-mode provider with handler-declared traits.** Replace the three registries (one silently
+  drops duplicates), `EndsWith(".jwt")`, the hard-coded `is Query or QueryJwt`, and the `jwt` alias `switch`
+  (ADR-0150).
+  _Closed: one internal `IAuthorizationResponseModeProvider` resolves every mode. Handlers declare `SecuredResponseMode`
+  and `DeliversInQuery`, and composition (when the endpoints are mapped) refuses a duplicate mode, two handlers securing
+  one mode, a secured mode no handler delivers, and a handler named `jwt`. The `EndsWith(".jwt")` test, the `Query or
+  QueryJwt` check, the executor's registry and `ResponseTypeValues.ResolveResponseMode` are gone. ADR-0201 decision 1;
+  the production instructions (§2) now forbid inferring a trait from a name._
+- **`R38` — Derive authorization-response delivery in one place.** One function for redirect URI, mode, and state, plus
+  one declarative policy for outer parameters. `R2`, `R3`, and `R9` fixed the behavior; it is still derived in
+  `DefaultAuthorizationEndpointHandler` (twice), `DefaultAuthorizationContinueProvider`, `AuthorizationRequest`, and
+  `ValidateRequestObject`.
+  _Closed: `IAuthorizationResponseDeliveryResolver` derives one public `AuthorizationResponseDelivery` (redirect URI,
+  handler, state, securing credentials) for the authorization endpoint, PAR and the continuation. It replaces
+  `ClientRedirectContext` and flows through the processor, `ValidateAuthorizationRequestCommand`,
+  `AuthorizationRequestProfileContext` and `AuthorizationResult`; `IAuthorizationRequest.ResponseMode` is the requested
+  value. The outer-parameter rules are one table, `RequestObjectParameterPolicy.Rules`. ADR-0201 decision 6 and ADR-0202
+  decision 6._
+- **`R47` — Small cleanups.** A capped setting for the JARM response lifetime, required `AuthorizationResult`
+  context arguments, and one login-redirect helper in the interactive handler.
+  _Closed: the capped client setting `authorization_response_lifetime` (default 5 minutes, at most 10, merged with
+  `Min`) sets the JARM `exp`; `AuthorizationResult` requires its context, client and delivery; the interactive handler
+  builds every login redirect through one `RedirectToLogin` helper. ADR-0201 decisions 4 and 6._

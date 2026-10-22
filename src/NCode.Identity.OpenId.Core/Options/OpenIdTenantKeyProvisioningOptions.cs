@@ -59,7 +59,8 @@ public sealed class OpenIdTenantKeyProvisioningOptions
 
     /// <summary>
     /// Gets or sets the names of the settings that list the algorithms a tenant uses its own keys with: the lists it
-    /// signs ID tokens, UserInfo responses, introspection responses, and access tokens with, and the lists of the
+    /// signs ID tokens, UserInfo responses, introspection responses, JWT-secured authorization responses (JARM), and
+    /// access tokens with, and the lists of the
     /// key-management algorithms it decrypts request objects and access tokens encrypted to it with. A configured key
     /// is provisioned for a tenant only when one of these lists, as the tenant's effective settings have it, names its
     /// algorithm.
@@ -73,6 +74,7 @@ public sealed class OpenIdTenantKeyProvisioningOptions
         OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
         OpenIdSettingNames.UserInfoSigningAlgValuesSupported,
         OpenIdSettingNames.IntrospectionSigningAlgValuesSupported,
+        OpenIdSettingNames.AuthorizationSigningAlgValuesSupported,
         OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
         OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported,
         OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported,

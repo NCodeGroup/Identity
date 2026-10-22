@@ -61,6 +61,8 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
         new ConfidentialClientRequirement(),
         // A plain 'code' response must be JWT-secured (JARM); 'code id_token' is protected by its ID token (§5.2.2-2).
         new JwtSecuredAuthorizationResponseRequirement(),
+        // 'nonce' with the 'openid' scope, 'state' without it (§5.2.2.2, §5.2.2.3).
+        new NonceOrStateRequirement(),
     ];
 
     /// <inheritdoc />

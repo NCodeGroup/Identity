@@ -51,10 +51,12 @@ outer parameter such as `response_mode` could change a signed request.
    because the protocol default (RS256) is outside the ceiling.
 5. **Requirements.** `ConfidentialClientRequirement` refuses a public client at the authorization endpoint. The new
    `JwtSecuredAuthorizationResponseRequirement` refuses, with `invalid_request`, a request whose response type returns
-   no ID token through the front channel unless its resolved response mode is JWT-secured. JARM names every such mode
-   by adding `.jwt`, so the requirement does not list them. The client-assertion audience is not narrowed to the
-   issuer, because that rule belongs to FAPI 2.0 alone. `AuthorizationRequestProfileContext` now carries the composed
-   `IAuthorizationRequest` so that a requirement can judge the response type and response mode.
+   no ID token through the front channel unless its resolved response mode is JWT-secured. JARM names every such mode by
+   adding `.jwt`, so the requirement does not list them. `NonceOrStateRequirement` refuses, with `invalid_request`, a
+   request without `nonce` when it requests the `openid` scope, and one without `state` when it does not (§5.2.2.2,
+   §5.2.2.3), so every response is bound to the request that asked for it. The client-assertion audience is not narrowed
+   to the issuer, because that rule belongs to FAPI 2.0 alone. `AuthorizationRequestProfileContext` now carries the
+   composed `IAuthorizationRequest` so that a requirement can judge the response type and response mode.
 6. **A request object's parameters are the only parameters (RFC 9101 §6.3), for every request object.** When a
    request object is present, `AuthorizationRequest` reads every value, and its `Parameters` collection, from the
    object alone. Three outer values are still used when the object omits them:

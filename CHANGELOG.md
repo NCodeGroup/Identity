@@ -1288,6 +1288,10 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **The `fapi1-advanced` security profile accepted an authorization request without `nonce` or `state`.** It now
+  refuses, with `invalid_request`, a request for the `openid` scope without `nonce` and any other request without
+  `state` (FAPI 1.0 Advanced §5.2.2.2–3, ADR-0202).
+
 - **Anonymous requests for discovery and the JSON Web Key Set spent a tenant's daily request quota.** Anyone could
   spend the quota, run up its billable overage, and then have the tenant's clients refused until midnight UTC. The two
   endpoints are no longer metered: they count only against the per-minute rate limits, and are not recorded as

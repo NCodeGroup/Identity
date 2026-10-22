@@ -543,13 +543,11 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     }
 
     [Fact]
-    public async Task Authorize_WhenPushedRequestObjectRedirectUriIsNotRegistered_RefusesWithoutRedirecting()
+    public async Task PushedAuthorization_WhenRequestObjectRedirectUriIsNotRegistered_ReturnsBadRequest()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
-        await factory.SeedLocalAccountAsync(UserName, Password);
         var client = CreateClient(factory);
         var (clientId, clientSecret) = await RegisterClientWithSecretAsync(client);
-        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
         var issuer = await GetIssuerAsync(client);
         var requestObject = CreateRequestObject(
             factory,
@@ -565,20 +563,8 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientSecret,
             requestObject
         );
-        var parBody = await parResponse.Content.ReadAsStringAsync();
-        Assert.True(parResponse.StatusCode == HttpStatusCode.Created, parBody);
-        var requestUri = JsonElement.Parse(parBody).GetProperty("request_uri").GetString();
-        Assert.NotNull(requestUri);
 
-        using var response = await AuthorizeWithRequestUriAsync(
-            client,
-            sessionCookie,
-            clientId,
-            requestUri
-        );
-
-        Assert.Null(response.Headers.Location);
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, parResponse.StatusCode);
     }
 
     [Fact]

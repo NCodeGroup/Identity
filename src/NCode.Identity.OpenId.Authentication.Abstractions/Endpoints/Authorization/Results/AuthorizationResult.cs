@@ -34,70 +34,80 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// <c>OAuth</c> or <c>OpenID Connect</c> authorization operation. This result is only used when the
 /// request has been validated, specifically the <c>client_id</c> and <c>redirect_uri</c> parameters
 /// from the request have been validated, and it is safe to redirect the user agent back to the client.
+/// The result always carries the request's <see cref="Contexts.OpenIdContext"/>, the client the response is
+/// addressed to, and the <see cref="AuthorizationResponseDelivery"/> that says where and how the response is sent.
 /// </summary>
 [PublicAPI]
 public sealed class AuthorizationResult : IResult, ISupportOpenIdError
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="AuthorizationResult"/> class.
+    /// Initializes a new instance of the <see cref="AuthorizationResult"/> class for a failed operation.
     /// </summary>
-    /// <param name="redirectUri">The <see cref="Uri"/> where the authorization response should be sent to.</param>
-    /// <param name="responseMode">The mechanism that should be used for sending the authorization response.</param>
+    /// <param name="openIdContext">The <see cref="Contexts.OpenIdContext"/> of the request.</param>
+    /// <param name="openIdClient">The client the response is addressed to.</param>
+    /// <param name="delivery">The <see cref="AuthorizationResponseDelivery"/> that describes how the response is
+    /// delivered.</param>
     /// <param name="error">The <see cref="IOpenIdError"/> that contains information about the failure of the operation.</param>
-    public AuthorizationResult(Uri redirectUri, string responseMode, IOpenIdError error)
-        : this(redirectUri, responseMode, error, null)
+    public AuthorizationResult(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        AuthorizationResponseDelivery delivery,
+        IOpenIdError error
+    )
+        : this(openIdContext, openIdClient, delivery, error, null)
     {
         // 'state' is echoed back only when the client sent it (OAuth 2.0 §4.1.2.1); a null state is valid and omitted.
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AuthorizationResult"/> class.
+    /// Initializes a new instance of the <see cref="AuthorizationResult"/> class for a successful operation.
     /// </summary>
-    /// <param name="redirectUri">The <see cref="Uri"/> where the authorization response should be sent to.</param>
-    /// <param name="responseMode">The mechanism that should be used for sending the authorization response.</param>
+    /// <param name="openIdContext">The <see cref="Contexts.OpenIdContext"/> of the request.</param>
+    /// <param name="openIdClient">The client the response is addressed to.</param>
+    /// <param name="delivery">The <see cref="AuthorizationResponseDelivery"/> that describes how the response is
+    /// delivered.</param>
     /// <param name="ticket">An <see cref="IAuthorizationTicket"/> that contains the parameters for a successful
     /// <c>OAuth</c> or <c>OpenID Connect</c> authorization response.</param>
-    public AuthorizationResult(Uri redirectUri, string responseMode, IAuthorizationTicket ticket)
-        : this(redirectUri, responseMode, null, ticket)
+    public AuthorizationResult(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        AuthorizationResponseDelivery delivery,
+        IAuthorizationTicket ticket
+    )
+        : this(openIdContext, openIdClient, delivery, null, ticket)
     {
         // 'state' is echoed back only when the client sent it (OAuth 2.0 §4.1.2.1); a null state is valid and omitted.
     }
 
     private AuthorizationResult(
-        Uri redirectUri,
-        string responseMode,
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        AuthorizationResponseDelivery delivery,
         IOpenIdError? error,
         IAuthorizationTicket? ticket
     )
     {
-        RedirectUri = redirectUri;
-        ResponseMode = responseMode;
+        Delivery = delivery;
+        OpenIdContext = openIdContext;
+        OpenIdClient = openIdClient;
         Error = error;
         Ticket = ticket;
     }
 
     /// <summary>
-    /// Gets the <see cref="Uri"/> where the authorization response should be sent to.
+    /// Gets the <see cref="AuthorizationResponseDelivery"/> that says where and how the response is delivered.
     /// </summary>
-    public Uri RedirectUri { get; }
+    public AuthorizationResponseDelivery Delivery { get; }
 
     /// <summary>
-    /// Gets the <see cref="Contexts.OpenIdContext"/> of the request, which a response mode that protects the response
-    /// (such as a JWT-secured authorization response) needs; <see langword="null"/> when the result was created without
-    /// it.
+    /// Gets the request's <see cref="Contexts.OpenIdContext"/>.
     /// </summary>
-    public OpenIdContext? OpenIdContext { get; init; }
+    public OpenIdContext OpenIdContext { get; }
 
     /// <summary>
-    /// Gets the client the response is addressed to, which a response mode that protects the response (such as a
-    /// JWT-secured authorization response) needs; <see langword="null"/> when the result was created without it.
+    /// Gets the client the response is addressed to.
     /// </summary>
-    public OpenIdClient? OpenIdClient { get; init; }
-
-    /// <summary>
-    /// Gets the mechanism that should be used for sending the authorization response.
-    /// </summary>
-    public string ResponseMode { get; }
+    public OpenIdClient OpenIdClient { get; }
 
     /// <summary>
     /// Gets a value indicating whether the authorization operation was successful.

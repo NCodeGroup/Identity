@@ -263,6 +263,20 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     }
 
     [Fact]
+    public void ValidateRequestObject_WhenTheOuterRedirectUriDiffersOnlyInHostCase_ThrowsInvalidRequestObject()
+    {
+        // Uri equality ignores the case of the host, so the redirect URI is compared as written (ADR-0203).
+        var scaffold = CreateRequestObjectScaffold();
+        scaffold
+            .Message.SetupGet(x => x.RedirectUri)
+            .Returns(new Uri("https://CLIENT.example/callback"));
+
+        Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+    }
+
+    [Fact]
     public void ValidateRequestObject_WhenTheObjectLacksTheResponseType_ThrowsInvalidRequestObject()
     {
         // An outer response_type is never used in place of the object's (RFC 9101 §6.3).

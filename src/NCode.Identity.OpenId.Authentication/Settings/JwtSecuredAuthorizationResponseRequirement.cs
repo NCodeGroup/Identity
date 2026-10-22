@@ -24,15 +24,12 @@ namespace NCode.Identity.OpenId.Settings;
 /// <summary>
 /// Requires an authorization response to be protected: a request that returns no ID token through the front channel
 /// (plain <c>code</c>) must use a JWT-secured (JARM) response mode, since only the hybrid ID token or a signed
-/// response JWT authenticates the response and binds it to the request (FAPI 1.0 Advanced §5.2.2-2).
+/// response JWT authenticates the response and binds it to the request (FAPI 1.0 Advanced §5.2.2-2). A response is
+/// JWT-secured when the delivery's handler declares a <c>SecuredResponseMode</c>.
 /// </summary>
 internal sealed class JwtSecuredAuthorizationResponseRequirement
     : IAuthorizationRequestProfileRequirement
 {
-    // JARM names every JWT-secured response mode by appending '.jwt' to the mode that delivers it (JARM §2.3), and
-    // the request's response mode is already resolved, so the 'jwt' shorthand arrives as its full name.
-    private const string JwtResponseModeSuffix = ".jwt";
-
     /// <inheritdoc />
     public ValueTask EvaluateAsync(
         AuthorizationRequestProfileContext context,
@@ -44,10 +41,7 @@ internal sealed class JwtSecuredAuthorizationResponseRequirement
             OpenIdConstants.ResponseTypes.IdToken,
             StringComparer.Ordinal
         );
-        var isJwtSecured = request.ResponseMode.EndsWith(
-            JwtResponseModeSuffix,
-            StringComparison.Ordinal
-        );
+        var isJwtSecured = context.Delivery.ResponseModeHandler.SecuredResponseMode is not null;
 
         if (!returnsIdToken && !isJwtSecured)
         {

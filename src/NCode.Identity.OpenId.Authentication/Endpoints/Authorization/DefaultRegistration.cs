@@ -82,6 +82,14 @@ internal static class DefaultRegistration
                 IResultExecutor<AuthorizationResult>,
                 DefaultAuthorizationResultExecutor
             >();
+            serviceCollection.TryAddSingleton<
+                IAuthorizationResponseModeProvider,
+                DefaultAuthorizationResponseModeProvider
+            >();
+            serviceCollection.TryAddSingleton<
+                IAuthorizationResponseDeliveryResolver,
+                DefaultAuthorizationResponseDeliveryResolver
+            >();
 
             // Response modes are an open vocabulary: a package adds one by registering its handler (ADR-0201).
             serviceCollection.TryAddEnumerable(

@@ -51,43 +51,55 @@ outer parameter such as `response_mode` could change a signed request.
    because the protocol default (RS256) is outside the ceiling.
 5. **Requirements.** `ConfidentialClientRequirement` refuses a public client at the authorization endpoint. The new
    `JwtSecuredAuthorizationResponseRequirement` refuses, with `invalid_request`, a request whose response type returns
-   no ID token through the front channel unless its resolved response mode is JWT-secured. JARM names every such mode by
-   adding `.jwt`, so the requirement does not list them. `NonceOrStateRequirement` refuses, with `invalid_request`, a
-   request without `nonce` when it requests the `openid` scope, and one without `state` when it does not (§5.2.2.2,
-   §5.2.2.3), so every response is bound to the request that asked for it. `IssuerOnlyRequestObjectAudienceRequirement`,
+   no ID token through the front channel unless its resolved response mode is JWT-secured. The requirement judges the
+   `SecuredResponseMode` trait of the delivery's response-mode handler, which names the plain mode whose JWT-secured
+   form the handler delivers, and not a `.jwt` suffix, so it lists no mode and infers nothing from a name
+   ([ADR-0201](0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md)).
+   `NonceOrStateRequirement` refuses, with `invalid_request`, a request without `nonce` when it requests the `openid`
+   scope, and one without `state` when it does not (§5.2.2.2, §5.2.2.3), so every response is bound to the request
+   that asked for it. `IssuerOnlyRequestObjectAudienceRequirement`,
    which the FAPI 2.0 profile also composes, refuses with `invalid_request_object` a request object from a client that
    sets `request_object_expected_audience`. That client-scoped setting is replace-merged, so no ceiling can cap it, and
    it would otherwise replace the issuer as the audience both profiles require. The client-assertion audience is not
-   narrowed to the issuer, because that rule belongs to FAPI 2.0 alone. `AuthorizationRequestProfileContext` now carries the
-   composed `IAuthorizationRequest` so that a requirement can judge the response type and response mode.
+   narrowed to the issuer, because that rule belongs to FAPI 2.0 alone. `AuthorizationRequestProfileContext` now
+   carries the composed `IAuthorizationRequest` and the `AuthorizationResponseDelivery` so that a requirement can judge
+   the response type and response mode.
 6. **A request object's parameters are the only parameters (RFC 9101 §6.3), for every request object.** When a
    request object is present, `AuthorizationRequest` reads every value, and its `Parameters` collection, from the
    object alone. Only `client_id`, which the OAuth syntax carries to identify the client, is still read from outside
    the object when the object omits it, and the object must carry a matching one.
 
    Any other parameter sent only outside the object is ignored, including `response_type` and `scope`, which OpenID
-   Connect Core has a client send outside the object as well (FAPI 1.0 Advanced §5.2.2-10). The object must carry
-   `response_type`, `scope`, and `redirect_uri`, and is refused with `invalid_request_object` without them. The rule
-   is not limited to FAPI profiles, because no client should be able to change a signed request with an unsigned
-   parameter. The response is redirected to the object's `redirect_uri` once it is checked against the client's
-   registered URIs, and the token endpoint compares against the same value. An outer `client_id`, `response_type`, or
-   `redirect_uri` is optional, but one that is sent must equal the object's value, so a code is never sent to one URI
-   and redeemable only with another. An outer `scope` is ignored rather than compared, because OpenID Connect Core
-   §6.1 lets the object's value supersede it: a client may send `openid` outside and a broader scope inside.
+   Connect Core has a client send outside the object as well (FAPI 1.0 Advanced §5.2.2-10). The rules for the outer
+   parameters are one table, `RequestObjectParameterPolicy.Rules`. The object must carry `response_type`, `scope`,
+   `redirect_uri`, and `client_id`, and is refused with `invalid_request_object` without them. The rule is not
+   limited to FAPI profiles, because no client should be able to change a signed request with an unsigned parameter.
+   The response is redirected to the object's `redirect_uri` once it is checked against the client's registered URIs,
+   and the token endpoint compares against the same value. An outer `response_type`, `redirect_uri`, or `client_id` is
+   optional, but one that is sent must equal the object's value, so a code is never sent to one URI and redeemable
+   only with another. The `redirect_uri` is compared as written, because the equality of a parsed `Uri` ignores the
+   case of the host ([ADR-0203](0203-redirect-uris-are-matched-exactly.md)). An outer `scope` is ignored rather than
+   compared, because OpenID Connect Core §6.1 lets the object's value supersede it: a client may send `openid` outside
+   and a broader scope inside.
 
    A pushed authorization request may therefore carry only the request object and client authentication (RFC 9126
-   §3), which is the only path `fapi1-advanced` allows. When neither the request nor its pushed parameters carry an
-   outer `redirect_uri`, the authorization endpoint verifies the object first and takes `redirect_uri`,
-   `response_mode`, and `state` from it. Until the object is verified the endpoint does not know a safe redirect target,
-   so an error raised before then is returned to the user agent and not redirected.
+   §3), which is the only path `fapi1-advanced` allows. `IAuthorizationResponseDeliveryResolver` derives the redirect
+   target, the response mode, and the state, once per request, as one `AuthorizationResponseDelivery`. When neither the
+   request nor its pushed parameters carry an outer `redirect_uri`, the authorization endpoint verifies the object first
+   and the resolver takes `redirect_uri`, `response_mode`, and `state` from it. Until the object is verified the
+   endpoint does not know a safe redirect target, so an error raised before then is returned to the user agent and not
+   redirected.
 
-   When the request does carry an outer `redirect_uri`, the endpoint checks it first, so an error raised while the
+   When the request does carry an outer `redirect_uri`, the resolver checks it first, so an error raised while the
    object is loaded is redirected there with the outer `state` and `response_mode`. Once the object is verified, the
-   endpoint takes `state` and `response_mode` from the object, and every later response uses them, including an
+   resolver takes `state` and `response_mode` from the object, and every later response uses them, including an
    error. A request whose `state` and `response_mode=jwt` appear only in the object therefore gets a signed error
    that carries its `state` (RFC 6749 §4.1.2.1). The redirect target stays the outer URI that was already checked,
    because validation refuses an object whose `redirect_uri` differs from it and delivers that refusal there. An
    object whose `response_mode` the client cannot be served in is refused without a redirect, as is an outer one.
+
+   The PAR endpoint derives the delivery when the request is pushed, so a `redirect_uri` that is not registered is
+   refused at PAR and not only later at the authorization endpoint (RFC 9126 §2.1).
 
 ## Consequences
 

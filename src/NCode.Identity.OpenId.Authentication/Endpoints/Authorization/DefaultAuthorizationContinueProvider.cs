@@ -20,7 +20,6 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -34,12 +33,14 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 /// </summary>
 internal class DefaultAuthorizationContinueProvider(
     IOpenIdClientResolver clientResolver,
-    IAuthorizationRequestProcessor authorizationRequestProcessor
+    IAuthorizationRequestProcessor authorizationRequestProcessor,
+    IAuthorizationResponseDeliveryResolver deliveryResolver
 ) : IContinueProvider
 {
     private IOpenIdClientResolver ClientResolver { get; } = clientResolver;
     private IAuthorizationRequestProcessor AuthorizationRequestProcessor { get; } =
         authorizationRequestProcessor;
+    private IAuthorizationResponseDeliveryResolver DeliveryResolver { get; } = deliveryResolver;
 
     /// <inheritdoc />
     public string ContinueCode => OpenIdConstants.ContinueCodes.Authorization;
@@ -77,17 +78,20 @@ internal class DefaultAuthorizationContinueProvider(
 
         authorizationRequest.IsContinuation = true;
 
-        var clientRedirectContext = new ClientRedirectContext(
+        // The parked request's redirect_uri was checked against the client's registration when it arrived.
+        var delivery = await DeliveryResolver.ResolveAsync(
+            openIdContext,
+            openIdClient,
+            authorizationRequest,
             authorizationRequest.RedirectUri,
-            authorizationRequest.ResponseMode,
-            authorizationRequest.State
+            cancellationToken
         );
 
         var disposition = await AuthorizationRequestProcessor.ProcessRequestAsync(
             openIdContext,
             openIdClient,
             authorizationRequest,
-            clientRedirectContext,
+            delivery,
             cancellationToken
         );
         return disposition;

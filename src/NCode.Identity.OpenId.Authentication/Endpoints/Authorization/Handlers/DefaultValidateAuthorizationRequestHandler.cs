@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Collections.Frozen;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Encoders;
@@ -39,15 +38,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 /// </summary>
 internal class DefaultValidateAuthorizationRequestHandler(
     IClientScopeService clientScopeService,
-    ISecurityProfileCatalog securityProfileCatalog,
-    IEnumerable<IAuthorizationResponseModeHandler> responseModeHandlers
+    ISecurityProfileCatalog securityProfileCatalog
 ) : ICommandHandler<ValidateAuthorizationRequestCommand>, ISupportMediatorPriority
 {
-    private FrozenSet<string> ServedResponseModes { get; } =
-        responseModeHandlers
-            .Select(handler => handler.ResponseMode)
-            .ToFrozenSet(StringComparer.Ordinal);
-
     private IClientScopeService ClientScopeService { get; } = clientScopeService;
     private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
 
@@ -60,7 +53,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
         CancellationToken cancellationToken
     )
     {
-        var (openIdContext, openIdClient, authorizationRequest) = command;
+        var (openIdContext, openIdClient, authorizationRequest, delivery) = command;
 
         var openIdEnvironment = openIdContext.Environment;
 
@@ -72,7 +65,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
 
         ValidateRequiredParameters(openIdContext, authorizationRequest);
 
-        ValidateRequest(openIdContext, openIdClient, authorizationRequest);
+        ValidateRequest(openIdContext, openIdClient, authorizationRequest, delivery);
 
         // Apply any security-profile authorization-request requirements (e.g. FAPI's confidential-client rule).
         await SecurityProfileCatalog.EvaluateRequirementsAsync(
@@ -80,7 +73,8 @@ internal class DefaultValidateAuthorizationRequestHandler(
             new AuthorizationRequestProfileContext(
                 openIdContext,
                 openIdClient,
-                authorizationRequest
+                authorizationRequest,
+                delivery
             ),
             cancellationToken
         );
@@ -171,134 +165,48 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 )
                 .AsException();
 
-        /*
-         * Only the request object's parameters are used (RFC 9101 §6.3, ADR-0202), so it must carry response_type and scope;
-         * an outer copy of either is never used (FAPI 1.0 Advanced §5.2.2-10). An outer copy of response_type, redirect_uri,
-         * or client_id is optional — a pushed request carries none of them (RFC 9126 §3) — but one that is sent must match the
-         * object's value. An outer scope is ignored, as OpenID Connect Core §6.1 lets the object's value supersede it.
-         */
+        // The parameters a request object must carry, and how an outer copy of each relates to them, are declared in one
+        // table (RFC 9101 §5, §6.3; ADR-0202).
+        RequestObjectParameterPolicy.Validate(
+            errorFactory,
+            errorCode,
+            requestMessage,
+            requestObject
+        );
 
-        if (requestObject.ResponseTypes is not { Count: > 0 })
+        // The object's client_id must name the client the request was identified or authenticated as (RFC 9101 §5).
+        if (!string.Equals(requestObject.ClientId, openIdClient.ClientId, StringComparison.Ordinal))
             throw errorFactory
                 .InvalidRequest(
-                    "The JWT request object must contain the 'response_type' parameter.",
-                    errorCode
-                )
-                .AsException();
-
-        if (requestObject.Scopes is not { Count: > 0 })
-            throw errorFactory
-                .InvalidRequest(
-                    "The JWT request object must contain the 'scope' parameter.",
-                    errorCode
-                )
-                .AsException();
-
-        if (requestMessage.ResponseTypes != null)
-        {
-            var requestMessageResponseType = ResponseTypeValues.Canonicalize(
-                requestMessage.ResponseTypes
-            );
-            var requestObjectResponseType = ResponseTypeValues.Canonicalize(
-                requestObject.ResponseTypes
-            );
-            if (
-                !string.Equals(
-                    requestMessageResponseType,
-                    requestObjectResponseType,
-                    StringComparison.Ordinal
-                )
-            )
-                throw errorFactory
-                    .InvalidRequest(
-                        "The 'response_type' parameter in the JWT request object must match the same value from the request message.",
-                        errorCode
-                    )
-                    .AsException();
-        }
-
-        /*
-         * The response is redirected to the object's redirect_uri, which the authorization endpoint checks against the client's
-         * registered URIs, so the object must carry it.
-         */
-
-        if (requestObject.RedirectUri is null)
-            throw errorFactory
-                .InvalidRequest(
-                    "The JWT request object must contain the 'redirect_uri' parameter.",
-                    errorCode
-                )
-                .AsException();
-
-        if (
-            requestMessage.RedirectUri is not null
-            && requestObject.RedirectUri != requestMessage.RedirectUri
-        )
-            throw errorFactory
-                .InvalidRequest(
-                    "The 'redirect_uri' parameter in the JWT request object must match the same value from the request message.",
-                    errorCode
-                )
-                .AsException();
-
-        /*
-         * The object's client_id must name the client the request was identified or authenticated as, and an outer client_id,
-         * when sent, must be identical to it (RFC 9101 §5).
-         */
-
-        if (string.IsNullOrEmpty(requestObject.ClientId))
-            throw errorFactory
-                .InvalidRequest(
-                    "The JWT request object must contain the 'client_id' parameter.",
-                    errorCode
-                )
-                .AsException();
-
-        if (
-            !string.Equals(requestObject.ClientId, openIdClient.ClientId, StringComparison.Ordinal)
-            || (
-                requestMessage.ClientId is not null
-                && !string.Equals(
-                    requestObject.ClientId,
-                    requestMessage.ClientId,
-                    StringComparison.Ordinal
-                )
-            )
-        )
-            throw errorFactory
-                .InvalidRequest(
-                    "The 'client_id' parameter in the JWT request object must match the requesting client and the same value from the request message.",
+                    "The 'client_id' parameter in the JWT request object must name the requesting client.",
                     errorCode
                 )
                 .AsException();
     }
 
     [AssertionMethod]
-    private void ValidateRequest(
+    private static void ValidateRequest(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
-        IAuthorizationRequest request
+        IAuthorizationRequest request,
+        AuthorizationResponseDelivery delivery
     )
     {
         var errorFactory = openIdContext.ErrorFactory;
         var settings = openIdClient.Settings;
 
-        ValidateProtocolRules(errorFactory, request);
+        ValidateProtocolRules(errorFactory, request, delivery);
         ValidateConfiguredConstraints(errorFactory, settings, request);
         ValidateResponseType(openIdContext, openIdClient, request);
         ValidateCodeChallenge(errorFactory, openIdClient, request);
-
-        // A response mode is served only by a registered handler (ADR-0201).
-        if (!ServedResponseModes.Contains(request.ResponseMode))
-            throw errorFactory.NotSupported(OpenIdConstants.Parameters.ResponseMode).AsException();
-
         ValidateSupportedValues(errorFactory, settings, request);
     }
 
     [AssertionMethod]
     private static void ValidateProtocolRules(
         IOpenIdErrorFactory errorFactory,
-        IAuthorizationRequest request
+        IAuthorizationRequest request,
+        AuthorizationResponseDelivery delivery
     )
     {
         var requestedScopes = request.Scopes;
@@ -331,15 +239,10 @@ internal class DefaultValidateAuthorizationRequestHandler(
 
         // A token never travels in a query string (OAuth 2.0 Multiple Response Type Encoding Practices §2.1), not even
         // inside a JWT-secured authorization response (JARM §2.3.1).
-        if (
-            returnsTokens
-            && request.ResponseMode
-                is OpenIdConstants.ResponseModes.Query
-                    or OpenIdConstants.ResponseModes.QueryJwt
-        )
+        if (returnsTokens && delivery.ResponseModeHandler.DeliversInQuery)
             throw errorFactory
                 .InvalidRequest(
-                    $"The '{request.ResponseMode}' response mode must not be used with a response type that returns a token or an ID token."
+                    $"The '{delivery.ResponseModeHandler.ResponseMode}' response mode must not be used with a response type that returns a token or an ID token."
                 )
                 .AsException();
 
@@ -599,19 +502,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
                     .AsException();
         }
 
-        // response_modes_supported
-        if (
-            settings.TryGetValue(
-                OpenIdSettingKeys.ResponseModesSupported,
-                out var responseModesSupported
-            )
-        )
-        {
-            if (!responseModesSupported.Contains(request.ResponseMode))
-                throw errorFactory
-                    .NotSupported(OpenIdConstants.Parameters.ResponseMode)
-                    .AsException();
-        }
+        // response_modes_supported is enforced when the delivery is derived (IAuthorizationResponseDeliveryResolver)
 
         // scopes_supported is enforced in HandleAsync via IClientScopeService (ADR-0026)
 

@@ -139,8 +139,12 @@ public static class OpenIdSettingNames
     public const string AllowedIdentityProviders = "allowed_identity_providers";
 
     /// <summary>
-    /// Contains the name of <c>allow_loopback_redirect</c> setting.
+    /// Contains the name of the <c>allow_loopback_redirect</c> setting. Whether a registered loopback IP redirect URI
+    /// (<c>http://127.0.0.1</c> or <c>http://[::1]</c>) may be requested with any port (RFC 8252 §7.3). Every other
+    /// part of a redirect URI must equal a registered one exactly. Default <c>true</c>; <c>fapi1-advanced</c> turns it
+    /// off.
     /// </summary>
+    // See ADR-0203.
     public const string AllowLoopbackRedirect = "allow_loopback_redirect";
 
     /// <summary>
@@ -365,6 +369,11 @@ public static class OpenIdSettingNames
     /// client's JWT-secured authorization responses (<c>RS256</c> unless registered).
     /// </summary>
     public const string AuthorizationSignedResponseAlg = "authorization_signed_response_alg";
+
+    /// <summary>
+    /// How long a JWT-secured authorization response (JARM) is valid; at most 10 minutes (JARM §2.1).
+    /// </summary>
+    public const string AuthorizationResponseLifetime = "authorization_response_lifetime";
 
     /// <summary>
     /// Contains the name of the <c>authorization_signing_alg_values_supported</c> setting (JARM §4): the signature algorithms a

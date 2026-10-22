@@ -63,8 +63,9 @@ internal static class AuthorizationResponseWriter
     }
 
     /// <summary>
-    /// Redirects to the redirect URI with the parameters in its query (keeping any query parameter of the registered
-    /// URI the response does not replace) or in its fragment.
+    /// Redirects to the redirect URI with the parameters in its query or in its fragment. The redirect URI equals a
+    /// registered one as written (ADR-0203), so its query is the registered query, which the response keeps unless a
+    /// response parameter replaces it (RFC 6749 §3.1.2).
     /// </summary>
     public static void WriteRedirect(
         HttpResponse httpResponse,

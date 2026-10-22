@@ -310,7 +310,9 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = And,
             };
 
-            // allow_loopback_redirect: permit loopback IP redirect URIs for native clients (default true).
+            // allow_loopback_redirect: whether a registered loopback IP redirect URI (http://127.0.0.1 or http://[::1])
+            // may be requested with any port (RFC 8252 §7.3). Every other part of a redirect URI must equal a registered
+            // one exactly. Default true; fapi1-advanced turns it off (ADR-0203).
             // Ceiling (And): once a parent forbids it, a child cannot re-allow it.
             yield return new SettingDescriptor<bool>
             {
@@ -2078,6 +2080,18 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
+            };
+
+            // authorization_response_lifetime: lifetime of a JARM response JWT; JARM §2.1 recommends at most 10 minutes. Ceiling (Min).
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.AuthorizationResponseLifetime,
+                AppliesTo = Clients,
+                Rule = SettingRules.Between(TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(10)),
+                Default = TimeSpan.FromMinutes(5),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
             };
 
             // authorization_signing_alg_values_supported: permitted "alg" values for signing a JWT-secured authorization

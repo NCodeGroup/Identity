@@ -29,6 +29,10 @@ internal sealed class FragmentAuthorizationResponseModeHandler : IAuthorizationR
 {
     public string ResponseMode => OpenIdConstants.ResponseModes.Fragment;
 
+    public string? SecuredResponseMode => null;
+
+    public bool DeliversInQuery => false;
+
     public ValueTask ExecuteAsync(
         HttpContext httpContext,
         AuthorizationResult result,
@@ -38,7 +42,7 @@ internal sealed class FragmentAuthorizationResponseModeHandler : IAuthorizationR
     {
         AuthorizationResponseWriter.WriteRedirect(
             httpContext.Response,
-            result.RedirectUri,
+            result.Delivery.RedirectUri,
             useQuery: false,
             AuthorizationResponseWriter.GetParameters(message)
         );

@@ -19,6 +19,7 @@
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
@@ -61,7 +62,12 @@ public class NonceOrStateRequirementTests : BaseTests
             new AuthorizationRequestProfileContext(
                 mockContext.Object,
                 mockClient.Object,
-                mockRequest.Object
+                mockRequest.Object,
+                new AuthorizationResponseDelivery(
+                    new Uri("https://client.example/callback"),
+                    CreateLooseMock<IAuthorizationResponseModeHandler>().Object,
+                    State: null
+                )
             ),
             () => capturedCode
         );

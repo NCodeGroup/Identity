@@ -85,27 +85,6 @@ internal static class ResponseTypeValues
             : OpenIdConstants.ResponseModes.Query;
 
     /// <summary>
-    /// Resolves the effective <c>response_mode</c> of a request: the response type's default when none is requested,
-    /// and, for the JARM <c>jwt</c> shorthand, the JWT form of that default — <c>fragment.jwt</c> for a response type
-    /// that returns a token or an ID token and <c>query.jwt</c> otherwise (JARM §2.3.4).
-    /// </summary>
-    /// <param name="responseMode">The requested <c>response_mode</c>, or <see langword="null"/> when none is requested.</param>
-    /// <param name="names">The names of the response type, in any order.</param>
-    /// <returns>The effective <c>response_mode</c>.</returns>
-    public static string ResolveResponseMode(
-        string? responseMode,
-        IReadOnlyCollection<string> names
-    ) =>
-        responseMode switch
-        {
-            null => GetDefaultResponseMode(names),
-            OpenIdConstants.ResponseModes.Jwt => ReturnsTokens(names)
-                ? OpenIdConstants.ResponseModes.FragmentJwt
-                : OpenIdConstants.ResponseModes.QueryJwt,
-            _ => responseMode,
-        };
-
-    /// <summary>
     /// Gets the grant types a response type uses (OpenID Connect Dynamic Client Registration 1.0 §2):
     /// <c>authorization_code</c> when it includes <c>code</c>, and <c>implicit</c> when it includes <c>id_token</c> or
     /// <c>token</c>, because a token the authorization endpoint returns is issued through the implicit grant. A hybrid

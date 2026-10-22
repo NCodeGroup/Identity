@@ -17,19 +17,15 @@
 
 #endregion
 
-using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Models;
-using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Messages;
@@ -55,14 +51,9 @@ internal class DefaultAuthorizationEndpointHandler(
     IAuthorizationRequestProcessor authorizationRequestProcessor,
     IPushedAuthorizationRequestService pushedAuthorizationRequestService,
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
-    IEnumerable<IAuthorizationResponseModeHandler> responseModeHandlers
+    IAuthorizationResponseDeliveryResolver deliveryResolver
 ) : IEndpointProvider
 {
-    private FrozenSet<string> ServedResponseModes { get; } =
-        responseModeHandlers
-            .Select(handler => handler.ResponseMode)
-            .ToFrozenSet(StringComparer.Ordinal);
-
     private ILogger<DefaultAuthorizationEndpointHandler> Logger { get; } = logger;
     private IOpenIdClientResolver ClientResolver { get; } = clientResolver;
     private IAuthorizationRequestProcessor AuthorizationRequestProcessor { get; } =
@@ -71,6 +62,7 @@ internal class DefaultAuthorizationEndpointHandler(
         pushedAuthorizationRequestService;
     private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } =
         knownParameterCollectionProvider;
+    private IAuthorizationResponseDeliveryResolver DeliveryResolver { get; } = deliveryResolver;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -147,76 +139,45 @@ internal class DefaultAuthorizationEndpointHandler(
             cancellationToken
         );
 
-        ClientRedirectContext clientRedirectContext;
-        IAuthorizationRequest authorizationRequest;
-
-        if (CarriesRedirectTargetOnlyInRequestObject(requestValues))
-        {
-            // RFC 9126 §3 / RFC 9101 §5: a request object may be the only carrier of the authorization parameters, so
-            // the redirect target is known only once the object is verified; an error until then is not redirected.
-            authorizationRequest = await mediator.SendAsync<
-                LoadAuthorizationRequestCommand,
-                IAuthorizationRequest
-            >(
-                new LoadAuthorizationRequestCommand(openIdContext, openIdClient, requestValues),
-                cancellationToken
-            );
-
-            // this will throw if redirect_uri is invalid
-            clientRedirectContext = GetClientRedirectContext(
+        // An outer redirect_uri is checked before any request object is verified, so a later error can be delivered there (ADR-0202).
+        var checkedDelivery = requestValues.ContainsKey(OpenIdConstants.Parameters.RedirectUri)
+            ? await DeliveryResolver.ResolveAsync(
                 openIdContext,
                 openIdClient,
-                GetRequestObjectValues(openIdContext, authorizationRequest)
-            );
-        }
-        else
-        {
-            // this will throw if client_id or redirect_uri are invalid
-            clientRedirectContext = GetClientRedirectContext(
-                openIdContext,
-                openIdClient,
-                requestValues
-            );
-
-            // everything after this point is safe to redirect to the client
-
-            authorizationRequest = await mediator.SendAsync<
-                LoadAuthorizationRequestCommand,
-                IAuthorizationRequest
-            >(
-                new LoadAuthorizationRequestCommand(openIdContext, openIdClient, requestValues),
+                requestValues,
                 cancellationToken
-            );
-
-            // RFC 9101 §6.3: once the request object is verified, only its values are used, so every later response,
-            // an error included, carries the object's state and response mode rather than the unsigned outer ones.
-            // The redirect target stays the one validated above; validation refuses an object whose redirect_uri
-            // differs from it, and that refusal is delivered there.
-            if (authorizationRequest.OriginalRequestObject is not null)
-            {
-                var requestObjectValues = GetRequestObjectValues(
+            )
+            : null;
+        var authorizationRequest = await mediator.SendAsync<
+            LoadAuthorizationRequestCommand,
+            IAuthorizationRequest
+        >(
+            new LoadAuthorizationRequestCommand(openIdContext, openIdClient, requestValues),
+            cancellationToken
+        );
+        // RFC 9101 §6.3: a verified request object's response mode and state apply, delivered to the target already checked.
+        var delivery =
+            checkedDelivery is null
+                ? await DeliveryResolver.ResolveAsync(
                     openIdContext,
-                    authorizationRequest
-                );
-                var state = GetState(requestObjectValues);
-                clientRedirectContext = clientRedirectContext with
-                {
-                    ResponseMode = GetEffectiveResponseMode(
-                        openIdContext,
-                        openIdClient,
-                        requestObjectValues,
-                        state
-                    ),
-                    State = state,
-                };
-            }
-        }
+                    openIdClient,
+                    authorizationRequest,
+                    cancellationToken
+                )
+            : authorizationRequest.OriginalRequestObject is null ? checkedDelivery
+            : await DeliveryResolver.ResolveAsync(
+                openIdContext,
+                openIdClient,
+                authorizationRequest,
+                checkedDelivery.RedirectUri,
+                cancellationToken
+            );
 
         var disposition = await AuthorizationRequestProcessor.ProcessRequestAsync(
             openIdContext,
             openIdClient,
             authorizationRequest,
-            clientRedirectContext,
+            delivery,
             cancellationToken
         );
 
@@ -311,169 +272,4 @@ internal class DefaultAuthorizationEndpointHandler(
         error = null;
         return true;
     }
-
-    private static bool CarriesRedirectTargetOnlyInRequestObject(IRequestValues requestValues) =>
-        !requestValues.ContainsKey(OpenIdConstants.Parameters.RedirectUri)
-        && (
-            requestValues.ContainsKey(OpenIdConstants.Parameters.Request)
-            || requestValues.ContainsKey(OpenIdConstants.Parameters.RequestUri)
-        );
-
-    // Only the verified request object's values are used (RFC 9101 §6.3), matching IAuthorizationRequest.
-    private static RequestValuesUsingCollection GetRequestObjectValues(
-        OpenIdContext openIdContext,
-        IAuthorizationRequest authorizationRequest
-    )
-    {
-        var openIdEnvironment = openIdContext.Environment;
-        var values = new Dictionary<string, StringValues>(StringComparer.Ordinal);
-
-        if (authorizationRequest.OriginalRequestObject is { } requestObject)
-        {
-            foreach (var parameter in requestObject.Parameters)
-            {
-                values[parameter.Descriptor.ParameterName] = parameter.GetStringValues(
-                    openIdEnvironment
-                );
-            }
-        }
-
-        return new RequestValuesUsingCollection(RequestValuesSourceTypes.RequestObject, values);
-    }
-
-    private ClientRedirectContext GetClientRedirectContext(
-        OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
-        IRequestValues requestValues
-    )
-    {
-        var errorFactory = openIdContext.ErrorFactory;
-        var settings = openIdClient.Settings;
-
-        var state = GetState(requestValues);
-        var effectiveResponseMode = GetEffectiveResponseMode(
-            openIdContext,
-            openIdClient,
-            requestValues,
-            state
-        );
-
-        if (!requestValues.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
-        {
-            throw errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .WithState(state)
-                .AsException();
-        }
-
-        if (!Uri.TryCreate(redirectUrl, UriKind.Absolute, out var redirectUri))
-        {
-            throw errorFactory
-                .InvalidRequest("The specified 'redirect_uri' is not valid absolute URI.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .WithState(state)
-                .AsException();
-        }
-
-        var redirectUris = openIdClient.RedirectUris;
-        var effectiveUri = redirectUri.GetComponents(
-            UriComponents.Scheme | UriComponents.Host | UriComponents.Port | UriComponents.Path,
-            UriFormat.UriEscaped
-        );
-
-        var allowLoopbackRedirect = settings.GetValue(OpenIdSettingKeys.AllowLoopbackRedirect);
-        var isSafe =
-            (allowLoopbackRedirect && redirectUri.IsLoopback)
-            || redirectUris.Contains(effectiveUri);
-        if (!isSafe)
-        {
-            throw errorFactory
-                .UnauthorizedClient(
-                    "The specified 'redirect_uri' is not valid for the associated 'client_id'."
-                )
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .WithState(state)
-                .AsException();
-        }
-
-        return new ClientRedirectContext(redirectUri, effectiveResponseMode, state);
-    }
-
-    private static string? GetState(IRequestValues requestValues) =>
-        requestValues.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues)
-        && !StringValues.IsNullOrEmpty(stateStringValues)
-            ? stateStringValues.ToString()
-            : null;
-
-    private string GetEffectiveResponseMode(
-        OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
-        IRequestValues requestValues,
-        string? state
-    )
-    {
-        var errorFactory = openIdContext.ErrorFactory;
-        var settings = openIdClient.Settings;
-
-        var hasResponseMode = requestValues.TryGetValue(
-            OpenIdConstants.Parameters.ResponseMode,
-            out var responseModeStringValues
-        );
-        // The default follows the response type, so a response that returns a token is never redirected in a query
-        // string, whether it carries the tokens or an error (ADR-0141); the JARM 'jwt' shorthand resolves the same way.
-        requestValues.TryGetValue(
-            OpenIdConstants.Parameters.ResponseType,
-            out var responseTypeStringValues
-        );
-        var responseTypeNames = SplitResponseTypeNames(responseTypeStringValues);
-        string effectiveResponseMode;
-
-        if (hasResponseMode)
-        {
-            if (responseModeStringValues.Count > 1)
-            {
-                throw errorFactory
-                    .TooManyParameterValues(OpenIdConstants.Parameters.ResponseMode)
-                    .WithStatusCode(StatusCodes.Status400BadRequest)
-                    .WithState(state)
-                    .AsException();
-            }
-
-            effectiveResponseMode = ResponseTypeValues.ResolveResponseMode(
-                responseModeStringValues.ToString(),
-                responseTypeNames
-            );
-            // A response mode no registered handler serves could not carry even an error back to the client.
-            if (
-                !ServedResponseModes.Contains(effectiveResponseMode)
-                || (
-                    settings.TryGetValue(
-                        OpenIdSettingKeys.ResponseModesSupported,
-                        out var responseModesSupported
-                    ) && !responseModesSupported.Contains(effectiveResponseMode)
-                )
-            )
-            {
-                throw errorFactory
-                    .InvalidParameterValue(OpenIdConstants.Parameters.ResponseMode)
-                    .WithStatusCode(StatusCodes.Status400BadRequest)
-                    .WithState(state)
-                    .AsException();
-            }
-        }
-        else
-        {
-            effectiveResponseMode = ResponseTypeValues.GetDefaultResponseMode(responseTypeNames);
-        }
-
-        return effectiveResponseMode;
-    }
-
-    private static List<string> SplitResponseTypeNames(StringValues responseTypeStringValues) =>
-        [
-            .. responseTypeStringValues.SelectMany(value =>
-                value?.Split(OpenIdConstants.ParameterSeparatorChar) ?? []
-            ),
-        ];
 }

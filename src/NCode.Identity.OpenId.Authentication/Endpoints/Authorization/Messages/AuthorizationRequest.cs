@@ -156,8 +156,7 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
     public IReadOnlyList<string> Resources => Values.Resources ?? [];
 
     /// <inheritdoc />
-    public string ResponseMode =>
-        ResponseTypeValues.ResolveResponseMode(Values.ResponseMode, ResponseTypes);
+    public string? ResponseMode => Values.ResponseMode;
 
     /// <inheritdoc />
     public IReadOnlyList<string> ResponseTypes => Values.ResponseTypes ?? [];

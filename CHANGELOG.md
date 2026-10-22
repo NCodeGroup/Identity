@@ -447,6 +447,40 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Breaking:** response modes resolve through one provider, and a handler declares its traits.
+  `IAuthorizationResponseModeHandler` gains `SecuredResponseMode`, the plain mode whose JWT-secured form the handler
+  delivers, and `DeliversInQuery`, whether it returns the response in the query; neither has a default, and nothing is
+  inferred from a handler's name, so a package that registers its own handler declares both. The internal
+  `IAuthorizationResponseModeProvider` is composed once and refuses to start with a duplicate `ResponseMode`, two
+  handlers that secure one mode, a `SecuredResponseMode` that names no registered handler, or a handler named `jwt`.
+  `jwt`, the one shorthand JARM defines, resolves to the handler that secures the response type's default mode, and a
+  handler that `DeliversInQuery` is refused for a response type that returns a token
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), backlog
+  `R37`).
+
+- **Breaking:** the authorization response is addressed through one public `AuthorizationResponseDelivery`, which
+  replaces `ClientRedirectContext`. The new internal `IAuthorizationResponseDeliveryResolver` derives it once per
+  request, from the redirect URI, the response mode handler, the `state`, and the credentials that secure a JWT
+  response, and the authorization endpoint, the PAR endpoint, the continuation, validation, the security profiles, and
+  the result share it rather than derive it again. `IAuthorizationRequestProcessor.ProcessRequestAsync` takes the
+  delivery, `ValidateAuthorizationRequestCommand` and `AuthorizationRequestProfileContext` carry it as `Delivery`, and
+  `AuthorizationResult` requires its `OpenIdContext`, `OpenIdClient`, and delivery, drops `RedirectUri` and
+  `ResponseMode`, and is delivered by `result.Delivery.ResponseModeHandler`. `IAuthorizationRequest.ResponseMode` is
+  now the value the request asked for, possibly `null`, and `ResponseTypeValues.ResolveResponseMode` is removed. The
+  outer parameters of a request that carries a request object follow one table, `RequestObjectParameterPolicy.Rules`:
+  the object must carry `response_type`, `scope`, `redirect_uri`, and `client_id`, an outer `response_type`,
+  `redirect_uri`, or `client_id` must equal the object's, with `redirect_uri` compared as written, and an outer `scope`
+  is ignored. The PAR endpoint now derives the delivery when a request is pushed (RFC 9126 §2.1), so it refuses a
+  `redirect_uri` the client has not registered at push time rather than at the authorization endpoint
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md),
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R38`, `R47`).
+
+- **A JWT-secured authorization response lives for the client's `authorization_response_lifetime`.** The new
+  client-scoped setting is a `TimeSpan` that defaults to 5 minutes, accepts 1 second to 10 minutes (JARM §2.1), merges
+  with `Min` so a tenant can only lower it. It replaces the fixed 5 minutes the response JWT's `exp` used
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), backlog
+  `R47`).
+
 - **CI runs once per commit of a pull request.** The workflows ran for both the push to a branch and its pull request,
   so each check appeared twice. A push now runs CI only on `main`; any other branch is checked through its pull request
   or by running the workflow by hand.
@@ -1149,6 +1183,19 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **A redirect URI is matched exactly, and only a registered loopback URI may vary its port.** The requested
+  `redirect_uri` is compared ordinally, as written, to the client's registered strings, and more than one value is
+  refused (RFC 9700 §4.1.3, OAuth 2.1). It used to ignore the query and to accept any loopback URI the client had not
+  registered, and the response writer passed on the query parameters the request supplied; the query that reaches the
+  client is now the registered one (RFC 6749 §3.1.2). A client must register the exact URIs it sends.
+  `allow_loopback_redirect` keeps its name and its default of `true`, but its meaning narrows to RFC 8252 §7.3: a
+  registered `http://127.0.0.1` or `http://[::1]` URI may be requested with another port, and `localhost` gets no
+  flexibility. The `fapi1-advanced` profile sets a ceiling of `false` for it (FAPI 1.0 Part 1 §5.2.2-20), so a client
+  under it registers the exact port; `fapi2` sets none. An unregistered URI is still refused with
+  `unauthorized_client` and no redirect
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md),
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R11`).
+
 - **A retired tenant identifier or issuer is never reissued.** Deleting a tenant retires its identifier and its issuer,
   and changing a tenant's issuer retires the previous one, so a new tenant can no longer take an identity that relying
   parties trust. The tenant store records them in the new `RetiredTenants` and `RetiredIssuers` tables, in the same
@@ -1287,6 +1334,21 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **`response_modes_supported` was checked inconsistently.** When the setting is set, the authorization endpoint now
+  requires both the response mode as the request wrote it, so `jwt` itself must be listed, and the mode it resolves to
+  to be listed, for an explicit and a default mode alike. The check runs once, when the delivery is derived, and the
+  request validator no longer repeats it. A response mode that is not listed is refused with `invalid_request` and a
+  `400`, and is not redirected
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), backlog
+  `R22`).
+
+- **A JWT-secured (JARM) response the server could not sign was refused only after the user had signed in.** The
+  credentials that sign the response are now selected when the delivery is derived, before authentication and before a
+  code is issued. A client with no signing credential, or a selector that fails, is refused with `server_error` and a
+  `500` that is not redirected, instead of failing when the response was written
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), backlog
+  `R23`).
 
 - **A tenant whose settings later permitted a configured algorithm advertised it without a key until every replica
   restarted.** Every management write to a tenant (its record, its settings, a secret, or its deletion) now sends a

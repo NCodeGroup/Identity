@@ -113,6 +113,9 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
         // A request object carries 'nbf' and 'exp', at most 60 minutes apart (§5.2.2-13, -17) (ADR-0187).
         ceiling.Set(OpenIdSettingKeys.RequestObjectMaxLifetime, TimeSpan.FromMinutes(60));
         ceiling.Set(OpenIdSettingKeys.RequestObjectNotBeforeRequired, true);
+
+        // FAPI 1.0 Part 1 §5.2.2-20 requires https redirect URIs, so a loopback redirect URI's port never varies (ADR-0203).
+        ceiling.Set(OpenIdSettingKeys.AllowLoopbackRedirect, false);
     }
 
     /// <inheritdoc />

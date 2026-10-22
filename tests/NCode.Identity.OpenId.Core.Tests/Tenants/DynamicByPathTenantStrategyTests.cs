@@ -377,6 +377,19 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
 
     #endregion
 
+    #region GetControlPlaneTenantId Tests
+
+    [Fact]
+    public void GetControlPlaneTenantId_Always_ReturnsTheRootTenantId()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks.Create<IStoreManagerFactory>().Object);
+
+        Assert.Equal(RootTenantOptions.DefaultTenantId, strategy.GetControlPlaneTenantId());
+    }
+
+    #endregion
+
     #region ResolveControlPlaneTenantAsync Tests
 
     [Fact]

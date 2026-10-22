@@ -473,8 +473,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   `TenantUsageFlushService.cs:117-123`.
 - **`R30` — Serve interactive bundle assets without resolving the tenant.** Touch point:
   `InteractiveAuthenticationEndpointGroup.cs:55`.
-- **`R31` — Probe the tenant cache before loading the control-plane tenant.** Touch point:
-  `DefaultOpenIdTenantFactory.cs:178-181`.
 - **`R35` — Pin container base images by digest and let Dependabot track them.** Touch points:
   `src/NCode.Identity.OpenId.Host/Dockerfile:17, 28, 60`, `.github/dependabot.yml`.
 - **`R36` — Test the bundle-shell split against the built bundle's real `index.html`.** Touch point:

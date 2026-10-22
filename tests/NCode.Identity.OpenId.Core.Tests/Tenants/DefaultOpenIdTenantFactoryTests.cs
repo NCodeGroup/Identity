@@ -167,22 +167,15 @@ public sealed class DefaultOpenIdTenantFactoryTests
     #region CreateControlPlaneTenantAsync Tests
 
     [Fact]
-    public async Task CreateControlPlaneTenantAsync_WhenCached_ReturnsTheCachedControlPlaneTenant()
+    public async Task CreateControlPlaneTenantAsync_WhenCached_ReturnsTheCachedTenantWithoutReadingTheStore()
     {
         var mocks = new MockRepository(MockBehavior.Strict);
 
         var tenantResolver = mocks.Create<ITenantResolver>();
         var tenantCache = mocks.Create<IOpenIdTenantCache>();
 
-        tenantResolver
-            .Setup(x =>
-                x.ResolveControlPlaneTenantAsync(
-                    It.IsAny<HttpContext>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(CreatePersistedTenant("https://op.example/root", tenantId: "root"))
-            .Verifiable();
+        // The strict resolver has no ResolveControlPlaneTenantAsync setup, so a store read fails the test.
+        tenantResolver.Setup(x => x.GetControlPlaneTenantId()).Returns("root").Verifiable();
 
         var cachedTenant = Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == "root");
         await using var cachedLease = cachedTenant.AsSharedReference();
@@ -218,6 +211,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
         var tenantCache = mocks.Create<IOpenIdTenantCache>();
         var provisioner = mocks.Create<ITenantProvisioner>();
 
+        tenantResolver.Setup(x => x.GetControlPlaneTenantId()).Returns("root").Verifiable();
         tenantResolver
             .Setup(x =>
                 x.ResolveControlPlaneTenantAsync(

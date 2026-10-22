@@ -1288,6 +1288,11 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **Every management API request read the control-plane tenant from the store before checking the tenant cache.**
+  `ITenantStrategy` and `ITenantResolver` gain `GetControlPlaneTenantId()`, which names the control-plane tenant from
+  configuration, and `CreateControlPlaneTenantAsync` probes the cache with it first, reading the store only on a miss
+  (ADR-0191).
+
 - **The `fapi1-advanced` security profile accepted an authorization request without `nonce` or `state`.** It now
   refuses, with `invalid_request`, a request for the `openid` scope without `nonce` and any other request without
   `state` (FAPI 1.0 Advanced §5.2.2.2–3, ADR-0202).

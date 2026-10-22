@@ -116,10 +116,18 @@ internal abstract class TenantStrategy(
     /// management API is reached on any host or path, not beneath the tenant that issued the caller's token.
     /// </remarks>
     // See ADR-0191 (the management API authenticates against the control-plane tenant).
+    public virtual string GetControlPlaneTenantId() => RootOptions.TenantId;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The control-plane tenant is the root tenant, which the request need not address: under a dynamic strategy the
+    /// management API is reached on any host or path, not beneath the tenant that issued the caller's token.
+    /// </remarks>
+    // See ADR-0191 (the management API authenticates against the control-plane tenant).
     public virtual async ValueTask<PersistedTenant> ResolveControlPlaneTenantAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
-    ) => await GetTenantByIdAsync(httpContext, RootOptions.TenantId, cancellationToken);
+    ) => await GetTenantByIdAsync(httpContext, GetControlPlaneTenantId(), cancellationToken);
 
     /// <inheritdoc />
     /// <remarks>

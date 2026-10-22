@@ -131,6 +131,31 @@ public sealed class StaticSingleTenantStrategyTests
         mocks.Verify();
     }
 
+    #region GetControlPlaneTenantId Tests
+
+    [Fact]
+    public void GetControlPlaneTenantId_WhenATenantIsConfigured_ReturnsTheConfiguredTenantId()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions { TenantId = "tenant-1" }
+        );
+
+        Assert.Equal("tenant-1", strategy.GetControlPlaneTenantId());
+    }
+
+    [Fact]
+    public void GetControlPlaneTenantId_WhenNoTenantIsConfigured_ReturnsTheDefaultTenantId()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks.Create<IStoreManagerFactory>().Object);
+
+        Assert.Equal(StaticSingleTenantOptions.DefaultTenantId, strategy.GetControlPlaneTenantId());
+    }
+
+    #endregion
+
     #region ResolveControlPlaneTenantAsync Tests
 
     [Fact]

@@ -74,6 +74,14 @@ public interface ITenantStrategy
     );
 
     /// <summary>
+    /// Gets the identifier of the control-plane tenant from configuration alone, without a store round-trip, so the
+    /// tenant cache can be probed before <see cref="ResolveControlPlaneTenantAsync"/> reads the store: the root tenant's
+    /// identifier or, for a strategy that serves only its own tenant, that tenant's identifier.
+    /// </summary>
+    /// <returns>The identifier of the control-plane tenant.</returns>
+    string GetControlPlaneTenantId();
+
+    /// <summary>
     /// Resolves the control-plane tenant, which authenticates the management API whatever tenant the request addresses:
     /// the root tenant, created through <see cref="ITenantProvisioner.EnsureCreatedAsync"/> when it does not exist yet,
     /// or, for a strategy that serves only its own tenant, that tenant.

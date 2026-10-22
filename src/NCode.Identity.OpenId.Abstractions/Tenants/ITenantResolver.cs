@@ -68,6 +68,13 @@ public interface ITenantResolver
     );
 
     /// <summary>
+    /// Gets the identifier of the control-plane tenant from the configured <see cref="ITenantStrategy"/>, without a store
+    /// round-trip, so the tenant cache can be probed before <see cref="ResolveControlPlaneTenantAsync"/> reads the store.
+    /// </summary>
+    /// <returns>The identifier of the control-plane tenant.</returns>
+    string GetControlPlaneTenantId();
+
+    /// <summary>
     /// Resolves the control-plane tenant, which authenticates the management API whatever tenant the request addresses.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>

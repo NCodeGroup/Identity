@@ -72,6 +72,9 @@ internal class DefaultTenantResolver(
     ) => await Selected.ResolveTenantAsync(httpContext, cancellationToken);
 
     /// <inheritdoc />
+    public string GetControlPlaneTenantId() => Selected.GetControlPlaneTenantId();
+
+    /// <inheritdoc />
     public async ValueTask<PersistedTenant> ResolveControlPlaneTenantAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken

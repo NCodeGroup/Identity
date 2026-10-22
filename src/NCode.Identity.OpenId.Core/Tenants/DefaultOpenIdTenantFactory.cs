@@ -173,13 +173,10 @@ public class DefaultOpenIdTenantFactory(
         CancellationToken cancellationToken
     )
     {
-        // The control-plane tenant is resolved by configuration rather than from the request, and it is shared through
-        // the same cache as when a request addresses it.
-        var persistedTenant = await TenantResolver.ResolveControlPlaneTenantAsync(
-            httpContext,
-            cancellationToken
-        );
-        var tenantId = persistedTenant.TenantId;
+        // The control-plane tenant is identified by configuration rather than from the request, and it is shared through
+        // the same cache as when a request addresses it. The cache is probed before any store round-trip, so a cache hit
+        // serves it as a request tenant is served (see CreateTenantForRequestAsync).
+        var tenantId = TenantResolver.GetControlPlaneTenantId();
 
         await using var cachedTenantReference = await TenantCache.TryGetAsync(
             tenantId,
@@ -192,11 +189,16 @@ public class DefaultOpenIdTenantFactory(
             return cachedTenantReference.AddReference();
         }
 
+        var persistedTenant = await TenantResolver.ResolveControlPlaneTenantAsync(
+            httpContext,
+            cancellationToken
+        );
+
         return await MaterializeTenantAsync(
             httpContext,
             openIdEnvironment,
             openIdServer,
-            tenantId,
+            persistedTenant.TenantId,
             propertyBag,
             cancellationToken
         );

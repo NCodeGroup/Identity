@@ -2694,3 +2694,10 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   new `NonceOrStateRequirement` (an authorization-request profile requirement) that refuses with `invalid_request` an
   `openid` request without `nonce` and any other request without `state` (§5.2.2.2, §5.2.2.3). Unit tests cover both
   branches; ADR-0202 decision 5 updated._
+
+- **`R31` — Probe the tenant cache before loading the control-plane tenant.** Touch point:
+  `DefaultOpenIdTenantFactory.cs:178-181`. _Closed: `ITenantStrategy`/`ITenantResolver` gain `GetControlPlaneTenantId()`
+  (the root tenant's configured identifier; `StaticSingle`'s configured tenant), and
+  `DefaultOpenIdTenantFactory.CreateControlPlaneTenantAsync` probes the tenant cache with it, calling
+  `ResolveControlPlaneTenantAsync` only on a miss. A strict-mock factory test proves a cache hit never reads the store;
+  ADR-0191 updated._

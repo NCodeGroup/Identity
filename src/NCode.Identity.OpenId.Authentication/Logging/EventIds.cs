@@ -75,4 +75,5 @@ internal static class EventIds
     public const int QuotaExceeded = Base + 44;
     public const int TenantUsageFlushFailed = Base + 45;
     public const int TenantUsagePruneFailed = Base + 46;
+    public const int RateLimitStoreRecovered = Base + 47;
 }

@@ -398,14 +398,22 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.RateLimitStoreUnavailable,
         Level = LogLevel.Warning,
-        Message = "The '{Partition}' rate limit of tenant '{TenantId}' was not enforced because its request counter could not be read; the request is admitted."
+        Message = "The rate-limit counter store did not answer while judging the '{Partition}' limit of tenant '{TenantId}'; rate limits and quotas are not enforced, and every request is admitted, until it answers again. It is tried again every {RetryInterval}."
     )]
     internal static partial void RateLimitStoreUnavailable(
         this ILogger logger,
         string tenantId,
         string partition,
+        TimeSpan retryInterval,
         Exception exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.RateLimitStoreRecovered,
+        Level = LogLevel.Information,
+        Message = "The rate-limit counter store answers again; rate limits and quotas are enforced."
+    )]
+    internal static partial void RateLimitStoreRecovered(this ILogger logger);
 
     [LoggerMessage(
         EventId = EventIds.TenantUsageFlushFailed,

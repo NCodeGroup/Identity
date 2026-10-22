@@ -85,9 +85,22 @@ client, against per-minute limits that are settings bounded by the merge lattice
    is at the limit — and
    `Cache-Control: no-store`. The server logs the rejection with a stable event ID (the tenant, the partition, and the
    limit, never the address or client ID); a rejected request is never handled.
-8. **An unreachable counter store fails open.** Rate limiting protects capacity, not correctness: unlike a single-use
-   check, which fails closed (ADR-0164), a counter that cannot be read admits the request and logs a warning, so a
-   Valkey outage does not become an authentication outage.
+8. **An unreachable counter store fails open, at a bounded cost.** Rate limiting protects capacity, not correctness:
+   unlike a single-use check, which fails closed (ADR-0164), a counter that cannot be read admits the request, so a
+   Valkey outage does not become an authentication outage. Failing open must also be cheap, or the outage still costs
+   every request the store client's own timeout (about 5 s with StackExchange.Redis) once per limit judged:
+   - Each counter call is bounded to **100 ms**. A call that has not answered by then is abandoned, and the request is
+     admitted. A call that has already completed, as every in-process call has, starts no timer.
+   - A failed or late call **opens a breaker**: the limiter stops calling the store for **10 s**, admitting every
+     request uncounted, then tries it again. A further failure keeps the breaker open for another 10 s; an answer
+     closes it. An outage therefore costs at most one 100 ms wait per replica per 10 s, not one per check.
+   - The failure that opens the breaker logs **one warning** with the exception, and the answer that closes it logs one
+     information message, so an outage is logged once per replica rather than once per request. Every request admitted
+     without the store is still counted as `store_unavailable`.
+   - Valkey **stays a readiness dependency.** The single-use key set fails closed without it, so a replica that cannot
+     reach Valkey cannot redeem a code or refresh token; it reports not ready, as it does when the database is
+     unreachable. The limiter's breaker covers the time before readiness takes the replica out of service, and a
+     store that is slow but still answering.
 9. **Quotas are a separate decision.** Daily request and token quotas for plan tiers count over far longer windows and
    need billing semantics (reset time zone, overage handling); they reuse the counter port and are decided in
    [ADR-0198](0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
@@ -116,8 +129,10 @@ client, against per-minute limits that are settings bounded by the merge lattice
   callers rather than the proxy.
 - A deployment that runs several replicas must configure Valkey for its limits to hold; with the in-process adapter
   each replica enforces the limit alone.
-- A brief Valkey outage lets traffic through unlimited. Brute-force protection for credentials is a separate control
-  and does not depend on this limiter.
+- A brief Valkey outage lets traffic through unlimited, for at least the 10 s the breaker stays open. Brute-force
+  protection for credentials is a separate control and does not depend on this limiter.
+- The timeout and the retry interval are fixed, not settings: they bound the cost of an outage rather than express a
+  tenant's policy.
 
 ## References
 

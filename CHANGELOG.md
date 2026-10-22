@@ -1288,6 +1288,13 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **An unreachable Valkey server cost every request about 5 s per rate limit judged, and logged a warning with a
+  stack trace each time.** The rate limiter now bounds each counter call to 100 ms and, after a failure, stops calling
+  the store for 10 s, admitting every request uncounted (`store_unavailable`) before trying it again. The failure that
+  opens the pause logs one warning and the answer that ends it logs one information message (new event
+  `RateLimitStoreRecovered`), so an outage is logged once per replica. Valkey stays a readiness dependency, since
+  single-use state fails closed without it (ADR-0196).
+
 - **A client's `request_object_expected_audience` replaced the issuer as the audience a request object must name,
   even under a FAPI profile.** The setting is client-scoped and replace-merged, so no ceiling could cap it. The
   `fapi1-advanced` and `fapi2` profiles now compose `IssuerOnlyRequestObjectAudienceRequirement`, which refuses a

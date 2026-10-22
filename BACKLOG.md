@@ -408,12 +408,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
 
 ### P1 — before the branch merges
 
-- **`R5` — Bound the cost of failing open when Valkey is unreachable.** Each counter call waits for the client's
-  async timeout (about 5 s), the checks run in sequence (about 15 s per request, 25 s per confidential token request),
-  and each failure logs a warning with a stack trace. Add a 50–100 ms per-call timeout, a breaker (or an
-  `IsConnected` check), and a rate-limited warning; decide whether Valkey should affect readiness. Touch points:
-  `DefaultRequestRateLimiter.cs:193-214, 247-264`, `ValkeyExpiringCounterSet.cs:83`,
-  `SharedState.Valkey/DefaultRegistration.cs:109, 137`.
 - **`R6` — Re-seed a running tenant's keys when its settings change.** Key seeding skips algorithms the current
   settings don't permit and runs only when a tenant is created or cached; the 4 h sliding cache keeps busy tenants
   loaded, so an algorithm permitted later is advertised without a key until every replica restarts. Publish one

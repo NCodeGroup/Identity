@@ -2723,3 +2723,14 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   object from a client that sets `request_object_expected_audience` with `invalid_request_object`, so the issuer stays
   the required audience. Unit tests cover the requirement and the FAPI 1.0 Advanced profile's composition; ADR-0187 and
   ADR-0202 updated._
+
+- **`R5` — Bound the cost of failing open when Valkey is unreachable.** Each counter call waits for the client's async
+  timeout (about 5 s), the checks run in sequence (about 15 s per request, 25 s per confidential token request), and
+  each failure logs a warning with a stack trace. Add a 50–100 ms per-call timeout, a breaker (or an `IsConnected`
+  check), and a rate-limited warning; decide whether Valkey should affect readiness. Touch points:
+  `DefaultRequestRateLimiter.cs:193-214, 247-264`, `ValkeyExpiringCounterSet.cs:83`,
+  `SharedState.Valkey/DefaultRegistration.cs:109, 137`. _Closed: the rate limiter bounds each counter call to 100 ms (an
+  already-completed call starts no timer), and a failed or late call opens a breaker that admits every request uncounted
+  for 10 s before the store is tried again; the failure that opens it logs one warning and the answer that closes it
+  logs one information message (`RateLimitStoreRecovered`). Valkey stays a readiness dependency, because the single-use
+  key set fails closed without it (ADR-0196 decision 8)._

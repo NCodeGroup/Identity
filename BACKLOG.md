@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R55`     | `R54`      |
+| `R` — Review findings                 | `R57`     | `R56`      |
 
 ---
 
@@ -502,6 +502,22 @@ _None remaining._
   register the `EventLog` provider, and the final flush on stop should not fail against a store that is being torn down
   (pairs with `R25`). Touch points: `DiscoveryInsecureOverrideTests.cs:33`, `HostApplicationFactory.cs`,
   `TenantUsageFlushService.cs:83, 123`.
+- **`R55` — Refuse a tenant or server settings change that leaves a client's redirect URI unpermitted.** A management
+  write to a tenant's or the server's settings that selects `fapi2` or `fapi1-advanced`, or narrows
+  `redirect_uri_kinds_supported`, is not checked against the redirect URIs its clients registered, as
+  `IClientResponseAlgorithmValidator` checks their algorithms; such a client is refused only when it next requests
+  authorization (ADR-0203). Check the change the way algorithm changes are checked, ideally through the one coherence
+  validator of `R40`. Touch points: `TenantApiEndpointHandler.cs:880-930`, `ServerApiEndpointHandler.cs:660-735`,
+  `DefaultClientResponseAlgorithmValidator.cs`.
+- **`R56` — Narrow the `private_use` redirect URI kind and decide the end-session redirect.** The built-in `private_use`
+  kind matches every scheme except `http` and `https`, so a `ws`, `ftp`, `file`, `javascript`, or `data` redirect URI
+  counts as a private-use scheme and passes the `fapi2` ceiling (`https`, `loopback`, `private_use`), although RFC 8252
+  §7.1 means a scheme that an app registers with the operating system. Exclude the well-known non-private schemes, or
+  require the reverse-domain form that RFC 8252 recommends, and say which in ADR-0203. Separately decide whether
+  `post_logout_redirect_uri` gets a kind check and the `Location` escaping that the authorization response has: it is
+  already a string compared ordinally, so `R52` does not apply, but `TypedResults.Redirect` writes it unescaped.
+  Touch points: `PrivateUseRedirectUriKind.cs`, `DefaultEndSessionHandler.cs:113-155`,
+  `DefaultEndSessionEndpointProvider.cs:92-99`.
 
 ### Refactor
 

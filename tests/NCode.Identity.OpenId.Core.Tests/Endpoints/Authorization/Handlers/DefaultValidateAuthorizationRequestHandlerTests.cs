@@ -176,9 +176,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
             .SetupGet(x => x.Parameters)
             .Returns(CreateLooseMock<IParameterCollection>().Object);
         mockRequestObject.SetupGet(x => x.ClientId).Returns(RequestObjectClientId);
-        mockRequestObject
-            .SetupGet(x => x.RedirectUri)
-            .Returns(new Uri("https://client.example/callback"));
+        mockRequestObject.SetupGet(x => x.RedirectUri).Returns("https://client.example/callback");
         mockRequestObject
             .SetupGet(x => x.ResponseTypes)
             .Returns([OpenIdConstants.ResponseTypes.Code]);
@@ -215,9 +213,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     {
         var scaffold = CreateRequestObjectScaffold();
         scaffold.Message.SetupGet(x => x.ClientId).Returns(RequestObjectClientId);
-        scaffold
-            .Message.SetupGet(x => x.RedirectUri)
-            .Returns(new Uri("https://client.example/callback"));
+        scaffold.Message.SetupGet(x => x.RedirectUri).Returns("https://client.example/callback");
         scaffold
             .Message.SetupGet(x => x.ResponseTypes)
             .Returns([OpenIdConstants.ResponseTypes.Code]);
@@ -253,9 +249,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     public void ValidateRequestObject_WhenTheOuterRedirectUriDiffers_ThrowsInvalidRequestObject()
     {
         var scaffold = CreateRequestObjectScaffold();
-        scaffold
-            .Message.SetupGet(x => x.RedirectUri)
-            .Returns(new Uri("https://client.example/other"));
+        scaffold.Message.SetupGet(x => x.RedirectUri).Returns("https://client.example/other");
 
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 
@@ -267,9 +261,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     {
         // Uri equality ignores the case of the host, so the redirect URI is compared as written (ADR-0203).
         var scaffold = CreateRequestObjectScaffold();
-        scaffold
-            .Message.SetupGet(x => x.RedirectUri)
-            .Returns(new Uri("https://CLIENT.example/callback"));
+        scaffold.Message.SetupGet(x => x.RedirectUri).Returns("https://CLIENT.example/callback");
 
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 
@@ -322,7 +314,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     public void ValidateRequestObject_WhenTheObjectLacksTheRedirectUri_ThrowsInvalidRequestObject()
     {
         var scaffold = CreateRequestObjectScaffold();
-        scaffold.RequestObject.SetupGet(x => x.RedirectUri).Returns((Uri?)null);
+        scaffold.RequestObject.SetupGet(x => x.RedirectUri).Returns((string?)null);
 
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 

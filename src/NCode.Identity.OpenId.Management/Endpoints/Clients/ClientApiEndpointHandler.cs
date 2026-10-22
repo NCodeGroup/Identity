@@ -87,6 +87,7 @@ internal class ClientApiEndpointHandler(
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IOpenIdServerProvider serverProvider,
     ISecurityProfileCatalog securityProfileCatalog,
+    IRedirectUriKindCatalog redirectUriKindCatalog,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ClientApiEndpointHandler> logger
@@ -107,6 +108,7 @@ internal class ClientApiEndpointHandler(
         settingScopeCollectionProvider;
     private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
     private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IRedirectUriKindCatalog RedirectUriKindCatalog { get; } = redirectUriKindCatalog;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -262,18 +264,20 @@ internal class ClientApiEndpointHandler(
 
     /// <summary>
     /// Verifies that a client's settings document, merged onto its tenant's effective settings as the runtime merges it,
-    /// permits every algorithm the client registers for the JWTs addressed to it: its ID tokens, UserInfo responses, and
-    /// introspection responses. A mismatch is rejected when the settings are written instead of failing every issuance
-    /// with <c>server_error</c>.
+    /// permits every algorithm the client registers for the JWTs addressed to it (its ID tokens, UserInfo responses, and
+    /// introspection responses) and every kind of redirect URI it registers. A mismatch is rejected when the settings
+    /// are written instead of failing every issuance with <c>server_error</c> or every authorization request with
+    /// <c>invalid_request</c>.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
     /// <param name="clientSettings">The client's settings document to verify.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="SettingError"/> instances naming each algorithm that is not permitted, or an empty list.</returns>
-    // See ADR-0155.
-    internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateResponseAlgorithmsAsync(
+    /// <returns>The <see cref="SettingError"/> instances naming each algorithm or redirect URI that is not permitted, or an
+    /// empty list.</returns>
+    // See ADR-0155 and ADR-0203.
+    internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateEffectiveSettingsAsync(
         OpenIdContext openIdContext,
         string tenantId,
         JsonElement clientSettings,
@@ -289,7 +293,39 @@ internal class ClientApiEndpointHandler(
             cancellationToken
         );
 
-        return effectiveSettings is null ? [] : ValidateResponseAlgorithms(effectiveSettings);
+        return effectiveSettings is null
+            ? []
+            :
+            [
+                .. ValidateResponseAlgorithms(effectiveSettings),
+                .. ValidateRedirectUriKinds(effectiveSettings),
+            ];
+    }
+
+    /// <summary>
+    /// Verifies that a client's effective <c>redirect_uri_kinds_supported</c> permits the kind of every redirect URI it
+    /// registers, naming each redirect URI that is not permitted.
+    /// </summary>
+    /// <param name="settings">The client's effective settings.</param>
+    /// <returns>The <see cref="SettingError"/> instances naming each redirect URI that is not permitted, or an empty list.</returns>
+    // See ADR-0203.
+    internal virtual IReadOnlyList<SettingError> ValidateRedirectUriKinds(
+        IReadOnlySettingCollection settings
+    )
+    {
+        if (!settings.TryGetValue(OpenIdSettingKeys.RedirectUris, out var redirectUris))
+        {
+            return [];
+        }
+
+        return redirectUris
+            .Where(redirectUri => !RedirectUriKindCatalog.IsPermitted(settings, redirectUri))
+            .Select(redirectUri => new SettingError(
+                OpenIdSettingNames.RedirectUris,
+                $"The redirect URI '{redirectUri}' is not a kind the client's effective "
+                    + $"'{OpenIdSettingNames.RedirectUriKindsSupported}' permits."
+            ))
+            .ToList();
     }
 
     /// <summary>
@@ -496,16 +532,16 @@ internal class ClientApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
-        var algorithmErrors = await ValidateResponseAlgorithmsAsync(
+        var effectiveSettingErrors = await ValidateEffectiveSettingsAsync(
             openIdContext,
             tenantId,
             client.Settings.Value,
             storeManager,
             cancellationToken
         );
-        if (algorithmErrors.Count > 0)
+        if (effectiveSettingErrors.Count > 0)
         {
-            return SettingsValidationProblem(algorithmErrors);
+            return SettingsValidationProblem(effectiveSettingErrors);
         }
 
         await store.AddAsync(client, cancellationToken);
@@ -824,16 +860,16 @@ internal class ClientApiEndpointHandler(
             return KeySourceConflict();
         }
 
-        var algorithmErrors = await ValidateResponseAlgorithmsAsync(
+        var effectiveSettingErrors = await ValidateEffectiveSettingsAsync(
             httpContext.GetOpenIdContext(),
             client.TenantId,
             settingsValue,
             storeManager,
             cancellationToken
         );
-        if (algorithmErrors.Count > 0)
+        if (effectiveSettingErrors.Count > 0)
         {
-            return SettingsValidationProblem(algorithmErrors);
+            return SettingsValidationProblem(effectiveSettingErrors);
         }
 
         clientSettings.Value = settingsValue;

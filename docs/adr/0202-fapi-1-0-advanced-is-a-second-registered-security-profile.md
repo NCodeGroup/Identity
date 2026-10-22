@@ -35,6 +35,8 @@ outer parameter such as `response_mode` could change a signed request.
    - every signing-algorithm list is PS256 and ES256, with no EdDSA (§8.6);
    - the authorization code lives at most 60 seconds and a PAR `request_uri` at most 90 seconds;
    - clock skew is at most 60 seconds and the client-assertion lifetime at most 5 minutes;
+   - redirect URIs are `https` only: `redirect_uri_kinds_supported` is `https` and `allow_loopback_redirect` is off
+     (FAPI 1.0 Part 1 §5.2.2-20 and §7.5, [ADR-0203](0203-redirect-uris-are-matched-exactly.md));
    - a request object must carry `nbf`, live at most 60 minutes, and be addressed to the issuer
      ([ADR-0187](0187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md)).
 
@@ -75,12 +77,12 @@ outer parameter such as `response_mode` could change a signed request.
    `redirect_uri`, and `client_id`, and is refused with `invalid_request_object` without them. The rule is not
    limited to FAPI profiles, because no client should be able to change a signed request with an unsigned parameter.
    The response is redirected to the object's `redirect_uri` once it is checked against the client's registered URIs,
-   and the token endpoint compares against the same value. An outer `response_type`, `redirect_uri`, or `client_id` is
-   optional, but one that is sent must equal the object's value, so a code is never sent to one URI and redeemable
-   only with another. The `redirect_uri` is compared as written, because the equality of a parsed `Uri` ignores the
-   case of the host ([ADR-0203](0203-redirect-uris-are-matched-exactly.md)). An outer `scope` is ignored rather than
-   compared, because OpenID Connect Core §6.1 lets the object's value supersede it: a client may send `openid` outside
-   and a broader scope inside.
+   and the token endpoint compares against the same value as written. An outer `response_type`, `redirect_uri`, or
+   `client_id` is optional, but one that is sent must equal the object's value, so a code is never sent to one URI and
+   redeemable only with another. The `redirect_uri` is compared as written, because the equality of a parsed `Uri`
+   ignores the case of the host ([ADR-0203](0203-redirect-uris-are-matched-exactly.md)). An outer `scope` is ignored
+   rather than compared, because OpenID Connect Core §6.1 lets the object's value supersede it: a client may send
+   `openid` outside and a broader scope inside.
 
    A pushed authorization request may therefore carry only the request object and client authentication (RFC 9126
    §3), which is the only path `fapi1-advanced` allows. `IAuthorizationResponseDeliveryResolver` derives the redirect

@@ -65,9 +65,9 @@ public interface ITokenRequest : IOpenIdRequest
     string? Password { get; set; }
 
     /// <summary>
-    /// Gets or sets a <see cref="Uri"/> value containing the <c>redirect_uri</c> parameter that was sent in the original authorization request.
+    /// Gets or sets the <c>redirect_uri</c> parameter as written, which must be identical to the one in the authorization request.
     /// </summary>
-    Uri? RedirectUri { get; set; }
+    string? RedirectUri { get; set; }
 
     /// <summary>
     /// Gets or sets a <see cref="string"/> value containing the refresh token that was issued by the authorization server.

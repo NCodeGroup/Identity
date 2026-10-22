@@ -118,7 +118,7 @@ internal abstract class JwtAuthorizationResponseModeHandler(
     /// </summary>
     protected abstract ValueTask WriteAsync(
         HttpResponse httpResponse,
-        Uri redirectUri,
+        string redirectUri,
         IReadOnlyCollection<KeyValuePair<string, StringValues>> parameters,
         CancellationToken cancellationToken
     );

@@ -57,10 +57,10 @@ internal static class RequestObjectParameterPolicy
                     : null,
             OuterValueMustMatch: false
         ),
-        // The redirect URI as written, never as a parsed URI, whose equality ignores the case of the host (ADR-0203).
+        // The redirect URI as written (ADR-0203).
         new RequestObjectParameterRule(
             OpenIdConstants.Parameters.RedirectUri,
-            values => values.RedirectUri?.OriginalString,
+            values => string.IsNullOrEmpty(values.RedirectUri) ? null : values.RedirectUri,
             OuterValueMustMatch: true
         ),
         new RequestObjectParameterRule(

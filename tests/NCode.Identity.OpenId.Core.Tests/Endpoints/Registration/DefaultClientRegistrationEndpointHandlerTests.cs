@@ -61,7 +61,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     private DefaultClientRegistrationEndpointHandler CreateHandler(
         IClientScopeService clientScopeService,
         ISecretSerializer secretSerializer,
-        ISecretKeyTypeCatalog secretKeyTypeCatalog
+        ISecretKeyTypeCatalog secretKeyTypeCatalog,
+        IRedirectUriKindCatalog? redirectUriKindCatalog = null
     ) =>
         new(
             TimeProvider.System,
@@ -76,7 +77,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             CreateStrictMock<IInitialAccessTokenValidator>().Object,
             CreateStrictMock<ISectorIdentifierValidator>().Object,
             clientScopeService,
-            CreateStrictMock<ISettingSerializer>().Object
+            CreateStrictMock<ISettingSerializer>().Object,
+            redirectUriKindCatalog ?? CreateStrictMock<IRedirectUriKindCatalog>().Object
         );
 
     private (IOpenIdErrorFactory factory, Func<string?> capturedCode) CreateErrorFactory()
@@ -530,6 +532,65 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         );
 
         Assert.Null(error);
+    }
+
+    #endregion
+
+    #region ValidateRedirectUriKinds
+
+    [Fact]
+    public void ValidateRedirectUriKinds_WhenEveryKindIsPermitted_ReturnsNull()
+    {
+        const string redirectUri = "https://example.com/callback";
+        var tenantSettings = CreateLooseMock<IReadOnlySettingCollection>().Object;
+        var mockCatalog = CreateStrictMock<IRedirectUriKindCatalog>();
+        mockCatalog
+            .Setup(x => x.IsPermitted(tenantSettings, redirectUri))
+            .Returns(true)
+            .Verifiable();
+        var handler = CreateHandler(
+            CreateStrictMock<IClientScopeService>().Object,
+            CreateStrictMock<ISecretSerializer>().Object,
+            CreateStrictMock<ISecretKeyTypeCatalog>().Object,
+            mockCatalog.Object
+        );
+        var (factory, _) = CreateErrorFactory();
+
+        var error = handler.ValidateRedirectUriKinds(
+            factory,
+            tenantSettings,
+            CreateHybridMetadata()
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void ValidateRedirectUriKinds_WhenAKindIsNotPermitted_ReturnsInvalidRedirectUri()
+    {
+        const string redirectUri = "https://example.com/callback";
+        var tenantSettings = CreateLooseMock<IReadOnlySettingCollection>().Object;
+        var mockCatalog = CreateStrictMock<IRedirectUriKindCatalog>();
+        mockCatalog
+            .Setup(x => x.IsPermitted(tenantSettings, redirectUri))
+            .Returns(false)
+            .Verifiable();
+        var handler = CreateHandler(
+            CreateStrictMock<IClientScopeService>().Object,
+            CreateStrictMock<ISecretSerializer>().Object,
+            CreateStrictMock<ISecretKeyTypeCatalog>().Object,
+            mockCatalog.Object
+        );
+        var (factory, capturedCode) = CreateErrorFactory();
+
+        var error = handler.ValidateRedirectUriKinds(
+            factory,
+            tenantSettings,
+            CreateHybridMetadata()
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRedirectUri, capturedCode());
     }
 
     #endregion

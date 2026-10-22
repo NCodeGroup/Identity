@@ -67,7 +67,7 @@ public class OpenIdExceptionEndpointFilterTests : BaseTests
             mockContext.Object,
             CreateLooseMock<OpenIdClient>().Object,
             new AuthorizationResponseDelivery(
-                new Uri("https://rp.example/callback"),
+                "https://rp.example/callback",
                 new QueryAuthorizationResponseModeHandler(),
                 "state-1"
             ),

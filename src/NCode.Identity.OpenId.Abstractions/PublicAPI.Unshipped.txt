@@ -242,6 +242,10 @@ const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.CreateAccount = "create"
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.Login = "login" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.None = "none" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.SelectAccount = "select_account" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds.Http = "http" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds.Https = "https" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds.Loopback = "loopback" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds.PrivateUse = "private_use" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy.Absolute = "absolute" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy.Sliding = "sliding" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenReusePolicy.None = "none" -> string!
@@ -358,6 +362,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.OpenIdProviderTermsOfSer
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PkceNonceExemption = "pkce_nonce_exemption" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PromptValuesSupported = "prompt_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RedirectUris = "redirect_uris" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RedirectUriKindsSupported = "redirect_uri_kinds_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PostLogoutRedirectUris = "post_logout_redirect_uris" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackChannelLogoutUri = "backchannel_logout_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackChannelLogoutSessionRequired = "backchannel_logout_session_required" -> string!
@@ -446,6 +451,11 @@ NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.MediaTypes.get -> System.
 NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.WriteAsync(NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Results.IOpenIdResult
 NCode.Identity.OpenId.Results.IOpenIdResult.Response.get -> NCode.Identity.OpenId.Messages.IOpenIdResponse!
+NCode.Identity.OpenId.Settings.IRedirectUriKind
+NCode.Identity.OpenId.Settings.IRedirectUriKind.KindName.get -> string!
+NCode.Identity.OpenId.Settings.IRedirectUriKind.Matches(System.Uri! redirectUri) -> bool
+NCode.Identity.OpenId.Settings.IRedirectUriKindCatalog
+NCode.Identity.OpenId.Settings.IRedirectUriKindCatalog.IsPermitted(NCode.Identity.Settings.IReadOnlySettingCollection! settings, string! redirectUri) -> bool
 NCode.Identity.OpenId.Settings.ISecurityProfile
 NCode.Identity.OpenId.Settings.ISecurityProfile.ApplyCeilingSettings(NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder! ceiling) -> void
 NCode.Identity.OpenId.Settings.ISecurityProfile.ApplyDefaultSettings(NCode.Identity.OpenId.Settings.ISecurityProfileDefaultsBuilder! defaults) -> void
@@ -675,6 +685,7 @@ NCode.Identity.OpenId.OpenIdConstants.MediaTypes
 NCode.Identity.OpenId.OpenIdConstants.Parameters
 NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes
 NCode.Identity.OpenId.OpenIdConstants.PromptTypes
+NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds
 NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy
 NCode.Identity.OpenId.OpenIdConstants.RefreshTokenReusePolicy
 NCode.Identity.OpenId.OpenIdConstants.ResponseModes
@@ -899,6 +910,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.OpenIdProviderTermsOfSer
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PkceNonceExemption.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PromptValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RedirectUris.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RedirectUriKindsSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PostLogoutRedirectUris.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackChannelLogoutUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackChannelLogoutSessionRequired.get -> NCode.Identity.Settings.SettingKey<bool>

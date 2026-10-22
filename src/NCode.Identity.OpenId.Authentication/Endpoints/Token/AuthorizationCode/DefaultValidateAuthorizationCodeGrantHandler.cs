@@ -80,15 +80,15 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
 
         // redirect_uri from token request
         var redirectUri = tokenRequest.RedirectUri;
-        if (redirectUri is null)
+        if (string.IsNullOrEmpty(redirectUri))
             // invalid_request
             throw errorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
 
-        // redirect_uri from authorization request
-        if (authorizationRequest.RedirectUri != redirectUri)
+        // RFC 6749 §4.1.3: identical to the authorization request's redirect_uri, compared as written (ADR-0203).
+        if (!string.Equals(authorizationRequest.RedirectUri, redirectUri, StringComparison.Ordinal))
             // invalid_grant
             throw errorFactory
                 .InvalidGrant(

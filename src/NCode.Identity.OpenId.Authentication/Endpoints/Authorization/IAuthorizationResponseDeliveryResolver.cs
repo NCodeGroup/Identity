@@ -85,7 +85,7 @@ internal interface IAuthorizationResponseDeliveryResolver
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IAuthorizationRequest authorizationRequest,
-        Uri checkedRedirectUri,
+        string checkedRedirectUri,
         CancellationToken cancellationToken
     );
 }

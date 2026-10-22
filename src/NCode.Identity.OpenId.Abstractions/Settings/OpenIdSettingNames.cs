@@ -476,6 +476,12 @@ public static class OpenIdSettingNames
     public const string RedirectUris = "redirect_uris";
 
     /// <summary>
+    /// Contains the name of <c>redirect_uri_kinds_supported</c> setting: the kinds of redirect URI a client may register
+    /// and use. A security profile narrows it, and when it is unset every kind is permitted.
+    /// </summary>
+    public const string RedirectUriKindsSupported = "redirect_uri_kinds_supported";
+
+    /// <summary>
     /// Contains the name of the per-client <c>post_logout_redirect_uris</c> setting (RP-Initiated Logout 1.0): the
     /// URIs the end-session endpoint is permitted to redirect back to after logout.
     /// </summary>

@@ -241,6 +241,13 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   authorization request endpoint) and redeems it with `TestPkce.CodeVerifier`; a test without them exercises the
   refusal, not the flow. Sign a user in with `InteractiveLogin.SignInAsync` rather than another copy of the antiforgery
   dance.
+- 👁 **Assert a URI the server must deliver as written on `Headers.Location.OriginalString`.** `HttpClient` parses
+  the header into a `Uri`, whose `AbsoluteUri` and `ToString()` normalize it, so such an assertion passes while the
+  server sends `myapp://callback/` for `myapp://callback`.
+- 👁 **The ephemeral developer key signs only `RS256`.** A test that needs the tenant to sign with `PS256` or
+  `ES256`, such as a FAPI client's JARM response, selects `DeveloperKeys:Mode` `None` with `builder.UseSetting` (a
+  host setting, above), so the tenant is provisioned `RS256`, `PS256`, and `ES256` keys
+  (`Fapi1AdvancedAuthorizationTests`).
 - 👁 **Seed a client registered for the method the test authenticates with.** A client authenticates only with its
   registered `token_endpoint_auth_method`
   ([ADR-0145](../../docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md)), so each integration-test

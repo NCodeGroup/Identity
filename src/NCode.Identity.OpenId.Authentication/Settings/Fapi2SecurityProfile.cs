@@ -109,6 +109,18 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         // FAPI 1.0 Advanced §5.2.2); pinned so raising the server-wide values never extends to a FAPI client (ADR-0187).
         ceiling.Set(OpenIdSettingKeys.RequestObjectMaxLifetime, TimeSpan.FromMinutes(60));
         ceiling.Set(OpenIdSettingKeys.RequestObjectNotBeforeRequired, true);
+
+        // FAPI 2.0 §5.3.2.2-8: no http redirect URI except a native client's loopback redirect (RFC 8252 §7.3);
+        // private-use schemes stay permitted (ADR-0203).
+        ceiling.Set(
+            OpenIdSettingKeys.RedirectUriKindsSupported,
+            (IReadOnlyCollection<string>)
+                [
+                    OpenIdConstants.RedirectUriKinds.Https,
+                    OpenIdConstants.RedirectUriKinds.Loopback,
+                    OpenIdConstants.RedirectUriKinds.PrivateUse,
+                ]
+        );
     }
 
     /// <inheritdoc />

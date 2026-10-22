@@ -18,11 +18,11 @@
 #endregion
 
 using System.Buffers;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Messages;
@@ -69,30 +69,59 @@ internal static class AuthorizationResponseWriter
     /// </summary>
     public static void WriteRedirect(
         HttpResponse httpResponse,
-        Uri redirectUri,
+        string redirectUri,
         bool useQuery,
         IReadOnlyCollection<KeyValuePair<string, StringValues>> parameters
     )
     {
-        var uriBuilder = new UriBuilder(redirectUri);
-        if (useQuery)
+        // ADR-0203: delivered as written; re-serializing through Uri adds a trailing slash and lower-cases the host
+        var serialized = SerializeUriParameters(parameters);
+
+        var location = useQuery
+            ? AppendToQuery(redirectUri, parameters, serialized)
+            : $"{redirectUri}#{serialized}";
+
+        ExecuteUsingRedirect(httpResponse, location);
+    }
+
+    private static string AppendToQuery(
+        string redirectUri,
+        IReadOnlyCollection<KeyValuePair<string, StringValues>> parameters,
+        string serialized
+    )
+    {
+        var queryStart = redirectUri.IndexOf('?', StringComparison.Ordinal);
+        var withoutQuery = queryStart < 0 ? redirectUri : redirectUri[..queryStart];
+        var registeredQuery = queryStart < 0 ? string.Empty : redirectUri[(queryStart + 1)..];
+        var registeredPairs = registeredQuery.Split('&', StringSplitOptions.RemoveEmptyEntries);
+
+        List<string> pairs = [.. registeredPairs.Where(pair => !IsReplaced(pair, parameters))];
+        if (serialized.Length > 0)
         {
-            var queryOnlyParameters = QueryHelpers
-                .ParseQuery(redirectUri.Query)
-                .ExceptBy(
-                    parameters.Select(parameter => parameter.Key),
-                    tuple => tuple.Key,
-                    StringComparer.OrdinalIgnoreCase
-                );
-            uriBuilder.Query = SerializeUriParameters(queryOnlyParameters.Concat(parameters));
-            uriBuilder.Fragment = "_=_";
-        }
-        else
-        {
-            uriBuilder.Fragment = SerializeUriParameters(parameters);
+            pairs.Add(serialized);
         }
 
-        ExecuteUsingRedirect(httpResponse, uriBuilder.Uri);
+        if (pairs.Count == 0)
+        {
+            return $"{withoutQuery}#_=_";
+        }
+
+        var query = string.Join('&', pairs);
+        return $"{withoutQuery}?{query}#_=_";
+    }
+
+    private static bool IsReplaced(
+        string registeredPair,
+        IReadOnlyCollection<KeyValuePair<string, StringValues>> parameters
+    )
+    {
+        var nameEnd = registeredPair.IndexOf('=', StringComparison.Ordinal);
+        var encodedName = nameEnd < 0 ? registeredPair : registeredPair[..nameEnd];
+        var name = Uri.UnescapeDataString(encodedName);
+
+        return parameters.Any(parameter =>
+            string.Equals(parameter.Key, name, StringComparison.OrdinalIgnoreCase)
+        );
     }
 
     private static string SerializeUriParameters(
@@ -147,14 +176,48 @@ internal static class AuthorizationResponseWriter
         return builder.ToString();
     }
 
-    private static void ExecuteUsingRedirect(HttpResponse httpResponse, Uri redirectUri)
+    private static void ExecuteUsingRedirect(HttpResponse httpResponse, string location)
     {
         httpResponse.SetNoStore();
 
         // 303 See Other (not 302) is required for the authorization response (FAPI 2.0 §5.2.2 / OAuth 2.1): it forces
         // the user-agent to issue a GET to the redirect_uri regardless of the original request method.
         httpResponse.StatusCode = StatusCodes.Status303SeeOther;
-        httpResponse.Headers.Location = redirectUri.AbsoluteUri;
+        httpResponse.Headers.Location = EscapeUnsafeCharacters(location);
+    }
+
+    /// <summary>
+    /// Percent-encodes every character that a header value cannot carry as written (a non-ASCII character, RFC 3987
+    /// §3.1, and an ASCII control character or space) as UTF-8, so a carriage return or line feed can never split the
+    /// response; every other character is delivered as written.
+    /// </summary>
+    private static string EscapeUnsafeCharacters(string value)
+    {
+        if (value.AsSpan().IndexOfAnyExceptInRange('!', '~') < 0)
+        {
+            return value;
+        }
+
+        var builder = new StringBuilder(value.Length + 16);
+        Span<byte> utf8 = stackalloc byte[4];
+
+        foreach (var rune in value.EnumerateRunes())
+        {
+            if (rune.Value is > 0x20 and < 0x7F)
+            {
+                builder.Append((char)rune.Value);
+                continue;
+            }
+
+            var count = rune.EncodeToUtf8(utf8);
+            for (var i = 0; i < count; i++)
+            {
+                var hex = utf8[i].ToString("X2", CultureInfo.InvariantCulture);
+                builder.Append('%').Append(hex);
+            }
+        }
+
+        return builder.ToString();
     }
 
     private const string FormPostJavascript =
@@ -172,7 +235,7 @@ internal static class AuthorizationResponseWriter
     /// </summary>
     public static async ValueTask WriteFormPostAsync(
         HttpResponse httpResponse,
-        Uri redirectUri,
+        string redirectUri,
         IEnumerable<KeyValuePair<string, StringValues>> parameters,
         CancellationToken cancellationToken
     )
@@ -195,12 +258,12 @@ internal static class AuthorizationResponseWriter
 
     private static void WriteFormPostHtml(
         IBufferWriter<char> writer,
-        Uri redirectUri,
+        string redirectUri,
         IEnumerable<KeyValuePair<string, StringValues>> parameters
     )
     {
         writer.Write(FormPostHtmlStart);
-        WriteEncoded(writer, redirectUri.AbsoluteUri);
+        WriteEncoded(writer, redirectUri);
         writer.Write("'>");
 
         // The browser form-urlencodes each field when it submits the form, so a value is only HTML-encoded here;

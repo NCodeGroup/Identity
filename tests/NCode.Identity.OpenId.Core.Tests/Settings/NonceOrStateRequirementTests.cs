@@ -64,7 +64,7 @@ public class NonceOrStateRequirementTests : BaseTests
                 mockClient.Object,
                 mockRequest.Object,
                 new AuthorizationResponseDelivery(
-                    new Uri("https://client.example/callback"),
+                    "https://client.example/callback",
                     CreateLooseMock<IAuthorizationResponseModeHandler>().Object,
                     State: null
                 )

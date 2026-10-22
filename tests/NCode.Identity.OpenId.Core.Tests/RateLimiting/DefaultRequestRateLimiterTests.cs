@@ -227,6 +227,15 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, 1);
     }
 
+    private long Timestamp { get; set; } = 1_000;
+
+    // The breaker is timed on the monotonic timestamp, read only once the store has failed.
+    private void SetupTimestamps()
+    {
+        MockTimeProvider.Setup(x => x.GetTimestamp()).Returns(() => Timestamp);
+        MockTimeProvider.Setup(x => x.TimestampFrequency).Returns(TimeSpan.TicksPerSecond);
+    }
+
     private List<(int EventId, LogLevel Level)> LogEntries =>
         Logger.Collector.GetSnapshot().Select(record => (record.Id.Id, record.Level)).ToList();
 
@@ -582,6 +591,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, 1);
         SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        SetupTimestamps();
         MockCounterSet
             .Setup(x =>
                 x.IncrementAsync(
@@ -617,6 +627,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     {
         SetupTenantLimitOnly();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        SetupTimestamps();
         MockCounterSet
             .Setup(x =>
                 x.IncrementAsync(
@@ -656,10 +667,8 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     public async Task AcquireForTenantAsync_WhenTheRetryIntervalHasPassedAndTheStoreAnswers_EnforcesAndLogsTheRecovery()
     {
         SetupTenantLimitOnly();
-        MockTimeProvider
-            .SetupSequence(x => x.GetUtcNow())
-            .Returns(Now)
-            .Returns(Now + DefaultRequestRateLimiter.StoreRetryInterval);
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        SetupTimestamps();
         MockCounterSet
             .SetupSequence(x =>
                 x.IncrementAsync(
@@ -685,6 +694,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             .Verifiable();
 
         await Limiter.AcquireForTenantAsync(MockContext.Object, isMetered: true, default);
+        Timestamp += DefaultRequestRateLimiter.StoreRetryInterval.Ticks;
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
             isMetered: true,
@@ -713,10 +723,82 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     }
 
     [Fact]
+    public async Task AcquireForTenantAsync_WhenACallMadeBeforeTheFailureAnswers_KeepsTheBreakerOpen()
+    {
+        SetupTenantLimitOnly();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        SetupTimestamps();
+        MockTimeProvider
+            .Setup(x =>
+                x.CreateTimer(
+                    It.IsAny<TimerCallback>(),
+                    It.IsAny<object?>(),
+                    DefaultRequestRateLimiter.StoreTimeout,
+                    It.IsAny<TimeSpan>()
+                )
+            )
+            .Returns(CreateLooseMock<ITimer>().Object)
+            .Verifiable();
+        var slow = new TaskCompletionSource<long>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        MockCounterSet
+            .SetupSequence(x =>
+                x.IncrementAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(new ValueTask<long>(slow.Task))
+            .ThrowsAsync(new InvalidOperationException("The store is unavailable."));
+        MockCounterSet
+            .Setup(x => x.GetAsync(It.IsAny<string>(), CancellationToken.None))
+            .ReturnsAsync(0L)
+            .Verifiable();
+
+        var older = Limiter.AcquireForTenantAsync(
+            MockContext.Object,
+            isMetered: true,
+            CancellationToken.None
+        );
+        await Limiter.AcquireForTenantAsync(MockContext.Object, isMetered: true, default);
+        slow.SetResult(1L);
+        await older;
+        await Limiter.AcquireForTenantAsync(MockContext.Object, isMetered: true, default);
+
+        MockCounterSet.Verify(
+            x =>
+                x.IncrementAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    CancellationToken.None
+                ),
+            Times.Exactly(2)
+        );
+        Assert.Equal(
+            [
+                (
+                    DefaultRequestRateLimiter.TenantPartition,
+                    AuthenticationMetrics.StoreUnavailableResult
+                ),
+                (DefaultRequestRateLimiter.TenantPartition, AuthenticationMetrics.AdmittedResult),
+                (
+                    DefaultRequestRateLimiter.TenantPartition,
+                    AuthenticationMetrics.StoreUnavailableResult
+                ),
+            ],
+            Judgements
+        );
+        Assert.Equal([(EventIds.RateLimitStoreUnavailable, LogLevel.Warning)], LogEntries);
+    }
+
+    [Fact]
     public async Task AcquireForTenantAsync_WhenTheCounterStoreDoesNotAnswerInTime_Admits()
     {
         SetupTenantLimitOnly();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        SetupTimestamps();
         TimerCallback? timerCallback = null;
         object? timerState = null;
         MockTimeProvider
@@ -926,6 +1008,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupTenant();
         SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, 5);
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        SetupTimestamps();
         MockCounterSet
             .Setup(x =>
                 x.IncrementAsync(
@@ -960,6 +1043,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         SetupTenant();
         SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, 5);
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        SetupTimestamps();
         MockCounterSet
             .Setup(x =>
                 x.IncrementAsync(

@@ -92,8 +92,10 @@ client, against per-minute limits that are settings bounded by the merge lattice
    - Each counter call is bounded to **100 ms**. A call that has not answered by then is abandoned, and the request is
      admitted. A call that has already completed, as every in-process call has, starts no timer.
    - A failed or late call **opens a breaker**: the limiter stops calling the store for **10 s**, admitting every
-     request uncounted, then tries it again. A further failure keeps the breaker open for another 10 s; an answer
-     closes it. An outage therefore costs at most one 100 ms wait per replica per 10 s, not one per check.
+     request uncounted, then tries it again. A further failure keeps the breaker open for another 10 s; an answer closes
+     it, but only an answer to a call made after the breaker opened, so a slow call that started earlier cannot undo a
+     newer failure. The breaker is timed on the monotonic timestamp, so a wall-clock step cannot hold it open. An outage
+     therefore costs at most one 100 ms wait per replica per 10 s, not one per check.
    - The failure that opens the breaker logs **one warning** with the exception, and the answer that closes it logs one
      information message, so an outage is logged once per replica rather than once per request. Every request admitted
      without the store is still counted as `store_unavailable`.

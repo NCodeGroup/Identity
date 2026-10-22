@@ -343,7 +343,7 @@ internal class ClientStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The OpenId Client with ClientId='{clientId}' has been modified by another process. Please reload and try again."
             );
         }
@@ -371,7 +371,7 @@ internal class ClientStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The settings for OpenId Client with ClientId='{clientId}' have been modified by another process. Please reload and try again."
             );
         }
@@ -509,7 +509,7 @@ internal class ClientStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The secret with SecretId='{persistedSecret.SecretId}' has been modified by another process. Please reload and try again."
             );
         }

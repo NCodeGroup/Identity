@@ -41,6 +41,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
@@ -82,6 +83,13 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// this responder returns, so a CRL fetch can be exercised without a real network connection.
     /// </summary>
     public Func<HttpRequestMessage, byte[]>? CertificateRevocationListResponder { get; set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the developer clients of the Development overlay are seeded. They are seeded
+    /// only when a derived factory returns <see langword="true"/>, because they are public clients with <c>http</c>
+    /// redirect URIs that a test narrowing the server's or the tenant's ceilings would make incoherent.
+    /// </summary>
+    protected virtual bool SeedsDeveloperClients => false;
 
     private string DatabaseName { get; } = $"it-{Guid.NewGuid():N}";
 
@@ -1193,6 +1201,13 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             // enables the client_credentials and resource-owner password grants plus a custom "api" scope for
             // integration coverage. Both grants stay off in the host's own secure defaults.
             serviceCollection.AddSingleton<IDefaultSettingsProvider, TestServerSettingsProvider>();
+
+            // Seed no developer clients unless a derived factory opts in (the last registration wins, so the
+            // developer seeder sees an empty set of clients).
+            if (!SeedsDeveloperClients)
+            {
+                serviceCollection.AddSingleton(new DeveloperInteractiveSeedOptions());
+            }
 
             // Replace the SSRF-guarded client jwks_uri HTTP client with a stub serving canned JSON, so a jwks_uri
             // fetch can be exercised without a real outbound connection (which the guard would refuse).

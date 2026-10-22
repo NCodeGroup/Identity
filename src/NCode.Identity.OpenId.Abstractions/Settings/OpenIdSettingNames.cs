@@ -907,10 +907,11 @@ public static class OpenIdSettingNames
     public const string DPoPNonceRequired = "dpop_nonce_required";
 
     /// <summary>
-    /// Contains the name of <c>require_dpop</c> setting: whether the client must present a valid DPoP proof at the
-    /// token endpoint, with the issued access token bound to the proof key (RFC 9449).
+    /// Contains the name of <c>require_dpop_bound_access_tokens</c> setting: whether the client's access tokens must
+    /// be bound to a DPoP proof key (RFC 9449), registered dynamically as the client metadata
+    /// <c>dpop_bound_access_tokens</c> (RFC 9449 §5.2).
     /// </summary>
-    public const string RequireDPoP = "require_dpop";
+    public const string RequireDPoPBoundAccessTokens = "require_dpop_bound_access_tokens";
 
     /// <summary>
     /// Contains the name of <c>require_tls_client_certificate_bound_access_tokens</c> setting: whether the client's

@@ -59,14 +59,13 @@ internal sealed class ResponseAlgorithmCoherenceRule : IClientCoherenceRule
     public IReadOnlyCollection<string> SettingNames => AlgorithmSettingNames;
 
     /// <summary>
-    /// Finds every algorithm a client registers that its effective <paramref name="clientSettings"/> do not permit.
+    /// Finds every algorithm a client registers that its effective settings do not permit.
     /// </summary>
-    /// <param name="clientSettings">The effective settings of the client.</param>
+    /// <param name="context">The registered and effective settings of the client.</param>
     /// <returns>The violations, or an empty list when every registered algorithm is permitted.</returns>
-    public IReadOnlyList<ClientCoherenceViolation> FindViolations(
-        IReadOnlySettingCollection clientSettings
-    )
+    public IReadOnlyList<ClientCoherenceViolation> FindViolations(ClientCoherenceContext context)
     {
+        var clientSettings = context.EffectiveSettings;
         List<ClientCoherenceViolation> violations = [];
 
         foreach (var response in Responses)

@@ -230,7 +230,7 @@ internal class ClientGrantStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 "The client grant has been modified by another process. Please reload and try again."
             );
         }

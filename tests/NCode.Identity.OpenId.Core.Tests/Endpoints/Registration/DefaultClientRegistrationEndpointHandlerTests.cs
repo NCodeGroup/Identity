@@ -63,7 +63,6 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         ISecretSerializer secretSerializer,
         ISecretKeyTypeCatalog secretKeyTypeCatalog,
         IClientAuthenticationMethodCatalog? clientAuthenticationMethodCatalog = null,
-        IEffectiveSettingsResolver? effectiveSettingsResolver = null,
         IClientCoherenceValidator? clientCoherenceValidator = null
     ) =>
         new(
@@ -82,7 +81,6 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             CreateStrictMock<ISettingSerializer>().Object,
             clientAuthenticationMethodCatalog
                 ?? CreateStrictMock<IClientAuthenticationMethodCatalog>().Object,
-            effectiveSettingsResolver ?? CreateStrictMock<IEffectiveSettingsResolver>().Object,
             clientCoherenceValidator ?? CreateStrictMock<IClientCoherenceValidator>().Object
         );
 
@@ -376,117 +374,6 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
     #endregion
 
-    #region ValidateSupportedMetadata
-
-    private static ResolvedMetadata CreateHybridMetadata() =>
-        new()
-        {
-            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-            GrantTypes =
-            [
-                OpenIdConstants.GrantTypes.AuthorizationCode,
-                OpenIdConstants.GrantTypes.Implicit,
-            ],
-            ResponseTypes = [OpenIdConstants.ResponseTypes.CodeIdToken],
-            RedirectUris = ["https://example.com/callback"],
-        };
-
-    private Mock<IReadOnlySettingCollection> CreateTenantSettings(
-        IReadOnlyCollection<string>? grantTypesSupported,
-        IReadOnlyCollection<string>? responseTypesSupported
-    )
-    {
-        var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out grantTypesSupported)
-            )
-            .Returns(true);
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(OpenIdSettingKeys.ResponseTypesSupported, out responseTypesSupported)
-            )
-            .Returns(true);
-        return mockSettings;
-    }
-
-    [Fact]
-    public void ValidateSupportedMetadata_WhenTheTenantSupportsEveryValue_ReturnsNull()
-    {
-        var handler = CreateHandler();
-        var (factory, _) = CreateErrorFactory();
-        var mockTenantSettings = CreateTenantSettings(
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
-            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.CodeIdToken]
-        );
-
-        var error = handler.ValidateSupportedMetadata(
-            factory,
-            mockTenantSettings.Object,
-            CreateHybridMetadata()
-        );
-
-        Assert.Null(error);
-    }
-
-    [Fact]
-    public void ValidateSupportedMetadata_WhenTheTenantDoesNotSupportAResponseType_ReturnsInvalidClientMetadata()
-    {
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateTenantSettings(
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
-            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.IdToken]
-        );
-
-        var error = handler.ValidateSupportedMetadata(
-            factory,
-            mockTenantSettings.Object,
-            CreateHybridMetadata()
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Fact]
-    public void ValidateSupportedMetadata_WhenTheTenantDoesNotSupportAGrantType_ReturnsInvalidClientMetadata()
-    {
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateTenantSettings(
-            [OpenIdConstants.GrantTypes.AuthorizationCode],
-            [OpenIdConstants.ResponseTypes.CodeIdToken]
-        );
-
-        var error = handler.ValidateSupportedMetadata(
-            factory,
-            mockTenantSettings.Object,
-            CreateHybridMetadata()
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Fact]
-    public void ValidateSupportedMetadata_WhenTheTenantListsAreUnset_ReturnsNull()
-    {
-        var handler = CreateHandler();
-        var (factory, _) = CreateErrorFactory();
-        var mockTenantSettings = CreateLooseMock<IReadOnlySettingCollection>();
-
-        var error = handler.ValidateSupportedMetadata(
-            factory,
-            mockTenantSettings.Object,
-            CreateHybridMetadata()
-        );
-
-        Assert.Null(error);
-    }
-
-    #endregion
-
     #region ValidateCoherence
 
     private static readonly JsonElement CoherenceSettingsJson = JsonSerializer.SerializeToElement(
@@ -499,21 +386,15 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     ) CreateCoherenceHandler(params ClientCoherenceViolation[] violations)
     {
         var tenantSettings = CreateLooseMock<IReadOnlySettingCollection>().Object;
-        var clientSettings = CreateLooseMock<IReadOnlySettingCollection>().Object;
-        var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
-        mockResolver
-            .Setup(x =>
-                x.Resolve(tenantSettings, OpenIdSettingScopes.Client, It.IsAny<JsonElement>())
-            )
-            .Returns(clientSettings)
-            .Verifiable();
         var mockValidator = CreateStrictMock<IClientCoherenceValidator>();
-        mockValidator.Setup(x => x.Validate(clientSettings)).Returns(violations).Verifiable();
+        mockValidator
+            .Setup(x => x.Validate(tenantSettings, It.IsAny<JsonElement>()))
+            .Returns(violations)
+            .Verifiable();
         var handler = CreateHandler(
             CreateStrictMock<IClientScopeService>().Object,
             CreateStrictMock<ISecretSerializer>().Object,
             CreateStrictMock<ISecretKeyTypeCatalog>().Object,
-            effectiveSettingsResolver: mockResolver.Object,
             clientCoherenceValidator: mockValidator.Object
         );
         return (handler, tenantSettings);
@@ -930,6 +811,30 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         Assert.True(response.TlsClientCertificateBoundAccessTokens);
     }
 
+    [Fact]
+    public void BuildSettingsObject_WhenDPoPBoundTokensAreRequested_StoresTheRequirement()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest { DPoPBoundAccessTokens = true };
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            ResponseTypes = [],
+            RedirectUris = [],
+        };
+
+        var settings = handler.BuildSettingsObject(request, resolved);
+        var response = handler.ToResponse(
+            CreateClient(JsonSerializer.SerializeToElement(settings))
+        );
+
+        // The RFC 9449 §5.2 member is the client's requirement, never the server's support.
+        Assert.True(settings[OpenIdSettingNames.RequireDPoPBoundAccessTokens]!.GetValue<bool>());
+        Assert.False(settings.ContainsKey(OpenIdSettingNames.DPoPSigningAlgValuesSupported));
+        Assert.True(response.DPoPBoundAccessTokens);
+    }
+
     #endregion
 
     #region ToResponse
@@ -1225,200 +1130,6 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
 
         var error = handler.ValidateKeyMetadata(factory, request);
-
-        Assert.Null(error);
-    }
-
-    #endregion
-
-    #region ValidateAlgorithmMetadata
-
-    private Mock<IReadOnlySettingCollection> CreateAlgorithmTenantSettings(
-        IReadOnlyCollection<string>? idTokenSigningAlgValuesSupported,
-        string? idTokenSignedResponseAlg = "RS256",
-        bool idTokenEncryptionRequired = false
-    )
-    {
-        var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
-                    out idTokenSigningAlgValuesSupported
-                )
-            )
-            .Returns(idTokenSigningAlgValuesSupported is not null);
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.IdTokenSignedResponseAlg,
-                    out idTokenSignedResponseAlg
-                )
-            )
-            .Returns(idTokenSignedResponseAlg is not null);
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.IdTokenEncryptionRequired,
-                    out idTokenEncryptionRequired
-                )
-            )
-            .Returns(true);
-        return mockSettings;
-    }
-
-    [Fact]
-    public void ValidateAlgorithmMetadata_WhenTheTenantRequiresEncryptedIdTokens_RequiresTheRegistration()
-    {
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(
-            ["RS256"],
-            idTokenEncryptionRequired: true
-        );
-        var request = new RegisterClientRequest();
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Fact]
-    public void ValidateAlgorithmMetadata_WhenTheTokenEndpointAuthSigningAlgIsNotPermitted_ReturnsInvalidClientMetadata()
-    {
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
-        IReadOnlyCollection<string>? permitted = ["PS256"];
-        mockTenantSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported,
-                    out permitted
-                )
-            )
-            .Returns(true);
-        var request = new RegisterClientRequest { TokenEndpointAuthSigningAlg = "RS256" };
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Fact]
-    public void ValidateAlgorithmMetadata_WhenTheBackchannelRequestSigningAlgIsNotPermitted_ReturnsInvalidClientMetadata()
-    {
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
-        IReadOnlyCollection<string>? permitted = ["PS256"];
-        mockTenantSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported,
-                    out permitted
-                )
-            )
-            .Returns(true);
-        var request = new RegisterClientRequest
-        {
-            BackchannelAuthenticationRequestSigningAlg = "ES256",
-        };
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Fact]
-    public void ValidateAlgorithmMetadata_WhenTheDeliveryModeIsNotSupported_ReturnsInvalidClientMetadata()
-    {
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
-        IReadOnlyCollection<string>? supported =
-        [
-            OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
-        ];
-        mockTenantSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
-                    out supported
-                )
-            )
-            .Returns(true);
-        var request = new RegisterClientRequest
-        {
-            BackchannelTokenDeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Push,
-            BackchannelClientNotificationEndpoint = "https://client.example/cb",
-        };
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Theory]
-    [InlineData(OpenIdConstants.BackchannelTokenDeliveryModes.Ping)]
-    [InlineData(OpenIdConstants.BackchannelTokenDeliveryModes.Push)]
-    public void ValidateAlgorithmMetadata_WhenANotifiedModeHasNoNotificationEndpoint_ReturnsInvalidClientMetadata(
-        string deliveryMode
-    )
-    {
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
-        var request = new RegisterClientRequest { BackchannelTokenDeliveryMode = deliveryMode };
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Fact]
-    public void ValidateAlgorithmMetadata_WhenTheServerDoesNotSupportTheUserCodeParameter_ReturnsInvalidClientMetadata()
-    {
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
-        var request = new RegisterClientRequest { BackchannelUserCodeParameter = true };
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Fact]
-    public void ValidateAlgorithmMetadata_WhenTheTenantSupportsTheBackchannelMetadata_ReturnsNull()
-    {
-        var handler = CreateHandler();
-        var (factory, _) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
-        var userCodeSupported = true;
-        mockTenantSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.BackchannelUserCodeParameterSupported,
-                    out userCodeSupported
-                )
-            )
-            .Returns(true);
-        var request = new RegisterClientRequest
-        {
-            BackchannelTokenDeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
-            BackchannelClientNotificationEndpoint = "https://client.example/cb",
-            BackchannelAuthenticationRequestSigningAlg = "PS256",
-            BackchannelUserCodeParameter = true,
-        };
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
 
         Assert.Null(error);
     }

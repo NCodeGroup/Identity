@@ -904,10 +904,8 @@ internal class TenantApiEndpointHandler(
 
         return findings
             .Select(finding => new SettingError(
-                finding.Violation.CeilingName,
-                $"The client '{finding.ClientId}' registers '{finding.Violation.SettingName}' value "
-                    + $"'{finding.Violation.Value}', which the tenant's effective "
-                    + $"'{finding.Violation.CeilingName}' would not permit."
+                finding.Violation.GoverningSettingName,
+                $"The change would make the client '{finding.ClientId}' incoherent: {finding.Violation.Description}"
             ))
             .ToList();
     }

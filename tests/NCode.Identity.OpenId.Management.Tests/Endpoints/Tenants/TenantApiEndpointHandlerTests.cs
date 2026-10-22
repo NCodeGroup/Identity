@@ -865,6 +865,54 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateSettingsAsync_WhenTheChangeMakesManyClientsIncoherent_ListsTenAndCountsTheRest()
+    {
+        SetupValidSettings();
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSettings("settings-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupClientCoherenceCheck(
+            Enumerable
+                .Range(1, 12)
+                .Select(index => new ClientCoherenceFinding(
+                    $"client-{index}",
+                    new ClientCoherenceViolation(
+                        OpenIdSettingNames.IdTokenSignedResponseAlg,
+                        "RS256",
+                        OpenIdSettingNames.IdTokenSigningAlgValuesSupported
+                    )
+                ))
+                .ToArray()
+        );
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            TenantId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        var messages = problem.ProblemDetails.Errors[
+            OpenIdSettingNames.IdTokenSigningAlgValuesSupported
+        ];
+        Assert.Equal(11, messages.Length);
+        Assert.Contains("'client-10'", messages[9], StringComparison.Ordinal);
+        Assert.Equal(
+            $"Errors not listed for '{OpenIdSettingNames.IdTokenSigningAlgValuesSupported}': 2.",
+            messages[^1]
+        );
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
     {
         SetupInvalidSettings();

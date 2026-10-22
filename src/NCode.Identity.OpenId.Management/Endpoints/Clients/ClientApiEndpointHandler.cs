@@ -214,22 +214,20 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
-    /// Merges an OpenID Client's persisted settings onto the addressed tenant's effective settings, producing the same
-    /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the client at runtime.
-    /// The tenant's effective view is reconstructed by id (the server's committed settings merged with the tenant's
-    /// persisted overrides), so the preview is independent of the request's resolved tenant. Both the tenant's and the
-    /// client's settings are resolved through the <see cref="IEffectiveSettingsResolver"/> (ADR-0204), so each is
-    /// expanded with the ceilings of the security profiles it selects, as it is at runtime.
+    /// Resolves the addressed tenant's effective settings: the server's committed settings merged with the tenant's
+    /// persisted overrides. The tenant's effective view is reconstructed by id, so it is independent of the request's
+    /// resolved tenant. Both the server's and the tenant's settings are resolved through the
+    /// <see cref="IEffectiveSettingsResolver"/>, so each is expanded with the ceilings of the security profiles it
+    /// selects, as it is at runtime.
     /// </summary>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
-    /// <param name="clientSettings">The client's settings document to merge.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the owning tenant's
+    /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the tenant's
     /// settings are absent.</returns>
-    internal virtual async ValueTask<IReadOnlySettingCollection?> MergeClientSettingsAsync(
+    // See ADR-0204.
+    internal virtual async ValueTask<IReadOnlySettingCollection?> MergeTenantSettingsAsync(
         string tenantId,
-        JsonElement clientSettings,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
@@ -243,24 +241,55 @@ internal class ClientApiEndpointHandler(
         }
 
         var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
-        var tenantEffective = EffectiveSettingsResolver.Resolve(
+        return EffectiveSettingsResolver.Resolve(
             serverEffective,
             OpenIdSettingScopes.Tenant,
             tenantSettings.Value
         );
-        return EffectiveSettingsResolver.Resolve(
-            tenantEffective,
-            OpenIdSettingScopes.Client,
-            clientSettings
-        );
     }
 
     /// <summary>
-    /// Verifies that a client's settings document, merged onto its tenant's effective settings as the runtime merges it,
-    /// satisfies every registered <see cref="IClientCoherenceRule"/> (the algorithms the client registers for the JWTs
-    /// addressed to it, the kinds of its redirect URIs, and its token endpoint authentication method). A mismatch is
-    /// rejected when the settings are written instead of failing every issuance with <c>server_error</c> or every
-    /// authorization request with <c>invalid_request</c>.
+    /// Merges an OpenID Client's persisted settings onto the addressed tenant's effective settings, producing the same
+    /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the client at runtime.
+    /// The tenant's effective view is reconstructed by id (see <see cref="MergeTenantSettingsAsync"/>), so the preview
+    /// is independent of the request's resolved tenant. The client's settings are resolved through the
+    /// <see cref="IEffectiveSettingsResolver"/>, so they are expanded with the ceilings of the security profiles they
+    /// select, as they are at runtime.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
+    /// <param name="clientSettings">The client's settings document to merge.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the owning tenant's
+    /// settings are absent.</returns>
+    // See ADR-0204.
+    internal virtual async ValueTask<IReadOnlySettingCollection?> MergeClientSettingsAsync(
+        string tenantId,
+        JsonElement clientSettings,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantEffective = await MergeTenantSettingsAsync(
+            tenantId,
+            storeManager,
+            cancellationToken
+        );
+        return tenantEffective is null
+            ? null
+            : EffectiveSettingsResolver.Resolve(
+                tenantEffective,
+                OpenIdSettingScopes.Client,
+                clientSettings
+            );
+    }
+
+    /// <summary>
+    /// Verifies that a client's settings document, resolved onto its tenant's effective settings as the runtime
+    /// resolves it, satisfies every registered <see cref="IClientCoherenceRule"/> (the algorithms the client registers
+    /// for the JWTs addressed to it, the kinds of its redirect URIs, and its token endpoint authentication method). A
+    /// mismatch is rejected when the settings are written instead of failing every issuance with
+    /// <c>server_error</c> or every authorization request with <c>invalid_request</c>.
     /// </summary>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
     /// <param name="clientSettings">The client's settings document to verify.</param>
@@ -276,22 +305,17 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var effectiveSettings = await MergeClientSettingsAsync(
+        var tenantSettings = await MergeTenantSettingsAsync(
             tenantId,
-            clientSettings,
             storeManager,
             cancellationToken
         );
 
-        return effectiveSettings is null
+        return tenantSettings is null
             ? []
             : ClientCoherenceValidator
-                .Validate(effectiveSettings)
-                .Select(violation => new SettingError(
-                    violation.SettingName,
-                    $"The '{violation.SettingName}' value '{violation.Value}' is not permitted by the "
-                        + $"client's effective '{violation.CeilingName}'."
-                ))
+                .Validate(tenantSettings, clientSettings)
+                .Select(violation => new SettingError(violation.SettingName, violation.Description))
                 .ToList();
     }
 

@@ -44,14 +44,13 @@ internal sealed class RedirectUriKindCoherenceRule(IRedirectUriKindCatalog redir
     public IReadOnlyCollection<string> SettingNames => RedirectUriSettingNames;
 
     /// <summary>
-    /// Finds every redirect URI a client registers that its effective <paramref name="clientSettings"/> do not permit.
+    /// Finds every redirect URI a client registers that its effective settings do not permit.
     /// </summary>
-    /// <param name="clientSettings">The effective settings of the client.</param>
+    /// <param name="context">The registered and effective settings of the client.</param>
     /// <returns>The violations, or an empty list when every registered redirect URI is permitted.</returns>
-    public IReadOnlyList<ClientCoherenceViolation> FindViolations(
-        IReadOnlySettingCollection clientSettings
-    )
+    public IReadOnlyList<ClientCoherenceViolation> FindViolations(ClientCoherenceContext context)
     {
+        var clientSettings = context.EffectiveSettings;
         List<ClientCoherenceViolation> violations = [];
 
         AddIfNotPermitted(violations, clientSettings, OpenIdSettingKeys.RedirectUris);

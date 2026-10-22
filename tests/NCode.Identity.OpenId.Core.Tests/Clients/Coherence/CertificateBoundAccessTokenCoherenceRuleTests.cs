@@ -46,6 +46,10 @@ public class CertificateBoundAccessTokenCoherenceRuleTests : BaseTests
             .Returns(supported);
     }
 
+    private static ClientCoherenceContext CreateContext(
+        IReadOnlySettingCollection effectiveSettings
+    ) => new() { RegisteredSettings = effectiveSettings, EffectiveSettings = effectiveSettings };
+
     #endregion
 
     #region FindViolations Tests
@@ -56,7 +60,7 @@ public class CertificateBoundAccessTokenCoherenceRuleTests : BaseTests
         SetupSettings(required: true, supported: true);
 
         var violations = new CertificateBoundAccessTokenCoherenceRule().FindViolations(
-            MockSettings.Object
+            CreateContext(MockSettings.Object)
         );
 
         Assert.Empty(violations);
@@ -68,7 +72,7 @@ public class CertificateBoundAccessTokenCoherenceRuleTests : BaseTests
         SetupSettings(required: true, supported: false);
 
         var violations = new CertificateBoundAccessTokenCoherenceRule().FindViolations(
-            MockSettings.Object
+            CreateContext(MockSettings.Object)
         );
 
         var violation = Assert.Single(violations);
@@ -88,7 +92,7 @@ public class CertificateBoundAccessTokenCoherenceRuleTests : BaseTests
         SetupSettings(required: false, supported: false);
 
         var violations = new CertificateBoundAccessTokenCoherenceRule().FindViolations(
-            MockSettings.Object
+            CreateContext(MockSettings.Object)
         );
 
         Assert.Empty(violations);

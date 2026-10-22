@@ -26,7 +26,6 @@ using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -34,7 +33,6 @@ using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Server.Logging;
-using NCode.Identity.Settings;
 using NCode.Mediator;
 
 namespace NCode.Identity.Server.ConformanceEnvironment;
@@ -60,10 +58,7 @@ internal sealed class ConformanceSeedHandler(
     IClientKeyImporter clientKeyImporter,
     ICryptoService cryptoService,
     TimeProvider timeProvider,
-    ISettingSerializer settingSerializer,
-    IOpenIdEnvironmentProvider openIdEnvironmentProvider,
-    IEffectiveSettingsResolver effectiveSettingsResolver,
-    IClientCoherenceValidator clientCoherenceValidator,
+    SeededClientValidator seededClientValidator,
     ILogger<ConformanceSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
@@ -78,12 +73,7 @@ internal sealed class ConformanceSeedHandler(
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
-    private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
-        openIdEnvironmentProvider;
-    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
-        effectiveSettingsResolver;
-    private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
+    private SeededClientValidator SeededClientValidator { get; } = seededClientValidator;
     private ILogger<ConformanceSeedHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -151,8 +141,13 @@ internal sealed class ConformanceSeedHandler(
             settingValues[OpenIdSettingNames.SecurityProfiles] = client.SecurityProfiles;
 
         var settings = JsonSerializer.SerializeToElement(settingValues);
-        EnsureSettingsCanBeHonored(clientId, settings);
-        await EnsureCoherentAsync(context.Tenant, clientId, settings, cancellationToken);
+        await SeededClientValidator.EnsureCanBeSeededAsync(
+            "conformance client",
+            clientId,
+            context.Tenant,
+            settings,
+            cancellationToken
+        );
 
         var secrets = new List<PersistedSecret>();
         if (!string.IsNullOrEmpty(client.ClientSecret))
@@ -182,59 +177,6 @@ internal sealed class ConformanceSeedHandler(
         await store.AddAsync(persistedClient, cancellationToken);
 
         Logger.ConformanceClientSeeded(clientId, tenantId);
-    }
-
-    private void EnsureSettingsCanBeHonored(string clientId, JsonElement settings)
-    {
-        var jsonOptions = OpenIdEnvironmentProvider.Get().JsonSerializerOptions;
-        var settingErrors = SettingSerializer.ValidateSettings(
-            settings,
-            OpenIdSettingScopes.Client,
-            jsonOptions
-        );
-        if (settingErrors.Count == 0)
-            return;
-
-        var messages = settingErrors.Select(error => error.Message);
-        var details = string.Join(" ", messages);
-        throw new InvalidOperationException(
-            $"The conformance client '{clientId}' cannot be seeded: {details}"
-        );
-    }
-
-    // The client's settings materialize only after the seed, so the seed resolves the server's, the tenant's, and the
-    // client's settings itself through the effective-settings resolver, as the materialized client will (ADR-0204).
-    // See ADR-0204 and ADR-0206.
-    private async ValueTask EnsureCoherentAsync(
-        PersistedTenant tenant,
-        string clientId,
-        JsonElement clientSettings,
-        CancellationToken cancellationToken
-    )
-    {
-        var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
-        var tenantSettings = EffectiveSettingsResolver.Resolve(
-            serverSettings,
-            OpenIdSettingScopes.Tenant,
-            tenant.Settings.Value
-        );
-        var effectiveSettings = EffectiveSettingsResolver.Resolve(
-            tenantSettings,
-            OpenIdSettingScopes.Client,
-            clientSettings
-        );
-
-        var violations = ClientCoherenceValidator.Validate(effectiveSettings);
-        if (violations.Count == 0)
-            return;
-
-        var messages = violations.Select(violation =>
-            $"The '{violation.SettingName}' value '{violation.Value}' is not permitted by its effective '{violation.CeilingName}'."
-        );
-        var details = string.Join(" ", messages);
-        throw new InvalidOperationException(
-            $"The conformance client '{clientId}' cannot be seeded: {details}"
-        );
     }
 
     private IReadOnlyList<PersistedSecret> ImportKeys(string clientId, string jwks)

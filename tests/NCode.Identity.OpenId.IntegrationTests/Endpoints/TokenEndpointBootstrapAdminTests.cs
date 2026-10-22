@@ -126,6 +126,40 @@ public class TokenEndpointBootstrapAdminTests
     }
 
     [Fact]
+    public async Task PostToken_WhenTheServerDoesNotPermitClientSecretBasic_RefusesToSeedTheBootstrapClient()
+    {
+        // The bootstrap client registers client_secret_basic, which the server's ceiling excludes, so the seed refuses
+        // to store a client the tenant could never serve.
+        using var factory = new HostApplicationFactory();
+        using var configured = factory.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration(
+                (_, config) =>
+                    config.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
+                            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
+                            ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
+                            ["OpenId:Server:Settings:token_endpoint_auth_methods_supported:0"] =
+                                OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+                        }
+                    )
+            )
+        );
+        var client = configured.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        // The first request provisions the tenant, which runs the seed and fails; the developer exception page answers.
+        using var request = CreateBootstrapTokenRequest();
+        using var response = await client.SendAsync(request);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Contains("cannot be seeded", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task PostToken_WhenBootstrapNotConfigured_DoesNotIssueTokenForBootstrapClient()
     {
         using var factory = new HostApplicationFactory();

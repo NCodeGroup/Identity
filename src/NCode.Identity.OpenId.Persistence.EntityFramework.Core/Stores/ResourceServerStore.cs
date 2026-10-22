@@ -427,7 +427,7 @@ internal class ResourceServerStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 "The resource server has been modified by another process. Please reload and try again."
             );
         }
@@ -622,7 +622,7 @@ internal class ResourceServerStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The settings for the resource server with ResourceServerId='{resourceServerId}' have been modified by another process. Please reload and try again."
             );
         }
@@ -768,7 +768,7 @@ internal class ResourceServerStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The secret with SecretId='{persistedSecret.SecretId}' has been modified by another process. Please reload and try again."
             );
         }

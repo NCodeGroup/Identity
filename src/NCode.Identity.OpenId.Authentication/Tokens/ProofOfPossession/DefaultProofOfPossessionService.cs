@@ -253,7 +253,9 @@ internal class DefaultProofOfPossessionService(
         }
 
         var proofJwt = proofs.Count == 1 ? proofs[0] : null;
-        var requireDPoP = openIdClient.Settings.GetValue(OpenIdSettingKeys.RequireDPoP);
+        var requireDPoP = openIdClient.Settings.GetValue(
+            OpenIdSettingKeys.RequireDPoPBoundAccessTokens
+        );
 
         if (string.IsNullOrEmpty(proofJwt))
         {

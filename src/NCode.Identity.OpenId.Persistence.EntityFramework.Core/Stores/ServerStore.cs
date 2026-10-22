@@ -251,7 +251,7 @@ internal class ServerStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The OpenId Server with ServerId='{serverId}' has been modified by another process. Please reload and try again."
             );
         }
@@ -279,7 +279,7 @@ internal class ServerStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The settings for OpenId Server with ServerId='{serverId}' have been modified by another process. Please reload and try again."
             );
         }
@@ -384,7 +384,7 @@ internal class ServerStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The secret with SecretId='{persistedSecret.SecretId}' has been modified by another process. Please reload and try again."
             );
         }

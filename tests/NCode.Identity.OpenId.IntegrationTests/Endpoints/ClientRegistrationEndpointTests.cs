@@ -328,7 +328,7 @@ public class ClientRegistrationEndpointTests
         await AssertRegistrationErrorAsync(
             response,
             OpenIdConstants.ErrorCodes.InvalidClientMetadata,
-            "response_types"
+            OpenIdSettingNames.ResponseTypesSupported
         );
     }
 
@@ -899,13 +899,13 @@ public class ClientRegistrationEndpointTests
     }
 
     [Theory]
-    [InlineData("push", null, "backchannel_client_notification_endpoint")]
+    [InlineData("push", null, OpenIdSettingNames.ClientNotificationEndpoint)]
     [InlineData(
         "ping",
         "http://client.example/ciba",
         OpenIdSettingNames.ClientNotificationEndpoint
     )]
-    [InlineData("poll", null, "backchannel_user_code_parameter")]
+    [InlineData("poll", null, OpenIdSettingNames.BackchannelUserCodeParameterSupported)]
     public async Task PostRegister_WhenTheCibaMetadataCannotBeHonored_ReturnsInvalidClientMetadata(
         string deliveryMode,
         string? notificationEndpoint,
@@ -925,7 +925,7 @@ public class ClientRegistrationEndpointTests
             metadata["backchannel_client_notification_endpoint"] = notificationEndpoint;
 
         // The server does not support the user_code parameter by default, so no client may claim it.
-        if (expectedQuotedName == "backchannel_user_code_parameter")
+        if (expectedQuotedName == OpenIdSettingNames.BackchannelUserCodeParameterSupported)
             metadata["backchannel_user_code_parameter"] = true;
 
         using var response = await client.PostAsJsonAsync("/oauth2/register", metadata);
@@ -1015,6 +1015,71 @@ public class ClientRegistrationEndpointTests
         using var read = JsonDocument.Parse(readBody);
         Assert.True(
             read.RootElement.GetProperty("tls_client_certificate_bound_access_tokens").GetBoolean()
+        );
+    }
+
+    #endregion
+
+    #region DPoP-Bound Access Tokens
+
+    [Fact]
+    public async Task PostRegister_WithDPoPBoundTokens_StoresTheRequirementAndTheTokenEndpointEnforcesIt()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["dpop_bound_access_tokens"] = true,
+            }
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registered = JsonDocument.Parse(registrationBody);
+        var root = registered.RootElement;
+        Assert.True(root.GetProperty("dpop_bound_access_tokens").GetBoolean());
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        using var read = JsonDocument.Parse(readBody);
+        Assert.True(read.RootElement.GetProperty("dpop_bound_access_tokens").GetBoolean());
+
+        // The stored requirement is the client's own: a token request without a DPoP proof is refused.
+        using var tokenContent = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["client_id"] = root.GetProperty("client_id").GetString()!,
+                ["client_secret"] = root.GetProperty("client_secret").GetString()!,
+            }
+        );
+        using var tokenResponse = await client.PostAsync("/oauth2/token", tokenContent);
+
+        var tokenBody = await tokenResponse.Content.ReadAsStringAsync();
+        Assert.True(tokenResponse.StatusCode == HttpStatusCode.BadRequest, tokenBody);
+        using var token = JsonDocument.Parse(tokenBody);
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidDPoPProof,
+            token.RootElement.GetProperty("error").GetString()
         );
     }
 

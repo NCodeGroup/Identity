@@ -182,6 +182,14 @@ public sealed class RegisterClientRequest
     public bool? TlsClientCertificateBoundAccessTokens { get; init; }
 
     /// <summary>
+    /// Gets whether the client always presents a DPoP proof at the token endpoint, so its access tokens are bound to
+    /// its DPoP key (RFC 9449 §5.2); <see langword="false"/> when omitted.
+    /// </summary>
+    [JsonPropertyName("dpop_bound_access_tokens")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? DPoPBoundAccessTokens { get; init; }
+
+    /// <summary>
     /// Gets the client's JSON Web Key Set document value, which contains the client's public keys.
     /// </summary>
     [JsonPropertyName("jwks")]

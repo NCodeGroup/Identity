@@ -54,8 +54,10 @@ outer parameter such as `response_mode` could change a signed request.
    access tokens. It is a default and not a ceiling, so an operator can turn it off, and the coherence rule
    ([ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)) then reports each client that the
    profile makes require binding. At the server root the default replaces the descriptor's `false` but never a value
-   that the configuration sets ([ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md)). A client
-   that wants DPoP selects `fapi2`.
+   that the configuration sets ([ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md)). The default
+   applies where a server or a tenant selects the profile; a client that selects it alone takes its tenant's support
+   ([ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md)). A client that wants DPoP selects
+   `fapi2`.
 4. **Defaults.** PS256 is the default for signed ID tokens, introspection responses, and authorization responses,
    because the protocol default (RS256) is outside the ceiling.
 5. **Requirements.** `ConfidentialClientRequirement` refuses a public client at the authorization endpoint. The new

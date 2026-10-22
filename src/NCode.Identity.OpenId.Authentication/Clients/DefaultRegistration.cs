@@ -174,6 +174,28 @@ internal static class DefaultRegistration
                 >()
             );
 
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IClientCoherenceRule,
+                    DPoPBoundAccessTokenCoherenceRule
+                >()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IClientCoherenceRule, RegisteredValueCoherenceRule>()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IClientCoherenceRule, IdTokenEncryptionCoherenceRule>()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IClientCoherenceRule,
+                    BackchannelTokenDeliveryCoherenceRule
+                >()
+            );
+
             return builder;
         }
     }

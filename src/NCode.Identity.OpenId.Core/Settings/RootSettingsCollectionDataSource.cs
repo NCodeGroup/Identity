@@ -237,7 +237,11 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         var configuredSettings = SettingCollectionFactory.Create();
         LoadFromConfiguration(configuredSettings);
 
-        return SecurityProfileCatalog.Expand(configuredSettings, baselineSettings);
+        return SecurityProfileCatalog.Expand(
+            configuredSettings,
+            OpenIdSettingScopes.Server,
+            baselineSettings
+        );
     }
 
     private void LoadDefaultSettingsProviders(ISettingCollection settings)

@@ -47,11 +47,13 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
             .Setup(x =>
                 x.Expand(
                     It.IsAny<IReadOnlyCollection<Setting>>(),
+                    OpenIdSettingScopes.Server,
                     It.IsAny<IReadOnlyCollection<Setting>>()
                 )
             )
             .Returns(
-                (IReadOnlyCollection<Setting> settings, IReadOnlyCollection<Setting> _) => settings
+                (IReadOnlyCollection<Setting> settings, string _, IReadOnlyCollection<Setting> _) =>
+                    settings
             )
             .Verifiable();
 
@@ -136,11 +138,16 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
             .Setup(x =>
                 x.Expand(
                     It.IsAny<IReadOnlyCollection<Setting>>(),
+                    OpenIdSettingScopes.Server,
                     It.IsAny<IReadOnlyCollection<Setting>>()
                 )
             )
             .Callback(
-                (IReadOnlyCollection<Setting> scope, IReadOnlyCollection<Setting> baseline) =>
+                (
+                    IReadOnlyCollection<Setting> scope,
+                    string _,
+                    IReadOnlyCollection<Setting> baseline
+                ) =>
                 {
                     capturedScope = scope;
                     capturedBaseline = baseline;

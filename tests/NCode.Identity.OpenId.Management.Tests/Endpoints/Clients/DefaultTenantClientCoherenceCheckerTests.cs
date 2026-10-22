@@ -33,7 +33,6 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
 
     private MockRepository MockRepository { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
-    private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IClientCoherenceValidator> MockClientCoherenceValidator { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IClientStore> MockClientStore { get; }
@@ -45,7 +44,6 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
-        MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockClientCoherenceValidator = MockRepository.Create<IClientCoherenceValidator>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockClientStore = MockRepository.Create<IClientStore>();
@@ -54,7 +52,6 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
 
         Checker = new DefaultTenantClientCoherenceChecker(
             MockAmbientTenantAccessor.Object,
-            MockEffectiveSettingsResolver.Object,
             MockClientCoherenceValidator.Object
         );
     }
@@ -78,17 +75,6 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
         MockAmbientTenantAccessor
             .Setup(x => x.BeginScope(TenantId))
             .Returns(mockScope.Object)
-            .Verifiable();
-
-        MockEffectiveSettingsResolver
-            .Setup(x =>
-                x.Resolve(
-                    It.IsAny<IReadOnlySettingCollection>(),
-                    OpenIdSettingScopes.Client,
-                    It.IsAny<JsonElement>()
-                )
-            )
-            .Returns((IReadOnlySettingCollection parent, string _, JsonElement _) => parent)
             .Verifiable();
 
         // Two pages, so the checker follows the cursor rather than stopping after the first page.
@@ -129,7 +115,7 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
         params ClientCoherenceViolation[] violations
     ) =>
         MockClientCoherenceValidator
-            .Setup(x => x.Validate(mockSettings.Object))
+            .Setup(x => x.Validate(mockSettings.Object, It.IsAny<JsonElement>()))
             .Returns(violations)
             .Verifiable();
 

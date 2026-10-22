@@ -184,6 +184,9 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   (`.HasIndex(…).IsUnique().HasFilter("… IS NOT NULL")`). A test that must observe the constraint (a duplicate
   rejected, or multiple rows allowed past a filtered `NULL`) runs against **SQLite in-memory** (`EnsureCreated` builds
   and enforces the index); the collision surfaces as a `DbUpdateException` on the offending `SaveChanges`.
+- 👁 **A lost race through the store manager is `StoreConcurrencyException`;** only a test that calls
+  `DbContext.SaveChangesAsync` directly sees EF's `DbUpdateConcurrencyException`. See
+  [ADR-0208](../../docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).
 - 👁 **A global query filter is bypassed for change-tracked entities.** A `HasQueryFilter` predicate (e.g. the
   tenant-scoping filter, [ADR-0018](../../docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md)) is
   applied to a **database** query, but a first-level-cache hit — an entity already tracked from a prior `Add`/read,
@@ -224,15 +227,17 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   issuer; and a directly built host that starts configures `StaticSingle:Issuer`. A tenant seeded without an issuer
   fails closed when it is served.
 - 👁 **The integration host runs in the `Development` environment, without its launch profile.**
-  `HostApplicationFactory` sets `Development`, so the host loads `appsettings.Development.json` — the developer seed and
-  its `DeveloperInteractiveSeed:TenantId` — but never `launchSettings.json`, whose environment variables pin each
-  launch profile's issuer and bootstrap administrator. Configure what a test depends on in the factory
-  (`ConfigureAppConfiguration`) rather than assuming a launch profile's value, and expect an unhandled exception to reach
-  the client as the developer exception page's `500`.
-- 👁 **The developer seed's clients share the static tenant.** The integration host runs `Development`, so tenant
-  `default` holds clients with `http://localhost` redirect URIs; a management test that changes the tenant's settings is
-  checked against them, so a positive control keeps their kinds permitted and a negative test asserts its own
-  `client_id` in the problem (`ClientCoherenceTests`).
+  `HostApplicationFactory` sets `Development`, so the host loads `appsettings.Development.json` — the developer seed's
+  `DeveloperInteractiveSeed:TenantId`, though the factory seeds none of the developer clients — but never
+  `launchSettings.json`, whose environment variables pin each launch profile's issuer and bootstrap administrator.
+  Configure what a test depends on in the factory (`ConfigureAppConfiguration`) rather than assuming a launch profile's
+  value, and expect an unhandled exception to reach the client as the developer exception page's `500`.
+- 👁 **The integration host seeds no developer clients unless a test opts in.** The developer clients are public and use
+  `http` redirect URIs, and the seeder checks them for coherence, so with them seeded a test that narrows the server's
+  or the tenant's ceilings (a FAPI profile, `token_endpoint_auth_methods_supported`, `redirect_uri_kinds_supported`)
+  would stop the static tenant from being served. `HostApplicationFactory.SeedsDeveloperClients` is `false`, and a test
+  that exercises the developer clients uses `DeveloperSeedingHostApplicationFactory`, which returns `true`
+  (`DeveloperSpaClientSeedingTests`).
 - 👁 **Configuration the composition root reads while it registers services is a host setting in a test factory.** A
   `ConfigureAppConfiguration` overlay reaches options bound later, but not a value `Program.cs` reads to decide what to
   register — `DeveloperKeys:Mode`, read by `AddDevelopmentEnvironment`, keeps its default and the test silently runs

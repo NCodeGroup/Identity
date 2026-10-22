@@ -23,3 +23,7 @@ NCode.Persistence.Stores.PagedResult<T>.Items.init -> void
 NCode.Persistence.Stores.PagedResult<T>.NextCursor.get -> string?
 NCode.Persistence.Stores.PagedResult<T>.NextCursor.init -> void
 NCode.Persistence.Stores.PagedResult<T>.PagedResult() -> void
+NCode.Persistence.Stores.StoreConcurrencyException
+NCode.Persistence.Stores.StoreConcurrencyException.StoreConcurrencyException() -> void
+NCode.Persistence.Stores.StoreConcurrencyException.StoreConcurrencyException(string! message) -> void
+NCode.Persistence.Stores.StoreConcurrencyException.StoreConcurrencyException(string! message, System.Exception! inner) -> void

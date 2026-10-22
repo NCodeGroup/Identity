@@ -915,9 +915,10 @@ public static class OpenIdSettingKeys
     public static SettingKey<bool> DPoPNonceRequired => new(OpenIdSettingNames.DPoPNonceRequired);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_dpop' setting (RFC 9449).
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_dpop_bound_access_tokens' setting (RFC 9449).
     /// </summary>
-    public static SettingKey<bool> RequireDPoP => new(OpenIdSettingNames.RequireDPoP);
+    public static SettingKey<bool> RequireDPoPBoundAccessTokens =>
+        new(OpenIdSettingNames.RequireDPoPBoundAccessTokens);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_tls_client_certificate_bound_access_tokens' setting

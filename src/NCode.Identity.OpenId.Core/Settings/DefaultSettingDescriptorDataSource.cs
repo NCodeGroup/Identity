@@ -1359,11 +1359,11 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Or,
             };
 
-            // require_dpop: whether the client must present a valid DPoP proof at the token endpoint (RFC 9449),
-            // default false. Floor (Or): once a parent requires it, a child cannot un-require it.
+            // require_dpop_bound_access_tokens: whether the client must present a valid DPoP proof at the token
+            // endpoint (RFC 9449), default false. Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
-                Name = OpenIdSettingNames.RequireDPoP,
+                Name = OpenIdSettingNames.RequireDPoPBoundAccessTokens,
                 AppliesTo = Clients,
                 Default = false,
 

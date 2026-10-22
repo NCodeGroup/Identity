@@ -79,7 +79,9 @@ public interface IPersistedGrantService
     /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the payload from the persisted grant.</returns>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the payload from the
+    /// persisted grant that this call consumed. The result is <c>null</c> when the grant does not exist, is not active
+    /// or was already consumed, and also when a concurrent request consumed the grant first.</returns>
     ValueTask<PersistedGrant<TPayload>?> ConsumeOnceOrDefault<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,

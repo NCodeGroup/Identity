@@ -45,6 +45,10 @@ public class TokenEndpointAuthMethodCoherenceRuleTests : BaseTests
         MockSettings.Setup(x => x.TryGetValue(key, out output)).Returns(true);
     }
 
+    private static ClientCoherenceContext CreateContext(
+        IReadOnlySettingCollection effectiveSettings
+    ) => new() { RegisteredSettings = effectiveSettings, EffectiveSettings = effectiveSettings };
+
     #endregion
 
     #region FindViolations Tests
@@ -59,7 +63,7 @@ public class TokenEndpointAuthMethodCoherenceRuleTests : BaseTests
         );
 
         var violations = new TokenEndpointAuthMethodCoherenceRule().FindViolations(
-            MockSettings.Object
+            CreateContext(MockSettings.Object)
         );
 
         Assert.Empty(violations);
@@ -71,7 +75,7 @@ public class TokenEndpointAuthMethodCoherenceRuleTests : BaseTests
         SetupValues(OpenIdSettingKeys.TokenEndpointAuthMethodsSupported, "private_key_jwt");
 
         var violations = new TokenEndpointAuthMethodCoherenceRule().FindViolations(
-            MockSettings.Object
+            CreateContext(MockSettings.Object)
         );
 
         var violation = Assert.Single(violations);
@@ -89,7 +93,7 @@ public class TokenEndpointAuthMethodCoherenceRuleTests : BaseTests
     public void FindViolations_WhenTheCeilingIsUnset_ReturnsEmpty()
     {
         var violations = new TokenEndpointAuthMethodCoherenceRule().FindViolations(
-            MockSettings.Object
+            CreateContext(MockSettings.Object)
         );
 
         Assert.Empty(violations);

@@ -2927,3 +2927,33 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   validation constructs no handler (a test registers a throwing handler to prove it).
   `DefaultClientAuthenticationService` refuses to compose when handlers and descriptors do not correspond, and dynamic
   registration issues a `client_secret` from the descriptor. ADR-0207._
+- **`R16` — Route CRL/OCSP fetches through the outbound-request guard.** `DisableCertificateDownloads` does not stop
+  revocation fetches, so a tenant-anchored CA can make the server fetch internal URLs. Fetch revocation data through
+  the guarded `HttpClient` and validate offline, or default to offline; record it in ADR-0173. Touch point:
+  `DefaultClientCertificateChainValidator.cs:70-85, 132-137`.
+  _Closed: the platform `X509Chain` retrieves nothing (`NoCheck`, certificate downloads disabled); the server checks
+  revocation through `IClientCertificateRevocationChecker`, whose default fetches complete CRLs through the guarded
+  named client (5 s, 10 MiB, no redirects), verifies the issuer, signature, currency and issuing distribution point,
+  caches per distribution point and issuer, and fails closed on any outcome but `Good`. The `offline` mode is retired
+  and translated to `online`. ADR-0173 decision 4; OCSP and partial CRLs are `R64`._
+- **`R17` — Limit initial access tokens scoped to a resource server.** They are reusable and may never expire.
+  Consume after a successful registration or require a lifetime. Touch points:
+  `DefaultInitialAccessTokenValidator.cs:57`, `GrantApiEndpointHandler.cs:261-272`.
+  _Closed: every initial access token is spent by the one registration it authorizes
+  (`IInitialAccessTokenValidator.TryConsumeAsync`, the grant row's atomic consume, after every check passes); minting
+  defaults to one day and caps at 30 days, and a grant without an expiry authorizes nothing. ADR-0063 and ADR-0192
+  decision 6; the `500` of a concurrent second spend is `R66`._
+- **`R18` — Match `tls_client_auth_subject_dn` by RFC 4517 `distinguishedNameMatch`.** _pre._ Comparing DER bytes
+  fails for UTF8String-encoded names, which most CAs issue. Touch point:
+  `TlsClientAuthClientAuthenticationHandler.cs:159-168`.
+  _Closed: `DistinguishedName` parses RFC 4514 strings and matches by RFC 4517 `distinguishedNameMatch` (prepared string
+  values compared case-insensitively, multi-valued RDNs as sets); the setting rule and the `tls_client_auth` handler
+  share it. ADR-0173 decision 7._
+- **`R42` — Split `tls_client_certificate_bound_access_tokens`.** _pre._ Separate advertised server support from the
+  per-client requirement, as DPoP does; today enabling it for a tenant forces every client to present a certificate.
+  _Closed: `tls_client_certificate_bound_access_tokens` is advertised server and tenant support, and
+  `require_tls_client_certificate_bound_access_tokens` is a client requirement (`Or` floor) that dynamic registration
+  maps from the RFC 8705 §3.4 metadata. A coherence rule refuses a requirement the tenant does not support, FAPI 1.0
+  Advanced requires binding and defaults support on, and the `SeparateCertificateBindingRequirement` migration
+  translates stored documents. A profile's defaults take effect at the server root (ADR-0148). ADR-0097; the scope-blind
+  profile default is `R68`._

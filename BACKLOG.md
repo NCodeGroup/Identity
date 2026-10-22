@@ -418,16 +418,6 @@ _None remaining._
 - **`R15` — Make `PromoteMtlsEndpointAliasAuthority` safe for the previous release and rollback.** Its SQL removes the
   settings key the previous release reads, and `Down()` does not restore it. Copy now and remove in a later contract
   step. Touch point: `20261021021124_PromoteMtlsEndpointAliasAuthority.cs:41-77`.
-- **`R16` — Route CRL/OCSP fetches through the outbound-request guard.** `DisableCertificateDownloads` does not stop
-  revocation fetches, so a tenant-anchored CA can make the server fetch internal URLs. Fetch revocation data through
-  the guarded `HttpClient` and validate offline, or default to offline; record it in ADR-0173. Touch point:
-  `DefaultClientCertificateChainValidator.cs:70-85, 132-137`.
-- **`R17` — Limit initial access tokens scoped to a resource server.** They are reusable and may never expire.
-  Consume after a successful registration or require a lifetime. Touch points:
-  `DefaultInitialAccessTokenValidator.cs:57`, `GrantApiEndpointHandler.cs:261-272`.
-- **`R18` — Match `tls_client_auth_subject_dn` by RFC 4517 `distinguishedNameMatch`.** _pre._ Comparing DER bytes
-  fails for UTF8String-encoded names, which most CAs issue. Touch point:
-  `TlsClientAuthClientAuthenticationHandler.cs:159-168`.
 - **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
   replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
   `src/frontend/apps/auth/src/main.tsx:12-21`.
@@ -544,8 +534,6 @@ _None remaining._
 
 - **`R41` — Rate-limit policy as data.** One descriptor table for partitions, quotas, and meters, a batched Valkey
   round trip, and one metrics wrapper in the Valkey adapters.
-- **`R42` — Split `tls_client_certificate_bound_access_tokens`.** _pre._ Separate advertised server support from the
-  per-client requirement, as DPoP does; today enabling it for a tenant forces every client to present a certificate.
 - **`R44` — Key the conformance seed by `client_id`.** Stop passing keys by array position
   (`run-conformance.ps1:318-321`), generate both FAPI templates from one source, and derive `discoveryUrl` from
   `$IssuerUrl`.

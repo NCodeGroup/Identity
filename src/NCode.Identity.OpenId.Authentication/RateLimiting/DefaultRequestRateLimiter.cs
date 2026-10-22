@@ -78,8 +78,11 @@ internal class DefaultRequestRateLimiter(
     /// </summary>
     internal static TimeSpan StoreRetryInterval => TimeSpan.FromSeconds(10);
 
-    // The UTC ticks before which the counter store is not called because it failed; zero while it answers.
-    private long _storeUnavailableUntilTicks;
+    private const long BreakerClosed = long.MinValue;
+
+    // The TimeProvider timestamp of the store failure that opened the breaker, or BreakerClosed while the store answers.
+    // A monotonic timestamp, so a step of the wall clock cannot hold the breaker open.
+    private long _storeFailedTimestamp = BreakerClosed;
 
     private IExpiringCounterSet CounterSet { get; } = counterSet;
 
@@ -209,7 +212,7 @@ internal class DefaultRequestRateLimiter(
         );
         var previousWindowStart = windowStart - Window;
 
-        if (IsStoreUnavailable(now))
+        if (!IsStoreAvailable(out var breakerState))
             return AdmitWithoutStore(partition);
 
         long current;
@@ -238,10 +241,10 @@ internal class DefaultRequestRateLimiter(
                 || !cancellationToken.IsCancellationRequested
             )
         {
-            return OnStoreFailed(tenantId, partition, now, exception);
+            return OnStoreFailed(tenantId, partition, exception);
         }
 
-        OnStoreAnswered();
+        OnStoreAnswered(breakerState);
 
         var elapsed = now - windowStart;
         var previousWeight = 1.0 - elapsed / Window;
@@ -274,7 +277,7 @@ internal class DefaultRequestRateLimiter(
         var dayStart = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);
         var dayEnd = dayStart + QuotaWindow;
 
-        if (IsStoreUnavailable(now))
+        if (!IsStoreAvailable(out var breakerState))
             return AdmitWithoutStore(partition);
 
         long count;
@@ -294,10 +297,10 @@ internal class DefaultRequestRateLimiter(
                 || !cancellationToken.IsCancellationRequested
             )
         {
-            return OnStoreFailed(tenantId, partition, now, exception);
+            return OnStoreFailed(tenantId, partition, exception);
         }
 
-        OnStoreAnswered();
+        OnStoreAnswered(breakerState);
 
         if (count <= quota)
         {
@@ -344,8 +347,14 @@ internal class DefaultRequestRateLimiter(
         }
     }
 
-    private bool IsStoreUnavailable(DateTimeOffset now) =>
-        now.UtcTicks < Interlocked.Read(ref _storeUnavailableUntilTicks);
+    // The breaker state a call begins with is kept, so only an answer to a call made after the breaker opened can close it;
+    // an answer to an older call cannot undo a newer failure.
+    private bool IsStoreAvailable(out long breakerState)
+    {
+        breakerState = Interlocked.Read(ref _storeFailedTimestamp);
+        return breakerState == BreakerClosed
+            || TimeProvider.GetElapsedTime(breakerState) >= StoreRetryInterval;
+    }
 
     private RateLimitDecision AdmitWithoutStore(string partition)
     {
@@ -355,27 +364,22 @@ internal class DefaultRequestRateLimiter(
 
     // Only the failure of a store that was answering logs a warning; a retry that fails again extends the pause quietly,
     // so an outage is logged once per replica rather than once per request.
-    private RateLimitDecision OnStoreFailed(
-        string tenantId,
-        string partition,
-        DateTimeOffset now,
-        Exception exception
-    )
+    private RateLimitDecision OnStoreFailed(string tenantId, string partition, Exception exception)
     {
-        var retryWhen = now + StoreRetryInterval;
-        var previous = Interlocked.Exchange(ref _storeUnavailableUntilTicks, retryWhen.UtcTicks);
-        if (previous == 0)
+        var previous = Interlocked.Exchange(ref _storeFailedTimestamp, TimeProvider.GetTimestamp());
+        if (previous == BreakerClosed)
             Logger.RateLimitStoreUnavailable(tenantId, partition, StoreRetryInterval, exception);
 
         return AdmitWithoutStore(partition);
     }
 
-    // Read before it is written, so a store that keeps answering costs no write to the shared field.
-    private void OnStoreAnswered()
+    // A store that keeps answering costs no write to the shared field.
+    private void OnStoreAnswered(long breakerState)
     {
         if (
-            Interlocked.Read(ref _storeUnavailableUntilTicks) != 0
-            && Interlocked.Exchange(ref _storeUnavailableUntilTicks, 0) != 0
+            breakerState != BreakerClosed
+            && Interlocked.CompareExchange(ref _storeFailedTimestamp, BreakerClosed, breakerState)
+                == breakerState
         )
             Logger.RateLimitStoreRecovered();
     }

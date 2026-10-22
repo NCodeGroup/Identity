@@ -560,6 +560,13 @@ rationale.
   work and an increment after it. See
   [ADR-0196](../../docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) and
   [ADR-0198](../../docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
+- 👁 **Public metadata is unmetered, and a limit an endpoint enforces refuses through `RateLimitErrors.Refuse`.** An
+  endpoint any anonymous caller or cache fetches (discovery, the JSON Web Key Set) is marked `WithOpenIdMetered(false)`,
+  so it spends only the per-minute limits, never the tenant's daily quota or billable usage. `RateLimitEndpointFilter`
+  records usage after the endpoint runs, so a `429` raised inside an endpoint must come from `RateLimitErrors.Refuse`,
+  which marks the request refused; any other path bills the refused request. See
+  [ADR-0198](../../docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) and
+  [ADR-0199](../../docs/adr/0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.

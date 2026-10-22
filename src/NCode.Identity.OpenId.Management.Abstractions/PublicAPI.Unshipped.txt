@@ -240,7 +240,7 @@ NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResou
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.Description.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ResourceServerId.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ResourceServerId.init -> void
-NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ExpiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ExpiresWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.GrantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.GrantId.init -> void

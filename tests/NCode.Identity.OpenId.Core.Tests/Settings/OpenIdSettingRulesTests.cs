@@ -162,7 +162,7 @@ public class OpenIdSettingRulesTests
 
     [Theory]
     [InlineData("online", true)]
-    [InlineData("offline", true)]
+    [InlineData("offline", false)]
     [InlineData("none", true)]
     [InlineData("Online", false)]
     [InlineData("", false)]
@@ -281,6 +281,12 @@ public class OpenIdSettingRulesTests
     [Theory]
     [InlineData("CN=client, O=Example", true)]
     [InlineData("   ", false)]
+    [InlineData("cn=client,o=Example", true)]
+    [InlineData("2.5.4.97=PSDGB-FCA-123456,CN=x", true)]
+    [InlineData("CN", false)]
+    [InlineData("XX=y", false)]
+    [InlineData("CN=a,", false)]
+    [InlineData("/C=US/O=Example", false)]
     public void DistinguishedName_AcceptsAParsableName(string value, bool expected)
     {
         Assert.Equal(expected, IsValid(OpenIdSettingRules.DistinguishedName(), value));

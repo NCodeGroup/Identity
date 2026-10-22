@@ -100,7 +100,9 @@ public class Fapi1AdvancedSecurityProfileTests : BaseTests
         );
         Assert.True(
             Assert.IsType<bool>(
-                recorder.Values[OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens.SettingName]
+                recorder.Values[
+                    OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens.SettingName
+                ]
             )
         );
         Assert.True(
@@ -249,7 +251,7 @@ public class Fapi1AdvancedSecurityProfileTests : BaseTests
 
         new Fapi1AdvancedSecurityProfile().ApplyDefaultSettings(recorder);
 
-        Assert.Equal(3, recorder.Values.Count);
+        Assert.Equal(4, recorder.Values.Count);
         Assert.Equal(
             ps256,
             Assert.IsType<string>(
@@ -266,6 +268,11 @@ public class Fapi1AdvancedSecurityProfileTests : BaseTests
             ps256,
             Assert.IsType<string>(
                 recorder.Values[OpenIdSettingKeys.AuthorizationSignedResponseAlg.SettingName]
+            )
+        );
+        Assert.True(
+            Assert.IsType<bool>(
+                recorder.Values[OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens.SettingName]
             )
         );
     }

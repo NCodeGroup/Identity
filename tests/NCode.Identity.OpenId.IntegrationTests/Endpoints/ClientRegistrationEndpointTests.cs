@@ -938,4 +938,85 @@ public class ClientRegistrationEndpointTests
     }
 
     #endregion
+
+    #region Certificate-Bound Access Tokens
+
+    [Fact]
+    public async Task PostRegister_WithCertificateBoundTokens_WhenTheServerDoesNotSupportThem_ReturnsInvalidClientMetadata()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["tls_client_certificate_bound_access_tokens"] = true,
+            }
+        );
+
+        await AssertRegistrationErrorAsync(
+            response,
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            "tls_client_certificate_bound_access_tokens"
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithCertificateBoundTokens_WhenTheServerSupportsThem_StoresAndReportsThem()
+    {
+        using var factory = new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
+                ["OpenId:Server:Settings:tls_client_certificate_bound_access_tokens"] = "true",
+            }
+        );
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["token_endpoint_auth_method"] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .ClientSecretPost,
+                ["tls_client_certificate_bound_access_tokens"] = true,
+            }
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registered = JsonDocument.Parse(registrationBody);
+        var root = registered.RootElement;
+        Assert.True(root.GetProperty("tls_client_certificate_bound_access_tokens").GetBoolean());
+
+        using var readRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            root.GetProperty("registration_client_uri").GetString()
+        );
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            root.GetProperty("registration_access_token").GetString()
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.OK, readBody);
+        using var read = JsonDocument.Parse(readBody);
+        Assert.True(
+            read.RootElement.GetProperty("tls_client_certificate_bound_access_tokens").GetBoolean()
+        );
+    }
+
+    #endregion
 }

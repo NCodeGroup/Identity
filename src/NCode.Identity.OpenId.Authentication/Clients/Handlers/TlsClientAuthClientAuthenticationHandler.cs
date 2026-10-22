@@ -23,6 +23,7 @@ using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
+using NCode.Identity.OpenId.ClientCertificates;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -35,7 +36,9 @@ namespace NCode.Identity.OpenId.Authentication.Clients.Handlers;
 /// presented mutual-TLS client certificate must chain to one of the client's configured trust anchors (validated by
 /// <see cref="IClientCertificateChainValidator"/>, never by the TLS terminator alone), and its subject distinguished
 /// name or a subject alternative name must match the single expected identity the client registered
-/// (<c>tls_client_auth_subject_dn</c> or one of the <c>tls_client_auth_san_*</c> values).
+/// (<c>tls_client_auth_subject_dn</c> or one of the <c>tls_client_auth_san_*</c> values). The subject distinguished
+/// name is matched by RFC 4517 <c>distinguishedNameMatch</c> (see <see cref="DistinguishedName"/>), so the string
+/// encoding, letter case and whitespace of its values do not matter.
 /// </summary>
 internal sealed class TlsClientAuthClientAuthenticationHandler(
     IOpenIdClientResolver clientResolver,
@@ -158,18 +161,17 @@ internal sealed class TlsClientAuthClientAuthenticationHandler(
 
     private static bool SubjectDnMatches(string expectedSubjectDn, X509Certificate2 certificate)
     {
+        // A configured DN that cannot be parsed cannot match any certificate.
+        if (!DistinguishedName.TryParse(expectedSubjectDn, out var expected))
+            return false;
+
         try
         {
-            // Compare canonical DER encodings so formatting/whitespace differences do not matter.
-            var expected = new X500DistinguishedName(expectedSubjectDn);
-            return CryptographicOperations.FixedTimeEquals(
-                expected.RawData,
-                certificate.SubjectName.RawData
-            );
+            return expected.Matches(DistinguishedName.FromX500(certificate.SubjectName));
         }
         catch (CryptographicException)
         {
-            // A malformed configured DN cannot match any certificate.
+            // A subject that is not a valid encoded distinguished name cannot match.
             return false;
         }
     }

@@ -43,7 +43,8 @@ namespace NCode.Identity.OpenId.Settings;
 /// <para>
 /// The server is the top of the settings cascade, so the security profiles its settings select are expanded through
 /// <see cref="ISecurityProfileCatalog"/> exactly as a tenant's or a client's are, and they then bind every tenant and
-/// client below it.
+/// client below it. Its descriptor defaults, computed supported values and default-settings-provider values are a
+/// baseline beneath its configuration, so a selected profile's default replaces them but never a configured value.
 /// </para>
 /// </remarks>
 // See ADR-0148 (security profiles accumulate down the cascade).
@@ -225,14 +226,18 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
 
     private IEnumerable<Setting> LoadCollection()
     {
-        var settings = SettingCollectionFactory.Create();
+        // The descriptor defaults, the computed supported values and the default-settings providers are the baseline
+        // beneath the server's configuration, so a selected security profile's default replaces them but never a
+        // configured value (ADR-0148).
+        var baselineSettings = SettingCollectionFactory.Create();
+        LoadDefaults(baselineSettings);
+        LoadSupportedAlgorithms(baselineSettings);
+        LoadDefaultSettingsProviders(baselineSettings);
 
-        LoadDefaults(settings);
-        LoadSupportedAlgorithms(settings);
-        LoadDefaultSettingsProviders(settings);
-        LoadFromConfiguration(settings);
+        var configuredSettings = SettingCollectionFactory.Create();
+        LoadFromConfiguration(configuredSettings);
 
-        return SecurityProfileCatalog.Expand(settings);
+        return SecurityProfileCatalog.Expand(configuredSettings, baselineSettings);
     }
 
     private void LoadDefaultSettingsProviders(ISettingCollection settings)

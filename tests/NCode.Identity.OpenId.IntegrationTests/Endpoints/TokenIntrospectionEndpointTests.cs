@@ -926,6 +926,79 @@ public class TokenIntrospectionEndpointTests
     }
 
     [Fact]
+    public async Task PostRegister_WithAnInitialAccessTokenAlreadySpent_ReturnsUnauthorized()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var initialAccessToken = await MintInitialAccessTokenAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+        using var firstResponse = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+        );
+        var firstBody = await firstResponse.Content.ReadAsStringAsync();
+        Assert.True(firstResponse.StatusCode == HttpStatusCode.Created, firstBody);
+
+        using var secondResponse = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        var secondBody = await secondResponse.Content.ReadAsStringAsync();
+        Assert.True(secondResponse.StatusCode == HttpStatusCode.Unauthorized, secondBody);
+        using var document = JsonDocument.Parse(secondBody);
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidToken,
+            document.RootElement.GetProperty("error").GetString()
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenTheRegistrationIsRefused_LeavesTheInitialAccessTokenUnspent()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var initialAccessToken = await MintInitialAccessTokenAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+        using var refusedResponse = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.None
+        );
+        var refusedBody = await refusedResponse.Content.ReadAsStringAsync();
+        Assert.True(refusedResponse.StatusCode == HttpStatusCode.BadRequest, refusedBody);
+
+        using var response = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+    }
+
+    [Fact]
     public async Task PutRegistration_OfAClientBoundToAResourceServer_RefusesMakingItPublic()
     {
         using var factory = await CreateFactoryAsync(NoSettings);
@@ -994,6 +1067,40 @@ public class TokenIntrospectionEndpointTests
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/grants/initial-access-tokens",
             new { resourceServerId = "it-missing-rs" }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+    }
+
+    [Fact]
+    public async Task PostInitialAccessToken_WithoutALifetime_ExpiresAfterOneDay()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/grants/initial-access-tokens",
+            new { description = "it-default-lifetime" }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        using var document = JsonDocument.Parse(body);
+        var createdWhen = document.RootElement.GetProperty("createdWhen").GetDateTimeOffset();
+        var expiresWhen = document.RootElement.GetProperty("expiresWhen").GetDateTimeOffset();
+        Assert.Equal(TimeSpan.FromDays(1), expiresWhen - createdWhen);
+    }
+
+    [Fact]
+    public async Task PostInitialAccessToken_WhenTheLifetimeExceedsThirtyDays_ReturnsBadRequest()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/grants/initial-access-tokens",
+            new { lifetimeSeconds = 2_592_001 }
         );
 
         var body = await response.Content.ReadAsStringAsync();

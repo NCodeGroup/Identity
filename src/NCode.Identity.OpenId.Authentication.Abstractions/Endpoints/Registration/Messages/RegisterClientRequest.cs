@@ -174,6 +174,14 @@ public sealed class RegisterClientRequest
     public string? TlsClientAuthSanEmail { get; init; }
 
     /// <summary>
+    /// Gets whether the client's access tokens must be bound to its mutual-TLS certificate (RFC 8705 §3.4);
+    /// <see langword="false"/> when omitted.
+    /// </summary>
+    [JsonPropertyName("tls_client_certificate_bound_access_tokens")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? TlsClientCertificateBoundAccessTokens { get; init; }
+
+    /// <summary>
     /// Gets the client's JSON Web Key Set document value, which contains the client's public keys.
     /// </summary>
     [JsonPropertyName("jwks")]

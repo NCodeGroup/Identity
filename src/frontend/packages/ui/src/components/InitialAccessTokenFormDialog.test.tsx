@@ -80,11 +80,25 @@ describe('InitialAccessTokenFormDialog', () => {
   it('blocks submit on a non-positive lifetime', () => {
     const onSubmit = vi.fn();
     render(<InitialAccessTokenFormDialog open onSubmit={onSubmit} onCancel={vi.fn()} />);
-    expect(screen.getByText('Leave blank for a token that never expires.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Leave blank for a token that expires in 24 hours.'),
+    ).toBeInTheDocument();
     fireEvent.change(screen.getByTestId('iat-lifetime'), { target: { value: '0' } });
     expect(screen.getByTestId('iat-form-submit')).toBeDisabled();
     expect(
-      screen.getByText('Lifetime must be a positive whole number of seconds.'),
+      screen.getByText('Lifetime must be a whole number of seconds from 1 to 2592000 (30 days).'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('iat-form-submit'));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('blocks submit on a lifetime over thirty days', () => {
+    const onSubmit = vi.fn();
+    render(<InitialAccessTokenFormDialog open onSubmit={onSubmit} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByTestId('iat-lifetime'), { target: { value: '2592001' } });
+    expect(screen.getByTestId('iat-form-submit')).toBeDisabled();
+    expect(
+      screen.getByText('Lifetime must be a whole number of seconds from 1 to 2592000 (30 days).'),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('iat-form-submit'));
     expect(onSubmit).not.toHaveBeenCalled();
@@ -96,7 +110,7 @@ describe('InitialAccessTokenFormDialog', () => {
     expect(screen.getByTestId('iat-lifetime')).toHaveValue(Number(lifetime));
     expect(screen.getByTestId('iat-form-submit')).toBeDisabled();
     expect(
-      screen.getByText('Lifetime must be a positive whole number of seconds.'),
+      screen.getByText('Lifetime must be a whole number of seconds from 1 to 2592000 (30 days).'),
     ).toBeInTheDocument();
   });
 

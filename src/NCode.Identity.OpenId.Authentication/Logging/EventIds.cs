@@ -77,4 +77,6 @@ internal static class EventIds
     public const int TenantUsagePruneFailed = Base + 46;
     public const int RateLimitStoreRecovered = Base + 47;
     public const int EndSessionPostLogoutRedirectUriKindRejected = Base + 48;
+    public const int ClientCertificateRevocationFailed = Base + 49;
+    public const int CertificateRevocationListUnavailable = Base + 50;
 }

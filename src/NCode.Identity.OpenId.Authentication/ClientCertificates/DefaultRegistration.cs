@@ -16,10 +16,12 @@
 
 #endregion
 
+using System.Net;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
@@ -34,9 +36,10 @@ internal static class DefaultRegistration
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
         /// <summary>
-        /// Configures the client-certificate resolver, the chain validator, and the decoders of the known
-        /// forwarded-certificate formats. The forwarded-header settings are configured by the host; the server's
-        /// <c>AddConfiguration</c> binds them from <c>OpenId:MutualTls</c>.
+        /// Configures the client-certificate resolver, the chain validator, the revocation checker with its
+        /// guarded HTTP client, and the decoders of the known forwarded-certificate formats. The forwarded-header
+        /// settings are configured by the host; the server's <c>AddConfiguration</c> binds them from
+        /// <c>OpenId:MutualTls</c>.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
@@ -61,6 +64,25 @@ internal static class DefaultRegistration
                 IClientCertificateChainValidator,
                 DefaultClientCertificateChainValidator
             >();
+
+            serviceCollection.TryAddSingleton<
+                IClientCertificateRevocationChecker,
+                DefaultClientCertificateRevocationChecker
+            >();
+
+            // The CRL fetch targets a URL named by the presented client certificate, so it uses a dedicated HTTP
+            // client whose connections are pinned away from private/loopback/link-local addresses (SSRF floor) and
+            // which never follows redirects, so a redirect cannot bounce the fetch to an internal host.
+            serviceCollection
+                .AddHttpClient(DefaultClientCertificateRevocationChecker.HttpClientName)
+                .ConfigurePrimaryHttpMessageHandler(serviceProvider => new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = false,
+                    ConnectCallback = serviceProvider
+                        .GetRequiredService<IOutboundHttpForgeryGuard>()
+                        .ConnectAsync,
+                    AutomaticDecompression = DecompressionMethods.All,
+                });
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

@@ -164,6 +164,8 @@ internal class DefaultPersistedGrantService(
             SubjectId = envelope.SubjectId,
             SessionId = envelope.SessionId,
             RefreshTokenLineageId = envelope.RefreshTokenLineageId,
+            ExpiresWhen = envelope.ExpiresWhen,
+            ConsumedWhen = envelope.ConsumedWhen,
             Payload = payload,
         };
 
@@ -217,6 +219,8 @@ internal class DefaultPersistedGrantService(
             SubjectId = envelope.SubjectId,
             SessionId = envelope.SessionId,
             RefreshTokenLineageId = envelope.RefreshTokenLineageId,
+            ExpiresWhen = envelope.ExpiresWhen,
+            ConsumedWhen = utcNow,
             Payload = payload,
         };
 

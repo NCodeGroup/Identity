@@ -225,7 +225,6 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
             mockFactory,
             alphaCeiling,
             betaCeiling,
-            CreateMergedDefaults(),
             CreateProfileDefaults(),
             CreateProfileDefaults()
         );
@@ -259,7 +258,6 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
             mockFactory,
             extendedCeiling,
             baselineCeiling,
-            CreateMergedDefaults(),
             CreateProfileDefaults(),
             CreateProfileDefaults()
         );
@@ -286,7 +284,7 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
     }
 
     [Fact]
-    public void Expand_WhenAProfileSetsADefault_MergesTheScopeSettingsOverIt()
+    public void Expand_WhenAProfileSetsADefault_SetsItWhereTheScopeDoesNot()
     {
         var mockFactory = CreateStrictMock<ISettingCollectionFactory>();
         var setting = CreateDefaultSetting("PS256");
@@ -297,25 +295,49 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
         var catalog = CreateCatalog(mockFactory, alpha);
         IReadOnlyCollection<Setting> scopeSettings = [];
         var ceiling = CreateSettingCollection();
-        var defaults = CreateSettingCollection();
         var alphaDefaults = CreateProfileDefaults(setting);
-        SetupCreatedCollections(mockFactory, ceiling, defaults, alphaDefaults);
+        SetupCreatedCollections(mockFactory, ceiling, alphaDefaults);
         var declared = CreateSettingCollection();
         SelectProfiles(declared, "alpha");
         var withAlpha = CreateSettingCollection();
         SelectProfiles(withAlpha, "alpha");
         var withDefaults = CreateSettingCollection();
-        Setting? none = null;
         mockFactory.Setup(x => x.Create(scopeSettings)).Returns(declared.Object).Verifiable();
         declared.Setup(x => x.Merge(ceiling.Object)).Returns(withAlpha.Object).Verifiable();
-        defaults.Setup(x => x.TryGet(DefaultSettingName, out none)).Returns(false).Verifiable();
-        defaults.Setup(x => x.Set(setting)).Verifiable();
-        defaults.Setup(x => x.Count).Returns(1).Verifiable();
-        defaults.Setup(x => x.Merge(withAlpha.Object)).Returns(withDefaults.Object).Verifiable();
+        mockFactory
+            .Setup(x => x.Create(withAlpha.Object))
+            .Returns(withDefaults.Object)
+            .Verifiable();
+        withDefaults.Setup(x => x.Set(setting)).Verifiable();
 
         var result = catalog.Expand(scopeSettings);
 
         Assert.Same(withDefaults.Object, result);
+    }
+
+    [Fact]
+    public void Expand_WhenTheScopeSetsADefaultedSetting_KeepsTheScopeValue()
+    {
+        var mockFactory = CreateStrictMock<ISettingCollectionFactory>();
+        var setting = CreateDefaultSetting("PS256");
+        var alpha = new FakeProfile("alpha")
+        {
+            OnDefaults = builder => builder.Set(DefaultKey, "PS256"),
+        };
+        var catalog = CreateCatalog(mockFactory, alpha);
+        IReadOnlyCollection<Setting> scopeSettings = [CreateDefaultSetting("ES256")];
+        var ceiling = CreateSettingCollection();
+        SetupCreatedCollections(mockFactory, ceiling, CreateProfileDefaults(setting));
+        var declared = CreateSettingCollection();
+        SelectProfiles(declared, "alpha");
+        var withAlpha = CreateSettingCollection();
+        SelectProfiles(withAlpha, "alpha");
+        mockFactory.Setup(x => x.Create(scopeSettings)).Returns(declared.Object).Verifiable();
+        declared.Setup(x => x.Merge(ceiling.Object)).Returns(withAlpha.Object).Verifiable();
+
+        var result = catalog.Expand(scopeSettings);
+
+        Assert.Same(withAlpha.Object, result);
     }
 
     [Fact]
@@ -336,12 +358,10 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
         IReadOnlyCollection<Setting> scopeSettings = [];
         var alphaCeiling = CreateSettingCollection();
         var betaCeiling = CreateSettingCollection();
-        var defaults = CreateSettingCollection();
         SetupCreatedCollections(
             mockFactory,
             alphaCeiling,
             betaCeiling,
-            defaults,
             CreateProfileDefaults(alphaSetting),
             CreateProfileDefaults(betaSetting)
         );
@@ -351,19 +371,63 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
         var withBoth = CreateSettingCollection();
         SelectProfiles(withBoth, "alpha", "beta");
         var withDefaults = CreateSettingCollection();
-        Setting? none = null;
         mockFactory.Setup(x => x.Create(scopeSettings)).Returns(declared.Object).Verifiable();
         declared.Setup(x => x.Merge(alphaCeiling.Object)).Returns(withAlpha.Object).Verifiable();
         withAlpha.Setup(x => x.Merge(betaCeiling.Object)).Returns(withBoth.Object).Verifiable();
-        defaults
-            .SetupSequence(x => x.TryGet(DefaultSettingName, out none))
-            .Returns(false)
-            .Returns(true);
-        defaults.Setup(x => x.Set(alphaSetting)).Verifiable();
-        defaults.Setup(x => x.Count).Returns(1).Verifiable();
-        defaults.Setup(x => x.Merge(withBoth.Object)).Returns(withDefaults.Object).Verifiable();
+        mockFactory.Setup(x => x.Create(withBoth.Object)).Returns(withDefaults.Object).Verifiable();
+        withDefaults.Setup(x => x.Set(alphaSetting)).Verifiable();
 
         var result = catalog.Expand(scopeSettings);
+
+        Assert.Same(withDefaults.Object, result);
+    }
+
+    [Fact]
+    public void Expand_WhenGivenABaseline_LayersTheScopeSettingsOverIt()
+    {
+        var mockFactory = CreateStrictMock<ISettingCollectionFactory>();
+        var catalog = CreateCatalog(mockFactory, new FakeProfile("fake"));
+        var scopeSetting = CreateDefaultSetting("ES256");
+        IReadOnlyCollection<Setting> baseline = [CreateDefaultSetting("RS256")];
+        IReadOnlyCollection<Setting> scopeSettings = [scopeSetting];
+        var layered = CreateSettingCollection();
+        mockFactory.Setup(x => x.Create(baseline)).Returns(layered.Object).Verifiable();
+        layered.Setup(x => x.Set(scopeSetting)).Verifiable();
+        SelectProfiles(layered);
+
+        var result = catalog.Expand(scopeSettings, baseline);
+
+        Assert.Same(layered.Object, result);
+    }
+
+    [Fact]
+    public void Expand_WhenAProfileDefaultsABaselineSetting_TheDefaultReplacesIt()
+    {
+        var mockFactory = CreateStrictMock<ISettingCollectionFactory>();
+        var setting = CreateDefaultSetting("PS256");
+        var alpha = new FakeProfile("alpha")
+        {
+            OnDefaults = builder => builder.Set(DefaultKey, "PS256"),
+        };
+        var catalog = CreateCatalog(mockFactory, alpha);
+        IReadOnlyCollection<Setting> baseline = [CreateDefaultSetting("RS256")];
+        IReadOnlyCollection<Setting> scopeSettings = [];
+        var ceiling = CreateSettingCollection();
+        SetupCreatedCollections(mockFactory, ceiling, CreateProfileDefaults(setting));
+        var layered = CreateSettingCollection();
+        SelectProfiles(layered, "alpha");
+        var withAlpha = CreateSettingCollection();
+        SelectProfiles(withAlpha, "alpha");
+        var withDefaults = CreateSettingCollection();
+        mockFactory.Setup(x => x.Create(baseline)).Returns(layered.Object).Verifiable();
+        layered.Setup(x => x.Merge(ceiling.Object)).Returns(withAlpha.Object).Verifiable();
+        mockFactory
+            .Setup(x => x.Create(withAlpha.Object))
+            .Returns(withDefaults.Object)
+            .Verifiable();
+        withDefaults.Setup(x => x.Set(setting)).Verifiable();
+
+        var result = catalog.Expand(scopeSettings, baseline);
 
         Assert.Same(withDefaults.Object, result);
     }
@@ -448,7 +512,7 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
             OnMerge = SettingMerge.Replace,
         }.Create(value);
 
-    // The factory hands out, in order, each profile's ceiling, the merged defaults, and each profile's own defaults.
+    // The factory hands out, in order, each profile's ceiling and then each profile's own defaults.
     private static void SetupCreatedCollections(
         Mock<ISettingCollectionFactory> mockFactory,
         params Mock<ISettingCollection>[] collections
@@ -458,13 +522,6 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
             collections.Select(collection => collection.Object)
         );
         mockFactory.Setup(x => x.Create()).Returns(() => pending.Dequeue()).Verifiable();
-    }
-
-    private Mock<ISettingCollection> CreateMergedDefaults()
-    {
-        var defaults = CreateSettingCollection();
-        defaults.Setup(x => x.Count).Returns(0).Verifiable();
-        return defaults;
     }
 
     private Mock<ISettingCollection> CreateProfileDefaults(Setting<string>? setting = null)

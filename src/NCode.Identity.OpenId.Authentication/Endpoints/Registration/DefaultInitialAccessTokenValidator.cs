@@ -25,7 +25,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Registration;
 /// <summary>
 /// Provides the default implementation of the <see cref="IInitialAccessTokenValidator"/> abstraction that treats the
 /// presented initial access token as a persisted initial-access-token grant: the token authorizes registration when a
-/// matching, still-active grant exists for the current tenant.
+/// matching grant exists for the current tenant that is active, carries an expiry and has not been spent, and the
+/// registration it authorizes spends that grant, so the token authorizes no other registration.
 /// </summary>
 internal class DefaultInitialAccessTokenValidator(IPersistedGrantService persistedGrantService)
     : IInitialAccessTokenValidator
@@ -54,6 +55,41 @@ internal class DefaultInitialAccessTokenValidator(IPersistedGrantService persist
             cancellationToken
         );
 
-        return grant is { Status: PersistedGrantStatus.Active } ? grant.Value.Payload : null;
+        // Every minted token expires, so a grant without an expiry was minted by an earlier release without a
+        // lifetime, and it authorizes nothing. See ADR-0192.
+        return
+            grant
+                is {
+                    Status: PersistedGrantStatus.Active,
+                    ExpiresWhen: not null,
+                    ConsumedWhen: null
+                }
+            ? grant.Value.Payload
+            : null;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> TryConsumeAsync(
+        OpenIdContext openIdContext,
+        string initialAccessToken,
+        CancellationToken cancellationToken
+    )
+    {
+        if (string.IsNullOrEmpty(initialAccessToken))
+            return false;
+
+        var grantId = PersistedGrantService.CreateGrantId(
+            openIdContext.Tenant.TenantId,
+            OpenIdConstants.PersistedGrantTypes.InitialAccessToken,
+            initialAccessToken
+        );
+
+        // The grant row's concurrency token makes the spend atomic across replicas. See ADR-0192.
+        return await PersistedGrantService.ConsumeOnceOrDefault<InitialAccessTokenGrant>(
+            openIdContext,
+            grantId,
+            cancellationToken
+        )
+            is not null;
     }
 }

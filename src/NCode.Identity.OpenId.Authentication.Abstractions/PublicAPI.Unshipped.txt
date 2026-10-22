@@ -681,6 +681,7 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationA
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationAccessTokenGrant.ClientId.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.RegistrationAccessTokenGrant.RegistrationAccessTokenGrant() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.IInitialAccessTokenValidator
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.IInitialAccessTokenValidator.TryConsumeAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! initialAccessToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.IInitialAccessTokenValidator.ValidateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! initialAccessToken, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant?>
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.ISectorIdentifierValidator
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.ISectorIdentifierValidator.ValidateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! sectorIdentifierUri, System.Collections.Generic.IReadOnlyCollection<string!>! redirectUris, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Messages.IOpenIdError?>
@@ -709,6 +710,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterCli
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TlsClientAuthSanIp.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TlsClientAuthSanEmail.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TlsClientAuthSanEmail.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TlsClientCertificateBoundAccessTokens.get -> bool?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.TlsClientCertificateBoundAccessTokens.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.LogoUri.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.LogoUri.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Messages.RegisterClientRequest.PolicyUri.get -> string?
@@ -763,6 +766,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClie
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TlsClientAuthSanIp.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TlsClientAuthSanEmail.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TlsClientAuthSanEmail.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TlsClientCertificateBoundAccessTokens.get -> bool?
+NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.TlsClientCertificateBoundAccessTokens.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.LogoUri.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.LogoUri.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.PolicyUri.get -> string?
@@ -1101,6 +1106,10 @@ NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes
 NCode.Identity.OpenId.Authentication.Persistence.PersistedGrant<TPayload>
 NCode.Identity.OpenId.Authentication.Persistence.PersistedGrant<TPayload>.ClientId.get -> string?
 NCode.Identity.OpenId.Authentication.Persistence.PersistedGrant<TPayload>.ClientId.init -> void
+NCode.Identity.OpenId.Authentication.Persistence.PersistedGrant<TPayload>.ConsumedWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Authentication.Persistence.PersistedGrant<TPayload>.ConsumedWhen.init -> void
+NCode.Identity.OpenId.Authentication.Persistence.PersistedGrant<TPayload>.ExpiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Authentication.Persistence.PersistedGrant<TPayload>.ExpiresWhen.init -> void
 NCode.Identity.OpenId.Authentication.Persistence.PersistedGrant<TPayload>.Payload.get -> TPayload
 NCode.Identity.OpenId.Authentication.Persistence.PersistedGrant<TPayload>.Payload.init -> void
 NCode.Identity.OpenId.Authentication.Persistence.PersistedGrant<TPayload>.PersistedGrant() -> void
@@ -1542,6 +1551,12 @@ NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.ExtensionData.get -> 
 NCode.Identity.OpenId.Authentication.Sessions.SessionGrant.ExtensionData.init -> void
 NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateChainValidator
 NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateChainValidator.ValidateAsync(NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, NCode.Identity.OpenId.Authentication.ClientCertificates.PresentedClientCertificate! presentedCertificate, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus.Good = 1 -> NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus.Revoked = 2 -> NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus.Unknown = 0 -> NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus
+NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateRevocationChecker
+NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateRevocationChecker.CheckAsync(System.Security.Cryptography.X509Certificates.X509Certificate2! certificate, System.Security.Cryptography.X509Certificates.X509Certificate2! issuer, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus>
 const NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.TokenTypeMetricAttribute = "ncode.identity.token.type" -> string!
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void
 const NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.AuthenticationMethodMetricAttribute = "ncode.identity.client_authentication.method" -> string!

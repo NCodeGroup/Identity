@@ -213,7 +213,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                 .AsHttpResult();
         }
 
-        var (authorized, initialAccessToken) = await AuthorizeRegistrationAsync(
+        var (authorized, token, initialAccessToken) = await AuthorizeRegistrationAsync(
             openIdContext,
             httpContext,
             cancellationToken
@@ -338,6 +338,23 @@ internal class DefaultClientRegistrationEndpointHandler(
                     storeManager,
                     tenantId,
                     resourceServerId,
+                    cancellationToken
+                )
+            )
+            {
+                return errorFactory
+                    .InvalidToken()
+                    .WithStatusCode(StatusCodes.Status401Unauthorized)
+                    .AsHttpResult();
+            }
+
+            // The token is spent only after every check has passed, so a refused request leaves it usable; a store
+            // failure after the spend leaves it spent (fails closed) (ADR-0192).
+            if (
+                token is not null
+                && !await InitialAccessTokenValidator.TryConsumeAsync(
+                    openIdContext,
+                    token,
                     cancellationToken
                 )
             )
@@ -700,6 +717,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     // (ADR-0192).
     private async ValueTask<(
         bool IsAuthorized,
+        string? Token,
         InitialAccessTokenGrant? InitialAccessToken
     )> AuthorizeRegistrationAsync(
         OpenIdContext openIdContext,
@@ -714,7 +732,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                 OpenIdSettingKeys.RegistrationEndpointAllowAnonymous
             );
 
-            return (allowAnonymous, null);
+            return (allowAnonymous, null, null);
         }
 
         var grant = await InitialAccessTokenValidator.ValidateAsync(
@@ -723,7 +741,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             cancellationToken
         );
 
-        return (grant is not null, grant);
+        return (grant is not null, token, grant);
     }
 
     // A client registered with a token scoped to a resource server is bound to it, so the resource server must still
@@ -1666,6 +1684,12 @@ internal class DefaultClientRegistrationEndpointHandler(
             OpenIdSettingNames.TlsClientAuthSanEmail,
             request.TlsClientAuthSanEmail
         );
+
+        // The RFC 8705 §3.4 member is the client's requirement. ValidateCoherence refuses it when the tenant does not
+        // support binding.
+        if (request.TlsClientCertificateBoundAccessTokens is { } bound)
+            settings[OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens] = bound;
+
         SetIfPresent(settings, OpenIdSettingNames.SoftwareId, request.SoftwareId);
         SetIfPresent(settings, OpenIdSettingNames.SoftwareVersion, request.SoftwareVersion);
 
@@ -1841,6 +1865,10 @@ internal class DefaultClientRegistrationEndpointHandler(
             TlsClientAuthSanUri = ReadString(settings, OpenIdSettingNames.TlsClientAuthSanUri),
             TlsClientAuthSanIp = ReadString(settings, OpenIdSettingNames.TlsClientAuthSanIp),
             TlsClientAuthSanEmail = ReadString(settings, OpenIdSettingNames.TlsClientAuthSanEmail),
+            TlsClientCertificateBoundAccessTokens = ReadBoolean(
+                settings,
+                OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens
+            ),
             Jwks = jwks,
             SoftwareId = ReadString(settings, OpenIdSettingNames.SoftwareId),
             SoftwareVersion = ReadString(settings, OpenIdSettingNames.SoftwareVersion),

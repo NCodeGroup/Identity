@@ -920,6 +920,13 @@ public static class OpenIdSettingKeys
     public static SettingKey<bool> RequireDPoP => new(OpenIdSettingNames.RequireDPoP);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_tls_client_certificate_bound_access_tokens' setting
+    /// (RFC 8705 §3).
+    /// </summary>
+    public static SettingKey<bool> RequireTlsClientCertificateBoundAccessTokens =>
+        new(OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_certificate_bound_access_tokens' setting
     /// (RFC 8705 §3.3).
     /// </summary>

@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R64`     | `R63`      |
+| `R` — Review findings                 | `R69`     | `R68`      |
 
 ---
 
@@ -516,6 +516,29 @@ _None remaining._
   `BootstrapAdminSeedHandler.cs`, `DefaultEndSessionEndpointProvider.cs`,
   `TenantApiEndpointHandler.ValidateClientCoherenceAsync`, `ServerApiEndpointHandler.ValidateClientCoherenceAsync`,
   `BaseApiEndpointHandler.SettingsValidationProblem`.
+- **`R64` — Check client-certificate revocation beyond complete CRLs.** The default checker refuses, as Unknown, an
+  OCSP-only PKI, delta, partitioned and indirect CRLs, a CRL signed by a key other than the issuing certificate, and
+  RSA-PSS or SHA-1 signatures. It also retries an unreachable distribution point on every request (no negative cache,
+  no single-flight). Touch points: `DefaultClientCertificateRevocationChecker`, `CertificateRevocationList`, ADR-0173.
+- **`R65` — Accept `dpop_bound_access_tokens` at dynamic registration.** RFC 9449 §5.2 client metadata. Map it to
+  `require_dpop` as `R42` mapped `tls_client_certificate_bound_access_tokens`, and decide whether `require_dpop` keeps
+  its name. Touch points: `RegisterClientRequest`, `DefaultClientRegistrationEndpointHandler.BuildSettingsObject`.
+- **`R66` — Answer a concurrent second spend of a single-use grant with its protocol error.** `ConsumeOnceOrDefault`
+  lets the loser's `SaveChanges` throw a concurrency exception, which reaches the client as a `500` for authorization
+  codes, device codes, CIBA requests, pushed requests and initial access tokens. Touch points:
+  `DefaultPersistedGrantService.ConsumeOnceOrDefault`, `GrantStore.UpdateAsync`.
+- **`R67` — Run the conformance pre-flight in the FAPI 1.0 Advanced run.** Advertised certificate binding does not
+  force every client to present a certificate (`R42`), so `-Fapi1Advanced` has no reason to skip the pre-flight; update
+  `build/conformance/README.md` with it. Touch points: `build/conformance/run-conformance.ps1` (`Initialize-Fapi1Run`).
+- **`R68` — Apply a security profile's defaults only to settings that apply at the expanding scope.**
+  `ISecurityProfileCatalog.Expand` applies a profile's defaults to whatever scope selects the profile, including a
+  setting that does not apply at that scope. When only a client selects `fapi1-advanced`, its default
+  `tls_client_certificate_bound_access_tokens = true` (a tenant setting) lands in the client's effective settings and
+  overrides the tenant's `false`, so `CertificateBoundAccessTokenCoherenceRule` cannot report that client. The catalog
+  knows the scope when it expands a persisted document (`Expand(settingsJson, scopeName, ...)`), so a default whose
+  descriptor's `AppliesTo` excludes that scope is not applied there; the cascade then supplies the tenant's value and
+  the coherence rule reports the client. Decide how the one-argument `Expand` and the root baseline overload learn the
+  scope. Touch points: `DefaultSecurityProfileCatalog.ApplyDefaults`, `ISecurityProfileCatalog`, ADR-0148, ADR-0206.
 
 ### Refactor
 

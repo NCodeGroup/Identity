@@ -16,7 +16,9 @@
 
 #endregion
 
+using System.Formats.Asn1;
 using System.Net;
+using System.Numerics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
@@ -64,7 +66,10 @@ public class TokenEndpointMutualTlsTests
         );
         request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
         request.CertificateExtensions.Add(
-            new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true)
+            new X509KeyUsageExtension(
+                X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign,
+                true
+            )
         );
         request.CertificateExtensions.Add(
             new X509SubjectKeyIdentifierExtension(request.PublicKey, false)
@@ -78,12 +83,26 @@ public class TokenEndpointMutualTlsTests
     private static X509Certificate2 CreateIssuedCertificate(
         X509Certificate2 issuer,
         string commonName,
-        bool isAuthority = false
+        bool isAuthority = false,
+        string? crlDistributionPoint = null
+    ) =>
+        CreateIssuedCertificate(
+            issuer,
+            new X500DistinguishedName($"CN={commonName}"),
+            isAuthority,
+            crlDistributionPoint
+        );
+
+    private static X509Certificate2 CreateIssuedCertificate(
+        X509Certificate2 issuer,
+        X500DistinguishedName subjectName,
+        bool isAuthority = false,
+        string? crlDistributionPoint = null
     )
     {
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest(
-            $"CN={commonName}",
+            subjectName,
             rsa,
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1
@@ -97,6 +116,14 @@ public class TokenEndpointMutualTlsTests
         request.CertificateExtensions.Add(
             X509AuthorityKeyIdentifierExtension.CreateFromCertificate(issuer, true, false)
         );
+        if (crlDistributionPoint is not null)
+        {
+            request.CertificateExtensions.Add(
+                CertificateRevocationListBuilder.BuildCrlDistributionPointExtension([
+                    crlDistributionPoint,
+                ])
+            );
+        }
         if (!isAuthority)
         {
             request.CertificateExtensions.Add(
@@ -119,6 +146,15 @@ public class TokenEndpointMutualTlsTests
         return certificate.CopyWithPrivateKey(rsa);
     }
 
+    private static X500DistinguishedName CreateUtf8SubjectName()
+    {
+        // The builder adds in the order of the RFC 4514 string form, so this is "CN=it-mtls-pki-utf8, O=Example Org".
+        var builder = new X500DistinguishedNameBuilder();
+        builder.Add("2.5.4.3", "it-mtls-pki-utf8", UniversalTagNumber.UTF8String);
+        builder.Add("2.5.4.10", "Example Org", UniversalTagNumber.UTF8String);
+        return builder.Build();
+    }
+
     private static async Task<HostApplicationFactory> CreatePkiFactoryAsync(
         string clientId,
         string subjectDn,
@@ -130,6 +166,35 @@ public class TokenEndpointMutualTlsTests
             clientId,
             subjectDn,
             trustAnchors,
+            OpenIdConstants.GrantTypes.ClientCredentials
+        );
+        await factory.SeedResourceServerWithClientGrantAsync(
+            clientId,
+            $"{clientId}-rs-api",
+            $"https://api.{clientId}.integration.test",
+            TestServerSettingsProvider.ApiScope
+        );
+        return factory;
+    }
+
+    private static async Task<HostApplicationFactory> CreateRevocationCheckedFactoryAsync(
+        string clientId,
+        X509Certificate2 authority,
+        X509Certificate2 certificate,
+        byte[] crl
+    )
+    {
+        var factory = new HostApplicationFactory { CertificateRevocationListResponder = _ => crl };
+        await factory.SeedTlsClientAuthSubjectDnClientAsync(
+            clientId,
+            certificate.SubjectName.Name,
+            [authority.ExportCertificatePem()],
+            new Dictionary<string, object>
+            {
+                ["tls_client_auth_revocation_mode"] = OpenIdConstants
+                    .ClientCertificateRevocationMode
+                    .Online,
+            },
             OpenIdConstants.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
@@ -385,6 +450,45 @@ public class TokenEndpointMutualTlsTests
     }
 
     [Fact]
+    public async Task PostToken_TlsClientAuth_WithAUtf8SubjectRegisteredInAnotherForm_ReturnsAccessToken()
+    {
+        const string clientId = "it-mtls-pki-utf8";
+        using var authority = CreateAuthority("it-mtls-pki-utf8-root");
+        using var certificate = CreateIssuedCertificate(authority, CreateUtf8SubjectName());
+
+        using var factory = await CreatePkiFactoryAsync(
+            clientId,
+            "cn=IT-MTLS-PKI-UTF8 ,  o=example   org",
+            [authority.ExportCertificatePem()]
+        );
+
+        var client = CreateClient(factory);
+        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+    }
+
+    [Fact]
+    public async Task PostToken_TlsClientAuth_WithAnotherOrganization_ReturnsInvalidClient()
+    {
+        const string clientId = "it-mtls-pki-otherorg";
+        using var authority = CreateAuthority("it-mtls-pki-otherorg-root");
+        using var certificate = CreateIssuedCertificate(authority, CreateUtf8SubjectName());
+
+        using var factory = await CreatePkiFactoryAsync(
+            clientId,
+            "CN=it-mtls-pki-utf8, O=Other Org",
+            [authority.ExportCertificatePem()]
+        );
+
+        var client = CreateClient(factory);
+        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+
+        await AssertInvalidClientAsync(response);
+    }
+
+    [Fact]
     public async Task PostToken_TlsClientAuth_WithForwardedIntermediate_ReturnsAccessToken()
     {
         const string clientId = "it-mtls-pki-chain";
@@ -467,6 +571,78 @@ public class TokenEndpointMutualTlsTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    #region Revocation
+
+    [Fact]
+    public async Task PostToken_TlsClientAuth_WhenTheCrlRevokesTheCertificate_ReturnsInvalidClient()
+    {
+        const string clientId = "it-mtls-pki-revoked";
+        using var authority = CreateAuthority("it-mtls-pki-revoked-root");
+        using var certificate = CreateIssuedCertificate(
+            authority,
+            clientId,
+            crlDistributionPoint: "http://crl.it-mtls.test/root.crl"
+        );
+
+        var builder = new CertificateRevocationListBuilder();
+        builder.AddEntry(certificate);
+        var crl = builder.Build(
+            authority,
+            BigInteger.One,
+            DateTimeOffset.UtcNow.AddDays(1),
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+
+        using var factory = await CreateRevocationCheckedFactoryAsync(
+            clientId,
+            authority,
+            certificate,
+            crl
+        );
+
+        var client = CreateClient(factory);
+        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+
+        await AssertInvalidClientAsync(response);
+    }
+
+    [Fact]
+    public async Task PostToken_TlsClientAuth_WhenTheCrlDoesNotRevokeTheCertificate_ReturnsAccessToken()
+    {
+        const string clientId = "it-mtls-pki-notrevoked";
+        using var authority = CreateAuthority("it-mtls-pki-notrevoked-root");
+        using var certificate = CreateIssuedCertificate(
+            authority,
+            clientId,
+            crlDistributionPoint: "http://crl.it-mtls.test/root.crl"
+        );
+
+        var builder = new CertificateRevocationListBuilder();
+        var crl = builder.Build(
+            authority,
+            BigInteger.One,
+            DateTimeOffset.UtcNow.AddDays(1),
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+
+        using var factory = await CreateRevocationCheckedFactoryAsync(
+            clientId,
+            authority,
+            certificate,
+            crl
+        );
+
+        var client = CreateClient(factory);
+        using var response = await client.SendAsync(BuildTokenRequest(clientId, certificate));
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+    }
+
+    #endregion
 
     private static async Task AssertInvalidClientAsync(HttpResponseMessage response)
     {

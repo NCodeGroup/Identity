@@ -28,25 +28,28 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// <summary>
 /// Provides the default implementation of <see cref="IClientCertificateChainValidator"/>: it builds the presented
 /// certificate's chain with the platform chain engine in custom-root-trust mode, so only the client's configured trust
-/// anchors are trusted, never the machine's certificate store, and missing issuers are never downloaded.
+/// anchors are trusted, never the machine's certificate store, and missing issuers are never downloaded. The platform
+/// engine never fetches anything: when revocation is required, every certificate below the trust anchor is checked
+/// through the revocation checker, which retrieves revocation data through the server's outbound-request guard.
 /// </summary>
+// See ADR-0173.
 internal sealed class DefaultClientCertificateChainValidator(
     TimeProvider timeProvider,
+    IClientCertificateRevocationChecker revocationChecker,
     ILogger<DefaultClientCertificateChainValidator> logger
 ) : IClientCertificateChainValidator
 {
     // id-kp-clientAuth (RFC 5280 §4.2.1.12).
     private const string ClientAuthenticationOid = "1.3.6.1.5.5.7.3.2";
 
-    // Bounds the time an online revocation check may hold the token request.
-    private static readonly TimeSpan RevocationRetrievalTimeout = TimeSpan.FromSeconds(5);
-
     private TimeProvider TimeProvider { get; } = timeProvider;
+
+    private IClientCertificateRevocationChecker RevocationChecker { get; } = revocationChecker;
 
     private ILogger<DefaultClientCertificateChainValidator> Logger { get; } = logger;
 
     /// <inheritdoc />
-    public ValueTask<bool> ValidateAsync(
+    public async ValueTask<bool> ValidateAsync(
         OpenIdClient openIdClient,
         PresentedClientCertificate presentedCertificate,
         CancellationToken cancellationToken
@@ -63,7 +66,7 @@ internal sealed class DefaultClientCertificateChainValidator(
         if (trustAnchors.Count == 0)
         {
             Logger.ClientCertificateTrustAnchorsMissing(openIdClient.ClientId);
-            return ValueTask.FromResult(false);
+            return false;
         }
 
         var revocationMode = settings.TryGetValue(
@@ -80,9 +83,7 @@ internal sealed class DefaultClientCertificateChainValidator(
             var policy = chain.ChainPolicy;
             policy.TrustMode = X509ChainTrustMode.CustomRootTrust;
             policy.DisableCertificateDownloads = true;
-            policy.RevocationMode = ToRevocationMode(revocationMode);
-            policy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
-            policy.UrlRetrievalTimeout = RevocationRetrievalTimeout;
+            policy.RevocationMode = X509RevocationMode.NoCheck;
             policy.VerificationTime = TimeProvider.GetUtcNow().UtcDateTime;
             policy.VerificationTimeIgnored = false;
             policy.ApplicationPolicy.Add(new Oid(ClientAuthenticationOid));
@@ -104,21 +105,56 @@ internal sealed class DefaultClientCertificateChainValidator(
             foreach (var intermediate in presentedCertificate.Intermediates)
                 policy.ExtraStore.Add(intermediate);
 
-            if (chain.Build(presentedCertificate.Certificate))
-                return ValueTask.FromResult(true);
+            if (!chain.Build(presentedCertificate.Certificate))
+            {
+                var chainStatus = string.Join(
+                    ", ",
+                    chain.ChainStatus.Select(status => status.Status.ToString()).Distinct()
+                );
+                Logger.ClientCertificateUntrusted(openIdClient.ClientId, chainStatus);
+                return false;
+            }
 
-            var chainStatus = string.Join(
-                ", ",
-                chain.ChainStatus.Select(status => status.Status.ToString()).Distinct()
-            );
-            Logger.ClientCertificateUntrusted(openIdClient.ClientId, chainStatus);
-            return ValueTask.FromResult(false);
+            if (
+                string.Equals(
+                    revocationMode,
+                    OpenIdConstants.ClientCertificateRevocationMode.None,
+                    StringComparison.Ordinal
+                )
+            )
+            {
+                return true;
+            }
+
+            // Every element except the trust anchor is checked against its issuer, the next element in the chain.
+            var elements = chain.ChainElements;
+            for (var i = 0; i < elements.Count - 1; i++)
+            {
+                var certificate = elements[i].Certificate;
+                var status = await RevocationChecker.CheckAsync(
+                    certificate,
+                    elements[i + 1].Certificate,
+                    cancellationToken
+                );
+                if (status == ClientCertificateRevocationStatus.Good)
+                    continue;
+
+                var revocationStatus = status.ToString();
+                Logger.ClientCertificateRevocationFailed(
+                    openIdClient.ClientId,
+                    certificate.Subject,
+                    revocationStatus
+                );
+                return false;
+            }
+
+            return true;
         }
         catch (CryptographicException exception)
         {
             // A stored trust anchor that no longer parses, or a chain the platform cannot build, trusts nothing.
             Logger.ClientCertificateUntrusted(openIdClient.ClientId, exception.Message);
-            return ValueTask.FromResult(false);
+            return false;
         }
         finally
         {
@@ -128,12 +164,4 @@ internal sealed class DefaultClientCertificateChainValidator(
                 certificate.Dispose();
         }
     }
-
-    private static X509RevocationMode ToRevocationMode(string revocationMode) =>
-        revocationMode switch
-        {
-            OpenIdConstants.ClientCertificateRevocationMode.None => X509RevocationMode.NoCheck,
-            OpenIdConstants.ClientCertificateRevocationMode.Offline => X509RevocationMode.Offline,
-            _ => X509RevocationMode.Online,
-        };
 }

@@ -77,6 +77,12 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// </summary>
     public Func<HttpRequestMessage, string>? ClientJwksResponder { get; set; }
 
+    /// <summary>
+    /// When set, overrides the SSRF-guarded certificate revocation HTTP client with a stub that serves the DER bytes
+    /// this responder returns, so a CRL fetch can be exercised without a real network connection.
+    /// </summary>
+    public Func<HttpRequestMessage, byte[]>? CertificateRevocationListResponder { get; set; }
+
     private string DatabaseName { get; } = $"it-{Guid.NewGuid():N}";
 
     // Shared across every host built from this factory instance (including WithWebHostBuilder-derived hosts) so data
@@ -618,7 +624,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// <summary>
     /// Ensures the tenant exists and seeds a confidential client registered for <c>self_signed_tls_client_auth</c>
     /// whose registered certificate is the public half of <paramref name="certificate"/>, carrying the given
-    /// additional client settings (for example <c>tls_client_certificate_bound_access_tokens</c>).
+    /// additional client settings (for example <c>require_tls_client_certificate_bound_access_tokens</c>).
     /// </summary>
     public async Task SeedSelfSignedTlsClientAsync(
         string clientId,
@@ -682,10 +688,31 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// certificate must chain to one of <paramref name="trustAnchors"/> (PEM), so the client authenticates by
     /// presenting a certificate issued by that PKI with that subject on the mutual-TLS connection.
     /// </summary>
+    public Task SeedTlsClientAuthSubjectDnClientAsync(
+        string clientId,
+        string subjectDn,
+        IReadOnlyCollection<string> trustAnchors,
+        params string[] grantTypes
+    ) =>
+        SeedTlsClientAuthSubjectDnClientAsync(
+            clientId,
+            subjectDn,
+            trustAnchors,
+            new Dictionary<string, object>(),
+            grantTypes
+        );
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client registered for <c>tls_client_auth</c> whose expected
+    /// certificate subject distinguished name is <paramref name="subjectDn"/> and whose certificate must chain to one
+    /// of <paramref name="trustAnchors"/> (PEM), carrying the given additional client settings (for example
+    /// <c>tls_client_auth_revocation_mode</c>), which override the defaults this method sets.
+    /// </summary>
     public async Task SeedTlsClientAuthSubjectDnClientAsync(
         string clientId,
         string subjectDn,
         IReadOnlyCollection<string> trustAnchors,
+        IReadOnlyDictionary<string, object> additionalSettings,
         params string[] grantTypes
     )
     {
@@ -701,11 +728,13 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 .TlsClientAuth,
             ["tls_client_auth_subject_dn"] = subjectDn,
             ["tls_client_auth_trust_anchors"] = trustAnchors,
-            // The test PKI publishes no revocation data.
+            // By default the test PKI publishes no revocation data.
             ["tls_client_auth_revocation_mode"] = OpenIdConstants
                 .ClientCertificateRevocationMode
                 .None,
         };
+        foreach (var (name, value) in additionalSettings)
+            settings[name] = value;
         if (grantTypes.Length > 0)
             settings["grant_types_supported"] = grantTypes;
 
@@ -1173,6 +1202,17 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                     .AddHttpClient("NCode.Identity.OpenId.ClientJwks")
                     .ConfigurePrimaryHttpMessageHandler(() =>
                         new StubJsonHttpMessageHandler(responder)
+                    );
+            }
+
+            // Replace the SSRF-guarded certificate revocation HTTP client with a stub serving a canned CRL, so a CRL
+            // fetch can be exercised without a real outbound connection (which the guard would refuse).
+            if (CertificateRevocationListResponder is { } crlResponder)
+            {
+                serviceCollection
+                    .AddHttpClient("NCode.Identity.OpenId.ClientCertificateRevocation")
+                    .ConfigurePrimaryHttpMessageHandler(() =>
+                        new StubBinaryHttpMessageHandler(crlResponder)
                     );
             }
 

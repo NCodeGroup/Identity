@@ -10,11 +10,54 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **`DistinguishedName` matches a distinguished name as RFC 4517 `distinguishedNameMatch` does.**
+  `DistinguishedName.TryParse` reads an RFC 4514 string and what an operator pastes: whitespace around `=`, `,`, and
+  `+`, RFC 2253 quoted values, `\` escapes, `\XX` UTF-8 hex escapes, and `#` hex BER values. An attribute type is a
+  keyword from a closed table, a dotted OID, or `OID.` followed by a dotted OID. `DistinguishedName.FromX500` reads a
+  certificate's name, and `Matches` compares two names: the RDN count and order are equal, a multi-valued RDN is a set,
+  and a character-string value is compared after NFKC normalization, deletion of the characters that map to nothing,
+  whitespace collapse, and case folding, while any other value is compared by its exact encoding. The
+  `tls_client_auth_subject_dn` setting rule, the `tls_client_auth` handler, and the CRL issuer check use it
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R18`).
+
+- **`IClientCertificateRevocationChecker` and `ClientCertificateRevocationStatus`.** `CheckAsync` answers whether an
+  issuer revoked a certificate with `Good`, `Revoked`, or `Unknown`, and `Unknown` is the zero value, so a checker that
+  cannot tell fails closed. The chain validator asks it about every element of a chain except the trust anchor, and the
+  chain passes only when every answer is `Good`. The default is registered with `TryAddSingleton`, so a host replaces
+  it, for example to check OCSP. The default reads the certificate's `http` and `https` CRL distribution points,
+  fetches each CRL through the named client `NCode.Identity.OpenId.ClientCertificateRevocation`, accepts only a current
+  DER CRL that the issuing certificate signed, and caches it until its `nextUpdate` or one hour. It answers `Unknown`
+  for a certificate with no usable CRL, such as an OCSP-only PKI or a delta, partitioned, or indirect CRL
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R16`, `R64`).
+
+- **`require_tls_client_certificate_bound_access_tokens` is a client's requirement that its access tokens be bound to
+  its certificate.** As `require_dpop` is separate from the server's advertised `dpop_signing_alg_values_supported`, the
+  requirement is separate from the advertised support, `tls_client_certificate_bound_access_tokens` (RFC 8705 §3.3). It
+  applies to clients, and a server or tenant may set it as a default for every client. It merges with `Or`, defaults to
+  `false`, and is not advertised. The token endpoint binds the certificate only for a client whose requirement is
+  `true`, and a client that requires binding and presents no certificate is refused with `invalid_request`. Dynamic
+  client registration reads and reports the RFC 8705 §3.4 client metadata `tls_client_certificate_bound_access_tokens`
+  as the requirement. A coherence rule, `CertificateBoundAccessTokenCoherenceRule`, reports a client that requires
+  binding while its effective support is `false`
+  ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md),
+  [ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R42`).
+
+- **`IInitialAccessTokenValidator.TryConsumeAsync` spends an initial access token, and
+  `PersistedGrant<TPayload>.ConsumedWhen` records when a grant was spent.** Dynamic registration spends the token once
+  every check has passed, immediately before the client is stored, and refuses with `401` `invalid_token`, storing
+  nothing, a token that cannot be spent. `ValidateAsync` answers `null` for a grant whose `ConsumedWhen` is set. The
+  default spends the grant row, whose concurrency token makes the spend atomic across replicas. **Breaking:** a
+  replacement validator implements `TryConsumeAsync` and returns `false` when the token no longer authorizes
+  registration
+  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md),
+  [ADR-0063](docs/adr/0063-dynamic-client-registration.md), backlog `R17`).
+
 - **Client coherence rules.** `IClientCoherenceRule` names the settings it reads and reports each value a client
   registers that an effective setting does not permit as a `ClientCoherenceViolation`, and `IClientCoherenceValidator`
   runs every registered rule over a client's effective settings and tells a caller whether a change touches a setting a
-  rule reads. The three built-in rules check a client's response algorithms, its redirect URI kinds, and its token
-  endpoint authentication method, and a package adds a rule by registering it with `TryAddEnumerable`
+  rule reads. The four built-in rules check a client's response algorithms, its redirect URI kinds, its token endpoint
+  authentication method, and a required certificate-bound access token against the server's support for it, and a
+  package adds a rule by registering it with `TryAddEnumerable`
   ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R40`).
 
 - **Client-authentication method descriptors.** `ClientAuthenticationMethodDescriptor` names a method and says whether
@@ -492,6 +535,32 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **Breaking: `tls_client_certificate_bound_access_tokens` is the server's and a tenant's advertised support only.** The
+  setting keeps its RFC 8705 §3.3 discovery name, applies to tenants, merges with `Replace`, and does not force a client
+  to bind its tokens. A client's `require_tls_client_certificate_bound_access_tokens` does. The `fapi1-advanced`
+  profile sets that requirement as a ceiling and the support as a default (FAPI 1.0 Advanced §5.2.2-6 requires mutual
+  TLS support). The migration `SeparateCertificateBindingRequirement` translates stored settings documents: a client's
+  value moves to the requirement, and a server or tenant document whose support is `true` also gets the requirement,
+  because that value had required every client below it to bind. A server configuration value is not translated,
+  because configuration is not stored data: a deployment that sets `tls_client_certificate_bound_access_tokens` to
+  `true` under `OpenId:Server:Settings` to make every client bind its tokens also sets
+  `require_tls_client_certificate_bound_access_tokens` to `true` there, or those clients receive bearer tokens
+  ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md),
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R42`).
+
+- **Breaking: the `offline` revocation mode is retired.** `tls_client_auth_revocation_mode` is `online` (the default) or
+  `none`, because the server retrieves revocation data itself and the platform chain engine retrieves nothing. The same
+  migration translates a stored `offline` to `online`. A PKI that publishes OCSP responses and no CRL sets `none` or
+  replaces `IClientCertificateRevocationChecker`
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R16`).
+
+- **Breaking: every initial access token has a lifetime of at most 30 days.** `lifetimeSeconds` is optional, defaults
+  to one day, and a value outside 1 to 2 592 000 (30 days) is refused with `400`. `CreatedInitialAccessTokenResource`
+  carries `ExpiresWhen` as a `DateTimeOffset`, not a `DateTimeOffset?`, for a scoped and an unscoped token alike. A
+  token that an earlier release minted without a lifetime authorizes no registration; an administrator mints a new one
+  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md), backlog
+  `R17`).
 
 - **Every entry point checks a client through the coherence validator.** Dynamic registration, the management API, and
   the conformance seed apply the same rules. A tenant or server settings change that narrows
@@ -1257,6 +1326,22 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **Revocation data is fetched only through the outbound-request guard.** The platform chain engine retrieves nothing:
+  certificate downloads are disabled and its own revocation check is off (`X509RevocationMode.NoCheck`), so no AIA, CRL,
+  or OCSP URL in a presented certificate is fetched by the platform. The server fetches a CRL itself through the named
+  client `NCode.Identity.OpenId.ClientCertificateRevocation`, whose connections go through `IOutboundHttpForgeryGuard`,
+  which follows no redirect, and which times out after 5 seconds and reads at most 10 MiB, so a certificate cannot
+  direct the server to an internal address. A CRL that is not DER, not current, not issued and signed by the issuing
+  certificate, or not understood is `Unknown`, which the chain validator refuses
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R16`).
+
+- **An initial access token authorizes one registration.** Every token, scoped or not, is spent by the registration it
+  authorizes and expires within 30 days, so a leaked token registers at most one client, and only until it expires. A
+  token that is spent, expired, or revoked is refused with `401` `invalid_token`. A registration that an earlier check
+  refuses leaves the token unspent, and a failure storing the client after the spend leaves it spent
+  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md),
+  [ADR-0063](docs/adr/0063-dynamic-client-registration.md), backlog `R17`).
+
 - **A private-use redirect URI must be a reverse domain name, and a URI of no kind is never permitted.** A
   `private_use` URI has a scheme of at least two non-empty labels, such as `com.example.app`, so `javascript:`, `data:`,
   `ws:`, `file:`, and `myapp:` are no redirect target, even with `redirect_uri_kinds_supported` unset
@@ -1437,6 +1522,25 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A `tls_client_auth` client whose certificate subject was encoded differently from its registered subject DN could
+  not authenticate.** The handler compared DER bytes, so the same name written as a `UTF8String` or a
+  `PrintableString`, in another case, or with other spacing did not match. The subject DN matches across string
+  encodings, case, and spacing, and the `tls_client_auth_subject_dn` setting rule accepts the RFC 4514 forms an
+  operator pastes. **Breaking:** a stored `tls_client_auth_subject_dn` written with `;` separators or in the
+  `/C=US/O=Example` form does not parse, matches no certificate, and is refused by the setting rule; rewrite it as an
+  RFC 4514 string such as `CN=client,O=Example`
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R18`).
+
+- **A security profile selected in the server's configuration supplied no defaults at the server root.** The root wrote
+  every setting's descriptor default into the collection that holds the configuration, and a profile's default sits
+  beneath a scope's own settings, so it never took effect there. The root's descriptor defaults, computed supported
+  values, and default-settings providers are a baseline beneath the configuration, and
+  `ISecurityProfileCatalog.Expand(scopeSettings, baselineSettings)` layers them: the configuration replaces the
+  baseline, a profile's default replaces the baseline but never a configured value, and a ceiling bounds both. So
+  `fapi1-advanced` advertises certificate-bound access token support, and the FAPI profiles' `PS256` signed-response
+  defaults apply, when the server's configuration selects the profile
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md), backlog `R42`).
 
 - **A server settings PATCH loaded every tenant and client with their secrets, even for an unrelated change.** It now
   walks the clients only when a setting that the client response-algorithm rule reads changed, and it reads tenants and

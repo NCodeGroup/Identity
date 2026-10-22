@@ -61,6 +61,16 @@ public readonly record struct PersistedGrant<TPayload>
     public string? RefreshTokenLineageId { get; init; }
 
     /// <summary>
+    /// Gets when the grant expires, or <see langword="null"/> when it does not expire.
+    /// </summary>
+    public DateTimeOffset? ExpiresWhen { get; init; }
+
+    /// <summary>
+    /// Gets when the grant was consumed, or <c>null</c> when it has not been.
+    /// </summary>
+    public DateTimeOffset? ConsumedWhen { get; init; }
+
+    /// <summary>
     /// Gets the payload of the grant.
     /// </summary>
     public required TPayload Payload { get; init; }

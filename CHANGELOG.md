@@ -1288,6 +1288,12 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **An authorization error raised after the request object was verified used the outer, unsigned `state` and
+  `response_mode`.** When a request carried `redirect_uri` outside its request object, a later error went back without
+  the object's `state` and, for `response_mode=jwt` only in the object, unsigned (RFC 6749 §4.1.2.1). Once the object
+  is verified, the authorization endpoint now takes `state` and `response_mode` from it for every later response,
+  errors included (RFC 9101 §6.3, ADR-0202).
+
 - **Every management API request read the control-plane tenant from the store before checking the tenant cache.**
   `ITenantStrategy` and `ITenantResolver` gain `GetControlPlaneTenantId()`, which names the control-plane tenant from
   configuration, and `CreateControlPlaneTenantAsync` probes the cache with it first, reading the store only on a miss

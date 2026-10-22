@@ -76,6 +76,14 @@ outer parameter such as `response_mode` could change a signed request.
    `response_mode`, and `state` from it. Until the object is verified the endpoint does not know a safe redirect target,
    so an error raised before then is returned to the user agent and not redirected.
 
+   When the request does carry an outer `redirect_uri`, the endpoint checks it first, so an error raised while the
+   object is loaded is redirected there with the outer `state` and `response_mode`. Once the object is verified, the
+   endpoint takes `state` and `response_mode` from the object, and every later response uses them, including an
+   error. A request whose `state` and `response_mode=jwt` appear only in the object therefore gets a signed error
+   that carries its `state` (RFC 6749 §4.1.2.1). The redirect target stays the outer URI that was already checked,
+   because validation refuses an object whose `redirect_uri` differs from it and delivers that refusal there. An
+   object whose `response_mode` the client cannot be served in is refused without a redirect, as is an outer one.
+
 ## Consequences
 
 - A tenant or client selects `fapi1-advanced` through `security_profiles`, as it selects `fapi2`, and a client

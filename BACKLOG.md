@@ -454,19 +454,9 @@ _None remaining._
   write's eviction makes the next request on that replica, provisions the missing keys again. Treat the tenant's own
   secrets as part of the tenant (deleted with it) rather than as dependents, or skip seeding a tenant being deleted.
   Touch points: `DefaultTenantValidator.cs:197-206`, `TenantStore.cs:683-686`, `TenantKeySeedHandler.cs`.
-- **`R53` — Refuse `http` redirect URIs under FAPI.** FAPI 1.0 (Part 1 §5.2.2-20, which Advanced inherits) requires
-  `https` redirect URIs. FAPI 2.0 (§5.3.2.2) permits `http` only for a native client's loopback redirect (RFC 8252
-  §7.3). `fapi1-advanced` now caps `allow_loopback_redirect` (ADR-0203), but a client can still register and use an
-  exact `http` URI under either profile. Add a setting that the profiles cap, checked at registration (DCR,
-  management, conformance seed) and when the delivery is derived. Touch points: `OpenIdSettingRules.RedirectUri`,
-  `DefaultClientRegistrationEndpointHandler.cs:882-893`, `DefaultAuthorizationResponseDeliveryResolver.cs`,
-  `Fapi1AdvancedSecurityProfile.cs`, `Fapi2SecurityProfile.cs`.
 
 ### P3
 
-- **`R24` — Cover FAPI 1.0 Advanced and JARM failure paths with tests.** Profile ceilings and defaults, `/authorize`
-  integration (plain `code` refused, `code` + `jwt` accepted, public client refused, `nbf` required), JARM handler
-  failures and encryption, PAR + JAR, and error `state` for a request-object request.
 - **`R25` — Make the usage-ledger flush idempotent, or document that it may overcount.** Touch point:
   `TenantUsageFlushService.cs:117-123`.
 - **`R30` — Serve interactive bundle assets without resolving the tenant.** Touch point:
@@ -486,13 +476,6 @@ _None remaining._
   Also add a supported way to revoke a key by ID (`IKeyManager.RevokeKey`) for recovery, and document both in
   ADR-0177 and the chart README. Touch points: `NCode.Identity.Server` (`ProductionSafetyRegistration` pattern),
   `DataProtection:KeyProtection`, ADR-0177.
-- **`R52` — Keep an accepted redirect URI as written.** _pre._ Exact matching (ADR-0203) compares the string a client
-  sent, but `UriParser.GetStringValues` serializes a `Uri` parameter as `AbsoluteUri`. A parked continuation or a stored
-  authorization code therefore carries a normalized `redirect_uri`: `myapp://callback` becomes `myapp://callback/`, and
-  the host is lower-cased. The token endpoint compares `redirect_uri` with `Uri` equality, which ignores user
-  information and host case. The response writer redirects to the `UriBuilder` form rather than the registered string.
-  Serialize, compare, and deliver the string as written. Touch points: `UriParser.cs:36-46`,
-  `DefaultValidateAuthorizationCodeGrantHandler.cs:91`, `AuthorizationResponseWriter.WriteRedirect`.
 - **`R54` — Make the integration suite's host teardown reliable.** Full parallel runs of
   `NCode.Identity.OpenId.IntegrationTests` intermittently exit 1 although every test passes, and a rerun is clean. Two
   shapes have been seen: `[Test Class Cleanup Failure (…DiscoveryInsecureOverrideTests)] System.AggregateException`,

@@ -2793,3 +2793,38 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: the capped client setting `authorization_response_lifetime` (default 5 minutes, at most 10, merged with
   `Min`) sets the JARM `exp`; `AuthorizationResult` requires its context, client and delivery; the interactive handler
   builds every login redirect through one `RedirectToLogin` helper. ADR-0201 decisions 4 and 6._
+- **`R52` — Keep an accepted redirect URI as written.** _pre._ Exact matching (ADR-0203) compares the string a client
+  sent, but `UriParser.GetStringValues` serializes a `Uri` parameter as `AbsoluteUri`. A parked continuation or a stored
+  authorization code therefore carries a normalized `redirect_uri`: `myapp://callback` becomes `myapp://callback/`, and
+  the host is lower-cased. The token endpoint compares `redirect_uri` with `Uri` equality, which ignores user
+  information and host case. The response writer redirects to the `UriBuilder` form rather than the registered string.
+  Serialize, compare, and deliver the string as written. Touch points: `UriParser.cs:36-46`,
+  `DefaultValidateAuthorizationCodeGrantHandler.cs:91`, `AuthorizationResponseWriter.WriteRedirect`.
+  _Closed: `redirect_uri` is a string through the message model, the request interfaces, and
+  `AuthorizationResponseDelivery`; the response writer delivers it as written (the registered query kept, only
+  characters a header cannot carry percent-encoded), the token endpoint compares it ordinally and treats an empty value
+  as missing, and `UriParser` writes `OriginalString`. `RedirectUriAsWrittenTests` covers a private-use URI at
+  authorize, continuation, and redemption, and host-case and normalized-form mismatches at the token endpoint; ADR-0203
+  decision 6._
+- **`R53` — Refuse `http` redirect URIs under FAPI.** FAPI 1.0 (Part 1 §5.2.2-20, which Advanced inherits) requires
+  `https` redirect URIs. FAPI 2.0 (§5.3.2.2) permits `http` only for a native client's loopback redirect (RFC 8252
+  §7.3). `fapi1-advanced` now caps `allow_loopback_redirect` (ADR-0203), but a client can still register and use an
+  exact `http` URI under either profile. Add a setting that the profiles cap, checked at registration (DCR,
+  management, conformance seed) and when the delivery is derived. Touch points: `OpenIdSettingRules.RedirectUri`,
+  `DefaultClientRegistrationEndpointHandler.cs:882-893`, `DefaultAuthorizationResponseDeliveryResolver.cs`,
+  `Fapi1AdvancedSecurityProfile.cs`, `Fapi2SecurityProfile.cs`.
+  _Closed: redirect URI kinds are an open vocabulary (`IRedirectUriKind`, `IRedirectUriKindCatalog`; built-in `https`,
+  `loopback`, `http`, `private_use`), and `redirect_uri_kinds_supported` (tenants and clients, `Intersect`, unset means
+  unrestricted) narrows them. `fapi1-advanced` caps at `https`, `fapi2` at `https`, `loopback`, and `private_use`. The
+  kind is checked at dynamic registration, in the management API, in the conformance seed, and when the delivery is
+  derived at authorize and PAR. ADR-0203 decisions 7-9, ADR-0202, ADR-0108. Narrowing `private_use` is `R56`;
+  re-checking registered URIs after a tenant or server settings change is `R55`._
+- **`R24` — Cover FAPI 1.0 Advanced and JARM failure paths with tests.** Profile ceilings and defaults, `/authorize`
+  integration (plain `code` refused, `code` + `jwt` accepted, public client refused, `nbf` required), JARM handler
+  failures and encryption, PAR + JAR, and error `state` for a request-object request.
+  _Closed: tests pin every `fapi1-advanced` ceiling and default and `ConfidentialClientRequirement`; PAR refuses an
+  unlisted response mode, an unsignable JARM response, and an unregistered or `http` redirect URI with the right error
+  codes; JARM refuses a response with no tenant key or no client encryption key before sign-in and delivers an encrypted
+  response; and `fapi1-advanced` is driven end to end at PAR and `/authorize` with `PS256`-signed responses
+  (`Fapi1AdvancedAuthorizationTests`). Error `state` for a request object and PAR with a request object were already
+  covered._

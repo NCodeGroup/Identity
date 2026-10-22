@@ -172,12 +172,29 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 .AsException();
 
         /*
-         * Only the request object's parameters are used (RFC 9101 §6.3, ADR-0202). An outer copy of response_type, redirect_uri,
+         * Only the request object's parameters are used (RFC 9101 §6.3, ADR-0202), so it must carry response_type and scope;
+         * an outer copy of either is never used (FAPI 1.0 Advanced §5.2.2-10). An outer copy of response_type, redirect_uri,
          * or client_id is optional — a pushed request carries none of them (RFC 9126 §3) — but one that is sent must match the
-         * object's value.
+         * object's value. An outer scope is ignored, as OpenID Connect Core §6.1 lets the object's value supersede it.
          */
 
-        if (requestMessage.ResponseTypes != null && requestObject.ResponseTypes != null)
+        if (requestObject.ResponseTypes is not { Count: > 0 })
+            throw errorFactory
+                .InvalidRequest(
+                    "The JWT request object must contain the 'response_type' parameter.",
+                    errorCode
+                )
+                .AsException();
+
+        if (requestObject.Scopes is not { Count: > 0 })
+            throw errorFactory
+                .InvalidRequest(
+                    "The JWT request object must contain the 'scope' parameter.",
+                    errorCode
+                )
+                .AsException();
+
+        if (requestMessage.ResponseTypes != null)
         {
             var requestMessageResponseType = ResponseTypeValues.Canonicalize(
                 requestMessage.ResponseTypes
@@ -207,8 +224,8 @@ internal class DefaultValidateAuthorizationRequestHandler(
 
         if (requestObject.RedirectUri is null)
             throw errorFactory
-                .MissingParameter(
-                    "The 'redirect_uri' parameter in the JWT request object is missing.",
+                .InvalidRequest(
+                    "The JWT request object must contain the 'redirect_uri' parameter.",
                     errorCode
                 )
                 .AsException();
@@ -231,8 +248,8 @@ internal class DefaultValidateAuthorizationRequestHandler(
 
         if (string.IsNullOrEmpty(requestObject.ClientId))
             throw errorFactory
-                .MissingParameter(
-                    "The 'client_id' parameter in the JWT request object is missing.",
+                .InvalidRequest(
+                    "The JWT request object must contain the 'client_id' parameter.",
                     errorCode
                 )
                 .AsException();

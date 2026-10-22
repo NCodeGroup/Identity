@@ -166,7 +166,7 @@ internal class DefaultAuthorizationEndpointHandler(
             clientRedirectContext = GetClientRedirectContext(
                 openIdContext,
                 openIdClient,
-                GetRequestObjectValues(openIdContext, authorizationRequest, requestValues)
+                GetRequestObjectValues(openIdContext, authorizationRequest)
             );
         }
         else
@@ -196,8 +196,7 @@ internal class DefaultAuthorizationEndpointHandler(
             {
                 var requestObjectValues = GetRequestObjectValues(
                     openIdContext,
-                    authorizationRequest,
-                    requestValues
+                    authorizationRequest
                 );
                 var state = GetState(requestObjectValues);
                 clientRedirectContext = clientRedirectContext with
@@ -320,12 +319,10 @@ internal class DefaultAuthorizationEndpointHandler(
             || requestValues.ContainsKey(OpenIdConstants.Parameters.RequestUri)
         );
 
-    // Only the verified request object's values are used (RFC 9101 §6.3); response_type alone may still come from the
-    // outer request, matching IAuthorizationRequest.ResponseTypes.
+    // Only the verified request object's values are used (RFC 9101 §6.3), matching IAuthorizationRequest.
     private static RequestValuesUsingCollection GetRequestObjectValues(
         OpenIdContext openIdContext,
-        IAuthorizationRequest authorizationRequest,
-        IRequestValues requestValues
+        IAuthorizationRequest authorizationRequest
     )
     {
         var openIdEnvironment = openIdContext.Environment;
@@ -339,17 +336,6 @@ internal class DefaultAuthorizationEndpointHandler(
                     openIdEnvironment
                 );
             }
-        }
-
-        if (
-            !values.ContainsKey(OpenIdConstants.Parameters.ResponseType)
-            && requestValues.TryGetValue(
-                OpenIdConstants.Parameters.ResponseType,
-                out var responseTypeStringValues
-            )
-        )
-        {
-            values[OpenIdConstants.Parameters.ResponseType] = responseTypeStringValues;
         }
 
         return new RequestValuesUsingCollection(RequestValuesSourceTypes.RequestObject, values);

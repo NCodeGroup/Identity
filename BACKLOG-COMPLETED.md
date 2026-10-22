@@ -2709,3 +2709,10 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   for `response_mode=jwt`, is signed. The redirect target stays the outer `redirect_uri` already checked, since
   validation refuses an object whose `redirect_uri` differs. Integration tests cover a `fragment` and a `jwt` error with
   a different outer `state`; ADR-0202 decision 6 records it._
+- **`R9` — Read `scope` and `response_type` only from a request object.** They still fall back to the unsigned outer
+  query (FAPI 1.0 Advanced §5.2.2-10); an outer copy must match when present. Touch point:
+  `Messages/AuthorizationRequest.cs:166-172`. _Closed: `AuthorizationRequest` reads `response_type` and `scope` only
+  from the request object; only `client_id` falls back to the outer query. `ValidateRequestObject` refuses an object
+  without `response_type` or `scope` with `invalid_request_object`, still requires an outer `response_type` to match,
+  and ignores an outer `scope`, which OpenID Connect Core §6.1 lets the object supersede. Unit tests cover both
+  properties and the new refusals; ADR-0202 decision 6 updated._

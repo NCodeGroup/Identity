@@ -431,29 +431,6 @@ _None remaining._
 - **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
   replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
   `src/frontend/apps/auth/src/main.tsx:12-21`.
-- **`R21` — Bound the cost of a server settings PATCH.** It loads every tenant and client, with secrets and tracking,
-  even for an unrelated change. Skip when the permitted algorithm lists are unchanged; otherwise use an untracked
-  projection. Touch point: `ServerApiEndpointHandler.cs:700-735`.
-- **`R49` — Deliver a tenant change to every replica.** _pre._ A management write evicts the changed tenant only on the
-  replica that made it (`TenantChangedCommand`, ADR-0169 decision 10). Every other replica keeps its cached tenant,
-  whose 4 h sliding expiration keeps a busy tenant loaded indefinitely: it picks up settings and secrets through its
-  polls (5 and 15 minutes), so it may advertise a newly permitted algorithm up to 15 minutes before it publishes the
-  key, and it keeps serving a tenant that was disabled, deleted, or moved to a new issuer until its entry expires.
-  Publish the change across replicas (for example, Valkey pub/sub beside the shared state adapter, ADR-0164) so every
-  replica evicts the tenant. Touch points: `TenantChangedHandler.cs`, `DefaultOpenIdTenantCache.cs`,
-  `DefaultOpenIdTenantFactory.cs:128-133`.
-- **`R50` — Re-seed tenants when a server settings change permits an algorithm.** A tenant's effective algorithm lists
-  merge the server's settings, so a server settings PATCH that permits a configured algorithm leaves every running
-  tenant without its key until it is next seeded; only tenant writes send `TenantChangedCommand` (ADR-0169 decision 10).
-  Announce the change for each tenant whose effective lists gain a configured algorithm, bounded so a large deployment
-  is not seeded inside one request (pairs with `R21`, which already walks every tenant). Touch points:
-  `ServerApiEndpointHandler.cs:690-735`, `TenantChangedHandler.cs`.
-- **`R51` — Let a tenant with provisioned keys be deleted.** _pre._ Deleting a tenant is refused (409) while it holds
-  any secret (`DefaultTenantValidator.cs:197-206`, `TenantStore.HasDependentsAsync`), and every tenant holds provisioned
-  keys (ADR-0169). Deleting each secret first does not converge: the tenant's next materialization, which a management
-  write's eviction makes the next request on that replica, provisions the missing keys again. Treat the tenant's own
-  secrets as part of the tenant (deleted with it) rather than as dependents, or skip seeding a tenant being deleted.
-  Touch points: `DefaultTenantValidator.cs:197-206`, `TenantStore.cs:683-686`, `TenantKeySeedHandler.cs`.
 - **`R59` — Let a tenant or client with end-user data be deleted.** Every foreign key is `Restrict`
   (`OpenIdDbContext.OnModelCreating`), but the stores check only some dependents. `ClientStore.RemoveAsync` checks only
   the client's secrets, so a client with grants or consents fails `SaveChanges` with a foreign-key violation (a `500` on
@@ -545,8 +522,6 @@ _None remaining._
 
 ### Refactor
 
-- **`R39` — One effective-settings resolver.** It is rebuilt in `TenantKeySeedHandler`, both management handlers, the
-  client handler, and the tenant factory.
 - **`R40` — One coherence validator for client settings.** Shared by dynamic registration, management, and the
   conformance seed; move `ClientResponseAlgorithmRule` into Authentication.
 - **`R41` — Rate-limit policy as data.** One descriptor table for partitions, quotas, and meters, a batched Valkey

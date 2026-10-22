@@ -2828,3 +2828,53 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   response; and `fapi1-advanced` is driven end to end at PAR and `/authorize` with `PS256`-signed responses
   (`Fapi1AdvancedAuthorizationTests`). Error `state` for a request object and PAR with a request object were already
   covered._
+- **`R21` — Bound the cost of a server settings PATCH.** It loads every tenant and client, with secrets and tracking,
+  even for an unrelated change. Skip when the permitted algorithm lists are unchanged; otherwise use an untracked
+  projection. Touch point: `ServerApiEndpointHandler.cs:700-735`.
+  _Closed: a server or tenant settings change walks clients only when `ClientResponseAlgorithmRule.ReadsChangedSetting`
+  reports a change to a setting the rule reads, and the walk reads tenants and clients through the untracked,
+  secret-free `ITenantStore`/`IClientStore.GetSettingsPageAsync` projections. ADR-0204, ADR-0155._
+- **`R49` — Deliver a tenant change to every replica.** _pre._ A management write evicts the changed tenant only on the
+  replica that made it (`TenantChangedCommand`, ADR-0169 decision 10). Every other replica keeps its cached tenant,
+  whose 4 h sliding expiration keeps a busy tenant loaded indefinitely: it picks up settings and secrets through its
+  polls (5 and 15 minutes), so it may advertise a newly permitted algorithm up to 15 minutes before it publishes the
+  key, and it keeps serving a tenant that was disabled, deleted, or moved to a new issuer until its entry expires.
+  Publish the change across replicas (for example, Valkey pub/sub beside the shared state adapter, ADR-0164) so every
+  replica evicts the tenant. Touch points: `TenantChangedHandler.cs`, `DefaultOpenIdTenantCache.cs`,
+  `DefaultOpenIdTenantFactory.cs:128-133`.
+  _Closed: the replica broadcast port (`IReplicaBroadcaster`, `IReplicaBroadcastHandler`; channels an open vocabulary)
+  has an in-process default registered by `AddIdentityServer` and a Valkey adapter (`PUBLISH`/`SUBSCRIBE` on the key
+  prefix, a retrying hosted subscriber, the `broadcast.publish` metric) that `AddValkey` substitutes.
+  `TenantChangedHandler` evicts, seeds, then announces on `tenant-changed`, and `TenantChangeBroadcastHandler` evicts
+  the tenant on every replica; a failed publish is logged and never fails the committed write. ADR-0205; a missed
+  message is bounded by `R58`._
+- **`R50` — Re-seed tenants when a server settings change permits an algorithm.** A tenant's effective algorithm lists
+  merge the server's settings, so a server settings PATCH that permits a configured algorithm leaves every running
+  tenant without its key until it is next seeded; only tenant writes send `TenantChangedCommand` (ADR-0169 decision 10).
+  Announce the change for each tenant whose effective lists gain a configured algorithm, bounded so a large deployment
+  is not seeded inside one request (pairs with `R21`, which already walks every tenant). Touch points:
+  `ServerApiEndpointHandler.cs:690-735`, `TenantChangedHandler.cs`.
+  _Closed: a committed server settings PATCH sends `ServerSettingsChangedCommand`; when a configured algorithm's list
+  gains it or is lifted, `ServerSettingsChangedTenantKeyHandler` dispatches a `TenantKeyReseedJob` that, outside the
+  request, announces a settings change for each tenant whose effective lists newly name it, isolating per-tenant
+  failures. An integration test permits an algorithm on the server and sees the tenant's key provisioned. ADR-0169
+  decision 10; durability and fairness of the job are `R61`, applying the server change at once on every replica is
+  `R57`._
+- **`R51` — Let a tenant with provisioned keys be deleted.** _pre._ Deleting a tenant is refused (409) while it holds
+  any secret (`DefaultTenantValidator.cs:197-206`, `TenantStore.HasDependentsAsync`), and every tenant holds provisioned
+  keys (ADR-0169). Deleting each secret first does not converge: the tenant's next materialization, which a management
+  write's eviction makes the next request on that replica, provisions the missing keys again. Treat the tenant's own
+  secrets as part of the tenant (deleted with it) rather than as dependents, or skip seeding a tenant being deleted.
+  Touch points: `DefaultTenantValidator.cs:197-206`, `TenantStore.cs:683-686`, `TenantKeySeedHandler.cs`.
+  _Closed: a tenant's keys are part of it. `TenantStore.RemoveAsync` removes the tenant's secrets, its system resource
+  servers with their scopes and secrets, and its role assignments in one unit of work; only clients and other resource
+  servers block deletion (409). EF tests cover it on InMemory and on SQLite with foreign keys enforced, and an
+  integration test deletes a provisioned tenant (204, then 404). ADR-0169 decision 11; end-user data blocking deletion
+  is `R59`._
+- **`R39` — One effective-settings resolver.** It is rebuilt in `TenantKeySeedHandler`, both management handlers, the
+  client handler, and the tenant factory.
+  _Closed: `IEffectiveSettingsResolver` (`ReadScopeSettings`, `Resolve`, and two `ResolveServerAsync` overloads;
+  registrable, default in Core) is the one way to compute a scope's effective settings outside the live providers. The
+  seed, both tenant factories, the client and resource-server resolvers, the conformance seed, and every management
+  handler route through it; seeds and previews read the server's committed settings. Only the server factory and the
+  root settings source call the security-profile catalog directly. ADR-0204._

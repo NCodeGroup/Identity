@@ -644,6 +644,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results.Introspecti
 NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Results.IntrospectionResult.IntrospectionResult() -> void
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointDiscoverableMetadata
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointDiscoverableMetadata.IsDiscoverable.get -> bool
+NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointMeteredMetadata
+NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointMeteredMetadata.IsMetered.get -> bool
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointExceptionHandlerMetadata
 NCode.Identity.OpenId.Authentication.Endpoints.IOpenIdEndpointExceptionHandlerMetadata.GetExceptionHandlerAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Exceptions.IOpenIdExceptionHandler!>
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants.InitialAccessTokenGrant

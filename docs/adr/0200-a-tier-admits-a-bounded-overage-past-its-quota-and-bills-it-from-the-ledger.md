@@ -31,7 +31,10 @@ a plan tier opts in, whether an admitting tier still has a hard ceiling, and how
    `overage`.
 4. **Overage is billed from the ledger as its own meter.** An admitted overage request is recorded under
    `requests_overage` or `token_requests_overage` in addition to `requests` or `token_requests`, so the plain meters
-   stay the total served and the overage meters are exactly what is billable.
+   stay the total served and the overage meters are exactly what is billable. A request the per-client limit or the
+   token quota refuses after the request quota admitted it as overage is not recorded, so it is not billed; public
+   metadata (discovery and the JSON Web Key Set) never spends the request quota, so anonymous callers cannot run up a
+   tenant's overage.
 5. **The customer sees the overage through the existing usage report.** `GET /api/tenants/{tenantId}/usage` returns the
    overage meters with the others, and the admin UI's Usage tab shows them as columns, because both list every meter
    recorded. No new endpoint is needed.

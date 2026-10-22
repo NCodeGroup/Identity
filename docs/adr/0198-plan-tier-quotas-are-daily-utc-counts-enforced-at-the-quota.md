@@ -36,9 +36,14 @@ ceiling.**
    tenant's consumption is bounded. Overage billing can be added on top of the usage record without changing the
    enforcement.
 3. **Two quotas, both tenant settings.**
-    - `quota_tenant_requests_per_day` counts every request the tenant's protocol endpoints serve. It is judged after
-      the address and tenant per-minute limits, so a request a limit refuses does not spend the quota, and one address
-      can spend no more of it than its own per-minute limit allows.
+    - `quota_tenant_requests_per_day` counts every request the tenant's metered protocol endpoints serve. It is judged
+      after the address and tenant per-minute limits, so a request a limit refuses does not spend the quota, and one
+      address can spend no more of it than its own per-minute limit allows. The discovery document and the JSON Web
+      Key Set are not metered (`IOpenIdEndpointMeteredMetadata`, set with `WithOpenIdMetered(false)`): they are public
+      metadata that any anonymous caller, cache, or relying-party library fetches, so counting them would let anyone
+      spend the quota, bill the overage of ADR-0200, and then refuse the tenant's clients until midnight. The
+      per-minute limits still cover them. Metering is endpoint metadata, so a package that adds another public
+      metadata endpoint opts it out the same way ([ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md)).
     - `quota_tenant_token_requests_per_day` counts token requests from confidential clients, judged at the token
       endpoint after client authentication (and its per-client limit) and before the grant is processed. A public
       client is named by its `client_id` alone, which anyone can read from an authorization URL, so counting it would
@@ -80,8 +85,9 @@ ceiling.**
 ## Consequences
 
 - A tenant with a quota is refused for the rest of the UTC day once it spends it; nothing is limited by default.
-- Anonymous traffic spends the request quota, as it spends the tenant's per-minute limit; the per-address limit bounds
-  how much of it one address can spend. The token-request quota cannot be spent without a confidential client's
+- Anonymous traffic to a metered endpoint spends the request quota, as it spends the tenant's per-minute limit; the
+  per-address limit bounds how much of it one address can spend. Anonymous traffic to discovery and the JSON Web Key
+  Set spends only the per-minute limits. The token-request quota cannot be spent without a confidential client's
   credentials.
 - A tenant's current consumption is the day's counter, which lives only until midnight. The durable usage history for
   billing is the ledger of [ADR-0199](0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md).

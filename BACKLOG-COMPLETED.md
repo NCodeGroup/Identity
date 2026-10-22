@@ -2672,3 +2672,19 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: `TenantUsageStore.RemoveBeforeAsync` uses `ExecuteDeleteAsync`, so a prune never loads the expired entries;
   the interface documents that the delete is immediate, and the store test now checks the rows are gone without saving
   the unit of work. Changelog entry under Fixed._
+
+- **`R4` — Keep unauthenticated metadata endpoints out of the daily quota and overage.** `RateLimitEndpointFilter`
+  covers discovery and JWKS, so anonymous traffic can spend a tenant's quota, bill its overage, and then refuse its
+  clients until 00:00 UTC. Keep those endpoints under the per-minute limits only, and update ADR-0198 and ADR-0200.
+  Touch points: `RateLimitEndpointFilter.cs:56-65`, `OpenIdEndpointGroup.cs:82`. _Closed: new public endpoint metadata
+  `IOpenIdEndpointMeteredMetadata` (set with `WithOpenIdMetered(false)`) marks discovery and the JSON Web Key Set
+  unmetered; `RateLimitEndpointFilter` passes it to `IRequestRateLimiter.AcquireForTenantAsync(isMetered)`, which skips
+  the daily quota, and records no `requests` usage for them. ADR-0198, ADR-0199 and ADR-0200 are updated; integration
+  tests show repeated discovery/JWKS requests leave a one-request quota unspent._
+
+- **`R13` — Record request usage after the endpoint runs.** Requests the per-client limit or token quota refuse are
+  billed, including as overage (contradicts ADR-0199 §2). Touch point: `RateLimitEndpointFilter.cs:63-67`. _Closed:
+  `RateLimitErrors.Refuse` (renamed from `Create`) marks the request refused, and `RateLimitEndpointFilter` records
+  `requests`/`requests_overage` after the endpoint runs unless the request was refused, so a per-client-limit or
+  token-quota refusal is not billed. An integration test fails (3 recorded, 2 expected) without the check. ADR-0199 §2
+  and ADR-0200 updated._

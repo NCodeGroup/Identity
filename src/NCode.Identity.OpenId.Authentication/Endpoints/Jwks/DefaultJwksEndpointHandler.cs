@@ -46,7 +46,9 @@ internal class DefaultJwksEndpointHandler(ISecretKeyTypeCatalog secretKeyTypeCat
             .WithName(OpenIdConstants.EndpointNames.Jwks)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
             .Produces<JsonWebKeySet>(StatusCodes.Status200OK)
-            .WithOpenIdDiscoverable();
+            .WithOpenIdDiscoverable()
+            // Public metadata any anonymous caller may fetch is not the tenant's metered usage (ADR-0198).
+            .WithOpenIdMetered(false);
 
     /// <summary>
     /// JSON Web Key Set (JWKS).

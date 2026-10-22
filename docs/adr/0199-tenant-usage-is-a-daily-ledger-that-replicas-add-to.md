@@ -29,10 +29,13 @@ default and the management API reads it.**
    which refuses a name the ledger cannot store, so a bad name fails at its caller rather than at every flush. A
    row references its tenant by id, with no foreign key and no tenant query filter, so the usage of a deleted tenant
    survives for its final bill.
-2. **Every tenant is metered, with or without a quota.** A request is counted once the per-minute limits and the daily
-   request quota admit it (`RateLimitEndpointFilter`); a token request is counted once a confidential client's token
-   request is admitted by the token quota. Public clients do not count as token requests, as they do not spend the
-   quota. A refused request is not usage.
+2. **Every tenant is metered, with or without a quota.** A request to a metered endpoint is counted once its endpoint
+   has run, provided no limit refused it: neither the per-minute limits and the daily request quota
+   (`RateLimitEndpointFilter`) nor the per-client limit or the token quota inside the endpoint, which mark the request
+   refused when they answer it `429`. A token request is counted once a confidential client's token request is
+   admitted by the token quota. Public clients do not count as token requests, as they do not spend the quota. A
+   refused request is not usage, and neither is a request for public metadata (discovery and the JSON Web Key Set,
+   [ADR-0198](0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)).
 3. **Replicas count in memory and add to the ledger.** `ITenantUsageRecorder.Record` increments an in-memory count
    under a lock and costs no I/O on the request path. `TenantUsageFlushService` drains the counts every
    `TenantUsageOptions.FlushInterval` (one minute) and adds them in batches of 256 rows, each read with one query per

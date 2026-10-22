@@ -240,6 +240,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
+            isMetered: true,
             CancellationToken.None
         );
 
@@ -256,6 +257,26 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     }
 
     [Fact]
+    public async Task AcquireForTenantAsync_WhenNotMetered_DoesNotSpendTheDailyQuota()
+    {
+        // Public metadata is not the tenant's metered usage, so the quota is neither read nor counted (ADR-0198).
+        SetupTenant();
+        SetupRemoteAddress();
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
+        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
+
+        var decision = await Limiter.AcquireForTenantAsync(
+            MockContext.Object,
+            isMetered: false,
+            CancellationToken.None
+        );
+
+        Assert.False(decision.IsRejected);
+        Assert.False(decision.IsOverage);
+        Assert.Empty(Judgements);
+    }
+
+    [Fact]
     public async Task AcquireForTenantAsync_WhenTheDailyQuotaIsSpent_RejectsUntilMidnightUtc()
     {
         SetupTenant();
@@ -267,6 +288,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
+            isMetered: true,
             CancellationToken.None
         );
 
@@ -296,6 +318,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
+            isMetered: true,
             CancellationToken.None
         );
 
@@ -325,6 +348,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
+            isMetered: true,
             CancellationToken.None
         );
 
@@ -355,6 +379,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
+            isMetered: true,
             CancellationToken.None
         );
 
@@ -377,6 +402,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
+            isMetered: true,
             CancellationToken.None
         );
 
@@ -410,6 +436,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
+            isMetered: true,
             CancellationToken.None
         );
 
@@ -434,6 +461,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
+            isMetered: true,
             CancellationToken.None
         );
 
@@ -462,6 +490,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
+            isMetered: true,
             CancellationToken.None
         );
 
@@ -488,6 +517,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
+            isMetered: true,
             CancellationToken.None
         );
 
@@ -522,6 +552,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
+            isMetered: true,
             CancellationToken.None
         );
 
@@ -549,6 +580,7 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 
         var decision = await Limiter.AcquireForTenantAsync(
             MockContext.Object,
+            isMetered: true,
             CancellationToken.None
         );
 
@@ -586,7 +618,11 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             .Verifiable();
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            await Limiter.AcquireForTenantAsync(MockContext.Object, cancellationSource.Token)
+            await Limiter.AcquireForTenantAsync(
+                MockContext.Object,
+                isMetered: true,
+                cancellationSource.Token
+            )
         );
     }
 

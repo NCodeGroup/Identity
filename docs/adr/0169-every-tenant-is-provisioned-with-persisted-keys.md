@@ -83,8 +83,9 @@ key for. The server generates keys only to fill those gaps; it never removes, re
    `OpenId:Tenant:KeyProvisioning:Enabled` to `false`.
 9. **A tenant gets only the keys its settings use.** A configured algorithm is provisioned for a tenant only when one of
    its effective algorithm lists names it. `OpenId:Tenant:KeyProvisioning:AlgorithmSettings` names those lists (an
-   open vocabulary): by default, the lists the tenant signs ID tokens, UserInfo responses, introspection responses, and
-   access tokens with, and the key-management lists it decrypts request objects and access tokens encrypted to it with.
+   open vocabulary): by default, the lists the tenant signs ID tokens, UserInfo responses, introspection responses,
+   JWT-secured authorization responses (JARM, `authorization_signing_alg_values_supported`), and access tokens with,
+   and the key-management lists it decrypts request objects and access tokens encrypted to it with.
    - The settings materialize only after the seed, so the contributor merges the tenant's persisted document, expanded
      through its security profiles, onto the server's settings, as the materialized tenant does.
    - A `fapi2` tenant, whose lists exclude `RS256`, gets no RS256 key. A tenant that later permits a configured

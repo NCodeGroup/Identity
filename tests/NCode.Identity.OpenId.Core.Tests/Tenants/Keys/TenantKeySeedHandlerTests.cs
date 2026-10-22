@@ -186,12 +186,21 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         Assert.Equal(added, tenant.Secrets.Value);
     }
 
-    [Fact]
-    public async Task HandleAsync_WhenAnyAlgorithmSettingNamesTheAlgorithm_ProvisionsIt()
+    [Theory]
+    [InlineData(OpenIdSettingNames.IdTokenSigningAlgValuesSupported)]
+    [InlineData(OpenIdSettingNames.UserInfoSigningAlgValuesSupported)]
+    [InlineData(OpenIdSettingNames.IntrospectionSigningAlgValuesSupported)]
+    [InlineData(OpenIdSettingNames.AuthorizationSigningAlgValuesSupported)]
+    [InlineData(OpenIdSettingNames.AccessTokenSigningAlgValuesSupported)]
+    [InlineData(OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported)]
+    [InlineData(OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported)]
+    public async Task HandleAsync_WhenAnyDefaultAlgorithmSettingNamesTheAlgorithm_ProvisionsIt(
+        string settingName
+    )
     {
         var tenant = CreateTenant([]);
         SetupSpecifications(Rs256);
-        SetupSettings(OpenIdSettingNames.AccessTokenSigningAlgValuesSupported, "RS256");
+        SetupSettings(settingName, "RS256");
         var requests = SetupGeneration();
         SetupAddSecret();
 

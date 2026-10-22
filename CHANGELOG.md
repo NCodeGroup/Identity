@@ -1288,6 +1288,11 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **A tenant that signs JWT-secured authorization responses (JARM) with an algorithm none of its other lists names
+  was provisioned no key for it.** `OpenId:Tenant:KeyProvisioning:AlgorithmSettings` now names
+  `authorization_signing_alg_values_supported` by default, so the JARM list provisions its keys as the ID token and
+  access token lists do (ADR-0169).
+
 - **An unreachable Valkey server cost every request about 5 s per rate limit judged, and logged a warning with a
   stack trace each time.** The rate limiter now bounds each counter call to 100 ms and, after a failure, stops calling
   the store for 10 s, admitting every request uncounted (`store_unavailable`) before trying it again. The failure that

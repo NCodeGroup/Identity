@@ -2080,8 +2080,8 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
-            // authorization_signing_alg_values_supported: permitted "alg" values for signing a JWT introspection
-            // response (JARM §4). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
+            // authorization_signing_alg_values_supported: permitted "alg" values for signing a JWT-secured authorization
+            // response (JARM §4); a key-provisioning default (ADR-0169). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
             // (ADR-0010). Advertised from the tenant's settings and enforced against the client's (ADR-0155).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {

@@ -409,12 +409,13 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
 ### P1 — before the branch merges
 
 - **`R6` — Re-seed a running tenant's keys when its settings change.** Key seeding skips algorithms the current
-  settings don't permit and runs only when a tenant is created or cached; the 4 h sliding cache keeps busy tenants
-  loaded, so an algorithm permitted later is advertised without a key until every replica restarts. Publish one
-  "tenant changed" notification from settings, secret, and delete writes that evicts the cached tenant and re-seeds
-  it, and add `AuthorizationSigningAlgValuesSupported` to the key-provisioning defaults. Touch points:
-  `TenantKeySeedHandler.cs:107, 163`, `DefaultOpenIdTenantFactory.cs:218, 429-453`,
-  `OpenIdTenantKeyProvisioningOptions.cs:71-79`.
+  settings don't permit and runs only when a tenant is materialized (created or loaded into the cache); the 4 h sliding
+  cache keeps busy tenants loaded, so an algorithm permitted later is advertised without a key until every replica
+  restarts. Publish one "tenant changed" notification from settings, secret, and delete writes that evicts the cached
+  tenant and re-seeds it. `IOpenIdTenantCache` has no eviction today (only `TryGetAsync`/`SetAsync`); a running tenant
+  polls its settings every 5 minutes and its secrets every 15, so a key one replica seeds reaches the others through
+  the secrets poll. Touch points: `TenantKeySeedHandler.cs:107, 163`, `DefaultOpenIdTenantFactory.cs:218, 429-453`.
+  The JARM signing list (`authorization_signing_alg_values_supported`) is already a key-provisioning default.
 
 ### P2
 

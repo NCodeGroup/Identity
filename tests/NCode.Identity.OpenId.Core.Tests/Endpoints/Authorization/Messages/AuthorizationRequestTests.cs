@@ -257,6 +257,73 @@ public class AuthorizationRequestTests : BaseTests
         );
     }
 
+    #region Request Object Values Tests
+
+    [Fact]
+    public void ResponseTypes_WhenTheRequestObjectOmitsThem_IgnoresTheOuterValue()
+    {
+        var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
+        {
+            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+        };
+        var requestObject = new AuthorizationRequestObject(MockOpenIdEnvironment.Object);
+        var authorizationRequest = new AuthorizationRequest(false, requestMessage, requestObject);
+
+        var responseTypes = authorizationRequest.ResponseTypes;
+
+        Assert.Empty(responseTypes);
+    }
+
+    [Fact]
+    public void Scopes_WhenTheRequestObjectOmitsThem_IgnoresTheOuterValue()
+    {
+        var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
+        {
+            Scopes = [OpenIdConstants.ScopeTypes.OpenId],
+        };
+        var requestObject = new AuthorizationRequestObject(MockOpenIdEnvironment.Object);
+        var authorizationRequest = new AuthorizationRequest(false, requestMessage, requestObject);
+
+        var scopes = authorizationRequest.Scopes;
+
+        Assert.Empty(scopes);
+    }
+
+    [Fact]
+    public void Scopes_WhenTheOuterValueDiffers_ReturnsTheRequestObjectsValue()
+    {
+        var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
+        {
+            Scopes = [OpenIdConstants.ScopeTypes.OpenId, "outer"],
+        };
+        var requestObject = new AuthorizationRequestObject(MockOpenIdEnvironment.Object)
+        {
+            Scopes = [OpenIdConstants.ScopeTypes.OpenId],
+        };
+        var authorizationRequest = new AuthorizationRequest(false, requestMessage, requestObject);
+
+        var scopes = authorizationRequest.Scopes;
+
+        Assert.Equal([OpenIdConstants.ScopeTypes.OpenId], scopes);
+    }
+
+    [Fact]
+    public void ClientId_WhenTheRequestObjectOmitsIt_ReturnsTheOuterValue()
+    {
+        var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
+        {
+            ClientId = "outer-client",
+        };
+        var requestObject = new AuthorizationRequestObject(MockOpenIdEnvironment.Object);
+        var authorizationRequest = new AuthorizationRequest(false, requestMessage, requestObject);
+
+        var clientId = authorizationRequest.ClientId;
+
+        Assert.Equal("outer-client", clientId);
+    }
+
+    #endregion
+
     #region ResponseMode Property Tests
 
     [Theory]

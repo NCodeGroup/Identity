@@ -59,16 +59,18 @@ outer parameter such as `response_mode` could change a signed request.
    composed `IAuthorizationRequest` so that a requirement can judge the response type and response mode.
 6. **A request object's parameters are the only parameters (RFC 9101 §6.3), for every request object.** When a
    request object is present, `AuthorizationRequest` reads every value, and its `Parameters` collection, from the
-   object alone. Three outer values are still used when the object omits them:
-   - `client_id`, which the object must also carry, naming the requesting client;
-   - `response_type`, which OpenID Connect Core sends outside the object as well;
-   - `scope`, which OpenID Connect Core also sends outside the object.
+   object alone. Only `client_id`, which the OAuth syntax carries to identify the client, is still read from outside
+   the object when the object omits it, and the object must carry a matching one.
 
-   Any other parameter sent only outside the object is ignored. The rule is not limited to FAPI profiles, because no
-   client should be able to change a signed request with an unsigned parameter. The object must carry `redirect_uri`.
-   The response is redirected to it once it is checked against the client's registered URIs, and the token endpoint
-   compares against the same value. An outer `client_id`, `response_type`, or `redirect_uri` is optional, but one that
-   is sent must equal the object's value, so a code is never sent to one URI and redeemable only with another.
+   Any other parameter sent only outside the object is ignored, including `response_type` and `scope`, which OpenID
+   Connect Core has a client send outside the object as well (FAPI 1.0 Advanced §5.2.2-10). The object must carry
+   `response_type`, `scope`, and `redirect_uri`, and is refused with `invalid_request_object` without them. The rule
+   is not limited to FAPI profiles, because no client should be able to change a signed request with an unsigned
+   parameter. The response is redirected to the object's `redirect_uri` once it is checked against the client's
+   registered URIs, and the token endpoint compares against the same value. An outer `client_id`, `response_type`, or
+   `redirect_uri` is optional, but one that is sent must equal the object's value, so a code is never sent to one URI
+   and redeemable only with another. An outer `scope` is ignored rather than compared, because OpenID Connect Core
+   §6.1 lets the object's value supersede it: a client may send `openid` outside and a broader scope inside.
 
    A pushed authorization request may therefore carry only the request object and client authentication (RFC 9126
    §3), which is the only path `fapi1-advanced` allows. When neither the request nor its pushed parameters carry an

@@ -1288,6 +1288,11 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **An authorization request with a request object still read `scope` and `response_type` from the unsigned outer
+  query when the object omitted them.** Only the object's values are now used (RFC 9101 §6.3, FAPI 1.0 Advanced
+  §5.2.2-10): an object without `response_type` or `scope` is refused with `invalid_request_object`, an outer
+  `response_type` must still match the object's, and an outer `scope` is ignored (ADR-0202).
+
 - **An authorization error raised after the request object was verified used the outer, unsigned `state` and
   `response_mode`.** When a request carried `redirect_uri` outside its request object, a later error went back without
   the object's `state` and, for `response_mode=jwt` only in the object, unsigned (RFC 6749 §4.1.2.1). Once the object

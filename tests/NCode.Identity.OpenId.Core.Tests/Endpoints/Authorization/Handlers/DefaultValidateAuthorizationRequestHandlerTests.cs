@@ -182,6 +182,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         mockRequestObject
             .SetupGet(x => x.ResponseTypes)
             .Returns([OpenIdConstants.ResponseTypes.Code]);
+        mockRequestObject.SetupGet(x => x.Scopes).Returns([OpenIdConstants.ScopeTypes.OpenId]);
 
         return new RequestObjectScaffold(
             mockClient.Object,
@@ -259,6 +260,48 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 
         Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+    }
+
+    [Fact]
+    public void ValidateRequestObject_WhenTheObjectLacksTheResponseType_ThrowsInvalidRequestObject()
+    {
+        // An outer response_type is never used in place of the object's (RFC 9101 §6.3).
+        var scaffold = CreateRequestObjectScaffold();
+        scaffold.RequestObject.SetupGet(x => x.ResponseTypes).Returns((List<string>?)null);
+        scaffold
+            .Message.SetupGet(x => x.ResponseTypes)
+            .Returns([OpenIdConstants.ResponseTypes.Code]);
+
+        Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+    }
+
+    [Fact]
+    public void ValidateRequestObject_WhenTheObjectLacksTheScope_ThrowsInvalidRequestObject()
+    {
+        // An outer scope is never used in place of the object's (RFC 9101 §6.3).
+        var scaffold = CreateRequestObjectScaffold();
+        scaffold.RequestObject.SetupGet(x => x.Scopes).Returns((List<string>?)null);
+        scaffold.Message.SetupGet(x => x.Scopes).Returns([OpenIdConstants.ScopeTypes.OpenId]);
+
+        Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
+
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+    }
+
+    [Fact]
+    public void ValidateRequestObject_WhenTheOuterScopeDiffers_DoesNotThrow()
+    {
+        // OpenID Connect Core §6.1 lets the object's scope supersede the outer one, which is ignored.
+        var scaffold = CreateRequestObjectScaffold();
+        scaffold
+            .Message.SetupGet(x => x.Scopes)
+            .Returns([OpenIdConstants.ScopeTypes.OpenId, "profile"]);
+
+        InvokeValidateRequestObject(scaffold);
+
+        Assert.Null(scaffold.CapturedCode());
     }
 
     [Fact]

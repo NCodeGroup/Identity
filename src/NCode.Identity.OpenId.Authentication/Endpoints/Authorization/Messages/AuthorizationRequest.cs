@@ -59,11 +59,6 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
         OriginalRequestObject = other.OriginalRequestObject?.Clone();
     }
 
-    private static IReadOnlyList<T> Coalesce<T>(
-        IReadOnlyList<T>? first,
-        IReadOnlyList<T>? second
-    ) => first ?? second ?? [];
-
     /// <inheritdoc />
     public string AuthorizationSourceType => AuthorizationSourceTypes.Union;
 
@@ -92,13 +87,14 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
      * RFC 9101 §6.3 (which updates OpenID Connect Core §6.1's merge): when a request object is used, the
      * Authorization Server MUST only use the parameters in the Request Object, even if the same parameter is provided
      * in the query parameter. A parameter sent only outside the request object is therefore ignored rather than merged
-     * in, so it can never bypass the request object's signature (FAPI 1.0 Advanced §5.2.2-10). The OAuth syntax still
-     * carries 'client_id' (which identifies the client and must match the request object's), and OpenID Connect Core
-     * still has a client send 'response_type' and 'scope' outside: those three fall back to the outer value, and an
-     * outer 'response_type' must match the request object's (validated with the request object).
+     * in, so it can never bypass the request object's signature (FAPI 1.0 Advanced §5.2.2-10). That includes
+     * 'response_type' and 'scope', which OpenID Connect Core also has a client send outside: the request object must
+     * carry them, an outer 'response_type' must match it, and an outer 'scope' is ignored (OpenID Connect Core §6.1 lets
+     * the object's value supersede it). Only 'client_id', which the OAuth syntax carries to identify the client, falls
+     * back to the outer value; the request object must carry a matching one (both validated with the request object).
      */
 
-    // The values every parameter except client_id, response_type and scope is read from.
+    // The values every parameter except client_id is read from.
     private IBaseAuthorizationRequestValues Values =>
         (IBaseAuthorizationRequestValues?)OriginalRequestObject ?? OriginalRequestMessage;
 
@@ -164,12 +160,10 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
         ResponseTypeValues.ResolveResponseMode(Values.ResponseMode, ResponseTypes);
 
     /// <inheritdoc />
-    public IReadOnlyList<string> ResponseTypes =>
-        Coalesce(OriginalRequestObject?.ResponseTypes, OriginalRequestMessage.ResponseTypes);
+    public IReadOnlyList<string> ResponseTypes => Values.ResponseTypes ?? [];
 
     /// <inheritdoc />
-    public IReadOnlyList<string> Scopes =>
-        GrantedScopes ?? Coalesce(OriginalRequestObject?.Scopes, OriginalRequestMessage.Scopes);
+    public IReadOnlyList<string> Scopes => GrantedScopes ?? Values.Scopes ?? [];
 
     /// <inheritdoc />
     public string? State => Values.State;

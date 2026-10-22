@@ -424,9 +424,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
 
 ### P2
 
-- **`R9` — Read `scope` and `response_type` only from a request object.** They still fall back to the unsigned outer
-  query (FAPI 1.0 Advanced §5.2.2-10); an outer copy must match when present. Touch point:
-  `Messages/AuthorizationRequest.cs:166-172`.
 - **`R10` — Stop a client setting from overriding the FAPI request-object audience.** `request_object_expected_audience`
   is client-scoped and replace-merged, so no profile can cap it. Add a profile requirement that refuses a non-empty
   value. Touch point: `DefaultLoadAuthorizationRequestHandler.cs:221-228`.
@@ -491,7 +488,9 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   drops duplicates), `EndsWith(".jwt")`, the hard-coded `is Query or QueryJwt`, and the `jwt` alias `switch`
   (ADR-0150).
 - **`R38` — Derive authorization-response delivery in one place.** One function for redirect URI, mode, and state, plus
-  one declarative policy for outer parameters; lands with `R2`, `R3`, and `R9`.
+  one declarative policy for outer parameters. `R2`, `R3`, and `R9` fixed the behavior; it is still derived in
+  `DefaultAuthorizationEndpointHandler` (twice), `DefaultAuthorizationContinueProvider`, `AuthorizationRequest`, and
+  `ValidateRequestObject`.
 - **`R39` — One effective-settings resolver.** It is rebuilt in `TenantKeySeedHandler`, both management handlers, the
   client handler, and the tenant factory.
 - **`R40` — One coherence validator for client settings.** Shared by dynamic registration, management, and the

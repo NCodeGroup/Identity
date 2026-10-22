@@ -2701,3 +2701,11 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `DefaultOpenIdTenantFactory.CreateControlPlaneTenantAsync` probes the tenant cache with it, calling
   `ResolveControlPlaneTenantAsync` only on a miss. A strict-mock factory test proves a cache hit never reads the store;
   ADR-0191 updated._
+- **`R3` — Deliver errors raised after the request object is verified with its `state` and `response_mode`.** _pre._ The
+  processor's `catch` uses the redirect context built from the outer query, so a request whose `state` and
+  `response_mode=jwt` are only inside the object gets an unsigned error without `state` (RFC 6749 §4.1.2.1). Touch
+  point: `DefaultAuthorizationRequestProcessor.cs:68-79`. _Closed: once the request object is verified, the
+  authorization endpoint takes `state` and `response_mode` from it, so a later error carries the object's `state` and,
+  for `response_mode=jwt`, is signed. The redirect target stays the outer `redirect_uri` already checked, since
+  validation refuses an object whose `redirect_uri` differs. Integration tests cover a `fragment` and a `jwt` error with
+  a different outer `state`; ADR-0202 decision 6 records it._

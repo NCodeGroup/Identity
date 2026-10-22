@@ -343,6 +343,85 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     }
 
     [Fact]
+    public async Task Authorize_WhenVerifiedRequestObjectIsRefused_DeliversTheErrorWithItsStateAndResponseMode()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var clientId = await RegisterClientAsync(client);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var issuer = await GetIssuerAsync(client);
+        // The object is verified but lacks its redirect_uri, so validation refuses it after verification.
+        var requestObject = CreateRequestObject(
+            factory,
+            clientId,
+            "RS256",
+            issuer,
+            responseMode: OpenIdConstants.ResponseModes.Fragment,
+            redirectUri: null
+        );
+
+        // Only the object's state and response mode apply to the error (RFC 9101 §6.3, RFC 6749 §4.1.2.1).
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            requestObject,
+            "&state=outer-state"
+        );
+
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.Equal(RedirectUri, location.GetLeftPart(UriPartial.Path));
+        Assert.Null(HttpUtility.ParseQueryString(location.Query)["error"]);
+        var parameters = HttpUtility.ParseQueryString(location.Fragment.TrimStart('#'));
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, parameters["error"]);
+        Assert.Equal(State, parameters["state"]);
+    }
+
+    [Fact]
+    public async Task Authorize_WhenVerifiedRequestObjectRequestsJwtAndIsRefused_ReturnsTheErrorAsAJwtWithItsState()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var clientId = await RegisterClientAsync(client);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var issuer = await GetIssuerAsync(client);
+        var requestObject = CreateRequestObject(
+            factory,
+            clientId,
+            "RS256",
+            issuer,
+            responseMode: OpenIdConstants.ResponseModes.Jwt,
+            redirectUri: null
+        );
+
+        using var response = await AuthorizeAsync(
+            client,
+            sessionCookie,
+            clientId,
+            requestObject,
+            "&state=outer-state"
+        );
+
+        // The 'jwt' shorthand resolves to 'query.jwt' for a code response (JARM §2.3.4), so the error is signed too.
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        var parameters = HttpUtility.ParseQueryString(location.Query);
+        Assert.Null(parameters["error"]);
+        Assert.Null(parameters["state"]);
+        var jwt = parameters["response"];
+        Assert.False(string.IsNullOrEmpty(jwt), location.ToString());
+        using var payload = JsonDocument.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[1]));
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidRequestJwt,
+            payload.RootElement.GetProperty("error").GetString()
+        );
+        Assert.Equal(State, payload.RootElement.GetProperty("state").GetString());
+    }
+
+    [Fact]
     public async Task Authorize_WhenRequestObjectSignedWithAnotherAlgorithm_ReturnsInvalidRequestObject()
     {
         // The client registered RS256, so a request object signed with PS256 — even by its own key — is refused

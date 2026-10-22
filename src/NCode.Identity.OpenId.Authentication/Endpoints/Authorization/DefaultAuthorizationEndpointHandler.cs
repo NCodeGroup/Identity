@@ -187,6 +187,30 @@ internal class DefaultAuthorizationEndpointHandler(
                 new LoadAuthorizationRequestCommand(openIdContext, openIdClient, requestValues),
                 cancellationToken
             );
+
+            // RFC 9101 §6.3: once the request object is verified, only its values are used, so every later response,
+            // an error included, carries the object's state and response mode rather than the unsigned outer ones.
+            // The redirect target stays the one validated above; validation refuses an object whose redirect_uri
+            // differs from it, and that refusal is delivered there.
+            if (authorizationRequest.OriginalRequestObject is not null)
+            {
+                var requestObjectValues = GetRequestObjectValues(
+                    openIdContext,
+                    authorizationRequest,
+                    requestValues
+                );
+                var state = GetState(requestObjectValues);
+                clientRedirectContext = clientRedirectContext with
+                {
+                    ResponseMode = GetEffectiveResponseMode(
+                        openIdContext,
+                        openIdClient,
+                        requestObjectValues,
+                        state
+                    ),
+                    State = state,
+                };
+            }
         }
 
         var disposition = await AuthorizationRequestProcessor.ProcessRequestAsync(
@@ -340,14 +364,71 @@ internal class DefaultAuthorizationEndpointHandler(
         var errorFactory = openIdContext.ErrorFactory;
         var settings = openIdClient.Settings;
 
-        var hasState = requestValues.TryGetValue(
-            OpenIdConstants.Parameters.State,
-            out var stateStringValues
+        var state = GetState(requestValues);
+        var effectiveResponseMode = GetEffectiveResponseMode(
+            openIdContext,
+            openIdClient,
+            requestValues,
+            state
         );
-        var state =
-            hasState && !StringValues.IsNullOrEmpty(stateStringValues)
-                ? stateStringValues.ToString()
-                : null;
+
+        if (!requestValues.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
+        {
+            throw errorFactory
+                .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .WithState(state)
+                .AsException();
+        }
+
+        if (!Uri.TryCreate(redirectUrl, UriKind.Absolute, out var redirectUri))
+        {
+            throw errorFactory
+                .InvalidRequest("The specified 'redirect_uri' is not valid absolute URI.")
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .WithState(state)
+                .AsException();
+        }
+
+        var redirectUris = openIdClient.RedirectUris;
+        var effectiveUri = redirectUri.GetComponents(
+            UriComponents.Scheme | UriComponents.Host | UriComponents.Port | UriComponents.Path,
+            UriFormat.UriEscaped
+        );
+
+        var allowLoopbackRedirect = settings.GetValue(OpenIdSettingKeys.AllowLoopbackRedirect);
+        var isSafe =
+            (allowLoopbackRedirect && redirectUri.IsLoopback)
+            || redirectUris.Contains(effectiveUri);
+        if (!isSafe)
+        {
+            throw errorFactory
+                .UnauthorizedClient(
+                    "The specified 'redirect_uri' is not valid for the associated 'client_id'."
+                )
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .WithState(state)
+                .AsException();
+        }
+
+        return new ClientRedirectContext(redirectUri, effectiveResponseMode, state);
+    }
+
+    private static string? GetState(IRequestValues requestValues) =>
+        requestValues.TryGetValue(OpenIdConstants.Parameters.State, out var stateStringValues)
+        && !StringValues.IsNullOrEmpty(stateStringValues)
+            ? stateStringValues.ToString()
+            : null;
+
+    private string GetEffectiveResponseMode(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        IRequestValues requestValues,
+        string? state
+    )
+    {
+        var errorFactory = openIdContext.ErrorFactory;
+        var settings = openIdClient.Settings;
 
         var hasResponseMode = requestValues.TryGetValue(
             OpenIdConstants.Parameters.ResponseMode,
@@ -400,46 +481,7 @@ internal class DefaultAuthorizationEndpointHandler(
             effectiveResponseMode = ResponseTypeValues.GetDefaultResponseMode(responseTypeNames);
         }
 
-        if (!requestValues.TryGetValue(OpenIdConstants.Parameters.RedirectUri, out var redirectUrl))
-        {
-            throw errorFactory
-                .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .WithState(state)
-                .AsException();
-        }
-
-        if (!Uri.TryCreate(redirectUrl, UriKind.Absolute, out var redirectUri))
-        {
-            throw errorFactory
-                .InvalidRequest("The specified 'redirect_uri' is not valid absolute URI.")
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .WithState(state)
-                .AsException();
-        }
-
-        var redirectUris = openIdClient.RedirectUris;
-        var effectiveUri = redirectUri.GetComponents(
-            UriComponents.Scheme | UriComponents.Host | UriComponents.Port | UriComponents.Path,
-            UriFormat.UriEscaped
-        );
-
-        var allowLoopbackRedirect = settings.GetValue(OpenIdSettingKeys.AllowLoopbackRedirect);
-        var isSafe =
-            (allowLoopbackRedirect && redirectUri.IsLoopback)
-            || redirectUris.Contains(effectiveUri);
-        if (!isSafe)
-        {
-            throw errorFactory
-                .UnauthorizedClient(
-                    "The specified 'redirect_uri' is not valid for the associated 'client_id'."
-                )
-                .WithStatusCode(StatusCodes.Status400BadRequest)
-                .WithState(state)
-                .AsException();
-        }
-
-        return new ClientRedirectContext(redirectUri, effectiveResponseMode, state);
+        return effectiveResponseMode;
     }
 
     private static List<string> SplitResponseTypeNames(StringValues responseTypeStringValues) =>

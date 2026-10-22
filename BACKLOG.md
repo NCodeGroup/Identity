@@ -408,10 +408,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
 
 ### P1 — before the branch merges
 
-- **`R3` — Deliver errors raised after the request object is verified with its `state` and `response_mode`.** _pre._
-  The processor's `catch` uses the redirect context built from the outer query, so a request whose `state` and
-  `response_mode=jwt` are only inside the object gets an unsigned error without `state` (RFC 6749 §4.1.2.1). Touch
-  point: `DefaultAuthorizationRequestProcessor.cs:68-79`.
 - **`R5` — Bound the cost of failing open when Valkey is unreachable.** Each counter call waits for the client's
   async timeout (about 5 s), the checks run in sequence (about 15 s per request, 25 s per confidential token request),
   and each failure logs a warning with a stack trace. Add a 50–100 ms per-call timeout, a breaker (or an

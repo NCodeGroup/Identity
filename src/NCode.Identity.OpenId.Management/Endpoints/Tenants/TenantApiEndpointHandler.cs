@@ -87,7 +87,7 @@ internal class TenantApiEndpointHandler(
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IEffectiveSettingsResolver effectiveSettingsResolver,
-    IClientResponseAlgorithmValidator clientResponseAlgorithmValidator,
+    ITenantClientCoherenceChecker tenantClientCoherenceChecker,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<TenantApiEndpointHandler> logger
@@ -108,8 +108,8 @@ internal class TenantApiEndpointHandler(
         settingScopeCollectionProvider;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
-    private IClientResponseAlgorithmValidator ClientResponseAlgorithmValidator { get; } =
-        clientResponseAlgorithmValidator;
+    private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
+        tenantClientCoherenceChecker;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -871,22 +871,19 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that replacing a tenant's settings document leaves every algorithm each of its clients registers for the
-    /// JWTs addressed to it permitted (<see cref="IClientResponseAlgorithmValidator"/>). The clients are not walked when
-    /// the change leaves the effective value of every setting the check reads unchanged
-    /// (<see cref="ClientResponseAlgorithmRule.ReadsChangedSetting"/>, backlog R21).
+    /// Verifies that replacing a tenant's settings document leaves every value each of its clients registers permitted by
+    /// every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The clients are not walked when the
+    /// change leaves the effective value of every setting a rule reads unchanged.
     /// </summary>
     /// <param name="tenantId">The identifier of the OpenID Tenant whose settings change.</param>
     /// <param name="currentSettings">The tenant's current settings document.</param>
     /// <param name="newSettings">The tenant's new settings document.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to page through the tenant's clients.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="SettingError"/> instances, keyed by the tenant setting that excludes each algorithm, or an
-    /// empty list.</returns>
-    // See ADR-0155.
-    internal virtual async ValueTask<
-        IReadOnlyList<SettingError>
-    > ValidateClientResponseAlgorithmsAsync(
+    /// <returns>The <see cref="SettingError"/> instances, keyed by the tenant setting that does not permit each value, or
+    /// an empty list.</returns>
+    // See ADR-0206.
+    internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
         string tenantId,
         JsonElement currentSettings,
         JsonElement newSettings,
@@ -897,12 +894,7 @@ internal class TenantApiEndpointHandler(
         var currentEffective = await MergeTenantSettingsAsync(currentSettings, cancellationToken);
         var newEffective = await MergeTenantSettingsAsync(newSettings, cancellationToken);
 
-        if (!ClientResponseAlgorithmRule.ReadsChangedSetting(currentEffective, newEffective))
-        {
-            return [];
-        }
-
-        var findings = await ClientResponseAlgorithmValidator.FindIntroducedViolationsAsync(
+        var findings = await TenantClientCoherenceChecker.FindIntroducedViolationsAsync(
             storeManager,
             tenantId,
             currentEffective,
@@ -912,10 +904,10 @@ internal class TenantApiEndpointHandler(
 
         return findings
             .Select(finding => new SettingError(
-                finding.Violation.PermittedKey.SettingName,
-                $"The client '{finding.ClientId}' registers '{finding.Violation.RegisteredKey.SettingName}' value "
+                finding.Violation.CeilingName,
+                $"The client '{finding.ClientId}' registers '{finding.Violation.SettingName}' value "
                     + $"'{finding.Violation.Value}', which the tenant's effective "
-                    + $"'{finding.Violation.PermittedKey.SettingName}' would not permit."
+                    + $"'{finding.Violation.CeilingName}' would not permit."
             ))
             .ToList();
     }
@@ -994,16 +986,16 @@ internal class TenantApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
-        var algorithmErrors = await ValidateClientResponseAlgorithmsAsync(
+        var coherenceErrors = await ValidateClientCoherenceAsync(
             tenantId,
             tenantSettings.Value,
             settingsValue,
             storeManager,
             cancellationToken
         );
-        if (algorithmErrors.Count > 0)
+        if (coherenceErrors.Count > 0)
         {
-            return SettingsValidationProblem(algorithmErrors);
+            return SettingsValidationProblem(coherenceErrors);
         }
 
         tenantSettings.Value = settingsValue;

@@ -51,7 +51,7 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 /// descriptors before it is stored: a value the server cannot honor stops the seeding with an error naming the client,
 /// rather than storing a client that fails every request that loads it. Its key set is imported under the client-key
 /// policy a dynamically registered <c>jwks</c> follows, and a key set the policy refuses stops the seeding the same way.
-/// So does a redirect URI whose kind the client's effective <c>redirect_uri_kinds_supported</c> does not permit.
+/// So does a setting that a client coherence rule refuses.
 /// </remarks>
 // See ADR-0140.
 internal sealed class ConformanceSeedHandler(
@@ -63,7 +63,7 @@ internal sealed class ConformanceSeedHandler(
     ISettingSerializer settingSerializer,
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,
     IEffectiveSettingsResolver effectiveSettingsResolver,
-    IRedirectUriKindCatalog redirectUriKindCatalog,
+    IClientCoherenceValidator clientCoherenceValidator,
     ILogger<ConformanceSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
@@ -83,7 +83,7 @@ internal sealed class ConformanceSeedHandler(
         openIdEnvironmentProvider;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
-    private IRedirectUriKindCatalog RedirectUriKindCatalog { get; } = redirectUriKindCatalog;
+    private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
     private ILogger<ConformanceSeedHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -152,12 +152,7 @@ internal sealed class ConformanceSeedHandler(
 
         var settings = JsonSerializer.SerializeToElement(settingValues);
         EnsureSettingsCanBeHonored(clientId, settings);
-        await EnsureRedirectUrisArePermittedAsync(
-            context.Tenant,
-            client,
-            settings,
-            cancellationToken
-        );
+        await EnsureCoherentAsync(context.Tenant, clientId, settings, cancellationToken);
 
         var secrets = new List<PersistedSecret>();
         if (!string.IsNullOrEmpty(client.ClientSecret))
@@ -209,10 +204,10 @@ internal sealed class ConformanceSeedHandler(
 
     // The client's settings materialize only after the seed, so the seed resolves the server's, the tenant's, and the
     // client's settings itself through the effective-settings resolver, as the materialized client will (ADR-0204).
-    // See ADR-0203.
-    private async ValueTask EnsureRedirectUrisArePermittedAsync(
+    // See ADR-0204 and ADR-0206.
+    private async ValueTask EnsureCoherentAsync(
         PersistedTenant tenant,
-        ConformanceClientSeed client,
+        string clientId,
         JsonElement clientSettings,
         CancellationToken cancellationToken
     )
@@ -229,15 +224,16 @@ internal sealed class ConformanceSeedHandler(
             clientSettings
         );
 
-        var refused = client.RedirectUris.FirstOrDefault(redirectUri =>
-            !RedirectUriKindCatalog.IsPermitted(effectiveSettings, redirectUri)
-        );
-        if (refused is null)
+        var violations = ClientCoherenceValidator.Validate(effectiveSettings);
+        if (violations.Count == 0)
             return;
 
+        var messages = violations.Select(violation =>
+            $"The '{violation.SettingName}' value '{violation.Value}' is not permitted by its effective '{violation.CeilingName}'."
+        );
+        var details = string.Join(" ", messages);
         throw new InvalidOperationException(
-            $"The conformance client '{client.ClientId}' cannot be seeded: its redirect URI '{refused}' is not a kind "
-                + $"its effective '{OpenIdSettingNames.RedirectUriKindsSupported}' permits."
+            $"The conformance client '{clientId}' cannot be seeded: {details}"
         );
     }
 

@@ -356,12 +356,19 @@ rationale.
   only for a genuine pipeline seam where the sender must stay ignorant of the handlers. `TryAddEnumerable`
   keeps one registration per implementation type, an instance's type included, so each built-in strategy of an open
   vocabulary is its own class (the redirect URI kinds); several instances of one class keep only the first.
-- 👁 **A service a client-authentication handler can reach reads `IOptions<OpenIdOptions>.Value` on use, not in its
-  constructor.** `Value` runs every `IValidateOptions<OpenIdOptions>`, and those validators read the setting-descriptor
-  catalog, which constructs every `IClientAuthenticationHandler`; a constructor on a handler's dependency path that
-  reads it deadlocks host composition, a cycle the container cannot detect (`DefaultOpenIdEnvironmentFactory`,
-  `DefaultOpenIdServerFactory`). Keep `IOptions<OpenIdOptions>` and read `Value` where it is used (the options manager
-  caches it) until the catalog stops constructing handlers (backlog `R60`).
+- 👁 **A relationship between a client's settings is a registered coherence rule.** When a value a client registers must
+  be permitted by another of its effective settings, add an `IClientCoherenceRule` with `TryAddEnumerable`; every entry
+  point that stores a client and every tenant or server settings change checks it through `IClientCoherenceValidator`;
+  never add the check to one caller
+  ([ADR-0206](../../docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)).
+- 👁 **Options validation never constructs a strategy that has dependencies.** `IOptions<OpenIdOptions>.Value` runs
+  every `IValidateOptions<OpenIdOptions>`, which read the setting-descriptor catalog, so every setting data source, and
+  every catalog it consults to name a domain (the client-authentication method descriptors, the redirect URI kinds, the
+  security profiles), is built from dependency-free registrations; resolving a strategy with dependencies there builds
+  its whole graph inside options validation and deadlocks composition when a constructor on that path reads `Value`.
+  When a vocabulary's members are strategies, register a descriptor beside each one and check at composition that they
+  correspond
+  ([ADR-0207](../../docs/adr/0207-client-authentication-methods-are-named-by-registered-descriptors.md)).
 - 👁 **Mediator handlers run in descending `ISupportMediatorPriority` order** — `DefaultMediatorPriorities.High` (100)
   first, `Low` (-100) last. When one handler depends on another's effect, state it with priorities, never with
   registration order. A handler that observes or repairs state for the rest runs `High` (the default validators, the

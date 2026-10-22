@@ -17,6 +17,7 @@
 #endregion
 
 using System.Collections.Frozen;
+using System.Collections.Immutable;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Settings;
@@ -26,6 +27,11 @@ namespace NCode.Identity.OpenId.Settings;
 /// <see cref="IRedirectUriKind"/> strategy collection. Kinds are keyed by their <see cref="IRedirectUriKind.KindName"/>.
 /// </summary>
 /// <remarks>
+/// <para>
+/// A redirect URI is permitted when it is of a registered kind that <c>redirect_uri_kinds_supported</c> lists, or of any
+/// registered kind while the setting is unset. A value that is not an absolute URI, or a URI of no registered kind, is
+/// never permitted.
+/// </para>
 /// <para>
 /// A listed kind name that matches no registered kind matches no redirect URI, so a stale or misspelled name can only
 /// narrow what the setting permits.
@@ -38,6 +44,8 @@ namespace NCode.Identity.OpenId.Settings;
 // See ADR-0203 (redirect URI kinds).
 internal sealed class DefaultRedirectUriKindCatalog : IRedirectUriKindCatalog
 {
+    private ImmutableArray<IRedirectUriKind> Kinds { get; }
+
     private FrozenDictionary<string, IRedirectUriKind> KindsByName { get; }
 
     /// <summary>
@@ -47,6 +55,7 @@ internal sealed class DefaultRedirectUriKindCatalog : IRedirectUriKindCatalog
     public DefaultRedirectUriKindCatalog(IEnumerable<IRedirectUriKind> kinds)
     {
         var kindsByName = new Dictionary<string, IRedirectUriKind>(StringComparer.Ordinal);
+        var registeredKinds = ImmutableArray.CreateBuilder<IRedirectUriKind>();
 
         foreach (var kind in kinds)
         {
@@ -61,19 +70,30 @@ internal sealed class DefaultRedirectUriKindCatalog : IRedirectUriKindCatalog
                 throw new InvalidOperationException(
                     $"More than one redirect URI kind is named '{kindName}'."
                 );
+
+            registeredKinds.Add(kind);
         }
 
+        Kinds = registeredKinds.ToImmutable();
         KindsByName = kindsByName.ToFrozenDictionary(StringComparer.Ordinal);
     }
 
     /// <inheritdoc />
     public bool IsPermitted(IReadOnlySettingCollection settings, string redirectUri)
     {
-        if (!settings.TryGetValue(OpenIdSettingKeys.RedirectUriKindsSupported, out var kindNames))
-            return true;
-
         if (!Uri.TryCreate(redirectUri, UriKind.Absolute, out var uri))
             return false;
+
+        if (!settings.TryGetValue(OpenIdSettingKeys.RedirectUriKindsSupported, out var kindNames))
+        {
+            foreach (var kind in Kinds)
+            {
+                if (kind.Matches(uri))
+                    return true;
+            }
+
+            return false;
+        }
 
         foreach (var kindName in kindNames)
         {

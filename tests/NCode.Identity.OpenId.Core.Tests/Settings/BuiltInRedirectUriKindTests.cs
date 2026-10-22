@@ -76,11 +76,20 @@ public class BuiltInRedirectUriKindTests : BaseTests
     }
 
     [Theory]
-    [InlineData("myapp://callback", true)]
     [InlineData("com.example.app:/callback", true)]
+    [InlineData("com.example.app://callback", true)]
+    [InlineData("myapp://callback", false)]
+    [InlineData("javascript:alert(1)", false)]
+    [InlineData("data:text/html,hi", false)]
+    [InlineData("ws://client.example/cb", false)]
+    [InlineData("file:///etc/passwd", false)]
+    [InlineData("ftp://client.example/cb", false)]
     [InlineData("https://client.example/cb", false)]
     [InlineData("http://client.example/cb", false)]
-    public void PrivateUseRedirectUriKind_Matches_AnyOtherScheme(string redirectUri, bool expected)
+    public void PrivateUseRedirectUriKind_Matches_AReverseDomainNameScheme(
+        string redirectUri,
+        bool expected
+    )
     {
         var kind = new PrivateUseRedirectUriKind();
 

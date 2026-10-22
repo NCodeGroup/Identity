@@ -37,8 +37,8 @@ internal static class DefaultRegistration
             builder.AddEndpoint<ServerApiEndpointHandler>();
             builder.ServiceCollection.TryAddSingleton<IServerValidator, DefaultServerValidator>();
             builder.ServiceCollection.TryAddSingleton<
-                IClientResponseAlgorithmValidator,
-                DefaultClientResponseAlgorithmValidator
+                ITenantClientCoherenceChecker,
+                DefaultTenantClientCoherenceChecker
             >();
         }
     }

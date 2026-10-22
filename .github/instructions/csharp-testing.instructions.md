@@ -208,10 +208,14 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   (`Host.CreateEmptyApplicationBuilder`, the registration under test, then `StartAsync`), and keep factory-based tests
   for hosts that start.
 - 👁 **A directly built host that composes the whole server needs a store-factory stub.** `AddIdentityServer()` leaves
-  the persistence provider to the host, yet resolving the setting-descriptor catalog resolves the client-authentication
-  handlers, which depend on `IStoreManagerFactory`. A configuration-only test registers a never-called strict
+  the persistence provider to the host, yet a client-authentication handler, the effective-settings resolver, and
+  services the host starts depend on `IStoreManagerFactory`. A configuration-only test registers a never-called strict
   `new Mock<IStoreManagerFactory>(MockBehavior.Strict).Object` rather than disabling DI validation or composing a
   database.
+- 👁 **Prove that composition constructs no strategy by registering one that throws.** Register
+  `services.AddSingleton<IClientAuthenticationHandler>(_ => throw new InvalidOperationException(…))`, configure a
+  server setting so options validation reads the setting-descriptor catalog, and read `IOptions<OpenIdOptions>.Value`
+  (`AddIdentityServer_ReadingTheOpenIdOptions_ConstructsNoClientAuthenticationHandler`).
 - 👁 **A test host pins an issuer for every tenant it serves.** A tenant is served only beneath its stored issuer
   ([ADR-0165](../../docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), so
   `HostApplicationFactory` pins the static tenant to `HostApplicationFactory.TestServerIssuer` (`http://localhost`). A
@@ -225,6 +229,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   launch profile's issuer and bootstrap administrator. Configure what a test depends on in the factory
   (`ConfigureAppConfiguration`) rather than assuming a launch profile's value, and expect an unhandled exception to reach
   the client as the developer exception page's `500`.
+- 👁 **The developer seed's clients share the static tenant.** The integration host runs `Development`, so tenant
+  `default` holds clients with `http://localhost` redirect URIs; a management test that changes the tenant's settings is
+  checked against them, so a positive control keeps their kinds permitted and a negative test asserts its own
+  `client_id` in the problem (`ClientCoherenceTests`).
 - 👁 **Configuration the composition root reads while it registers services is a host setting in a test factory.** A
   `ConfigureAppConfiguration` overlay reaches options bound later, but not a value `Program.cs` reads to decide what to
   register — `DeveloperKeys:Mode`, read by `AddDevelopmentEnvironment`, keeps its default and the test silently runs
@@ -247,6 +255,9 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **Assert a URI the server must deliver as written on `Headers.Location.OriginalString`.** `HttpClient` parses
   the header into a `Uri`, whose `AbsoluteUri` and `ToString()` normalize it, so such an assertion passes while the
   server sends `myapp://callback/` for `myapp://callback`.
+- 👁 **A private-use redirect URI in a test is a reverse domain name** (`com.example.app:/callback`);
+  `myapp://callback` is of no registered kind and is refused
+  ([ADR-0203](../../docs/adr/0203-redirect-uris-are-matched-exactly.md)).
 - 👁 **The ephemeral developer key signs only `RS256`.** A test that needs the tenant to sign with `PS256` or
   `ES256`, such as a FAPI client's JARM response, selects `DeveloperKeys:Mode` `None` with `builder.UseSetting` (a
   host setting, above), so the tenant is provisioned `RS256`, `PS256`, and `ES256` keys

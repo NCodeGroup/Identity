@@ -34,18 +34,21 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 /// RP-Initiated Logout: it resolves the subject/session (<see cref="ResolveEndSessionSubjectCommand"/>), clears the OP
 /// login, dispatches <see cref="NCode.Identity.OpenId.Authentication.Sessions.OnSessionTerminatedCommand"/> to run the
 /// logout side effects (revocation, back-channel
-/// notification, and any application extensions), and resolves the validated <c>post_logout_redirect_uri</c>. When
-/// front-channel logout or session management are enabled, it also collects the front-channel logout iframe URIs and
-/// clears the OP browser-state cookie.
+/// notification, and any application extensions), and resolves the validated <c>post_logout_redirect_uri</c>: the
+/// client must have registered it and its kind must be permitted by the client's
+/// <c>redirect_uri_kinds_supported</c>. When front-channel logout or session management are enabled, it also collects
+/// the front-channel logout iframe URIs and clears the OP browser-state cookie.
 /// </summary>
 internal class DefaultEndSessionHandler(
     IOpenIdClientResolver clientResolver,
+    IRedirectUriKindCatalog redirectUriKindCatalog,
     IFrontChannelLogoutService frontChannelLogoutService,
     ISessionStateService sessionStateService,
     ILogger<DefaultEndSessionHandler> logger
 ) : ICommandResponseHandler<EndSessionCommand, EndSessionDisposition>
 {
     private IOpenIdClientResolver ClientResolver { get; } = clientResolver;
+    private IRedirectUriKindCatalog RedirectUriKindCatalog { get; } = redirectUriKindCatalog;
     private IFrontChannelLogoutService FrontChannelLogoutService { get; } =
         frontChannelLogoutService;
     private ISessionStateService SessionStateService { get; } = sessionStateService;
@@ -144,6 +147,13 @@ internal class DefaultEndSessionHandler(
         )
         {
             Logger.EndSessionPostLogoutRedirectUriRejected(postLogoutRedirectUri, clientId);
+            return null;
+        }
+
+        // See ADR-0203.
+        if (!RedirectUriKindCatalog.IsPermitted(client.Settings, postLogoutRedirectUri))
+        {
+            Logger.EndSessionPostLogoutRedirectUriKindRejected(postLogoutRedirectUri, clientId);
             return null;
         }
 

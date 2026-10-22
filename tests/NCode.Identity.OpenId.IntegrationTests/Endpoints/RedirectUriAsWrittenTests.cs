@@ -33,7 +33,7 @@ public class RedirectUriAsWrittenTests
 {
     private const string UserName = "as-written-user";
     private const string Password = "as-written-password";
-    private const string PrivateUseRedirectUri = "myapp://callback";
+    private const string PrivateUseRedirectUri = "com.example.app://callback";
     private const string WebRedirectUri = "https://client.example/callback";
 
     #region Scaffolding
@@ -149,7 +149,11 @@ public class RedirectUriAsWrittenTests
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
         var location = response.Headers.Location;
         Assert.NotNull(location);
-        Assert.StartsWith("myapp://callback?", location.OriginalString, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "com.example.app://callback?",
+            location.OriginalString,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -171,7 +175,11 @@ public class RedirectUriAsWrittenTests
 
         var location = response.Headers.Location;
         Assert.NotNull(location);
-        Assert.StartsWith("myapp://callback?", location.OriginalString, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "com.example.app://callback?",
+            location.OriginalString,
+            StringComparison.Ordinal
+        );
         var code = HttpUtility.ParseQueryString(location.Query)["code"];
         Assert.True(!string.IsNullOrEmpty(code), location.OriginalString);
 
@@ -184,7 +192,7 @@ public class RedirectUriAsWrittenTests
     public async Task Token_WhenTheRedirectUriIsItsNormalizedForm_ReturnsInvalidGrant()
     {
         const string clientId = "it-as-written-normalized";
-        const string normalizedRedirectUri = "myapp://callback/";
+        const string normalizedRedirectUri = "com.example.app://callback/";
         using var factory = new HostApplicationFactory();
         await factory.SeedLocalAccountAsync(UserName, Password);
         await factory.SeedPublicClientAsync(clientId, PrivateUseRedirectUri);

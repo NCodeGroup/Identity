@@ -17,6 +17,7 @@
 #endregion
 
 using System.Text.Json;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
@@ -26,28 +27,35 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 
-public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
+public class DefaultTenantClientCoherenceCheckerTests : IDisposable
 {
     private const string TenantId = "tenant-1";
 
     private MockRepository MockRepository { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
+    private Mock<IClientCoherenceValidator> MockClientCoherenceValidator { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IClientStore> MockClientStore { get; }
-    private DefaultClientResponseAlgorithmValidator Validator { get; }
+    private Mock<IReadOnlySettingCollection> MockCurrentSettings { get; }
+    private Mock<IReadOnlySettingCollection> MockNewSettings { get; }
+    private DefaultTenantClientCoherenceChecker Checker { get; }
 
-    public DefaultClientResponseAlgorithmValidatorTests()
+    public DefaultTenantClientCoherenceCheckerTests()
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
+        MockClientCoherenceValidator = MockRepository.Create<IClientCoherenceValidator>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockClientStore = MockRepository.Create<IClientStore>();
+        MockCurrentSettings = MockRepository.Create<IReadOnlySettingCollection>(MockBehavior.Loose);
+        MockNewSettings = MockRepository.Create<IReadOnlySettingCollection>(MockBehavior.Loose);
 
-        Validator = new DefaultClientResponseAlgorithmValidator(
+        Checker = new DefaultTenantClientCoherenceChecker(
             MockAmbientTenantAccessor.Object,
-            MockEffectiveSettingsResolver.Object
+            MockEffectiveSettingsResolver.Object,
+            MockClientCoherenceValidator.Object
         );
     }
 
@@ -83,7 +91,7 @@ public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
             .Returns((IReadOnlySettingCollection parent, string _, JsonElement _) => parent)
             .Verifiable();
 
-        // Two pages, so the validator follows the cursor rather than stopping after the first page.
+        // Two pages, so the checker follows the cursor rather than stopping after the first page.
         MockClientStore
             .Setup(x =>
                 x.GetSettingsPageAsync(
@@ -110,32 +118,27 @@ public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
         return mockScope;
     }
 
-    private static ISettingCollection CreateIdTokenSigningSettings(
-        string registered,
-        IReadOnlyCollection<string> permitted
-    )
-    {
-        string? registeredValue = registered;
-        IReadOnlyCollection<string>? permittedValues = permitted;
-        var mockSettings = new Mock<ISettingCollection>(MockBehavior.Loose);
-        mockSettings
-            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
-            .Returns(mockSettings.Object);
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(OpenIdSettingKeys.IdTokenSignedResponseAlg, out registeredValue)
-            )
-            .Returns(true);
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
-                    out permittedValues
-                )
-            )
-            .Returns(true);
-        return mockSettings.Object;
-    }
+    private void SetupReadsChangedSetting(bool changed) =>
+        MockClientCoherenceValidator
+            .Setup(x => x.ReadsChangedSetting(MockCurrentSettings.Object, MockNewSettings.Object))
+            .Returns(changed)
+            .Verifiable();
+
+    private void SetupValidate(
+        Mock<IReadOnlySettingCollection> mockSettings,
+        params ClientCoherenceViolation[] violations
+    ) =>
+        MockClientCoherenceValidator
+            .Setup(x => x.Validate(mockSettings.Object))
+            .Returns(violations)
+            .Verifiable();
+
+    private static ClientCoherenceViolation CreateViolation() =>
+        new(
+            OpenIdSettingNames.IdTokenSignedResponseAlg,
+            "RS256",
+            OpenIdSettingNames.IdTokenSigningAlgValuesSupported
+        );
 
     private static PersistedClientSettings CreateClientSettings(string clientId) =>
         new()
@@ -151,40 +154,41 @@ public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
     #region FindIntroducedViolationsAsync Tests
 
     [Fact]
-    public async Task FindIntroducedViolationsAsync_WhenTheChangeExcludesAnAlgorithm_ReturnsTheFinding()
+    public async Task FindIntroducedViolationsAsync_WhenTheChangeIntroducesAViolation_ReturnsTheFinding()
     {
+        var violation = CreateViolation();
+        SetupReadsChangedSetting(true);
         SetupClients(CreateClientSettings("client-1"));
+        SetupValidate(MockNewSettings, violation);
+        SetupValidate(MockCurrentSettings);
 
-        var findings = await Validator.FindIntroducedViolationsAsync(
+        var findings = await Checker.FindIntroducedViolationsAsync(
             MockStoreManager.Object,
             TenantId,
-            CreateIdTokenSigningSettings("RS256", ["RS256", "PS256"]),
-            CreateIdTokenSigningSettings("RS256", ["PS256"]),
+            MockCurrentSettings.Object,
+            MockNewSettings.Object,
             CancellationToken.None
         );
 
         var finding = Assert.Single(findings);
         Assert.Equal("client-1", finding.ClientId);
-        Assert.Equal(
-            new ClientResponseAlgorithmViolation(
-                OpenIdSettingKeys.IdTokenSignedResponseAlg,
-                "RS256",
-                OpenIdSettingKeys.IdTokenSigningAlgValuesSupported
-            ),
-            finding.Violation
-        );
+        Assert.Equal(violation, finding.Violation);
     }
 
     [Fact]
-    public async Task FindIntroducedViolationsAsync_WhenTheAlgorithmWasAlreadyExcluded_ReturnsEmpty()
+    public async Task FindIntroducedViolationsAsync_WhenTheViolationPredatesTheChange_ReturnsEmpty()
     {
+        var violation = CreateViolation();
+        SetupReadsChangedSetting(true);
         SetupClients(CreateClientSettings("client-1"));
+        SetupValidate(MockNewSettings, violation);
+        SetupValidate(MockCurrentSettings, violation);
 
-        var findings = await Validator.FindIntroducedViolationsAsync(
+        var findings = await Checker.FindIntroducedViolationsAsync(
             MockStoreManager.Object,
             TenantId,
-            CreateIdTokenSigningSettings("RS256", ["PS256"]),
-            CreateIdTokenSigningSettings("RS256", ["PS256"]),
+            MockCurrentSettings.Object,
+            MockNewSettings.Object,
             CancellationToken.None
         );
 
@@ -192,15 +196,33 @@ public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task FindIntroducedViolationsAsync_WhenTheAlgorithmStaysPermitted_ReturnsEmpty()
+    public async Task FindIntroducedViolationsAsync_WhenTheNewSettingsAreCoherent_ReturnsEmpty()
     {
+        SetupReadsChangedSetting(true);
         SetupClients(CreateClientSettings("client-1"));
+        SetupValidate(MockNewSettings);
 
-        var findings = await Validator.FindIntroducedViolationsAsync(
+        var findings = await Checker.FindIntroducedViolationsAsync(
             MockStoreManager.Object,
             TenantId,
-            CreateIdTokenSigningSettings("RS256", ["RS256"]),
-            CreateIdTokenSigningSettings("RS256", ["RS256", "PS256"]),
+            MockCurrentSettings.Object,
+            MockNewSettings.Object,
+            CancellationToken.None
+        );
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public async Task FindIntroducedViolationsAsync_WhenNoSettingARuleReadsChanged_ReadsNoClient()
+    {
+        SetupReadsChangedSetting(false);
+
+        var findings = await Checker.FindIntroducedViolationsAsync(
+            MockStoreManager.Object,
+            TenantId,
+            MockCurrentSettings.Object,
+            MockNewSettings.Object,
             CancellationToken.None
         );
 

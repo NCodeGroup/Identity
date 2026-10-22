@@ -810,8 +810,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // redirect_uri_kinds_supported: the kinds of redirect URI (https, loopback, http, private_use) a client may
-            // register and use; unset permits every kind, and a security profile caps it (ADR-0203). Not advertised.
-            // Ceiling (Intersect): a child narrows the parent's set.
+            // register and use; unset permits every registered kind, and a security profile caps it (ADR-0203). Not
+            // advertised. Ceiling (Intersect): a child narrows the parent's set.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RedirectUriKindsSupported,

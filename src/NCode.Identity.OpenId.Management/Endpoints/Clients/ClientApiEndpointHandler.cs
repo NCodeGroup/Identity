@@ -85,7 +85,7 @@ internal class ClientApiEndpointHandler(
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IEffectiveSettingsResolver effectiveSettingsResolver,
-    IRedirectUriKindCatalog redirectUriKindCatalog,
+    IClientCoherenceValidator clientCoherenceValidator,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ClientApiEndpointHandler> logger
@@ -106,7 +106,7 @@ internal class ClientApiEndpointHandler(
         settingScopeCollectionProvider;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
-    private IRedirectUriKindCatalog RedirectUriKindCatalog { get; } = redirectUriKindCatalog;
+    private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -257,18 +257,18 @@ internal class ClientApiEndpointHandler(
 
     /// <summary>
     /// Verifies that a client's settings document, merged onto its tenant's effective settings as the runtime merges it,
-    /// permits every algorithm the client registers for the JWTs addressed to it (its ID tokens, UserInfo responses, and
-    /// introspection responses) and every kind of redirect URI it registers. A mismatch is rejected when the settings
-    /// are written instead of failing every issuance with <c>server_error</c> or every authorization request with
-    /// <c>invalid_request</c>.
+    /// satisfies every registered <see cref="IClientCoherenceRule"/> (the algorithms the client registers for the JWTs
+    /// addressed to it, the kinds of its redirect URIs, and its token endpoint authentication method). A mismatch is
+    /// rejected when the settings are written instead of failing every issuance with <c>server_error</c> or every
+    /// authorization request with <c>invalid_request</c>.
     /// </summary>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
     /// <param name="clientSettings">The client's settings document to verify.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="SettingError"/> instances naming each algorithm or redirect URI that is not permitted, or an
+    /// <returns>The <see cref="SettingError"/> instances naming each registered setting whose value is not permitted, or an
     /// empty list.</returns>
-    // See ADR-0155 and ADR-0203.
+    // See ADR-0206.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateEffectiveSettingsAsync(
         string tenantId,
         JsonElement clientSettings,
@@ -285,57 +285,15 @@ internal class ClientApiEndpointHandler(
 
         return effectiveSettings is null
             ? []
-            :
-            [
-                .. ValidateResponseAlgorithms(effectiveSettings),
-                .. ValidateRedirectUriKinds(effectiveSettings),
-            ];
+            : ClientCoherenceValidator
+                .Validate(effectiveSettings)
+                .Select(violation => new SettingError(
+                    violation.SettingName,
+                    $"The '{violation.SettingName}' value '{violation.Value}' is not permitted by the "
+                        + $"client's effective '{violation.CeilingName}'."
+                ))
+                .ToList();
     }
-
-    /// <summary>
-    /// Verifies that a client's effective <c>redirect_uri_kinds_supported</c> permits the kind of every redirect URI it
-    /// registers, naming each redirect URI that is not permitted.
-    /// </summary>
-    /// <param name="settings">The client's effective settings.</param>
-    /// <returns>The <see cref="SettingError"/> instances naming each redirect URI that is not permitted, or an empty list.</returns>
-    // See ADR-0203.
-    internal virtual IReadOnlyList<SettingError> ValidateRedirectUriKinds(
-        IReadOnlySettingCollection settings
-    )
-    {
-        if (!settings.TryGetValue(OpenIdSettingKeys.RedirectUris, out var redirectUris))
-        {
-            return [];
-        }
-
-        return redirectUris
-            .Where(redirectUri => !RedirectUriKindCatalog.IsPermitted(settings, redirectUri))
-            .Select(redirectUri => new SettingError(
-                OpenIdSettingNames.RedirectUris,
-                $"The redirect URI '{redirectUri}' is not a kind the client's effective "
-                    + $"'{OpenIdSettingNames.RedirectUriKindsSupported}' permits."
-            ))
-            .ToList();
-    }
-
-    /// <summary>
-    /// Verifies that a client's effective settings permit every algorithm it registers for the JWTs addressed to it
-    /// (<see cref="ClientResponseAlgorithmRule"/>), naming each registered setting whose value is not permitted.
-    /// </summary>
-    /// <param name="settings">The client's effective settings.</param>
-    /// <returns>The <see cref="SettingError"/> instances naming each algorithm that is not permitted, or an empty list.</returns>
-    // See ADR-0155.
-    internal virtual IReadOnlyList<SettingError> ValidateResponseAlgorithms(
-        IReadOnlySettingCollection settings
-    ) =>
-        ClientResponseAlgorithmRule
-            .FindViolations(settings)
-            .Select(violation => new SettingError(
-                violation.RegisteredKey.SettingName,
-                $"The '{violation.RegisteredKey.SettingName}' value '{violation.Value}' is not permitted by the "
-                    + $"client's effective '{violation.PermittedKey.SettingName}'."
-            ))
-            .ToList();
 
     /// <summary>
     /// Maps an OpenID Client's effective <see cref="IReadOnlySettingCollection"/> to its

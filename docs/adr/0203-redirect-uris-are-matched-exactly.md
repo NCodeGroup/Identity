@@ -73,22 +73,28 @@ both. FAPI 2.0 Security Profile §5.3.2.2-8 refuses `http` except for the loopba
 7. **The kind of a redirect URI is an open vocabulary that the settings narrow.** The vocabulary is open
    ([ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md)): a registered `IRedirectUriKind` names itself and
    decides whether a parsed URI is of its kind, and `IRedirectUriKindCatalog` resolves the kinds by name and judges a
-   URI against a client's settings. The built-in kinds sort every URI into exactly one kind: `https`; `loopback`, an
-   `http` URI whose host is `127.0.0.1` or `[::1]` (RFC 8252 §7.3, with `localhost` excluded per §8.3); `http`, any
-   other `http` URI; and `private_use`, any other scheme (RFC 8252 §7.1). The setting `redirect_uri_kinds_supported`
-   lists the permitted kinds. It applies to tenants and clients, merges with `Intersect`, is not advertised, accepts
-   registered kind names only, and permits every kind while it is unset
+   URI against a client's settings. The built-in kinds sort a URI into at most one kind: `https`; `loopback`, an `http`
+   URI whose host is `127.0.0.1` or `[::1]` (RFC 8252 §7.3, with `localhost` excluded per §8.3); `http`, any other
+   `http` URI; and `private_use`, a URI whose scheme is neither `http` nor `https` and is a domain name in reverse
+   order: it contains a period and no empty label, such as `com.example.app` (RFC 8252 §7.1; OAuth 2.1 §2.3.1 rejects a
+   private-use scheme without a period). The setting `redirect_uri_kinds_supported` lists the permitted kinds. It
+   applies to tenants and clients, merges with `Intersect`, is not advertised, accepts registered kind names only, and
+   permits every registered kind while it is unset
    ([ADR-0010](0010-supported-settings-unset-means-unrestricted.md)). Kinds compare by name, and a URI is permitted when
-   any listed kind matches it.
+   any listed kind matches it. A value that is not an absolute URI, or that no registered kind matches (`javascript:`,
+   `data:`, `file:`, `ftp:`, `ws:`, `myapp:`), is never permitted, whether or not the setting is set.
 8. **The FAPI profiles cap the kinds.** `fapi1-advanced` caps `redirect_uri_kinds_supported` at `https` and keeps
    `allow_loopback_redirect` off; `fapi2` caps it at `https`, `loopback`, and `private_use`.
-9. **The kind is checked where a client is registered and where the delivery is derived.** Dynamic client registration
-   checks it against the tenant's effective settings and refuses a URI with `invalid_redirect_uri`; a dynamically
-   registered client selects no profile. The management API checks it against the client's merged effective settings
-   and reports a validation problem on `redirect_uris`. The conformance seed checks it against the merged server,
-   tenant, and client documents, and the host stops when a URI is refused. The delivery resolver checks it after the
-   registration match, at the authorization endpoint and at the PAR endpoint, and refuses a URI with `invalid_request`
-   and a `400` without redirecting.
+9. **The kind is checked where a client is registered and where the delivery is derived.** Dynamic client registration,
+   the management API, and the conformance seed check the kinds of a client's `redirect_uris` and
+   `post_logout_redirect_uris` through the client coherence rules
+   ([ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)), dynamic client registration
+   refusing with `invalid_redirect_uri`. A tenant or server settings change that would leave a registered URI
+   unpermitted is refused. The delivery resolver checks the kind after the registration match, at the authorization
+   endpoint and at the PAR endpoint, and refuses a URI with `invalid_request` and a `400` without redirecting.
+10. **A post-logout redirect URI follows the same kinds and is delivered as written.** The end-session handler compares
+    `post_logout_redirect_uri` ordinally with the registered values and then checks its kind; a URI that fails either
+    check is not redirected to. The redirect is a `302 Found` whose `Location` header uses the escaping of decision 6.
 
 ## Consequences
 
@@ -105,5 +111,9 @@ both. FAPI 2.0 Security Profile §5.3.2.2-8 refuses `http` except for the loopba
   literal. A native client that needs a loopback or a private-use redirect selects `fapi2` or no FAPI profile.
 - A scope that lists `http` does not keep `loopback` under a ceiling that lists only `loopback`, because the two kinds
   are distinct and the settings merge with `Intersect`; list the narrower kind by name.
-- A tenant or server settings change that narrows the kinds is not checked against registered redirect URIs, and such a
-  client is refused when it next requests authorization (backlog `R55`).
+- A tenant or server settings change that would leave a registered redirect URI unpermitted is refused, so no stored
+  client is left with a URI that its effective `redirect_uri_kinds_supported` does not permit.
+- A native app registers a reverse-domain scheme (`com.example.app:/callback`). A stored `myapp://callback` is of no
+  kind, so it is refused at authorization and at end session.
+- A `javascript:` or `data:` URI can never be a redirect target, so the front-channel logout page's scripted redirect
+  cannot run script in the server's origin.

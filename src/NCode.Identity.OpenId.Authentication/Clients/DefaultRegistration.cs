@@ -20,6 +20,8 @@ using System.Net;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Collections.Providers;
+using NCode.Identity.OpenId.Authentication.Clients.Coherence;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Registration;
@@ -80,6 +82,20 @@ internal static class DefaultRegistration
                 DefaultClientAssertionReplayCache
             >();
 
+            // Each client-authentication handler below has a descriptor of the same name, so the methods are named
+            // without constructing a handler (ADR-0207).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<ClientAuthenticationMethodDescriptor>,
+                    DefaultClientAuthenticationMethodDataSource
+                >()
+            );
+
+            serviceCollection.TryAddSingleton<
+                IClientAuthenticationMethodCatalog,
+                DefaultClientAuthenticationMethodCatalog
+            >();
+
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IClientAuthenticationHandler,
@@ -126,6 +142,28 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<
                     IClientAuthenticationHandler,
                     NoneClientAuthenticationHandler
+                >()
+            );
+
+            serviceCollection.TryAddSingleton<
+                IClientCoherenceValidator,
+                DefaultClientCoherenceValidator
+            >();
+
+            // The validator runs every registered rule, so a package adds a coherence rule the same way: one
+            // TryAddEnumerable registration of its IClientCoherenceRule (ADR-0206).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IClientCoherenceRule, ResponseAlgorithmCoherenceRule>()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IClientCoherenceRule, RedirectUriKindCoherenceRule>()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IClientCoherenceRule,
+                    TokenEndpointAuthMethodCoherenceRule
                 >()
             );
 

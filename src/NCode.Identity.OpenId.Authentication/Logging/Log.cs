@@ -287,6 +287,17 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.EndSessionPostLogoutRedirectUriKindRejected,
+        Level = LogLevel.Warning,
+        Message = "RP-initiated logout: post_logout_redirect_uri '{PostLogoutRedirectUri}' is registered for client '{ClientId}', but its kind is not permitted by redirect_uri_kinds_supported; not redirecting."
+    )]
+    internal static partial void EndSessionPostLogoutRedirectUriKindRejected(
+        this ILogger logger,
+        string postLogoutRedirectUri,
+        string clientId
+    );
+
+    [LoggerMessage(
         EventId = EventIds.EndSessionCompleted,
         Level = LogLevel.Information,
         Message = "RP-initiated logout completed; notified {ClientCount} participating client(s) via back-channel logout."

@@ -193,6 +193,48 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         Assert.Null(response.Headers.Location);
     }
 
+    [Fact]
+    public async Task Authorize_WhenThePrivateUseSchemeIsNotAReverseDomainName_RefusesItWithoutRedirecting()
+    {
+        const string clientId = "no-kind-client";
+        const string redirectUri = "myapp://callback";
+        await Factory.SeedPublicClientAsync(clientId, redirectUri);
+
+        using var response = await AuthorizeAsync(clientId, redirectUri);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Null(response.Headers.Location);
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidRequest,
+            document.RootElement.GetProperty("error").GetString()
+        );
+    }
+
+    [Fact]
+    public async Task Authorize_UnderTheFapi2Kinds_DeliversToAReverseDomainNameRedirectUri()
+    {
+        const string clientId = "reverse-domain-client";
+        const string redirectUri = "com.example.app:/callback";
+        await SeedClientAsync(
+            clientId,
+            [
+                OpenIdConstants.RedirectUriKinds.Https,
+                OpenIdConstants.RedirectUriKinds.Loopback,
+                OpenIdConstants.RedirectUriKinds.PrivateUse,
+            ],
+            redirectUri
+        );
+
+        using var response = await AuthorizeAsync(clientId, redirectUri);
+
+        Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.StartsWith(redirectUri, location.OriginalString);
+    }
+
     #endregion
 
     #region PushedAuthorization Tests
@@ -247,6 +289,26 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+    }
+
+    [Fact]
+    public async Task Register_WhenThePrivateUseSchemeIsNotAReverseDomainName_ReturnsInvalidRedirectUri()
+    {
+        using var registrationFactory = new AnonymousRegistrationApplicationFactory();
+        var client = registrationFactory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await RegisterAsync(client, "myapp://callback");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+
+        using var document = JsonDocument.Parse(body);
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidRedirectUri,
+            document.RootElement.GetProperty("error").GetString()
+        );
     }
 
     #endregion

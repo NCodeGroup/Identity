@@ -69,7 +69,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
-    private Mock<IClientResponseAlgorithmValidator> MockClientResponseAlgorithmValidator { get; }
+    private Mock<ITenantClientCoherenceChecker> MockTenantClientCoherenceChecker { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private Mock<IMediator> MockMediator { get; }
@@ -102,8 +102,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockSettingScopeCollectionProvider =
             MockRepository.Create<ISettingScopeCollectionProvider>();
         MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
-        MockClientResponseAlgorithmValidator =
-            MockRepository.Create<IClientResponseAlgorithmValidator>();
+        MockTenantClientCoherenceChecker = MockRepository.Create<ITenantClientCoherenceChecker>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
             .Setup(x =>
@@ -166,7 +165,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockSettingSerializer.Object,
             MockSettingScopeCollectionProvider.Object,
             MockEffectiveSettingsResolver.Object,
-            MockClientResponseAlgorithmValidator.Object,
+            MockTenantClientCoherenceChecker.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<TenantApiEndpointHandler>.Instance
@@ -737,7 +736,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private static bool HasProperty(JsonElement element, string name) =>
         element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out _);
 
-    private void SetupClientAlgorithmCheck(params ClientResponseAlgorithmFinding[] findings)
+    private void SetupClientCoherenceCheck(params ClientCoherenceFinding[] findings)
     {
         var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
@@ -745,19 +744,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(serverSettings.Object)
             .Verifiable();
 
-        // The new document gains a permitted algorithm, so the gate sees a change the client check reads.
         var currentEffective = CreateSettingCollection();
-        IReadOnlyCollection<string>? permittedAlgorithms = ["RS256"];
-        var mockNewEffective = new Mock<ISettingCollection>(MockBehavior.Loose);
-        mockNewEffective
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
-                    out permittedAlgorithms
-                )
-            )
-            .Returns(true);
-        var newEffective = mockNewEffective.Object;
+        var newEffective = CreateSettingCollection();
 
         MockEffectiveSettingsResolver
             .Setup(x =>
@@ -780,7 +768,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Returns(newEffective)
             .Verifiable();
 
-        MockClientResponseAlgorithmValidator
+        MockTenantClientCoherenceChecker
             .Setup(x =>
                 x.FindIntroducedViolationsAsync(
                     MockStoreManager.Object,
@@ -817,7 +805,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
-        SetupClientAlgorithmCheck();
+        SetupClientCoherenceCheck();
         SetupSettingsWrite(settings);
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -835,36 +823,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateSettingsAsync_WhenNoClientAlgorithmSettingChanges_SkipsTheClientCheck()
-    {
-        SetupValidSettings();
-        SetupStore();
-        var settings = CreateSettings("settings-ct");
-        MockTenantStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(settings)
-            .Verifiable();
-        SetupAuthorization(AuthorizationResult.Success());
-        SetupEffectiveSettingsResolver(CreateSettingCollection());
-        SetupSettingsWrite(settings);
-
-        var httpContext = CreateHttpContext(authenticated: true);
-
-        // Strict mocks: no FindIntroducedViolationsAsync setup, so walking the clients would fail the test.
-        var result = await Handler.UpdateSettingsAsync(
-            httpContext,
-            TenantId,
-            CreateAddPatch("foo", "bar"),
-            ifMatch: null,
-            CancellationToken.None
-        );
-
-        Assert.IsType<NoContent>(result);
-        VerifyTenantChanged(settingsChanged: true);
-    }
-
-    [Fact]
-    public async Task UpdateSettingsAsync_WhenTheChangeExcludesAClientAlgorithm_ReturnsValidationProblem()
+    public async Task UpdateSettingsAsync_WhenTheChangeMakesAClientIncoherent_ReturnsValidationProblem()
     {
         SetupValidSettings();
         SetupStore();
@@ -873,13 +832,13 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateSettings("settings-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
-        SetupClientAlgorithmCheck(
-            new ClientResponseAlgorithmFinding(
+        SetupClientCoherenceCheck(
+            new ClientCoherenceFinding(
                 "client-1",
-                new ClientResponseAlgorithmViolation(
-                    OpenIdSettingKeys.IdTokenSignedResponseAlg,
+                new ClientCoherenceViolation(
+                    OpenIdSettingNames.IdTokenSignedResponseAlg,
                     "RS256",
-                    OpenIdSettingKeys.IdTokenSigningAlgValuesSupported
+                    OpenIdSettingNames.IdTokenSigningAlgValuesSupported
                 )
             )
         );

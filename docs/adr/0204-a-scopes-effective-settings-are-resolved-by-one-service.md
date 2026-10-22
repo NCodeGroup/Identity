@@ -17,7 +17,7 @@ the same result: a key seed, a management preview, and a check of a proposed cha
 the merge was rebuilt by hand in about ten places: `TenantKeySeedHandler`, the tenant factories
 (`DefaultOpenIdTenantFactory` and `EphemeralOpenIdTenantFactory`), `DefaultOpenIdClientResolver`,
 `DefaultResourceServerCredentialResolver`, `ConformanceSeedHandler`, the tenant, client, resource-server, and server
-management handlers, and `DefaultClientResponseAlgorithmValidator`.
+management handlers, and the check of every client's registered algorithms after a settings change.
 
 The copies had already drifted:
 
@@ -59,14 +59,17 @@ that check reads.
    `TryAddSingleton`, so a host that registers its own implementation first keeps it, and every caller above uses the
    host's.
 5. **A change walks the clients only when it can matter, and reads them untracked.**
-   `ClientResponseAlgorithmRule.ReadsChangedSetting(previous, current)` returns `true` when the effective value of any
-   setting the algorithm check reads differs between two effective settings: each response's registered signing,
-   key-management, and content-encryption algorithm, and its permitted lists, which are compared ignoring order. The
-   server and tenant PATCH handlers resolve the settings before and after the change through the resolver and check the
-   clients only when it returns `true`. The walks read tenants and clients through `ITenantStore.GetSettingsPageAsync`
-   and `IClientStore.GetSettingsPageAsync`, which return a page of settings documents that is untracked, carries no
-   secrets, and is ordered by identifier with a keyset cursor. The client page applies the ambient tenant's query
-   filter, so a walk that spans tenants runs each tenant's clients under an explicit tenant scope.
+   `IClientCoherenceValidator.ReadsChangedSetting(previous, current)` returns `true` when the effective value of any
+   setting a registered coherence rule reads
+   ([ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)) differs between two effective
+   settings; lists are compared ignoring order. The server and tenant PATCH handlers resolve the settings before and
+   after the change through the resolver. The server PATCH walks the tenants only when it returns `true` for the
+   server, and checks each tenant's clients only when it returns `true` for that tenant; the tenant PATCH checks its
+   clients only when it returns `true` for the tenant. The walks read tenants and clients through
+   `ITenantStore.GetSettingsPageAsync` and `IClientStore.GetSettingsPageAsync`, which return a page of settings
+   documents that is untracked, carries no secrets, and is ordered by identifier with a keyset cursor. The client page
+   applies the ambient tenant's query filter, so a walk that spans tenants runs each tenant's clients under an explicit
+   tenant scope.
 
 ## Options considered
 
@@ -86,13 +89,11 @@ that check reads.
   ([ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md)). The same holds for the internal seed, resolver, and
   management types listed in the Context.
 - The resolver depends on `IOpenIdServerProvider`, so nothing on the path that builds the server may depend on it.
-- Putting the resolver under `DefaultOpenIdClientResolver` exposed a host-composition cycle. Reading
-  `IOptions<OpenIdOptions>.Value` runs the `OpenIdOptions` validators, which read the setting-descriptor catalog, which
-  constructs every `IClientAuthenticationHandler` (`DefaultClientSettingDescriptorDataSource`). A handler that depends,
-  however indirectly, on a service whose constructor reads `Value` therefore deadlocks host composition, and the
-  container cannot detect the cycle because its last edge is a runtime `GetServices` call.
+- Options validation reads the setting-descriptor catalog, which names the client-authentication methods from
+  registered descriptors, so it constructs no `IClientAuthenticationHandler`
+  ([ADR-0207](0207-client-authentication-methods-are-named-by-registered-descriptors.md)).
   `DefaultOpenIdEnvironmentFactory` and `DefaultOpenIdServerFactory` read `IOptions<OpenIdOptions>.Value` on use, never
-  in a constructor. Naming the methods without constructing the handlers is backlog `R60`.
-- A server or tenant settings change that touches no setting the algorithm check reads loads no client, and a change
+  in a constructor.
+- A server or tenant settings change that touches no setting a coherence rule reads loads no client, and a change
   that does reads each tenant's and client's settings without their secrets.
 - This implements backlog `R39` (one resolver) and `R21` (a bounded server settings PATCH).

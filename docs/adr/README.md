@@ -241,3 +241,5 @@ standards.
 | [0203](./0203-redirect-uris-are-matched-exactly.md) | Redirect URIs are matched exactly | Accepted |
 | [0204](./0204-a-scopes-effective-settings-are-resolved-by-one-service.md) | A scope's effective settings are resolved by one service | Accepted |
 | [0205](./0205-replicas-announce-changes-through-a-broadcast-port.md) | Replicas announce changes through a broadcast port | Accepted |
+| [0206](./0206-a-clients-settings-are-checked-by-registered-coherence-rules.md) | A client's settings are checked by registered coherence rules | Accepted |
+| [0207](./0207-client-authentication-methods-are-named-by-registered-descriptors.md) | Client-authentication methods are named by registered descriptors | Accepted |

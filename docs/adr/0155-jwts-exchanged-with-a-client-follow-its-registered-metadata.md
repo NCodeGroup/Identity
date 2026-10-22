@@ -3,7 +3,9 @@
 - **Status:** Accepted (extended by
   [ADR-0168](0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): a JWT introspection response
   follows the client's registered introspection metadata; extended by [ADR-0181](0181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md): the
-  credential selector is a public seam every issuer of a client-addressed JWT resolves)
+  credential selector is a public seam every issuer of a client-addressed JWT resolves; extended by
+  [ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md): the checks of decision 2 are a
+  registered client coherence rule)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -160,7 +162,7 @@ never compresses.**
   [ADR-0085](0085-ciba-grant.md) and [ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md) (amended: no
   encrypted CIBA requests), [ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.DefaultClientJwtCredentialSelector`, `ClientJwtProtectionSettings`,
-  `NCode.Identity.OpenId.Management.Endpoints.Clients.ClientApiEndpointHandler.ValidateResponseAlgorithms`,
+  `NCode.Identity.OpenId.Authentication.Clients.Coherence.ResponseAlgorithmCoherenceRule`,
   `NCode.Identity.OpenId.Authentication.Settings.PermittedAlgorithmExtensions`,
   `NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.DefaultUserInfoEndpointProvider`,
   `NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand`, `DefaultLoadAuthorizationRequestHandler`,

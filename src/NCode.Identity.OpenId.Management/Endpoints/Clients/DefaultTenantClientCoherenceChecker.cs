@@ -16,6 +16,7 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
@@ -25,15 +26,17 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 
 /// <summary>
-/// Provides the default implementation of <see cref="IClientResponseAlgorithmValidator"/>, which pages through the
+/// Provides the default implementation of <see cref="ITenantClientCoherenceChecker"/>, which pages through the
 /// tenant's clients under an explicit tenant scope, because the control-plane endpoints that change tenant and server
 /// settings are not scoped to the tenant they address. It reads each client through the untracked settings projection,
-/// which carries no secrets (backlog R21), and merges it through the <see cref="IEffectiveSettingsResolver"/>.
+/// which carries no secrets, and merges it through the <see cref="IEffectiveSettingsResolver"/>.
 /// </summary>
-internal sealed class DefaultClientResponseAlgorithmValidator(
+// See ADR-0206.
+internal sealed class DefaultTenantClientCoherenceChecker(
     IAmbientTenantAccessor ambientTenantAccessor,
-    IEffectiveSettingsResolver effectiveSettingsResolver
-) : IClientResponseAlgorithmValidator
+    IEffectiveSettingsResolver effectiveSettingsResolver,
+    IClientCoherenceValidator clientCoherenceValidator
+) : ITenantClientCoherenceChecker
 {
     // The number of clients read per page.
     private const int ClientPageSize = 100;
@@ -41,11 +44,10 @@ internal sealed class DefaultClientResponseAlgorithmValidator(
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
+    private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
 
     /// <inheritdoc />
-    public async ValueTask<
-        IReadOnlyList<ClientResponseAlgorithmFinding>
-    > FindIntroducedViolationsAsync(
+    public async ValueTask<IReadOnlyList<ClientCoherenceFinding>> FindIntroducedViolationsAsync(
         IStoreManager storeManager,
         string tenantId,
         IReadOnlySettingCollection currentTenantSettings,
@@ -53,7 +55,12 @@ internal sealed class DefaultClientResponseAlgorithmValidator(
         CancellationToken cancellationToken
     )
     {
-        List<ClientResponseAlgorithmFinding> findings = [];
+        if (!ClientCoherenceValidator.ReadsChangedSetting(currentTenantSettings, newTenantSettings))
+        {
+            return [];
+        }
+
+        List<ClientCoherenceFinding> findings = [];
         var clientStore = storeManager.GetStore<IClientStore>();
 
         using var scope = AmbientTenantAccessor.BeginScope(tenantId);
@@ -70,7 +77,7 @@ internal sealed class DefaultClientResponseAlgorithmValidator(
                     clientSettings.Value
                 );
 
-                var violations = ClientResponseAlgorithmRule.FindViolations(newClientSettings);
+                var violations = ClientCoherenceValidator.Validate(newClientSettings);
                 if (violations.Count == 0)
                 {
                     continue;
@@ -81,11 +88,11 @@ internal sealed class DefaultClientResponseAlgorithmValidator(
                     OpenIdSettingScopes.Client,
                     clientSettings.Value
                 );
-                var existing = ClientResponseAlgorithmRule.FindViolations(currentClientSettings);
+                var existing = ClientCoherenceValidator.Validate(currentClientSettings);
                 findings.AddRange(
                     violations
                         .Except(existing)
-                        .Select(violation => new ClientResponseAlgorithmFinding(
+                        .Select(violation => new ClientCoherenceFinding(
                             clientSettings.ClientId,
                             violation
                         ))

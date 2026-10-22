@@ -34,8 +34,9 @@ public interface IRedirectUriKindCatalog
     /// Determines whether <c>redirect_uri_kinds_supported</c> permits the specified redirect URI.
     /// </summary>
     /// <remarks>
-    /// A redirect URI is permitted when <c>redirect_uri_kinds_supported</c> is unset, or lists a registered kind that the
-    /// redirect URI is of. A value that is not an absolute URI is never permitted while the setting is set.
+    /// A redirect URI is permitted when it is of a registered kind that <c>redirect_uri_kinds_supported</c> lists, or of
+    /// any registered kind while the setting is unset. A value that is not an absolute URI, or a URI of no registered
+    /// kind, is never permitted.
     /// </remarks>
     /// <param name="settings">The effective settings of the scope to judge the redirect URI against.</param>
     /// <param name="redirectUri">The redirect URI as the client wrote it.</param>

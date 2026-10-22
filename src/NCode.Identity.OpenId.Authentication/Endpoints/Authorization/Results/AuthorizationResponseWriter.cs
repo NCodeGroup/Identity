@@ -18,7 +18,6 @@
 #endregion
 
 using System.Buffers;
-using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -183,41 +182,7 @@ internal static class AuthorizationResponseWriter
         // 303 See Other (not 302) is required for the authorization response (FAPI 2.0 §5.2.2 / OAuth 2.1): it forces
         // the user-agent to issue a GET to the redirect_uri regardless of the original request method.
         httpResponse.StatusCode = StatusCodes.Status303SeeOther;
-        httpResponse.Headers.Location = EscapeUnsafeCharacters(location);
-    }
-
-    /// <summary>
-    /// Percent-encodes every character that a header value cannot carry as written (a non-ASCII character, RFC 3987
-    /// §3.1, and an ASCII control character or space) as UTF-8, so a carriage return or line feed can never split the
-    /// response; every other character is delivered as written.
-    /// </summary>
-    private static string EscapeUnsafeCharacters(string value)
-    {
-        if (value.AsSpan().IndexOfAnyExceptInRange('!', '~') < 0)
-        {
-            return value;
-        }
-
-        var builder = new StringBuilder(value.Length + 16);
-        Span<byte> utf8 = stackalloc byte[4];
-
-        foreach (var rune in value.EnumerateRunes())
-        {
-            if (rune.Value is > 0x20 and < 0x7F)
-            {
-                builder.Append((char)rune.Value);
-                continue;
-            }
-
-            var count = rune.EncodeToUtf8(utf8);
-            for (var i = 0; i < count; i++)
-            {
-                var hex = utf8[i].ToString("X2", CultureInfo.InvariantCulture);
-                builder.Append('%').Append(hex);
-            }
-        }
-
-        return builder.ToString();
+        httpResponse.Headers.Location = RedirectLocation.Escape(location);
     }
 
     private const string FormPostJavascript =

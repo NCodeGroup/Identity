@@ -16,14 +16,21 @@
 
 #endregion
 
-namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
+using JetBrains.Annotations;
+
+namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
-/// An algorithm a client registers that a settings change would exclude.
+/// Describes a value that a client registers and that an effective setting does not permit, as found by an
+/// <see cref="IClientCoherenceRule"/>.
 /// </summary>
-/// <param name="ClientId">The identifier of the client that registers the algorithm.</param>
-/// <param name="Violation">The <see cref="ClientResponseAlgorithmViolation"/> the change introduces.</param>
-internal readonly record struct ClientResponseAlgorithmFinding(
-    string ClientId,
-    ClientResponseAlgorithmViolation Violation
+/// <param name="SettingName">The name of the client setting that registers the value.</param>
+/// <param name="Value">The registered value that is not permitted.</param>
+/// <param name="CeilingName">The name of the effective setting that does not permit the value.</param>
+// See ADR-0206.
+[PublicAPI]
+public readonly record struct ClientCoherenceViolation(
+    string SettingName,
+    string Value,
+    string CeilingName
 );

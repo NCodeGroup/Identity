@@ -16,19 +16,17 @@
 
 #endregion
 
-
-using NCode.Identity.Settings;
+using NCode.Identity.OpenId.Authentication.Clients;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 
 /// <summary>
-/// Describes an algorithm a client registers for a JWT addressed to it that its effective settings do not permit.
+/// A value a client registers that a settings change would not permit.
 /// </summary>
-/// <param name="RegisteredKey">The setting that registers the algorithm, such as <c>id_token_signed_response_alg</c>.</param>
-/// <param name="Value">The registered algorithm, or the default the setting implies when it is not registered.</param>
-/// <param name="PermittedKey">The <c>*_values_supported</c> setting that excludes the algorithm.</param>
-internal readonly record struct ClientResponseAlgorithmViolation(
-    SettingKey<string> RegisteredKey,
-    string Value,
-    SettingKey<IReadOnlyCollection<string>> PermittedKey
+/// <param name="ClientId">The identifier of the client that registers the value.</param>
+/// <param name="Violation">The <see cref="ClientCoherenceViolation"/> the change introduces.</param>
+// See ADR-0206.
+internal readonly record struct ClientCoherenceFinding(
+    string ClientId,
+    ClientCoherenceViolation Violation
 );

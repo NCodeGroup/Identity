@@ -62,7 +62,9 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         IClientScopeService clientScopeService,
         ISecretSerializer secretSerializer,
         ISecretKeyTypeCatalog secretKeyTypeCatalog,
-        IRedirectUriKindCatalog? redirectUriKindCatalog = null
+        IClientAuthenticationMethodCatalog? clientAuthenticationMethodCatalog = null,
+        IEffectiveSettingsResolver? effectiveSettingsResolver = null,
+        IClientCoherenceValidator? clientCoherenceValidator = null
     ) =>
         new(
             TimeProvider.System,
@@ -78,7 +80,10 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             CreateStrictMock<ISectorIdentifierValidator>().Object,
             clientScopeService,
             CreateStrictMock<ISettingSerializer>().Object,
-            redirectUriKindCatalog ?? CreateStrictMock<IRedirectUriKindCatalog>().Object
+            clientAuthenticationMethodCatalog
+                ?? CreateStrictMock<IClientAuthenticationMethodCatalog>().Object,
+            effectiveSettingsResolver ?? CreateStrictMock<IEffectiveSettingsResolver>().Object,
+            clientCoherenceValidator ?? CreateStrictMock<IClientCoherenceValidator>().Object
         );
 
     private (IOpenIdErrorFactory factory, Func<string?> capturedCode) CreateErrorFactory()
@@ -388,8 +393,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
     private Mock<IReadOnlySettingCollection> CreateTenantSettings(
         IReadOnlyCollection<string>? grantTypesSupported,
-        IReadOnlyCollection<string>? responseTypesSupported,
-        IReadOnlyCollection<string>? tokenEndpointAuthMethodsSupported = null
+        IReadOnlyCollection<string>? responseTypesSupported
     )
     {
         var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
@@ -403,60 +407,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
                 x.TryGetValue(OpenIdSettingKeys.ResponseTypesSupported, out responseTypesSupported)
             )
             .Returns(true);
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.TokenEndpointAuthMethodsSupported,
-                    out tokenEndpointAuthMethodsSupported
-                )
-            )
-            .Returns(tokenEndpointAuthMethodsSupported is not null);
         return mockSettings;
-    }
-
-    [Fact]
-    public void ValidateSupportedMetadata_WhenTheTenantPermitsTheAuthMethod_ReturnsNull()
-    {
-        var handler = CreateHandler();
-        var (factory, _) = CreateErrorFactory();
-        var mockTenantSettings = CreateTenantSettings(
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
-            [OpenIdConstants.ResponseTypes.CodeIdToken],
-            [
-                OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-                OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
-            ]
-        );
-
-        var error = handler.ValidateSupportedMetadata(
-            factory,
-            mockTenantSettings.Object,
-            CreateHybridMetadata()
-        );
-
-        Assert.Null(error);
-    }
-
-    [Fact]
-    public void ValidateSupportedMetadata_WhenTheTenantDoesNotPermitTheAuthMethod_ReturnsInvalidClientMetadata()
-    {
-        // A client registered outside the tenant's ceiling could never authenticate.
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateTenantSettings(
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
-            [OpenIdConstants.ResponseTypes.CodeIdToken],
-            [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt]
-        );
-
-        var error = handler.ValidateSupportedMetadata(
-            factory,
-            mockTenantSettings.Object,
-            CreateHybridMetadata()
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -536,61 +487,83 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
     #endregion
 
-    #region ValidateRedirectUriKinds
+    #region ValidateCoherence
 
-    [Fact]
-    public void ValidateRedirectUriKinds_WhenEveryKindIsPermitted_ReturnsNull()
+    private static readonly JsonElement CoherenceSettingsJson = JsonSerializer.SerializeToElement(
+        new Dictionary<string, object>()
+    );
+
+    private (
+        DefaultClientRegistrationEndpointHandler handler,
+        IReadOnlySettingCollection tenantSettings
+    ) CreateCoherenceHandler(params ClientCoherenceViolation[] violations)
     {
-        const string redirectUri = "https://example.com/callback";
         var tenantSettings = CreateLooseMock<IReadOnlySettingCollection>().Object;
-        var mockCatalog = CreateStrictMock<IRedirectUriKindCatalog>();
-        mockCatalog
-            .Setup(x => x.IsPermitted(tenantSettings, redirectUri))
-            .Returns(true)
+        var clientSettings = CreateLooseMock<IReadOnlySettingCollection>().Object;
+        var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
+        mockResolver
+            .Setup(x =>
+                x.Resolve(tenantSettings, OpenIdSettingScopes.Client, It.IsAny<JsonElement>())
+            )
+            .Returns(clientSettings)
             .Verifiable();
+        var mockValidator = CreateStrictMock<IClientCoherenceValidator>();
+        mockValidator.Setup(x => x.Validate(clientSettings)).Returns(violations).Verifiable();
         var handler = CreateHandler(
             CreateStrictMock<IClientScopeService>().Object,
             CreateStrictMock<ISecretSerializer>().Object,
             CreateStrictMock<ISecretKeyTypeCatalog>().Object,
-            mockCatalog.Object
+            effectiveSettingsResolver: mockResolver.Object,
+            clientCoherenceValidator: mockValidator.Object
         );
+        return (handler, tenantSettings);
+    }
+
+    [Fact]
+    public void ValidateCoherence_WhenCoherent_ReturnsNull()
+    {
+        var (handler, tenantSettings) = CreateCoherenceHandler();
         var (factory, _) = CreateErrorFactory();
 
-        var error = handler.ValidateRedirectUriKinds(
-            factory,
-            tenantSettings,
-            CreateHybridMetadata()
-        );
+        var error = handler.ValidateCoherence(factory, tenantSettings, CoherenceSettingsJson);
 
         Assert.Null(error);
     }
 
     [Fact]
-    public void ValidateRedirectUriKinds_WhenAKindIsNotPermitted_ReturnsInvalidRedirectUri()
+    public void ValidateCoherence_WhenARedirectUriIsRefused_ReturnsInvalidRedirectUri()
     {
-        const string redirectUri = "https://example.com/callback";
-        var tenantSettings = CreateLooseMock<IReadOnlySettingCollection>().Object;
-        var mockCatalog = CreateStrictMock<IRedirectUriKindCatalog>();
-        mockCatalog
-            .Setup(x => x.IsPermitted(tenantSettings, redirectUri))
-            .Returns(false)
-            .Verifiable();
-        var handler = CreateHandler(
-            CreateStrictMock<IClientScopeService>().Object,
-            CreateStrictMock<ISecretSerializer>().Object,
-            CreateStrictMock<ISecretKeyTypeCatalog>().Object,
-            mockCatalog.Object
+        var (handler, tenantSettings) = CreateCoherenceHandler(
+            new ClientCoherenceViolation(
+                OpenIdSettingNames.RedirectUris,
+                "https://example.com/callback",
+                OpenIdSettingNames.RedirectUriKindsSupported
+            )
         );
         var (factory, capturedCode) = CreateErrorFactory();
 
-        var error = handler.ValidateRedirectUriKinds(
-            factory,
-            tenantSettings,
-            CreateHybridMetadata()
-        );
+        var error = handler.ValidateCoherence(factory, tenantSettings, CoherenceSettingsJson);
 
         Assert.NotNull(error);
         Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRedirectUri, capturedCode());
+    }
+
+    [Fact]
+    public void ValidateCoherence_WhenAnAlgorithmIsRefused_ReturnsInvalidClientMetadata()
+    {
+        var (handler, tenantSettings) = CreateCoherenceHandler(
+            new ClientCoherenceViolation(
+                OpenIdSettingNames.IdTokenSignedResponseAlg,
+                "ES256",
+                OpenIdSettingNames.IdTokenSigningAlgValuesSupported
+            )
+        );
+        var (factory, capturedCode) = CreateErrorFactory();
+
+        var error = handler.ValidateCoherence(factory, tenantSettings, CoherenceSettingsJson);
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     #endregion
@@ -763,23 +736,50 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     }
 
     [Theory]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic, true)]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost, true)]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt, true)]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt, false)]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth, false)]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth, false)]
-    [InlineData(OpenIdConstants.ClientAuthenticationMethods.None, false)]
-    public void IssuesClientSecret_ForMethod_IssuesOnlyForSecretMethods(
-        string method,
-        bool expected
+    [InlineData(true)]
+    [InlineData(false)]
+    public void IssuesClientSecret_WhenTheMethodIsRegistered_FollowsItsDescriptor(
+        bool requiresClientSecret
     )
     {
-        var handler = CreateHandler();
+        ClientAuthenticationMethodDescriptor? descriptor = new()
+        {
+            Name = "test_method",
+            RequiresClientSecret = requiresClientSecret,
+        };
+        var mockCatalog = CreateStrictMock<IClientAuthenticationMethodCatalog>();
+        mockCatalog.Setup(x => x.TryGet("test_method", out descriptor)).Returns(true).Verifiable();
+        var handler = CreateHandler(
+            CreateStrictMock<IClientScopeService>().Object,
+            CreateStrictMock<ISecretSerializer>().Object,
+            CreateStrictMock<ISecretKeyTypeCatalog>().Object,
+            clientAuthenticationMethodCatalog: mockCatalog.Object
+        );
 
-        var issues = handler.IssuesClientSecret(method);
+        var issues = handler.IssuesClientSecret("test_method");
 
-        Assert.Equal(expected, issues);
+        Assert.Equal(requiresClientSecret, issues);
+    }
+
+    [Fact]
+    public void IssuesClientSecret_WhenTheMethodIsNotRegistered_IssuesNone()
+    {
+        ClientAuthenticationMethodDescriptor? descriptor = null;
+        var mockCatalog = CreateStrictMock<IClientAuthenticationMethodCatalog>();
+        mockCatalog
+            .Setup(x => x.TryGet("unregistered_method", out descriptor))
+            .Returns(false)
+            .Verifiable();
+        var handler = CreateHandler(
+            CreateStrictMock<IClientScopeService>().Object,
+            CreateStrictMock<ISecretSerializer>().Object,
+            CreateStrictMock<ISecretKeyTypeCatalog>().Object,
+            clientAuthenticationMethodCatalog: mockCatalog.Object
+        );
+
+        var issues = handler.IssuesClientSecret("unregistered_method");
+
+        Assert.False(issues);
     }
 
     #endregion
@@ -1238,49 +1238,6 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     }
 
     [Fact]
-    public void ValidateAlgorithmMetadata_WhenTheTenantPermitsEveryAlgorithm_ReturnsNull()
-    {
-        var handler = CreateHandler();
-        var (factory, _) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256", "PS256"]);
-        var request = new RegisterClientRequest { IdTokenSignedResponseAlg = "PS256" };
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
-
-        Assert.Null(error);
-    }
-
-    [Fact]
-    public void ValidateAlgorithmMetadata_WhenTheRegisteredAlgorithmIsNotPermitted_ReturnsInvalidClientMetadata()
-    {
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(["PS256"]);
-        var request = new RegisterClientRequest { IdTokenSignedResponseAlg = "ES256" };
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Fact]
-    public void ValidateAlgorithmMetadata_WhenTheOmittedDefaultIsNotPermitted_ReturnsInvalidClientMetadata()
-    {
-        // An omitted id_token_signed_response_alg is the tenant's effective default (RS256), which a FAPI ceiling
-        // excludes, so the client must register a permitted algorithm.
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(["PS256", "ES256"]);
-        var request = new RegisterClientRequest();
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Fact]
     public void ValidateAlgorithmMetadata_WhenTheTenantRequiresEncryptedIdTokens_RequiresTheRegistration()
     {
         var handler = CreateHandler();
@@ -1295,60 +1252,6 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
         Assert.NotNull(error);
         Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Fact]
-    public void ValidateAlgorithmMetadata_WhenTheOmittedDefaultEncIsNotPermitted_ReturnsInvalidClientMetadata()
-    {
-        // An id_token_encrypted_response_alg registered without its enc uses the default enc (A128CBC-HS256), which a
-        // tenant permitting only A256GCM excludes, so the client must register a permitted enc.
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
-        IReadOnlyCollection<string>? permittedEnc = ["A256GCM"];
-        mockTenantSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported,
-                    out permittedEnc
-                )
-            )
-            .Returns(true);
-        var request = new RegisterClientRequest { IdTokenEncryptedResponseAlg = "RSA-OAEP-256" };
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Fact]
-    public void ValidateAlgorithmMetadata_WhenTheTenantDefaultEncIsPermitted_ReturnsNull()
-    {
-        // The tenant's own default enc, not the specification's, is the one an omitted enc resolves to.
-        var handler = CreateHandler();
-        var (factory, _) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
-        IReadOnlyCollection<string>? permittedEnc = ["A256GCM"];
-        mockTenantSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported,
-                    out permittedEnc
-                )
-            )
-            .Returns(true);
-        string? defaultEnc = "A256GCM";
-        mockTenantSettings
-            .Setup(x =>
-                x.TryGetValue(OpenIdSettingKeys.UserInfoEncryptedResponseEnc, out defaultEnc)
-            )
-            .Returns(true);
-        var request = new RegisterClientRequest { UserInfoEncryptedResponseAlg = "RSA-OAEP-256" };
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
-
-        Assert.Null(error);
     }
 
     [Fact]
@@ -1367,45 +1270,6 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             )
             .Returns(true);
         var request = new RegisterClientRequest { TokenEndpointAuthSigningAlg = "RS256" };
-
-        var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
-
-        Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
-    }
-
-    [Theory]
-    [InlineData("signing")]
-    [InlineData("encryption_alg")]
-    [InlineData("encryption_enc")]
-    public void ValidateAlgorithmMetadata_WhenTheIntrospectionAlgIsNotPermitted_ReturnsInvalidClientMetadata(
-        string kind
-    )
-    {
-        var handler = CreateHandler();
-        var (factory, capturedCode) = CreateErrorFactory();
-        var mockTenantSettings = CreateAlgorithmTenantSettings(["RS256"]);
-        IReadOnlyCollection<string>? permitted = ["PS256", "RSA-OAEP-256", "A256GCM"];
-        var key = kind switch
-        {
-            "signing" => OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported,
-            "encryption_alg" => OpenIdSettingKeys.IntrospectionEncryptionAlgValuesSupported,
-            _ => OpenIdSettingKeys.IntrospectionEncryptionEncValuesSupported,
-        };
-        mockTenantSettings.Setup(x => x.TryGetValue(key, out permitted)).Returns(true);
-        var request = kind switch
-        {
-            "signing" => new RegisterClientRequest { IntrospectionSignedResponseAlg = "RS256" },
-            "encryption_alg" => new RegisterClientRequest
-            {
-                IntrospectionEncryptedResponseAlg = "ECDH-ES",
-            },
-            _ => new RegisterClientRequest
-            {
-                IntrospectionEncryptedResponseAlg = "RSA-OAEP-256",
-                IntrospectionEncryptedResponseEnc = "A128GCM",
-            },
-        };
 
         var error = handler.ValidateAlgorithmMetadata(factory, mockTenantSettings.Object, request);
 

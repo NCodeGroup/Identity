@@ -1288,6 +1288,11 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **A client's `request_object_expected_audience` replaced the issuer as the audience a request object must name,
+  even under a FAPI profile.** The setting is client-scoped and replace-merged, so no ceiling could cap it. The
+  `fapi1-advanced` and `fapi2` profiles now compose `IssuerOnlyRequestObjectAudienceRequirement`, which refuses a
+  request object from a client that sets it with `invalid_request_object` (ADR-0187, ADR-0202).
+
 - **An authorization request with a request object still read `scope` and `response_type` from the unsigned outer
   query when the object omitted them.** Only the object's values are now used (RFC 9101 §6.3, FAPI 1.0 Advanced
   §5.2.2-10): an object without `response_type` or `scope` is refused with `invalid_request_object`, an outer

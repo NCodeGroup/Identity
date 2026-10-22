@@ -54,8 +54,11 @@ outer parameter such as `response_mode` could change a signed request.
    no ID token through the front channel unless its resolved response mode is JWT-secured. JARM names every such mode by
    adding `.jwt`, so the requirement does not list them. `NonceOrStateRequirement` refuses, with `invalid_request`, a
    request without `nonce` when it requests the `openid` scope, and one without `state` when it does not (§5.2.2.2,
-   §5.2.2.3), so every response is bound to the request that asked for it. The client-assertion audience is not narrowed
-   to the issuer, because that rule belongs to FAPI 2.0 alone. `AuthorizationRequestProfileContext` now carries the
+   §5.2.2.3), so every response is bound to the request that asked for it. `IssuerOnlyRequestObjectAudienceRequirement`,
+   which the FAPI 2.0 profile also composes, refuses with `invalid_request_object` a request object from a client that
+   sets `request_object_expected_audience`. That client-scoped setting is replace-merged, so no ceiling can cap it, and
+   it would otherwise replace the issuer as the audience both profiles require. The client-assertion audience is not
+   narrowed to the issuer, because that rule belongs to FAPI 2.0 alone. `AuthorizationRequestProfileContext` now carries the
    composed `IAuthorizationRequest` so that a requirement can judge the response type and response mode.
 6. **A request object's parameters are the only parameters (RFC 9101 §6.3), for every request object.** When a
    request object is present, `AuthorizationRequest` reads every value, and its `Parameters` collection, from the

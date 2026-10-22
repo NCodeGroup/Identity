@@ -40,7 +40,9 @@ validated with the JWT library's default 5-minute clock skew rather than the cli
   profile pins it to `true`.
 - **The authorization endpoint always validates `aud`.** It expects `request_object_expected_audience` when that is
   set and the tenant's issuer otherwise. A request object without the issuer in `aud` is refused with
-  `invalid_request_object`.
+  `invalid_request_object`. Under the `fapi1-advanced` and `fapi2` profiles a client may not name another audience:
+  their `IssuerOnlyRequestObjectAudienceRequirement` refuses a request object from a client that sets
+  `request_object_expected_audience` (ADR-0202).
 - **A CIBA signed authentication request carries every claim CIBA requires.** The loader requires `iat`, `nbf`, and
   `exp`, applies `request_object_max_lifetime`, requires a non-empty `jti`, and validates with the client's
   `clock_skew`, the same as the authorization endpoint.

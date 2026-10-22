@@ -294,6 +294,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PolicyUri = "policy_uri"
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestObjectMaxLifetime = "request_object_max_lifetime" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestObjectNotBeforeRequired = "request_object_nbf_required" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireDPoP = "require_dpop" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens = "require_tls_client_certificate_bound_access_tokens" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SoftwareId = "software_id" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SoftwareVersion = "software_version" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientCertificateBoundAccessTokens = "tls_client_certificate_bound_access_tokens" -> string!
@@ -464,6 +465,7 @@ NCode.Identity.OpenId.Settings.ISecurityProfile.Requirements.get -> System.Colle
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.EvaluateRequirementsAsync<TContext>(NCode.Identity.Settings.IReadOnlySettingCollection! settings, TContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! scopeSettings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! scopeSettings, System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! baselineSettings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Text.Json.JsonElement settingsJson, string! scopeName, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.TryGetProfile(string! profileName, out NCode.Identity.OpenId.Settings.ISecurityProfile! profile) -> bool
 NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder
@@ -899,6 +901,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PolicyUri.get -> NCode.I
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestObjectMaxLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestObjectNotBeforeRequired.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireDPoP.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SoftwareId.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SoftwareVersion.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens.get -> NCode.Identity.Settings.SettingKey<bool>
@@ -1084,7 +1087,6 @@ NCode.Identity.OpenId.Tenants.RootTenantOptions.TenantId.set -> void
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.Root.get -> NCode.Identity.OpenId.Tenants.RootTenantOptions!
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.Root.set -> void
 const NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode.None = "none" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode.Offline = "offline" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode.Online = "online" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthRevocationMode = "tls_client_auth_revocation_mode" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthTrustAnchors = "tls_client_auth_trust_anchors" -> string!
@@ -1132,3 +1134,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationSigningAlgV
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetControlPlaneTenantId() -> string!
 NCode.Identity.OpenId.Tenants.ITenantStrategy.GetControlPlaneTenantId() -> string!
+NCode.Identity.OpenId.ClientCertificates.DistinguishedName
+NCode.Identity.OpenId.ClientCertificates.DistinguishedName.Matches(NCode.Identity.OpenId.ClientCertificates.DistinguishedName! other) -> bool
+static NCode.Identity.OpenId.ClientCertificates.DistinguishedName.FromX500(System.Security.Cryptography.X509Certificates.X500DistinguishedName! name) -> NCode.Identity.OpenId.ClientCertificates.DistinguishedName!
+static NCode.Identity.OpenId.ClientCertificates.DistinguishedName.TryParse(string! value, out NCode.Identity.OpenId.ClientCertificates.DistinguishedName? distinguishedName) -> bool

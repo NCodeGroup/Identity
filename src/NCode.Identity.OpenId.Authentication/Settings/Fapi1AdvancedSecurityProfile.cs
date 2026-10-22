@@ -71,9 +71,10 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
     public void ApplyCeilingSettings(ISecurityProfileCeilingBuilder ceiling)
     {
         // Every access token must be sender-constrained (§5.2.2-5), and FAPI 1.0's mechanism is mutual TLS (§5.2.2-6,
-        // RFC 8705): requiring a certificate-bound token makes a DPoP-only token request fail (Or floors, ADR-0158).
+        // RFC 8705): requiring every client's token to be certificate-bound makes a DPoP-only token request fail (Or
+        // floors, ADR-0158).
         ceiling.Set(OpenIdSettingKeys.AccessTokenSenderConstraintRequired, true);
-        ceiling.Set(OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens, true);
+        ceiling.Set(OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens, true);
 
         // Signing algorithms → PS256 / ES256 (Intersect ceilings narrow the advertised/accepted set).
         ceiling.Set(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, SigningAlgorithms);
@@ -140,5 +141,9 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
             OpenIdSettingKeys.AuthorizationSignedResponseAlg,
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
         );
+
+        // FAPI 1.0 Advanced §5.2.2-6 requires support for mutual-TLS certificate-bound access tokens, so the server
+        // supports them by default; this is a default, so an operator may turn it off.
+        defaults.Set(OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens, true);
     }
 }

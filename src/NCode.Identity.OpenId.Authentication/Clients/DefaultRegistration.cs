@@ -167,6 +167,13 @@ internal static class DefaultRegistration
                 >()
             );
 
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IClientCoherenceRule,
+                    CertificateBoundAccessTokenCoherenceRule
+                >()
+            );
+
             return builder;
         }
     }

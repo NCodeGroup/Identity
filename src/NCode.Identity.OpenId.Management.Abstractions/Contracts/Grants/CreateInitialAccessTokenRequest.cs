@@ -35,8 +35,8 @@ public sealed class CreateInitialAccessTokenRequest
     public string? Description { get; init; }
 
     /// <summary>
-    /// Gets the optional lifetime of the token, in seconds. When <c>null</c>, the token does not expire. When
-    /// specified, it must be greater than zero.
+    /// Gets the optional lifetime of the token, in seconds. When <c>null</c>, the token lives for one day. When
+    /// specified, it must be greater than zero and at most 2 592 000 seconds (30 days).
     /// </summary>
     public long? LifetimeSeconds { get; init; }
 

@@ -900,6 +900,36 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         );
     }
 
+    [Fact]
+    public void BuildSettingsObject_WhenCertificateBoundTokensAreRequested_StoresTheRequirement()
+    {
+        var handler = CreateHandler();
+        var request = new RegisterClientRequest { TlsClientCertificateBoundAccessTokens = true };
+        var resolved = new ResolvedMetadata
+        {
+            TokenEndpointAuthMethod = OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth,
+            GrantTypes = [OpenIdConstants.GrantTypes.ClientCredentials],
+            ResponseTypes = [],
+            RedirectUris = [],
+        };
+
+        var settings = handler.BuildSettingsObject(request, resolved);
+        var response = handler.ToResponse(
+            CreateClient(JsonSerializer.SerializeToElement(settings))
+        );
+
+        // The RFC 8705 §3.4 member is the client's requirement, never the server's support.
+        Assert.True(
+            settings[
+                OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens
+            ]!.GetValue<bool>()
+        );
+        Assert.False(
+            settings.ContainsKey(OpenIdSettingNames.TlsClientCertificateBoundAccessTokens)
+        );
+        Assert.True(response.TlsClientCertificateBoundAccessTokens);
+    }
+
     #endregion
 
     #region ToResponse

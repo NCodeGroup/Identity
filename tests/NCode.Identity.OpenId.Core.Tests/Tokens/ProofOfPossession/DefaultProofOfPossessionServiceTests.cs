@@ -84,7 +84,7 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     {
         MockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireDPoP)).Returns(requireDPoP);
         MockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens))
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens))
             .Returns(certificateBound);
     }
 
@@ -102,6 +102,24 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     public async Task EvaluateTokenRequestAsync_WhenNoBinding_ReturnsUnbound()
     {
         SetupSettings(requireDPoP: false, certificateBound: false);
+
+        var binding = await Service.EvaluateTokenRequestAsync(
+            MockContext.Object,
+            MockClient.Object,
+            CancellationToken.None
+        );
+
+        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, binding.TokenType);
+        Assert.False(binding.IsSenderConstrained);
+    }
+
+    [Fact]
+    public async Task EvaluateTokenRequestAsync_WhenTheServerSupportsBindingButTheClientDoesNotRequireIt_ReturnsUnbound()
+    {
+        SetupSettings(requireDPoP: false, certificateBound: false);
+        MockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens))
+            .Returns(true);
 
         var binding = await Service.EvaluateTokenRequestAsync(
             MockContext.Object,

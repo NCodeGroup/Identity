@@ -38,7 +38,7 @@ authorization.
    Rules are an open strategy collection ([ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md)). They are
    registered with `TryAddEnumerable`, which keeps one registration per implementation type, so each rule is its own
    class and a package adds a rule with one registration.
-2. **Three built-in rules** live in `NCode.Identity.OpenId.Authentication`, in the namespace
+2. **Four built-in rules** live in `NCode.Identity.OpenId.Authentication`, in the namespace
    `NCode.Identity.OpenId.Authentication.Clients.Coherence`:
    - `ResponseAlgorithmCoherenceRule` checks the algorithms that a client registers for the JWTs addressed to it: its ID
      tokens, UserInfo responses, introspection responses, and authorization responses. A registered signing algorithm
@@ -48,6 +48,10 @@ authorization.
      `redirect_uri_kinds_supported` through `IRedirectUriKindCatalog.IsPermitted`.
    - `TokenEndpointAuthMethodCoherenceRule` checks `token_endpoint_auth_method` against
      `token_endpoint_auth_methods_supported`. An unset list permits every method.
+   - `CertificateBoundAccessTokenCoherenceRule` checks `require_tls_client_certificate_bound_access_tokens` against
+     `tls_client_certificate_bound_access_tokens`. A client that requires certificate-bound access tokens while its
+     effective support is `false` is incoherent, so a tenant or server write that turns the support off is refused while
+     a client requires binding ([ADR-0097](0097-sender-constrained-access-tokens-dpop-and-mtls.md)).
 3. **One validator runs the rules and detects a change.** `IClientCoherenceValidator` has two members:
    - `Validate(clientSettings)` returns the violations of every registered rule.
    - `ReadsChangedSetting(previousSettings, currentSettings)` returns `true` when the effective value of any setting

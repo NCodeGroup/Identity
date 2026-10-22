@@ -1371,17 +1371,30 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Or,
             };
 
-            // tls_client_certificate_bound_access_tokens: at server scope, whether the OP supports/advertises
-            // mutual-TLS client-certificate-bound access tokens; at client scope, whether the client's access tokens
-            // must be bound to its certificate (RFC 8705 §3.3). Secure-by-default false (only advertise once the
-            // deployment has wired certificate forwarding). Floor (Or).
+            // tls_client_certificate_bound_access_tokens: whether the server supports mutual-TLS
+            // client-certificate-bound access tokens, which discovery advertises (RFC 8705 §3.3); it never requires a
+            // client to bind. Secure-by-default false (only advertise once the deployment has wired certificate
+            // forwarding). Override (Replace): a tenant overrides the server.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.TlsClientCertificateBoundAccessTokens,
-                AppliesTo = TenantsAndClients,
+                AppliesTo = Tenants,
                 Default = false,
 
                 IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // require_tls_client_certificate_bound_access_tokens: whether the client's access tokens must be bound to
+            // the mutual-TLS certificate it presents (RFC 8705 §3), default false. A server or tenant value is a floor
+            // for every client. Floor (Or): once a parent requires it, a child cannot un-require it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens,
+                AppliesTo = Clients,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Or,
             };
 
@@ -1401,8 +1414,9 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // tls_client_auth_revocation_mode: how a tls_client_auth chain's revocation status is checked; the secure
-            // default is online, which rejects a chain whose status cannot be determined. Not advertised. Override
-            // (Replace): a child fully replaces the parent value.
+            // default is online, where the server fetches each issuer's CRL through its guarded outbound HTTP client
+            // and rejects a chain whose status cannot be determined. Not advertised. Override (Replace): a child fully
+            // replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthRevocationMode,

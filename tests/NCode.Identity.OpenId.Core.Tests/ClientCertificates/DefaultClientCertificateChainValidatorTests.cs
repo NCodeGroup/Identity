@@ -31,11 +31,35 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
 {
     private const string ClientId = "client-1";
 
-    private static DefaultClientCertificateChainValidator CreateValidator() =>
+    private static DefaultClientCertificateChainValidator CreateValidator(
+        IClientCertificateRevocationChecker revocationChecker
+    ) =>
         new(
             TimeProvider.System,
+            revocationChecker,
             new Mock<ILogger<DefaultClientCertificateChainValidator>>().Object
         );
+
+    // A strict checker without a setup: the validator must not consult it.
+    private DefaultClientCertificateChainValidator CreateValidator() =>
+        CreateValidator(CreateStrictMock<IClientCertificateRevocationChecker>().Object);
+
+    private static void SetupCheck(
+        Mock<IClientCertificateRevocationChecker> mockChecker,
+        X509Certificate2 certificate,
+        X509Certificate2 issuer,
+        ClientCertificateRevocationStatus status
+    ) =>
+        mockChecker
+            .Setup(x =>
+                x.CheckAsync(
+                    It.Is<X509Certificate2>(c => c.Thumbprint == certificate.Thumbprint),
+                    It.Is<X509Certificate2>(c => c.Thumbprint == issuer.Thumbprint),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(status)
+            .Verifiable();
 
     private OpenIdClient CreateClient(
         IReadOnlyCollection<string>? trustAnchors,
@@ -246,27 +270,78 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
     }
 
     [Fact]
-    public async Task ValidateAsync_OfflineRevocationUnknown_ReturnsFalse()
+    public async Task ValidateAsync_RevocationModeUnset_ChecksTheLeafAgainstItsIssuer()
     {
         using var root = TestCertificates.CreateRootAuthority("Root");
-        using var leaf = TestCertificates.CreateClientCertificate(
-            root,
-            "CN=client",
-            new ClientCertificateOptions { CrlDistributionPoints = ["http://127.0.0.1:9/root.crl"] }
-        );
+        using var leaf = TestCertificates.CreateClientCertificate(root, "CN=client");
+        var client = CreateClient([ToPem(root)], revocationMode: null);
+        var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
+        SetupCheck(mockChecker, leaf, root, ClientCertificateRevocationStatus.Good);
+
+        var result = await CreateValidator(mockChecker.Object)
+            .ValidateAsync(client, Present(leaf), CancellationToken.None);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_CertificateRevoked_ReturnsFalse()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(root, "CN=client");
         var client = CreateClient(
             [ToPem(root)],
-            OpenIdConstants.ClientCertificateRevocationMode.Offline
+            OpenIdConstants.ClientCertificateRevocationMode.Online
         );
+        var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
+        SetupCheck(mockChecker, leaf, root, ClientCertificateRevocationStatus.Revoked);
 
-        var result = await CreateValidator()
+        var result = await CreateValidator(mockChecker.Object)
             .ValidateAsync(client, Present(leaf), CancellationToken.None);
 
         Assert.False(result);
     }
 
     [Fact]
-    public async Task ValidateAsync_RevocationModeUnset_ChecksOnline()
+    public async Task ValidateAsync_RevocationUnknown_ReturnsFalse()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(root, "CN=client");
+        var client = CreateClient(
+            [ToPem(root)],
+            OpenIdConstants.ClientCertificateRevocationMode.Online
+        );
+        var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
+        SetupCheck(mockChecker, leaf, root, ClientCertificateRevocationStatus.Unknown);
+
+        var result = await CreateValidator(mockChecker.Object)
+            .ValidateAsync(client, Present(leaf), CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WithAnIntermediate_ChecksTheLeafAndTheIntermediate()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var intermediate = TestCertificates.CreateIntermediateAuthority(root, "Issuing");
+        using var leaf = TestCertificates.CreateClientCertificate(intermediate, "CN=client");
+        var client = CreateClient(
+            [ToPem(root)],
+            OpenIdConstants.ClientCertificateRevocationMode.Online
+        );
+        var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
+        SetupCheck(mockChecker, leaf, intermediate, ClientCertificateRevocationStatus.Good);
+        SetupCheck(mockChecker, intermediate, root, ClientCertificateRevocationStatus.Good);
+
+        var result = await CreateValidator(mockChecker.Object)
+            .ValidateAsync(client, Present(leaf, intermediate), CancellationToken.None);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_DistributionPointOnLoopback_IsNeverFetchedByThePlatform()
     {
         using var root = TestCertificates.CreateRootAuthority("Root");
         using var leaf = TestCertificates.CreateClientCertificate(
@@ -275,11 +350,13 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
             new ClientCertificateOptions { CrlDistributionPoints = ["http://127.0.0.1:9/root.crl"] }
         );
         var client = CreateClient([ToPem(root)], revocationMode: null);
+        var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
+        SetupCheck(mockChecker, leaf, root, ClientCertificateRevocationStatus.Good);
 
-        var result = await CreateValidator()
+        var result = await CreateValidator(mockChecker.Object)
             .ValidateAsync(client, Present(leaf), CancellationToken.None);
 
-        Assert.False(result);
+        Assert.True(result);
     }
 
     #endregion

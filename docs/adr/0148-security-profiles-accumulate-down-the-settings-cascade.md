@@ -77,9 +77,13 @@ that selects it.**
    `ISecurityProfile.ApplyDefaultSettings` and `ISecurityProfileDefaultsBuilder`, which accepts only a setting that does
    **not** merge with a lattice operation: a default is a choice, not a bound. `Expand` places the defaults of the
    profiles a scope declares beneath that scope's own settings, so the scope's own value — and any value a scope below
-   it sets — replaces the default, and the profile's ceilings still decide whether that value is permitted. When several
-   selected profiles default one setting, the profile whose name sorts first in ordinal order supplies it. FAPI 2.0
-   defaults both signed responses to `PS256`.
+   it sets — replaces the default, and the profile's ceilings still decide whether that value is permitted. At the
+   server root the descriptor defaults, the computed `*_supported` values and the default-settings providers are a
+   baseline beneath the configuration, passed to `Expand` separately: a configured value replaces a baseline value, a
+   profile's default replaces a baseline value but never a configured one, and the profile's ceilings bound both.
+   Without that baseline a profile's default would never take effect at the root, because every setting with a
+   descriptor default already carries a value there. When several selected profiles default one setting, the profile
+   whose name sorts first in ordinal order supplies it. FAPI 2.0 defaults both signed responses to `PS256`.
 
 ## Options considered
 
@@ -99,6 +103,12 @@ that selects it.**
 - **A profile's default fills a choice only where the inherited value falls outside its ceiling.** Rejected: whether a
   value is permitted depends on which list bounds which setting, which the catalog cannot know for an arbitrary setting,
   and the default would then depend on the parent's value rather than on the scope's selection.
+- **Remove the descriptor default of every setting a profile defaults.** Rejected: the descriptor default is the
+  protocol default and the value a server that selects no profile reports, and each new profile default would
+  silently depend on it being absent.
+- **Expand the configuration alone and lay it over the descriptor defaults.** Rejected: a ceiling would then
+  replace a computed `*_supported` list instead of narrowing it, and merging instead would stop a configured
+  lifetime from exceeding its descriptor default.
 - **Declare each descriptor's merge kind as separate metadata.** Rejected: it restates the merge function and can drift
   from it; reading the kind from the `SettingMerge` function the descriptor uses cannot disagree with what it does.
 

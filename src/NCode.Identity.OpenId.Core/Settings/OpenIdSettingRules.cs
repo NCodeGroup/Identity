@@ -265,7 +265,7 @@ internal static class OpenIdSettingRules
     /// </summary>
     public static SettingRule<string> DistinguishedName() =>
         SettingRules.Must<string>(
-            "an X.500 distinguished name such as 'CN=client, O=Example'",
+            "an RFC 4514 distinguished name such as 'CN=client,O=Example'",
             IsDistinguishedName
         );
 
@@ -281,12 +281,11 @@ internal static class OpenIdSettingRules
 
     /// <summary>
     /// Gets the rule for how a <c>tls_client_auth</c> certificate chain's revocation status is checked:
-    /// <c>online</c>, <c>offline</c>, or <c>none</c>.
+    /// <c>online</c> or <c>none</c>.
     /// </summary>
     public static SettingRule<string> ClientCertificateRevocationMode() =>
         SettingRules.OneOf(
             OpenIdConstants.ClientCertificateRevocationMode.Online,
-            OpenIdConstants.ClientCertificateRevocationMode.Offline,
             OpenIdConstants.ClientCertificateRevocationMode.None
         );
 
@@ -403,19 +402,6 @@ internal static class OpenIdSettingRules
         }
     }
 
-    private static bool IsDistinguishedName(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return false;
-
-        try
-        {
-            _ = new X500DistinguishedName(value);
-            return true;
-        }
-        catch (CryptographicException)
-        {
-            return false;
-        }
-    }
+    private static bool IsDistinguishedName(string value) =>
+        NCode.Identity.OpenId.ClientCertificates.DistinguishedName.TryParse(value, out _);
 }

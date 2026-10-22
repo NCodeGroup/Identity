@@ -61,6 +61,9 @@ internal class GrantApiEndpointHandler(
     ICryptoService cryptoService
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
+    private const long DefaultInitialAccessTokenLifetimeSeconds = 86_400;
+    private const long MaxInitialAccessTokenLifetimeSeconds = 2_592_000;
+
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
@@ -240,7 +243,8 @@ internal class GrantApiEndpointHandler(
     /// <summary>
     /// Mints an initial access token (RFC 7591) that authorizes its bearer to register a new client at the protected
     /// dynamic client registration endpoint. The token is persisted as a hash-keyed <c>initial_access_token</c> grant,
-    /// so its plaintext value is revealed exactly once in the response and never retrievable again.
+    /// so its plaintext value is revealed exactly once in the response and never retrievable again. The token is
+    /// single-use: it registers one client. It expires after one day by default and after at most 30 days.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant that will own the token.</param>
@@ -248,8 +252,8 @@ internal class GrantApiEndpointHandler(
     /// server the token is scoped to.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The newly minted initial access token, including its one-time plaintext value.</response>
-    /// <response code="400">The requested lifetime was not greater than zero, or the resource server does not exist in
-    /// the tenant or is a system resource server.</response>
+    /// <response code="400">The requested lifetime was not greater than zero or was longer than 30 days, or the
+    /// resource server does not exist in the tenant or is a system resource server.</response>
     [EndpointName("api/grants/initial-access-tokens/create")]
     internal virtual async ValueTask<IResult> CreateInitialAccessTokenAsync(
         HttpContext httpContext,
@@ -258,19 +262,16 @@ internal class GrantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        TimeSpan? lifetime = null;
-        if (request.LifetimeSeconds is { } lifetimeSeconds)
+        var lifetimeSeconds = request.LifetimeSeconds ?? DefaultInitialAccessTokenLifetimeSeconds;
+        if (lifetimeSeconds is <= 0 or > MaxInitialAccessTokenLifetimeSeconds)
         {
-            if (lifetimeSeconds <= 0)
-            {
-                return TypedResults.Problem(
-                    detail: "'lifetimeSeconds' must be greater than zero.",
-                    statusCode: StatusCodes.Status400BadRequest
-                );
-            }
-
-            lifetime = TimeSpan.FromSeconds(lifetimeSeconds);
+            return TypedResults.Problem(
+                detail: "'lifetimeSeconds' must be greater than zero and at most 2592000 (30 days).",
+                statusCode: StatusCodes.Status400BadRequest
+            );
         }
+
+        var lifetime = TimeSpan.FromSeconds(lifetimeSeconds);
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
@@ -348,7 +349,7 @@ internal class GrantApiEndpointHandler(
             Description = request.Description,
             ResourceServerId = request.ResourceServerId,
             CreatedWhen = createdWhen,
-            ExpiresWhen = lifetime is null ? null : createdWhen + lifetime,
+            ExpiresWhen = createdWhen + lifetime,
         };
 
         return TypedResults.Json(response, statusCode: StatusCodes.Status201Created);

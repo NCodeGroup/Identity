@@ -65,7 +65,7 @@ internal class DefaultProofOfPossessionService(
 
         var certificateThumbprint = await EvaluateMutualTlsAsync(
             openIdContext,
-            settings.GetValue(OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens),
+            settings.GetValue(OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens),
             cancellationToken
         );
 
@@ -85,8 +85,8 @@ internal class DefaultProofOfPossessionService(
         {
             throw errorFactory
                 .InvalidRequest(
-                    "The client's access tokens must be sender-constrained; present a DPoP proof or a bound client "
-                        + "certificate."
+                    "The client's access tokens must be sender-constrained; present a DPoP proof, or register the "
+                        + "client for certificate-bound access tokens and present its certificate."
                 )
                 .AsException();
         }

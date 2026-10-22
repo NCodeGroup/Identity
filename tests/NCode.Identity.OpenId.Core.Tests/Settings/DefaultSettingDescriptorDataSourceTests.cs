@@ -167,6 +167,43 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
     }
 
     [Fact]
+    public void Collection_TlsClientCertificateBoundAccessTokens_IsTenantSupportAChildReplaces()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<bool>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.TlsClientCertificateBoundAccessTokens)
+        );
+        var parentSetting = descriptor.Create(true);
+        var childSetting = descriptor.Create(false);
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.Equal([OpenIdSettingScopes.Tenant], descriptor.AppliesTo.AsEnumerable());
+        Assert.True(descriptor.IsDiscoverable);
+        Assert.False(merged.Value);
+    }
+
+    [Fact]
+    public void Collection_RequireTlsClientCertificateBoundAccessTokens_IsAClientRequirementAParentFloors()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<bool>>(
+            GetDescriptor(
+                dataSource,
+                OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens
+            )
+        );
+        var parentSetting = descriptor.Create(true);
+        var childSetting = descriptor.Create(false);
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.Equal([OpenIdSettingScopes.Client], descriptor.AppliesTo.AsEnumerable());
+        Assert.False(descriptor.IsDiscoverable);
+        Assert.True(merged.Value);
+    }
+
+    [Fact]
     public void Collection_EveryDefaultIsInItsOwnDomain()
     {
         var dataSource = CreateDataSource("fapi2");

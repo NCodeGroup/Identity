@@ -47,8 +47,15 @@ outer parameter such as `response_mode` could change a signed request.
    carries `s_hash` whenever the request sends `state`.
 3. **Access tokens are bound through mutual TLS, not DPoP.** FAPI 1.0 names mutual TLS (RFC 8705) as its
    sender-constraining mechanism, and DPoP is not part of it. The ceiling sets both
-   `access_token_sender_constraint_required` and `tls_client_certificate_bound_access_tokens`, so a token request
-   without a client certificate fails even if it carries a DPoP proof. A client that wants DPoP selects `fapi2`.
+   `access_token_sender_constraint_required` and `require_tls_client_certificate_bound_access_tokens`, so every client
+   below it must bind its access tokens to its certificate, and a token request without a client certificate fails even
+   if it carries a DPoP proof. The profile defaults `tls_client_certificate_bound_access_tokens`, the server's
+   advertised support, to `true`, because FAPI 1.0 Advanced §5.2.2-6 requires a server to support certificate-bound
+   access tokens. It is a default and not a ceiling, so an operator can turn it off, and the coherence rule
+   ([ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)) then reports each client that the
+   profile makes require binding. At the server root the default replaces the descriptor's `false` but never a value
+   that the configuration sets ([ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md)). A client
+   that wants DPoP selects `fapi2`.
 4. **Defaults.** PS256 is the default for signed ID tokens, introspection responses, and authorization responses,
    because the protocol default (RS256) is outside the ceiling.
 5. **Requirements.** `ConfidentialClientRequirement` refuses a public client at the authorization endpoint. The new

@@ -567,7 +567,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
                     grantId,
                     It.IsAny<PersistedGrant<InitialAccessTokenGrant>>(),
                     It.IsAny<DateTimeOffset>(),
-                    null,
+                    TimeSpan.FromDays(1),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -612,7 +612,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         Assert.Equal(mintedGrantId, json.Value?.GrantId);
         Assert.Equal(TenantId, json.Value?.TenantId);
         Assert.Equal("ci pipeline", json.Value?.Description);
-        Assert.Null(json.Value?.ExpiresWhen);
+        Assert.Equal(json.Value!.CreatedWhen.AddDays(1), json.Value.ExpiresWhen);
 
         Assert.Equal(PersistedGrantStatus.Active, capturedGrant.Status);
         Assert.Equal(TenantId, capturedGrant.TenantId);
@@ -694,7 +694,8 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public async Task CreateInitialAccessTokenAsync_WhenLifetimeNotPositive_ReturnsBadRequest(
+    [InlineData(2_592_001)]
+    public async Task CreateInitialAccessTokenAsync_WhenLifetimeOutOfRange_ReturnsBadRequest(
         long lifetimeSeconds
     )
     {

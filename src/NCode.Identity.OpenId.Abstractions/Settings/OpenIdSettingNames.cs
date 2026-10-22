@@ -913,9 +913,17 @@ public static class OpenIdSettingNames
     public const string RequireDPoP = "require_dpop";
 
     /// <summary>
-    /// Contains the name of <c>tls_client_certificate_bound_access_tokens</c> setting (RFC 8705 §3.3): at server
-    /// scope, whether the OP supports and advertises mutual-TLS client-certificate-bound access tokens; at client
-    /// scope, whether the client's access tokens must be bound to its presented certificate.
+    /// Contains the name of <c>require_tls_client_certificate_bound_access_tokens</c> setting: whether the client's
+    /// access tokens must be bound to the mutual-TLS certificate it presents (RFC 8705 §3), registered dynamically
+    /// as the client metadata <c>tls_client_certificate_bound_access_tokens</c>.
+    /// </summary>
+    public const string RequireTlsClientCertificateBoundAccessTokens =
+        "require_tls_client_certificate_bound_access_tokens";
+
+    /// <summary>
+    /// Contains the name of <c>tls_client_certificate_bound_access_tokens</c> setting (RFC 8705 §3.3): whether the
+    /// server supports mutual-TLS client-certificate-bound access tokens, which discovery advertises; it never
+    /// requires a client to bind.
     /// </summary>
     public const string TlsClientCertificateBoundAccessTokens =
         "tls_client_certificate_bound_access_tokens";
@@ -960,7 +968,7 @@ public static class OpenIdSettingNames
 
     /// <summary>
     /// Contains the name of the <c>tls_client_auth_revocation_mode</c> setting: how the revocation status of a
-    /// <c>tls_client_auth</c> client certificate chain is checked (<c>online</c>, <c>offline</c>, or <c>none</c>).
+    /// <c>tls_client_auth</c> client certificate chain is checked (<c>online</c> or <c>none</c>).
     /// </summary>
     public const string TlsClientAuthRevocationMode = "tls_client_auth_revocation_mode";
 

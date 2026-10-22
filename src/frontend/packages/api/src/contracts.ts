@@ -377,7 +377,7 @@ export type TenantUsageResource = {
 /**
  * Mirror of `CreateInitialAccessTokenRequest` (RFC 7591). Mints a token that authorizes its bearer to register a new
  * client at the protected dynamic client registration endpoint. `description` is an optional administrative note;
- * `lifetimeSeconds` is an optional positive lifetime (`null` means the token does not expire). `resourceServerId`
+ * `lifetimeSeconds` is an optional lifetime (`null` means a one-day lifetime; at most 30 days). `resourceServerId`
  * scopes the token to a resource server, so the client it registers is bound to it and introspects for it (ADR-0192).
  */
 export type CreateInitialAccessTokenRequest = {
@@ -389,7 +389,7 @@ export type CreateInitialAccessTokenRequest = {
 /**
  * Mirror of `CreatedInitialAccessTokenResource` — the mint response. The `initialAccessToken` plaintext is revealed
  * exactly once here and never again (the grant store persists only its salted hash, like ADR-0050 secret material).
- * `grantId` addresses the backing grant for later revocation; `expiresWhen` is `null` for a non-expiring token.
+ * `grantId` addresses the backing grant for later revocation; `expiresWhen` is when the single-use token expires.
  * `resourceServerId` is the resource server the token is scoped to, if any. Timestamps are ISO-8601 strings on the
  * wire.
  */

@@ -65,14 +65,36 @@ public interface ISecurityProfileCatalog
     );
 
     /// <summary>
-    /// Returns the supplied <paramref name="scopeSettings"/> expanded with the ceiling settings of every profile the
-    /// scope declares in <c>security_profiles</c> — including a profile that another profile's ceiling selects — or the
-    /// settings unchanged when it declares none.
+    /// Returns the supplied <paramref name="scopeSettings"/> expanded with the ceiling settings and the defaults of every
+    /// profile the scope declares in <c>security_profiles</c> — including a profile that another profile's ceiling
+    /// selects — or the settings unchanged when it declares none. It is the two-argument overload with an empty
+    /// baseline.
     /// </summary>
     /// <param name="scopeSettings">The scope's own (not-yet-cascaded) settings.</param>
     /// <returns>The expanded settings.</returns>
     /// <exception cref="InvalidOperationException">The settings declare a profile that is not registered.</exception>
     IReadOnlyCollection<Setting> Expand(IReadOnlyCollection<Setting> scopeSettings);
+
+    /// <summary>
+    /// Returns the supplied <paramref name="scopeSettings"/> layered over <paramref name="baselineSettings"/> and
+    /// expanded with the ceiling settings and the defaults of every profile the result declares in
+    /// <c>security_profiles</c>, including a profile that another profile's ceiling selects.
+    /// </summary>
+    /// <remarks>
+    /// A value in <paramref name="scopeSettings"/> replaces the baseline value of its setting. A selected profile's
+    /// default replaces a baseline value but never a value in <paramref name="scopeSettings"/>. Every selected
+    /// profile's ceiling then bounds the result, baseline values included. The server root passes its descriptor
+    /// defaults, computed supported values and default-settings-provider values as the baseline and its configuration
+    /// as the scope's settings.
+    /// </remarks>
+    /// <param name="scopeSettings">The scope's own (not-yet-cascaded) settings.</param>
+    /// <param name="baselineSettings">The values beneath the scope's own settings and its profiles' defaults.</param>
+    /// <returns>The expanded settings.</returns>
+    /// <exception cref="InvalidOperationException">The settings declare a profile that is not registered.</exception>
+    IReadOnlyCollection<Setting> Expand(
+        IReadOnlyCollection<Setting> scopeSettings,
+        IReadOnlyCollection<Setting> baselineSettings
+    );
 
     /// <summary>
     /// Deserializes a scope's persisted settings document and expands it per the <c>security_profiles</c> it declares —

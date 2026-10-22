@@ -130,6 +130,30 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.ClientCertificateRevocationFailed,
+        Level = LogLevel.Information,
+        Message = "Client authentication failed: the revocation status of certificate '{Subject}' in the chain presented by client '{ClientId}' is '{Status}'."
+    )]
+    internal static partial void ClientCertificateRevocationFailed(
+        this ILogger logger,
+        string clientId,
+        string subject,
+        string status
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.CertificateRevocationListUnavailable,
+        Level = LogLevel.Warning,
+        Message = "The certificate revocation list at '{CrlUri}' could not be used to check certificate '{Subject}': {Reason}"
+    )]
+    internal static partial void CertificateRevocationListUnavailable(
+        this ILogger logger,
+        string crlUri,
+        string subject,
+        string reason
+    );
+
+    [LoggerMessage(
         EventId = EventIds.ClientAuthenticationSecretMismatch,
         Level = LogLevel.Information,
         Message = "Client authentication failed: the presented secret for client '{ClientId}' did not match any stored secret."

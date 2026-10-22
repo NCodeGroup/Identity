@@ -505,6 +505,16 @@ rationale.
   the profiles the client selects. Adding a reader at a new scope widens `AppliesTo`; narrowing it ships with a data
   migration that removes the setting from the documents of the scopes it leaves. See
   [ADR-0149](../../docs/adr/0149-settings-declare-the-scopes-they-apply-to.md).
+- 👁 **A capability the server advertises and a requirement a client registers are two settings.** Advertised support
+  never forces a client. The requirement is a client setting with an `Or` floor, and a coherence rule refuses it where
+  support is off (`tls_client_certificate_bound_access_tokens` and
+  `require_tls_client_certificate_bound_access_tokens`). See
+  [ADR-0097](../../docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md).
+- 👁 **A value nobody chose sits beneath a security profile's default.** At the server root the descriptor defaults, the
+  computed `*_supported` values and the default-settings providers are the baseline passed to
+  `ISecurityProfileCatalog.Expand(scopeSettings, baselineSettings)`, and only the configuration is the root's own
+  settings, so a selected profile's default replaces the baseline and never a configured value. See
+  [ADR-0148](../../docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md).
 - 👁 **Sibling scopes combine; a cascade merges.** When two scopes that are not parent and child govern one operation —
   an access token is bound by its client **and** every resource server it targets — join their effective settings with
   `IReadOnlySettingCollection.Combine`, never `Merge`: it accepts only lattice merges, so the result binds both and does
@@ -586,6 +596,15 @@ rationale.
   (`ExpiringKeys.Create`), so tenants sharing a store never collide and an attacker-supplied value cannot make a key
   ambiguous or unbounded. A library never registers a host-wide cache. See
   [ADR-0164](../../docs/adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md).
+- 👁 **A credential with a stored grant is spent through `IPersistedGrantService.ConsumeOnceOrDefault`, after every
+  check passes and before its effect.** A refused request leaves it usable. `IExpiringKeySet` is for single-use state
+  with no durable row. See
+  [ADR-0192](../../docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md).
+- 👁 **A fetch of a URL a tenant or certificate supplies uses a named client whose primary handler has the
+  `IOutboundHttpForgeryGuard` connect callback, and the platform `X509Chain` retrieves nothing.** Use
+  `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through
+  `IClientCertificateRevocationChecker`. See
+  [ADR-0173](../../docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md).
 - 👁 **A count every replica must agree on increments `IExpiringCounterSet`, never a get-then-set.** A rate limit or a
   quota counts with the port's atomic `IncrementAsync`, which starts a counter for one fixed window; a read followed by
   a write loses concurrent requests. Read a count with `GetAsync` only for a counter this request does not add to (the

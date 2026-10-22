@@ -269,6 +269,12 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   `SeedClientSecretJwtClientAsync`, the certificate and `jwks_uri` seeders (`private_key_jwt`), the mutual-TLS seeders,
   and `SeedPublicClientAsync` (`none`). A negative test whose client is registered for another method is refused for the
   wrong reason — `invalid_client` from the method mismatch — and passes without exercising the rule it names.
+- 👁 **Build a certificate subject with `X500DistinguishedNameBuilder` to choose each value's string type.** A subject
+  DN is matched by RFC 4517 rules, not by bytes.
+- 👁 **Serve a CRL through a stub handler, never the network.** Build it with `CertificateRevocationListBuilder`
+  (`TestCrls` for extensions the builder cannot write), signed by a CA whose key usage includes `CrlSign`. Unit tests
+  stub `IHttpClientFactory`; integration tests set `HostApplicationFactory.CertificateRevocationListResponder` before
+  the first request.
 - 👁 **Validate new tests in Release before running `dod.ps1`.** The gate builds and tests in **Release**, where
   `Debug.Assert` and `#if DEBUG` blocks disappear; run `dotnet test <proj> --configuration Release` first to catch
   Debug-vs-Release differences fast (a `#if DEBUG` auth bypass, a stripped assertion).

@@ -146,7 +146,7 @@ public sealed class AuthorizationRequest : IAuthorizationRequest
     public IReadOnlyList<string> PromptTypes => Values.PromptTypes ?? [];
 
     /// <inheritdoc />
-    public Uri RedirectUri =>
+    public string RedirectUri =>
         Values.RedirectUri
         ?? throw OpenIdEnvironment
             .ErrorFactory.MissingParameter(OpenIdConstants.Parameters.RedirectUri)

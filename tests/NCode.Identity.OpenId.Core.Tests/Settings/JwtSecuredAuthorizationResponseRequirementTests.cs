@@ -65,7 +65,7 @@ public class JwtSecuredAuthorizationResponseRequirementTests : BaseTests
                 mockClient.Object,
                 mockRequest.Object,
                 new AuthorizationResponseDelivery(
-                    new Uri("https://client.example/callback"),
+                    "https://client.example/callback",
                     mockHandler.Object,
                     State: null
                 )

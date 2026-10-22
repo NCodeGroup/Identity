@@ -148,7 +148,7 @@ public interface IAuthorizationRequest
     /// <summary>
     /// Gets the <c>redirect_uri</c> parameter.
     /// </summary>
-    Uri RedirectUri { get; }
+    string RedirectUri { get; }
 
     /// <summary>
     /// Gets the <c>resource</c> parameter (RFC 8707 Resource Indicators) identifying the resource servers (audiences)

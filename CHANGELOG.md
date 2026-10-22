@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Redirect URI kinds, which a client's settings narrow.** The new `redirect_uri_kinds_supported` setting lists the
+  kinds of redirect URI a client may register and use. It applies to tenants and clients, merges with `Intersect`,
+  is not advertised, and permits every kind while unset. A kind is a registered `IRedirectUriKind`, judged through
+  `IRedirectUriKindCatalog`, so a package adds one by registering it. The built-in kinds, named in
+  `OpenIdConstants.RedirectUriKinds`, sort every redirect URI into one: `https`, `loopback` (an `http` URI whose host
+  is `127.0.0.1` or `[::1]`, RFC 8252 §7.3), `http` (any other `http` URI, `localhost` included), and `private_use`
+  (any other scheme, RFC 8252 §7.1) ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog
+  `R53`).
+
 - **`IOpenIdEndpointMeteredMetadata` and `WithOpenIdMetered(bool)` mark whether an endpoint is the tenant's metered
   usage.** A metered endpoint's requests spend the daily request quota and are recorded in the usage ledger; an
   endpoint without the metadata is metered. A package that adds a public metadata endpoint opts it out with
@@ -446,6 +455,12 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **Breaking:** `redirect_uri` is carried as the string the client wrote, never as a `Uri`.
+  `OpenIdCommonParameters.RedirectUri` is a `KnownParameter<string>`, and `IBaseAuthorizationRequestValues`,
+  `IAuthorizationRequest`, `ITokenRequest`, and `AuthorizationResponseDelivery` expose `RedirectUri` as a string.
+  `UriParser` writes a parsed `Uri` parameter as its original string rather than `AbsoluteUri`
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R52`).
 
 - **Breaking:** response modes resolve through one provider, and a handler declares its traits.
   `IAuthorizationResponseModeHandler` gains `SecuredResponseMode`, the plain mode whose JWT-secured form the handler
@@ -1182,6 +1197,25 @@ change to the public API is a **major** version bump.
   ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md))
 
 ### Security
+
+- **A redirect URI is delivered and compared exactly as written.** A parked continuation and a stored authorization
+  code carried `myapp://callback` as `myapp://callback/` with a lower-cased host, the response went to the form a
+  `UriBuilder` produced, and the token endpoint accepted a `redirect_uri` that differed in the case of its host or in
+  its user information. The response now goes to the string the client sent, each registered query parameter reaches
+  the client as registered, and only a character a header value cannot carry as written (a non-ASCII character, RFC
+  3987 §3.1, or an ASCII control character or space) is percent-encoded in the `Location` header. The token endpoint
+  compares `redirect_uri` ordinally with the authorization request's value (RFC 6749 §4.1.3) and refuses any other with
+  `invalid_grant` ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R52`).
+
+- **The FAPI profiles refuse an `http` redirect URI.** `fapi1-advanced` caps `redirect_uri_kinds_supported` at
+  `https` (FAPI 1.0 Part 1 §5.2.2-20 and §7.5), and `fapi2` at `https`, `loopback`, and `private_use` (FAPI 2.0
+  §5.3.2.2-8), so `http` is left only for a native client's loopback redirect under `fapi2`. Dynamic client
+  registration refuses a redirect URI the tenant's settings exclude with `invalid_redirect_uri`, the management API
+  refuses one the client's effective settings exclude with a validation problem on `redirect_uris`, and the
+  conformance seed stops the host. The authorization and PAR endpoints refuse such a redirect URI with
+  `invalid_request` and a `400` that is not redirected
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md),
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R53`).
 
 - **A redirect URI is matched exactly, and only a registered loopback URI may vary its port.** The requested
   `redirect_uri` is compared ordinally, as written, to the client's registered strings, and more than one value is

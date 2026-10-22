@@ -18,11 +18,18 @@
 
 using System.Buffers.Text;
 using System.Net;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
+using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.Keys;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
@@ -78,6 +85,24 @@ public class JwtSecuredAuthorizationResponseTests
         if (sessionCookie is not null)
             request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
         return await client.SendAsync(request);
+    }
+
+    private static async Task<HttpResponseMessage> AuthorizeWithoutSessionAsync(
+        HttpClient client,
+        string clientId,
+        string extraQuery
+    )
+    {
+        var query =
+            $"?client_id={Uri.EscapeDataString(clientId)}"
+            + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
+            + "&response_type=code"
+            + "&scope=openid"
+            + "&state=abc123"
+            + TestPkce.QueryParameters
+            + extraQuery;
+
+        return await client.GetAsync("/oauth2/authorize" + query);
     }
 
     private static (JsonElement Header, JsonElement Payload) DecodeJwt(string? jwt)
@@ -227,6 +252,161 @@ public class JwtSecuredAuthorizationResponseTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Null(response.Headers.Location);
+    }
+
+    #endregion
+
+    #region Failure and Encryption Tests
+
+    [Fact]
+    public async Task Authorize_WhenTheTenantHasNoKeyForTheResponseAlgorithm_RefusesBeforeTheUserSignsIn()
+    {
+        const string clientId = "it-jarm-no-key";
+        using var factory = new HostApplicationFactory();
+
+        // The test host's key signs only RS256, so the tenant holds no key for PS256.
+        await factory.SeedPublicClientWithSettingsAsync(
+            clientId,
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.AuthorizationSignedResponseAlg] = "PS256",
+            },
+            RedirectUri
+        );
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await AuthorizeWithoutSessionAsync(
+            client,
+            clientId,
+            "&response_mode=query.jwt"
+        );
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Null(response.Headers.Location);
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.ServerError,
+            document.RootElement.GetProperty("error").GetString()
+        );
+        Assert.Contains(
+            "no key",
+            document.RootElement.GetProperty("error_description").GetString(),
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task Authorize_WhenTheClientRegistersEncryptionWithoutAKey_RefusesBeforeTheUserSignsIn()
+    {
+        const string clientId = "it-jarm-no-enc-key";
+        using var factory = new HostApplicationFactory();
+        await factory.SeedPublicClientWithSettingsAsync(
+            clientId,
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.AuthorizationEncryptedResponseAlg] = "RSA-OAEP-256",
+            },
+            RedirectUri
+        );
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var response = await AuthorizeWithoutSessionAsync(
+            client,
+            clientId,
+            "&response_mode=query.jwt"
+        );
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Null(response.Headers.Location);
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.ServerError,
+            document.RootElement.GetProperty("error").GetString()
+        );
+        Assert.Contains(
+            "no public key",
+            document.RootElement.GetProperty("error_description").GetString(),
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task Authorize_WhenTheClientRegistersEncryption_ReturnsTheResponseAsAnEncryptedJwt()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var clientRsa = RSA.Create(2048);
+        var publicParameters = clientRsa.ExportParameters(includePrivateParameters: false);
+
+        using var registerResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { RedirectUri },
+                ["token_endpoint_auth_method"] = OpenIdConstants
+                    .ClientAuthenticationMethods
+                    .ClientSecretBasic,
+                ["authorization_encrypted_response_alg"] = "RSA-OAEP-256",
+                ["jwks"] = new Dictionary<string, object>
+                {
+                    ["keys"] = new[]
+                    {
+                        new Dictionary<string, string>
+                        {
+                            ["kty"] = "RSA",
+                            ["kid"] = "client-enc",
+                            ["use"] = "enc",
+                            ["n"] = Base64Url.EncodeToString(publicParameters.Modulus),
+                            ["e"] = Base64Url.EncodeToString(publicParameters.Exponent),
+                        },
+                    },
+                },
+            }
+        );
+        var registerBody = await registerResponse.Content.ReadAsStringAsync();
+        Assert.True(registerResponse.StatusCode == HttpStatusCode.Created, registerBody);
+        using var registration = JsonDocument.Parse(registerBody);
+        var clientId = registration.RootElement.GetProperty("client_id").GetString()!;
+
+        using var response = await AuthorizeWithoutSessionAsync(
+            client,
+            clientId,
+            "&prompt=none&response_mode=query.jwt"
+        );
+
+        Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        var parameters = HttpUtility.ParseQueryString(location.Query);
+        var responseJwt = parameters["response"];
+        Assert.False(string.IsNullOrEmpty(responseJwt));
+
+        // Signed by the tenant, then encrypted (a Nested JWT) to the client's key: only the client's private key opens it.
+        var joseSerializer = factory.Services.GetRequiredService<IJoseSerializer>();
+        var clientKey = factory
+            .Services.GetRequiredService<ISecretKeyFactory>()
+            .CreateRsa(new KeyMetadata { KeyId = "client-enc" }, clientRsa);
+        var encrypted = joseSerializer.Parse(responseJwt);
+        Assert.Equal(JoseProtectionTypes.Jwe, encrypted.ProtectionType);
+        Assert.Equal("RSA-OAEP-256", encrypted.Header.GetProperty("alg").GetString());
+        Assert.Equal("A128CBC-HS256", encrypted.Header.GetProperty("enc").GetString());
+
+        var signed = joseSerializer.Decode(encrypted, clientKey);
+        var (_, payload) = DecodeJwt(signed);
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.LoginRequired,
+            payload.GetProperty("error").GetString()
+        );
+        Assert.Equal("abc123", payload.GetProperty("state").GetString());
+        Assert.Equal(clientId, payload.GetProperty("aud").GetString());
     }
 
     #endregion

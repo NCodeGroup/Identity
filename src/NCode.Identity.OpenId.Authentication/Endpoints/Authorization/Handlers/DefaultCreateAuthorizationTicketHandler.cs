@@ -65,10 +65,11 @@ internal class DefaultCreateAuthorizationTicketHandler(
             )
         )
         {
+            var clientRedirectUri = new Uri(authorizationRequest.RedirectUri, UriKind.Absolute);
             ticket.SessionState = SessionStateService.CreateSessionState(
                 openIdContext,
                 openIdClient.ClientId,
-                authorizationRequest.RedirectUri
+                clientRedirectUri
             );
         }
 

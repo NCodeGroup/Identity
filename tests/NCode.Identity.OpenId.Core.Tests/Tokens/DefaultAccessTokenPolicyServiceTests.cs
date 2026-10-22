@@ -85,6 +85,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
             new DefaultSettingDescriptorDataSource(
                 nullChangeToken,
                 algorithmCollectionProvider,
+                [],
                 []
             ).Collection
         );

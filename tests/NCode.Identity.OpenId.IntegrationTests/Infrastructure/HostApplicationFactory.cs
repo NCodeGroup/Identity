@@ -419,31 +419,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        var protector = serviceProvider
-            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
-            .CreateDataProtector();
-
-        // Only the public certificate is registered; the server verifies assertions with it.
-        var certificateBytes = certificate.Export(X509ContentType.Cert);
-        var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(certificateBytes, ref writer);
-
-        using var publicKey = certificate.GetRSAPublicKey();
-        var keySizeBits = publicKey!.KeySize;
-
-        var persistedSecret = new PersistedSecret
-        {
-            SecretId = $"{clientId}-cert",
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
-            // A certificate is persisted as its crypto family plus the x509 encoding (ADR-0104).
-            SecretType = SecretTypes.Rsa,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
-            KeySizeBits = keySizeBits,
-            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
-        };
+        var persistedSecret = CreateCertificateSecret(serviceProvider, clientId, certificate);
 
         var settings = new Dictionary<string, object>
         {
@@ -460,6 +436,79 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             System.Text.Json.JsonSerializer.SerializeToElement(settings),
             [persistedSecret]
         );
+    }
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential <c>private_key_jwt</c> client whose registered key is the
+    /// public half of <paramref name="certificate"/>, registered with the given redirect URIs and the extra client
+    /// settings, so a security profile's authorization flow can be exercised end to end.
+    /// </summary>
+    public async Task SeedPrivateKeyJwtClientWithSettingsAsync(
+        string clientId,
+        X509Certificate2 certificate,
+        IReadOnlyDictionary<string, object> settings,
+        params string[] redirectUris
+    )
+    {
+        // A first request forces the static tenant provider to persist the tenant entity,
+        // which ClientStore.AddAsync requires as a foreign key.
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        using var scope = Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        var persistedSecret = CreateCertificateSecret(serviceProvider, clientId, certificate);
+
+        var allSettings = new Dictionary<string, object>(settings)
+        {
+            ["redirect_uris"] = redirectUris,
+            ["token_endpoint_auth_method"] = OpenIdConstants
+                .ClientAuthenticationMethods
+                .PrivateKeyJwt,
+        };
+
+        await AddClientAsync(
+            serviceProvider,
+            clientId,
+            System.Text.Json.JsonSerializer.SerializeToElement(allSettings),
+            [persistedSecret]
+        );
+    }
+
+    private static PersistedSecret CreateCertificateSecret(
+        IServiceProvider serviceProvider,
+        string clientId,
+        X509Certificate2 certificate
+    )
+    {
+        var protector = serviceProvider
+            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
+            .CreateDataProtector();
+
+        // Only the public certificate is registered; the server verifies assertions with it.
+        var certificateBytes = certificate.Export(X509ContentType.Cert);
+        var writer = new ArrayBufferWriter<byte>();
+        protector.ProtectSpan(certificateBytes, ref writer);
+
+        using var publicKey = certificate.GetRSAPublicKey();
+        var keySizeBits = publicKey!.KeySize;
+
+        return new PersistedSecret
+        {
+            SecretId = $"{clientId}-cert",
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
+            // A certificate is persisted as its crypto family plus the x509 encoding (ADR-0104).
+            SecretType = SecretTypes.Rsa,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
+            KeySizeBits = keySizeBits,
+            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+        };
     }
 
     /// <summary>

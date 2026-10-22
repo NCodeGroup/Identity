@@ -51,7 +51,13 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
         return new DefaultSettingDescriptorDataSource(
             CreateStrictMock<INullChangeToken>().Object,
             AlgorithmCollectionProvider,
-            profiles
+            profiles,
+            [
+                new HttpsRedirectUriKind(),
+                new LoopbackRedirectUriKind(),
+                new HttpRedirectUriKind(),
+                new PrivateUseRedirectUriKind(),
+            ]
         );
     }
 
@@ -123,6 +129,41 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
         var merged = descriptor.Merge(parentSetting, childSetting);
 
         Assert.Equal(expected, merged.Value);
+    }
+
+    [Theory]
+    [InlineData(new string[0], true)]
+    [InlineData(new[] { "https" }, true)]
+    [InlineData(new[] { "https", "loopback", "private_use" }, true)]
+    [InlineData(new[] { "HTTPS" }, false)]
+    [InlineData(new[] { "claimed_https" }, false)]
+    [InlineData(new[] { "" }, false)]
+    public void Collection_RedirectUriKindsSupported_AcceptsOnlyRegisteredKinds(
+        string[] value,
+        bool expected
+    )
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = GetDescriptor(dataSource, OpenIdSettingNames.RedirectUriKindsSupported);
+
+        var valid = descriptor.TryValidate((IReadOnlyCollection<string>)value, out _);
+
+        Assert.Equal(expected, valid);
+    }
+
+    [Fact]
+    public void Collection_RedirectUriKindsSupported_IntersectsDownTheCascade()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<IReadOnlyCollection<string>>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.RedirectUriKindsSupported)
+        );
+        var parentSetting = descriptor.Create(["https", "loopback"]);
+        var childSetting = descriptor.Create(["loopback", "private_use"]);
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.Equal(new[] { "loopback" }, merged.Value);
     }
 
     [Fact]

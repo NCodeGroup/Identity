@@ -100,7 +100,7 @@ public interface IBaseAuthorizationRequestValues : IBaseAuthorizationRequest
     /// <summary>
     /// Gets or sets the <c>redirect_uri</c> parameter.
     /// </summary>
-    Uri? RedirectUri { get; set; }
+    string? RedirectUri { get; set; }
 
     /// <summary>
     /// Gets or sets the <c>resource</c> parameter (RFC 8707 Resource Indicators) identifying the resource servers

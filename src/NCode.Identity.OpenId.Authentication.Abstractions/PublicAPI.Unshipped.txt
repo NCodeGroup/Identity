@@ -396,7 +396,7 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthoriza
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.OriginalRequestMessage.get -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequestMessage!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.OriginalRequestObject.get -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequestObject?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.PromptTypes.get -> System.Collections.Generic.IReadOnlyList<string!>!
-NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.RedirectUri.get -> System.Uri!
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.RedirectUri.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.Resources.get -> System.Collections.Generic.IReadOnlyList<string!>!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.ResponseMode.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IAuthorizationRequest.ResponseTypes.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -442,7 +442,7 @@ NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IBaseAutho
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IBaseAuthorizationRequestValues.Nonce.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IBaseAuthorizationRequestValues.PromptTypes.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IBaseAuthorizationRequestValues.PromptTypes.set -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IBaseAuthorizationRequestValues.RedirectUri.get -> System.Uri?
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IBaseAuthorizationRequestValues.RedirectUri.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IBaseAuthorizationRequestValues.RedirectUri.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IBaseAuthorizationRequestValues.Resources.get -> System.Collections.Generic.List<string!>?
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IBaseAuthorizationRequestValues.Resources.set -> void
@@ -976,7 +976,7 @@ NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.Gran
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.GrantType.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.Password.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.Password.set -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.RedirectUri.get -> System.Uri?
+NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.RedirectUri.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.RedirectUri.set -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.RefreshToken.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages.ITokenRequest.RefreshToken.set -> void
@@ -1537,8 +1537,8 @@ NCode.Identity.OpenId.Authentication.Endpoints.OpenIdFrontChannelEndpointConvent
 NCode.Identity.OpenId.Authentication.Endpoints.OpenIdFrontChannelEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithOpenIdFrontChannel() -> TBuilder
 static NCode.Identity.OpenId.Authentication.Clients.ClientJwtProtectionSettings.Authorization.get -> NCode.Identity.OpenId.Authentication.Clients.ClientJwtProtectionSettings
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResponseDelivery
-NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResponseDelivery.AuthorizationResponseDelivery(System.Uri! RedirectUri, NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationResponseModeHandler! ResponseModeHandler, string? State) -> void
-NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResponseDelivery.RedirectUri.get -> System.Uri!
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResponseDelivery.AuthorizationResponseDelivery(string! RedirectUri, NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationResponseModeHandler! ResponseModeHandler, string? State) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResponseDelivery.RedirectUri.get -> string!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResponseDelivery.RedirectUri.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResponseDelivery.ResponseModeHandler.get -> NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.IAuthorizationResponseModeHandler!
 NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results.AuthorizationResponseDelivery.ResponseModeHandler.init -> void

@@ -66,7 +66,8 @@ internal class DefaultClientRegistrationEndpointHandler(
     IInitialAccessTokenValidator initialAccessTokenValidator,
     ISectorIdentifierValidator sectorIdentifierValidator,
     IClientScopeService clientScopeService,
-    ISettingSerializer settingSerializer
+    ISettingSerializer settingSerializer,
+    IRedirectUriKindCatalog redirectUriKindCatalog
 ) : IEndpointProvider
 {
     private const int ClientSecretKeySizeBits = 256;
@@ -122,6 +123,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         sectorIdentifierValidator;
     private IClientScopeService ClientScopeService { get; } = clientScopeService;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+    private IRedirectUriKindCatalog RedirectUriKindCatalog { get; } = redirectUriKindCatalog;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -272,6 +274,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
         var supportError =
             ValidateSupportedMetadata(errorFactory, tenantSettings, resolved)
+            ?? ValidateRedirectUriKinds(errorFactory, tenantSettings, resolved)
             ?? ValidateAlgorithmMetadata(errorFactory, tenantSettings, request);
         if (supportError is not null)
         {
@@ -562,6 +565,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
         var supportError =
             ValidateSupportedMetadata(errorFactory, tenantSettings, resolved)
+            ?? ValidateRedirectUriKinds(errorFactory, tenantSettings, resolved)
             ?? ValidateAlgorithmMetadata(errorFactory, tenantSettings, request);
         if (supportError is not null)
         {
@@ -1076,6 +1080,37 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Verifies that the tenant's effective <c>redirect_uri_kinds_supported</c> permits the kind of every resolved
+    /// redirect URI, returning an <c>invalid_redirect_uri</c> error (RFC 7591 §3.2.2) for the first URI it does not
+    /// permit, or <see langword="null"/> when it permits them all. A dynamically registered client selects no security
+    /// profile, so the tenant's effective settings decide which kinds it may register.
+    /// </summary>
+    /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
+    /// <param name="tenantSettings">The settings of the tenant the client registers with.</param>
+    /// <param name="resolved">The resolved client metadata.</param>
+    /// <returns>The error, or <see langword="null"/> when the tenant permits every redirect URI.</returns>
+    // See ADR-0203.
+    internal virtual IOpenIdError? ValidateRedirectUriKinds(
+        IOpenIdErrorFactory errorFactory,
+        IReadOnlySettingCollection tenantSettings,
+        ResolvedMetadata resolved
+    )
+    {
+        var refused = resolved.RedirectUris.FirstOrDefault(redirectUri =>
+            !RedirectUriKindCatalog.IsPermitted(tenantSettings, redirectUri)
+        );
+        if (refused is null)
+        {
+            return null;
+        }
+
+        return errorFactory.InvalidRequest(
+            $"The redirect URI '{refused}' is not a kind of redirect URI the server permits.",
+            OpenIdConstants.ErrorCodes.InvalidRedirectUri
+        );
     }
 
     /// <summary>

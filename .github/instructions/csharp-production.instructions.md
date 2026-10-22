@@ -67,7 +67,11 @@ rationale.
   never `$`: .NET's `$` also matches before a trailing newline, so `^[a-z]+$` accepts `"acme\n"`. When the value is an
   identifier compared byte for byte — an issuer, a redirect URI — check the raw string as well as the parsed `Uri`:
   `Uri` trims surrounding whitespace and reports an empty query (`?`) or fragment (`#`) as absent, so a string it
-  accepts can still differ from the one clients must match (`TenantAddressRules.TryParseIssuer`).
+  accepts can still differ from the one clients must match (`TenantAddressRules.TryParseIssuer`). Carry such an
+  identifier as a `string` wherever it is stored, serialized, compared, or delivered, and parse a `Uri` only to inspect
+  a part: `Uri` equality ignores the case of the host, the user information, and the fragment, and `AbsoluteUri`,
+  `ToString()`, `UriBuilder`, and `UriJsonConverter` normalize it (`myapp://callback` becomes `myapp://callback/`)
+  ([ADR-0203](../../docs/adr/0203-redirect-uris-are-matched-exactly.md)).
 - 👁 Prefer **auto-properties over fields** for state (static or instance) — **including `private` members**. Use a
   field only for a low-level need a property cannot express (a `ref` / `Interlocked` / `fixed` / `stackalloc` target).
   **A `System.Threading.Lock` does _not_ qualify** — declare it as a get-only auto-property
@@ -349,7 +353,9 @@ rationale.
 - 👁 **Choose the DI shape deliberately** per [ADR-0001](../../docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md):
   a **service** (`TryAddSingleton<IFoo, DefaultFoo>`) for a capability you call for an answer; a **strategy collection**
   (`TryAddEnumerable`) for many implementations the caller iterates or selects; the **mediator** (`ICommandHandler<T>`)
-  only for a genuine pipeline seam where the sender must stay ignorant of the handlers.
+  only for a genuine pipeline seam where the sender must stay ignorant of the handlers. `TryAddEnumerable`
+  keeps one registration per implementation type, an instance's type included, so each built-in strategy of an open
+  vocabulary is its own class (the redirect URI kinds); several instances of one class keep only the first.
 - 👁 **Mediator handlers run in descending `ISupportMediatorPriority` order** — `DefaultMediatorPriorities.High` (100)
   first, `Low` (-100) last. When one handler depends on another's effect, state it with priorities, never with
   registration order. A handler that observes or repairs state for the rest runs `High` (the default validators, the

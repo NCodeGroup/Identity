@@ -73,6 +73,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
     private Mock<IOpenIdServerProvider> MockServerProvider { get; }
     private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
+    private Mock<IRedirectUriKindCatalog> MockRedirectUriKindCatalog { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
@@ -119,6 +120,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockRepository.Create<ISettingScopeCollectionProvider>();
         MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
         MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
+        MockRedirectUriKindCatalog = MockRepository.Create<IRedirectUriKindCatalog>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
@@ -177,6 +179,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockSettingScopeCollectionProvider.Object,
             MockServerProvider.Object,
             MockSecurityProfileCatalog.Object,
+            MockRedirectUriKindCatalog.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<ClientApiEndpointHandler>.Instance
@@ -1278,6 +1281,45 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
         Assert.Equal([settingName], problem.ProblemDetails.Errors.Keys);
         Assert.Contains($"'{registered}'", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+    }
+
+    #endregion
+
+    #region ValidateRedirectUriKinds Tests
+
+    [Fact]
+    public void ValidateRedirectUriKinds_WhenNoRedirectUriIsRegistered_ReturnsNoErrors()
+    {
+        var errors = Handler.ValidateRedirectUriKinds(CreateSettingCollection());
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void ValidateRedirectUriKinds_WhenAKindIsNotPermitted_NamesTheRedirectUri()
+    {
+        const string refusedUri = "http://client.example/callback";
+        const string permittedUri = "https://client.example/callback";
+
+        var mockSettings = new Mock<ISettingCollection>(MockBehavior.Loose);
+        IReadOnlyCollection<string>? redirectUris = [refusedUri, permittedUri];
+        mockSettings
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.RedirectUris, out redirectUris))
+            .Returns(true);
+        MockRedirectUriKindCatalog
+            .Setup(x => x.IsPermitted(mockSettings.Object, refusedUri))
+            .Returns(false)
+            .Verifiable();
+        MockRedirectUriKindCatalog
+            .Setup(x => x.IsPermitted(mockSettings.Object, permittedUri))
+            .Returns(true)
+            .Verifiable();
+
+        var errors = Handler.ValidateRedirectUriKinds(mockSettings.Object);
+
+        var error = Assert.Single(errors);
+        Assert.Equal(OpenIdSettingNames.RedirectUris, error.SettingName);
+        Assert.Contains(refusedUri, error.Message, StringComparison.Ordinal);
     }
 
     #endregion

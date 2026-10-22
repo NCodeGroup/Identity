@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
@@ -51,6 +52,7 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 /// descriptors before it is stored: a value the server cannot honor stops the seeding with an error naming the client,
 /// rather than storing a client that fails every request that loads it. Its key set is imported under the client-key
 /// policy a dynamically registered <c>jwks</c> follows, and a key set the policy refuses stops the seeding the same way.
+/// So does a redirect URI whose kind the client's effective <c>redirect_uri_kinds_supported</c> does not permit.
 /// </remarks>
 // See ADR-0140.
 internal sealed class ConformanceSeedHandler(
@@ -61,6 +63,9 @@ internal sealed class ConformanceSeedHandler(
     TimeProvider timeProvider,
     ISettingSerializer settingSerializer,
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,
+    IOpenIdServerProvider openIdServerProvider,
+    ISecurityProfileCatalog securityProfileCatalog,
+    IRedirectUriKindCatalog redirectUriKindCatalog,
     ILogger<ConformanceSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
@@ -78,6 +83,9 @@ internal sealed class ConformanceSeedHandler(
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
         openIdEnvironmentProvider;
+    private IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
+    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IRedirectUriKindCatalog RedirectUriKindCatalog { get; } = redirectUriKindCatalog;
     private ILogger<ConformanceSeedHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -146,6 +154,12 @@ internal sealed class ConformanceSeedHandler(
 
         var settings = JsonSerializer.SerializeToElement(settingValues);
         EnsureSettingsCanBeHonored(clientId, settings);
+        await EnsureRedirectUrisArePermittedAsync(
+            context.Tenant,
+            client,
+            settings,
+            cancellationToken
+        );
 
         var secrets = new List<PersistedSecret>();
         if (!string.IsNullOrEmpty(client.ClientSecret))
@@ -192,6 +206,48 @@ internal sealed class ConformanceSeedHandler(
         var details = string.Join(" ", messages);
         throw new InvalidOperationException(
             $"The conformance client '{clientId}' cannot be seeded: {details}"
+        );
+    }
+
+    // The client's settings materialize only after the seed, so the seed merges the server's, the tenant's, and the
+    // client's settings itself, as the materialized client will (the way TenantKeySeedHandler merges the tenant's).
+    // See ADR-0203.
+    private async ValueTask EnsureRedirectUrisArePermittedAsync(
+        PersistedTenant tenant,
+        ConformanceClientSeed client,
+        JsonElement clientSettings,
+        CancellationToken cancellationToken
+    )
+    {
+        var openIdEnvironment = OpenIdEnvironmentProvider.Get();
+        var jsonOptions = openIdEnvironment.JsonSerializerOptions;
+        var openIdServer = await OpenIdServerProvider.GetAsync(
+            openIdEnvironment,
+            cancellationToken
+        );
+        var tenantScopeSettings = SecurityProfileCatalog.Expand(
+            tenant.Settings.Value,
+            OpenIdSettingScopes.Tenant,
+            jsonOptions
+        );
+        var clientScopeSettings = SecurityProfileCatalog.Expand(
+            clientSettings,
+            OpenIdSettingScopes.Client,
+            jsonOptions
+        );
+
+        var tenantEffective = openIdServer.SettingsProvider.Collection.Merge(tenantScopeSettings);
+        var effectiveSettings = tenantEffective.Merge(clientScopeSettings);
+
+        var refused = client.RedirectUris.FirstOrDefault(redirectUri =>
+            !RedirectUriKindCatalog.IsPermitted(effectiveSettings, redirectUri)
+        );
+        if (refused is null)
+            return;
+
+        throw new InvalidOperationException(
+            $"The conformance client '{client.ClientId}' cannot be seeded: its redirect URI '{refused}' is not a kind "
+                + $"its effective '{OpenIdSettingNames.RedirectUriKindsSupported}' permits."
         );
     }
 

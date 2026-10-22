@@ -50,7 +50,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
     private const string CodeVerifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
     private const string CodeChallenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
 
-    private static readonly Uri RedirectUri = new("https://client/callback");
+    private const string RedirectUri = "https://client/callback";
 
     private Mock<IClientScopeService> MockClientScopeService { get; }
     private Mock<ICodeChallengeMethodCollectionProvider> MockCodeChallengeMethodProvider { get; }
@@ -246,7 +246,19 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
     {
         var scaffold = CreateScaffold(ClientId);
 
-        scaffold.TokenRequest.SetupGet(x => x.RedirectUri).Returns((Uri?)null).Verifiable();
+        scaffold.TokenRequest.SetupGet(x => x.RedirectUri).Returns((string?)null).Verifiable();
+
+        await Assert.ThrowsAsync<OpenIdException>(async () =>
+            await Handler.HandleAsync(scaffold.Command, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenRedirectUriIsEmpty_ThrowsOpenIdException()
+    {
+        var scaffold = CreateScaffold(ClientId);
+
+        scaffold.TokenRequest.SetupGet(x => x.RedirectUri).Returns(string.Empty).Verifiable();
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(scaffold.Command, CancellationToken.None)
@@ -261,8 +273,24 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         scaffold.TokenRequest.SetupGet(x => x.RedirectUri).Returns(RedirectUri).Verifiable();
         scaffold
             .AuthRequest.SetupGet(x => x.RedirectUri)
-            .Returns(new Uri("https://client/other"))
+            .Returns("https://client/other")
             .Verifiable();
+
+        await Assert.ThrowsAsync<OpenIdException>(async () =>
+            await Handler.HandleAsync(scaffold.Command, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheRedirectUriDiffersOnlyInHostCase_ThrowsOpenIdException()
+    {
+        var scaffold = CreateScaffold(ClientId);
+
+        scaffold
+            .TokenRequest.SetupGet(x => x.RedirectUri)
+            .Returns("https://CLIENT/callback")
+            .Verifiable();
+        scaffold.AuthRequest.SetupGet(x => x.RedirectUri).Returns(RedirectUri).Verifiable();
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(scaffold.Command, CancellationToken.None)

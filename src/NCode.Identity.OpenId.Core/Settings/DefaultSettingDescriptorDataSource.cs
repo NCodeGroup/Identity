@@ -50,7 +50,8 @@ namespace NCode.Identity.OpenId.Settings;
 internal class DefaultSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
-    IEnumerable<ISecurityProfile> securityProfiles
+    IEnumerable<ISecurityProfile> securityProfiles,
+    IEnumerable<IRedirectUriKind> redirectUriKinds
 ) : ICollectionDataSource<SettingDescriptor>
 {
     private const bool IsStdDiscoverable = true;
@@ -79,6 +80,9 @@ internal class DefaultSettingDescriptorDataSource(
 
     private ImmutableArray<string> SecurityProfileNames { get; } =
     [.. securityProfiles.Select(profile => profile.ProfileName).Order(StringComparer.Ordinal)];
+
+    private ImmutableArray<string> RedirectUriKindNames { get; } =
+    [.. redirectUriKinds.Select(kind => kind.KindName).Order(StringComparer.Ordinal)];
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken;
@@ -803,6 +807,19 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
+            };
+
+            // redirect_uri_kinds_supported: the kinds of redirect URI (https, loopback, http, private_use) a client may
+            // register and use; unset permits every kind, and a security profile caps it (ADR-0203). Not advertised.
+            // Ceiling (Intersect): a child narrows the parent's set.
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.RedirectUriKindsSupported,
+                AppliesTo = TenantsAndClients,
+                Rule = RegisteredRedirectUriKinds(),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Intersect,
             };
 
             // post_logout_redirect_uris: the registered post-logout redirect URIs for a client (RP-Initiated Logout).
@@ -2176,6 +2193,18 @@ internal class DefaultSettingDescriptorDataSource(
                 value => value.Count == 0
             )
             : SettingRules.Each(SettingRules.OneOf(SecurityProfileNames));
+
+    /// <summary>
+    /// Gets the rule for <c>redirect_uri_kinds_supported</c>: a list whose every value names a registered
+    /// <see cref="IRedirectUriKind"/>; the empty list permits no redirect URI.
+    /// </summary>
+    private SettingRule<IReadOnlyCollection<string>> RegisteredRedirectUriKinds() =>
+        RedirectUriKindNames.IsEmpty
+            ? SettingRules.Must<IReadOnlyCollection<string>>(
+                "empty, because no redirect URI kind is registered",
+                value => value.Count == 0
+            )
+            : SettingRules.Each(SettingRules.OneOf(RedirectUriKindNames));
 
     /// <summary>
     /// Gets the rule for a list of signature algorithms a client or the server may choose from, symmetric ones

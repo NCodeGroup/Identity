@@ -543,7 +543,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
     }
 
     [Fact]
-    public async Task PushedAuthorization_WhenRequestObjectRedirectUriIsNotRegistered_ReturnsBadRequest()
+    public async Task PushedAuthorization_WhenRequestObjectRedirectUriIsNotRegistered_ReturnsUnauthorizedClient()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         var client = CreateClient(factory);
@@ -564,7 +564,12 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             requestObject
         );
 
+        var parBody = await parResponse.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.BadRequest, parResponse.StatusCode);
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.UnauthorizedClient,
+            JsonElement.Parse(parBody).GetProperty("error").GetString()
+        );
     }
 
     [Fact]

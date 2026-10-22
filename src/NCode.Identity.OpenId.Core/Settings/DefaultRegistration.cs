@@ -87,6 +87,28 @@ internal static class DefaultRegistration
                 DefaultSecurityProfileCatalog
             >();
 
+            // Each built-in kind is its own class: TryAddEnumerable keeps one registration per implementation type
+            // (ADR-0203).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IRedirectUriKind, HttpsRedirectUriKind>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IRedirectUriKind, LoopbackRedirectUriKind>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IRedirectUriKind, HttpRedirectUriKind>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IRedirectUriKind, PrivateUseRedirectUriKind>()
+            );
+
+            // The redirect URI kind catalog resolves the registered kinds by name and judges a redirect URI against the
+            // redirect_uri_kinds_supported setting.
+            serviceCollection.TryAddSingleton<
+                IRedirectUriKindCatalog,
+                DefaultRedirectUriKindCatalog
+            >();
+
             return builder;
         }
     }

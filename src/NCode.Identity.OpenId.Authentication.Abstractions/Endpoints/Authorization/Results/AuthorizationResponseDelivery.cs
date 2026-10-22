@@ -27,13 +27,13 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// client's registration, the handler of the effective response mode, and the state to echo. The server derives it
 /// once per request.
 /// </summary>
-/// <param name="RedirectUri">The <c>redirect_uri</c> that is used to return the response to the user-agent.</param>
+/// <param name="RedirectUri">The <c>redirect_uri</c> the response is returned to, exactly as the request wrote it and the client registered it.</param>
 /// <param name="ResponseModeHandler">The <see cref="IAuthorizationResponseModeHandler"/> of the effective <c>response_mode</c> that delivers the response to the user-agent.</param>
 /// <param name="State">The <c>state</c> parameter that is included when returning the response to the user-agent.</param>
 // See ADR-0201.
 [PublicAPI]
 public sealed record AuthorizationResponseDelivery(
-    Uri RedirectUri,
+    string RedirectUri,
     IAuthorizationResponseModeHandler ResponseModeHandler,
     string? State
 )

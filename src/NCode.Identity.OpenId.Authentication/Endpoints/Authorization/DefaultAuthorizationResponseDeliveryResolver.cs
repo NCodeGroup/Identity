@@ -35,13 +35,16 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 /// </summary>
 internal class DefaultAuthorizationResponseDeliveryResolver(
     IAuthorizationResponseModeProvider responseModeProvider,
-    IClientJwtCredentialSelector clientJwtCredentialSelector
+    IClientJwtCredentialSelector clientJwtCredentialSelector,
+    IRedirectUriKindCatalog redirectUriKindCatalog
 ) : IAuthorizationResponseDeliveryResolver
 {
     private IAuthorizationResponseModeProvider ResponseModeProvider { get; } = responseModeProvider;
 
     private IClientJwtCredentialSelector ClientJwtCredentialSelector { get; } =
         clientJwtCredentialSelector;
+
+    private IRedirectUriKindCatalog RedirectUriKindCatalog { get; } = redirectUriKindCatalog;
 
     /// <inheritdoc />
     public async ValueTask<AuthorizationResponseDelivery> ResolveAsync(
@@ -104,12 +107,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
             values.ResponseTypes ?? [],
             state
         );
-        var redirectUri = CheckRedirectUri(
-            openIdContext,
-            openIdClient,
-            values.RedirectUri?.OriginalString,
-            state
-        );
+        var redirectUri = CheckRedirectUri(openIdContext, openIdClient, values.RedirectUri, state);
 
         return await CreateDeliveryAsync(
             openIdContext,
@@ -126,7 +124,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IAuthorizationRequest authorizationRequest,
-        Uri checkedRedirectUri,
+        string checkedRedirectUri,
         CancellationToken cancellationToken
     )
     {
@@ -162,7 +160,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
     private async ValueTask<AuthorizationResponseDelivery> CreateDeliveryAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
-        Uri redirectUri,
+        string redirectUri,
         IAuthorizationResponseModeHandler handler,
         string? state,
         CancellationToken cancellationToken
@@ -296,7 +294,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
         !settings.TryGetValue(OpenIdSettingKeys.ResponseModesSupported, out var supported)
         || supported.Contains(responseMode, StringComparer.Ordinal);
 
-    private static Uri CheckRedirectUri(
+    private string CheckRedirectUri(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         string? redirectUriValue,
@@ -315,7 +313,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
                 .AsException();
         }
 
-        if (!Uri.TryCreate(redirectUriValue, UriKind.Absolute, out var redirectUri))
+        if (!Uri.TryCreate(redirectUriValue, UriKind.Absolute, out _))
         {
             throw errorFactory
                 .InvalidRequest("The specified 'redirect_uri' is not valid absolute URI.")
@@ -345,7 +343,20 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
                 .AsException();
         }
 
-        return redirectUri;
+        // FAPI 1.0 Part 1 §5.2.2-20 and FAPI 2.0 §5.3.2.2-8 refuse an http redirect URI; the effective
+        // redirect_uri_kinds_supported carries every selected profile's ceiling (ADR-0203).
+        if (!RedirectUriKindCatalog.IsPermitted(settings, redirectUriValue))
+        {
+            throw errorFactory
+                .InvalidRequest(
+                    "The specified 'redirect_uri' is not a kind of redirect URI the client's settings permit."
+                )
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .WithState(state)
+                .AsException();
+        }
+
+        return redirectUriValue;
     }
 
     private static List<string> SplitResponseTypeNames(StringValues responseTypeStringValues) =>

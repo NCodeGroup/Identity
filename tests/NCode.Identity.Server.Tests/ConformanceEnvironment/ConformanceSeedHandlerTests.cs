@@ -27,6 +27,8 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -52,12 +54,19 @@ public class ConformanceSeedHandlerTests : BaseTests
         ConformanceSeedOptions options,
         ISettingSerializer settingSerializer,
         IOpenIdEnvironmentProvider openIdEnvironmentProvider,
-        IClientKeyImporter? clientKeyImporter = null
+        IClientKeyImporter? clientKeyImporter = null,
+        RedirectUriPolicy? redirectUriPolicy = null
     )
     {
         // Strict mocks: on the guard paths under test the secret, crypto, and time dependencies are untouched.
         var mockSecretGenerator = CreateStrictMock<ISecretGenerator>();
         var mockCryptoService = CreateStrictMock<ICryptoService>();
+
+        redirectUriPolicy ??= new RedirectUriPolicy(
+            CreateStrictMock<IOpenIdServerProvider>().Object,
+            CreateStrictMock<ISecurityProfileCatalog>().Object,
+            CreateStrictMock<IRedirectUriKindCatalog>().Object
+        );
 
         return new ConformanceSeedHandler(
             options,
@@ -67,7 +76,60 @@ public class ConformanceSeedHandlerTests : BaseTests
             TimeProvider.System,
             settingSerializer,
             openIdEnvironmentProvider,
+            redirectUriPolicy.ServerProvider,
+            redirectUriPolicy.ProfileCatalog,
+            redirectUriPolicy.KindCatalog,
             NullLogger<ConformanceSeedHandler>.Instance
+        );
+    }
+
+    private sealed record RedirectUriPolicy(
+        IOpenIdServerProvider ServerProvider,
+        ISecurityProfileCatalog ProfileCatalog,
+        IRedirectUriKindCatalog KindCatalog
+    );
+
+    private RedirectUriPolicy CreateRedirectUriPolicy(bool isPermitted)
+    {
+        var mockCollection = CreateLooseMock<ISettingCollection>();
+        mockCollection
+            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
+            .Returns(mockCollection.Object);
+
+        var mockSettingsProvider = CreateLooseMock<IReadOnlySettingCollectionProvider>();
+        mockSettingsProvider.Setup(x => x.Collection).Returns(mockCollection.Object);
+
+        var mockServer = CreateLooseMock<OpenIdServer>();
+        mockServer.Setup(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
+
+        var mockServerProvider = CreateStrictMock<IOpenIdServerProvider>();
+        mockServerProvider
+            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockServer.Object)
+            .Verifiable();
+
+        var mockProfileCatalog = CreateStrictMock<ISecurityProfileCatalog>();
+        mockProfileCatalog
+            .Setup(x =>
+                x.Expand(
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
+            .Returns(Array.Empty<Setting>())
+            .Verifiable();
+
+        var mockKindCatalog = CreateStrictMock<IRedirectUriKindCatalog>();
+        mockKindCatalog
+            .Setup(x => x.IsPermitted(mockCollection.Object, It.IsAny<string>()))
+            .Returns(isPermitted)
+            .Verifiable();
+
+        return new RedirectUriPolicy(
+            mockServerProvider.Object,
+            mockProfileCatalog.Object,
+            mockKindCatalog.Object
         );
     }
 
@@ -87,7 +149,11 @@ public class ConformanceSeedHandlerTests : BaseTests
             ConcurrencyToken = "token",
             IsDisabled = false,
             DisplayName = tenantId,
-            Settings = null!,
+            Settings = new PersistedTenantSettings
+            {
+                TenantId = tenantId,
+                Value = JsonElement.Parse("{}"),
+            },
             Secrets = null!,
         };
 
@@ -411,7 +477,8 @@ public class ConformanceSeedHandlerTests : BaseTests
             options,
             mockSettingSerializer.Object,
             mockEnvironmentProvider.Object,
-            mockKeyImporter.Object
+            mockKeyImporter.Object,
+            CreateRedirectUriPolicy(isPermitted: true)
         );
 
         PersistedClient? storedClient = null;
@@ -495,7 +562,8 @@ public class ConformanceSeedHandlerTests : BaseTests
             options,
             mockSettingSerializer.Object,
             mockEnvironmentProvider.Object,
-            mockKeyImporter.Object
+            mockKeyImporter.Object,
+            CreateRedirectUriPolicy(isPermitted: true)
         );
 
         var mockStoreManager = CreateStrictMock<IStoreManager>();
@@ -518,6 +586,66 @@ public class ConformanceSeedHandlerTests : BaseTests
 
         Assert.Contains("'fapi1'", exception.Message, StringComparison.Ordinal);
         Assert.Contains("is a private key", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenARedirectUriKindIsNotPermitted_ThrowsNamingTheClient()
+    {
+        const string redirectUri = "http://client.example/callback";
+
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
+        mockEnvironment.Setup(x => x.JsonSerializerOptions).Returns(jsonOptions);
+        var mockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
+        mockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
+
+        var mockSettingSerializer = CreateStrictMock<ISettingSerializer>();
+        mockSettingSerializer
+            .Setup(x => x.ValidateSettings(It.IsAny<JsonElement>(), "client", jsonOptions))
+            .Returns([])
+            .Verifiable();
+
+        var options = new ConformanceSeedOptions
+        {
+            TenantId = WorkloadTenantId,
+            Clients =
+            [
+                new ConformanceClientSeed
+                {
+                    ClientId = "client",
+                    ClientSecret = "Y29uZm9ybWFuY2Utc2VjcmV0LWNsaWVudA",
+                    RedirectUris = [redirectUri],
+                },
+            ],
+            TestUserPassword = null,
+        };
+        var handler = CreateHandler(
+            options,
+            mockSettingSerializer.Object,
+            mockEnvironmentProvider.Object,
+            redirectUriPolicy: CreateRedirectUriPolicy(isPermitted: false)
+        );
+
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        var mockClientStore = CreateStrictMock<IClientStore>();
+        mockStoreManager
+            .Setup(x => x.GetStore<IClientStore>())
+            .Returns(mockClientStore.Object)
+            .Verifiable();
+        mockClientStore
+            .Setup(x => x.GetOrDefaultAsync("client", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await handler.HandleAsync(
+                CreateCommand(WorkloadTenantId, TenantPlane.Workload, mockStoreManager.Object),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Contains("'client'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains(redirectUri, exception.Message, StringComparison.Ordinal);
     }
 
     private static IEnumerable<string?> GetStrings(JsonElement document, string propertyName) =>

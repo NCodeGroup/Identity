@@ -482,6 +482,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RedirectUris);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'redirect_uri_kinds_supported' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> RedirectUriKindsSupported =>
+        new(OpenIdSettingNames.RedirectUriKindsSupported);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'post_logout_redirect_uris' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> PostLogoutRedirectUris =>

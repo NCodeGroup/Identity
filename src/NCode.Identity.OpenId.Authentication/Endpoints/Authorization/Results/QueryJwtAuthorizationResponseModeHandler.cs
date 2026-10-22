@@ -39,7 +39,7 @@ internal sealed class QueryJwtAuthorizationResponseModeHandler(
 
     protected override ValueTask WriteAsync(
         HttpResponse httpResponse,
-        Uri redirectUri,
+        string redirectUri,
         IReadOnlyCollection<KeyValuePair<string, StringValues>> parameters,
         CancellationToken cancellationToken
     )

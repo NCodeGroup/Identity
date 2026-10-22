@@ -412,9 +412,6 @@ _None remaining._
 
 ### P2
 
-- **`R11` — Match redirect URIs exactly and cap loopback redirects under FAPI.** _pre._ The query is not compared,
-  `allow_loopback_redirect` defaults to `true`, and the response writer keeps request-supplied query parameters.
-  Touch points: `DefaultAuthorizationEndpointHandler.cs:354-363`, `AuthorizationResponseWriter.cs:80-81`.
 - **`R14` — Close the gaps in `ExpandOnlyRule`.** It ignores raw SQL, allows nullable→required with a default (a test
   asserts it), and misses new unique indexes, foreign keys, and check constraints on existing tables. Touch points:
   `ExpandOnlyRule.cs:30, 98`, `ExpandOnlyRuleTests.cs:195, 326`.
@@ -467,10 +464,6 @@ _None remaining._
 
 ### P3
 
-- **`R22` — Check `response_modes_supported` consistently for the `jwt` shorthand.** Touch points:
-  `DefaultAuthorizationEndpointHandler.cs:309-321`, `DefaultValidateAuthorizationRequestHandler.cs:576`.
-- **`R23` — Select JARM signing credentials during validation, not when the response is written.** Touch point:
-  `JwtAuthorizationResponseModeHandler.cs:77-93`.
 - **`R24` — Cover FAPI 1.0 Advanced and JARM failure paths with tests.** Profile ceilings and defaults, `/authorize`
   integration (plain `code` refused, `code` + `jwt` accepted, public client refused, `nbf` required), JARM handler
   failures and encryption, PAR + JAR, and error `state` for a request-object request.
@@ -512,13 +505,6 @@ _None remaining._
 
 ### Refactor
 
-- **`R37` — One response-mode provider with handler-declared traits.** Replace the three registries (one silently
-  drops duplicates), `EndsWith(".jwt")`, the hard-coded `is Query or QueryJwt`, and the `jwt` alias `switch`
-  (ADR-0150).
-- **`R38` — Derive authorization-response delivery in one place.** One function for redirect URI, mode, and state, plus
-  one declarative policy for outer parameters. `R2`, `R3`, and `R9` fixed the behavior; it is still derived in
-  `DefaultAuthorizationEndpointHandler` (twice), `DefaultAuthorizationContinueProvider`, `AuthorizationRequest`, and
-  `ValidateRequestObject`.
 - **`R39` — One effective-settings resolver.** It is rebuilt in `TenantKeySeedHandler`, both management handlers, the
   client handler, and the tenant factory.
 - **`R40` — One coherence validator for client settings.** Shared by dynamic registration, management, and the
@@ -532,5 +518,3 @@ _None remaining._
   `$IssuerUrl`.
 - **`R45` — Deduplicate the frontend data and routing code.** An owner-generic builder for `managementApi.ts`'s
   secrets and settings endpoints, one `fetchSurfaceJson` helper for the 401 redirect, and tenant detail tabs in the URL.
-- **`R47` — Small cleanups.** A capped setting for the JARM response lifetime, required `AuthorizationResult`
-  context arguments, and one login-redirect helper in the interactive handler.

@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R62`     | `R61`      |
+| `R` — Review findings                 | `R64`     | `R63`      |
 
 ---
 
@@ -519,6 +519,29 @@ _None remaining._
   `ServerSettingsChangedCommand`, so no re-seed runs. Options: a durable `IJobDispatcher` adapter, a reconciliation pass
   that seeds every tenant once at startup and after a reload, and a separate worker for bulk jobs. Touch points:
   `TenantKeyReseedJobHandler`, `JobDispatchWorker`, `RootSettingsCollectionDataSource.HandleChange`.
+- **`R62` — Check the remaining client invariants as coherence rules.** The coherence validator (ADR-0206) checks a
+  value a client registers against the effective setting that must permit it. Three checks still live in one caller: (1)
+  requirements between a client's settings — `id_token_encryption_required` needs an `id_token_encrypted_response_alg`,
+  a `ping` or `push` `backchannel_token_delivery_mode` needs a `client_notification_endpoint`, and that mode must be in
+  `backchannel_token_delivery_modes_supported` for a client that uses the CIBA grant — which only dynamic registration
+  checks; (2) a value a client's own document lists in a ceiling that merges with `Intersect` (`grant_types_supported`,
+  `response_types_supported`, and the request-object, `token_endpoint_auth_signing_alg` and CIBA signing lists) but its
+  tenant excludes: dynamic registration refuses it, while the management API stores it and the effective list silently
+  loses the value; (3) `DeveloperInteractiveSeedHandler` stores its clients without the validator. Let a violation name
+  a missing companion setting, give a rule the client's own document, and route the developer seeder through the
+  validator. Touch points: `DefaultClientRegistrationEndpointHandler.ValidateAlgorithmMetadata`,
+  `ValidateSupportedMetadata`, `ValidateBackchannelMetadata`, `IClientCoherenceRule`, `DeveloperInteractiveSeedHandler`.
+- **`R63` — Close the loose ends of the client coherence checks.** (1) `BootstrapAdminSeedHandler` stores the
+  bootstrap administrator's `client_secret_basic` client without `IClientCoherenceValidator`, so a ceiling that excludes
+  `client_secret_basic` seeds an administrator that cannot authenticate, found at the first sign-in rather than at
+  start; route it through the validator as `ConformanceSeedHandler` does (the developer seeder is `R62`). (2) The
+  front-channel logout page of `DefaultEndSessionEndpointProvider` has no test, although ADR-0203 relies on it never
+  receiving a URI of no kind; cover its markup for a permitted and a refused post-logout URI. (3) A tenant or server
+  settings change that excludes many clients answers with one message per client, so the response grows with the number
+  of incoherent clients; cap the messages and state how many more there are. Touch points:
+  `BootstrapAdminSeedHandler.cs`, `DefaultEndSessionEndpointProvider.cs`,
+  `TenantApiEndpointHandler.ValidateClientCoherenceAsync`, `ServerApiEndpointHandler.ValidateClientCoherenceAsync`,
+  `BaseApiEndpointHandler.SettingsValidationProblem`.
 
 ### Refactor
 

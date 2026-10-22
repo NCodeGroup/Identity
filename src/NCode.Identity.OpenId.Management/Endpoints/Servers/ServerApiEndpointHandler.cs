@@ -84,7 +84,8 @@ internal class ServerApiEndpointHandler(
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IEffectiveSettingsResolver effectiveSettingsResolver,
-    IClientResponseAlgorithmValidator clientResponseAlgorithmValidator,
+    IClientCoherenceValidator clientCoherenceValidator,
+    ITenantClientCoherenceChecker tenantClientCoherenceChecker,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ServerApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IEndpointProvider
@@ -106,8 +107,9 @@ internal class ServerApiEndpointHandler(
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
 
-    private IClientResponseAlgorithmValidator ClientResponseAlgorithmValidator { get; } =
-        clientResponseAlgorithmValidator;
+    private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
+    private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
+        tenantClientCoherenceChecker;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private ILogger<ServerApiEndpointHandler> Logger { get; } = logger;
 
@@ -650,22 +652,17 @@ internal class ServerApiEndpointHandler(
             cancellationToken
         );
 
-        if (
-            ClientResponseAlgorithmRule.ReadsChangedSetting(
-                currentServerSettings,
-                newServerSettings
-            )
-        )
+        if (ClientCoherenceValidator.ReadsChangedSetting(currentServerSettings, newServerSettings))
         {
-            var algorithmErrors = await ValidateClientResponseAlgorithmsAsync(
+            var coherenceErrors = await ValidateClientCoherenceAsync(
                 currentServerSettings,
                 newServerSettings,
                 storeManager,
                 cancellationToken
             );
-            if (algorithmErrors.Count > 0)
+            if (coherenceErrors.Count > 0)
             {
-                return SettingsValidationProblem(algorithmErrors);
+                return SettingsValidationProblem(coherenceErrors);
             }
         }
 
@@ -690,24 +687,21 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that replacing the server's settings document leaves every algorithm each client of every tenant
-    /// registers for the JWTs addressed to it permitted (<see cref="IClientResponseAlgorithmValidator"/>). The current
-    /// and new server settings are each resolved through the <see cref="IEffectiveSettingsResolver"/>, and each
-    /// tenant's document is resolved onto both (ADR-0204). The tenants are read as an untracked, secret-free
-    /// projection (<see cref="ITenantStore.GetSettingsPageAsync"/>), and the walk runs only when the effective value
-    /// of a setting the check reads changed (<see cref="ClientResponseAlgorithmRule.ReadsChangedSetting"/>, backlog
-    /// R21).
+    /// Verifies that replacing the server's settings document leaves every value each client of every tenant registers
+    /// permitted by every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The current and new
+    /// server settings are each resolved through the <see cref="IEffectiveSettingsResolver"/>, and each tenant's
+    /// document is resolved onto both. The tenants are read as an untracked, secret-free projection
+    /// (<see cref="ITenantStore.GetSettingsPageAsync"/>), and the walk runs only when the effective value of a setting
+    /// a coherence rule reads changed (<see cref="IClientCoherenceValidator.ReadsChangedSetting"/>).
     /// </summary>
     /// <param name="currentServerSettings">The server's effective settings with its current settings document.</param>
     /// <param name="newServerSettings">The server's effective settings with its new settings document.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to page through the tenants and their clients.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="SettingError"/> instances, keyed by the server setting that excludes each algorithm, or an
-    /// empty list.</returns>
-    // See ADR-0155.
-    internal virtual async ValueTask<
-        IReadOnlyList<SettingError>
-    > ValidateClientResponseAlgorithmsAsync(
+    /// <returns>The <see cref="SettingError"/> instances, keyed by the server setting that does not permit each value, or
+    /// an empty list.</returns>
+    // See ADR-0206.
+    internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
         IReadOnlySettingCollection currentServerSettings,
         IReadOnlySettingCollection newServerSettings,
         IStoreManager storeManager,
@@ -734,7 +728,7 @@ internal class ServerApiEndpointHandler(
                     tenantSettings.Value
                 );
 
-                var findings = await ClientResponseAlgorithmValidator.FindIntroducedViolationsAsync(
+                var findings = await TenantClientCoherenceChecker.FindIntroducedViolationsAsync(
                     storeManager,
                     tenantSettings.TenantId,
                     currentTenantSettings,
@@ -744,11 +738,11 @@ internal class ServerApiEndpointHandler(
 
                 errors.AddRange(
                     findings.Select(finding => new SettingError(
-                        finding.Violation.PermittedKey.SettingName,
+                        finding.Violation.CeilingName,
                         $"The client '{finding.ClientId}' of tenant '{tenantSettings.TenantId}' registers "
-                            + $"'{finding.Violation.RegisteredKey.SettingName}' value '{finding.Violation.Value}', "
+                            + $"'{finding.Violation.SettingName}' value '{finding.Violation.Value}', "
                             + "which the server's effective "
-                            + $"'{finding.Violation.PermittedKey.SettingName}' would not permit."
+                            + $"'{finding.Violation.CeilingName}' would not permit."
                     ))
                 );
             }

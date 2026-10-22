@@ -43,8 +43,8 @@ public static partial class OpenIdConstants
         public const string Http = "http";
 
         /// <summary>
-        /// Contains the name of the redirect URI kind for a URI with any scheme other than <c>http</c> and <c>https</c>
-        /// (RFC 8252 §7.1).
+        /// Contains the name of the redirect URI kind for a URI whose scheme is a reverse domain name other than
+        /// <c>http</c> and <c>https</c>, such as <c>com.example.app</c> (RFC 8252 §7.1).
         /// </summary>
         public const string PrivateUse = "private_use";
     }

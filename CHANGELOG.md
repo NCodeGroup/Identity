@@ -10,6 +10,19 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Client coherence rules.** `IClientCoherenceRule` names the settings it reads and reports each value a client
+  registers that an effective setting does not permit as a `ClientCoherenceViolation`, and `IClientCoherenceValidator`
+  runs every registered rule over a client's effective settings and tells a caller whether a change touches a setting a
+  rule reads. The three built-in rules check a client's response algorithms, its redirect URI kinds, and its token
+  endpoint authentication method, and a package adds a rule by registering it with `TryAddEnumerable`
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R40`).
+
+- **Client-authentication method descriptors.** `ClientAuthenticationMethodDescriptor` names a method and says whether
+  it requires a client secret. A package contributes one through
+  `ICollectionDataSource<ClientAuthenticationMethodDescriptor>`, and `IClientAuthenticationMethodCatalog` lists the
+  registered names and finds a descriptor without constructing a handler
+  ([ADR-0207](docs/adr/0207-client-authentication-methods-are-named-by-registered-descriptors.md), backlog `R60`).
+
 - **`IEffectiveSettingsResolver` resolves a scope's effective settings in one place.** Each caller used to rebuild the
   merge of the server's settings, a tenant's document, and a client's or resource server's document, with the security
   profiles' ceilings and defaults. The registrable resolver does it: `ReadScopeSettings` and `Resolve` read a scope's
@@ -38,10 +51,10 @@ change to the public API is a **major** version bump.
   kinds of redirect URI a client may register and use. It applies to tenants and clients, merges with `Intersect`,
   is not advertised, and permits every kind while unset. A kind is a registered `IRedirectUriKind`, judged through
   `IRedirectUriKindCatalog`, so a package adds one by registering it. The built-in kinds, named in
-  `OpenIdConstants.RedirectUriKinds`, sort every redirect URI into one: `https`, `loopback` (an `http` URI whose host
-  is `127.0.0.1` or `[::1]`, RFC 8252 §7.3), `http` (any other `http` URI, `localhost` included), and `private_use`
-  (any other scheme, RFC 8252 §7.1) ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog
-  `R53`).
+  `OpenIdConstants.RedirectUriKinds`, sort a redirect URI into at most one: `https`, `loopback` (an `http` URI whose
+  host is `127.0.0.1` or `[::1]`, RFC 8252 §7.3), `http` (any other `http` URI, `localhost` included), and
+  `private_use` (a reverse-domain scheme such as `com.example.app`, RFC 8252 §7.1)
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R53`).
 
 - **`IOpenIdEndpointMeteredMetadata` and `WithOpenIdMetered(bool)` mark whether an endpoint is the tenant's metered
   usage.** A metered endpoint's requests spend the daily request quota and are recorded in the usage ledger; an
@@ -479,6 +492,17 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **Every entry point checks a client through the coherence validator.** Dynamic registration, the management API, and
+  the conformance seed apply the same rules. A tenant or server settings change that narrows
+  `redirect_uri_kinds_supported`, selects `fapi2` or `fapi1-advanced`, or narrows
+  `token_endpoint_auth_methods_supported` is refused while a client registers a value it would exclude. Registration
+  error codes are unchanged, and their descriptions are uniform
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R40`, `R55`).
+
+- **Breaking: a client-authentication handler needs a descriptor.** The host does not compose when the handlers and the
+  descriptors differ, and options validation constructs no handler
+  ([ADR-0207](docs/adr/0207-client-authentication-methods-are-named-by-registered-descriptors.md), backlog `R60`).
 
 - **Breaking:** every copy of the effective-settings merge routes through `IEffectiveSettingsResolver`. The
   `DefaultOpenIdTenantFactory` and `EphemeralOpenIdTenantFactory` constructors take it instead of
@@ -1232,6 +1256,16 @@ change to the public API is a **major** version bump.
   ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md))
 
 ### Security
+
+- **A private-use redirect URI must be a reverse domain name, and a URI of no kind is never permitted.** A
+  `private_use` URI has a scheme of at least two non-empty labels, such as `com.example.app`, so `javascript:`, `data:`,
+  `ws:`, `file:`, and `myapp:` are no redirect target, even with `redirect_uri_kinds_supported` unset
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R56`).
+
+- **The end-session redirect checks the post-logout URI's kind and escapes its `Location`.** A
+  `post_logout_redirect_uri` is refused like an unregistered one when `redirect_uri_kinds_supported` excludes its kind,
+  and the `Location` header is escaped as an authorization response's is
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R56`).
 
 - **A redirect URI is delivered and compared exactly as written.** A parked continuation and a stored authorization
   code carried `myapp://callback` as `myapp://callback/` with a lower-cased host, the response went to the form a

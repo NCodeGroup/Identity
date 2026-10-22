@@ -43,15 +43,46 @@ public class DefaultRedirectUriKindCatalogTests : BaseTests
 
     #region IsPermitted Tests
 
-    [Fact]
-    public void IsPermitted_WhenNoKindIsListed_PermitsEveryRedirectUri()
+    [Theory]
+    [InlineData("https://client.example/cb")]
+    [InlineData("http://client.example/cb")]
+    [InlineData("http://127.0.0.1:5000/cb")]
+    [InlineData("com.example.app:/callback")]
+    public void IsPermitted_WhenNoKindIsListed_PermitsAUriOfAnyRegisteredKind(string redirectUri)
     {
         var catalog = CreateCatalog();
         var settings = CreateSettings(null);
 
-        var actual = catalog.IsPermitted(settings, "http://client.example/cb");
+        var actual = catalog.IsPermitted(settings, redirectUri);
 
         Assert.True(actual);
+    }
+
+    [Theory]
+    [InlineData("myapp://callback")]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("data:text/html,hi")]
+    [InlineData("ws://client.example/cb")]
+    [InlineData("file:///etc/passwd")]
+    public void IsPermitted_WhenNoKindIsListed_RefusesAUriOfNoRegisteredKind(string redirectUri)
+    {
+        var catalog = CreateCatalog();
+        var settings = CreateSettings(null);
+
+        var actual = catalog.IsPermitted(settings, redirectUri);
+
+        Assert.False(actual);
+    }
+
+    [Fact]
+    public void IsPermitted_WhenNoKindIsListed_RefusesAValueThatIsNotAnAbsoluteUri()
+    {
+        var catalog = CreateCatalog();
+        var settings = CreateSettings(null);
+
+        var actual = catalog.IsPermitted(settings, "callback");
+
+        Assert.False(actual);
     }
 
     [Theory]
@@ -76,11 +107,11 @@ public class DefaultRedirectUriKindCatalogTests : BaseTests
     [InlineData("https://client.example/cb", true)]
     [InlineData("http://127.0.0.1:5000/cb", true)]
     [InlineData("http://[::1]/cb", true)]
-    [InlineData("myapp://callback", true)]
+    [InlineData("myapp://callback", false)]
     [InlineData("com.example.app:/callback", true)]
     [InlineData("http://localhost:5000/cb", false)]
     [InlineData("http://client.example/cb", false)]
-    public void IsPermitted_UnderTheFapi2Kinds_RefusesOnlyNonLoopbackHttp(
+    public void IsPermitted_UnderTheFapi2Kinds_RefusesHttpAndSchemesOfNoKind(
         string redirectUri,
         bool expected
     )

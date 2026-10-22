@@ -18,6 +18,7 @@
 
 using System.Buffers;
 using System.Buffers.Text;
+using System.Net.Http.Headers;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Microsoft.AspNetCore.Hosting;
@@ -1061,6 +1062,51 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         tenant.Settings.Value = System.Text.Json.JsonSerializer.SerializeToElement(settings);
         await tenantStore.AddAsync(tenant, CancellationToken.None);
         await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Creates an HTTP client that calls the management API as the given client: it obtains a
+    /// <c>client_credentials</c> access token with the <c>read:clients</c> scope, then sends it as a bearer token.
+    /// </summary>
+    /// <param name="clientId">The identifier of the client that authenticates with a shared secret.</param>
+    /// <param name="clientSecret">The client's secret, as sent to the token endpoint.</param>
+    /// <returns>The HTTP client, which does not follow redirects and carries the bearer token.</returns>
+    public async Task<HttpClient> CreateManagementClientAsync(string clientId, string clientSecret)
+    {
+        const string managementScope = "read:clients";
+
+        var client = CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var credentials = Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}");
+        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
+        {
+            Headers =
+            {
+                Authorization = new AuthenticationHeaderValue(
+                    "Basic",
+                    Convert.ToBase64String(credentials)
+                ),
+            },
+            Content = new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["scope"] = managementScope,
+                }
+            ),
+        };
+
+        using var response = await client.SendAsync(tokenRequest);
+        response.EnsureSuccessStatusCode();
+        using var document = System.Text.Json.JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync()
+        );
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            document.RootElement.GetProperty("access_token").GetString()
+        );
+        return client;
     }
 
     private PersistedTenant CreateEmptyTenant(string tenantId) =>

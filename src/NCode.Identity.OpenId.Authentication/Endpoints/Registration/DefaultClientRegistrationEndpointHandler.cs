@@ -23,7 +23,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.Cryptography;
-using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
@@ -67,7 +66,9 @@ internal class DefaultClientRegistrationEndpointHandler(
     ISectorIdentifierValidator sectorIdentifierValidator,
     IClientScopeService clientScopeService,
     ISettingSerializer settingSerializer,
-    IRedirectUriKindCatalog redirectUriKindCatalog
+    IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
+    IClientCoherenceValidator clientCoherenceValidator
 ) : IEndpointProvider
 {
     private const int ClientSecretKeySizeBits = 256;
@@ -95,13 +96,6 @@ internal class DefaultClientRegistrationEndpointHandler(
     ];
     private static readonly string[] DefaultResponseTypes = [OpenIdConstants.ResponseTypes.Code];
 
-    private static readonly string[] ClientSecretAuthenticationMethods =
-    [
-        OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-        OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
-        OpenIdConstants.ClientAuthenticationMethods.ClientSecretJwt,
-    ];
-
     private static readonly string[] SupportedSubjectTypes =
     [
         OpenIdConstants.SubjectTypes.Public,
@@ -123,7 +117,11 @@ internal class DefaultClientRegistrationEndpointHandler(
         sectorIdentifierValidator;
     private IClientScopeService ClientScopeService { get; } = clientScopeService;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
-    private IRedirectUriKindCatalog RedirectUriKindCatalog { get; } = redirectUriKindCatalog;
+    private IClientAuthenticationMethodCatalog ClientAuthenticationMethodCatalog { get; } =
+        clientAuthenticationMethodCatalog;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
+    private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -274,8 +272,8 @@ internal class DefaultClientRegistrationEndpointHandler(
         var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
         var supportError =
             ValidateSupportedMetadata(errorFactory, tenantSettings, resolved)
-            ?? ValidateRedirectUriKinds(errorFactory, tenantSettings, resolved)
-            ?? ValidateAlgorithmMetadata(errorFactory, tenantSettings, request);
+            ?? ValidateAlgorithmMetadata(errorFactory, tenantSettings, request)
+            ?? ValidateCoherence(errorFactory, tenantSettings, settingsJson);
         if (supportError is not null)
         {
             return supportError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
@@ -565,8 +563,8 @@ internal class DefaultClientRegistrationEndpointHandler(
         var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
         var supportError =
             ValidateSupportedMetadata(errorFactory, tenantSettings, resolved)
-            ?? ValidateRedirectUriKinds(errorFactory, tenantSettings, resolved)
-            ?? ValidateAlgorithmMetadata(errorFactory, tenantSettings, request);
+            ?? ValidateAlgorithmMetadata(errorFactory, tenantSettings, request)
+            ?? ValidateCoherence(errorFactory, tenantSettings, settingsJson);
         if (supportError is not null)
         {
             return supportError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
@@ -828,8 +826,8 @@ internal class DefaultClientRegistrationEndpointHandler(
             request.TokenEndpointAuthMethod
             ?? OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
 
-        // The method vocabulary is open: the settings validation accepts every method a registered handler serves, and
-        // the tenant's effective token_endpoint_auth_methods_supported narrows it (ValidateSupportedMetadata).
+        // The method vocabulary is open: the settings validation accepts every method a registered method descriptor
+        // names, and the tenant's effective token_endpoint_auth_methods_supported narrows it (ValidateCoherence).
         if (string.IsNullOrEmpty(tokenEndpointAuthMethod))
         {
             return errorFactory.InvalidRequest(
@@ -1006,12 +1004,11 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that the tenant supports the resolved client-authentication method and every resolved grant type and
-    /// response type, returning an <c>invalid_client_metadata</c> error (RFC 7591 §3.2.2) for the first value it does
-    /// not support, or <see langword="null"/> when it supports them all; an unset list is unrestricted. The endpoints
-    /// refuse a value the tenant does not support — a client whose registered method the tenant's
-    /// <c>token_endpoint_auth_methods_supported</c> excludes cannot authenticate at all — so registering it would report
-    /// a capability the client can never use.
+    /// Verifies that the tenant supports every resolved grant type and response type, returning an
+    /// <c>invalid_client_metadata</c> error (RFC 7591 §3.2.2) for the first value it does not support, or
+    /// <see langword="null"/> when it supports them all; an unset list is unrestricted. The endpoints refuse a value the
+    /// tenant does not support, so registering it would report a capability the client can never use. The
+    /// client-authentication method is checked with the other coherence rules (<see cref="ValidateCoherence"/>).
     /// </summary>
     /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
     /// <param name="tenantSettings">The settings of the tenant the client registers with.</param>
@@ -1024,23 +1021,6 @@ internal class DefaultClientRegistrationEndpointHandler(
         ResolvedMetadata resolved
     )
     {
-        if (
-            tenantSettings.TryGetValue(
-                OpenIdSettingKeys.TokenEndpointAuthMethodsSupported,
-                out var tokenEndpointAuthMethodsSupported
-            )
-            && !tokenEndpointAuthMethodsSupported.Contains(
-                resolved.TokenEndpointAuthMethod,
-                StringComparer.Ordinal
-            )
-        )
-        {
-            return errorFactory.InvalidRequest(
-                $"The 'token_endpoint_auth_method' value '{resolved.TokenEndpointAuthMethod}' is not supported.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
-            );
-        }
-
         if (
             tenantSettings.TryGetValue(
                 OpenIdSettingKeys.GrantTypesSupported,
@@ -1083,34 +1063,53 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that the tenant's effective <c>redirect_uri_kinds_supported</c> permits the kind of every resolved
-    /// redirect URI, returning an <c>invalid_redirect_uri</c> error (RFC 7591 §3.2.2) for the first URI it does not
-    /// permit, or <see langword="null"/> when it permits them all. A dynamically registered client selects no security
-    /// profile, so the tenant's effective settings decide which kinds it may register.
+    /// Verifies that the effective settings of the client being registered satisfy every registered
+    /// <see cref="IClientCoherenceRule"/>: the client's settings document is resolved onto the tenant's effective
+    /// settings as the runtime resolves it, so the tenant's ceilings (and those of the security profiles it selects)
+    /// decide which redirect URI kinds, response-protection algorithms and client-authentication method the client may
+    /// register. Returns an <c>invalid_redirect_uri</c> error (RFC 7591 §3.2.2) when a redirect URI is refused, else an
+    /// <c>invalid_client_metadata</c> error, or <see langword="null"/> when the client settings are coherent.
     /// </summary>
     /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
-    /// <param name="tenantSettings">The settings of the tenant the client registers with.</param>
-    /// <param name="resolved">The resolved client metadata.</param>
-    /// <returns>The error, or <see langword="null"/> when the tenant permits every redirect URI.</returns>
-    // See ADR-0203.
-    internal virtual IOpenIdError? ValidateRedirectUriKinds(
+    /// <param name="tenantSettings">The effective settings of the tenant the client registers with.</param>
+    /// <param name="settingsJson">The client's settings document.</param>
+    /// <returns>The error, or <see langword="null"/> when the client settings are coherent.</returns>
+    // See ADR-0206.
+    internal virtual IOpenIdError? ValidateCoherence(
         IOpenIdErrorFactory errorFactory,
         IReadOnlySettingCollection tenantSettings,
-        ResolvedMetadata resolved
+        JsonElement settingsJson
     )
     {
-        var refused = resolved.RedirectUris.FirstOrDefault(redirectUri =>
-            !RedirectUriKindCatalog.IsPermitted(tenantSettings, redirectUri)
+        var violations = ClientCoherenceValidator.Validate(
+            EffectiveSettingsResolver.Resolve(
+                tenantSettings,
+                OpenIdSettingScopes.Client,
+                settingsJson
+            )
         );
-        if (refused is null)
+        if (violations.Count == 0)
         {
             return null;
         }
 
-        return errorFactory.InvalidRequest(
-            $"The redirect URI '{refused}' is not a kind of redirect URI the server permits.",
-            OpenIdConstants.ErrorCodes.InvalidRedirectUri
+        var description = string.Join(
+            " ",
+            violations.Select(violation =>
+                $"The '{violation.SettingName}' value '{violation.Value}' is not permitted by the effective '{violation.CeilingName}'."
+            )
         );
+        var code = violations.Any(violation =>
+            string.Equals(
+                violation.SettingName,
+                OpenIdSettingNames.RedirectUris,
+                StringComparison.Ordinal
+            )
+        )
+            ? OpenIdConstants.ErrorCodes.InvalidRedirectUri
+            : OpenIdConstants.ErrorCodes.InvalidClientMetadata;
+
+        return errorFactory.InvalidRequest(description, code);
     }
 
     /// <summary>
@@ -1287,22 +1286,23 @@ internal class DefaultClientRegistrationEndpointHandler(
 
     /// <summary>
     /// Determines whether the registration issues a <c>client_secret</c> to a client that registers the specified
-    /// client-authentication method: only the methods that verify a shared secret (<c>client_secret_basic</c>,
-    /// <c>client_secret_post</c>, and <c>client_secret_jwt</c>) do; a key- or certificate-based method and a public
-    /// client receive none.
+    /// client-authentication method: the client is issued one when the method's descriptor requires a client secret;
+    /// a method that is not registered receives none.
     /// </summary>
     /// <param name="tokenEndpointAuthMethod">The client-authentication method the client registers.</param>
     /// <returns><see langword="true"/> when the client is issued a <c>client_secret</c>.</returns>
-    // See ADR-0145.
+    // See ADR-0145 and ADR-0207.
     internal virtual bool IssuesClientSecret(string tokenEndpointAuthMethod) =>
-        ClientSecretAuthenticationMethods.Contains(tokenEndpointAuthMethod, StringComparer.Ordinal);
+        ClientAuthenticationMethodCatalog.TryGet(tokenEndpointAuthMethod, out var descriptor)
+        && descriptor.RequiresClientSecret;
 
     /// <summary>
-    /// Verifies that the tenant permits the algorithms a registration requests for the responses addressed to the client
-    /// and for its request objects, and that a client of a tenant that requires encrypted ID tokens registers an
-    /// encryption algorithm for them. An omitted <c>id_token_signed_response_alg</c> is the tenant's effective default
-    /// (<c>RS256</c> unless the server or tenant sets another). Returns an <c>invalid_client_metadata</c> error, or
-    /// <see langword="null"/> when the tenant permits them all; an unset list is unrestricted.
+    /// Verifies that the tenant permits the algorithms and delivery mode a registration requests for the client's
+    /// request objects, token endpoint authentication and backchannel authentication requests, that a notified
+    /// backchannel client registers its notification endpoint, and that a client of a tenant that requires encrypted ID
+    /// tokens registers an encryption algorithm for them. The algorithms for the responses addressed to the client are
+    /// checked with the coherence rules (<see cref="ValidateCoherence"/>). Returns an <c>invalid_client_metadata</c>
+    /// error, or <see langword="null"/> when the tenant permits them all; an unset list is unrestricted.
     /// </summary>
     /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
     /// <param name="tenantSettings">The settings of the tenant the client registers with.</param>
@@ -1315,99 +1315,8 @@ internal class DefaultClientRegistrationEndpointHandler(
         RegisterClientRequest request
     )
     {
-        var idTokenSignedResponseAlg =
-            request.IdTokenSignedResponseAlg
-            ?? (
-                tenantSettings.TryGetValue(
-                    OpenIdSettingKeys.IdTokenSignedResponseAlg,
-                    out var defaultAlg
-                )
-                    ? defaultAlg
-                    : null
-            );
-
         (string Name, string? Value, SettingKey<IReadOnlyCollection<string>> Permitted)[] checks =
         [
-            (
-                OpenIdSettingNames.IdTokenSignedResponseAlg,
-                idTokenSignedResponseAlg,
-                OpenIdSettingKeys.IdTokenSigningAlgValuesSupported
-            ),
-            (
-                OpenIdSettingNames.IdTokenEncryptedResponseAlg,
-                request.IdTokenEncryptedResponseAlg,
-                OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported
-            ),
-            (
-                OpenIdSettingNames.IdTokenEncryptedResponseEnc,
-                EffectiveResponseEnc(
-                    tenantSettings,
-                    request.IdTokenEncryptedResponseAlg,
-                    request.IdTokenEncryptedResponseEnc,
-                    OpenIdSettingKeys.IdTokenEncryptedResponseEnc
-                ),
-                OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported
-            ),
-            (
-                OpenIdSettingNames.UserInfoSignedResponseAlg,
-                request.UserInfoSignedResponseAlg,
-                OpenIdSettingKeys.UserInfoSigningAlgValuesSupported
-            ),
-            (
-                OpenIdSettingNames.UserInfoEncryptedResponseAlg,
-                request.UserInfoEncryptedResponseAlg,
-                OpenIdSettingKeys.UserInfoEncryptionAlgValuesSupported
-            ),
-            (
-                OpenIdSettingNames.UserInfoEncryptedResponseEnc,
-                EffectiveResponseEnc(
-                    tenantSettings,
-                    request.UserInfoEncryptedResponseAlg,
-                    request.UserInfoEncryptedResponseEnc,
-                    OpenIdSettingKeys.UserInfoEncryptedResponseEnc
-                ),
-                OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported
-            ),
-            (
-                OpenIdSettingNames.IntrospectionSignedResponseAlg,
-                request.IntrospectionSignedResponseAlg,
-                OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported
-            ),
-            (
-                OpenIdSettingNames.IntrospectionEncryptedResponseAlg,
-                request.IntrospectionEncryptedResponseAlg,
-                OpenIdSettingKeys.IntrospectionEncryptionAlgValuesSupported
-            ),
-            (
-                OpenIdSettingNames.IntrospectionEncryptedResponseEnc,
-                EffectiveResponseEnc(
-                    tenantSettings,
-                    request.IntrospectionEncryptedResponseAlg,
-                    request.IntrospectionEncryptedResponseEnc,
-                    OpenIdSettingKeys.IntrospectionEncryptedResponseEnc
-                ),
-                OpenIdSettingKeys.IntrospectionEncryptionEncValuesSupported
-            ),
-            (
-                OpenIdSettingNames.AuthorizationSignedResponseAlg,
-                request.AuthorizationSignedResponseAlg,
-                OpenIdSettingKeys.AuthorizationSigningAlgValuesSupported
-            ),
-            (
-                OpenIdSettingNames.AuthorizationEncryptedResponseAlg,
-                request.AuthorizationEncryptedResponseAlg,
-                OpenIdSettingKeys.AuthorizationEncryptionAlgValuesSupported
-            ),
-            (
-                OpenIdSettingNames.AuthorizationEncryptedResponseEnc,
-                EffectiveResponseEnc(
-                    tenantSettings,
-                    request.AuthorizationEncryptedResponseAlg,
-                    request.AuthorizationEncryptedResponseEnc,
-                    OpenIdSettingKeys.AuthorizationEncryptedResponseEnc
-                ),
-                OpenIdSettingKeys.AuthorizationEncryptionEncValuesSupported
-            ),
             (
                 RequestObjectSigningAlgMetadata,
                 request.RequestObjectSigningAlg,
@@ -1481,26 +1390,6 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         return ValidateBackchannelMetadata(errorFactory, tenantSettings, request);
-    }
-
-    // OpenID Connect Dynamic Client Registration 1.0 §2, RFC 9701 §6, JARM §3: a registered response-encryption "alg"
-    // without its "enc" uses the default "enc" (A128CBC-HS256, unless the tenant sets another), so that default must be
-    // permitted too.
-    private static string? EffectiveResponseEnc(
-        IReadOnlySettingCollection tenantSettings,
-        string? alg,
-        string? enc,
-        SettingKey<string> defaultEncKey
-    )
-    {
-        if (!string.IsNullOrEmpty(enc) || string.IsNullOrEmpty(alg))
-            return enc;
-
-        return
-            tenantSettings.TryGetValue(defaultEncKey, out var defaultEnc)
-            && !string.IsNullOrEmpty(defaultEnc)
-            ? defaultEnc
-            : AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256;
     }
 
     // CIBA Core 1.0 §4: a ping or push client must register the endpoint its notifications go to, and a client may claim

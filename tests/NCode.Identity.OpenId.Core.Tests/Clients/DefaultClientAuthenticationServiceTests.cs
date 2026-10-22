@@ -18,7 +18,9 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.RateLimiting;
@@ -38,6 +40,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
     private Mock<IRequestRateLimiter> MockRateLimiter { get; }
     private Mock<OpenIdContext> MockContext { get; }
+    private int HandlerCount { get; set; }
 
     public DefaultClientAuthenticationServiceTests()
     {
@@ -78,14 +81,28 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     ) =>
         new(
             handlers,
+            CreateCatalog(handlers.Select(x => x.AuthenticationMethod)),
             MockAuditEventRecorder.Object,
             MockRateLimiter.Object,
             CreateLooseMock<ILogger<DefaultClientAuthenticationService>>().Object
         );
 
+    private static DefaultClientAuthenticationMethodCatalog CreateCatalog(
+        IEnumerable<string> names
+    ) =>
+        new([
+            new StaticDataSource<ClientAuthenticationMethodDescriptor>([
+                .. names.Select(name => new ClientAuthenticationMethodDescriptor { Name = name }),
+            ]),
+        ]);
+
     private IClientAuthenticationHandler CreateHandler(ClientAuthenticationResult result)
     {
         var mockHandler = CreateStrictMock<IClientAuthenticationHandler>();
+        mockHandler
+            .SetupGet(x => x.AuthenticationMethod)
+            .Returns($"method-{++HandlerCount}")
+            .Verifiable();
         mockHandler
             .Setup(x => x.AuthenticateClientAsync(MockContext.Object, CancellationToken.None))
             .ReturnsAsync(result)
@@ -423,6 +440,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     public async Task AuthenticateClientAsync_WhenCalledTwiceInOneRequest_AuthenticatesOnce()
     {
         var mockHandler = CreateStrictMock<IClientAuthenticationHandler>();
+        mockHandler.SetupGet(x => x.AuthenticationMethod).Returns("method-once").Verifiable();
         mockHandler
             .Setup(x => x.AuthenticateClientAsync(MockContext.Object, CancellationToken.None))
             .ReturnsAsync(ClientAuthenticationResult.Undefined)
@@ -490,4 +508,11 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     }
 
     #endregion
+
+    private sealed class StaticDataSource<T>(IEnumerable<T> items) : ICollectionDataSource<T>
+    {
+        public IEnumerable<T> Collection { get; } = [.. items];
+
+        public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
+    }
 }

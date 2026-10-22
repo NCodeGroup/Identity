@@ -232,10 +232,27 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public void AddIdentityServer_RegistersADescriptorForEveryClientAuthenticationHandler()
+    {
+        // A handler without a descriptor is not advertised or accepted; a descriptor without a handler is advertised
+        // but cannot authenticate (ADR-0207).
+        using var host = BuildHost([]);
+        var catalog = host.Services.GetRequiredService<IClientAuthenticationMethodCatalog>();
+
+        var handlerMethods = host
+            .Services.GetServices<IClientAuthenticationHandler>()
+            .Select(handler => handler.AuthenticationMethod)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.Equal(handlerMethods, catalog.MethodNames.Order(StringComparer.Ordinal).ToList());
+    }
+
+    [Fact]
     public async Task AddIdentityServer_ResolvesTheClientAuthenticationHandlersWithoutDeadlocking()
     {
         // Fails fast instead of hanging when a constructor on a client-authentication handler's dependency path reads
-        // IOptions<OpenIdOptions>.Value (ADR-0204, backlog R60).
+        // IOptions<OpenIdOptions>.Value (ADR-0204, ADR-0207).
         using var host = BuildHost([]);
 
         var handlers = await Task.Run(() =>
@@ -250,11 +267,63 @@ public sealed class DefaultRegistrationTests
     public async Task AddIdentityServer_ReadingTheOpenIdOptionsDoesNotDeadlock()
     {
         // Fails fast instead of hanging when a constructor on a client-authentication handler's dependency path reads
-        // IOptions<OpenIdOptions>.Value (ADR-0204, backlog R60).
+        // IOptions<OpenIdOptions>.Value (ADR-0204, ADR-0207).
         using var host = BuildHost([]);
 
         await Task.Run(() => host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value)
             .WaitAsync(TimeSpan.FromSeconds(30));
+    }
+
+    [Fact]
+    public void AddIdentityServer_ReadingTheOpenIdOptions_ConstructsNoClientAuthenticationHandler()
+    {
+        // The setting descriptors name the client-authentication methods from their descriptors, so reading the options
+        // constructs no handler (ADR-0207).
+        using var host = BuildHost(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Server:Settings:session_management_supported"] = "true",
+            },
+            services =>
+                services.AddSingleton<IClientAuthenticationHandler>(_ =>
+                    throw new InvalidOperationException(
+                        "A client-authentication handler was constructed."
+                    )
+                )
+        );
+
+        var options = host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value;
+
+        Assert.NotNull(options.Server.Settings);
+    }
+
+    [Fact]
+    public void AddIdentityServer_ResolvesTheClientAuthenticationService()
+    {
+        // The service checks at construction that every handler has a descriptor and every descriptor has a handler
+        // (ADR-0207), so the built-in registrations must correspond.
+        using var host = BuildHost([]);
+
+        Assert.NotNull(host.Services.GetRequiredService<IClientAuthenticationService>());
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheBuiltInClientCoherenceRules()
+    {
+        // A client's settings are checked wherever a client is stored, so the validator and the built-in rules must be
+        // composed by default (ADR-0206).
+        using var host = BuildHost([]);
+
+        var settingNames = host
+            .Services.GetServices<IClientCoherenceRule>()
+            .SelectMany(rule => rule.SettingNames)
+            .ToList();
+
+        Assert.Contains(OpenIdSettingNames.IdTokenSignedResponseAlg, settingNames);
+        Assert.Contains(OpenIdSettingNames.RedirectUris, settingNames);
+        Assert.Contains(OpenIdSettingNames.PostLogoutRedirectUris, settingNames);
+        Assert.Contains(OpenIdSettingNames.TokenEndpointAuthMethod, settingNames);
+        Assert.NotNull(host.Services.GetRequiredService<IClientCoherenceValidator>());
     }
 
     [Fact]

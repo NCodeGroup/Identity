@@ -477,7 +477,7 @@ public static class OpenIdSettingNames
 
     /// <summary>
     /// Contains the name of <c>redirect_uri_kinds_supported</c> setting: the kinds of redirect URI a client may register
-    /// and use. A security profile narrows it, and when it is unset every kind is permitted.
+    /// and use. A security profile narrows it, and when it is unset every registered kind is permitted.
     /// </summary>
     public const string RedirectUriKindsSupported = "redirect_uri_kinds_supported";
 

@@ -54,16 +54,16 @@ public class ConformanceSeedHandlerTests : BaseTests
         ISettingSerializer settingSerializer,
         IOpenIdEnvironmentProvider openIdEnvironmentProvider,
         IClientKeyImporter? clientKeyImporter = null,
-        RedirectUriPolicy? redirectUriPolicy = null
+        CoherencePolicy? coherencePolicy = null
     )
     {
         // Strict mocks: on the guard paths under test the secret, crypto, and time dependencies are untouched.
         var mockSecretGenerator = CreateStrictMock<ISecretGenerator>();
         var mockCryptoService = CreateStrictMock<ICryptoService>();
 
-        redirectUriPolicy ??= new RedirectUriPolicy(
+        coherencePolicy ??= new CoherencePolicy(
             CreateStrictMock<IEffectiveSettingsResolver>().Object,
-            CreateStrictMock<IRedirectUriKindCatalog>().Object
+            CreateStrictMock<IClientCoherenceValidator>().Object
         );
 
         return new ConformanceSeedHandler(
@@ -74,18 +74,18 @@ public class ConformanceSeedHandlerTests : BaseTests
             TimeProvider.System,
             settingSerializer,
             openIdEnvironmentProvider,
-            redirectUriPolicy.Resolver,
-            redirectUriPolicy.KindCatalog,
+            coherencePolicy.Resolver,
+            coherencePolicy.Validator,
             NullLogger<ConformanceSeedHandler>.Instance
         );
     }
 
-    private sealed record RedirectUriPolicy(
+    private sealed record CoherencePolicy(
         IEffectiveSettingsResolver Resolver,
-        IRedirectUriKindCatalog KindCatalog
+        IClientCoherenceValidator Validator
     );
 
-    private RedirectUriPolicy CreateRedirectUriPolicy(bool isPermitted)
+    private CoherencePolicy CreateCoherencePolicy(params ClientCoherenceViolation[] violations)
     {
         var mockCollection = CreateLooseMock<ISettingCollection>();
 
@@ -105,13 +105,13 @@ public class ConformanceSeedHandlerTests : BaseTests
             .Returns(mockCollection.Object)
             .Verifiable();
 
-        var mockKindCatalog = CreateStrictMock<IRedirectUriKindCatalog>();
-        mockKindCatalog
-            .Setup(x => x.IsPermitted(mockCollection.Object, It.IsAny<string>()))
-            .Returns(isPermitted)
+        var mockValidator = CreateStrictMock<IClientCoherenceValidator>();
+        mockValidator
+            .Setup(x => x.Validate(mockCollection.Object))
+            .Returns(violations)
             .Verifiable();
 
-        return new RedirectUriPolicy(mockResolver.Object, mockKindCatalog.Object);
+        return new CoherencePolicy(mockResolver.Object, mockValidator.Object);
     }
 
     private SeedTenantCommand CreateCommand(
@@ -459,7 +459,7 @@ public class ConformanceSeedHandlerTests : BaseTests
             mockSettingSerializer.Object,
             mockEnvironmentProvider.Object,
             mockKeyImporter.Object,
-            CreateRedirectUriPolicy(isPermitted: true)
+            CreateCoherencePolicy()
         );
 
         PersistedClient? storedClient = null;
@@ -544,7 +544,7 @@ public class ConformanceSeedHandlerTests : BaseTests
             mockSettingSerializer.Object,
             mockEnvironmentProvider.Object,
             mockKeyImporter.Object,
-            CreateRedirectUriPolicy(isPermitted: true)
+            CreateCoherencePolicy()
         );
 
         var mockStoreManager = CreateStrictMock<IStoreManager>();
@@ -570,7 +570,7 @@ public class ConformanceSeedHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenARedirectUriKindIsNotPermitted_ThrowsNamingTheClient()
+    public async Task HandleAsync_WhenTheClientSettingsAreIncoherent_ThrowsNamingTheClient()
     {
         const string redirectUri = "http://client.example/callback";
 
@@ -604,7 +604,13 @@ public class ConformanceSeedHandlerTests : BaseTests
             options,
             mockSettingSerializer.Object,
             mockEnvironmentProvider.Object,
-            redirectUriPolicy: CreateRedirectUriPolicy(isPermitted: false)
+            coherencePolicy: CreateCoherencePolicy(
+                new ClientCoherenceViolation(
+                    OpenIdSettingNames.RedirectUris,
+                    redirectUri,
+                    OpenIdSettingNames.RedirectUriKindsSupported
+                )
+            )
         );
 
         var mockStoreManager = CreateStrictMock<IStoreManager>();

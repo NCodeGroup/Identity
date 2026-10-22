@@ -71,7 +71,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
-    private Mock<IRedirectUriKindCatalog> MockRedirectUriKindCatalog { get; }
+    private Mock<IClientCoherenceValidator> MockClientCoherenceValidator { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
@@ -117,7 +117,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockSettingScopeCollectionProvider =
             MockRepository.Create<ISettingScopeCollectionProvider>();
         MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
-        MockRedirectUriKindCatalog = MockRepository.Create<IRedirectUriKindCatalog>();
+        MockClientCoherenceValidator = MockRepository.Create<IClientCoherenceValidator>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
@@ -175,7 +175,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockSettingSerializer.Object,
             MockSettingScopeCollectionProvider.Object,
             MockEffectiveSettingsResolver.Object,
-            MockRedirectUriKindCatalog.Object,
+            MockClientCoherenceValidator.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<ClientApiEndpointHandler>.Instance
@@ -595,7 +595,14 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             )
             .ReturnsAsync((ManagementError?)null)
             .Verifiable();
-        SetupEffectiveSettings(CreateIdTokenSigningSettings("RS256", ["PS256", "ES256"]));
+        SetupEffectiveSettings(
+            CreateSettingCollection(),
+            new ClientCoherenceViolation(
+                OpenIdSettingNames.IdTokenSignedResponseAlg,
+                "RS256",
+                OpenIdSettingNames.IdTokenSigningAlgValuesSupported
+            )
+        );
 
         var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
         var httpContext = CreateHttpContext(authenticated: true);
@@ -1031,7 +1038,14 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .ReturnsAsync(CreateClient("client-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
-        SetupEffectiveSettings(CreateIdTokenSigningSettings("RS256", ["PS256"]));
+        SetupEffectiveSettings(
+            CreateSettingCollection(),
+            new ClientCoherenceViolation(
+                OpenIdSettingNames.IdTokenSignedResponseAlg,
+                "RS256",
+                OpenIdSettingNames.IdTokenSigningAlgValuesSupported
+            )
+        );
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1138,70 +1152,37 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     #endregion
 
-    #region ValidateResponseAlgorithms Tests
+    #region ValidateEffectiveSettingsAsync Tests
 
     [Fact]
-    public void ValidateResponseAlgorithms_WhenNoAlgorithmIsRegistered_ReturnsNoErrors()
+    public async Task ValidateEffectiveSettingsAsync_WhenARuleFindsAViolation_KeysTheErrorByTheRegisteredSetting()
     {
-        var errors = Handler.ValidateResponseAlgorithms(CreateSettingCollection());
-
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public void ValidateResponseAlgorithms_WhenTheSigningAlgorithmIsPermitted_ReturnsNoErrors()
-    {
-        var settings = CreateIdTokenSigningSettings("PS256", ["PS256", "ES256"]);
-
-        var errors = Handler.ValidateResponseAlgorithms(settings);
-
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public void ValidateResponseAlgorithms_WhenEncryptionRegistersNoContentEncryption_ChecksTheDefault()
-    {
-        var mockSettings = new Mock<ISettingCollection>(MockBehavior.Loose);
-        string? keyAlgorithm = AlgorithmCodes.KeyManagement.RsaOaep256;
-        IReadOnlyCollection<string>? permittedKeyAlgorithms = [keyAlgorithm];
-        IReadOnlyCollection<string>? permittedContentAlgorithms =
-        [
-            AlgorithmCodes.AuthenticatedEncryption.Aes256Gcm,
-        ];
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(OpenIdSettingKeys.UserInfoEncryptedResponseAlg, out keyAlgorithm)
+        const string redirectUri = "myapp://callback";
+        SetupEffectiveSettings(
+            CreateSettingCollection(),
+            new ClientCoherenceViolation(
+                OpenIdSettingNames.RedirectUris,
+                redirectUri,
+                OpenIdSettingNames.RedirectUriKindsSupported
             )
-            .Returns(true);
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.UserInfoEncryptionAlgValuesSupported,
-                    out permittedKeyAlgorithms
-                )
-            )
-            .Returns(true);
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported,
-                    out permittedContentAlgorithms
-                )
-            )
-            .Returns(true);
+        );
 
-        var errors = Handler.ValidateResponseAlgorithms(mockSettings.Object);
+        var errors = await Handler.ValidateEffectiveSettingsAsync(
+            TenantId,
+            EmptyObject(),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
 
         var error = Assert.Single(errors);
-        Assert.Equal(OpenIdSettingNames.UserInfoEncryptedResponseEnc, error.SettingName);
-        Assert.Contains(
-            $"'{AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256}'",
-            error.Message,
-            StringComparison.Ordinal
-        );
+        Assert.Equal(OpenIdSettingNames.RedirectUris, error.SettingName);
+        Assert.Contains(redirectUri, error.Message, StringComparison.Ordinal);
     }
 
-    private void SetupEffectiveSettings(ISettingCollection effectiveSettings)
+    private void SetupEffectiveSettings(
+        ISettingCollection effectiveSettings,
+        params ClientCoherenceViolation[] violations
+    )
     {
         MockStoreManager
             .Setup(x => x.GetStore<ITenantStore>())
@@ -1212,33 +1193,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .ReturnsAsync(CreateTenantSettings())
             .Verifiable();
         SetupEffectiveSettingsResolver(effectiveSettings);
-    }
-
-    private static ISettingCollection CreateIdTokenSigningSettings(
-        string registered,
-        IReadOnlyCollection<string> permitted
-    )
-    {
-        string? registeredValue = registered;
-        IReadOnlyCollection<string>? permittedValues = permitted;
-        var mockSettings = new Mock<ISettingCollection>(MockBehavior.Loose);
-        mockSettings
-            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
-            .Returns(mockSettings.Object);
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(OpenIdSettingKeys.IdTokenSignedResponseAlg, out registeredValue)
-            )
-            .Returns(true);
-        mockSettings
-            .Setup(x =>
-                x.TryGetValue(
-                    OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
-                    out permittedValues
-                )
-            )
-            .Returns(true);
-        return mockSettings.Object;
+        MockClientCoherenceValidator
+            .Setup(x => x.Validate(effectiveSettings))
+            .Returns(violations)
+            .Verifiable();
     }
 
     private static void AssertAlgorithmNotPermitted(
@@ -1251,45 +1209,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
         Assert.Equal([settingName], problem.ProblemDetails.Errors.Keys);
         Assert.Contains($"'{registered}'", problem.ProblemDetails.Detail, StringComparison.Ordinal);
-    }
-
-    #endregion
-
-    #region ValidateRedirectUriKinds Tests
-
-    [Fact]
-    public void ValidateRedirectUriKinds_WhenNoRedirectUriIsRegistered_ReturnsNoErrors()
-    {
-        var errors = Handler.ValidateRedirectUriKinds(CreateSettingCollection());
-
-        Assert.Empty(errors);
-    }
-
-    [Fact]
-    public void ValidateRedirectUriKinds_WhenAKindIsNotPermitted_NamesTheRedirectUri()
-    {
-        const string refusedUri = "http://client.example/callback";
-        const string permittedUri = "https://client.example/callback";
-
-        var mockSettings = new Mock<ISettingCollection>(MockBehavior.Loose);
-        IReadOnlyCollection<string>? redirectUris = [refusedUri, permittedUri];
-        mockSettings
-            .Setup(x => x.TryGetValue(OpenIdSettingKeys.RedirectUris, out redirectUris))
-            .Returns(true);
-        MockRedirectUriKindCatalog
-            .Setup(x => x.IsPermitted(mockSettings.Object, refusedUri))
-            .Returns(false)
-            .Verifiable();
-        MockRedirectUriKindCatalog
-            .Setup(x => x.IsPermitted(mockSettings.Object, permittedUri))
-            .Returns(true)
-            .Verifiable();
-
-        var errors = Handler.ValidateRedirectUriKinds(mockSettings.Object);
-
-        var error = Assert.Single(errors);
-        Assert.Equal(OpenIdSettingNames.RedirectUris, error.SettingName);
-        Assert.Contains(refusedUri, error.Message, StringComparison.Ordinal);
     }
 
     #endregion

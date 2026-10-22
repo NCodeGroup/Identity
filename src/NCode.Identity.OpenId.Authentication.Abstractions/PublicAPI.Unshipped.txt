@@ -222,6 +222,12 @@ NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.TokenType.get -> string!
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.TokenType.init -> void
 NCode.Identity.OpenId.Authentication.Auditing.TokenRevokedAuditEvent
+NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationMethodDescriptor
+NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationMethodDescriptor.ClientAuthenticationMethodDescriptor() -> void
+NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationMethodDescriptor.Name.get -> string!
+NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationMethodDescriptor.Name.init -> void
+NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationMethodDescriptor.RequiresClientSecret.get -> bool
+NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationMethodDescriptor.RequiresClientSecret.init -> void
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.Client.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient?
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.ClientAuthenticationResult() -> void
@@ -235,13 +241,31 @@ NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.IsError.
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.IsPublic.get -> bool
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.IsUndefined.get -> bool
 NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult.PublicClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient?
+NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceViolation
+NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceViolation.CeilingName.get -> string!
+NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceViolation.CeilingName.init -> void
+NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceViolation.ClientCoherenceViolation() -> void
+NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceViolation.ClientCoherenceViolation(string! SettingName, string! Value, string! CeilingName) -> void
+NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceViolation.SettingName.get -> string!
+NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceViolation.SettingName.init -> void
+NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceViolation.Value.get -> string!
+NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceViolation.Value.init -> void
 NCode.Identity.OpenId.Authentication.Clients.IClientAssertionReplayCache
 NCode.Identity.OpenId.Authentication.Clients.IClientAssertionReplayCache.TryRecordAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! clientId, string! jti, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationHandler
 NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationHandler.AuthenticateClientAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult>
 NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationHandler.AuthenticationMethod.get -> string!
+NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationMethodCatalog
+NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationMethodCatalog.MethodNames.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationMethodCatalog.TryGet(string! methodName, out NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationMethodDescriptor? descriptor) -> bool
 NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationService
 NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationService.AuthenticateClientAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Clients.ClientAuthenticationResult>
+NCode.Identity.OpenId.Authentication.Clients.IClientCoherenceRule
+NCode.Identity.OpenId.Authentication.Clients.IClientCoherenceRule.FindViolations(NCode.Identity.Settings.IReadOnlySettingCollection! clientSettings) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceViolation>!
+NCode.Identity.OpenId.Authentication.Clients.IClientCoherenceRule.SettingNames.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.OpenId.Authentication.Clients.IClientCoherenceValidator
+NCode.Identity.OpenId.Authentication.Clients.IClientCoherenceValidator.ReadsChangedSetting(NCode.Identity.Settings.IReadOnlySettingCollection! previousSettings, NCode.Identity.Settings.IReadOnlySettingCollection! currentSettings) -> bool
+NCode.Identity.OpenId.Authentication.Clients.IClientCoherenceValidator.Validate(NCode.Identity.Settings.IReadOnlySettingCollection! clientSettings) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Authentication.Clients.ClientCoherenceViolation>!
 NCode.Identity.OpenId.Authentication.Clients.IClientKeyResolver
 NCode.Identity.OpenId.Authentication.Clients.IClientKeyResolver.ResolveSecretKeysAsync(NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Collections.ISecretKeyCollection!>
 NCode.Identity.OpenId.Authentication.Clients.IOpenIdClientFactory

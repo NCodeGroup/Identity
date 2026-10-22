@@ -92,6 +92,15 @@ internal static class DefaultRegistration
                     TenantKeySeedHandler
                 >()
             );
+
+            // A committed change to a tenant evicts it from this replica's cache and seeds it again, so a key its new
+            // settings require is provisioned at once rather than when the tenant is next materialized (ADR-0169).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<TenantChangedCommand>,
+                    TenantChangedHandler
+                >()
+            );
             serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

@@ -1288,6 +1288,13 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **A tenant whose settings later permitted a configured algorithm advertised it without a key until every replica
+  restarted.** Every management write to a tenant (its record, its settings, a secret, or its deletion) now sends a
+  `TenantChangedCommand` after it commits. The default handler evicts the tenant from the replica's tenant cache, so the
+  change takes effect there at once, and after a settings change seeds the tenant again, so the key is provisioned
+  before the write returns. `Ephemeral` developer mode now keeps one key per tenant for the life of the process, so the
+  eviction does not invalidate issued tokens. **Breaking:** `IOpenIdTenantCache` gains `RemoveAsync`.
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md))
 - **A tenant that signs JWT-secured authorization responses (JARM) with an algorithm none of its other lists names
   was provisioned no key for it.** `OpenId:Tenant:KeyProvisioning:AlgorithmSettings` now names
   `authorization_signing_alg_values_supported` by default, so the JARM list provisions its keys as the ID token and

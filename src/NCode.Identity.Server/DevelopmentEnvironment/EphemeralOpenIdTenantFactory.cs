@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -47,8 +48,9 @@ namespace NCode.Identity.Server;
 /// persisted secret keys.
 /// </summary>
 /// <remarks>
-/// The key is generated in-process and is NOT persisted, so it is regenerated whenever the tenant is
-/// (re)materialized. This is intentional for local development and testing and must never be used in
+/// The key is generated in-process and is NOT persisted: each tenant keeps one key for the life of the process,
+/// so evicting the tenant from the cache (a management write does) does not invalidate the tokens it issued, and
+/// a restart regenerates it. This is intentional for local development and testing and must never be used in
 /// production, where a stable, securely-managed signing key is required.
 /// </remarks>
 public sealed class EphemeralOpenIdTenantFactory(
@@ -79,6 +81,11 @@ public sealed class EphemeralOpenIdTenantFactory(
 {
     private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
 
+    // One key per tenant for the life of the process: a tenant is materialized again after every management write
+    // evicts it (ADR-0169), and a new key would invalidate every token the tenant issued.
+    private ConcurrentDictionary<string, RsaSecretKey> SigningKeys { get; } =
+        new(StringComparer.Ordinal);
+
     /// <inheritdoc />
     protected override ValueTask<
         AsyncSharedReferenceLease<ISecretKeyCollectionProvider>
@@ -94,7 +101,10 @@ public sealed class EphemeralOpenIdTenantFactory(
         CancellationToken cancellationToken
     )
     {
-        var signingKey = CreateEphemeralSigningKey();
+        var signingKey = SigningKeys.GetOrAdd(
+            persistedTenant.TenantId,
+            _ => CreateEphemeralSigningKey()
+        );
         var provider = SecretKeyCollectionProviderFactory.CreateStatic([signingKey]);
         return ValueTask.FromResult(provider.AsSharedReference());
     }

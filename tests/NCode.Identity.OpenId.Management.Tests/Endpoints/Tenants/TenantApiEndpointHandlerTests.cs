@@ -43,6 +43,7 @@ using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Operations;
@@ -73,6 +74,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<IClientResponseAlgorithmValidator> MockClientResponseAlgorithmValidator { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
+    private Mock<IMediator> MockMediator { get; }
     private TenantApiEndpointHandler Handler { get; }
 
     public TenantApiEndpointHandlerTests()
@@ -142,6 +144,14 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<JsonElement?>(),
                     It.IsAny<CancellationToken>()
                 )
+            )
+            .Returns(ValueTask.CompletedTask);
+
+        // A write announces the change after it commits; the tests that write verify the announcement.
+        MockMediator = MockRepository.Create<IMediator>();
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(It.IsAny<TenantChangedCommand>(), It.IsAny<CancellationToken>())
             )
             .Returns(ValueTask.CompletedTask);
 
@@ -276,6 +286,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             User = new ClaimsPrincipal(identity),
             RequestServices = new ServiceCollection()
                 .AddSingleton(MockTenantProvisioner.Object)
+                .AddSingleton(MockMediator.Object)
                 .BuildServiceProvider(),
         };
         // The shared environment filter publishes the context in the pipeline; emulate it for direct handler calls.
@@ -292,6 +303,16 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
         return httpContext;
     }
+
+    private void VerifyTenantChanged(bool settingsChanged) =>
+        MockMediator.Verify(
+            x =>
+                x.SendAsync(
+                    new TenantChangedCommand(TenantId, settingsChanged),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
 
     private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
 
@@ -817,6 +838,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+        VerifyTenantChanged(settingsChanged: true);
     }
 
     [Fact]
@@ -990,6 +1012,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var created = Assert.IsType<Created<SecretResource>>(result);
         Assert.Equal("secret-1", created.Value?.SecretId);
         Assert.Equal("secret-ct", httpContext.Response.Headers.ETag);
+        VerifyTenantChanged(settingsChanged: false);
     }
 
     [Fact]
@@ -1265,6 +1288,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+        VerifyTenantChanged(settingsChanged: false);
     }
 
     [Fact]
@@ -1297,6 +1321,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+        VerifyTenantChanged(settingsChanged: false);
     }
 
     [Fact]
@@ -1418,6 +1443,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.DeleteTenantAsync(httpContext, TenantId, CancellationToken.None);
 
         Assert.IsType<NoContent>(result);
+        VerifyTenantChanged(settingsChanged: false);
     }
 
     [Fact]
@@ -1792,6 +1818,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         Assert.IsType<NoContent>(result);
         Assert.Equal("https://op.example/tenant-1", validated?.Issuer);
         Assert.Equal("https://op.example/tenant-1", tenant.Issuer);
+        VerifyTenantChanged(settingsChanged: false);
     }
 
     [Fact]

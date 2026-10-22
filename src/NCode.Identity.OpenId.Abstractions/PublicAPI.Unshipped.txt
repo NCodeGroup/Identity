@@ -1094,3 +1094,5 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationSignedRespo
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationSignedResponseAlg.get -> NCode.Identity.Settings.SettingKey<string!>
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationSigningAlgValuesSupported = "authorization_signing_alg_values_supported" -> string!
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+NCode.Identity.OpenId.Tenants.ITenantResolver.GetControlPlaneTenantId() -> string!
+NCode.Identity.OpenId.Tenants.ITenantStrategy.GetControlPlaneTenantId() -> string!

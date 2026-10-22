@@ -29,11 +29,13 @@ fix is only which tenant that context carries.
    tenant that authenticates the management API whatever tenant the request addresses. A dynamic strategy returns the
    root tenant (`OpenId:TenantResolution:Root:TenantId`), creating it on demand like a request that reaches the root
    tenant's address, and `404` when it is disabled. `StaticSingle` returns its own tenant: it serves no other, so no
-   other tenant can issue the caller's token. A custom strategy decides for itself; `ITenantResolver` delegates to the
-   selected strategy.
+   other tenant can issue the caller's token. `ITenantStrategy.GetControlPlaneTenantId` names the same tenant from
+   configuration alone, without reading the store. A custom strategy decides for itself, overriding both together;
+   `ITenantResolver` delegates to the selected strategy.
 2. **The control-plane tenant is materialized like a request's tenant.**
-   `IOpenIdTenantFactory.CreateControlPlaneTenantAsync` probes the shared tenant cache, and on a miss seeds and
-   materializes the tenant through the same path as `CreateTenantForRequestAsync`
+   `IOpenIdTenantFactory.CreateControlPlaneTenantAsync` probes the shared tenant cache with `GetControlPlaneTenantId`
+   before any store round-trip, and only on a miss resolves the tenant and then seeds and materializes it through the
+   same path as `CreateTenantForRequestAsync`
    ([ADR-0166](0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)), so a tenant reached through
    the management API and through its own address shares one cache entry.
 3. **The management API publishes the control-plane context.** `IOpenIdContextFactory.CreateForControlPlaneAsync`
@@ -49,7 +51,7 @@ fix is only which tenant that context carries.
 - **A management option naming the authenticating tenant.** Rejected: the root tenant's identifier is already
   configuration, and under `StaticSingle` any tenant other than the served one could not issue a token, so a second
   setting could only be redundant or wrong. A strategy that needs another answer overrides
-  `ResolveControlPlaneTenantAsync`.
+  `GetControlPlaneTenantId` and `ResolveControlPlaneTenantAsync`.
 - **Serve the management API beneath the root tenant's route or host.** Rejected: it would tie the API's address to
   the strategy (a path prefix under `DynamicByPath`, the root host under `DynamicByHost`) and still leave the
   `manage.<apex>` host of ADR-0131 unserved.

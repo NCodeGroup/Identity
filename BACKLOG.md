@@ -437,8 +437,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
 - **`R11` — Match redirect URIs exactly and cap loopback redirects under FAPI.** _pre._ The query is not compared,
   `allow_loopback_redirect` defaults to `true`, and the response writer keeps request-supplied query parameters.
   Touch points: `DefaultAuthorizationEndpointHandler.cs:354-363`, `AuthorizationResponseWriter.cs:80-81`.
-- **`R12` — Require `nonce` (with `openid`) or `state` under `fapi1-advanced`.** Touch point:
-  `DefaultValidateAuthorizationRequestHandler.cs:285-289, 325-331`.
 - **`R14` — Close the gaps in `ExpandOnlyRule`.** It ignores raw SQL, allows nullable→required with a default (a test
   asserts it), and misses new unique indexes, foreign keys, and check constraints on existing tables. Touch points:
   `ExpandOnlyRule.cs:30, 98`, `ExpandOnlyRuleTests.cs:195, 326`.

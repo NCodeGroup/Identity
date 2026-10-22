@@ -2688,3 +2688,9 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `requests`/`requests_overage` after the endpoint runs unless the request was refused, so a per-client-limit or
   token-quota refusal is not billed. An integration test fails (3 recorded, 2 expected) without the check. ADR-0199 §2
   and ADR-0200 updated._
+
+- **`R12` — Require `nonce` (with `openid`) or `state` under `fapi1-advanced`.** Touch point:
+  `DefaultValidateAuthorizationRequestHandler.cs:285-289, 325-331`. _Closed: `Fapi1AdvancedSecurityProfile` composes a
+  new `NonceOrStateRequirement` (an authorization-request profile requirement) that refuses with `invalid_request` an
+  `openid` request without `nonce` and any other request without `state` (§5.2.2.2, §5.2.2.3). Unit tests cover both
+  branches; ADR-0202 decision 5 updated._

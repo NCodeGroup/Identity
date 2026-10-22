@@ -161,6 +161,56 @@ internal class ClientStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedClientSettings>> GetSettingsPageAsync(
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var query = DbContext.Clients.AsNoTracking();
+
+        if (DecodeCursor(page.Cursor) is { } afterId)
+        {
+            query = query.Where(client => client.Id > afterId);
+        }
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var rows = await query
+            .OrderBy(client => client.Id)
+            .Take(page.Limit + 1)
+            .Select(client => new
+            {
+                client.Id,
+                TenantId = client.Tenant.TenantId,
+                client.ClientId,
+                client.SettingsConcurrencyToken,
+                client.SettingsJson,
+            })
+            .ToListAsync(cancellationToken);
+
+        var hasMore = rows.Count > page.Limit;
+        var count = hasMore ? page.Limit : rows.Count;
+
+        var items = new List<PersistedClientSettings>(count);
+        for (var index = 0; index < count; index++)
+        {
+            var row = rows[index];
+            items.Add(
+                new PersistedClientSettings
+                {
+                    TenantId = row.TenantId,
+                    ClientId = row.ClientId,
+                    ConcurrencyToken = row.SettingsConcurrencyToken,
+                    Value = row.SettingsJson,
+                }
+            );
+        }
+
+        var nextCursor = hasMore ? EncodeCursor(rows[count - 1].Id) : null;
+
+        return new PagedResult<PersistedClientSettings> { Items = items, NextCursor = nextCursor };
+    }
+
+    /// <inheritdoc />
     public async ValueTask<PagedResult<PersistedClient>> GetPageByResourceServerAsync(
         string resourceServerId,
         PageRequest page,

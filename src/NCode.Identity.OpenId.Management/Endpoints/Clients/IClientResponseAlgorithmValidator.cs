@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Text.Json;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 
@@ -38,7 +37,6 @@ internal interface IClientResponseAlgorithmValidator
     /// <param name="tenantId">The identifier of the OpenID Tenant whose clients to check.</param>
     /// <param name="currentTenantSettings">The tenant's effective settings before the change.</param>
     /// <param name="newTenantSettings">The tenant's effective settings after the change.</param>
-    /// <param name="jsonOptions">The <see cref="JsonSerializerOptions"/> used to read each client's settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ClientResponseAlgorithmFinding"/> instances, or an empty list.</returns>
     ValueTask<IReadOnlyList<ClientResponseAlgorithmFinding>> FindIntroducedViolationsAsync(
@@ -46,7 +44,6 @@ internal interface IClientResponseAlgorithmValidator
         string tenantId,
         IReadOnlySettingCollection currentTenantSettings,
         IReadOnlySettingCollection newTenantSettings,
-        JsonSerializerOptions jsonOptions,
         CancellationToken cancellationToken
     );
 }

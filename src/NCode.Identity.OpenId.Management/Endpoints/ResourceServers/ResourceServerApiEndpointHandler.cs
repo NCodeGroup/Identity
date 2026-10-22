@@ -37,7 +37,6 @@ using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -92,8 +91,7 @@ internal class ResourceServerApiEndpointHandler(
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
-    IOpenIdServerProvider serverProvider,
-    ISecurityProfileCatalog securityProfileCatalog,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ResourceServerApiEndpointHandler> logger
@@ -111,8 +109,8 @@ internal class ResourceServerApiEndpointHandler(
 
     private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
         settingScopeCollectionProvider;
-    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
-    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -899,11 +897,10 @@ internal class ResourceServerApiEndpointHandler(
     /// Merges a resource server's persisted settings onto the addressed tenant's effective settings, producing the same
     /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves at runtime (server baseline
     /// merged with the tenant's — expanded with the ceilings of the security profiles it selects — and then the resource
-    /// server's persisted overrides). A resource server selects no security profile, so its document is merged
-    /// unexpanded (ADR-0149).
+    /// server's persisted overrides). Every document is read through the <see cref="IEffectiveSettingsResolver"/>
+    /// (ADR-0204); a resource server selects no security profile, so its document adds none (ADR-0149).
     /// </summary>
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeResourceServerSettingsAsync(
-        OpenIdContext openIdContext,
         string tenantId,
         PersistedResourceServer resourceServer,
         IStoreManager storeManager,
@@ -918,22 +915,17 @@ internal class ResourceServerApiEndpointHandler(
             return null;
         }
 
-        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
-
-        var tenantScopeSettings = SecurityProfileCatalog.Expand(
-            tenantSettings.Value,
+        var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var tenantEffective = EffectiveSettingsResolver.Resolve(
+            serverEffective,
             OpenIdSettingScopes.Tenant,
-            jsonOptions
+            tenantSettings.Value
         );
-        var resourceServerScopeSettings = SettingSerializer.DeserializeSettings(
-            resourceServer.Settings.Value,
+        return EffectiveSettingsResolver.Resolve(
+            tenantEffective,
             OpenIdSettingScopes.ResourceServer,
-            jsonOptions
+            resourceServer.Settings.Value
         );
-
-        var tenantEffective = server.SettingsProvider.Collection.Merge(tenantScopeSettings);
-        return tenantEffective.Merge(resourceServerScopeSettings);
     }
 
     /// <summary>
@@ -1070,9 +1062,7 @@ internal class ResourceServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var openIdContext = httpContext.GetOpenIdContext();
         var effectiveSettings = await MergeResourceServerSettingsAsync(
-            openIdContext,
             tenantId,
             resourceServer,
             storeManager,

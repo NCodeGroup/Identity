@@ -157,6 +157,9 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   `Setup(x => x.ContainsAsync(ExpiringKeys.Create("p", tenant, nonce), ct))` does not compile. Build the value into a
   local first (`var expectedKey = ExpiringKeys.Create(…);`) and match it in the setup; this also keeps the matched value
   visible in the test.
+- 👁 **Match a `JsonElement` argument by content.** `JsonElement` compares document references, and a Moq matcher is an
+  expression tree that cannot contain `out _`, so call a static helper
+  (`It.Is<JsonElement>(e => HasProperty(e, "foo"))`).
 
 ## Persistence & integration tests
 
@@ -262,3 +265,5 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   (`JwtEncoderOptions.EnsureTokenLifetime`, on by default) injects a default `iat` / `nbf` / `exp` and overwrites a
   non-integer `iat`, so a test of lifetime validation (an absent, malformed, or far-off time claim) must encode its
   payload with `IJoseSerializer.CreateEncoder(new JoseSigningOptions(credentials)).Encode(payload)`.
+- 👁 **Assert a background job's effect by polling with a deadline** (a `Stopwatch`, 100 ms steps, about 15 s), never
+  with a fixed delay (`TenantKeyProvisioningTests.WaitForSecretIdsAsync`).

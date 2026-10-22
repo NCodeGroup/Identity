@@ -32,4 +32,11 @@ internal interface IValkeyConnection
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="IDatabase"/> to issue commands against.</returns>
     ValueTask<IDatabase> GetDatabaseAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the subscriber of the one connection, connecting on first use.
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ISubscriber"/> to publish and subscribe with.</returns>
+    ValueTask<ISubscriber> GetSubscriberAsync(CancellationToken cancellationToken);
 }

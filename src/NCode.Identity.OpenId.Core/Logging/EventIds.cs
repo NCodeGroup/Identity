@@ -36,4 +36,8 @@ internal static class EventIds
     public const int ServerSettingsReloadRejected = Base + 3;
 
     public const int TenantKeyProvisioned = Base + 4;
+
+    public const int TenantKeyReseedFailed = Base + 5;
+
+    public const int TenantChangeBroadcastFailed = Base + 6;
 }

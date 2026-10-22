@@ -47,6 +47,8 @@ internal sealed class ValkeySharedStateMetrics
 
     internal const string KeySetContainsOperation = "key_set.contains";
 
+    internal const string BroadcastPublishOperation = "broadcast.publish";
+
     // A round trip to a nearby server takes well under a millisecond, so the buckets resolve the sub-millisecond range
     // and still bound a stalled call.
     private static IReadOnlyList<double> BucketBoundaries { get; } =

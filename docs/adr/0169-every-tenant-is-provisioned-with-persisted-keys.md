@@ -86,8 +86,9 @@ key for. The server generates keys only to fill those gaps; it never removes, re
    open vocabulary): by default, the lists the tenant signs ID tokens, UserInfo responses, introspection responses,
    JWT-secured authorization responses (JARM, `authorization_signing_alg_values_supported`), and access tokens with,
    and the key-management lists it decrypts request objects and access tokens encrypted to it with.
-   - The settings materialize only after the seed, so the contributor merges the tenant's persisted document, expanded
-     through its security profiles, onto the server's settings, as the materialized tenant does.
+   - The settings materialize only after the seed, so the contributor resolves the tenant's persisted document, expanded
+     through its security profiles, onto the server's committed settings through `IEffectiveSettingsResolver`
+     ([ADR-0204](0204-a-scopes-effective-settings-are-resolved-by-one-service.md)), as the materialized tenant does.
    - A `fapi2` tenant, whose lists exclude `RS256`, gets no RS256 key. A tenant that later permits a configured
      algorithm gains its key at its next seed (decision 10).
    - The configured set stays the ceiling: a client registering an algorithm outside it, such as `ES384`, still needs
@@ -105,18 +106,35 @@ key for. The server generates keys only to fill those gaps; it never removes, re
       tenant through `ITenantProvisioner`. It evicts first: a request that misses the cache afterwards materializes
       the tenant, which seeds it too.
     - Only a settings change seeds in the write. A secret delete that removed the last key for an algorithm in use
-      would otherwise get that key back before the delete returned. The next materialization still fills the gap,
-      which is what blocks deleting a provisioned tenant (backlog `R51`).
+      would otherwise get that key back before the delete returned. The next materialization still fills the gap, so
+      a provisioned tenant always holds keys, and deleting the tenant removes them (decision 11).
     - `Ephemeral` developer mode keeps one in-memory key per tenant for the life of the process, so the eviction does
       not replace the key and invalidate the tokens the tenant issued, including the administrator's own.
     - The seed runs in its own service scope, because the provisioner is scoped and a change need not be announced from
       a request. A seed failure fails the write's response, as it would fail the tenant's next materialization.
-    - Another replica keeps its cached tenant and picks the change up through its polls: the tenant's settings every
-      5 minutes and its secrets, including the key this replica provisioned, every 15. Until both polls run, that
-      replica may advertise an algorithm before it publishes the key. Delivering the change to every replica is backlog
-      `R49`.
-    - A server settings change also reaches every tenant's effective lists but announces no tenant change yet
-      (backlog `R50`).
+    - After the seed, whether or not it succeeded, the handler announces the change on the `tenant-changed` channel of
+      the replica broadcast port, so every replica evicts the tenant
+      ([ADR-0205](0205-replicas-announce-changes-through-a-broadcast-port.md)). A failed announcement is logged and
+      never fails the committed write. A replica that missed it keeps its cached tenant and picks the change up through
+      its polls: the tenant's settings every 5 minutes and its secrets, including the key this replica provisioned,
+      every 15.
+    - A server settings change also reaches every tenant's effective lists. After it commits, the server PATCH sends a
+      `ServerSettingsChangedCommand` that carries the previous and the new settings document. Its handler compares the
+      server's effective settings list by list and, when some algorithm list gained a configured algorithm, dispatches
+      a `TenantKeyReseedJob` through `IJobDispatcher`. The job runs outside the request. It pages the tenants and, for
+      each one whose effective lists newly name one of those algorithms, sends a `TenantChangedCommand` with
+      `SettingsChanged`, which evicts, seeds, and announces the tenant. A failure for one tenant is logged and the job
+      continues, so nothing proportional to the number of tenants runs in the request. A server list that is lifted,
+      set in the previous document and unset in the one that follows, counts as gaining every configured algorithm the
+      previous list did not name, because an unset list is unrestricted for a tenant's own list; the job still decides
+      tenant by tenant. The job runs on the in-process dispatcher of the replica that handled the PATCH, so it
+      does not survive a restart or a shutdown, and a tenant it had not reached is seeded the next time it is
+      materialized; a replica that keeps that tenant cached waits for that (backlog `R61`).
+11. **A tenant's keys are part of the tenant.** Provisioning gives every tenant keys, and those keys serve only that
+    tenant, so they must not make the tenant impossible to delete. Deleting a tenant therefore removes its secrets, its
+    system resource servers with their scopes and secrets, and the role assignments recorded in it, in one unit of
+    work. Only a client or a resource server the tenant did not seed blocks the delete (`409 Conflict`): those are
+    records an operator created, and the delete would otherwise destroy them.
 
 ## Options considered
 
@@ -141,6 +159,8 @@ key for. The server generates keys only to fill those gaps; it never removes, re
 - **Re-seed when a replica's settings poll sees a change.** Rejected: the poll runs outside a request on every replica,
   so each would race to seed the same tenant, and the new key would still wait for the secrets poll. The replica that
   makes the change seeds once, at the moment it commits.
+- **Skip seeding a tenant being deleted.** Rejected: it needs a tombstone state that every seed path checks, and the
+  system resource server and ownership rows would still block the delete.
 
 ## Consequences
 
@@ -161,7 +181,9 @@ key for. The server generates keys only to fill those gaps; it never removes, re
   - `AddDeveloperSigningKey` is `AddPersistentDeveloperKeys`, and it registers only the pruning contributor.
   - `Ephemeral` mode turns provisioning off.
   - `OpenIdTenantOptions` gains `KeyProvisioning`.
-  - `TenantKeySeedHandler` reads the server and the security profile catalog to compute the tenant's settings.
+  - `TenantKeySeedHandler` reads `IEffectiveSettingsResolver` to compute the tenant's settings.
+  - `TenantChangedHandler` needs an `IReplicaBroadcaster` to announce the change.
+  - `NCode.Identity.OpenId.Core` references the Dispatch and SharedState abstractions.
   - `IOpenIdTenantCache` gains `RemoveAsync`, so a custom cache must implement eviction.
 
 ## References

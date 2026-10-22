@@ -72,4 +72,26 @@ internal static partial class Log
         string algorithm,
         string secretId
     );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyReseedFailed,
+        Level = LogLevel.Warning,
+        Message = "Re-seeding the tenant '{TenantId}' after a server settings change failed; it is seeded again when it is next materialized"
+    )]
+    internal static partial void TenantKeyReseedFailed(
+        this ILogger logger,
+        string tenantId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantChangeBroadcastFailed,
+        Level = LogLevel.Warning,
+        Message = "Announcing the change to tenant '{TenantId}' to the other replicas failed; they pick it up through their polls"
+    )]
+    internal static partial void TenantChangeBroadcastFailed(
+        this ILogger logger,
+        string tenantId,
+        Exception exception
+    );
 }

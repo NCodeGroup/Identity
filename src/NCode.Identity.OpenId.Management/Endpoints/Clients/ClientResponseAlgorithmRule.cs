@@ -101,6 +101,65 @@ internal static class ClientResponseAlgorithmRule
         return violations;
     }
 
+    /// <summary>
+    /// Determines whether a change from <paramref name="previous"/> to <paramref name="current"/> changes the effective
+    /// value of a setting this rule reads, so that a change that does not can skip checking every client (backlog R21).
+    /// A list is compared ignoring order.
+    /// </summary>
+    /// <param name="previous">The effective settings before the change.</param>
+    /// <param name="current">The effective settings after the change.</param>
+    /// <returns><c>true</c> when a setting this rule reads has a different effective value.</returns>
+    public static bool ReadsChangedSetting(
+        IReadOnlySettingCollection previous,
+        IReadOnlySettingCollection current
+    ) =>
+        Responses.Any(response =>
+            ValueChanged(previous, current, response.SignedResponseAlg)
+            || ValueChanged(previous, current, response.EncryptedResponseAlg)
+            || ValueChanged(previous, current, response.EncryptedResponseEnc)
+            || ListChanged(previous, current, response.SigningAlgValuesSupported)
+            || ListChanged(previous, current, response.EncryptionAlgValuesSupported)
+            || ListChanged(previous, current, response.EncryptionEncValuesSupported)
+        );
+
+    /// <summary>
+    /// Determines whether the effective value of a single-valued setting differs, including a setting that is set in
+    /// only one of the collections.
+    /// </summary>
+    private static bool ValueChanged(
+        IReadOnlySettingCollection previous,
+        IReadOnlySettingCollection current,
+        SettingKey<string> key
+    )
+    {
+        if (!previous.TryGetValue(key, out var previousValue))
+        {
+            return current.TryGetValue(key, out _);
+        }
+
+        return !current.TryGetValue(key, out var currentValue)
+            || !string.Equals(previousValue, currentValue, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Determines whether the effective value of a list setting differs, ignoring order, including a setting that is
+    /// set in only one of the collections.
+    /// </summary>
+    private static bool ListChanged(
+        IReadOnlySettingCollection previous,
+        IReadOnlySettingCollection current,
+        SettingKey<IReadOnlyCollection<string>> key
+    )
+    {
+        if (!previous.TryGetValue(key, out var previousValues))
+        {
+            return current.TryGetValue(key, out _);
+        }
+
+        return !current.TryGetValue(key, out var currentValues)
+            || !previousValues.ToHashSet(StringComparer.Ordinal).SetEquals(currentValues);
+    }
+
     private static void AddIfNotPermitted(
         List<ClientResponseAlgorithmViolation> violations,
         IReadOnlySettingCollection settings,

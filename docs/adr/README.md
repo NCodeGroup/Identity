@@ -239,3 +239,5 @@ standards.
 | [0201](./0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md) | Authorization responses are delivered by registered response-mode handlers | Accepted |
 | [0202](./0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md) | FAPI 1.0 Advanced is a second registered security profile | Accepted |
 | [0203](./0203-redirect-uris-are-matched-exactly.md) | Redirect URIs are matched exactly | Accepted |
+| [0204](./0204-a-scopes-effective-settings-are-resolved-by-one-service.md) | A scope's effective settings are resolved by one service | Accepted |
+| [0205](./0205-replicas-announce-changes-through-a-broadcast-port.md) | Replicas announce changes through a broadcast port | Accepted |

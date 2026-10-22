@@ -127,6 +127,9 @@ never compresses.**
   write. A seeded client — including one the conformance seeder reads from configuration — registers no response
   algorithm, so it can only inherit a mismatch from the tenant or server settings above it, which their writes check.
   A change to the host's configured settings is not checked against clients; issuance remains the backstop.
+- A server or tenant settings change checks clients only when a setting the rule reads changed, and it reads the
+  tenants and clients as untracked, secret-free projections, so a change to an unrelated setting costs no client walk
+  (backlog `R21`).
 - A relying party that called UserInfo with only the end-user's session cookie must present an access token.
 - A dynamically registered client can narrow its assertion algorithm and use CIBA without the management API. Its
   `backchannel_token_delivery_mode` is checked against the tenant's `backchannel_token_delivery_modes_supported`; its

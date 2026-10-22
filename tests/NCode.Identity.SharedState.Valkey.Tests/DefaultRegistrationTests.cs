@@ -19,6 +19,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.SharedState.Valkey.Facades;
 using NCode.Identity.SharedState.Valkey.Options;
@@ -34,10 +35,13 @@ public sealed class DefaultRegistrationTests : BaseTests
 
     private IExpiringCounterSet CounterAdapterRegisteredBefore { get; }
 
+    private IReplicaBroadcaster BroadcasterRegisteredBefore { get; }
+
     public DefaultRegistrationTests()
     {
         AdapterRegisteredBefore = CreateStrictMock<IExpiringKeySet>().Object;
         CounterAdapterRegisteredBefore = CreateStrictMock<IExpiringCounterSet>().Object;
+        BroadcasterRegisteredBefore = CreateStrictMock<IReplicaBroadcaster>().Object;
     }
 
     private static IConfiguration CreateConfiguration(
@@ -52,6 +56,7 @@ public sealed class DefaultRegistrationTests : BaseTests
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton(AdapterRegisteredBefore);
         serviceCollection.AddSingleton(CounterAdapterRegisteredBefore);
+        serviceCollection.AddSingleton(BroadcasterRegisteredBefore);
         serviceCollection.AddSharedStateServices().AddValkey(configuration);
         return serviceCollection;
     }
@@ -70,6 +75,35 @@ public sealed class DefaultRegistrationTests : BaseTests
         Assert.IsType<ValkeyExpiringKeySet>(Assert.Single(provider.GetServices<IExpiringKeySet>()));
         Assert.IsType<ValkeyExpiringCounterSet>(
             Assert.Single(provider.GetServices<IExpiringCounterSet>())
+        );
+    }
+
+    [Fact]
+    public async Task AddValkey_WhenConnectionStringConfigured_ReplacesTheReplicaBroadcaster()
+    {
+        var serviceCollection = AddValkey(
+            CreateConfiguration(("ConnectionStrings:valkey", ConnectionString))
+        );
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+
+        Assert.IsType<ValkeyReplicaBroadcaster>(
+            Assert.Single(provider.GetServices<IReplicaBroadcaster>())
+        );
+    }
+
+    [Fact]
+    public void AddValkey_WhenConnectionStringConfigured_RegistersTheBroadcastSubscriber()
+    {
+        var serviceCollection = AddValkey(
+            CreateConfiguration(("ConnectionStrings:valkey", ConnectionString))
+        );
+
+        Assert.Contains(
+            serviceCollection,
+            x =>
+                x.ServiceType == typeof(IHostedService)
+                && x.ImplementationType == typeof(ValkeyReplicaBroadcastSubscriber)
         );
     }
 
@@ -151,6 +185,10 @@ public sealed class DefaultRegistrationTests : BaseTests
         Assert.Same(
             CounterAdapterRegisteredBefore,
             provider.GetRequiredService<IExpiringCounterSet>()
+        );
+        Assert.Same(
+            BroadcasterRegisteredBefore,
+            provider.GetRequiredService<IReplicaBroadcaster>()
         );
         Assert.Null(provider.GetService<IValkeyConnection>());
     }

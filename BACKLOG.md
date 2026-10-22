@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R57`     | `R56`      |
+| `R` — Review findings                 | `R62`     | `R61`      |
 
 ---
 
@@ -454,6 +454,14 @@ _None remaining._
   write's eviction makes the next request on that replica, provisions the missing keys again. Treat the tenant's own
   secrets as part of the tenant (deleted with it) rather than as dependents, or skip seeding a tenant being deleted.
   Touch points: `DefaultTenantValidator.cs:197-206`, `TenantStore.cs:683-686`, `TenantKeySeedHandler.cs`.
+- **`R59` — Let a tenant or client with end-user data be deleted.** Every foreign key is `Restrict`
+  (`OpenIdDbContext.OnModelCreating`), but the stores check only some dependents. `ClientStore.RemoveAsync` checks only
+  the client's secrets, so a client with grants or consents fails `SaveChanges` with a foreign-key violation (a `500` on
+  PostgreSQL). A tenant whose clients are gone but which holds local accounts, federated principals or identities, or
+  grants fails the same way, because `TenantStore.HasDependentsAsync` checks only clients and resource servers (`R51`).
+  EF InMemory does not enforce foreign keys, so no test sees it. Decide per entity whether end-user data is deleted with
+  its owner or reported as a dependent (409), and test the deletion against a relational provider. Touch points:
+  `ClientStore.RemoveAsync`, `TenantStore.HasDependentsAsync`, `GrantEntity`, `ConsentEntity`, `LocalAccountEntity`.
 
 ### P3
 
@@ -501,6 +509,39 @@ _None remaining._
   already a string compared ordinally, so `R52` does not apply, but `TypedResults.Redirect` writes it unescaped.
   Touch points: `PrivateUseRedirectUriKind.cs`, `DefaultEndSessionHandler.cs:113-155`,
   `DefaultEndSessionEndpointProvider.cs:92-99`.
+- **`R57` — Apply a server settings change at once on every replica.** A server settings PATCH reaches each replica's
+  server settings, and through them every tenant's, only at that replica's next poll
+  (`OpenId:Server:SettingsPeriodicRefreshInterval`, 5 minutes), the writing replica included. Keys are already
+  provisioned from the committed document (ADR-0204, ADR-0169 decision 10), so the lag affects what is advertised and
+  enforced, not signing. Announce the change on the replica broadcast channel (ADR-0205) and refresh the server's polled
+  settings when it arrives. Touch points: `DefaultOpenIdServerFactory.CreateServerSettingsDataSourceAsync`,
+  `ServerApiEndpointHandler.UpdateSettingsAsync`.
+- **`R58` — Bound how long a replica serves a tenant whose change message it missed.** Valkey pub/sub delivers at most
+  once. A replica that is disconnected when a tenant change is announced (ADR-0205) keeps its cached tenant, and a busy
+  tenant's 4-hour sliding expiration keeps it there indefinitely, so a disabled, deleted, or re-addressed tenant is
+  still served on that replica. Evict every cached tenant when the broadcast subscription reconnects
+  (StackExchange.Redis `ConnectionRestored`), or give tenant cache entries an absolute lifetime. Touch points:
+  `ValkeyReplicaBroadcastSubscriber`, `DefaultOpenIdTenantCache`, `OpenIdTenantOptions`.
+- **`R60` — Name the client-authentication methods without constructing their handlers.**
+  `DefaultClientSettingDescriptorDataSource` resolves every `IClientAuthenticationHandler` to read its
+  `AuthenticationMethod`, and the setting-descriptor catalog it feeds is read by the `OpenIdOptions` validators, so
+  composing the host constructs every handler and its whole dependency graph inside options validation. A handler that
+  depends, however indirectly, on a service whose constructor reads `IOptions<OpenIdOptions>.Value` deadlocks startup
+  (seen when `DefaultOpenIdClientResolver` took `IEffectiveSettingsResolver`; the factories now read options on use).
+  Register the method vocabulary as cheap, dependency-free descriptors (ADR-0150) that the catalog reads, and check at
+  composition that each registered handler has one and each descriptor a handler. Touch points:
+  `DefaultClientSettingDescriptorDataSource.GetAuthMethods`, `Clients/DefaultRegistration.cs`,
+  `DefaultClientAuthenticationService`.
+- **`R61` — Make the tenant re-seed after a server settings change durable, bounded, and complete.**
+  `TenantKeyReseedJob` runs on the in-process dispatcher (ADR-0169 decision 10), which has three limits. (1) The queue
+  is in memory and the worker does not reschedule a cancelled job, so a restart or shutdown drops the tenants the pass
+  had not reached; they are seeded when next materialized, but a replica that keeps one cached advertises its algorithm
+  without the key until then. (2) `JobDispatchWorker` runs one job at a time, so a pass over thousands of tenants, each
+  seed possibly generating RSA keys, delays every other job behind it, back-channel logout deliveries included. (3) A
+  change to `OpenId:Server:Settings` through a configuration reload can permit an algorithm without sending
+  `ServerSettingsChangedCommand`, so no re-seed runs. Options: a durable `IJobDispatcher` adapter, a reconciliation pass
+  that seeds every tenant once at startup and after a reload, and a separate worker for bulk jobs. Touch points:
+  `TenantKeyReseedJobHandler`, `JobDispatchWorker`, `RootSettingsCollectionDataSource.HandleChange`.
 
 ### Refactor
 

@@ -5,5 +5,10 @@ NCode.Identity.SharedState.IExpiringCounterSet.IncrementAsync(string! key, Syste
 NCode.Identity.SharedState.IExpiringKeySet
 NCode.Identity.SharedState.IExpiringKeySet.ContainsAsync(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.SharedState.IExpiringKeySet.TryAddAsync(string! key, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.SharedState.IReplicaBroadcastHandler
+NCode.Identity.SharedState.IReplicaBroadcastHandler.Channel.get -> string!
+NCode.Identity.SharedState.IReplicaBroadcastHandler.HandleAsync(string! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.SharedState.IReplicaBroadcaster
+NCode.Identity.SharedState.IReplicaBroadcaster.PublishAsync(string! channel, string! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.SharedState.SharedStateLibrary
 NCode.Identity.SharedState.SharedStateLibrary.SharedStateLibrary() -> void

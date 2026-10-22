@@ -156,6 +156,54 @@ internal class TenantStore(
     protected override long GetSortKey(TenantEntity entity) => entity.Id;
 
     /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedTenantSettings>> GetSettingsPageAsync(
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var query = DbContext.Tenants.AsNoTracking();
+
+        if (DecodeCursor(page.Cursor) is { } afterId)
+        {
+            query = query.Where(tenant => tenant.Id > afterId);
+        }
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var rows = await query
+            .OrderBy(tenant => tenant.Id)
+            .Take(page.Limit + 1)
+            .Select(tenant => new
+            {
+                tenant.Id,
+                tenant.TenantId,
+                tenant.SettingsConcurrencyToken,
+                tenant.SettingsJson,
+            })
+            .ToListAsync(cancellationToken);
+
+        var hasMore = rows.Count > page.Limit;
+        var count = hasMore ? page.Limit : rows.Count;
+
+        var items = new List<PersistedTenantSettings>(count);
+        for (var index = 0; index < count; index++)
+        {
+            var row = rows[index];
+            items.Add(
+                new PersistedTenantSettings
+                {
+                    TenantId = row.TenantId,
+                    ConcurrencyToken = row.SettingsConcurrencyToken,
+                    Value = row.SettingsJson,
+                }
+            );
+        }
+
+        var nextCursor = hasMore ? EncodeCursor(rows[count - 1].Id) : null;
+
+        return new PagedResult<PersistedTenantSettings> { Items = items, NextCursor = nextCursor };
+    }
+
+    /// <inheritdoc />
     public async ValueTask<PersistedTenant?> GetOrDefaultByIssuerAsync(
         string issuer,
         CancellationToken cancellationToken
@@ -558,20 +606,46 @@ internal class TenantStore(
             return false;
         }
 
-        var hasClients = await DbContext.Clients.AnyAsync(
-            client => client.TenantId == tenantEntity.Id,
-            cancellationToken
-        );
-        var hasSecrets = await DbContext.TenantSecrets.AnyAsync(
-            tenantSecret => tenantSecret.TenantId == tenantEntity.Id,
-            cancellationToken
-        );
-        if (hasClients || hasSecrets)
+        if (await HasDependentsAsync(tenantEntity, cancellationToken))
         {
             throw new InvalidOperationException(
-                $"The OpenId Tenant with TenantId='{tenantId}' cannot be removed because it still has one or more clients or secrets."
+                $"The OpenId Tenant with TenantId='{tenantId}' cannot be removed because it still has one or more clients or resource servers."
             );
         }
+
+        // A tenant's keys and the system resources its seed provisions are part of it (ADR-0169).
+        DbContext.TenantSecrets.RemoveRange(tenantEntity.Secrets);
+        DbContext.Secrets.RemoveRange(
+            tenantEntity.Secrets.Select(tenantSecret => tenantSecret.Secret)
+        );
+
+        var systemResourceServers = await DbContext
+            .ResourceServers.IgnoreQueryFilters()
+            .Include(resourceServer => resourceServer.Scopes)
+            .Include(resourceServer => resourceServer.Secrets)
+                .ThenInclude(resourceServerSecret => resourceServerSecret.Secret)
+            .Where(resourceServer =>
+                resourceServer.TenantId == tenantEntity.Id && resourceServer.IsSystem
+            )
+            .ToListAsync(cancellationToken);
+
+        foreach (var resourceServerEntity in systemResourceServers)
+        {
+            DbContext.Scopes.RemoveRange(resourceServerEntity.Scopes);
+            DbContext.ResourceServerSecrets.RemoveRange(resourceServerEntity.Secrets);
+            DbContext.Secrets.RemoveRange(
+                resourceServerEntity.Secrets.Select(resourceServerSecret =>
+                    resourceServerSecret.Secret
+                )
+            );
+            DbContext.ResourceServers.Remove(resourceServerEntity);
+        }
+
+        var roleAssignments = await DbContext
+            .RoleAssignments.IgnoreQueryFilters()
+            .Where(roleAssignment => roleAssignment.TenantId == tenantEntity.Id)
+            .ToListAsync(cancellationToken);
+        DbContext.RoleAssignments.RemoveRange(roleAssignments);
 
         DbContext.Tenants.Remove(tenantEntity);
 
@@ -671,18 +745,32 @@ internal class TenantStore(
             return false;
         }
 
-        var hasClients = await DbContext.Clients.AnyAsync(
-            client => client.TenantId == tenantEntity.Id,
-            cancellationToken
-        );
+        return await HasDependentsAsync(tenantEntity, cancellationToken);
+    }
+
+    /// <summary>
+    /// Determines whether a tenant has clients or resource servers that block its deletion. Its secrets, its system
+    /// resource servers, and its role assignments are part of the tenant and are removed with it (ADR-0169).
+    /// </summary>
+    private async ValueTask<bool> HasDependentsAsync(
+        TenantEntity tenantEntity,
+        CancellationToken cancellationToken
+    )
+    {
+        var hasClients = await DbContext
+            .Clients.IgnoreQueryFilters()
+            .AnyAsync(client => client.TenantId == tenantEntity.Id, cancellationToken);
         if (hasClients)
         {
             return true;
         }
 
-        return await DbContext.TenantSecrets.AnyAsync(
-            tenantSecret => tenantSecret.TenantId == tenantEntity.Id,
-            cancellationToken
-        );
+        return await DbContext
+            .ResourceServers.IgnoreQueryFilters()
+            .AnyAsync(
+                resourceServer =>
+                    resourceServer.TenantId == tenantEntity.Id && !resourceServer.IsSystem,
+                cancellationToken
+            );
     }
 }

@@ -24,7 +24,6 @@ using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Persistence;
-using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.ResourceServers;
@@ -35,14 +34,15 @@ namespace NCode.Identity.OpenId.Authentication.ResourceServers;
 internal class DefaultResourceServerCredentialResolver(
     IStoreManagerFactory storeManagerFactory,
     IAmbientTenantAccessor ambientTenantAccessor,
-    ISettingSerializer settingSerializer,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
     ISecretSerializer secretSerializer,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
 ) : IResourceServerCredentialResolver
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
-    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
     private ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } =
         secretKeyCollectionProviderFactory;
@@ -180,21 +180,19 @@ internal class DefaultResourceServerCredentialResolver(
         return new ResourceServerCredentialResolution { ResourceServers = [resolved] };
     }
 
-    // A resource server's effective settings are the tenant's merged with its own, and its keys are its own secrets.
+    // A resource server's effective settings are the tenant's merged with its own, and its keys are its own secrets. Its
+    // document is read like every scope's (ADR-0204), and it selects no profile.
     private ResolvedResourceServer CreateResolvedResourceServer(
         OpenIdContext openIdContext,
         PersistedResourceServer resourceServer
     )
     {
         var tenantEffectiveSettings = openIdContext.Tenant.SettingsProvider.Collection;
-        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
 
-        var effectiveSettings = tenantEffectiveSettings.Merge(
-            SettingSerializer.DeserializeSettings(
-                resourceServer.Settings.Value,
-                OpenIdSettingScopes.ResourceServer,
-                jsonOptions
-            )
+        var effectiveSettings = EffectiveSettingsResolver.Resolve(
+            tenantEffectiveSettings,
+            OpenIdSettingScopes.ResourceServer,
+            resourceServer.Settings.Value
         );
 
         var secretsProvider = SecretKeyCollectionProviderFactory.CreateStatic(

@@ -42,9 +42,11 @@ public static class DefaultRegistration
     extension(IServiceBuilder<SharedStateLibrary> builder)
     {
         /// <summary>
-        /// Registers the Valkey <see cref="IExpiringKeySet"/> and <see cref="IExpiringCounterSet"/> adapters, in
-        /// place of any adapters registered before them, when the <c>ConnectionStrings:valkey</c> connection string
-        /// is configured, so every replica of the deployment shares one set of keys and one set of counters. The <c>Valkey</c> section binds <see cref="ValkeyOptions"/> strictly. A
+        /// Registers the Valkey <see cref="IExpiringKeySet"/>, <see cref="IExpiringCounterSet"/>, and
+        /// <see cref="IReplicaBroadcaster"/> adapters, in place of any adapters registered before them, when the
+        /// <c>ConnectionStrings:valkey</c> connection string is configured, so every replica of the deployment shares
+        /// one set of keys, one set of counters, and one broadcast channel per name. A hosted service subscribes the
+        /// replica's <see cref="IReplicaBroadcastHandler"/> handlers at startup. The <c>Valkey</c> section binds <see cref="ValkeyOptions"/> strictly. A
         /// <c>valkey</c> health check, tagged <c>ready</c>, reports whether the server answers. Without the connection
         /// string the call registers nothing and the adapters registered before it stay in force — the in-process
         /// adapters, correct only for a single replica.
@@ -98,6 +100,10 @@ public static class DefaultRegistration
 
             serviceCollection.RemoveAll<IExpiringCounterSet>();
             serviceCollection.AddSingleton<IExpiringCounterSet, ValkeyExpiringCounterSet>();
+
+            serviceCollection.RemoveAll<IReplicaBroadcaster>();
+            serviceCollection.AddSingleton<IReplicaBroadcaster, ValkeyReplicaBroadcaster>();
+            serviceCollection.AddHostedService<ValkeyReplicaBroadcastSubscriber>();
 
             serviceCollection
                 .AddHealthChecks()

@@ -488,6 +488,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
+        Assert.Contains("clients or resource servers", error.Detail, StringComparison.Ordinal);
     }
 
     [Fact]

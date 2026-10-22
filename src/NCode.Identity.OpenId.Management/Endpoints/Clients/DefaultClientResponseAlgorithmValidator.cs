@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Text.Json;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
@@ -28,18 +27,20 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 /// <summary>
 /// Provides the default implementation of <see cref="IClientResponseAlgorithmValidator"/>, which pages through the
 /// tenant's clients under an explicit tenant scope, because the control-plane endpoints that change tenant and server
-/// settings are not scoped to the tenant they address.
+/// settings are not scoped to the tenant they address. It reads each client through the untracked settings projection,
+/// which carries no secrets (backlog R21), and merges it through the <see cref="IEffectiveSettingsResolver"/>.
 /// </summary>
 internal sealed class DefaultClientResponseAlgorithmValidator(
     IAmbientTenantAccessor ambientTenantAccessor,
-    ISecurityProfileCatalog securityProfileCatalog
+    IEffectiveSettingsResolver effectiveSettingsResolver
 ) : IClientResponseAlgorithmValidator
 {
     // The number of clients read per page.
     private const int ClientPageSize = 100;
 
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
-    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
 
     /// <inheritdoc />
     public async ValueTask<
@@ -49,7 +50,6 @@ internal sealed class DefaultClientResponseAlgorithmValidator(
         string tenantId,
         IReadOnlySettingCollection currentTenantSettings,
         IReadOnlySettingCollection newTenantSettings,
-        JsonSerializerOptions jsonOptions,
         CancellationToken cancellationToken
     )
     {
@@ -61,31 +61,32 @@ internal sealed class DefaultClientResponseAlgorithmValidator(
         var page = new PageRequest { Limit = ClientPageSize };
         do
         {
-            var result = await clientStore.GetPageAsync(page, cancellationToken);
-            foreach (var client in result.Items)
+            var result = await clientStore.GetSettingsPageAsync(page, cancellationToken);
+            foreach (var clientSettings in result.Items)
             {
-                var clientSettings = SecurityProfileCatalog.Expand(
-                    client.Settings.Value,
+                var newClientSettings = EffectiveSettingsResolver.Resolve(
+                    newTenantSettings,
                     OpenIdSettingScopes.Client,
-                    jsonOptions
+                    clientSettings.Value
                 );
 
-                var violations = ClientResponseAlgorithmRule.FindViolations(
-                    newTenantSettings.Merge(clientSettings)
-                );
+                var violations = ClientResponseAlgorithmRule.FindViolations(newClientSettings);
                 if (violations.Count == 0)
                 {
                     continue;
                 }
 
-                var existing = ClientResponseAlgorithmRule.FindViolations(
-                    currentTenantSettings.Merge(clientSettings)
+                var currentClientSettings = EffectiveSettingsResolver.Resolve(
+                    currentTenantSettings,
+                    OpenIdSettingScopes.Client,
+                    clientSettings.Value
                 );
+                var existing = ClientResponseAlgorithmRule.FindViolations(currentClientSettings);
                 findings.AddRange(
                     violations
                         .Except(existing)
                         .Select(violation => new ClientResponseAlgorithmFinding(
-                            client.ClientId,
+                            clientSettings.ClientId,
                             violation
                         ))
                 );

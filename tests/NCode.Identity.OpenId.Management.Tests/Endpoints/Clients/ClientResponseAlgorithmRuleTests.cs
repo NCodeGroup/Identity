@@ -25,6 +25,8 @@ public class ClientResponseAlgorithmRuleTests
 {
     private Mock<IReadOnlySettingCollection> MockSettings { get; } = new(MockBehavior.Loose);
 
+    private Mock<IReadOnlySettingCollection> MockCurrentSettings { get; } = new(MockBehavior.Loose);
+
     #region Helpers
 
     private void SetupValue(SettingKey<string> key, string value)
@@ -37,6 +39,21 @@ public class ClientResponseAlgorithmRuleTests
     {
         IReadOnlyCollection<string>? output = values;
         MockSettings.Setup(x => x.TryGetValue(key, out output)).Returns(true);
+    }
+
+    private void SetupCurrentValue(SettingKey<string> key, string value)
+    {
+        string? output = value;
+        MockCurrentSettings.Setup(x => x.TryGetValue(key, out output)).Returns(true);
+    }
+
+    private void SetupCurrentValues(
+        SettingKey<IReadOnlyCollection<string>> key,
+        params string[] values
+    )
+    {
+        IReadOnlyCollection<string>? output = values;
+        MockCurrentSettings.Setup(x => x.TryGetValue(key, out output)).Returns(true);
     }
 
     #endregion
@@ -137,6 +154,83 @@ public class ClientResponseAlgorithmRuleTests
         var violations = ClientResponseAlgorithmRule.FindViolations(MockSettings.Object);
 
         Assert.Empty(violations);
+    }
+
+    #endregion
+
+    #region ReadsChangedSetting Tests
+
+    [Fact]
+    public void ReadsChangedSetting_WhenAPermittedListChanges_ReturnsTrue()
+    {
+        SetupValues(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, "PS256");
+        SetupCurrentValues(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, "PS256", "ES256");
+
+        var changed = ClientResponseAlgorithmRule.ReadsChangedSetting(
+            MockSettings.Object,
+            MockCurrentSettings.Object
+        );
+
+        Assert.True(changed);
+    }
+
+    [Fact]
+    public void ReadsChangedSetting_WhenARegisteredAlgorithmChanges_ReturnsTrue()
+    {
+        SetupValue(OpenIdSettingKeys.UserInfoSignedResponseAlg, "RS256");
+        SetupCurrentValue(OpenIdSettingKeys.UserInfoSignedResponseAlg, "PS256");
+
+        var changed = ClientResponseAlgorithmRule.ReadsChangedSetting(
+            MockSettings.Object,
+            MockCurrentSettings.Object
+        );
+
+        Assert.True(changed);
+    }
+
+    [Fact]
+    public void ReadsChangedSetting_WhenASettingIsRemoved_ReturnsTrue()
+    {
+        SetupValue(OpenIdSettingKeys.UserInfoEncryptedResponseAlg, "RSA-OAEP-256");
+
+        var changed = ClientResponseAlgorithmRule.ReadsChangedSetting(
+            MockSettings.Object,
+            MockCurrentSettings.Object
+        );
+
+        Assert.True(changed);
+    }
+
+    [Fact]
+    public void ReadsChangedSetting_WhenOnlyTheOrderOfAListChanges_ReturnsFalse()
+    {
+        SetupValues(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, "PS256", "ES256");
+        SetupCurrentValues(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, "ES256", "PS256");
+
+        var changed = ClientResponseAlgorithmRule.ReadsChangedSetting(
+            MockSettings.Object,
+            MockCurrentSettings.Object
+        );
+
+        Assert.False(changed);
+    }
+
+    [Fact]
+    public void ReadsChangedSetting_WhenNoSettingItReadsChanges_ReturnsFalse()
+    {
+        SetupValue(OpenIdSettingKeys.UserInfoSignedResponseAlg, "PS256");
+        SetupCurrentValue(OpenIdSettingKeys.UserInfoSignedResponseAlg, "PS256");
+        SetupValues(OpenIdSettingKeys.UserInfoSigningAlgValuesSupported, "PS256");
+        SetupCurrentValues(OpenIdSettingKeys.UserInfoSigningAlgValuesSupported, "PS256");
+        SetupValue(OpenIdSettingKeys.DefaultAcr, "urn:acr:one");
+        SetupCurrentValue(OpenIdSettingKeys.DefaultAcr, "urn:acr:two");
+
+        var changed = ClientResponseAlgorithmRule.ReadsChangedSetting(
+            MockSettings.Object,
+            MockCurrentSettings.Object
+        );
+
+        Assert.False(changed);
     }
 
     #endregion

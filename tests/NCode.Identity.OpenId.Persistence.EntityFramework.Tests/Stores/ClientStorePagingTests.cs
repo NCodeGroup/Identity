@@ -174,4 +174,57 @@ public sealed class ClientStorePagingTests : IDisposable
         Assert.Empty(page.Items);
         Assert.Null(page.NextCursor);
     }
+
+    #region GetSettingsPageAsync Tests
+
+    [Fact]
+    public async Task GetSettingsPageAsync_TraversesEveryClientExactlyOnce()
+    {
+        await SeedAsync(5);
+
+        var seen = new List<string>();
+        string? cursor = null;
+        var pageCount = 0;
+
+        do
+        {
+            var page = await _store.GetSettingsPageAsync(
+                new PageRequest { Cursor = cursor, Limit = 2 },
+                CancellationToken.None
+            );
+            Assert.True(page.Items.Count <= 2);
+            foreach (var settings in page.Items)
+            {
+                Assert.Equal(TenantId, settings.TenantId);
+                Assert.False(string.IsNullOrEmpty(settings.ConcurrencyToken));
+                seen.Add(settings.ClientId);
+            }
+            cursor = page.NextCursor;
+            pageCount++;
+        } while (cursor is not null);
+
+        Assert.Equal(3, pageCount);
+        Assert.Equal(5, seen.Count);
+        Assert.Equal(seen.Count, seen.Distinct().Count());
+        for (var index = 1; index <= 5; index++)
+        {
+            Assert.Contains($"client-{index}", seen);
+        }
+    }
+
+    [Fact]
+    public async Task GetSettingsPageAsync_ReadsWithoutTracking()
+    {
+        await SeedAsync(3);
+
+        var page = await _store.GetSettingsPageAsync(
+            new PageRequest { Limit = 10 },
+            CancellationToken.None
+        );
+
+        Assert.Equal(3, page.Items.Count);
+        Assert.Empty(_dbContext.ChangeTracker.Entries());
+    }
+
+    #endregion
 }

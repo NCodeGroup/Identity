@@ -56,7 +56,9 @@ internal class DefaultOpenIdServerFactory(
     IIdGenerator<long> idGenerator
 ) : IOpenIdServerFactory
 {
-    private OpenIdOptions Options { get; } = optionsAccessor.Value;
+    // Read on use: Value runs the OpenIdOptions validators, which construct the client-authentication handlers, which depend on this factory (ADR-0204).
+    private IOptions<OpenIdOptions> OptionsAccessor { get; } = optionsAccessor;
+    private OpenIdOptions Options => OptionsAccessor.Value;
     private IServiceProvider ServiceProvider { get; } = serviceProvider;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;

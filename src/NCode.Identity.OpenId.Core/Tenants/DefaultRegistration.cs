@@ -20,10 +20,13 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Dispatch;
 using NCode.Identity.OpenId.Core.ResourceServers;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.OpenId.Tenants.Strategies;
+using NCode.Identity.SharedState;
 using NCode.Mediator;
 using NCode.Registration;
 
@@ -99,6 +102,30 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<
                     ICommandHandler<TenantChangedCommand>,
                     TenantChangedHandler
+                >()
+            );
+
+            // A tenant change announced on the replica broadcast channel evicts the tenant from this replica's cache, so
+            // every replica serves the change rather than only the one that made it (ADR-0205).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IReplicaBroadcastHandler,
+                    TenantChangeBroadcastHandler
+                >()
+            );
+
+            // A committed server settings change that permits a configured algorithm re-seeds the tenants it affects in
+            // the background, so a server change never walks every tenant inside its request (ADR-0169, decision 10).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ServerSettingsChangedCommand>,
+                    ServerSettingsChangedTenantKeyHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Scoped<
+                    IDispatchJobHandler<TenantKeyReseedJob>,
+                    TenantKeyReseedJobHandler
                 >()
             );
             serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();

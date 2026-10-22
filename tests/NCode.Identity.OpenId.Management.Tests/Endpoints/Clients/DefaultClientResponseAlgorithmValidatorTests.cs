@@ -32,7 +32,7 @@ public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
 
     private MockRepository MockRepository { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
-    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
+    private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IClientStore> MockClientStore { get; }
     private DefaultClientResponseAlgorithmValidator Validator { get; }
@@ -41,13 +41,13 @@ public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
-        MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
+        MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockClientStore = MockRepository.Create<IClientStore>();
 
         Validator = new DefaultClientResponseAlgorithmValidator(
             MockAmbientTenantAccessor.Object,
-            MockSecurityProfileCatalog.Object
+            MockEffectiveSettingsResolver.Object
         );
     }
 
@@ -58,7 +58,7 @@ public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
 
     #region Helpers
 
-    private Mock<IDisposable> SetupClients(params PersistedClient[] clients)
+    private Mock<IDisposable> SetupClients(params PersistedClientSettings[] clients)
     {
         MockStoreManager
             .Setup(x => x.GetStore<IClientStore>())
@@ -72,34 +72,39 @@ public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
             .Returns(mockScope.Object)
             .Verifiable();
 
-        MockSecurityProfileCatalog
+        MockEffectiveSettingsResolver
             .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
+                x.Resolve(
+                    It.IsAny<IReadOnlySettingCollection>(),
                     OpenIdSettingScopes.Client,
-                    It.IsAny<JsonSerializerOptions>()
+                    It.IsAny<JsonElement>()
                 )
             )
-            .Returns(Array.Empty<Setting>());
+            .Returns((IReadOnlySettingCollection parent, string _, JsonElement _) => parent)
+            .Verifiable();
 
         // Two pages, so the validator follows the cursor rather than stopping after the first page.
         MockClientStore
             .Setup(x =>
-                x.GetPageAsync(
+                x.GetSettingsPageAsync(
                     It.Is<PageRequest>(page => page.Cursor == null),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(new PagedResult<PersistedClient> { Items = [], NextCursor = "next" })
+            .ReturnsAsync(
+                new PagedResult<PersistedClientSettings> { Items = [], NextCursor = "next" }
+            )
             .Verifiable();
         MockClientStore
             .Setup(x =>
-                x.GetPageAsync(
+                x.GetSettingsPageAsync(
                     It.Is<PageRequest>(page => page.Cursor == "next"),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(new PagedResult<PersistedClient> { Items = clients, NextCursor = null })
+            .ReturnsAsync(
+                new PagedResult<PersistedClientSettings> { Items = clients, NextCursor = null }
+            )
             .Verifiable();
 
         return mockScope;
@@ -132,27 +137,13 @@ public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
         return mockSettings.Object;
     }
 
-    private static PersistedClient CreateClient(string clientId) =>
+    private static PersistedClientSettings CreateClientSettings(string clientId) =>
         new()
         {
             TenantId = TenantId,
             ClientId = clientId,
-            ConcurrencyToken = "client-ct",
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                ConcurrencyToken = "settings-ct",
-                Value = JsonSerializer.SerializeToElement(new { }),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                ConcurrencyToken = "secrets-ct",
-                Value = [],
-            },
+            ConcurrencyToken = "settings-ct",
+            Value = JsonSerializer.SerializeToElement(new { }),
         };
 
     #endregion
@@ -162,14 +153,13 @@ public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
     [Fact]
     public async Task FindIntroducedViolationsAsync_WhenTheChangeExcludesAnAlgorithm_ReturnsTheFinding()
     {
-        SetupClients(CreateClient("client-1"));
+        SetupClients(CreateClientSettings("client-1"));
 
         var findings = await Validator.FindIntroducedViolationsAsync(
             MockStoreManager.Object,
             TenantId,
             CreateIdTokenSigningSettings("RS256", ["RS256", "PS256"]),
             CreateIdTokenSigningSettings("RS256", ["PS256"]),
-            JsonSerializerOptions.Default,
             CancellationToken.None
         );
 
@@ -188,14 +178,13 @@ public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
     [Fact]
     public async Task FindIntroducedViolationsAsync_WhenTheAlgorithmWasAlreadyExcluded_ReturnsEmpty()
     {
-        SetupClients(CreateClient("client-1"));
+        SetupClients(CreateClientSettings("client-1"));
 
         var findings = await Validator.FindIntroducedViolationsAsync(
             MockStoreManager.Object,
             TenantId,
             CreateIdTokenSigningSettings("RS256", ["PS256"]),
             CreateIdTokenSigningSettings("RS256", ["PS256"]),
-            JsonSerializerOptions.Default,
             CancellationToken.None
         );
 
@@ -205,14 +194,13 @@ public class DefaultClientResponseAlgorithmValidatorTests : IDisposable
     [Fact]
     public async Task FindIntroducedViolationsAsync_WhenTheAlgorithmStaysPermitted_ReturnsEmpty()
     {
-        SetupClients(CreateClient("client-1"));
+        SetupClients(CreateClientSettings("client-1"));
 
         var findings = await Validator.FindIntroducedViolationsAsync(
             MockStoreManager.Object,
             TenantId,
             CreateIdTokenSigningSettings("RS256", ["RS256"]),
             CreateIdTokenSigningSettings("RS256", ["RS256", "PS256"]),
-            JsonSerializerOptions.Default,
             CancellationToken.None
         );
 

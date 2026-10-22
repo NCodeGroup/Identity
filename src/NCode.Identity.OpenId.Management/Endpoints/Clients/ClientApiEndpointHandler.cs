@@ -38,7 +38,6 @@ using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
@@ -85,8 +84,7 @@ internal class ClientApiEndpointHandler(
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
-    IOpenIdServerProvider serverProvider,
-    ISecurityProfileCatalog securityProfileCatalog,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
     IRedirectUriKindCatalog redirectUriKindCatalog,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
@@ -106,8 +104,8 @@ internal class ClientApiEndpointHandler(
 
     private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
         settingScopeCollectionProvider;
-    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
-    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
     private IRedirectUriKindCatalog RedirectUriKindCatalog { get; } = redirectUriKindCatalog;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
@@ -218,11 +216,11 @@ internal class ClientApiEndpointHandler(
     /// <summary>
     /// Merges an OpenID Client's persisted settings onto the addressed tenant's effective settings, producing the same
     /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the client at runtime.
-    /// The tenant's effective view is reconstructed by id (the server baseline merged with the tenant's persisted
-    /// overrides), so the preview is independent of the request's resolved tenant. Both the tenant's and the client's
-    /// settings are expanded with the ceilings of the security profiles they select, as they are at runtime.
+    /// The tenant's effective view is reconstructed by id (the server's committed settings merged with the tenant's
+    /// persisted overrides), so the preview is independent of the request's resolved tenant. Both the tenant's and the
+    /// client's settings are resolved through the <see cref="IEffectiveSettingsResolver"/> (ADR-0204), so each is
+    /// expanded with the ceilings of the security profiles it selects, as it is at runtime.
     /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
     /// <param name="clientSettings">The client's settings document to merge.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
@@ -230,7 +228,6 @@ internal class ClientApiEndpointHandler(
     /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the owning tenant's
     /// settings are absent.</returns>
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeClientSettingsAsync(
-        OpenIdContext openIdContext,
         string tenantId,
         JsonElement clientSettings,
         IStoreManager storeManager,
@@ -245,21 +242,17 @@ internal class ClientApiEndpointHandler(
             return null;
         }
 
-        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
-        var tenantScopeSettings = SecurityProfileCatalog.Expand(
-            tenantSettings.Value,
+        var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var tenantEffective = EffectiveSettingsResolver.Resolve(
+            serverEffective,
             OpenIdSettingScopes.Tenant,
-            jsonOptions
+            tenantSettings.Value
         );
-        var clientScopeSettings = SecurityProfileCatalog.Expand(
-            clientSettings,
+        return EffectiveSettingsResolver.Resolve(
+            tenantEffective,
             OpenIdSettingScopes.Client,
-            jsonOptions
+            clientSettings
         );
-
-        var tenantEffective = server.SettingsProvider.Collection.Merge(tenantScopeSettings);
-        return tenantEffective.Merge(clientScopeSettings);
     }
 
     /// <summary>
@@ -269,7 +262,6 @@ internal class ClientApiEndpointHandler(
     /// are written instead of failing every issuance with <c>server_error</c> or every authorization request with
     /// <c>invalid_request</c>.
     /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
     /// <param name="clientSettings">The client's settings document to verify.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
@@ -278,7 +270,6 @@ internal class ClientApiEndpointHandler(
     /// empty list.</returns>
     // See ADR-0155 and ADR-0203.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateEffectiveSettingsAsync(
-        OpenIdContext openIdContext,
         string tenantId,
         JsonElement clientSettings,
         IStoreManager storeManager,
@@ -286,7 +277,6 @@ internal class ClientApiEndpointHandler(
     )
     {
         var effectiveSettings = await MergeClientSettingsAsync(
-            openIdContext,
             tenantId,
             clientSettings,
             storeManager,
@@ -533,7 +523,6 @@ internal class ClientApiEndpointHandler(
         }
 
         var effectiveSettingErrors = await ValidateEffectiveSettingsAsync(
-            openIdContext,
             tenantId,
             client.Settings.Value,
             storeManager,
@@ -757,9 +746,7 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var openIdContext = httpContext.GetOpenIdContext();
         var effectiveSettings = await MergeClientSettingsAsync(
-            openIdContext,
             tenantId,
             client.Settings.Value,
             storeManager,
@@ -861,7 +848,6 @@ internal class ClientApiEndpointHandler(
         }
 
         var effectiveSettingErrors = await ValidateEffectiveSettingsAsync(
-            httpContext.GetOpenIdContext(),
             client.TenantId,
             settingsValue,
             storeManager,

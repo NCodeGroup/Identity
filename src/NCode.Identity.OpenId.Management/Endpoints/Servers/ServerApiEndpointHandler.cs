@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
@@ -42,6 +43,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 using SystemTextJsonPatch;
@@ -81,8 +83,7 @@ internal class ServerApiEndpointHandler(
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
-    IOpenIdServerProvider serverProvider,
-    ISecurityProfileCatalog securityProfileCatalog,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
     IClientResponseAlgorithmValidator clientResponseAlgorithmValidator,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ServerApiEndpointHandler> logger
@@ -102,8 +103,8 @@ internal class ServerApiEndpointHandler(
 
     private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
         settingScopeCollectionProvider;
-    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
-    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
 
     private IClientResponseAlgorithmValidator ClientResponseAlgorithmValidator { get; } =
         clientResponseAlgorithmValidator;
@@ -525,13 +526,15 @@ internal class ServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var openIdContext = httpContext.GetOpenIdContext();
-        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
+        var effectiveSettings = await EffectiveSettingsResolver.ResolveServerAsync(
+            serverSettings.Value,
+            cancellationToken
+        );
 
         // Authorize like the raw settings read (against the persisted settings); the body is the resolved view.
         return await ProcessGetAsync(
             httpContext,
-            server.SettingsProvider.Collection,
+            effectiveSettings,
             authorizationResource: serverSettings,
             Operations.Read,
             settings => ToServerEffectiveSettingsResource(serverId, settings)
@@ -638,23 +641,48 @@ internal class ServerApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
-        var algorithmErrors = await ValidateClientResponseAlgorithmsAsync(
-            httpContext.GetOpenIdContext(),
+        var currentServerSettings = await EffectiveSettingsResolver.ResolveServerAsync(
             serverSettings.Value,
-            settingsValue,
-            storeManager,
             cancellationToken
         );
-        if (algorithmErrors.Count > 0)
+        var newServerSettings = await EffectiveSettingsResolver.ResolveServerAsync(
+            settingsValue,
+            cancellationToken
+        );
+
+        if (
+            ClientResponseAlgorithmRule.ReadsChangedSetting(
+                currentServerSettings,
+                newServerSettings
+            )
+        )
         {
-            return SettingsValidationProblem(algorithmErrors);
+            var algorithmErrors = await ValidateClientResponseAlgorithmsAsync(
+                currentServerSettings,
+                newServerSettings,
+                storeManager,
+                cancellationToken
+            );
+            if (algorithmErrors.Count > 0)
+            {
+                return SettingsValidationProblem(algorithmErrors);
+            }
         }
 
+        var previousSettings = serverSettings.Value;
         serverSettings.Value = settingsValue;
 
         await store.UpdateSettingsAsync(serverSettings, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        await NotifyServerSettingsChangedAsync(
+            httpContext,
+            serverId,
+            previousSettings,
+            settingsValue,
+            cancellationToken
+        );
 
         httpContext.Response.Headers.ETag = serverSettings.ConcurrencyToken;
 
@@ -664,11 +692,14 @@ internal class ServerApiEndpointHandler(
     /// <summary>
     /// Verifies that replacing the server's settings document leaves every algorithm each client of every tenant
     /// registers for the JWTs addressed to it permitted (<see cref="IClientResponseAlgorithmValidator"/>). The current
-    /// and new documents are each merged onto the server's configured settings, and each tenant's document onto both.
+    /// and new server settings are each resolved through the <see cref="IEffectiveSettingsResolver"/>, and each
+    /// tenant's document is resolved onto both (ADR-0204). The tenants are read as an untracked, secret-free
+    /// projection (<see cref="ITenantStore.GetSettingsPageAsync"/>), and the walk runs only when the effective value
+    /// of a setting the check reads changed (<see cref="ClientResponseAlgorithmRule.ReadsChangedSetting"/>, backlog
+    /// R21).
     /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
-    /// <param name="currentSettings">The server's current settings document.</param>
-    /// <param name="newSettings">The server's new settings document.</param>
+    /// <param name="currentServerSettings">The server's effective settings with its current settings document.</param>
+    /// <param name="newServerSettings">The server's effective settings with its new settings document.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to page through the tenants and their clients.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="SettingError"/> instances, keyed by the server setting that excludes each algorithm, or an
@@ -677,51 +708,44 @@ internal class ServerApiEndpointHandler(
     internal virtual async ValueTask<
         IReadOnlyList<SettingError>
     > ValidateClientResponseAlgorithmsAsync(
-        OpenIdContext openIdContext,
-        JsonElement currentSettings,
-        JsonElement newSettings,
+        IReadOnlySettingCollection currentServerSettings,
+        IReadOnlySettingCollection newServerSettings,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
-        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
-        var configuredSettings = server.ConfiguredSettingsProvider.Collection;
-        var currentServerSettings = configuredSettings.Merge(
-            SecurityProfileCatalog.Expand(currentSettings, OpenIdSettingScopes.Server, jsonOptions)
-        );
-        var newServerSettings = configuredSettings.Merge(
-            SecurityProfileCatalog.Expand(newSettings, OpenIdSettingScopes.Server, jsonOptions)
-        );
-
         List<SettingError> errors = [];
         var tenantStore = storeManager.GetStore<ITenantStore>();
 
         var page = new PageRequest { Limit = TenantPageSize };
         do
         {
-            var result = await tenantStore.GetPageAsync(page, cancellationToken);
-            foreach (var tenant in result.Items)
+            var result = await tenantStore.GetSettingsPageAsync(page, cancellationToken);
+            foreach (var tenantSettings in result.Items)
             {
-                var tenantSettings = SecurityProfileCatalog.Expand(
-                    tenant.Settings.Value,
+                var currentTenantSettings = EffectiveSettingsResolver.Resolve(
+                    currentServerSettings,
                     OpenIdSettingScopes.Tenant,
-                    jsonOptions
+                    tenantSettings.Value
+                );
+                var newTenantSettings = EffectiveSettingsResolver.Resolve(
+                    newServerSettings,
+                    OpenIdSettingScopes.Tenant,
+                    tenantSettings.Value
                 );
 
                 var findings = await ClientResponseAlgorithmValidator.FindIntroducedViolationsAsync(
                     storeManager,
-                    tenant.TenantId,
-                    currentServerSettings.Merge(tenantSettings),
-                    newServerSettings.Merge(tenantSettings),
-                    jsonOptions,
+                    tenantSettings.TenantId,
+                    currentTenantSettings,
+                    newTenantSettings,
                     cancellationToken
                 );
 
                 errors.AddRange(
                     findings.Select(finding => new SettingError(
                         finding.Violation.PermittedKey.SettingName,
-                        $"The client '{finding.ClientId}' of tenant '{tenant.TenantId}' registers "
+                        $"The client '{finding.ClientId}' of tenant '{tenantSettings.TenantId}' registers "
                             + $"'{finding.Violation.RegisteredKey.SettingName}' value '{finding.Violation.Value}', "
                             + "which the server's effective "
                             + $"'{finding.Violation.PermittedKey.SettingName}' would not permit."
@@ -1150,5 +1174,23 @@ internal class ServerApiEndpointHandler(
         );
 
         return TypedResults.NoContent();
+    }
+
+    // Announces a committed change to the server's settings document, so every handler of the change (the default one
+    // re-seeds the tenants whose keys the new settings require) runs after the write (ADR-0169). The mediator is
+    // request-scoped, so it is resolved from the request's services.
+    private static ValueTask NotifyServerSettingsChangedAsync(
+        HttpContext httpContext,
+        string serverId,
+        JsonElement previousSettings,
+        JsonElement settings,
+        CancellationToken cancellationToken
+    )
+    {
+        var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
+        return mediator.SendAsync(
+            new ServerSettingsChangedCommand(serverId, previousSettings.Clone(), settings.Clone()),
+            cancellationToken
+        );
     }
 }

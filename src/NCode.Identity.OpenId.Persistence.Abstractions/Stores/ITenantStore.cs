@@ -27,6 +27,7 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 /// <summary>
 /// Provides an abstraction for a store which persists <see cref="PersistedTenant"/> instances.
 /// </summary>
+// See ADR-0169 (a tenant's keys and its system resources are part of the tenant and are removed with it).
 [PublicAPI]
 public interface ITenantStore : IStore<PersistedTenant>
 {
@@ -39,6 +40,23 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
     /// <see cref="PersistedTenant"/> instances and the cursor for the next page.</returns>
     ValueTask<PagedResult<PersistedTenant>> GetPageAsync(
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Gets a single page of every tenant's <see cref="PersistedTenantSettings"/> document ordered by the tenant's
+    /// identifier, using keyset (cursor) pagination.
+    /// </summary>
+    /// <remarks>
+    /// The settings are read without the tenant's secrets and without change tracking, for a pass over every tenant's
+    /// settings.
+    /// </remarks>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
+    /// <see cref="PersistedTenantSettings"/> instances and the cursor for the next page.</returns>
+    ValueTask<PagedResult<PersistedTenantSettings>> GetSettingsPageAsync(
         PageRequest page,
         CancellationToken cancellationToken
     );
@@ -222,10 +240,12 @@ public interface ITenantStore : IStore<PersistedTenant>
     );
 
     /// <summary>
-    /// Removes an OpenId Tenant from the store. The removal is rejected while the tenant still has dependent
-    /// child resources (any clients or secrets); those dependents must be removed first.
+    /// Removes an OpenId Tenant from the store. The removal is rejected while the tenant still has dependents: its
+    /// clients and the resource servers created in it, which must be removed first.
     /// </summary>
     /// <remarks>
+    /// A tenant's secrets, its system resource servers (with their scopes and secrets), and its role assignments are
+    /// part of the tenant and are removed with it in the same unit of work.
     /// Removing a tenant retires its identifier and its issuer in the same unit of work, so neither is reissued
     /// (ADR-0189). Changing a tenant's issuer through <c>UpdateAsync</c> likewise retires the issuer it gave up.
     /// </remarks>
@@ -233,17 +253,18 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
     /// if the tenant was removed; otherwise <c>false</c> when no matching tenant existed.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the tenant still has dependent child resources.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the tenant still has clients or resource servers.</exception>
     ValueTask<bool> RemoveAsync(string tenantId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Determines whether an OpenId Tenant still has dependent child resources (any clients or secrets) that
-    /// would block its removal.
+    /// Determines whether an OpenId Tenant still has dependents (its clients, or the resource servers created in it)
+    /// that would block its removal. Its secrets, its system resource servers, and its role assignments are part of the
+    /// tenant and are not dependents.
     /// </summary>
     /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
-    /// when the tenant has dependent child resources; otherwise <c>false</c> (including when no such tenant exists).</returns>
+    /// when the tenant has dependents; otherwise <c>false</c> (including when no such tenant exists).</returns>
     ValueTask<bool> HasDependentsAsync(string tenantId, CancellationToken cancellationToken);
 
     /// <summary>

@@ -79,6 +79,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   fallback so it **would succeed** — give the tenant a key the policy permits — and pair the test with a control that
   shows the same fallback succeeding when the rule does not apply. Otherwise the refusal also happens because the
   fallback itself fails, the same error is asserted, and the test passes with the rule removed.
+- 👁 **A fix that moves a refusal earlier is proven by a request the old code deferred.** When the change is *when* a
+  request is refused (credentials checked before sign-in rather than when the response is written), send a request the
+  old code accepts and parks, for example an authorization request without `prompt=none`, which the old code answers
+  with the login challenge (`302`). A request the old code also refuses at the end passes with the fix removed.
 
 ## Isolation & mocking
 

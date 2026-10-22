@@ -151,6 +151,10 @@ rationale.
     registered data and let the catalog derive it.
   - 🚫 **No exhaustive `switch` over an open vocabulary to choose behavior** — dispatch to the strategy registered for
     the name.
+  - 🚫 **No trait inferred from a member's name.** A suffix or prefix test such as `EndsWith(".jwt")` is a
+    hard-coded relationship too. The registered strategy declares the trait
+    (`IAuthorizationResponseModeHandler.SecuredResponseMode`), and the catalog validates it when composed
+    ([ADR-0201](../../docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md)).
   - A persisted or wire value is its string name, never an ordinal, so an older node that meets a newer member fails
     closed by name instead of misreading a number.
 

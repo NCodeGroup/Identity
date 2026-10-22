@@ -29,6 +29,10 @@ internal sealed class FormPostAuthorizationResponseModeHandler : IAuthorizationR
 {
     public string ResponseMode => OpenIdConstants.ResponseModes.FormPost;
 
+    public string? SecuredResponseMode => null;
+
+    public bool DeliversInQuery => false;
+
     public ValueTask ExecuteAsync(
         HttpContext httpContext,
         AuthorizationResult result,
@@ -37,7 +41,7 @@ internal sealed class FormPostAuthorizationResponseModeHandler : IAuthorizationR
     ) =>
         AuthorizationResponseWriter.WriteFormPostAsync(
             httpContext.Response,
-            result.RedirectUri,
+            result.Delivery.RedirectUri,
             AuthorizationResponseWriter.GetParameters(message),
             cancellationToken
         );

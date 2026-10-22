@@ -180,6 +180,38 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     }
 
     /// <summary>
+    /// Ensures the tenant exists and seeds a public client registered with the given redirect URIs and the extra
+    /// client settings.
+    /// </summary>
+    public async Task SeedPublicClientWithSettingsAsync(
+        string clientId,
+        IReadOnlyDictionary<string, object> settings,
+        params string[] redirectUris
+    )
+    {
+        // A first request forces the static tenant provider to persist the tenant entity,
+        // which ClientStore.AddAsync requires as a foreign key.
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        var allSettings = new Dictionary<string, object>(settings)
+        {
+            ["redirect_uris"] = redirectUris,
+            ["token_endpoint_auth_method"] = OpenIdConstants.ClientAuthenticationMethods.None,
+        };
+
+        using var scope = Services.CreateScope();
+        await AddClientAsync(
+            scope.ServiceProvider,
+            clientId,
+            System.Text.Json.JsonSerializer.SerializeToElement(allSettings),
+            []
+        );
+    }
+
+    /// <summary>
     /// Ensures the tenant exists and seeds a passwordless local account together with the one-to-one self-issued
     /// federated identity that a real interactive login provisions (ADR-0035), so the UserInfo scope-claims enricher
     /// can be exercised end-to-end. Returns the provisioned principal id — the value a self-issued access token carries

@@ -238,3 +238,4 @@ standards.
 | [0200](./0200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md) | A tier admits a bounded overage past its quota and bills it from the ledger | Accepted |
 | [0201](./0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md) | Authorization responses are delivered by registered response-mode handlers | Accepted |
 | [0202](./0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md) | FAPI 1.0 Advanced is a second registered security profile | Accepted |
+| [0203](./0203-redirect-uris-are-matched-exactly.md) | Redirect URIs are matched exactly | Accepted |

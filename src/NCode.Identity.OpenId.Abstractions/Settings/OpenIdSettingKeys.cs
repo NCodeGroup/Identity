@@ -135,8 +135,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.AllowedIdentityProviders);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'allow_loopback_redirect' setting.
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'allow_loopback_redirect' setting. Whether a registered
+    /// loopback IP redirect URI (<c>http://127.0.0.1</c> or <c>http://[::1]</c>) may be requested with any port
+    /// (RFC 8252 §7.3). Every other part of a redirect URI must equal a registered one exactly. Default <c>true</c>;
+    /// <c>fapi1-advanced</c> turns it off.
     /// </summary>
+    // See ADR-0203.
     public static SettingKey<bool> AllowLoopbackRedirect =>
         new(OpenIdSettingNames.AllowLoopbackRedirect);
 
@@ -371,6 +375,12 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<string> AuthorizationSignedResponseAlg =>
         new(OpenIdSettingNames.AuthorizationSignedResponseAlg);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_response_lifetime' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> AuthorizationResponseLifetime =>
+        new(OpenIdSettingNames.AuthorizationResponseLifetime);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_signing_alg_values_supported' setting.

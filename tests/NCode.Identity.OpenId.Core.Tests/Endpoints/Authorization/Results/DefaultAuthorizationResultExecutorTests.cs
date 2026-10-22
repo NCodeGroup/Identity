@@ -21,7 +21,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Core.Tests.Metrics;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages;
@@ -41,12 +43,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
 
     private static readonly Uri RedirectUri = new("https://client.example/callback");
 
-    private DefaultAuthorizationResultExecutor Executor { get; } =
-        new([
-            new QueryAuthorizationResponseModeHandler(),
-            new FragmentAuthorizationResponseModeHandler(),
-            new FormPostAuthorizationResponseModeHandler(),
-        ]);
+    private DefaultAuthorizationResultExecutor Executor { get; } = new();
 
     #region Scaffolding
 
@@ -89,7 +86,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     }
 
     private AuthorizationResult CreateResult(
-        string responseMode,
+        IAuthorizationResponseModeHandler handler,
         string normalValue = NormalValue,
         Uri? redirectUri = null
     )
@@ -105,7 +102,12 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
         mockTicket.SetupGet(x => x.OpenIdEnvironment).Returns(mockEnvironment.Object);
         mockTicket.SetupGet(x => x.Parameters).Returns(parameters);
 
-        return new AuthorizationResult(redirectUri ?? RedirectUri, responseMode, mockTicket.Object);
+        return new AuthorizationResult(
+            CreateLooseMock<OpenIdContext>().Object,
+            CreateLooseMock<OpenIdClient>().Object,
+            new AuthorizationResponseDelivery(redirectUri ?? RedirectUri, handler, State: null),
+            mockTicket.Object
+        );
     }
 
     private static async Task<string> ExecuteFormPostAsync(
@@ -129,35 +131,22 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     #region ExecuteAsync Tests
 
     [Fact]
-    public async Task ExecuteAsync_WhenNoHandlerServesTheResponseMode_Throws()
-    {
-        var result = new AuthorizationResult(
-            RedirectUri,
-            "unregistered",
-            CreateLooseMock<IAuthorizationTicket>().Object
-        );
-        var httpContext = new DefaultHttpContext();
-
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await Executor.ExecuteAsync(httpContext, result, CancellationToken.None)
-        );
-
-        Assert.Contains("'unregistered'", exception.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_WhenAHandlerServesTheResponseMode_DelegatesToIt()
+    public async Task ExecuteAsync_WhenTheResultIsDelivered_DelegatesToTheDeliverysHandler()
     {
         var ticket = CreateLooseMock<IAuthorizationTicket>().Object;
-        var result = new AuthorizationResult(RedirectUri, "custom", ticket);
-        var httpContext = new DefaultHttpContext();
         var mockHandler = CreateStrictMock<IAuthorizationResponseModeHandler>();
-        mockHandler.SetupGet(x => x.ResponseMode).Returns("custom").Verifiable();
+        var result = new AuthorizationResult(
+            CreateLooseMock<OpenIdContext>().Object,
+            CreateLooseMock<OpenIdClient>().Object,
+            new AuthorizationResponseDelivery(RedirectUri, mockHandler.Object, State: null),
+            ticket
+        );
+        var httpContext = new DefaultHttpContext();
         mockHandler
             .Setup(x => x.ExecuteAsync(httpContext, result, ticket, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        var executor = new DefaultAuthorizationResultExecutor([mockHandler.Object]);
+        var executor = new DefaultAuthorizationResultExecutor();
 
         await executor.ExecuteAsync(httpContext, result, CancellationToken.None);
     }
@@ -174,8 +163,13 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
             .SetupGet(x => x.Parameters)
             .Returns(new ParameterCollection([], cloneParameters: false));
         var result = new AuthorizationResult(
-            RedirectUri,
-            OpenIdConstants.ResponseModes.Query,
+            CreateLooseMock<OpenIdContext>().Object,
+            CreateLooseMock<OpenIdClient>().Object,
+            new AuthorizationResponseDelivery(
+                RedirectUri,
+                new QueryAuthorizationResponseModeHandler(),
+                State: null
+            ),
             mockError.Object
         );
         var metricsTags = new TestHttpMetricsTagsFeature();
@@ -197,7 +191,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     [Fact]
     public async Task ExecuteAsync_WhenResponseModeQuery_OmitsInternalParameters()
     {
-        var result = CreateResult(OpenIdConstants.ResponseModes.Query);
+        var result = CreateResult(new QueryAuthorizationResponseModeHandler());
         var httpContext = new DefaultHttpContext();
 
         await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
@@ -212,7 +206,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     [Fact]
     public async Task ExecuteAsync_WhenResponseModeFormPost_OmitsInternalParameters()
     {
-        var result = CreateResult(OpenIdConstants.ResponseModes.FormPost);
+        var result = CreateResult(new FormPostAuthorizationResponseModeHandler());
         var httpContext = new DefaultHttpContext();
         var body = new MemoryStream();
         httpContext.Response.Body = body;
@@ -232,7 +226,10 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     public async Task ExecuteAsync_WhenResponseModeFormPost_HtmlEncodesTheValuesWithoutUrlEncoding()
     {
         const string value = "a b=c/d+e'<f>";
-        var result = CreateResult(OpenIdConstants.ResponseModes.FormPost, normalValue: value);
+        var result = CreateResult(
+            new FormPostAuthorizationResponseModeHandler(),
+            normalValue: value
+        );
 
         var html = await ExecuteFormPostAsync(Executor, result);
 
@@ -249,7 +246,10 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     public async Task ExecuteAsync_WhenResponseModeFormPost_HtmlEncodesTheAction()
     {
         var redirectUri = new Uri("https://client.example/callback?x='y'");
-        var result = CreateResult(OpenIdConstants.ResponseModes.FormPost, redirectUri: redirectUri);
+        var result = CreateResult(
+            new FormPostAuthorizationResponseModeHandler(),
+            redirectUri: redirectUri
+        );
 
         var html = await ExecuteFormPostAsync(Executor, result);
 

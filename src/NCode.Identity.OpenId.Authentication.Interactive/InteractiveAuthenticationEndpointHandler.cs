@@ -251,15 +251,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
         if (!authenticateResult.Succeeded)
         {
-            return TypedResults.Redirect(
-                $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl="
-                    + Uri.EscapeDataString(
-                        SurfacePaths.GetSurfacePath(
-                            httpContext,
-                            InteractiveAuthenticationDefaults.AccountPath
-                        )
-                    )
-            );
+            return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.AccountPath);
         }
 
         return await ServeBundleAsync(httpContext);
@@ -648,15 +640,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
         if (!authenticateResult.Succeeded)
         {
-            return TypedResults.Redirect(
-                $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl="
-                    + Uri.EscapeDataString(
-                        SurfacePaths.GetSurfacePath(
-                            httpContext,
-                            InteractiveAuthenticationDefaults.ApplicationsPath
-                        )
-                    )
-            );
+            return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.ApplicationsPath);
         }
 
         return await ServeBundleAsync(httpContext);
@@ -721,15 +705,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
         if (!authenticateResult.Succeeded)
         {
-            return TypedResults.Redirect(
-                $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl="
-                    + Uri.EscapeDataString(
-                        SurfacePaths.GetSurfacePath(
-                            httpContext,
-                            InteractiveAuthenticationDefaults.ApplicationsPath
-                        )
-                    )
-            );
+            return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.ApplicationsPath);
         }
 
         var openIdContext = httpContext.GetOpenIdContext();
@@ -763,15 +739,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
         if (!authenticateResult.Succeeded)
         {
-            return TypedResults.Redirect(
-                $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl="
-                    + Uri.EscapeDataString(
-                        SurfacePaths.GetSurfacePath(
-                            httpContext,
-                            InteractiveAuthenticationDefaults.SessionsPath
-                        )
-                    )
-            );
+            return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.SessionsPath);
         }
 
         return await ServeBundleAsync(httpContext);
@@ -846,15 +814,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
         if (!authenticateResult.Succeeded)
         {
-            return TypedResults.Redirect(
-                $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl="
-                    + Uri.EscapeDataString(
-                        SurfacePaths.GetSurfacePath(
-                            httpContext,
-                            InteractiveAuthenticationDefaults.SessionsPath
-                        )
-                    )
-            );
+            return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.SessionsPath);
         }
 
         var openIdContext = httpContext.GetOpenIdContext();
@@ -914,15 +874,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
         if (!authenticateResult.Succeeded)
         {
-            return TypedResults.Redirect(
-                $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl="
-                    + Uri.EscapeDataString(
-                        SurfacePaths.GetSurfacePath(
-                            httpContext,
-                            InteractiveAuthenticationDefaults.SessionsPath
-                        )
-                    )
-            );
+            return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.SessionsPath);
         }
 
         var openIdContext = httpContext.GetOpenIdContext();
@@ -1036,9 +988,16 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             statusCode: StatusCodes.Status503ServiceUnavailable
         );
 
+    private string BuildLoginUrl(HttpContext httpContext, string returnUrl) =>
+        $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl={Uri.EscapeDataString(returnUrl)}";
+
+    private RedirectHttpResult RedirectToLogin(HttpContext httpContext, string returnSurfacePath) =>
+        TypedResults.Redirect(
+            BuildLoginUrl(httpContext, SurfacePaths.GetSurfacePath(httpContext, returnSurfacePath))
+        );
+
     private string BuildLoginRedirect(HttpContext httpContext, string returnUrl, string error) =>
-        $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.LoginPath)}?ReturnUrl={Uri.EscapeDataString(returnUrl)}"
-        + $"&error={Uri.EscapeDataString(error)}";
+        BuildLoginUrl(httpContext, returnUrl) + $"&error={Uri.EscapeDataString(error)}";
 
     // Guards against an open redirect: a local path (single leading slash, not a protocol-relative or
     // backslash-escaped authority), or an absolute URL that targets this same origin (the OP's own continue

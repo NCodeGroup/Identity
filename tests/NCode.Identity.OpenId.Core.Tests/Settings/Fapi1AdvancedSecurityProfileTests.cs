@@ -49,4 +49,17 @@ public class Fapi1AdvancedSecurityProfileTests : BaseTests
     }
 
     #endregion
+
+    #region ApplyCeilingSettings Tests
+
+    [Fact]
+    public void ApplyCeilingSettings_TurnsOffLoopbackPortChanges()
+    {
+        var mockCeiling = CreateLooseMock<ISecurityProfileCeilingBuilder>();
+        mockCeiling.Setup(x => x.Set(OpenIdSettingKeys.AllowLoopbackRedirect, false)).Verifiable();
+
+        new Fapi1AdvancedSecurityProfile().ApplyCeilingSettings(mockCeiling.Object);
+    }
+
+    #endregion
 }

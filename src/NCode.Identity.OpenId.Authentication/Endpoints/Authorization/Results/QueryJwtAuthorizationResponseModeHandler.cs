@@ -20,7 +20,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.Jwt.Encoding;
-using NCode.Identity.OpenId.Authentication.Clients;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 
@@ -29,11 +28,14 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// </summary>
 internal sealed class QueryJwtAuthorizationResponseModeHandler(
     TimeProvider timeProvider,
-    IClientJwtCredentialSelector clientJwtCredentialSelector,
     IJwtEncoder jwtEncoder
-) : JwtAuthorizationResponseModeHandler(timeProvider, clientJwtCredentialSelector, jwtEncoder)
+) : JwtAuthorizationResponseModeHandler(timeProvider, jwtEncoder)
 {
     public override string ResponseMode => OpenIdConstants.ResponseModes.QueryJwt;
+
+    public override string SecuredResponseMode => OpenIdConstants.ResponseModes.Query;
+
+    public override bool DeliversInQuery => true;
 
     protected override ValueTask WriteAsync(
         HttpResponse httpResponse,

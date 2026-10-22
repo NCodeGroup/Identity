@@ -20,8 +20,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using NCode.Identity.Jwt.Encoding;
-using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
 using NCode.Time;
@@ -32,29 +30,24 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// Delivers a JWT-secured authorization response (JARM): the response parameters travel as the claims of one JWT —
 /// issued by the tenant, addressed to the client, short-lived, signed with the client's
 /// <c>authorization_signed_response_alg</c>, and encrypted when the client registers an encryption algorithm — in the
-/// single <c>response</c> parameter of the derived response mode. An error response is secured the same way.
-/// See ADR-0201.
+/// single <c>response</c> parameter of the derived response mode. An error response is secured the same way. The
+/// credentials are the ones selected when the delivery was derived, before the user signed in, and travel on
+/// <see cref="AuthorizationResponseDelivery.SecuringCredentials"/>; this handler selects none. See ADR-0201.
 /// </summary>
 internal abstract class JwtAuthorizationResponseModeHandler(
     TimeProvider timeProvider,
-    IClientJwtCredentialSelector clientJwtCredentialSelector,
     IJwtEncoder jwtEncoder
 ) : IAuthorizationResponseModeHandler
 {
-    /// <summary>
-    /// The lifetime of a response JWT: long enough for the redirect to complete, and short, because the response only
-    /// has to survive one front-channel hop (JARM §2.1 recommends a short-lived JWT, ten minutes at most).
-    /// </summary>
-    internal static TimeSpan ResponseLifetime { get; } = TimeSpan.FromMinutes(5);
-
     private TimeProvider TimeProvider { get; } = timeProvider;
-
-    private IClientJwtCredentialSelector ClientJwtCredentialSelector { get; } =
-        clientJwtCredentialSelector;
 
     private IJwtEncoder JwtEncoder { get; } = jwtEncoder;
 
     public abstract string ResponseMode { get; }
+
+    public abstract string SecuredResponseMode { get; }
+
+    public abstract bool DeliversInQuery { get; }
 
     public async ValueTask ExecuteAsync(
         HttpContext httpContext,
@@ -63,34 +56,20 @@ internal abstract class JwtAuthorizationResponseModeHandler(
         CancellationToken cancellationToken
     )
     {
-        var openIdContext =
-            result.OpenIdContext
+        var openIdContext = result.OpenIdContext;
+        var openIdClient = result.OpenIdClient;
+
+        var credentials =
+            result.Delivery.SecuringCredentials
             ?? throw new InvalidOperationException(
-                "A JWT-secured authorization response requires the result's OpenIdContext."
-            );
-        var openIdClient =
-            result.OpenIdClient
-            ?? throw new InvalidOperationException(
-                "A JWT-secured authorization response requires the result's OpenIdClient."
+                "A JWT-secured response is written only for a delivery that carries the credentials selected when it was derived."
             );
 
-        var credentials = await ClientJwtCredentialSelector.SelectCredentialsAsync(
-            openIdContext,
-            openIdClient,
-            ClientJwtProtectionSettings.Authorization,
-            cancellationToken
-        );
-
-        if (credentials.SigningCredentials is null)
-        {
-            throw openIdContext
-                .ErrorFactory.Create(OpenIdConstants.ErrorCodes.ServerError)
-                .WithDescription(
-                    $"The client registers no '{OpenIdSettingNames.AuthorizationSignedResponseAlg}', and a JWT-secured authorization response is always signed."
-                )
-                .WithStatusCode(StatusCodes.Status500InternalServerError)
-                .AsException();
-        }
+        var signingCredentials =
+            credentials.SigningCredentials
+            ?? throw new InvalidOperationException(
+                "The credentials selected for a JWT-secured response always sign it."
+            );
 
         // JARM §2.1: 'iss', 'aud', and 'exp' plus every response parameter. The issuer travels as the JWT's own 'iss'
         // claim, so the RFC 9207 'iss' response parameter is not repeated.
@@ -106,13 +85,15 @@ internal abstract class JwtAuthorizationResponseModeHandler(
         var issuedAt = TimeProvider.GetUtcNowWithPrecisionInSeconds();
         var parameters = new JwtEncodingParameters
         {
-            SigningCredentials = credentials.SigningCredentials,
+            SigningCredentials = signingCredentials,
             EncryptionCredentials = credentials.EncryptionCredentials,
 
             Issuer = openIdContext.Tenant.Issuer,
             Audience = openIdClient.ClientId,
             IssuedAt = issuedAt,
-            Expires = issuedAt + ResponseLifetime,
+            Expires =
+                issuedAt
+                + openIdClient.Settings.GetValue(OpenIdSettingKeys.AuthorizationResponseLifetime),
 
             ExtraPayloadClaims = claims,
         };
@@ -121,7 +102,7 @@ internal abstract class JwtAuthorizationResponseModeHandler(
 
         await WriteAsync(
             httpContext.Response,
-            result.RedirectUri,
+            result.Delivery.RedirectUri,
             [
                 KeyValuePair.Create(
                     OpenIdConstants.Parameters.Response,

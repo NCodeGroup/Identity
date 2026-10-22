@@ -233,6 +233,28 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
         Assert.False(descriptor.HasDefault);
     }
 
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(300, true)]
+    [InlineData(600, true)]
+    [InlineData(601, false)]
+    public void Collection_AuthorizationResponseLifetime_AcceptsOneSecondToTenMinutes(
+        int seconds,
+        bool expected
+    )
+    {
+        // JARM §2.1 recommends a short lifetime, so the setting is capped at 10 minutes.
+        var descriptor = GetDescriptor(
+            CreateDataSource(),
+            OpenIdSettingNames.AuthorizationResponseLifetime
+        );
+
+        var valid = descriptor.TryValidate(TimeSpan.FromSeconds(seconds), out _);
+
+        Assert.Equal(expected, valid);
+    }
+
     [Fact]
     public void Collection_DoesNotDescribeTheClientAuthenticationMethod()
     {

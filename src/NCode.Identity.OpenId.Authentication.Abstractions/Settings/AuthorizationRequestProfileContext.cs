@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Contexts;
 
 namespace NCode.Identity.OpenId.Settings;
@@ -33,9 +34,14 @@ namespace NCode.Identity.OpenId.Settings;
 /// The composed authorization request (request object, PAR and query parameters resolved), so a requirement can judge
 /// the requested response type and response mode.
 /// </param>
+/// <param name="Delivery">
+/// The delivery derived for the request: its redirect URI, the handler of its effective response mode, whose traits a
+/// requirement may judge, and its state.
+/// </param>
 [PublicAPI]
 public sealed record AuthorizationRequestProfileContext(
     OpenIdContext OpenIdContext,
     OpenIdClient Client,
-    IAuthorizationRequest Request
+    IAuthorizationRequest Request,
+    AuthorizationResponseDelivery Delivery
 );

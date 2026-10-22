@@ -20,6 +20,7 @@
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
@@ -34,7 +35,7 @@ public class JwtSecuredAuthorizationResponseRequirementTests : BaseTests
     #region Scaffolding
 
     private (AuthorizationRequestProfileContext context, Func<string?> capturedCode) CreateContext(
-        string responseMode,
+        string? securedResponseMode,
         params string[] responseTypes
     )
     {
@@ -52,7 +53,9 @@ public class JwtSecuredAuthorizationResponseRequirementTests : BaseTests
         var mockRequest = CreateStrictMock<IAuthorizationRequest>();
         IReadOnlyList<string> values = responseTypes;
         mockRequest.SetupGet(x => x.ResponseTypes).Returns(values).Verifiable();
-        mockRequest.SetupGet(x => x.ResponseMode).Returns(responseMode).Verifiable();
+
+        var mockHandler = CreateStrictMock<IAuthorizationResponseModeHandler>();
+        mockHandler.SetupGet(x => x.SecuredResponseMode).Returns(securedResponseMode).Verifiable();
 
         var mockClient = CreateLooseMock<OpenIdClient>();
 
@@ -60,7 +63,12 @@ public class JwtSecuredAuthorizationResponseRequirementTests : BaseTests
             new AuthorizationRequestProfileContext(
                 mockContext.Object,
                 mockClient.Object,
-                mockRequest.Object
+                mockRequest.Object,
+                new AuthorizationResponseDelivery(
+                    new Uri("https://client.example/callback"),
+                    mockHandler.Object,
+                    State: null
+                )
             ),
             () => capturedCode
         );
@@ -71,15 +79,15 @@ public class JwtSecuredAuthorizationResponseRequirementTests : BaseTests
     #region EvaluateAsync Tests
 
     [Theory]
-    [InlineData(OpenIdConstants.ResponseModes.QueryJwt)]
-    [InlineData(OpenIdConstants.ResponseModes.FragmentJwt)]
-    [InlineData(OpenIdConstants.ResponseModes.FormPostJwt)]
+    [InlineData(OpenIdConstants.ResponseModes.Query)]
+    [InlineData(OpenIdConstants.ResponseModes.Fragment)]
+    [InlineData(OpenIdConstants.ResponseModes.FormPost)]
     public async Task EvaluateAsync_WhenCodeUsesAJwtSecuredResponseMode_Completes(
-        string responseMode
+        string securedResponseMode
     )
     {
         var requirement = new JwtSecuredAuthorizationResponseRequirement();
-        var (context, _) = CreateContext(responseMode, OpenIdConstants.ResponseTypes.Code);
+        var (context, _) = CreateContext(securedResponseMode, OpenIdConstants.ResponseTypes.Code);
 
         var exception = await Record.ExceptionAsync(async () =>
             await requirement.EvaluateAsync(context, CancellationToken.None)
@@ -93,7 +101,7 @@ public class JwtSecuredAuthorizationResponseRequirementTests : BaseTests
     {
         var requirement = new JwtSecuredAuthorizationResponseRequirement();
         var (context, _) = CreateContext(
-            OpenIdConstants.ResponseModes.Fragment,
+            securedResponseMode: null,
             OpenIdConstants.ResponseTypes.Code,
             OpenIdConstants.ResponseTypes.IdToken
         );
@@ -105,16 +113,12 @@ public class JwtSecuredAuthorizationResponseRequirementTests : BaseTests
         Assert.Null(exception);
     }
 
-    [Theory]
-    [InlineData(OpenIdConstants.ResponseModes.Query)]
-    [InlineData(OpenIdConstants.ResponseModes.FormPost)]
-    public async Task EvaluateAsync_WhenCodeUsesAPlainResponseMode_ThrowsInvalidRequest(
-        string responseMode
-    )
+    [Fact]
+    public async Task EvaluateAsync_WhenCodeUsesAPlainResponseMode_ThrowsInvalidRequest()
     {
         var requirement = new JwtSecuredAuthorizationResponseRequirement();
         var (context, capturedCode) = CreateContext(
-            responseMode,
+            securedResponseMode: null,
             OpenIdConstants.ResponseTypes.Code
         );
 

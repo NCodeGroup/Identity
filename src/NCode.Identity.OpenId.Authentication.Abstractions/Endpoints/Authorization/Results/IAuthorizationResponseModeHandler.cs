@@ -28,11 +28,14 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 /// Encoding Practices §2.1, OAuth 2.0 Form Post Response Mode, JARM §2.3).
 /// </summary>
 /// <remarks>
-/// Response modes are an open vocabulary (ADR-0150): the authorization result executor resolves the handler whose
-/// <see cref="ResponseMode"/> matches the request's effective response mode, so a package adds a response mode by
-/// registering a handler. The built-in handlers deliver <c>query</c>, <c>fragment</c>, <c>form_post</c>, and their JWT
-/// forms <c>query.jwt</c>, <c>fragment.jwt</c>, and <c>form_post.jwt</c>. See ADR-0201.
+/// Response modes are an open vocabulary: when the server derives the delivery of a response it resolves the handler
+/// whose <see cref="ResponseMode"/> serves the request, and the result carries it as
+/// <see cref="AuthorizationResponseDelivery.ResponseModeHandler"/>, so a package adds a response mode by registering a
+/// handler. The built-in handlers deliver <c>query</c>, <c>fragment</c>, <c>form_post</c>, and their JWT forms
+/// <c>query.jwt</c>, <c>fragment.jwt</c>, and <c>form_post.jwt</c>. A handler declares its traits; nothing is inferred
+/// from its name.
 /// </remarks>
+// See ADR-0150 and ADR-0201.
 [PublicAPI]
 public interface IAuthorizationResponseModeHandler
 {
@@ -40,6 +43,19 @@ public interface IAuthorizationResponseModeHandler
     /// Gets the <c>response_mode</c> value this handler delivers.
     /// </summary>
     string ResponseMode { get; }
+
+    /// <summary>
+    /// Gets the response mode this handler delivers in JWT-secured form (JARM §2.3), such as <c>query</c> for
+    /// <c>query.jwt</c>; <see langword="null"/> when it delivers the response parameters as they are. The JARM
+    /// <c>jwt</c> shorthand resolves to the handler that secures the response type's default response mode.
+    /// </summary>
+    string? SecuredResponseMode { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the response travels in the redirect URI's query string, where no token may
+    /// appear (OAuth 2.0 Multiple Response Type Encoding Practices §2.1, JARM §2.3.1).
+    /// </summary>
+    bool DeliversInQuery { get; }
 
     /// <summary>
     /// Writes the authorization response to the HTTP response.

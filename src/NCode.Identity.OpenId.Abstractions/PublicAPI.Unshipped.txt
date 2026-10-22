@@ -1100,6 +1100,8 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationEncryptionE
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationSignedResponseAlg = "authorization_signed_response_alg" -> string!
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationSignedResponseAlg.get -> NCode.Identity.Settings.SettingKey<string!>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationResponseLifetime = "authorization_response_lifetime" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationResponseLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationSigningAlgValuesSupported = "authorization_signing_alg_values_supported" -> string!
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetControlPlaneTenantId() -> string!

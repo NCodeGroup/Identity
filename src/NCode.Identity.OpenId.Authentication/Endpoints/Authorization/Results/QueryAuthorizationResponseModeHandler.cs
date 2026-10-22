@@ -29,6 +29,10 @@ internal sealed class QueryAuthorizationResponseModeHandler : IAuthorizationResp
 {
     public string ResponseMode => OpenIdConstants.ResponseModes.Query;
 
+    public string? SecuredResponseMode => null;
+
+    public bool DeliversInQuery => true;
+
     public ValueTask ExecuteAsync(
         HttpContext httpContext,
         AuthorizationResult result,
@@ -38,7 +42,7 @@ internal sealed class QueryAuthorizationResponseModeHandler : IAuthorizationResp
     {
         AuthorizationResponseWriter.WriteRedirect(
             httpContext.Response,
-            result.RedirectUri,
+            result.Delivery.RedirectUri,
             useQuery: true,
             AuthorizationResponseWriter.GetParameters(message)
         );

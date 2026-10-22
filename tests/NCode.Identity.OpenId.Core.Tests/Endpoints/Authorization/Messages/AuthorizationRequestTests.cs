@@ -326,26 +326,18 @@ public class AuthorizationRequestTests : BaseTests
 
     #region ResponseMode Property Tests
 
-    [Theory]
-    [InlineData(new[] { "code" }, "query")]
-    [InlineData(new[] { "id_token" }, "fragment")]
-    [InlineData(new[] { "token" }, "fragment")]
-    [InlineData(new[] { "id_token", "code" }, "fragment")]
-    [InlineData(new[] { "code", "id_token", "token" }, "fragment")]
-    public void ResponseMode_WhenNotRequested_DefaultsByResponseType(
-        string[] responseTypes,
-        string expected
-    )
+    [Fact]
+    public void ResponseMode_WhenNotRequested_ReturnsNull()
     {
         var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
         {
-            ResponseTypes = [.. responseTypes],
+            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
         };
         var authorizationRequest = new AuthorizationRequest(false, requestMessage, null);
 
         var responseMode = authorizationRequest.ResponseMode;
 
-        Assert.Equal(expected, responseMode);
+        Assert.Null(responseMode);
     }
 
     [Fact]

@@ -17,7 +17,6 @@
 
 #endregion
 
-using System.Collections.Frozen;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Metrics;
@@ -28,21 +27,11 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 
 /// <summary>
 /// Executes an <see cref="AuthorizationResult"/>: an error with an explicit HTTP status code is answered directly, and
-/// every other response is delivered by the <see cref="IAuthorizationResponseModeHandler"/> registered for the result's
-/// response mode (ADR-0201).
+/// every other response is delivered through the <see cref="IAuthorizationResponseModeHandler"/> of the result's
+/// <see cref="AuthorizationResult.Delivery"/> (ADR-0201).
 /// </summary>
-internal class DefaultAuthorizationResultExecutor(
-    IEnumerable<IAuthorizationResponseModeHandler> responseModeHandlers
-) : IResultExecutor<AuthorizationResult>
+internal class DefaultAuthorizationResultExecutor : IResultExecutor<AuthorizationResult>
 {
-    private FrozenDictionary<
-        string,
-        IAuthorizationResponseModeHandler
-    > ResponseModeHandlers { get; } =
-        responseModeHandlers
-            .GroupBy(handler => handler.ResponseMode, StringComparer.Ordinal)
-            .ToFrozenDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-
     public async ValueTask ExecuteAsync(
         HttpContext httpContext,
         AuthorizationResult result,
@@ -76,11 +65,11 @@ internal class DefaultAuthorizationResultExecutor(
             ?? ticket
             ?? throw new InvalidOperationException("Both error and ticket are null.");
 
-        if (!ResponseModeHandlers.TryGetValue(result.ResponseMode, out var handler))
-            throw new InvalidOperationException(
-                $"No handler is registered for the '{result.ResponseMode}' response mode."
-            );
-
-        await handler.ExecuteAsync(httpContext, result, message, cancellationToken);
+        await result.Delivery.ResponseModeHandler.ExecuteAsync(
+            httpContext,
+            result,
+            message,
+            cancellationToken
+        );
     }
 }

@@ -27,7 +27,6 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
@@ -63,8 +62,7 @@ public class ConformanceSeedHandlerTests : BaseTests
         var mockCryptoService = CreateStrictMock<ICryptoService>();
 
         redirectUriPolicy ??= new RedirectUriPolicy(
-            CreateStrictMock<IOpenIdServerProvider>().Object,
-            CreateStrictMock<ISecurityProfileCatalog>().Object,
+            CreateStrictMock<IEffectiveSettingsResolver>().Object,
             CreateStrictMock<IRedirectUriKindCatalog>().Object
         );
 
@@ -76,48 +74,35 @@ public class ConformanceSeedHandlerTests : BaseTests
             TimeProvider.System,
             settingSerializer,
             openIdEnvironmentProvider,
-            redirectUriPolicy.ServerProvider,
-            redirectUriPolicy.ProfileCatalog,
+            redirectUriPolicy.Resolver,
             redirectUriPolicy.KindCatalog,
             NullLogger<ConformanceSeedHandler>.Instance
         );
     }
 
     private sealed record RedirectUriPolicy(
-        IOpenIdServerProvider ServerProvider,
-        ISecurityProfileCatalog ProfileCatalog,
+        IEffectiveSettingsResolver Resolver,
         IRedirectUriKindCatalog KindCatalog
     );
 
     private RedirectUriPolicy CreateRedirectUriPolicy(bool isPermitted)
     {
         var mockCollection = CreateLooseMock<ISettingCollection>();
-        mockCollection
-            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
-            .Returns(mockCollection.Object);
 
-        var mockSettingsProvider = CreateLooseMock<IReadOnlySettingCollectionProvider>();
-        mockSettingsProvider.Setup(x => x.Collection).Returns(mockCollection.Object);
-
-        var mockServer = CreateLooseMock<OpenIdServer>();
-        mockServer.Setup(x => x.SettingsProvider).Returns(mockSettingsProvider.Object);
-
-        var mockServerProvider = CreateStrictMock<IOpenIdServerProvider>();
-        mockServerProvider
-            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockServer.Object)
+        var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
+        mockResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockCollection.Object)
             .Verifiable();
-
-        var mockProfileCatalog = CreateStrictMock<ISecurityProfileCatalog>();
-        mockProfileCatalog
+        mockResolver
             .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
+                x.Resolve(
+                    It.IsAny<IReadOnlySettingCollection>(),
                     It.IsAny<string>(),
-                    It.IsAny<JsonSerializerOptions>()
+                    It.IsAny<JsonElement>()
                 )
             )
-            .Returns(Array.Empty<Setting>())
+            .Returns(mockCollection.Object)
             .Verifiable();
 
         var mockKindCatalog = CreateStrictMock<IRedirectUriKindCatalog>();
@@ -126,11 +111,7 @@ public class ConformanceSeedHandlerTests : BaseTests
             .Returns(isPermitted)
             .Verifiable();
 
-        return new RedirectUriPolicy(
-            mockServerProvider.Object,
-            mockProfileCatalog.Object,
-            mockKindCatalog.Object
-        );
+        return new RedirectUriPolicy(mockResolver.Object, mockKindCatalog.Object);
     }
 
     private SeedTenantCommand CreateCommand(

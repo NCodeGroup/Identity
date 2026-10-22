@@ -39,7 +39,6 @@ using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
@@ -87,8 +86,7 @@ internal class TenantApiEndpointHandler(
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
-    IOpenIdServerProvider serverProvider,
-    ISecurityProfileCatalog securityProfileCatalog,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
     IClientResponseAlgorithmValidator clientResponseAlgorithmValidator,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
@@ -108,8 +106,8 @@ internal class TenantApiEndpointHandler(
 
     private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
         settingScopeCollectionProvider;
-    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
-    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
     private IClientResponseAlgorithmValidator ClientResponseAlgorithmValidator { get; } =
         clientResponseAlgorithmValidator;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
@@ -646,7 +644,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The tenant was deleted.</response>
-    /// <response code="409">The tenant still has clients or secrets and cannot be deleted.</response>
+    /// <response code="409">The tenant still has clients or resource servers and cannot be deleted.</response>
     [EndpointName("api/tenants/delete")]
     internal virtual async ValueTask<IResult> DeleteTenantAsync(
         HttpContext httpContext,
@@ -835,9 +833,7 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var openIdContext = httpContext.GetOpenIdContext();
         var effectiveSettings = await MergeTenantSettingsAsync(
-            openIdContext,
             tenantSettings.Value,
             cancellationToken
         );
@@ -853,35 +849,33 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Merges a tenant's persisted settings onto the server's effective settings, producing the same effective
-    /// <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the tenant at runtime — including
-    /// the ceilings of the security profiles the tenant selects.
+    /// Merges a tenant's persisted settings onto the server's effective settings through the
+    /// <see cref="IEffectiveSettingsResolver"/>, producing the same effective <see cref="IReadOnlySettingCollection"/>
+    /// the authorization server resolves for the tenant at runtime — including the ceilings of the security profiles the
+    /// tenant selects (ADR-0204).
     /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="tenantSettings">The tenant's settings document to merge.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>.</returns>
     internal virtual async ValueTask<IReadOnlySettingCollection> MergeTenantSettingsAsync(
-        OpenIdContext openIdContext,
         JsonElement tenantSettings,
         CancellationToken cancellationToken
     )
     {
-        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var expandedSettings = SecurityProfileCatalog.Expand(
-            tenantSettings,
+        var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        return EffectiveSettingsResolver.Resolve(
+            serverEffective,
             OpenIdSettingScopes.Tenant,
-            jsonOptions
+            tenantSettings
         );
-        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
-        return server.SettingsProvider.Collection.Merge(expandedSettings);
     }
 
     /// <summary>
     /// Verifies that replacing a tenant's settings document leaves every algorithm each of its clients registers for the
-    /// JWTs addressed to it permitted (<see cref="IClientResponseAlgorithmValidator"/>).
+    /// JWTs addressed to it permitted (<see cref="IClientResponseAlgorithmValidator"/>). The clients are not walked when
+    /// the change leaves the effective value of every setting the check reads unchanged
+    /// (<see cref="ClientResponseAlgorithmRule.ReadsChangedSetting"/>, backlog R21).
     /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant whose settings change.</param>
     /// <param name="currentSettings">The tenant's current settings document.</param>
     /// <param name="newSettings">The tenant's new settings document.</param>
@@ -893,7 +887,6 @@ internal class TenantApiEndpointHandler(
     internal virtual async ValueTask<
         IReadOnlyList<SettingError>
     > ValidateClientResponseAlgorithmsAsync(
-        OpenIdContext openIdContext,
         string tenantId,
         JsonElement currentSettings,
         JsonElement newSettings,
@@ -901,24 +894,19 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var currentEffective = await MergeTenantSettingsAsync(
-            openIdContext,
-            currentSettings,
-            cancellationToken
-        );
-        var newEffective = await MergeTenantSettingsAsync(
-            openIdContext,
-            newSettings,
-            cancellationToken
-        );
+        var currentEffective = await MergeTenantSettingsAsync(currentSettings, cancellationToken);
+        var newEffective = await MergeTenantSettingsAsync(newSettings, cancellationToken);
+
+        if (!ClientResponseAlgorithmRule.ReadsChangedSetting(currentEffective, newEffective))
+        {
+            return [];
+        }
 
         var findings = await ClientResponseAlgorithmValidator.FindIntroducedViolationsAsync(
             storeManager,
             tenantId,
             currentEffective,
             newEffective,
-            jsonOptions,
             cancellationToken
         );
 
@@ -1007,7 +995,6 @@ internal class TenantApiEndpointHandler(
         }
 
         var algorithmErrors = await ValidateClientResponseAlgorithmsAsync(
-            httpContext.GetOpenIdContext(),
             tenantId,
             tenantSettings.Value,
             settingsValue,

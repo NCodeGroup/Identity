@@ -29,7 +29,6 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
@@ -63,8 +62,7 @@ internal sealed class ConformanceSeedHandler(
     TimeProvider timeProvider,
     ISettingSerializer settingSerializer,
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,
-    IOpenIdServerProvider openIdServerProvider,
-    ISecurityProfileCatalog securityProfileCatalog,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
     IRedirectUriKindCatalog redirectUriKindCatalog,
     ILogger<ConformanceSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
@@ -83,8 +81,8 @@ internal sealed class ConformanceSeedHandler(
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
         openIdEnvironmentProvider;
-    private IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
-    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
     private IRedirectUriKindCatalog RedirectUriKindCatalog { get; } = redirectUriKindCatalog;
     private ILogger<ConformanceSeedHandler> Logger { get; } = logger;
 
@@ -209,8 +207,8 @@ internal sealed class ConformanceSeedHandler(
         );
     }
 
-    // The client's settings materialize only after the seed, so the seed merges the server's, the tenant's, and the
-    // client's settings itself, as the materialized client will (the way TenantKeySeedHandler merges the tenant's).
+    // The client's settings materialize only after the seed, so the seed resolves the server's, the tenant's, and the
+    // client's settings itself through the effective-settings resolver, as the materialized client will (ADR-0204).
     // See ADR-0203.
     private async ValueTask EnsureRedirectUrisArePermittedAsync(
         PersistedTenant tenant,
@@ -219,25 +217,17 @@ internal sealed class ConformanceSeedHandler(
         CancellationToken cancellationToken
     )
     {
-        var openIdEnvironment = OpenIdEnvironmentProvider.Get();
-        var jsonOptions = openIdEnvironment.JsonSerializerOptions;
-        var openIdServer = await OpenIdServerProvider.GetAsync(
-            openIdEnvironment,
-            cancellationToken
-        );
-        var tenantScopeSettings = SecurityProfileCatalog.Expand(
-            tenant.Settings.Value,
+        var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var tenantSettings = EffectiveSettingsResolver.Resolve(
+            serverSettings,
             OpenIdSettingScopes.Tenant,
-            jsonOptions
+            tenant.Settings.Value
         );
-        var clientScopeSettings = SecurityProfileCatalog.Expand(
-            clientSettings,
+        var effectiveSettings = EffectiveSettingsResolver.Resolve(
+            tenantSettings,
             OpenIdSettingScopes.Client,
-            jsonOptions
+            clientSettings
         );
-
-        var tenantEffective = openIdServer.SettingsProvider.Collection.Merge(tenantScopeSettings);
-        var effectiveSettings = tenantEffective.Merge(clientScopeSettings);
 
         var refused = client.RedirectUris.FirstOrDefault(redirectUri =>
             !RedirectUriKindCatalog.IsPermitted(effectiveSettings, redirectUri)

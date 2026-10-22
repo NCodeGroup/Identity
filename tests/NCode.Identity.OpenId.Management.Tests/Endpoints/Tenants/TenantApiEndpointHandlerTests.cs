@@ -37,7 +37,6 @@ using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
@@ -69,8 +68,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
-    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
-    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
+    private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IClientResponseAlgorithmValidator> MockClientResponseAlgorithmValidator { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
@@ -103,8 +101,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockSettingScopeCollectionProvider =
             MockRepository.Create<ISettingScopeCollectionProvider>();
-        MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
-        MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
+        MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockClientResponseAlgorithmValidator =
             MockRepository.Create<IClientResponseAlgorithmValidator>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
@@ -168,8 +165,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockCryptoService.Object,
             MockSettingSerializer.Object,
             MockSettingScopeCollectionProvider.Object,
-            MockServerProvider.Object,
-            MockSecurityProfileCatalog.Object,
+            MockEffectiveSettingsResolver.Object,
             MockClientResponseAlgorithmValidator.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
@@ -601,16 +597,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct"))
             .Verifiable();
-        MockSecurityProfileCatalog
-            .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.Tenant,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns(Array.Empty<Setting>())
-            .Verifiable();
 
         var descriptor = new SettingDescriptor<bool>
         {
@@ -619,7 +605,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         };
         var effective = CreateSettingCollection(descriptor.Create(true));
         SetupSettingScopes(OpenIdSettingScopes.Tenant, (descriptor, true));
-        SetupServerProvider(effective);
+        SetupEffectiveSettingsResolver(effective);
         SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContextWithEnvironment(authenticated: true);
@@ -663,17 +649,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct"))
             .Verifiable();
-        MockSecurityProfileCatalog
-            .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.Tenant,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns(Array.Empty<Setting>())
-            .Verifiable();
-        SetupServerProvider(CreateSettingCollection());
+        SetupEffectiveSettingsResolver(CreateSettingCollection());
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContextWithEnvironment(authenticated: false);
@@ -687,22 +663,23 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         Assert.IsType<UnauthorizedHttpResult>(result);
     }
 
-    private void SetupServerProvider(ISettingCollection effectiveSettings)
+    private void SetupEffectiveSettingsResolver(ISettingCollection effectiveSettings)
     {
-        var mockServerCollection = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
-        mockServerCollection
-            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
-            .Returns(effectiveSettings);
+        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
 
-        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
-        mockProvider.Setup(x => x.Collection).Returns(mockServerCollection.Object);
-
-        var mockServer = new Mock<OpenIdServer>(MockBehavior.Loose);
-        mockServer.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
-
-        MockServerProvider
-            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockServer.Object)
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serverSettings.Object)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(
+                    serverSettings.Object,
+                    OpenIdSettingScopes.Tenant,
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns(effectiveSettings)
             .Verifiable();
     }
 
@@ -757,33 +734,50 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     #region UpdateSettingsAsync Tests
 
+    private static bool HasProperty(JsonElement element, string name) =>
+        element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out _);
+
     private void SetupClientAlgorithmCheck(params ClientResponseAlgorithmFinding[] findings)
     {
-        MockSecurityProfileCatalog
-            .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.Tenant,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns(Array.Empty<Setting>())
+        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serverSettings.Object)
             .Verifiable();
 
+        // The new document gains a permitted algorithm, so the gate sees a change the client check reads.
         var currentEffective = CreateSettingCollection();
-        var newEffective = CreateSettingCollection();
-        var mockServerCollection = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
-        mockServerCollection
-            .SetupSequence(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
+        IReadOnlyCollection<string>? permittedAlgorithms = ["RS256"];
+        var mockNewEffective = new Mock<ISettingCollection>(MockBehavior.Loose);
+        mockNewEffective
+            .Setup(x =>
+                x.TryGetValue(
+                    OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
+                    out permittedAlgorithms
+                )
+            )
+            .Returns(true);
+        var newEffective = mockNewEffective.Object;
+
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(
+                    serverSettings.Object,
+                    OpenIdSettingScopes.Tenant,
+                    It.Is<JsonElement>(e => !HasProperty(e, "foo"))
+                )
+            )
             .Returns(currentEffective)
-            .Returns(newEffective);
-        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
-        mockProvider.Setup(x => x.Collection).Returns(mockServerCollection.Object);
-        var mockServer = new Mock<OpenIdServer>(MockBehavior.Loose);
-        mockServer.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
-        MockServerProvider
-            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockServer.Object)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(
+                    serverSettings.Object,
+                    OpenIdSettingScopes.Tenant,
+                    It.Is<JsonElement>(e => HasProperty(e, "foo"))
+                )
+            )
+            .Returns(newEffective)
             .Verifiable();
 
         MockClientResponseAlgorithmValidator
@@ -793,7 +787,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     TenantId,
                     currentEffective,
                     newEffective,
-                    It.IsAny<JsonSerializerOptions>(),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -829,6 +822,35 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            TenantId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        VerifyTenantChanged(settingsChanged: true);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenNoClientAlgorithmSettingChanges_SkipsTheClientCheck()
+    {
+        SetupValidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct");
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupEffectiveSettingsResolver(CreateSettingCollection());
+        SetupSettingsWrite(settings);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no FindIntroducedViolationsAsync setup, so walking the clients would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
             TenantId,

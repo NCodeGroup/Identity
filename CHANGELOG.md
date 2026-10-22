@@ -10,6 +10,30 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **`IEffectiveSettingsResolver` resolves a scope's effective settings in one place.** Each caller used to rebuild the
+  merge of the server's settings, a tenant's document, and a client's or resource server's document, with the security
+  profiles' ceilings and defaults. The registrable resolver does it: `ReadScopeSettings` and `Resolve` read a scope's
+  document and merge it onto its parent's effective settings, and the two `ResolveServerAsync` overloads resolve a
+  proposed or the committed server document onto the configured settings. Its default is registered with
+  `TryAddSingleton`, so a host replaces it
+  ([ADR-0204](docs/adr/0204-a-scopes-effective-settings-are-resolved-by-one-service.md), backlog `R39`).
+
+- **`IReplicaBroadcaster` and `IReplicaBroadcastHandler` announce a change to every replica.** A replica publishes a
+  message on a channel, and every replica's handlers for that channel receive it, the publisher's included. Delivery is
+  best effort, at most once, and unordered, so a handler is idempotent, and a handler's failure is logged and never
+  reaches the publisher. `AddInProcessReplicaBroadcaster()` is the default, and `AddIdentityServer` registers it. The
+  Valkey adapter publishes with `PUBLISH` and `SUBSCRIBE` on the key prefix plus the channel, so its access-control
+  user needs both commands. The `tenant-changed` channel evicts a changed tenant on every replica
+  ([ADR-0205](docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md), backlog `R49`).
+
+- **`ServerSettingsChangedCommand`.** The server settings PATCH sends it after it commits, carrying the previous and the
+  new document. When a list gains an algorithm the server is configured to provision, a background `TenantKeyReseedJob`
+  re-seeds each tenant whose effective lists newly name it, outside the request
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), backlog `R50`).
+
+- **`ITenantStore.GetSettingsPageAsync` and `IClientStore.GetSettingsPageAsync`.** Each reads a page of settings
+  documents without their secrets and without change tracking, for a pass over every tenant or client (backlog `R21`).
+
 - **Redirect URI kinds, which a client's settings narrow.** The new `redirect_uri_kinds_supported` setting lists the
   kinds of redirect URI a client may register and use. It applies to tenants and clients, merges with `Intersect`,
   is not advertised, and permits every kind while unset. A kind is a registered `IRedirectUriKind`, judged through
@@ -455,6 +479,17 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **Breaking:** every copy of the effective-settings merge routes through `IEffectiveSettingsResolver`. The
+  `DefaultOpenIdTenantFactory` and `EphemeralOpenIdTenantFactory` constructors take it instead of
+  `ISecurityProfileCatalog`. Seeds and management previews read the server's committed settings rather than this
+  replica's 5-minute poll of them
+  ([ADR-0204](docs/adr/0204-a-scopes-effective-settings-are-resolved-by-one-service.md), backlog `R39`).
+  A custom `ITenantStore` or `IClientStore` must implement the new `GetSettingsPageAsync`.
+
+- **Deleting a tenant removes its keys, its system resource servers, and its role assignments.** They are deleted with
+  the tenant in one unit of work, so only a client or a resource server the tenant did not seed blocks the delete with
+  `409` ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), backlog `R51`).
 
 - **Breaking:** `redirect_uri` is carried as the string the client wrote, never as a `Uri`.
   `OpenIdCommonParameters.RedirectUri` is a `KnownParameter<string>`, and `IBaseAuthorizationRequestValues`,
@@ -1368,6 +1403,22 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A server settings PATCH loaded every tenant and client with their secrets, even for an unrelated change.** It now
+  walks the clients only when a setting that the client response-algorithm rule reads changed, and it reads tenants and
+  clients as untracked projections without their secrets (backlog `R21`).
+
+- **A management write evicted the tenant only on its own replica.** Every other replica kept serving its cached tenant,
+  disabled, deleted, or moved, until the entry expired. The write now announces the change, and every replica evicts the
+  tenant ([ADR-0205](docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md), backlog `R49`).
+
+- **A server settings change that permitted a configured algorithm left running tenants without its key.** A
+  background job now re-seeds each tenant that newly names the algorithm, so the key is provisioned without a restart
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), backlog `R50`).
+
+- **A tenant with provisioned keys could not be deleted.** The delete answered `409` because the tenant's own secrets
+  and system resource servers blocked it
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), backlog `R51`).
 
 - **`response_modes_supported` was checked inconsistently.** When the setting is set, the authorization endpoint now
   requires both the response mode as the request wrote it, so `jwt` itself must be listed, and the mode it resolves to

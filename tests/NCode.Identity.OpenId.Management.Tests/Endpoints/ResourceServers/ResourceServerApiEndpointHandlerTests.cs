@@ -35,7 +35,6 @@ using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
@@ -63,8 +62,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
-    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
-    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
+    private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
@@ -85,8 +83,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockSettingScopeCollectionProvider =
             MockRepository.Create<ISettingScopeCollectionProvider>();
-        MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
-        MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
+        MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
@@ -155,8 +152,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             MockCryptoService.Object,
             MockSettingSerializer.Object,
             MockSettingScopeCollectionProvider.Object,
-            MockServerProvider.Object,
-            MockSecurityProfileCatalog.Object,
+            MockEffectiveSettingsResolver.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<ResourceServerApiEndpointHandler>.Instance
@@ -508,33 +504,12 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             Name = "require_pkce",
             AppliesTo = ["client"],
         };
-        IReadOnlyCollection<Setting> tenantScopeSettings =
+        IReadOnlyCollection<Setting> effectiveScopeSettings =
         [
             descriptor.Create(true),
             clientOnlyDescriptor.Create(true),
         ];
-        IReadOnlyCollection<Setting> resourceServerScopeSettings = [];
-        MockSecurityProfileCatalog
-            .Setup(x =>
-                x.Expand(
-                    It.Is<JsonElement>(element => IsTenantDocument(element)),
-                    OpenIdSettingScopes.Tenant,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns(tenantScopeSettings)
-            .Verifiable();
-        MockSettingSerializer
-            .Setup(x =>
-                x.DeserializeSettings(
-                    It.Is<JsonElement>(element => !IsTenantDocument(element)),
-                    OpenIdSettingScopes.ResourceServer,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns(resourceServerScopeSettings)
-            .Verifiable();
-        SetupServerProvider(tenantScopeSettings, resourceServerScopeSettings);
+        SetupEffectiveSettingsResolver(effectiveScopeSettings);
         SetupSettingScopes(
             OpenIdSettingScopes.ResourceServer,
             (descriptor, true),
@@ -557,9 +532,6 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         Assert.False(json.Value.Settings.TryGetProperty("require_pkce", out _));
     }
 
-    private static bool IsTenantDocument(JsonElement element) =>
-        element.TryGetProperty("scope", out _);
-
     private void SetupSettingScopes(
         string scopeName,
         params (SettingDescriptor Descriptor, bool AppliesWithin)[] results
@@ -580,29 +552,35 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
-    private void SetupServerProvider(
-        IReadOnlyCollection<Setting> tenantScopeSettings,
-        IReadOnlyCollection<Setting> resourceServerScopeSettings
-    )
+    private void SetupEffectiveSettingsResolver(IReadOnlyCollection<Setting> effectiveScopeSettings)
     {
-        var effective = new Mock<ISettingCollection>(MockBehavior.Loose);
-        effective.Setup(x => x.GetEnumerator()).Returns(() => tenantScopeSettings.GetEnumerator());
+        var effectiveSettings = new Mock<ISettingCollection>(MockBehavior.Loose);
+        effectiveSettings
+            .Setup(x => x.GetEnumerator())
+            .Returns(() => effectiveScopeSettings.GetEnumerator());
 
-        var tenantEffective = new Mock<ISettingCollection>(MockBehavior.Loose);
-        tenantEffective.Setup(x => x.Merge(resourceServerScopeSettings)).Returns(effective.Object);
+        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
+        var tenantSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
 
-        var serverCollection = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
-        serverCollection.Setup(x => x.Merge(tenantScopeSettings)).Returns(tenantEffective.Object);
-
-        var provider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
-        provider.Setup(x => x.Collection).Returns(serverCollection.Object);
-
-        var server = new Mock<OpenIdServer>(MockBehavior.Loose);
-        server.Setup(x => x.SettingsProvider).Returns(provider.Object);
-
-        MockServerProvider
-            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(server.Object)
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serverSettings)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(serverSettings, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>())
+            )
+            .Returns(tenantSettings)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(
+                    tenantSettings,
+                    OpenIdSettingScopes.ResourceServer,
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns(effectiveSettings.Object)
             .Verifiable();
     }
 

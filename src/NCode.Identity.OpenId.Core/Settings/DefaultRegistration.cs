@@ -87,6 +87,13 @@ internal static class DefaultRegistration
                 DefaultSecurityProfileCatalog
             >();
 
+            // The effective-settings resolver is the one place that resolves a scope's effective settings outside the
+            // live providers; a host can replace it (ADR-0204).
+            serviceCollection.TryAddSingleton<
+                IEffectiveSettingsResolver,
+                DefaultEffectiveSettingsResolver
+            >();
+
             // Each built-in kind is its own class: TryAddEnumerable keeps one registration per implementation type
             // (ADR-0203).
             serviceCollection.TryAddEnumerable(

@@ -39,7 +39,6 @@ using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
@@ -71,8 +70,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
-    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
-    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
+    private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IRedirectUriKindCatalog> MockRedirectUriKindCatalog { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
@@ -118,8 +116,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockSettingScopeCollectionProvider =
             MockRepository.Create<ISettingScopeCollectionProvider>();
-        MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
-        MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
+        MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockRedirectUriKindCatalog = MockRepository.Create<IRedirectUriKindCatalog>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
@@ -177,8 +174,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockCryptoService.Object,
             MockSettingSerializer.Object,
             MockSettingScopeCollectionProvider.Object,
-            MockServerProvider.Object,
-            MockSecurityProfileCatalog.Object,
+            MockEffectiveSettingsResolver.Object,
             MockRedirectUriKindCatalog.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
@@ -825,26 +821,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTenantSettings())
             .Verifiable();
-        MockSecurityProfileCatalog
-            .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.Tenant,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns(Array.Empty<Setting>())
-            .Verifiable();
-        MockSecurityProfileCatalog
-            .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.Client,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns(Array.Empty<Setting>())
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
 
         var descriptor = new SettingDescriptor<bool>
@@ -861,7 +837,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             descriptor.Create(true),
             tenantOnlyDescriptor.Create(true)
         );
-        SetupServerProvider(effective);
+        SetupEffectiveSettingsResolver(effective);
         SetupSettingScopes(
             OpenIdSettingScopes.Client,
             (descriptor, true),
@@ -935,22 +911,26 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
     }
 
-    private void SetupServerProvider(ISettingCollection effectiveSettings)
+    private void SetupEffectiveSettingsResolver(ISettingCollection effectiveSettings)
     {
-        var mockServerCollection = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
-        mockServerCollection
-            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
-            .Returns(effectiveSettings);
+        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
+        var tenantSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
 
-        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
-        mockProvider.Setup(x => x.Collection).Returns(mockServerCollection.Object);
-
-        var mockServer = new Mock<OpenIdServer>(MockBehavior.Loose);
-        mockServer.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
-
-        MockServerProvider
-            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockServer.Object)
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serverSettings)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(serverSettings, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>())
+            )
+            .Returns(tenantSettings)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(tenantSettings, OpenIdSettingScopes.Client, It.IsAny<JsonElement>())
+            )
+            .Returns(effectiveSettings)
             .Verifiable();
     }
 
@@ -1231,17 +1211,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTenantSettings())
             .Verifiable();
-        MockSecurityProfileCatalog
-            .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
-                    It.IsAny<string>(),
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns(Array.Empty<Setting>())
-            .Verifiable();
-        SetupServerProvider(effectiveSettings);
+        SetupEffectiveSettingsResolver(effectiveSettings);
     }
 
     private static ISettingCollection CreateIdTokenSigningSettings(

@@ -58,7 +58,7 @@ public class DefaultOpenIdTenantFactory(
     ISecretSerializer secretSerializer,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
-    ISecurityProfileCatalog securityProfileCatalog
+    IEffectiveSettingsResolver effectiveSettingsResolver
 ) : IOpenIdTenantFactory
 {
     /// <summary>
@@ -110,9 +110,10 @@ public class DefaultOpenIdTenantFactory(
         collectionDataSourceFactory;
 
     /// <summary>
-    /// Gets the <see cref="ISecurityProfileCatalog"/> used to expand a scope's selected security profile.
+    /// Gets the <see cref="IEffectiveSettingsResolver"/> used to read each scope's persisted settings document.
     /// </summary>
-    protected ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    protected IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
 
     /// <inheritdoc />
     public virtual async ValueTask<
@@ -128,9 +129,9 @@ public class DefaultOpenIdTenantFactory(
         // Probe the cache before any store round-trip when the tenant's identity can be determined from the request
         // alone (static/path strategies). Host-based tenancy must map its domain to a tenant via the store, so it
         // falls through to a full resolve. A cache hit intentionally serves the cached tenant without re-reading the
-        // store. A management write evicts the tenant on the replica that made it (TenantChangedCommand); another
-        // replica picks up settings and secrets through its polls, but serves a tenant disabled after it was cached
-        // until its cache entry expires.
+        // store. A management write announces the change (TenantChangedCommand), and every replica evicts the tenant
+        // when the announcement arrives (ADR-0205). A replica that missed the announcement falls back to its polls
+        // and the cache's expiration.
         PersistedTenant? persistedTenant = null;
         if (!TenantResolver.TryGetTenantId(httpContext, out var tenantId))
         {
@@ -422,12 +423,9 @@ public class DefaultOpenIdTenantFactory(
         CancellationToken cancellationToken
     )
     {
-        var jsonOptions = openIdEnvironment.JsonSerializerOptions;
-        var initialSettingsJson = persistedTenant.Settings.Value;
-        var initialSettings = SecurityProfileCatalog.Expand(
-            initialSettingsJson,
+        var initialSettings = EffectiveSettingsResolver.ReadScopeSettings(
             OpenIdSettingScopes.Tenant,
-            jsonOptions
+            persistedTenant.Settings.Value
         );
 
         var periodicPollingSource = CollectionDataSourceFactory.CreatePeriodicPolling(
@@ -460,7 +458,7 @@ public class DefaultOpenIdTenantFactory(
         CancellationToken cancellationToken
     )
     {
-        var (openIdEnvironment, _, persistedTenant) = state;
+        var persistedTenant = state.PersistedTenant;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
@@ -476,11 +474,9 @@ public class DefaultOpenIdTenantFactory(
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
-        var jsonOptions = openIdEnvironment.JsonSerializerOptions;
-        var settings = SecurityProfileCatalog.Expand(
-            newSettings.Value,
+        var settings = EffectiveSettingsResolver.ReadScopeSettings(
             OpenIdSettingScopes.Tenant,
-            jsonOptions
+            newSettings.Value
         );
 
         // update the state after successfully deserializing the settings

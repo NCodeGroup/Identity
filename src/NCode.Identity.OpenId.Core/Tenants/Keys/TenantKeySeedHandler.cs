@@ -19,11 +19,9 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Cryptography;
-using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -47,9 +45,7 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 internal class TenantKeySeedHandler(
     IOptions<OpenIdOptions> optionsAccessor,
     ITenantKeyPolicy tenantKeyPolicy,
-    IOpenIdEnvironmentProvider openIdEnvironmentProvider,
-    IOpenIdServerProvider openIdServerProvider,
-    ISecurityProfileCatalog securityProfileCatalog,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
     ISecretGenerator secretGenerator,
     ICryptoService cryptoService,
     TimeProvider timeProvider,
@@ -64,10 +60,8 @@ internal class TenantKeySeedHandler(
         optionsAccessor.Value.Tenant.KeyProvisioning;
 
     private ITenantKeyPolicy TenantKeyPolicy { get; } = tenantKeyPolicy;
-    private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
-        openIdEnvironmentProvider;
-    private IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
-    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -104,7 +98,11 @@ internal class TenantKeySeedHandler(
         var generated = new List<PersistedSecret>();
         foreach (var specification in resolution.Specifications)
         {
-            if (!IsUsed(specification, settings))
+            // A key is provisioned only for an algorithm the tenant can sign or decrypt with; a key for any other
+            // algorithm would be published in the tenant's key set and never used.
+            if (
+                !TenantKeyUsage.IsUsed(Options.AlgorithmSettings, settings, specification.Algorithm)
+            )
             {
                 continue;
             }
@@ -138,37 +136,20 @@ internal class TenantKeySeedHandler(
         };
     }
 
-    // The tenant's settings materialize only after the seed, so the seed merges the tenant's persisted document onto
-    // the server's settings itself, as the materialized tenant will.
+    // The tenant's settings materialize only after the seed, so the seed resolves the tenant's persisted document onto
+    // the server's committed settings through the resolver, as the materialized tenant will (see ADR-0204).
     private async ValueTask<IReadOnlySettingCollection> GetEffectiveSettingsAsync(
         PersistedTenant tenant,
         CancellationToken cancellationToken
     )
     {
-        var openIdEnvironment = OpenIdEnvironmentProvider.Get();
-        var openIdServer = await OpenIdServerProvider.GetAsync(
-            openIdEnvironment,
-            cancellationToken
-        );
-        var tenantSettings = SecurityProfileCatalog.Expand(
-            tenant.Settings.Value,
+        var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        return EffectiveSettingsResolver.Resolve(
+            serverSettings,
             OpenIdSettingScopes.Tenant,
-            openIdEnvironment.JsonSerializerOptions
+            tenant.Settings.Value
         );
-        return openIdServer.SettingsProvider.Collection.Merge(tenantSettings);
     }
-
-    // A key is provisioned only for an algorithm the tenant can sign or decrypt with; a key for any other algorithm would
-    // be published in the tenant's key set and never used.
-    private bool IsUsed(
-        TenantKeySpecification specification,
-        IReadOnlySettingCollection settings
-    ) =>
-        Options.AlgorithmSettings.Any(settingName =>
-            settings.TryGetValue(settingName, out var value)
-            && value is IEnumerable<string> algorithms
-            && algorithms.Contains(specification.Algorithm, StringComparer.Ordinal)
-        );
 
     private PersistedSecret GenerateSecret(TenantKeySpecification specification)
     {

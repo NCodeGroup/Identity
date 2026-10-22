@@ -23,6 +23,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
@@ -41,6 +42,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
 using SystemTextJsonPatch.Operations;
@@ -64,10 +66,10 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
-    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
-    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
+    private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IClientResponseAlgorithmValidator> MockClientResponseAlgorithmValidator { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
+    private Mock<IMediator> MockMediator { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private ServerApiEndpointHandler Handler { get; }
 
@@ -95,11 +97,11 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockSettingScopeCollectionProvider =
             MockRepository.Create<ISettingScopeCollectionProvider>();
-        MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
-        MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
+        MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockClientResponseAlgorithmValidator =
             MockRepository.Create<IClientResponseAlgorithmValidator>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
+        MockMediator = MockRepository.Create<IMediator>();
 
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
         MockManagementAuditRecorder
@@ -138,8 +140,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             MockCryptoService.Object,
             MockSettingSerializer.Object,
             MockSettingScopeCollectionProvider.Object,
-            MockServerProvider.Object,
-            MockSecurityProfileCatalog.Object,
+            MockEffectiveSettingsResolver.Object,
             MockClientResponseAlgorithmValidator.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<ServerApiEndpointHandler>.Instance
@@ -227,12 +228,18 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         );
     }
 
-    private static HttpContext CreateHttpContext(bool authenticated, string? ifNoneMatch = null)
+    private HttpContext CreateHttpContext(bool authenticated, string? ifNoneMatch = null)
     {
         var identity = authenticated
             ? new ClaimsIdentity(authenticationType: "test")
             : new ClaimsIdentity();
-        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(identity),
+            RequestServices = new ServiceCollection()
+                .AddSingleton(MockMediator.Object)
+                .BuildServiceProvider(),
+        };
         // The shared environment filter publishes the context in the pipeline; emulate it for direct handler calls.
         httpContext.Features.Set<IOpenIdContextFeature>(
             Mock.Of<IOpenIdContextFeature>(feature =>
@@ -487,13 +494,11 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         var effective = CreateSettingCollection(descriptor.Create(true));
         SetupSettingScopes("server", (descriptor, true));
 
-        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
-        mockProvider.Setup(x => x.Collection).Returns(effective);
-        var mockServer = new Mock<OpenIdServer>(MockBehavior.Loose);
-        mockServer.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
-        MockServerProvider
-            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockServer.Object)
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveServerAsync(It.IsAny<JsonElement>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(effective)
             .Verifiable();
 
         SetupAuthorization(AuthorizationResult.Success());
@@ -581,43 +586,55 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
     private const string TenantId = "tenant-1";
 
+    private static bool HasProperty(JsonElement element, string name) =>
+        element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out _);
+
     private void SetupClientAlgorithmCheck(params ClientResponseAlgorithmFinding[] findings)
     {
-        MockSecurityProfileCatalog
+        // The patch adds "foo", so the proposed document has it and the committed one does not. The new server
+        // settings gain a permitted algorithm, so the gate sees a change the client check reads.
+        var currentServer = CreateSettingCollection();
+        IReadOnlyCollection<string>? permittedAlgorithms = ["RS256"];
+        var mockNewServer = new Mock<ISettingCollection>(MockBehavior.Loose);
+        mockNewServer
             .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
-                    It.IsAny<string>(),
-                    It.IsAny<JsonSerializerOptions>()
+                x.TryGetValue(
+                    OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
+                    out permittedAlgorithms
                 )
             )
-            .Returns(Array.Empty<Setting>())
+            .Returns(true);
+        var newServer = mockNewServer.Object;
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveServerAsync(
+                    It.Is<JsonElement>(e => !HasProperty(e, "foo")),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(currentServer)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveServerAsync(
+                    It.Is<JsonElement>(e => HasProperty(e, "foo")),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(newServer)
             .Verifiable();
 
         var currentTenantSettings = CreateSettingCollection();
         var newTenantSettings = CreateSettingCollection();
-        var mockCurrentServerSettings = new Mock<ISettingCollection>(MockBehavior.Loose);
-        mockCurrentServerSettings
-            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
-            .Returns(currentTenantSettings);
-        var mockNewServerSettings = new Mock<ISettingCollection>(MockBehavior.Loose);
-        mockNewServerSettings
-            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
-            .Returns(newTenantSettings);
-
-        // The current document is merged onto the configured settings first, then the new one.
-        var mockConfiguredSettings = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
-        mockConfiguredSettings
-            .SetupSequence(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
-            .Returns(mockCurrentServerSettings.Object)
-            .Returns(mockNewServerSettings.Object);
-        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
-        mockProvider.Setup(x => x.Collection).Returns(mockConfiguredSettings.Object);
-        var mockServer = new Mock<OpenIdServer>(MockBehavior.Loose);
-        mockServer.Setup(x => x.ConfiguredSettingsProvider).Returns(mockProvider.Object);
-        MockServerProvider
-            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockServer.Object)
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(currentServer, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>())
+            )
+            .Returns(currentTenantSettings)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.Resolve(newServer, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
+            .Returns(newTenantSettings)
             .Verifiable();
 
         MockStoreManager
@@ -628,22 +645,28 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         // Two pages, so the check follows the cursor rather than stopping after the first page.
         MockTenantStore
             .Setup(x =>
-                x.GetPageAsync(
+                x.GetSettingsPageAsync(
                     It.Is<PageRequest>(page => page.Cursor == null),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(new PagedResult<PersistedTenant> { Items = [], NextCursor = "next" })
+            .ReturnsAsync(
+                new PagedResult<PersistedTenantSettings> { Items = [], NextCursor = "next" }
+            )
             .Verifiable();
         MockTenantStore
             .Setup(x =>
-                x.GetPageAsync(
+                x.GetSettingsPageAsync(
                     It.Is<PageRequest>(page => page.Cursor == "next"),
                     It.IsAny<CancellationToken>()
                 )
             )
             .ReturnsAsync(
-                new PagedResult<PersistedTenant> { Items = [CreateTenant()], NextCursor = null }
+                new PagedResult<PersistedTenantSettings>
+                {
+                    Items = [CreateTenantSettings()],
+                    NextCursor = null,
+                }
             )
             .Verifiable();
 
@@ -654,7 +677,6 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
                     TenantId,
                     currentTenantSettings,
                     newTenantSettings,
-                    It.IsAny<JsonSerializerOptions>(),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -662,27 +684,82 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
-    private static PersistedTenant CreateTenant() =>
+    private void SetupServerSettingsChanged() =>
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<ServerSettingsChangedCommand>(c =>
+                        c.ServerId == ServerId
+                        && HasProperty(c.Settings, "foo")
+                        && !HasProperty(c.PreviousSettings, "foo")
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    private static PersistedTenantSettings CreateTenantSettings() =>
         new()
         {
             TenantId = TenantId,
-            Issuer = null,
-            ConcurrencyToken = "tenant-ct",
-            IsDisabled = false,
-            DisplayName = TenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = "settings-ct",
-                Value = EmptyObject(),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = "secrets-ct",
-                Value = [],
-            },
+            ConcurrencyToken = "settings-ct",
+            Value = EmptyObject(),
         };
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenNoClientAlgorithmSettingChanges_SkipsTheTenantWalk()
+    {
+        SetupValidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct", EmptyObject());
+        MockServerStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveServerAsync(
+                    It.Is<JsonElement>(e => !HasProperty(e, "foo")),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreateSettingCollection())
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveServerAsync(
+                    It.Is<JsonElement>(e => HasProperty(e, "foo")),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreateSettingCollection())
+            .Verifiable();
+        MockServerStore
+            .Setup(x => x.UpdateSettingsAsync(settings, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        SetupServerSettingsChanged();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no tenant-store or FindIntroducedViolationsAsync setup, so walking the tenants would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ServerId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
 
     [Fact]
     public async Task UpdateSettingsAsync_WhenTheChangeExcludesAClientAlgorithm_ReturnsValidationProblem()
@@ -756,6 +833,8 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupServerSettingsChanged();
+
         var httpContext = CreateHttpContext(authenticated: true);
         var patch = CreateAddPatch("foo", "bar");
 
@@ -770,6 +849,49 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         Assert.IsType<NoContent>(result);
         Assert.Equal("settings-ct", httpContext.Response.Headers.ETag);
         Assert.Equal("bar", settings.Value.GetProperty("foo").GetString());
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_AfterTheWriteCommits_AnnouncesTheServerSettingsChange()
+    {
+        SetupValidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct", EmptyObject());
+        MockServerStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupClientAlgorithmCheck();
+        MockServerStore
+            .Setup(x => x.UpdateSettingsAsync(settings, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupServerSettingsChanged();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ServerId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        MockMediator.Verify(
+            x =>
+                x.SendAsync(
+                    It.IsAny<ServerSettingsChangedCommand>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -792,6 +914,8 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+
+        SetupServerSettingsChanged();
 
         var httpContext = CreateHttpContext(authenticated: true);
 

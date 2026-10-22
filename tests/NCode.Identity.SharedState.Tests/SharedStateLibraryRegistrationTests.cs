@@ -83,4 +83,39 @@ public sealed class SharedStateLibraryRegistrationTests : BaseTests
     }
 
     #endregion
+
+    #region AddInProcessReplicaBroadcaster Tests
+
+    [Fact]
+    public void AddInProcessReplicaBroadcaster_RegistersTheInProcessAdapter()
+    {
+        var serviceCollection = new ServiceCollection();
+
+        serviceCollection.AddSharedStateServices().AddInProcessReplicaBroadcaster();
+
+        var descriptor = Assert.Single(
+            serviceCollection,
+            x => x.ServiceType == typeof(IReplicaBroadcaster)
+        );
+        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
+        Assert.Equal(typeof(DefaultInProcessReplicaBroadcaster), descriptor.ImplementationType);
+    }
+
+    [Fact]
+    public void AddInProcessReplicaBroadcaster_WhenAdapterRegisteredFirst_KeepsThatAdapter()
+    {
+        var customBroadcaster = CreateStrictMock<IReplicaBroadcaster>().Object;
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(customBroadcaster);
+
+        serviceCollection.AddSharedStateServices().AddInProcessReplicaBroadcaster();
+
+        var descriptor = Assert.Single(
+            serviceCollection,
+            x => x.ServiceType == typeof(IReplicaBroadcaster)
+        );
+        Assert.Same(customBroadcaster, descriptor.ImplementationInstance);
+    }
+
+    #endregion
 }

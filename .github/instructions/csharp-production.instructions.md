@@ -356,11 +356,25 @@ rationale.
   only for a genuine pipeline seam where the sender must stay ignorant of the handlers. `TryAddEnumerable`
   keeps one registration per implementation type, an instance's type included, so each built-in strategy of an open
   vocabulary is its own class (the redirect URI kinds); several instances of one class keep only the first.
+- 👁 **A service a client-authentication handler can reach reads `IOptions<OpenIdOptions>.Value` on use, not in its
+  constructor.** `Value` runs every `IValidateOptions<OpenIdOptions>`, and those validators read the setting-descriptor
+  catalog, which constructs every `IClientAuthenticationHandler`; a constructor on a handler's dependency path that
+  reads it deadlocks host composition, a cycle the container cannot detect (`DefaultOpenIdEnvironmentFactory`,
+  `DefaultOpenIdServerFactory`). Keep `IOptions<OpenIdOptions>` and read `Value` where it is used (the options manager
+  caches it) until the catalog stops constructing handlers (backlog `R60`).
 - 👁 **Mediator handlers run in descending `ISupportMediatorPriority` order** — `DefaultMediatorPriorities.High` (100)
   first, `Low` (-100) last. When one handler depends on another's effect, state it with priorities, never with
   registration order. A handler that observes or repairs state for the rest runs `High` (the default validators, the
   development secret pruner), and a handler that consumes what the others leave runs `Low` (tenant key provisioning,
   [ADR-0169](../../docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)).
+- 👁 **A change other replicas must observe is announced, not only applied locally.** An in-process cache or
+  materialized object is invalidated on every replica through `IReplicaBroadcaster`, with a registered
+  `IReplicaBroadcastHandler` per channel. Apply the change locally first, publish after, and log rather than throw a
+  failed publish once the write has committed
+  ([ADR-0205](../../docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md)).
+- 👁 **Work proportional to the deployment never runs inside a request.** A pass over every tenant or every client
+  reads a settings projection (`GetSettingsPageAsync`, untracked, no secrets), skips when the change cannot affect it,
+  and when it must act on each tenant it runs as an `IJobDispatcher` job (R21, R50).
 - 👁 **Build a protocol endpoint to the canonical shape** per [ADR-0086](../../docs/adr/0086-canonical-openid-endpoint-shape.md):
   a **thin** `IEndpointProvider` whose `HandleRouteAsync` only orchestrates — verb/content-type guard →
   `IClientAuthenticationService.AuthenticateClientAsync` → load a **strongly-typed** `OpenIdMessage<T>` request
@@ -457,10 +471,12 @@ rationale.
   reader, and is never split back into its parts to be enforced piecewise.
   See [ADR-0140](../../docs/adr/0140-setting-values-are-validated-against-their-domain.md) and
   [ADR-0141](../../docs/adr/0141-response-types-are-whole-values.md).
-- 👁 **A security profile binds every scope below the one that selects it.** A scope's own settings enter the cascade
-  through `ISecurityProfileCatalog.Expand` — the root settings, the persisted server, tenant, and client documents, and
-  any view that claims to show what the runtime enforces (a management effective-settings preview) — never through a
-  bare `ISettingSerializer.DeserializeSettings`, which would apply a profile's requirements without its ceilings.
+- 👁 **A security profile binds every scope below the one that selects it.** Outside the live providers, resolve a
+  scope's effective settings only through `IEffectiveSettingsResolver`. Use `Resolve(parent, scope, document)`, and
+  `ResolveServerAsync` for the server's committed settings. Never hand-merge a deserialized document, and never take
+  server settings from this replica's poll for a seed or a check. Only the server factory and the root settings source
+  call the catalog directly
+  ([ADR-0204](../../docs/adr/0204-a-scopes-effective-settings-are-resolved-by-one-service.md)).
   `security_profiles` accumulates down the cascade (`Union`), so enforcement evaluates the requirements of every profile
   in the effective settings and never picks "the" profile. A profile contributes its ceiling through
   `ISecurityProfileCeilingBuilder`, which accepts only a setting whose merge is a lattice operation

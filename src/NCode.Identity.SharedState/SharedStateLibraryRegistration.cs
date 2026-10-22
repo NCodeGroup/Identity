@@ -73,5 +73,26 @@ public static class SharedStateLibraryRegistration
 
             return builder;
         }
+
+        /// <summary>
+        /// Registers the built-in in-process <see cref="IReplicaBroadcaster"/> adapter. It delivers a message only to
+        /// the <see cref="IReplicaBroadcastHandler"/> instances of one process, so it is correct only for a deployment
+        /// that runs a single replica: a message published by one replica is not seen by another. The registration is
+        /// a default (<c>TryAdd</c>), so a deployment that registered its own <see cref="IReplicaBroadcaster"/> first
+        /// keeps that adapter.
+        /// </summary>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
+        [PublicAPI]
+        public IServiceBuilder<SharedStateLibrary> AddInProcessReplicaBroadcaster()
+        {
+            var serviceCollection = builder.ServiceCollection;
+
+            serviceCollection.TryAddSingleton<
+                IReplicaBroadcaster,
+                DefaultInProcessReplicaBroadcaster
+            >();
+
+            return builder;
+        }
     }
 }

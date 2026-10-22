@@ -123,3 +123,6 @@ chooses: in-process for a single replica, Valkey for several.**
   [ADR-0102](0102-jwt-bearer-client-authentication.md) (where their nonce and replay records are kept), and
   [ADR-0134](0134-cloud-native-operating-principles.md) principle 4 (shared ephemeral state lives in the shared-state
   port, backed by Valkey).
+- The shared-state family also carries the replica broadcast port
+  ([ADR-0205](0205-replicas-announce-changes-through-a-broadcast-port.md)); the Valkey adapter registers its broadcaster
+  and subscriber in `AddValkey`.

@@ -59,7 +59,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
             mocks.Create<ISecretSerializer>().Object,
             mocks.Create<ISecretKeyCollectionProviderFactory>().Object,
             mocks.Create<ICollectionDataSourceFactory>().Object,
-            mocks.Create<ISecurityProfileCatalog>().Object
+            mocks.Create<IEffectiveSettingsResolver>().Object
         );
 
     #region CreateTenantForRequestAsync Tests
@@ -464,7 +464,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
             secretSerializer ?? mocks.Create<ISecretSerializer>().Object,
             mocks.Create<ISecretKeyCollectionProviderFactory>().Object,
             mocks.Create<ICollectionDataSourceFactory>().Object,
-            mocks.Create<ISecurityProfileCatalog>().Object
+            mocks.Create<IEffectiveSettingsResolver>().Object
         )
     {
         public ValueTask<

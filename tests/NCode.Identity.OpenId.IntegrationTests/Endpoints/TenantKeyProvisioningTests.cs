@@ -17,6 +17,7 @@
 #endregion
 
 using System.Buffers.Text;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -27,6 +28,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -222,6 +224,79 @@ public class TenantKeyProvisioningTests
         Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
     }
 
+    [Fact]
+    public async Task UpdateServerSettings_WhenTheChangePermitsAConfiguredAlgorithm_ProvisionsItsKeyForEveryTenant()
+    {
+        using var factory = CreateDynamicFactory();
+        using var client = factory.CreateClient();
+
+        var accessToken = await GetBootstrapTokenAsync(client);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            accessToken
+        );
+
+        // The server stops permitting ES256, so a tenant created now is provisioned without its key.
+        await PatchServerSettingsAsync(client, operation: "add", value: ["RS256", "PS256"]);
+
+        using var createResponse = await client.PostAsJsonAsync(
+            "/api/tenants",
+            new
+            {
+                tenantId = "acme",
+                displayName = "Acme",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
+        Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
+
+        // Restoring the default lists permits ES256 again; a background job seeds it for the tenant (ADR-0169
+        // decision 10), so the key arrives after the PATCH returns.
+        await PatchServerSettingsAsync(client, operation: "remove", value: null);
+
+        var secretIds = await WaitForSecretIdsAsync(factory, "acme", count: 3);
+        Assert.Equal(3, secretIds.Count);
+    }
+
+    [Fact]
+    public async Task DeleteTenant_WithProvisionedKeys_DeletesItWithItsKeys()
+    {
+        using var factory = CreateDynamicFactory();
+        using var client = factory.CreateClient();
+
+        var accessToken = await GetBootstrapTokenAsync(client);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            accessToken
+        );
+
+        using var createResponse = await client.PostAsJsonAsync(
+            "/api/tenants",
+            new
+            {
+                tenantId = "acme",
+                displayName = "Acme",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
+        Assert.Equal(3, (await GetSecretIdsAsync(factory, "acme")).Count);
+
+        // The tenant's keys are part of it, so they no longer block its deletion (ADR-0169).
+        using var deleteResponse = await client.DeleteAsync("/api/tenants/acme");
+        var deleteBody = await deleteResponse.Content.ReadAsStringAsync();
+        Assert.True(deleteResponse.StatusCode == HttpStatusCode.NoContent, deleteBody);
+
+        using var getResponse = await client.GetAsync("/api/tenants/acme");
+        var getBody = await getResponse.Content.ReadAsStringAsync();
+        Assert.True(getResponse.StatusCode == HttpStatusCode.NotFound, getBody);
+    }
+
     private static void AssertRsaKey(JsonElement key, int modulusBits)
     {
         Assert.Equal("RSA", key.GetProperty("kty").GetString());
@@ -280,6 +355,69 @@ public class TenantKeyProvisioningTests
 
     private static JsonDocument DecodeJwtHeader(string jwt) =>
         JsonDocument.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[0]));
+
+    // One operation per signing list of the server's settings: an "add" replaces the list with the value, a "remove"
+    // drops it so the default applies again.
+    private static async Task PatchServerSettingsAsync(
+        HttpClient client,
+        string operation,
+        string[]? value
+    )
+    {
+        string[] names =
+        [
+            OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
+            OpenIdSettingNames.UserInfoSigningAlgValuesSupported,
+            OpenIdSettingNames.IntrospectionSigningAlgValuesSupported,
+            OpenIdSettingNames.AuthorizationSigningAlgValuesSupported,
+            OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
+        ];
+
+        var operations = names.Select(name =>
+            value is null
+                ? (object)new { op = operation, path = $"/{name}" }
+                : new
+                {
+                    op = operation,
+                    path = $"/{name}",
+                    value,
+                }
+        );
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Patch,
+            $"/api/servers/{OpenIdServerOptions.DefaultServerId}/settings"
+        )
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(operations),
+                Encoding.UTF8,
+                "application/json-patch+json"
+            ),
+        };
+
+        using var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.NoContent, body);
+    }
+
+    // The re-seed runs on a background job, so the keys of the other tenants arrive after the PATCH returns.
+    private static async Task<List<string>> WaitForSecretIdsAsync(
+        HostApplicationFactory factory,
+        string tenantId,
+        int count
+    )
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var secretIds = await GetSecretIdsAsync(factory, tenantId);
+        while (secretIds.Count < count && stopwatch.Elapsed < TimeSpan.FromSeconds(15))
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+            secretIds = await GetSecretIdsAsync(factory, tenantId);
+        }
+
+        return secretIds;
+    }
 
     private static async Task<List<string>> GetSecretIdsAsync(
         HostApplicationFactory factory,

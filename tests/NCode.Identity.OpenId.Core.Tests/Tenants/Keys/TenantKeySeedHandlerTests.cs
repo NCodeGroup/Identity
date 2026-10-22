@@ -22,10 +22,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Core.Tests;
-using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Keys;
@@ -63,9 +61,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
 
     private OpenIdOptions OpenIdOptions { get; } = new();
     private Mock<ITenantKeyPolicy> MockPolicy { get; }
-    private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
-    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
-    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
+    private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
@@ -75,9 +71,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
     public TenantKeySeedHandlerTests()
     {
         MockPolicy = CreateStrictMock<ITenantKeyPolicy>();
-        MockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
-        MockServerProvider = CreateStrictMock<IOpenIdServerProvider>();
-        MockSecurityProfileCatalog = CreateStrictMock<ISecurityProfileCatalog>();
+        MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         MockSecretGenerator = CreateStrictMock<ISecretGenerator>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
@@ -86,9 +80,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         Handler = new TenantKeySeedHandler(
             Options.Create(OpenIdOptions),
             MockPolicy.Object,
-            MockEnvironmentProvider.Object,
-            MockServerProvider.Object,
-            MockSecurityProfileCatalog.Object,
+            MockEffectiveSettingsResolver.Object,
             MockSecretGenerator.Object,
             MockCryptoService.Object,
             TimeProvider.System,
@@ -286,50 +278,25 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
 
     private void SetupSettings(string settingName, params string[] algorithms)
     {
-        var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
-        mockEnvironment
-            .SetupGet(x => x.JsonSerializerOptions)
-            .Returns(JsonSerializerOptions.Default)
-            .Verifiable();
-        MockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
-
-        var mockServer = CreateStrictMock<OpenIdServer>();
-        MockServerProvider
-            .Setup(x => x.GetAsync(mockEnvironment.Object, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockServer.Object)
-            .Verifiable();
-
-        IReadOnlyCollection<Setting> tenantSettings = [];
-        MockSecurityProfileCatalog
-            .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.Tenant,
-                    JsonSerializerOptions.Default
-                )
-            )
-            .Returns(tenantSettings)
-            .Verifiable();
-
         // The effective settings name the algorithms under one setting only; every other lookup finds nothing.
         object? value = algorithms.ToList();
         var mockEffectiveSettings = CreateLooseMock<ISettingCollection>();
         mockEffectiveSettings.Setup(x => x.TryGetValue(settingName, out value)).Returns(true);
 
         var mockServerSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        mockServerSettings
-            .Setup(x => x.Merge(tenantSettings))
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockServerSettings.Object)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(
+                    mockServerSettings.Object,
+                    OpenIdSettingScopes.Tenant,
+                    It.IsAny<JsonElement>()
+                )
+            )
             .Returns(mockEffectiveSettings.Object)
-            .Verifiable();
-
-        var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
-        mockSettingsProvider
-            .SetupGet(x => x.Collection)
-            .Returns(mockServerSettings.Object)
-            .Verifiable();
-        mockServer
-            .SetupGet(x => x.SettingsProvider)
-            .Returns(mockSettingsProvider.Object)
             .Verifiable();
     }
 

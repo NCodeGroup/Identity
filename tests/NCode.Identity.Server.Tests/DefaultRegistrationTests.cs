@@ -28,9 +28,11 @@ using NCode.Collections.Providers;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -197,6 +199,62 @@ public sealed class DefaultRegistrationTests
             2,
             await counterSet.IncrementAsync("key", expiresWhen, CancellationToken.None)
         );
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_RegistersAReplicaBroadcaster()
+    {
+        using var host = BuildHost([]);
+        var broadcaster = host.Services.GetRequiredService<IReplicaBroadcaster>();
+
+        await broadcaster.PublishAsync("unknown-channel", "message", CancellationToken.None);
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheTenantChangeBroadcastHandler()
+    {
+        // Without this handler a tenant change reaches only the replica that handled it.
+        using var host = BuildHost([]);
+
+        Assert.Single(
+            host.Services.GetServices<IReplicaBroadcastHandler>().Select(x => x.Channel),
+            "tenant-changed"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheServerSettingsChangedHandler()
+    {
+        // Without this handler a server settings change never re-seeds the tenants it affects.
+        using var host = BuildHost([]);
+
+        Assert.NotEmpty(host.Services.GetServices<ICommandHandler<ServerSettingsChangedCommand>>());
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_ResolvesTheClientAuthenticationHandlersWithoutDeadlocking()
+    {
+        // Fails fast instead of hanging when a constructor on a client-authentication handler's dependency path reads
+        // IOptions<OpenIdOptions>.Value (ADR-0204, backlog R60).
+        using var host = BuildHost([]);
+
+        var handlers = await Task.Run(() =>
+                host.Services.GetServices<IClientAuthenticationHandler>().ToList()
+            )
+            .WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.NotEmpty(handlers);
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_ReadingTheOpenIdOptionsDoesNotDeadlock()
+    {
+        // Fails fast instead of hanging when a constructor on a client-authentication handler's dependency path reads
+        // IOptions<OpenIdOptions>.Value (ADR-0204, backlog R60).
+        using var host = BuildHost([]);
+
+        await Task.Run(() => host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value)
+            .WaitAsync(TimeSpan.FromSeconds(30));
     }
 
     [Fact]

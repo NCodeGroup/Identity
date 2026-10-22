@@ -91,11 +91,13 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
 
         // The in-process expiring key and counter sets are the default shared-state adapters, correct for a single
         // replica; a deployment that runs several replicas swaps in shared adapters (AddValkey) on
-        // SharedStateLibraryBuilder.
+        // SharedStateLibraryBuilder. The in-process replica broadcaster is also a default, correct for a single
+        // replica, which AddValkey replaces.
         SharedStateLibraryBuilder = serviceCollection
             .AddSharedStateServices()
             .AddInProcessExpiringKeySet()
-            .AddInProcessExpiringCounterSet();
+            .AddInProcessExpiringCounterSet()
+            .AddInProcessReplicaBroadcaster();
 
         DataProtectionBuilder = serviceCollection.AddDataProtection();
         SecretsLibraryBuilder = serviceCollection.AddSecretsLibrary();

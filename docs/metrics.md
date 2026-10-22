@@ -82,8 +82,8 @@ An event type adds bounded attributes of its own by implementing `ISupportMetric
 Histogram, unit `s`, meter `NCode.Identity.SharedState.Valkey`. Recorded for each round trip to the shared-state
 server. The in-process adapter records nothing: a dictionary operation in memory has no latency or failure to watch.
 
-| Attribute                               | Values                                                                    |
-| --------------------------------------- | ------------------------------------------------------------------------- |
-| `ncode.identity.shared_state.operation` | `counter.increment`, `counter.get`, `key_set.try_add`, `key_set.contains` |
-| `ncode.identity.shared_state.adapter`   | `valkey`, or the name another networked adapter declares                  |
-| `error.type`                            | On failure only: the full type name of the exception                      |
+| Attribute                               | Values                                                                                         |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `ncode.identity.shared_state.operation` | `counter.increment`, `counter.get`, `key_set.try_add`, `key_set.contains`, `broadcast.publish` |
+| `ncode.identity.shared_state.adapter`   | `valkey`, or the name another networked adapter declares                                       |
+| `error.type`                            | On failure only: the full type name of the exception                                           |

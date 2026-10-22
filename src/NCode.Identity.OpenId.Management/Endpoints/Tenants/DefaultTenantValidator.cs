@@ -202,7 +202,7 @@ internal class DefaultTenantValidator(
             {
                 StatusCode = StatusCodes.Status409Conflict,
                 Detail =
-                    "The tenant cannot be deleted while it still has dependent clients or secrets.",
+                    "The tenant cannot be deleted while it still has clients or resource servers.",
             };
         }
 

@@ -45,6 +45,23 @@ public interface IClientStore : IStore<PersistedClient>
     );
 
     /// <summary>
+    /// Gets a single page of the <see cref="PersistedClientSettings"/> documents of the clients of the ambient tenant
+    /// (the tenant query filter applies), ordered by the client's identifier, using keyset (cursor) pagination.
+    /// </summary>
+    /// <remarks>
+    /// The settings are read without the clients' secrets and without change tracking, for a pass over every client's
+    /// settings.
+    /// </remarks>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
+    /// <see cref="PersistedClientSettings"/> instances and the cursor for the next page.</returns>
+    ValueTask<PagedResult<PersistedClientSettings>> GetSettingsPageAsync(
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Gets a single page of the <see cref="PersistedClient"/> instances bound to the specified resource server, ordered
     /// by their identifier, using keyset (cursor) pagination.
     /// </summary>

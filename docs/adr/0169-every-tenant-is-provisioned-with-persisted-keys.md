@@ -89,11 +89,34 @@ key for. The server generates keys only to fill those gaps; it never removes, re
    - The settings materialize only after the seed, so the contributor merges the tenant's persisted document, expanded
      through its security profiles, onto the server's settings, as the materialized tenant does.
    - A `fapi2` tenant, whose lists exclude `RS256`, gets no RS256 key. A tenant that later permits a configured
-     algorithm gains its key at its next seed.
+     algorithm gains its key at its next seed (decision 10).
    - The configured set stays the ceiling: a client registering an algorithm outside it, such as `ES384`, still needs
      the algorithm configured or a key imported.
    - A held key the tenant's settings no longer use is kept: provisioning never removes a key, and retiring one is key
      lifecycle (backlog `S8`).
+10. **A committed tenant change re-seeds the tenant at once.** A tenant is seeded when it is materialized, and the
+    tenant cache keeps a busy tenant materialized indefinitely (a 4-hour sliding expiration), so a tenant whose settings
+    later permit a configured algorithm would advertise it without a key until every replica restarted. Every
+    management write to a tenant — its record, its settings, a secret, or its deletion — therefore sends one
+    `TenantChangedCommand` after it commits. The mediator fans it out to every registered handler, so other packages
+    can react to a tenant change too.
+    - The default handler evicts the tenant from this replica's `IOpenIdTenantCache` (`RemoveAsync`), so the change
+      takes effect on this replica at once. When the tenant's settings changed (`SettingsChanged`), it also seeds the
+      tenant through `ITenantProvisioner`. It evicts first: a request that misses the cache afterwards materializes
+      the tenant, which seeds it too.
+    - Only a settings change seeds in the write. A secret delete that removed the last key for an algorithm in use
+      would otherwise get that key back before the delete returned. The next materialization still fills the gap,
+      which is what blocks deleting a provisioned tenant (backlog `R51`).
+    - `Ephemeral` developer mode keeps one in-memory key per tenant for the life of the process, so the eviction does
+      not replace the key and invalidate the tokens the tenant issued, including the administrator's own.
+    - The seed runs in its own service scope, because the provisioner is scoped and a change need not be announced from
+      a request. A seed failure fails the write's response, as it would fail the tenant's next materialization.
+    - Another replica keeps its cached tenant and picks the change up through its polls: the tenant's settings every
+      5 minutes and its secrets, including the key this replica provisioned, every 15. Until both polls run, that
+      replica may advertise an algorithm before it publishes the key. Delivering the change to every replica is backlog
+      `R49`.
+    - A server settings change also reaches every tenant's effective lists but announces no tenant change yet
+      (backlog `R50`).
 
 ## Options considered
 
@@ -115,6 +138,9 @@ key for. The server generates keys only to fill those gaps; it never removes, re
 - **Provision only in the server composition (`AddIdentityServer`).** Rejected: the core library owns tenants, their
   seed pipeline, and their options, so every composition gets the same behavior.
 - **2048-bit RSA keys.** Rejected for the NIST horizon above, since provisioned keys do not rotate yet.
+- **Re-seed when a replica's settings poll sees a change.** Rejected: the poll runs outside a request on every replica,
+  so each would race to seed the same tenant, and the new key would still wait for the secrets poll. The replica that
+  makes the change seeds once, at the moment it commits.
 
 ## Consequences
 
@@ -127,6 +153,8 @@ key for. The server generates keys only to fill those gaps; it never removes, re
 - A tenant's first seed generates its keys, which takes hundreds of milliseconds per RSA key and never happens on a
   cache hit.
 - An existing tenant gains its missing keys at its next seed; a held RS256 key, of any accepted size, satisfies RS256.
+- A management write to a tenant evicts it, so the next request on that replica materializes the tenant again; a
+  settings write returns after any key the new settings need has been provisioned.
 - A tenant whose keys cannot be unprotected stays unavailable until its key ring is restored, so the key ring's own
   protection (backlog `S10`) matters more.
 - **Breaking:**
@@ -134,6 +162,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
   - `Ephemeral` mode turns provisioning off.
   - `OpenIdTenantOptions` gains `KeyProvisioning`.
   - `TenantKeySeedHandler` reads the server and the security profile catalog to compute the tenant's settings.
+  - `IOpenIdTenantCache` gains `RemoveAsync`, so a custom cache must implement eviction.
 
 ## References
 

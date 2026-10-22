@@ -464,6 +464,13 @@ NCode.Identity.OpenId.Settings.ISecurityProfileRequirement
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement<TContext>
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement<TContext>.EvaluateAsync(TContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.ITenantProvisioner
+NCode.Identity.OpenId.Tenants.TenantChangedCommand
+NCode.Identity.OpenId.Tenants.TenantChangedCommand.SettingsChanged.get -> bool
+NCode.Identity.OpenId.Tenants.TenantChangedCommand.SettingsChanged.init -> void
+NCode.Identity.OpenId.Tenants.TenantChangedCommand.TenantChangedCommand() -> void
+NCode.Identity.OpenId.Tenants.TenantChangedCommand.TenantChangedCommand(string! TenantId, bool SettingsChanged) -> void
+NCode.Identity.OpenId.Tenants.TenantChangedCommand.TenantId.get -> string!
+NCode.Identity.OpenId.Tenants.TenantChangedCommand.TenantId.init -> void
 NCode.Identity.OpenId.Tenants.SeedTenantCommand
 NCode.Identity.OpenId.Tenants.SeedTenantCommand.Context.get -> NCode.Identity.OpenId.Tenants.TenantSeedContext!
 NCode.Identity.OpenId.Tenants.SeedTenantCommand.Context.init -> void
@@ -755,6 +762,7 @@ NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantIdRouteParameterN
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantPath.get -> Microsoft.AspNetCore.Http.PathString
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantPath.set -> void
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache
+NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.RemoveAsync(string! tenantId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.SetAsync(string! tenantId, NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!> tenant, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.TryGetAsync(string! tenantId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
 NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory

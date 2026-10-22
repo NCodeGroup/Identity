@@ -45,6 +45,7 @@ using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 using SystemTextJsonPatch;
@@ -628,6 +629,13 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
 
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenant.TenantId,
+            settingsChanged: false,
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
     }
 
@@ -677,6 +685,13 @@ internal class TenantApiEndpointHandler(
             tenant.TenantId,
             ResourceChangeTypes.Deleted,
             resourceValues,
+            cancellationToken
+        );
+
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenant.TenantId,
+            settingsChanged: false,
             cancellationToken
         );
 
@@ -1018,6 +1033,13 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
 
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenantSettings.TenantId,
+            settingsChanged: true,
+            cancellationToken
+        );
+
         httpContext.Response.Headers.ETag = tenantSettings.ConcurrencyToken;
 
         return TypedResults.NoContent();
@@ -1149,6 +1171,13 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
 
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenantId,
+            settingsChanged: false,
+            cancellationToken
+        );
+
         // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
         httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
         return TypedResults.Created($"/tenants/{tenantId}/secrets/{secretId}", secretResource);
@@ -1241,6 +1270,13 @@ internal class TenantApiEndpointHandler(
             secretId,
             ResourceChangeTypes.Created,
             ToResourceValues(importedSecretResource),
+            cancellationToken
+        );
+
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenantId,
+            settingsChanged: false,
             cancellationToken
         );
 
@@ -1396,6 +1432,13 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
 
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenantId,
+            settingsChanged: false,
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
     }
 
@@ -1446,6 +1489,13 @@ internal class TenantApiEndpointHandler(
             secretId,
             ResourceChangeTypes.Deleted,
             secretValues,
+            cancellationToken
+        );
+
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenantId,
+            settingsChanged: false,
             cancellationToken
         );
 
@@ -1515,6 +1565,23 @@ internal class TenantApiEndpointHandler(
             ResourceNodeTypes.Tenant,
             tenantId,
             principalId,
+            cancellationToken
+        );
+    }
+
+    // Announces a committed change to the tenant: this replica evicts it from the tenant cache, so the change takes effect
+    // at once, and seeds it after a settings change, so a key its new settings require is provisioned (ADR-0169). The
+    // mediator is request-scoped, so it is resolved from the request's services.
+    private static ValueTask NotifyTenantChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        bool settingsChanged,
+        CancellationToken cancellationToken
+    )
+    {
+        var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
+        return mediator.SendAsync(
+            new TenantChangedCommand(tenantId, settingsChanged),
             cancellationToken
         );
     }

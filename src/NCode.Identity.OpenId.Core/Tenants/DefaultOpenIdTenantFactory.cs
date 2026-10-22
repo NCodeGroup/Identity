@@ -128,7 +128,9 @@ public class DefaultOpenIdTenantFactory(
         // Probe the cache before any store round-trip when the tenant's identity can be determined from the request
         // alone (static/path strategies). Host-based tenancy must map its domain to a tenant via the store, so it
         // falls through to a full resolve. A cache hit intentionally serves the cached tenant without re-reading the
-        // store, so a tenant disabled after it was cached continues to serve until the cache entry expires.
+        // store. A management write evicts the tenant on the replica that made it (TenantChangedCommand); another
+        // replica picks up settings and secrets through its polls, but serves a tenant disabled after it was cached
+        // until its cache entry expires.
         PersistedTenant? persistedTenant = null;
         if (!TenantResolver.TryGetTenantId(httpContext, out var tenantId))
         {

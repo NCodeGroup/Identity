@@ -2734,3 +2734,17 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   for 10 s before the store is tried again; the failure that opens it logs one warning and the answer that closes it
   logs one information message (`RateLimitStoreRecovered`). Valkey stays a readiness dependency, because the single-use
   key set fails closed without it (ADR-0196 decision 8)._
+- **`R6` — Re-seed a running tenant's keys when its settings change.** Key seeding skips algorithms the current settings
+  don't permit and runs only when a tenant is materialized (created or loaded into the cache); the 4 h sliding cache
+  keeps busy tenants loaded, so an algorithm permitted later is advertised without a key until every replica restarts.
+  Publish one "tenant changed" notification from settings, secret, and delete writes that evicts the cached tenant and
+  re-seeds it. `IOpenIdTenantCache` has no eviction today (only `TryGetAsync`/`SetAsync`); a running tenant polls its
+  settings every 5 minutes and its secrets every 15, so a key one replica seeds reaches the others through the secrets
+  poll. Touch points: `TenantKeySeedHandler.cs:107, 163`, `DefaultOpenIdTenantFactory.cs:218, 429-453`. The JARM signing
+  list (`authorization_signing_alg_values_supported`) is already a key-provisioning default. _Closed: every management
+  write to a tenant (its record, its settings, a secret, or its deletion) sends one `TenantChangedCommand` after it
+  commits; the default handler evicts the tenant from this replica's cache (new `IOpenIdTenantCache.RemoveAsync`) and,
+  after a settings change, seeds it in its own scope, so a newly permitted algorithm gets its key when the write
+  returns. `Ephemeral` developer mode keeps one key per tenant per process, so the eviction does not invalidate issued
+  tokens. Other replicas pick up the key through their secrets poll; delivering the change to every replica is `R49`, a
+  server settings change is `R50`, and deleting a provisioned tenant is `R51` (ADR-0169 decision 10)._

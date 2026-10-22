@@ -101,4 +101,17 @@ internal class DefaultOpenIdTenantCache(
 
         return ValueTask.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public ValueTask RemoveAsync(
+        string tenantId,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
+        // The eviction callback releases the cache's reference; a lease already handed out keeps the tenant alive.
+        MemoryCache.Remove(GetCacheKey(tenantId));
+
+        return ValueTask.CompletedTask;
+    }
 }

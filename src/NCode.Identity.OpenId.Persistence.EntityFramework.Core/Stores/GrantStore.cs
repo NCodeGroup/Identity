@@ -344,7 +344,7 @@ internal class GrantStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 "The OpenId Grant has been modified by another process. Please reload and try again."
             );
         }

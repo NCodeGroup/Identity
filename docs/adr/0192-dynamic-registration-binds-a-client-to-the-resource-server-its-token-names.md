@@ -72,8 +72,9 @@ nothing.
      single-use state that has no durable row of its own, such as a proof's `jti`. The token has one in the grant
      store, where it is hash-keyed, expires, and is listed and revoked, and a second record in the key set would have
      to agree with it. The grant row's concurrency token makes the spend atomic across replicas without a shared-state
-     adapter: of two registrations that present one token at the same moment, at most one succeeds, and the save of
-     the other fails on the concurrency token (mapping that failure to a protocol error is backlog `R66`).
+     adapter: of two registrations that present one token at the same moment, at most one succeeds: the save of the
+     other fails on the concurrency token, and the other is answered `invalid_token` as a spent token
+     ([ADR-0208](0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md)).
 
 ## Options considered
 

@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R69`     | `R68`      |
+| `R` — Review findings                 | `R73`     | `R72`      |
 
 ---
 
@@ -429,6 +429,13 @@ _None remaining._
   EF InMemory does not enforce foreign keys, so no test sees it. Decide per entity whether end-user data is deleted with
   its owner or reported as a dependent (409), and test the deletion against a relational provider. Touch points:
   `ClientStore.RemoveAsync`, `TenantStore.HasDependentsAsync`, `GrantEntity`, `ConsentEntity`, `LocalAccountEntity`.
+- **`R69` — Spend a rotated refresh token atomically.** `DefaultRefreshTokenGrantHandler` reads the grant with
+  `GetOrDefaultAsync` and revokes it with `SetRevokedOnceAsync` after its checks. `SetRevokedOnceAsync` does nothing
+  when another request revoked the grant first, so two concurrent refreshes with one token can both receive new tokens
+  and the reuse that should revoke the lineage (RFC 9700 §4.14.2) goes undetected; when both pass the check, the
+  loser's write raises `StoreConcurrencyException` and the client sees a `500`. Spend the token through a conditional
+  consume, as `ConsumeOnceOrDefault` does (ADR-0208), and answer the loser as a reused token. Touch points:
+  `DefaultRefreshTokenGrantHandler`, `DefaultPersistedGrantService.SetRevokedOnceAsync`.
 
 ### P3
 
@@ -529,6 +536,19 @@ _None remaining._
   descriptor's `AppliesTo` excludes that scope is not applied there; the cascade then supplies the tenant's value and
   the coherence rule reports the client. Decide how the one-argument `Expand` and the root baseline overload learn the
   scope. Touch points: `DefaultSecurityProfileCatalog.ApplyDefaults`, `ISecurityProfileCatalog`, ADR-0148, ADR-0206.
+- **`R70` — Answer a management write that loses a concurrency race with `412`.** A store reports a lost race as
+  `StoreConcurrencyException` (ADR-0208), and the management endpoints let it reach the client as a `500`. Map it in one
+  place to `412 Precondition Failed`. Touch points: `ManagementApiEndpointHandler`, the management endpoint group.
+- **`R71` — Report a client value that a `Min` or `Max` ceiling overrides.** `RegisteredValueCoherenceRule` reports a
+  listed value an `Intersect` ceiling drops and a `true` an `And` ceiling turns off, but a client's own lifetime above
+  its tenant's `Min` ceiling is clamped silently. It needs the merge kind of a descriptor, which `SettingDescriptor`
+  exposes only as `HasLatticeMerge`. Touch points: `RegisteredValueCoherenceRule`, `SettingDescriptor`, `SettingMerge`.
+- **`R72` — Check stored clients when the server's configuration changes.** A settings write is refused while it would
+  make a stored client incoherent (ADR-0206), but `OpenId:Server:Settings` in configuration is not checked against
+  stored clients, so a deployment or reload that narrows a ceiling leaves clients that fail at their next request; an
+  existing bootstrap administrator client is not re-checked either. Check them in a background pass after a
+  configuration change and report them. Touch points: `RootSettingsCollectionDataSource.HandleChange`,
+  `ITenantClientCoherenceChecker`, `BootstrapAdminSeedHandler`.
 
 ### Refactor
 

@@ -10,6 +10,33 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **`ClientCoherenceContext` gives a coherence rule the settings a client registers and its effective settings, and
+  three more built-in rules read it.** `IClientCoherenceRule.FindViolations` receives the client's own settings
+  document as written, without its tenant's settings and without any security profile's ceilings and defaults, beside
+  the effective settings that result, so a rule sees a value that a ceiling dropped.
+  `ClientCoherenceViolation.Missing` reports a required value that is absent. `RegisteredValueCoherenceRule` reports a
+  value that a client lists, or a `true` that it registers, that an `Intersect` or `And` ceiling drops from its
+  effective settings. `IdTokenEncryptionCoherenceRule` reports a client that must encrypt its ID tokens and registers
+  no `id_token_encrypted_response_alg`. `BackchannelTokenDeliveryCoherenceRule` reports a client that has no
+  `client_notification_endpoint` while its delivery mode is not `poll`, and a client that may use the CIBA grant while
+  `backchannel_token_delivery_modes_supported` excludes its delivery mode
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R62`).
+
+- **Dynamic client registration reads and reports `dpop_bound_access_tokens`, and
+  `DPoPBoundAccessTokenCoherenceRule` checks the requirement.** The RFC 9449 §5.2 client metadata member is the client's
+  requirement `require_dpop_bound_access_tokens`, as `tls_client_certificate_bound_access_tokens` is the requirement
+  `require_tls_client_certificate_bound_access_tokens`. The rule reports a client that requires DPoP-bound access
+  tokens while its effective `dpop_signing_alg_values_supported` is set and empty, because that list is how a server
+  advertises DPoP support (RFC 9449 §5.1), so no proof could be accepted
+  ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md),
+  [ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R65`).
+
+- **`StoreConcurrencyException` reports a lost optimistic-concurrency race.** The store manager throws it from
+  `SaveChangesAsync` when another unit of work changed an entity after it was read, and a store throws it when the
+  concurrency token that its caller presents differs from the stored one. A caller handles a lost race without a
+  reference to Entity Framework, and a store that is not built on it reports a lost race the same way
+  ([ADR-0208](docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), backlog `R66`).
+
 - **`DistinguishedName` matches a distinguished name as RFC 4517 `distinguishedNameMatch` does.**
   `DistinguishedName.TryParse` reads an RFC 4514 string and what an operator pastes: whitespace around `=`, `,`, and
   `+`, RFC 2253 quoted values, `\` escapes, `\XX` UTF-8 hex escapes, and `#` hex BER values. An attribute type is a
@@ -31,14 +58,15 @@ change to the public API is a **major** version bump.
   ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R16`, `R64`).
 
 - **`require_tls_client_certificate_bound_access_tokens` is a client's requirement that its access tokens be bound to
-  its certificate.** As `require_dpop` is separate from the server's advertised `dpop_signing_alg_values_supported`, the
-  requirement is separate from the advertised support, `tls_client_certificate_bound_access_tokens` (RFC 8705 §3.3). It
-  applies to clients, and a server or tenant may set it as a default for every client. It merges with `Or`, defaults to
-  `false`, and is not advertised. The token endpoint binds the certificate only for a client whose requirement is
-  `true`, and a client that requires binding and presents no certificate is refused with `invalid_request`. Dynamic
-  client registration reads and reports the RFC 8705 §3.4 client metadata `tls_client_certificate_bound_access_tokens`
-  as the requirement. A coherence rule, `CertificateBoundAccessTokenCoherenceRule`, reports a client that requires
-  binding while its effective support is `false`
+  its certificate.** As `require_dpop_bound_access_tokens` is separate from the server's advertised
+  `dpop_signing_alg_values_supported`, the requirement is separate from the advertised support,
+  `tls_client_certificate_bound_access_tokens` (RFC 8705 §3.3). It applies to clients, and a server or tenant may set
+  it as a default for every client. It merges with `Or`, defaults to `false`, and is not advertised. The token endpoint
+  binds the certificate only for a client whose requirement is `true`, and a client that requires binding and presents
+  no certificate is refused with `invalid_request`. Dynamic client registration reads and reports the RFC 8705 §3.4
+  client metadata `tls_client_certificate_bound_access_tokens` as the requirement. A coherence rule,
+  `CertificateBoundAccessTokenCoherenceRule`, reports a client that requires binding while its effective support is
+  `false`
   ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md),
   [ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R42`).
 
@@ -535,6 +563,58 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **Breaking: a coherence rule reads a `ClientCoherenceContext`, and the validator resolves a client's settings
+  itself.** `IClientCoherenceRule.FindViolations(ClientCoherenceContext)` takes the client's registered and effective
+  settings, and `IClientCoherenceValidator.Validate(tenantSettings, clientSettings)` is the one way to check a client:
+  it reads the registered settings from the client's settings document and resolves the effective settings onto its
+  tenant's, so every caller gives every rule the same two views. `ClientCoherenceViolation` names the setting that
+  governs a value as `GoverningSettingName`, because a setting that requires a companion is not a ceiling, and carries
+  a `Description` that every caller reports. A custom rule implements the new `FindViolations`, and a caller passes the
+  tenant's settings and the client's settings document to `Validate`
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R62`).
+
+- **Dynamic registration keeps no relation check of its own, and its error descriptions name client settings.** The
+  checks of the supported metadata, the algorithms, and the backchannel metadata are coherence rules, so
+  `ValidateCoherence` is its only relation check. A description names `grant_types_supported`, not `grant_types`, and
+  the error codes are unchanged: `invalid_redirect_uri` for `redirect_uris`, else `invalid_client_metadata`
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R62`).
+
+- **Every configuration seeder checks the client it creates, and a validation problem lists at most ten errors per
+  setting.** The bootstrap administrator, developer, and conformance seeders run the coherence validator on a client
+  they create and throw an `InvalidOperationException` that names the client and lists its violations; the bootstrap
+  seeder checks before it imports the secret, and a client that exists is left as it is. A management validation
+  problem lists the first ten errors of each setting, in order, and adds `Errors not listed for '<name>': <n>.` for the
+  rest, so a change that makes many clients incoherent answers a bounded response
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R63`).
+
+- **Breaking: every `ISecurityProfileCatalog.Expand` overload names its scope, and a profile's default applies only
+  within it.** `Expand(scopeSettings, scopeName)` and `Expand(scopeSettings, scopeName, baselineSettings)` take the
+  name of the scope whose settings they expand, `OpenIdSettingScopes.Server` at the server's root, as the overload that
+  takes a settings document does, and an unregistered scope name is refused with an `ArgumentException`. A profile's
+  default applies only to a setting that applies within that scope, so a server or a tenant that selects
+  `fapi1-advanced` supplies `tls_client_certificate_bound_access_tokens` and a client that alone selects it does not.
+  Ceilings merge at every scope, because a bound only narrows. A caller passes its scope name
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md),
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R68`).
+
+- **Breaking: `require_dpop_bound_access_tokens` is the client's requirement for DPoP-bound access tokens.** The
+  setting is named `require_` plus the RFC 9449 §5.2 client metadata member `dpop_bound_access_tokens`, as the
+  certificate-bound requirement is named for its RFC 8705 §3.4 member, and `OpenIdSettingNames` and `OpenIdSettingKeys`
+  carry it as `RequireDPoPBoundAccessTokens`. It applies to clients, merges with `Or`, defaults to `false`, and is not
+  advertised. The migration `RenameDPoPRequirement` moves a stored `require_dpop` in a server, tenant, or client
+  settings document to the new key. A server configuration value is not translated, because configuration is not
+  stored data: a deployment that sets `OpenId:Server:Settings:require_dpop` renames the key to
+  `OpenId:Server:Settings:require_dpop_bound_access_tokens`, or the configuration cannot be honored, because the old
+  name is not a registered setting
+  ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md), backlog `R65`).
+
+- **Breaking: an Entity Framework store reports a stale token as `StoreConcurrencyException`.**
+  `IStoreManager.SaveChangesAsync` and the concurrency-token check of every store throw the store-neutral exception,
+  not `DbUpdateConcurrencyException`. A caller that catches the Entity Framework type around a store method or around
+  `SaveChangesAsync` catches `StoreConcurrencyException` instead, and a caller that saves through a `DbContext`
+  directly still receives Entity Framework's type
+  ([ADR-0208](docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), backlog `R66`).
 
 - **Breaking: `tls_client_certificate_bound_access_tokens` is the server's and a tenant's advertised support only.** The
   setting keeps its RFC 8705 §3.3 discovery name, applies to tenants, merges with `Replace`, and does not force a client
@@ -1522,6 +1602,26 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A value that a client registers in a list, and that its tenant or a security profile excludes, was accepted and
+  failed at the client's next request.** The effective list omitted the value silently, and nothing compared it with
+  what the client registered. `RegisteredValueCoherenceRule` reports it, so the management API and the seeders refuse
+  such a client, and a tenant or server change that would drop such a value is refused while a client registers it
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R62`).
+
+- **A client that alone selected `fapi1-advanced` replaced its tenant's certificate-binding support.** The profile's
+  default for `tls_client_certificate_bound_access_tokens` applied at every scope that selected the profile, including a
+  client, where the setting does not apply. A default applies only within its scope, so the client takes its tenant's
+  support, and `CertificateBoundAccessTokenCoherenceRule` reports the client while that support is off
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md), backlog `R68`).
+
+- **A concurrent second spend of a single-use grant reached its client as `500`.** Of two requests that spent one
+  authorization code, device code, CIBA request, pushed authorization request, initial access token, or `state` of a
+  paused authorization flow at the same moment, the one that lost the race on the grant row's concurrency token failed
+  with an unhandled exception. `ConsumeOnceOrDefault` answers it as a second spend: `invalid_grant` for an authorization
+  code, a device code, and a CIBA request, `invalid_request_uri` for a pushed request, `401` `invalid_token` for an
+  initial access token, and `400` for the `state` of a paused authorization flow at the continue endpoint
+  ([ADR-0208](docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), backlog `R66`).
 
 - **A `tls_client_auth` client whose certificate subject was encoded differently from its registered subject DN could
   not authenticate.** The handler compared DER bytes, so the same name written as a `UTF8String` or a

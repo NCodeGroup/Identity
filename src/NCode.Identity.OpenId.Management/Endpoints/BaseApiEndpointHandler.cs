@@ -92,13 +92,69 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     }
 
     /// <summary>
+    /// The most errors a validation problem lists for one setting.
+    /// </summary>
+    internal const int MaxErrorsPerSetting = 10;
+
+    /// <summary>
+    /// Limits the number of errors listed for each setting: the first errors of a setting are kept in order, and the
+    /// errors of a setting beyond the limit are replaced by one error that counts them. The counting errors follow the
+    /// kept errors, in the order the settings first appear.
+    /// </summary>
+    /// <param name="errors">The <see cref="SettingError"/> instances to limit.</param>
+    /// <param name="maxErrorsPerSetting">The most errors to keep for one setting.</param>
+    /// <returns>The kept errors followed by one counting error for each setting that exceeds the limit.</returns>
+    internal static IReadOnlyList<SettingError> LimitErrorsPerSetting(
+        IReadOnlyList<SettingError> errors,
+        int maxErrorsPerSetting
+    )
+    {
+        var kept = new List<SettingError>(errors.Count);
+        var names = new List<string>();
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        foreach (var error in errors)
+        {
+            if (!counts.TryGetValue(error.SettingName, out var count))
+            {
+                names.Add(error.SettingName);
+            }
+
+            counts[error.SettingName] = count + 1;
+            if (count < maxErrorsPerSetting)
+            {
+                kept.Add(error);
+            }
+        }
+
+        foreach (var name in names)
+        {
+            var count = counts[name];
+            if (count > maxErrorsPerSetting)
+            {
+                kept.Add(
+                    new SettingError(
+                        name,
+                        $"Errors not listed for '{name}': {count - maxErrorsPerSetting}."
+                    )
+                );
+            }
+        }
+
+        return kept;
+    }
+
+    /// <summary>
     /// Builds the <c>400 Bad Request</c> validation problem for a settings document that cannot be honored: the
-    /// problem's <c>errors</c> map each offending setting name to its error, and its <c>detail</c> lists them all.
+    /// problem's <c>errors</c> map each offending setting name to its errors, and its <c>detail</c> lists them. A
+    /// tenant or server change can report one error per client, so each setting lists at most
+    /// <see cref="MaxErrorsPerSetting"/> errors and then counts the rest.
     /// </summary>
     /// <param name="errors">The <see cref="SettingError"/> instances describing each setting that cannot be honored.</param>
     /// <returns>The <see cref="IResult"/> representing the validation failure.</returns>
     internal virtual IResult SettingsValidationProblem(IReadOnlyList<SettingError> errors)
     {
+        errors = LimitErrorsPerSetting(errors, MaxErrorsPerSetting);
         var messages = errors.Select(error => error.Message);
         var detail = string.Join(" ", messages);
         var errorsBySetting = errors

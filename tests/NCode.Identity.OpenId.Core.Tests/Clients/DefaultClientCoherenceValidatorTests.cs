@@ -16,8 +16,11 @@
 
 #endregion
 
+using System.Text.Json;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using Xunit;
 
@@ -28,12 +31,20 @@ public class DefaultClientCoherenceValidatorTests : BaseTests
     private Mock<IReadOnlySettingCollection> MockSettings { get; }
     private Mock<IReadOnlySettingCollection> MockPreviousSettings { get; }
     private Mock<IReadOnlySettingCollection> MockCurrentSettings { get; }
+    private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
+    private Mock<ISettingSerializer> MockSettingSerializer { get; }
+    private Mock<ISettingCollectionFactory> MockSettingCollectionFactory { get; }
+    private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
 
     public DefaultClientCoherenceValidatorTests()
     {
         MockSettings = CreateLooseMock<IReadOnlySettingCollection>();
         MockPreviousSettings = CreateLooseMock<IReadOnlySettingCollection>();
         MockCurrentSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        MockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
+        MockSettingSerializer = CreateStrictMock<ISettingSerializer>();
+        MockSettingCollectionFactory = CreateStrictMock<ISettingCollectionFactory>();
+        MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
     }
 
     #region Helpers
@@ -55,53 +66,112 @@ public class DefaultClientCoherenceValidatorTests : BaseTests
         mockSettings.Setup(x => x.TryGetValue(settingName, out output)).Returns(true);
     }
 
-    private static DefaultClientCoherenceValidator CreateValidator(
+    private void SetupResolution(
+        IReadOnlySettingCollection tenantSettings,
+        ISettingCollection registeredSettings,
+        IReadOnlySettingCollection effectiveSettings
+    )
+    {
+        var jsonOptions = new JsonSerializerOptions();
+        IReadOnlyCollection<Setting> deserialized = [];
+
+        var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
+        mockEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(jsonOptions).Verifiable();
+        MockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
+
+        MockSettingSerializer
+            .Setup(x =>
+                x.DeserializeSettings(
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.Client,
+                    jsonOptions
+                )
+            )
+            .Returns(deserialized)
+            .Verifiable();
+
+        MockSettingCollectionFactory
+            .Setup(x => x.Create(deserialized))
+            .Returns(registeredSettings)
+            .Verifiable();
+
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(tenantSettings, OpenIdSettingScopes.Client, It.IsAny<JsonElement>())
+            )
+            .Returns(effectiveSettings)
+            .Verifiable();
+    }
+
+    private DefaultClientCoherenceValidator CreateValidator(
         params Mock<IClientCoherenceRule>[] mockRules
-    ) => new(mockRules.Select(mockRule => mockRule.Object));
+    ) =>
+        new(
+            mockRules.Select(mockRule => mockRule.Object),
+            MockEnvironmentProvider.Object,
+            MockSettingSerializer.Object,
+            MockSettingCollectionFactory.Object,
+            MockEffectiveSettingsResolver.Object
+        );
 
     #endregion
 
     #region Validate Tests
 
     [Fact]
-    public void Validate_ReturnsTheViolationsOfEveryRule()
+    public void Validate_WhenGivenADocument_RunsEveryRuleOverTheResolvedSettings()
     {
-        var first = new ClientCoherenceViolation("first_setting", "first_value", "first_ceiling");
-        var second = new ClientCoherenceViolation(
-            "second_setting",
-            "second_value",
-            "second_ceiling"
+        var tenantSettings = CreateLooseMock<IReadOnlySettingCollection>().Object;
+        var registeredSettings = CreateLooseMock<ISettingCollection>().Object;
+        SetupResolution(tenantSettings, registeredSettings, MockSettings.Object);
+
+        var violation = new ClientCoherenceViolation(
+            "first_setting",
+            "first_value",
+            "first_ceiling"
         );
-        var third = new ClientCoherenceViolation("third_setting", "third_value", "third_ceiling");
 
-        var mockFirstRule = CreateRule("first_setting");
-        mockFirstRule
-            .Setup(x => x.FindViolations(MockSettings.Object))
-            .Returns(new[] { first, second })
+        var mockRule = CreateRule("first_setting");
+        mockRule
+            .Setup(x =>
+                x.FindViolations(
+                    It.Is<ClientCoherenceContext>(context =>
+                        context.RegisteredSettings == registeredSettings
+                        && context.EffectiveSettings == MockSettings.Object
+                    )
+                )
+            )
+            .Returns(new[] { violation })
             .Verifiable();
 
-        var mockSecondRule = CreateRule("third_setting");
-        mockSecondRule
-            .Setup(x => x.FindViolations(MockSettings.Object))
-            .Returns(new[] { third })
-            .Verifiable();
+        var violations = CreateValidator(mockRule)
+            .Validate(tenantSettings, JsonElement.Parse("{}"));
 
-        var violations = CreateValidator(mockFirstRule, mockSecondRule)
-            .Validate(MockSettings.Object);
-
-        Assert.Equal([first, second, third], violations);
+        Assert.Equal([violation], violations);
     }
 
     [Fact]
-    public void Validate_WhenNoRuleFindsAViolation_ReturnsEmpty()
+    public void Validate_WhenTheResolvedSettingsAreCoherent_ReturnsEmpty()
     {
+        var tenantSettings = CreateLooseMock<IReadOnlySettingCollection>().Object;
+        var registeredSettings = CreateLooseMock<ISettingCollection>().Object;
+        SetupResolution(tenantSettings, registeredSettings, MockSettings.Object);
+
         var mockRule = CreateRule("first_setting");
         mockRule
-            .Setup(x => x.FindViolations(MockSettings.Object))
+            .Setup(x =>
+                x.FindViolations(
+                    It.Is<ClientCoherenceContext>(context =>
+                        context.RegisteredSettings == registeredSettings
+                        && context.EffectiveSettings == MockSettings.Object
+                    )
+                )
+            )
             .Returns(Array.Empty<ClientCoherenceViolation>())
             .Verifiable();
 
-        var violations = CreateValidator(mockRule).Validate(MockSettings.Object);
+        var violations = CreateValidator(mockRule)
+            .Validate(tenantSettings, JsonElement.Parse("{}"));
 
         Assert.Empty(violations);
     }

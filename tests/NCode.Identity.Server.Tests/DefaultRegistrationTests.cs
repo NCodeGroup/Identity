@@ -323,6 +323,10 @@ public sealed class DefaultRegistrationTests
         Assert.Contains(OpenIdSettingNames.RedirectUris, settingNames);
         Assert.Contains(OpenIdSettingNames.PostLogoutRedirectUris, settingNames);
         Assert.Contains(OpenIdSettingNames.TokenEndpointAuthMethod, settingNames);
+        Assert.Contains(OpenIdSettingNames.GrantTypesSupported, settingNames);
+        Assert.Contains(OpenIdSettingNames.IdTokenEncryptionRequired, settingNames);
+        Assert.Contains(OpenIdSettingNames.RequireDPoPBoundAccessTokens, settingNames);
+        Assert.Contains(OpenIdSettingNames.ClientNotificationEndpoint, settingNames);
         Assert.NotNull(host.Services.GetRequiredService<IClientCoherenceValidator>());
     }
 
@@ -556,11 +560,61 @@ public sealed class DefaultRegistrationTests
             var scopeSettings = settingCollectionFactory.Create();
             scopeSettings.Set(OpenIdSettingKeys.SecurityProfiles, [profile.ProfileName]);
 
-            var expanded = settingCollectionFactory.Create(catalog.Expand(scopeSettings));
+            var expanded = settingCollectionFactory.Create(
+                catalog.Expand(scopeSettings, OpenIdSettingScopes.Server)
+            );
 
             Assert.True(expanded.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var selected));
             Assert.Contains(profile.ProfileName, selected);
         }
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenOnlyAClientSelectsFapi1Advanced_LeavesCertificateBindingSupportToTheTenant()
+    {
+        // A profile's default applies only to a setting that applies within the expanding scope: a client selection
+        // requires certificate-bound tokens, but whether the server supports them is the tenant's choice (ADR-0148).
+        using var host = BuildHost([]);
+        var catalog = host.Services.GetRequiredService<ISecurityProfileCatalog>();
+        var settingCollectionFactory =
+            host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var scopeSettings = settingCollectionFactory.Create();
+        scopeSettings.Set(
+            OpenIdSettingKeys.SecurityProfiles,
+            [OpenIdConstants.SecurityProfiles.Fapi1Advanced]
+        );
+
+        var atClient = settingCollectionFactory.Create(
+            catalog.Expand(scopeSettings, OpenIdSettingScopes.Client)
+        );
+        var atTenant = settingCollectionFactory.Create(
+            catalog.Expand(scopeSettings, OpenIdSettingScopes.Tenant)
+        );
+
+        Assert.False(
+            atClient.TryGetValue(OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens, out _)
+        );
+        Assert.True(
+            atClient.TryGetValue(
+                OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens,
+                out var required
+            )
+        );
+        Assert.True(required);
+        Assert.True(
+            atClient.TryGetValue(
+                OpenIdSettingKeys.IdTokenSignedResponseAlg,
+                out var signedResponseAlg
+            )
+        );
+        Assert.Equal("PS256", signedResponseAlg);
+        Assert.True(
+            atTenant.TryGetValue(
+                OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens,
+                out var supported
+            )
+        );
+        Assert.True(supported);
     }
 
     [Theory]

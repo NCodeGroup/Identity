@@ -18,13 +18,16 @@
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Text.Json;
+using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IClientCoherenceValidator"/> abstraction that checks the
-/// effective settings of a client against every registered <see cref="IClientCoherenceRule"/>. A change is detected
+/// settings of a client against every registered <see cref="IClientCoherenceRule"/>. A change is detected
 /// generically from the <see cref="IClientCoherenceRule.SettingNames"/> of the rules: a setting that is present in only
 /// one of the collections has changed, two lists of strings are compared as ordinal sets so that their order is
 /// ignored, and any other pair of values is compared with <see cref="object.Equals(object?, object?)"/>.
@@ -36,20 +39,65 @@ internal sealed class DefaultClientCoherenceValidator : IClientCoherenceValidato
 
     private FrozenSet<string> SettingNames { get; }
 
+    private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; }
+
+    private ISettingSerializer SettingSerializer { get; }
+
+    private ISettingCollectionFactory SettingCollectionFactory { get; }
+
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultClientCoherenceValidator"/> class with the registered rules.
     /// </summary>
     /// <param name="rules">The registered <see cref="IClientCoherenceRule"/> instances.</param>
-    public DefaultClientCoherenceValidator(IEnumerable<IClientCoherenceRule> rules)
+    /// <param name="openIdEnvironmentProvider">The <see cref="IOpenIdEnvironmentProvider"/> that supplies the JSON
+    /// serializer options.</param>
+    /// <param name="settingSerializer">The <see cref="ISettingSerializer"/> that reads a client's settings document.</param>
+    /// <param name="settingCollectionFactory">The <see cref="ISettingCollectionFactory"/> that creates the collection of
+    /// registered settings.</param>
+    /// <param name="effectiveSettingsResolver">The <see cref="IEffectiveSettingsResolver"/> that resolves the effective
+    /// settings of a client.</param>
+    public DefaultClientCoherenceValidator(
+        IEnumerable<IClientCoherenceRule> rules,
+        IOpenIdEnvironmentProvider openIdEnvironmentProvider,
+        ISettingSerializer settingSerializer,
+        ISettingCollectionFactory settingCollectionFactory,
+        IEffectiveSettingsResolver effectiveSettingsResolver
+    )
     {
         Rules = [.. rules];
         SettingNames = Rules.SelectMany(x => x.SettingNames).ToFrozenSet(StringComparer.Ordinal);
+        OpenIdEnvironmentProvider = openIdEnvironmentProvider;
+        SettingSerializer = settingSerializer;
+        SettingCollectionFactory = settingCollectionFactory;
+        EffectiveSettingsResolver = effectiveSettingsResolver;
     }
 
     /// <inheritdoc />
     public IReadOnlyList<ClientCoherenceViolation> Validate(
-        IReadOnlySettingCollection clientSettings
-    ) => [.. Rules.SelectMany(rule => rule.FindViolations(clientSettings))];
+        IReadOnlySettingCollection tenantSettings,
+        JsonElement clientSettings
+    )
+    {
+        var context = new ClientCoherenceContext
+        {
+            RegisteredSettings = SettingCollectionFactory.Create(
+                SettingSerializer.DeserializeSettings(
+                    clientSettings,
+                    OpenIdSettingScopes.Client,
+                    OpenIdEnvironmentProvider.Get().JsonSerializerOptions
+                )
+            ),
+            EffectiveSettings = EffectiveSettingsResolver.Resolve(
+                tenantSettings,
+                OpenIdSettingScopes.Client,
+                clientSettings
+            ),
+        };
+
+        return [.. Rules.SelectMany(rule => rule.FindViolations(context))];
+    }
 
     /// <inheritdoc />
     public bool ReadsChangedSetting(

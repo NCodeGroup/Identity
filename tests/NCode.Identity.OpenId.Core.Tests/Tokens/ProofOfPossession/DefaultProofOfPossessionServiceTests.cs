@@ -82,7 +82,9 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
 
     private void SetupSettings(bool requireDPoP, bool certificateBound)
     {
-        MockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireDPoP)).Returns(requireDPoP);
+        MockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RequireDPoPBoundAccessTokens))
+            .Returns(requireDPoP);
         MockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens))
             .Returns(certificateBound);

@@ -1,7 +1,8 @@
 # 148. Security profiles accumulate down the settings cascade
 
 - **Status:** Accepted (amended by [ADR-0149](0149-settings-declare-the-scopes-they-apply-to.md): a resource server
-  selects no security profile, and `security_profiles` is rejected on a resource-server document)
+  selects no security profile, and `security_profiles` is rejected on a resource-server document; a profile's default
+  applies only to a setting that applies within the expanding scope)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -85,6 +86,18 @@ that selects it.**
    descriptor default already carries a value there. When several selected profiles default one setting, the profile
    whose name sorts first in ordinal order supplies it. FAPI 2.0 defaults both signed responses to `PS256`.
 
+   Every `Expand` overload names the scope whose settings it expands: `Expand(scopeSettings, scopeName)`,
+   `Expand(scopeSettings, scopeName, baselineSettings)`, which the server root calls with `server`, and the overload
+   for a settings document. A scope name that no registered scope has is refused with an `ArgumentException`. A default
+   applies only where `ISettingScopeCollection.AppliesWithin(descriptor, scopeName)` holds, that is, to a setting that
+   applies to the expanding scope or to a scope below it
+   ([ADR-0149](0149-settings-declare-the-scopes-they-apply-to.md)): a setting for a scope above would be carried
+   without being honored, and the scope that owns it chooses its own default. A server or a tenant that selects
+   `fapi1-advanced` supplies `tls_client_certificate_bound_access_tokens`, which applies to tenants, and a client that
+   alone selects it takes its tenant's value, so `CertificateBoundAccessTokenCoherenceRule` reports the client while
+   that support is off. Ceilings still merge at every scope, because a bound below the scope that a setting applies to
+   only narrows what that scope inherits.
+
 ## Options considered
 
 - **A profile declares which profiles it is at least as strict as, and a child may replace its parent's profile only
@@ -111,6 +124,14 @@ that selects it.**
   lifetime from exceeding its descriptor default.
 - **Declare each descriptor's merge kind as separate metadata.** Rejected: it restates the merge function and can drift
   from it; reading the kind from the `SettingMerge` function the descriptor uses cannot disagree with what it does.
+- **Infer the scope of an expansion from its settings.** Rejected: a settings collection does not say which scope it
+  belongs to, and an empty client document looks like an empty tenant document, so the inference would guess wrong
+  exactly where a default matters. An `Expand` overload without a scope is rejected for the same reason: a caller could
+  leave out the one fact that the filter needs.
+- **Filter a profile's ceilings by the scope a setting applies to, as its defaults are.** Rejected: a ceiling carried
+  below the scope that a setting applies to only narrows what that scope inherits, so it is never carried without
+  being honored, and filtering would make a bound depend on the scope a setting applies to, weakening the guarantee
+  that a selection bounds every scope below it.
 
 ## Consequences
 
@@ -124,10 +145,12 @@ that selects it.**
   for the algorithm lists). The order in which profiles apply never changes which values are permitted, and changes the
   order only for a list that no scope above sets.
 - A requirement's error description names "a selected security profile".
-- A profile's default applies at the scope that selects the profile, beneath that scope's own value: it replaces a value
-  a scope above sets, so a tenant that selects `fapi2` signs its clients' ID tokens with `PS256` even when the server's
-  default is another permitted algorithm, unless the tenant sets its own. A profile whose default names a lattice
-  setting fails when a scope selects it.
+- A profile's default applies at the scope that selects the profile, to each setting that applies within that scope,
+  beneath that scope's own value: it replaces a value a scope above sets, so a tenant that selects `fapi2` signs its
+  clients' ID tokens with `PS256` even when the server's default is another permitted algorithm, unless the tenant sets
+  its own. A setting that applies only to a scope above the expanding scope is not defaulted there, so a client that
+  alone selects `fapi1-advanced` takes its tenant's `tls_client_certificate_bound_access_tokens` and not the profile's
+  default (backlog `R68`). A profile whose default names a lattice setting fails when a scope selects it.
 - Follow-ups: a resource-server document accepts `security_profiles` but neither expands nor evaluates it, which is part
   of making the setting vocabulary scope-aware (backlog `F60`); and a single targeted resource server governs
   access-token encryption with its own effective settings, without combining the client's (backlog `F61`).

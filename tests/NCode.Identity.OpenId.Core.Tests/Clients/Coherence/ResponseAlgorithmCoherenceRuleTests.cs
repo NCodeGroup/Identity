@@ -48,6 +48,10 @@ public class ResponseAlgorithmCoherenceRuleTests : BaseTests
         MockSettings.Setup(x => x.TryGetValue(key, out output)).Returns(true);
     }
 
+    private static ClientCoherenceContext CreateContext(
+        IReadOnlySettingCollection effectiveSettings
+    ) => new() { RegisteredSettings = effectiveSettings, EffectiveSettings = effectiveSettings };
+
     #endregion
 
     #region FindViolations Tests
@@ -57,7 +61,9 @@ public class ResponseAlgorithmCoherenceRuleTests : BaseTests
     {
         SetupValues(OpenIdSettingKeys.IdTokenSigningAlgValuesSupported, "PS256");
 
-        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(MockSettings.Object);
+        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(
+            CreateContext(MockSettings.Object)
+        );
 
         Assert.Empty(violations);
     }
@@ -67,7 +73,9 @@ public class ResponseAlgorithmCoherenceRuleTests : BaseTests
     {
         SetupValue(OpenIdSettingKeys.UserInfoSignedResponseAlg, "RS256");
 
-        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(MockSettings.Object);
+        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(
+            CreateContext(MockSettings.Object)
+        );
 
         Assert.Empty(violations);
     }
@@ -78,7 +86,9 @@ public class ResponseAlgorithmCoherenceRuleTests : BaseTests
         SetupValue(OpenIdSettingKeys.UserInfoSignedResponseAlg, "PS256");
         SetupValues(OpenIdSettingKeys.UserInfoSigningAlgValuesSupported, "PS256", "ES256");
 
-        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(MockSettings.Object);
+        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(
+            CreateContext(MockSettings.Object)
+        );
 
         Assert.Empty(violations);
     }
@@ -89,7 +99,9 @@ public class ResponseAlgorithmCoherenceRuleTests : BaseTests
         SetupValue(OpenIdSettingKeys.IntrospectionSignedResponseAlg, "RS256");
         SetupValues(OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported, "PS256");
 
-        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(MockSettings.Object);
+        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(
+            CreateContext(MockSettings.Object)
+        );
 
         var violation = Assert.Single(violations);
         Assert.Equal(
@@ -108,14 +120,16 @@ public class ResponseAlgorithmCoherenceRuleTests : BaseTests
         SetupValue(OpenIdSettingKeys.UserInfoEncryptedResponseAlg, "RSA1_5");
         SetupValues(OpenIdSettingKeys.UserInfoEncryptionAlgValuesSupported, "RSA-OAEP-256");
 
-        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(MockSettings.Object);
+        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(
+            CreateContext(MockSettings.Object)
+        );
 
         var violation = Assert.Single(violations);
         Assert.Equal(OpenIdSettingNames.UserInfoEncryptedResponseAlg, violation.SettingName);
         Assert.Equal("RSA1_5", violation.Value);
         Assert.Equal(
             OpenIdSettingNames.UserInfoEncryptionAlgValuesSupported,
-            violation.CeilingName
+            violation.GoverningSettingName
         );
     }
 
@@ -126,14 +140,16 @@ public class ResponseAlgorithmCoherenceRuleTests : BaseTests
         SetupValues(OpenIdSettingKeys.UserInfoEncryptionAlgValuesSupported, "RSA-OAEP-256");
         SetupValues(OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported, "A256GCM");
 
-        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(MockSettings.Object);
+        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(
+            CreateContext(MockSettings.Object)
+        );
 
         var violation = Assert.Single(violations);
         Assert.Equal(OpenIdSettingNames.UserInfoEncryptedResponseEnc, violation.SettingName);
         Assert.Equal("A128CBC-HS256", violation.Value);
         Assert.Equal(
             OpenIdSettingNames.UserInfoEncryptionEncValuesSupported,
-            violation.CeilingName
+            violation.GoverningSettingName
         );
     }
 
@@ -143,7 +159,9 @@ public class ResponseAlgorithmCoherenceRuleTests : BaseTests
         SetupValue(OpenIdSettingKeys.UserInfoEncryptedResponseEnc, "A128GCM");
         SetupValues(OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported, "A256GCM");
 
-        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(MockSettings.Object);
+        var violations = new ResponseAlgorithmCoherenceRule().FindViolations(
+            CreateContext(MockSettings.Object)
+        );
 
         Assert.Empty(violations);
     }

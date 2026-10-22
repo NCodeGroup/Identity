@@ -1,6 +1,8 @@
 # 0012. Concurrency tokens are interceptor-managed; the sub-resource version columns stay manual
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0208](0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md): a lost race surfaces as
+  `StoreConcurrencyException`)
 - **Date:** 2026-09-29
 - **Deciders:** NCode.Identity maintainers
 
@@ -56,8 +58,10 @@ Two kinds of token live on these entities and must not be conflated:
   resource fresh.
 - **Optimistic concurrency for the row is EF-native plus API-level `If-Match`.** EF's `[ConcurrencyCheck]`
   detects a concurrent write during the transaction (throwing `DbUpdateConcurrencyException` at
-  `SaveChangesAsync`); the management endpoints enforce caller staleness at the edge via `If-Match`. The
-  stores keep a defensive token compare as belt-and-suspenders, but it is no longer the primary control.
+  `SaveChangesAsync`, which the store manager reports as a `StoreConcurrencyException`); the management endpoints
+  enforce caller staleness at the edge via `If-Match`. The stores keep a defensive token compare as
+  belt-and-suspenders, but it is no longer the primary control, and a store reports its stale-token check as a
+  `StoreConcurrencyException` too ([ADR-0208](0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md)).
 
 ## Options considered
 

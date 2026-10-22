@@ -17,7 +17,6 @@
 #endregion
 
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Coherence;
 
@@ -42,15 +41,15 @@ internal sealed class CertificateBoundAccessTokenCoherenceRule : IClientCoherenc
     public IReadOnlyCollection<string> SettingNames => BindingSettingNames;
 
     /// <summary>
-    /// Finds the requirement for certificate-bound access tokens that a client registers when its effective
-    /// <paramref name="clientSettings"/> state that the server does not support them.
+    /// Finds the requirement for certificate-bound access tokens that a client registers when its effective settings
+    /// state that the server does not support them.
     /// </summary>
-    /// <param name="clientSettings">The effective settings of the client.</param>
+    /// <param name="context">The registered and effective settings of the client.</param>
     /// <returns>The violation, or an empty list when the requirement is supported or not made.</returns>
-    public IReadOnlyList<ClientCoherenceViolation> FindViolations(
-        IReadOnlySettingCollection clientSettings
-    )
+    public IReadOnlyList<ClientCoherenceViolation> FindViolations(ClientCoherenceContext context)
     {
+        var clientSettings = context.EffectiveSettings;
+
         if (
             !clientSettings.GetValue(OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens)
             || clientSettings.GetValue(OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens)

@@ -207,9 +207,18 @@ internal class DefaultPersistedGrantService(
 
         envelope.ConsumedWhen = utcNow;
 
-        await store.UpdateAsync(envelope, cancellationToken);
+        try
+        {
+            await store.UpdateAsync(envelope, cancellationToken);
 
-        await storeManager.SaveChangesAsync(cancellationToken);
+            await storeManager.SaveChangesAsync(cancellationToken);
+        }
+        catch (StoreConcurrencyException)
+        {
+            // Another request spent the grant after it was read, so this one is answered as a second spend.
+            // See ADR-0208.
+            return null;
+        }
 
         var persistedGrant = new PersistedGrant<TPayload>
         {

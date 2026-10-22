@@ -67,7 +67,6 @@ internal class DefaultClientRegistrationEndpointHandler(
     IClientScopeService clientScopeService,
     ISettingSerializer settingSerializer,
     IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
-    IEffectiveSettingsResolver effectiveSettingsResolver,
     IClientCoherenceValidator clientCoherenceValidator
 ) : IEndpointProvider
 {
@@ -75,20 +74,8 @@ internal class DefaultClientRegistrationEndpointHandler(
 
     // The request-object metadata (OpenID Connect Dynamic Client Registration 1.0 §2) is stored as the client's own
     // algorithm lists, each narrowed to the one registered value, which the authorization endpoint enforces (ADR-0155).
-    private const string RequestObjectSigningAlgMetadata = "request_object_signing_alg";
     private const string RequestObjectEncryptionAlgMetadata = "request_object_encryption_alg";
     private const string RequestObjectEncryptionEncMetadata = "request_object_encryption_enc";
-
-    // The token endpoint and CIBA metadata (Dynamic Client Registration 1.0 §2, CIBA Core 1.0 §4) map to client settings
-    // whose names differ from the registration members: an algorithm narrows the client's own list to it, the
-    // notification endpoint is the client's `client_notification_endpoint`, and the user-code flag narrows the tenant's.
-    private const string TokenEndpointAuthSigningAlgMetadata = "token_endpoint_auth_signing_alg";
-    private const string BackchannelTokenDeliveryModeMetadata = "backchannel_token_delivery_mode";
-    private const string BackchannelClientNotificationEndpointMetadata =
-        "backchannel_client_notification_endpoint";
-    private const string BackchannelAuthenticationRequestSigningAlgMetadata =
-        "backchannel_authentication_request_signing_alg";
-    private const string BackchannelUserCodeParameterMetadata = "backchannel_user_code_parameter";
 
     private static readonly string[] DefaultGrantTypes =
     [
@@ -119,8 +106,6 @@ internal class DefaultClientRegistrationEndpointHandler(
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IClientAuthenticationMethodCatalog ClientAuthenticationMethodCatalog { get; } =
         clientAuthenticationMethodCatalog;
-    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
-        effectiveSettingsResolver;
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
 
     /// <inheritdoc />
@@ -270,13 +255,10 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
-        var supportError =
-            ValidateSupportedMetadata(errorFactory, tenantSettings, resolved)
-            ?? ValidateAlgorithmMetadata(errorFactory, tenantSettings, request)
-            ?? ValidateCoherence(errorFactory, tenantSettings, settingsJson);
-        if (supportError is not null)
+        var coherenceError = ValidateCoherence(errorFactory, tenantSettings, settingsJson);
+        if (coherenceError is not null)
         {
-            return supportError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
+            return coherenceError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
         }
 
         var isConfidential =
@@ -578,13 +560,10 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
-        var supportError =
-            ValidateSupportedMetadata(errorFactory, tenantSettings, resolved)
-            ?? ValidateAlgorithmMetadata(errorFactory, tenantSettings, request)
-            ?? ValidateCoherence(errorFactory, tenantSettings, settingsJson);
-        if (supportError is not null)
+        var coherenceError = ValidateCoherence(errorFactory, tenantSettings, settingsJson);
+        if (coherenceError is not null)
         {
-            return supportError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
+            return coherenceError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
         }
 
         var keysError = ImportRegisteredKeys(
@@ -1022,70 +1001,11 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that the tenant supports every resolved grant type and response type, returning an
-    /// <c>invalid_client_metadata</c> error (RFC 7591 §3.2.2) for the first value it does not support, or
-    /// <see langword="null"/> when it supports them all; an unset list is unrestricted. The endpoints refuse a value the
-    /// tenant does not support, so registering it would report a capability the client can never use. The
-    /// client-authentication method is checked with the other coherence rules (<see cref="ValidateCoherence"/>).
-    /// </summary>
-    /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
-    /// <param name="tenantSettings">The settings of the tenant the client registers with.</param>
-    /// <param name="resolved">The resolved client metadata.</param>
-    /// <returns>The error, or <see langword="null"/> when the tenant supports every value.</returns>
-    // See ADR-0141 and ADR-0145.
-    internal virtual IOpenIdError? ValidateSupportedMetadata(
-        IOpenIdErrorFactory errorFactory,
-        IReadOnlySettingCollection tenantSettings,
-        ResolvedMetadata resolved
-    )
-    {
-        if (
-            tenantSettings.TryGetValue(
-                OpenIdSettingKeys.GrantTypesSupported,
-                out var grantTypesSupported
-            )
-        )
-        {
-            var unsupportedGrantType = resolved.GrantTypes.FirstOrDefault(grantType =>
-                !grantTypesSupported.Contains(grantType, StringComparer.Ordinal)
-            );
-            if (unsupportedGrantType is not null)
-            {
-                return errorFactory.InvalidRequest(
-                    $"The 'grant_types' value '{unsupportedGrantType}' is not supported.",
-                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
-                );
-            }
-        }
-
-        if (
-            tenantSettings.TryGetValue(
-                OpenIdSettingKeys.ResponseTypesSupported,
-                out var responseTypesSupported
-            )
-        )
-        {
-            var unsupportedResponseType = resolved.ResponseTypes.FirstOrDefault(responseType =>
-                !responseTypesSupported.Contains(responseType, StringComparer.Ordinal)
-            );
-            if (unsupportedResponseType is not null)
-            {
-                return errorFactory.InvalidRequest(
-                    $"The 'response_types' value '{unsupportedResponseType}' is not supported.",
-                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
-                );
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Verifies that the effective settings of the client being registered satisfy every registered
-    /// <see cref="IClientCoherenceRule"/>: the client's settings document is resolved onto the tenant's effective
-    /// settings as the runtime resolves it, so the tenant's ceilings (and those of the security profiles it selects)
-    /// decide which redirect URI kinds, response-protection algorithms and client-authentication method the client may
-    /// register. Returns an <c>invalid_redirect_uri</c> error (RFC 7591 §3.2.2) when a redirect URI is refused, else an
+    /// Verifies that the settings of the client being registered satisfy every registered
+    /// <see cref="IClientCoherenceRule"/>, including the values the client's own lists register: the validator
+    /// resolves the client's settings document onto the tenant's effective settings as the runtime resolves it, so the
+    /// tenant's ceilings (and those of the security profiles it selects) decide which values the client may register.
+    /// Returns an <c>invalid_redirect_uri</c> error (RFC 7591 §3.2.2) when a redirect URI is refused, else an
     /// <c>invalid_client_metadata</c> error, or <see langword="null"/> when the client settings are coherent.
     /// </summary>
     /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
@@ -1099,24 +1019,13 @@ internal class DefaultClientRegistrationEndpointHandler(
         JsonElement settingsJson
     )
     {
-        var violations = ClientCoherenceValidator.Validate(
-            EffectiveSettingsResolver.Resolve(
-                tenantSettings,
-                OpenIdSettingScopes.Client,
-                settingsJson
-            )
-        );
+        var violations = ClientCoherenceValidator.Validate(tenantSettings, settingsJson);
         if (violations.Count == 0)
         {
             return null;
         }
 
-        var description = string.Join(
-            " ",
-            violations.Select(violation =>
-                $"The '{violation.SettingName}' value '{violation.Value}' is not permitted by the effective '{violation.CeilingName}'."
-            )
-        );
+        var description = string.Join(" ", violations.Select(violation => violation.Description));
         var code = violations.Any(violation =>
             string.Equals(
                 violation.SettingName,
@@ -1313,146 +1222,6 @@ internal class DefaultClientRegistrationEndpointHandler(
     internal virtual bool IssuesClientSecret(string tokenEndpointAuthMethod) =>
         ClientAuthenticationMethodCatalog.TryGet(tokenEndpointAuthMethod, out var descriptor)
         && descriptor.RequiresClientSecret;
-
-    /// <summary>
-    /// Verifies that the tenant permits the algorithms and delivery mode a registration requests for the client's
-    /// request objects, token endpoint authentication and backchannel authentication requests, that a notified
-    /// backchannel client registers its notification endpoint, and that a client of a tenant that requires encrypted ID
-    /// tokens registers an encryption algorithm for them. The algorithms for the responses addressed to the client are
-    /// checked with the coherence rules (<see cref="ValidateCoherence"/>). Returns an <c>invalid_client_metadata</c>
-    /// error, or <see langword="null"/> when the tenant permits them all; an unset list is unrestricted.
-    /// </summary>
-    /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
-    /// <param name="tenantSettings">The settings of the tenant the client registers with.</param>
-    /// <param name="request">The registration request.</param>
-    /// <returns>The error, or <see langword="null"/> when the tenant permits every algorithm.</returns>
-    // See ADR-0155.
-    internal virtual IOpenIdError? ValidateAlgorithmMetadata(
-        IOpenIdErrorFactory errorFactory,
-        IReadOnlySettingCollection tenantSettings,
-        RegisterClientRequest request
-    )
-    {
-        (string Name, string? Value, SettingKey<IReadOnlyCollection<string>> Permitted)[] checks =
-        [
-            (
-                RequestObjectSigningAlgMetadata,
-                request.RequestObjectSigningAlg,
-                OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported
-            ),
-            (
-                RequestObjectEncryptionAlgMetadata,
-                request.RequestObjectEncryptionAlg,
-                OpenIdSettingKeys.RequestObjectEncryptionAlgValuesSupported
-            ),
-            (
-                RequestObjectEncryptionEncMetadata,
-                request.RequestObjectEncryptionEnc,
-                OpenIdSettingKeys.RequestObjectEncryptionEncValuesSupported
-            ),
-            (
-                TokenEndpointAuthSigningAlgMetadata,
-                request.TokenEndpointAuthSigningAlg,
-                OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported
-            ),
-            (
-                BackchannelTokenDeliveryModeMetadata,
-                request.BackchannelTokenDeliveryMode,
-                OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported
-            ),
-            (
-                BackchannelAuthenticationRequestSigningAlgMetadata,
-                request.BackchannelAuthenticationRequestSigningAlg,
-                OpenIdSettingKeys.BackchannelAuthenticationRequestSigningAlgValuesSupported
-            ),
-        ];
-
-        foreach (var (name, value, permittedKey) in checks)
-        {
-            if (
-                !string.IsNullOrEmpty(value)
-                && tenantSettings.TryGetValue(permittedKey, out var permitted)
-                && !permitted.Contains(value, StringComparer.Ordinal)
-            )
-            {
-                return InvalidClientMetadata(
-                    errorFactory,
-                    $"The '{name}' value '{value}' is not supported."
-                );
-            }
-        }
-
-        var idTokenEncryptedResponseAlg =
-            request.IdTokenEncryptedResponseAlg
-            ?? (
-                tenantSettings.TryGetValue(
-                    OpenIdSettingKeys.IdTokenEncryptedResponseAlg,
-                    out var defaultEncryptionAlg
-                )
-                    ? defaultEncryptionAlg
-                    : null
-            );
-        if (
-            string.IsNullOrEmpty(idTokenEncryptedResponseAlg)
-            && tenantSettings.TryGetValue(
-                OpenIdSettingKeys.IdTokenEncryptionRequired,
-                out var required
-            )
-            && required
-        )
-        {
-            return InvalidClientMetadata(
-                errorFactory,
-                $"The tenant requires encrypted ID tokens, so '{OpenIdSettingNames.IdTokenEncryptedResponseAlg}' is required."
-            );
-        }
-
-        return ValidateBackchannelMetadata(errorFactory, tenantSettings, request);
-    }
-
-    // CIBA Core 1.0 §4: a ping or push client must register the endpoint its notifications go to, and a client may claim
-    // the user_code parameter only where the server supports it.
-    private static IOpenIdError? ValidateBackchannelMetadata(
-        IOpenIdErrorFactory errorFactory,
-        IReadOnlySettingCollection tenantSettings,
-        RegisterClientRequest request
-    )
-    {
-        var deliveryMode = request.BackchannelTokenDeliveryMode;
-        var isNotified =
-            !string.IsNullOrEmpty(deliveryMode)
-            && !string.Equals(
-                deliveryMode,
-                OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
-                StringComparison.Ordinal
-            );
-        if (isNotified && string.IsNullOrEmpty(request.BackchannelClientNotificationEndpoint))
-        {
-            return InvalidClientMetadata(
-                errorFactory,
-                $"The '{BackchannelTokenDeliveryModeMetadata}' value '{deliveryMode}' requires a "
-                    + $"'{BackchannelClientNotificationEndpointMetadata}'."
-            );
-        }
-
-        if (
-            request.BackchannelUserCodeParameter == true
-            && !(
-                tenantSettings.TryGetValue(
-                    OpenIdSettingKeys.BackchannelUserCodeParameterSupported,
-                    out var userCodeSupported
-                ) && userCodeSupported
-            )
-        )
-        {
-            return InvalidClientMetadata(
-                errorFactory,
-                $"The '{BackchannelUserCodeParameterMetadata}' value 'true' is not supported."
-            );
-        }
-
-        return null;
-    }
 
     private static IOpenIdError InvalidClientMetadata(
         IOpenIdErrorFactory errorFactory,
@@ -1690,6 +1459,11 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (request.TlsClientCertificateBoundAccessTokens is { } bound)
             settings[OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens] = bound;
 
+        // The RFC 9449 §5.2 member is the client's requirement. ValidateCoherence refuses it when the tenant permits
+        // no DPoP proof algorithm.
+        if (request.DPoPBoundAccessTokens is { } dpopBound)
+            settings[OpenIdSettingNames.RequireDPoPBoundAccessTokens] = dpopBound;
+
         SetIfPresent(settings, OpenIdSettingNames.SoftwareId, request.SoftwareId);
         SetIfPresent(settings, OpenIdSettingNames.SoftwareVersion, request.SoftwareVersion);
 
@@ -1868,6 +1642,10 @@ internal class DefaultClientRegistrationEndpointHandler(
             TlsClientCertificateBoundAccessTokens = ReadBoolean(
                 settings,
                 OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens
+            ),
+            DPoPBoundAccessTokens = ReadBoolean(
+                settings,
+                OpenIdSettingNames.RequireDPoPBoundAccessTokens
             ),
             Jwks = jwks,
             SoftwareId = ReadString(settings, OpenIdSettingNames.SoftwareId),

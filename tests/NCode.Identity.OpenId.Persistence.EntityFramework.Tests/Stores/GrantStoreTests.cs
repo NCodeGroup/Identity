@@ -468,7 +468,7 @@ public sealed class GrantStoreTests : IDisposable
         stale.ConcurrencyToken = "stale-token";
         stale.ConsumedWhen = DateTimeOffset.UnixEpoch.AddMinutes(5);
 
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(async () =>
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
             await _store.UpdateAsync(stale, CancellationToken.None)
         );
     }

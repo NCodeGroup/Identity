@@ -54,6 +54,10 @@ public class RedirectUriKindCoherenceRuleTests : BaseTests
 
     private RedirectUriKindCoherenceRule CreateRule() => new(MockCatalog.Object);
 
+    private static ClientCoherenceContext CreateContext(
+        IReadOnlySettingCollection effectiveSettings
+    ) => new() { RegisteredSettings = effectiveSettings, EffectiveSettings = effectiveSettings };
+
     #endregion
 
     #region FindViolations Tests
@@ -66,7 +70,7 @@ public class RedirectUriKindCoherenceRuleTests : BaseTests
         SetupIsPermitted("https://client.example/callback", true);
         SetupIsPermitted("https://client.example/logout", true);
 
-        var violations = CreateRule().FindViolations(MockSettings.Object);
+        var violations = CreateRule().FindViolations(CreateContext(MockSettings.Object));
 
         Assert.Empty(violations);
     }
@@ -82,7 +86,7 @@ public class RedirectUriKindCoherenceRuleTests : BaseTests
         SetupIsPermitted("https://client.example/callback", true);
         SetupIsPermitted("http://client.example/callback", false);
 
-        var violations = CreateRule().FindViolations(MockSettings.Object);
+        var violations = CreateRule().FindViolations(CreateContext(MockSettings.Object));
 
         var violation = Assert.Single(violations);
         Assert.Equal(
@@ -101,7 +105,7 @@ public class RedirectUriKindCoherenceRuleTests : BaseTests
         SetupValues(OpenIdSettingKeys.PostLogoutRedirectUris, "http://client.example/logout");
         SetupIsPermitted("http://client.example/logout", false);
 
-        var violations = CreateRule().FindViolations(MockSettings.Object);
+        var violations = CreateRule().FindViolations(CreateContext(MockSettings.Object));
 
         var violation = Assert.Single(violations);
         Assert.Equal(
@@ -119,7 +123,7 @@ public class RedirectUriKindCoherenceRuleTests : BaseTests
     {
         SetupValues(OpenIdSettingKeys.RedirectUriKindsSupported, "web");
 
-        var violations = CreateRule().FindViolations(MockSettings.Object);
+        var violations = CreateRule().FindViolations(CreateContext(MockSettings.Object));
 
         Assert.Empty(violations);
     }

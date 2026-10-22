@@ -35,9 +35,10 @@ public interface IProofOfPossessionService
 {
     /// <summary>
     /// Evaluates proof of possession for a token request. Reads any DPoP proof and client certificate from the current
-    /// request, enforces the client's <c>require_dpop</c> and <c>require_tls_client_certificate_bound_access_tokens</c>
-    /// policies, and returns the resulting binding. Throws an OpenID error (for example <c>invalid_dpop_proof</c> or
-    /// <c>use_dpop_nonce</c>) when a presented proof is invalid or a required proof is missing.
+    /// request, enforces the client's <c>require_dpop_bound_access_tokens</c> and
+    /// <c>require_tls_client_certificate_bound_access_tokens</c> policies, and returns the resulting binding. Throws an
+    /// OpenID error (for example <c>invalid_dpop_proof</c> or <c>use_dpop_nonce</c>) when a presented proof is invalid
+    /// or a required proof is missing.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
     /// <param name="openIdClient">The authenticated <see cref="OpenIdClient"/> making the token request.</param>

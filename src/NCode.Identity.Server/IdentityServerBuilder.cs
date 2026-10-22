@@ -131,6 +131,10 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
                 BootstrapAdminSeedHandler
             >()
         );
+
+        // Every configuration seeder checks the clients it creates with this validator before it stores them.
+        serviceCollection.TryAddSingleton<SeededClientValidator>();
+
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<
                 IValidateOptions<BootstrapAdminOptions>,

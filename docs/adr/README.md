@@ -243,3 +243,4 @@ standards.
 | [0205](./0205-replicas-announce-changes-through-a-broadcast-port.md) | Replicas announce changes through a broadcast port | Accepted |
 | [0206](./0206-a-clients-settings-are-checked-by-registered-coherence-rules.md) | A client's settings are checked by registered coherence rules | Accepted |
 | [0207](./0207-client-authentication-methods-are-named-by-registered-descriptors.md) | Client-authentication methods are named by registered descriptors | Accepted |
+| [0208](./0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) | A lost concurrency race surfaces as a store-neutral exception | Accepted |

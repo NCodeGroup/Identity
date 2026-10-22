@@ -72,10 +72,12 @@ public class ConformanceSeedHandlerTests : BaseTests
             clientKeyImporter ?? CreateStrictMock<IClientKeyImporter>().Object,
             mockCryptoService.Object,
             TimeProvider.System,
-            settingSerializer,
-            openIdEnvironmentProvider,
-            coherencePolicy.Resolver,
-            coherencePolicy.Validator,
+            new SeededClientValidator(
+                settingSerializer,
+                openIdEnvironmentProvider,
+                coherencePolicy.Resolver,
+                coherencePolicy.Validator
+            ),
             NullLogger<ConformanceSeedHandler>.Instance
         );
     }
@@ -107,7 +109,7 @@ public class ConformanceSeedHandlerTests : BaseTests
 
         var mockValidator = CreateStrictMock<IClientCoherenceValidator>();
         mockValidator
-            .Setup(x => x.Validate(mockCollection.Object))
+            .Setup(x => x.Validate(mockCollection.Object, It.IsAny<JsonElement>()))
             .Returns(violations)
             .Verifiable();
 

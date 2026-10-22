@@ -362,7 +362,7 @@ internal class TenantStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The OpenId Tenant with TenantId='{tenantId}' has been modified by another process. Please reload and try again."
             );
         }
@@ -420,7 +420,7 @@ internal class TenantStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The settings for OpenId Tenant with TenantId='{tenantId}' have been modified by another process. Please reload and try again."
             );
         }
@@ -556,7 +556,7 @@ internal class TenantStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The secret with SecretId='{persistedSecret.SecretId}' has been modified by another process. Please reload and try again."
             );
         }

@@ -301,7 +301,7 @@ public sealed class ResourceServerStoreTests : IDisposable
         var settings = loaded.Settings;
         settings.ConcurrencyToken = "stale";
 
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(async () =>
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
             await _store.UpdateSettingsAsync(settings, CancellationToken.None)
         );
     }

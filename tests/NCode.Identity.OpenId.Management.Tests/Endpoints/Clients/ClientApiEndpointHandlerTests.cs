@@ -472,7 +472,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        SetupEffectiveSettings(CreateSettingCollection());
+        SetupEffectiveSettings();
 
         var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
         var httpContext = CreateHttpContext(authenticated: true);
@@ -524,7 +524,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        SetupEffectiveSettings(CreateSettingCollection());
+        SetupEffectiveSettings();
 
         var request = new CreateClientRequest
         {
@@ -596,7 +596,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .ReturnsAsync((ManagementError?)null)
             .Verifiable();
         SetupEffectiveSettings(
-            CreateSettingCollection(),
             new ClientCoherenceViolation(
                 OpenIdSettingNames.IdTokenSignedResponseAlg,
                 "RS256",
@@ -920,6 +919,18 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     private void SetupEffectiveSettingsResolver(ISettingCollection effectiveSettings)
     {
+        var tenantSettings = SetupTenantEffectiveSettings();
+
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(tenantSettings, OpenIdSettingScopes.Client, It.IsAny<JsonElement>())
+            )
+            .Returns(effectiveSettings)
+            .Verifiable();
+    }
+
+    private IReadOnlySettingCollection SetupTenantEffectiveSettings()
+    {
         var serverSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
         var tenantSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
 
@@ -933,12 +944,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             )
             .Returns(tenantSettings)
             .Verifiable();
-        MockEffectiveSettingsResolver
-            .Setup(x =>
-                x.Resolve(tenantSettings, OpenIdSettingScopes.Client, It.IsAny<JsonElement>())
-            )
-            .Returns(effectiveSettings)
-            .Verifiable();
+
+        return tenantSettings;
     }
 
     private static HttpContext CreateHttpContextWithEnvironment(bool authenticated)
@@ -988,7 +995,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        SetupEffectiveSettings(CreateSettingCollection());
+        SetupEffectiveSettings();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1039,7 +1046,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupEffectiveSettings(
-            CreateSettingCollection(),
             new ClientCoherenceViolation(
                 OpenIdSettingNames.IdTokenSignedResponseAlg,
                 "RS256",
@@ -1135,7 +1141,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        SetupEffectiveSettings(CreateSettingCollection());
+        SetupEffectiveSettings();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1159,7 +1165,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         const string redirectUri = "myapp://callback";
         SetupEffectiveSettings(
-            CreateSettingCollection(),
             new ClientCoherenceViolation(
                 OpenIdSettingNames.RedirectUris,
                 redirectUri,
@@ -1179,10 +1184,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Contains(redirectUri, error.Message, StringComparison.Ordinal);
     }
 
-    private void SetupEffectiveSettings(
-        ISettingCollection effectiveSettings,
-        params ClientCoherenceViolation[] violations
-    )
+    private void SetupEffectiveSettings(params ClientCoherenceViolation[] violations)
     {
         MockStoreManager
             .Setup(x => x.GetStore<ITenantStore>())
@@ -1192,9 +1194,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTenantSettings())
             .Verifiable();
-        SetupEffectiveSettingsResolver(effectiveSettings);
+        var tenantSettings = SetupTenantEffectiveSettings();
         MockClientCoherenceValidator
-            .Setup(x => x.Validate(effectiveSettings))
+            .Setup(x => x.Validate(tenantSettings, It.IsAny<JsonElement>()))
             .Returns(violations)
             .Verifiable();
     }

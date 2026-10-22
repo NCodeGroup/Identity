@@ -17,7 +17,6 @@
 #endregion
 
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Coherence;
 
@@ -42,15 +41,13 @@ internal sealed class TokenEndpointAuthMethodCoherenceRule : IClientCoherenceRul
     public IReadOnlyCollection<string> SettingNames => AuthMethodSettingNames;
 
     /// <summary>
-    /// Finds the client-authentication method a client registers when its effective
-    /// <paramref name="clientSettings"/> do not permit it.
+    /// Finds the client-authentication method a client registers when its effective settings do not permit it.
     /// </summary>
-    /// <param name="clientSettings">The effective settings of the client.</param>
+    /// <param name="context">The registered and effective settings of the client.</param>
     /// <returns>The violation, or an empty list when the registered method is permitted.</returns>
-    public IReadOnlyList<ClientCoherenceViolation> FindViolations(
-        IReadOnlySettingCollection clientSettings
-    )
+    public IReadOnlyList<ClientCoherenceViolation> FindViolations(ClientCoherenceContext context)
     {
+        var clientSettings = context.EffectiveSettings;
         var method = clientSettings.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod);
 
         if (

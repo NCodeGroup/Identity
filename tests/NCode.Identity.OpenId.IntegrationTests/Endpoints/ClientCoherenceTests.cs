@@ -98,6 +98,40 @@ public class ClientCoherenceTests
 
     #endregion
 
+    #region PostClient Tests
+
+    [Fact]
+    public async Task PostClient_WhenItListsAGrantTypeItsTenantExcludes_ReturnsValidationProblem()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        var (statusCode, body) = await PostClientAsync(
+            administrator,
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+        );
+
+        Assert.True(statusCode == HttpStatusCode.BadRequest, body);
+        Assert.True(HasError(body, OpenIdSettingNames.GrantTypesSupported), body);
+        Assert.Contains($"'{OpenIdConstants.GrantTypes.Implicit}'", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PostClient_WhenItListsOnlyPermittedGrantTypes_ReturnsCreated()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        var (statusCode, body) = await PostClientAsync(
+            administrator,
+            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.RefreshToken]
+        );
+
+        Assert.True(statusCode == HttpStatusCode.Created, body);
+    }
+
+    #endregion
+
     #region Scaffolding
 
     private static ConfiguredHostApplicationFactory CreateFactory() =>
@@ -136,6 +170,29 @@ public class ClientCoherenceTests
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
         using var document = JsonDocument.Parse(body);
         return document.RootElement.GetProperty("clientId").GetString()!;
+    }
+
+    private static async Task<(HttpStatusCode StatusCode, string Body)> PostClientAsync(
+        HttpClient administrator,
+        string[] grantTypes
+    )
+    {
+        using var response = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/clients",
+            new
+            {
+                isDisabled = false,
+                settings = new Dictionary<string, object>
+                {
+                    ["redirect_uris"] = new[] { RedirectUri },
+                    ["token_endpoint_auth_method"] = OpenIdConstants
+                        .ClientAuthenticationMethods
+                        .ClientSecretPost,
+                    ["grant_types_supported"] = grantTypes,
+                },
+            }
+        );
+        return (response.StatusCode, await response.Content.ReadAsStringAsync());
     }
 
     private static async Task<(HttpStatusCode StatusCode, string Body)> PatchTenantSettingAsync(

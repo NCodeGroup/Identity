@@ -19,7 +19,6 @@
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 
@@ -29,12 +28,12 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 /// Provides the default implementation of <see cref="ITenantClientCoherenceChecker"/>, which pages through the
 /// tenant's clients under an explicit tenant scope, because the control-plane endpoints that change tenant and server
 /// settings are not scoped to the tenant they address. It reads each client through the untracked settings projection,
-/// which carries no secrets, and merges it through the <see cref="IEffectiveSettingsResolver"/>.
+/// which carries no secrets, and checks it through the <see cref="IClientCoherenceValidator"/>, which resolves the
+/// client's settings onto the tenant's.
 /// </summary>
 // See ADR-0206.
 internal sealed class DefaultTenantClientCoherenceChecker(
     IAmbientTenantAccessor ambientTenantAccessor,
-    IEffectiveSettingsResolver effectiveSettingsResolver,
     IClientCoherenceValidator clientCoherenceValidator
 ) : ITenantClientCoherenceChecker
 {
@@ -42,8 +41,6 @@ internal sealed class DefaultTenantClientCoherenceChecker(
     private const int ClientPageSize = 100;
 
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
-    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
-        effectiveSettingsResolver;
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
 
     /// <inheritdoc />
@@ -71,24 +68,19 @@ internal sealed class DefaultTenantClientCoherenceChecker(
             var result = await clientStore.GetSettingsPageAsync(page, cancellationToken);
             foreach (var clientSettings in result.Items)
             {
-                var newClientSettings = EffectiveSettingsResolver.Resolve(
+                var violations = ClientCoherenceValidator.Validate(
                     newTenantSettings,
-                    OpenIdSettingScopes.Client,
                     clientSettings.Value
                 );
-
-                var violations = ClientCoherenceValidator.Validate(newClientSettings);
                 if (violations.Count == 0)
                 {
                     continue;
                 }
 
-                var currentClientSettings = EffectiveSettingsResolver.Resolve(
+                var existing = ClientCoherenceValidator.Validate(
                     currentTenantSettings,
-                    OpenIdSettingScopes.Client,
                     clientSettings.Value
                 );
-                var existing = ClientCoherenceValidator.Validate(currentClientSettings);
                 findings.AddRange(
                     violations
                         .Except(existing)

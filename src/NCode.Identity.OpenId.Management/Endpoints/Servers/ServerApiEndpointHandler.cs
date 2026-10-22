@@ -738,11 +738,8 @@ internal class ServerApiEndpointHandler(
 
                 errors.AddRange(
                     findings.Select(finding => new SettingError(
-                        finding.Violation.CeilingName,
-                        $"The client '{finding.ClientId}' of tenant '{tenantSettings.TenantId}' registers "
-                            + $"'{finding.Violation.SettingName}' value '{finding.Violation.Value}', "
-                            + "which the server's effective "
-                            + $"'{finding.Violation.CeilingName}' would not permit."
+                        finding.Violation.GoverningSettingName,
+                        $"The change would make the client '{finding.ClientId}' of tenant '{tenantSettings.TenantId}' incoherent: {finding.Violation.Description}"
                     ))
                 );
             }

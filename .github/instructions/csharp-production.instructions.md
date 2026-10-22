@@ -357,9 +357,12 @@ rationale.
   keeps one registration per implementation type, an instance's type included, so each built-in strategy of an open
   vocabulary is its own class (the redirect URI kinds); several instances of one class keep only the first.
 - 👁 **A relationship between a client's settings is a registered coherence rule.** When a value a client registers must
-  be permitted by another of its effective settings, add an `IClientCoherenceRule` with `TryAddEnumerable`; every entry
-  point that stores a client and every tenant or server settings change checks it through `IClientCoherenceValidator`;
-  never add the check to one caller
+  be permitted by another of its effective settings, or may require one, add an `IClientCoherenceRule` with
+  `TryAddEnumerable`. The rule reads a `ClientCoherenceContext` (the client's registered and its effective settings; a
+  value a ceiling drops is visible only in the registered settings) and reports a missing companion with
+  `ClientCoherenceViolation.Missing`. Every entry point that stores a client, a configuration seeder through
+  `SeededClientValidator` included, and every tenant or server settings change checks it with
+  `IClientCoherenceValidator.Validate(tenantSettings, clientSettings)`; never add the check to one caller
   ([ADR-0206](../../docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)).
 - 👁 **Options validation never constructs a strategy that has dependencies.** `IOptions<OpenIdOptions>.Value` runs
   every `IValidateOptions<OpenIdOptions>`, which read the setting-descriptor catalog, so every setting data source, and
@@ -508,12 +511,16 @@ rationale.
 - 👁 **A capability the server advertises and a requirement a client registers are two settings.** Advertised support
   never forces a client. The requirement is a client setting with an `Or` floor, and a coherence rule refuses it where
   support is off (`tls_client_certificate_bound_access_tokens` and
-  `require_tls_client_certificate_bound_access_tokens`). See
+  `require_tls_client_certificate_bound_access_tokens`; `dpop_signing_alg_values_supported` and
+  `require_dpop_bound_access_tokens`). A requirement is named `require_` plus its RFC client metadata member
+  (`tls_client_certificate_bound_access_tokens`, `dpop_bound_access_tokens`). See
   [ADR-0097](../../docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md).
 - 👁 **A value nobody chose sits beneath a security profile's default.** At the server root the descriptor defaults, the
   computed `*_supported` values and the default-settings providers are the baseline passed to
-  `ISecurityProfileCatalog.Expand(scopeSettings, baselineSettings)`, and only the configuration is the root's own
-  settings, so a selected profile's default replaces the baseline and never a configured value. See
+  `ISecurityProfileCatalog.Expand(scopeSettings, OpenIdSettingScopes.Server, baselineSettings)`, and only the
+  configuration is the root's own settings, so a selected profile's default replaces the baseline and never a
+  configured value. Every `Expand` names its scope, and a default applies only to a setting that applies within that
+  scope. See
   [ADR-0148](../../docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md).
 - 👁 **Sibling scopes combine; a cascade merges.** When two scopes that are not parent and child govern one operation —
   an access token is bound by its client **and** every resource server it targets — join their effective settings with
@@ -600,6 +607,10 @@ rationale.
   check passes and before its effect.** A refused request leaves it usable. `IExpiringKeySet` is for single-use state
   with no durable row. See
   [ADR-0192](../../docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md).
+- 👁 **A store reports a lost optimistic-concurrency race as `StoreConcurrencyException`, never an Entity Framework
+  type.** `IStoreManager.SaveChangesAsync` and a store's own concurrency-token check throw it, so no caller references
+  Entity Framework to handle a lost race, and a single-use spend that loses is answered as a second spend. See
+  [ADR-0208](../../docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).
 - 👁 **A fetch of a URL a tenant or certificate supplies uses a named client whose primary handler has the
   `IOutboundHttpForgeryGuard` connect callback, and the platform `X509Chain` retrieves nothing.** Use
   `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through

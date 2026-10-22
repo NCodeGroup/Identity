@@ -30,14 +30,17 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 internal interface IRequestRateLimiter
 {
     /// <summary>
-    /// Counts the request against the limit for its remote address, the tenant-wide limit, and the tenant's daily request
-    /// quota, in that order; a request one of them refuses is not counted against the next.
+    /// Counts the request against the limit for its remote address, the tenant-wide limit, and, when the request is
+    /// metered, the tenant's daily request quota, in that order; a request one of them refuses is not counted against
+    /// the next.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> of the request.</param>
+    /// <param name="isMetered">Whether the request is the tenant's metered usage and so spends its daily request quota.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="RateLimitDecision"/> for the request.</returns>
     ValueTask<RateLimitDecision> AcquireForTenantAsync(
         OpenIdContext openIdContext,
+        bool isMetered,
         CancellationToken cancellationToken
     );
 

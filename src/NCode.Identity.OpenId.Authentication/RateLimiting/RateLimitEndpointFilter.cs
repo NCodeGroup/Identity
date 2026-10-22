@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Results;
@@ -25,11 +26,13 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 
 /// <summary>
 /// An endpoint filter, installed once on the OpenID endpoint group inside the environment filter, that counts every
-/// request against its tenant's tenant-wide and per-address rate limits and answers a refused request with
-/// <c>429 Too Many Requests</c> before its endpoint runs. It sits outside the exception filter, so a refused request is
-/// not audited as a protocol error: an attacker flooding the endpoint must not flood the audit log as well.
+/// request against its tenant's tenant-wide and per-address rate limits and, for a metered endpoint, its daily request
+/// quota, and answers a refused request with <c>429 Too Many Requests</c> before its endpoint runs. It sits outside the
+/// exception filter, so a refused request is not audited as a protocol error: an attacker flooding the endpoint must not
+/// flood the audit log as well. Once the endpoint has run, a metered request that no limit refused — neither here nor
+/// the per-client limit or token quota inside the endpoint — is recorded as the tenant's usage.
 /// </summary>
-// See ADR-0196; a request every limit admits is the tenant's usage (ADR-0199).
+// See ADR-0196 and ADR-0198; a request every limit admits is the tenant's usage (ADR-0199).
 internal sealed class RateLimitEndpointFilter(
     IRequestRateLimiter rateLimiter,
     ITenantUsageRecorder usageRecorder
@@ -52,18 +55,29 @@ internal sealed class RateLimitEndpointFilter(
         if (feature is null)
             return await next(context);
 
+        var isMetered =
+            httpContext.GetEndpoint()?.Metadata.GetMetadata<IOpenIdEndpointMeteredMetadata>()
+            is not { IsMetered: false };
+
         var openIdContext = feature.OpenIdContext;
         var decision = await RateLimiter.AcquireForTenantAsync(
             openIdContext,
+            isMetered,
             httpContext.RequestAborted
         );
         if (decision.RetryAfter is { } retryAfter)
-            return RateLimitErrors.Create(openIdContext, retryAfter).AsHttpResult();
+            return RateLimitErrors.Refuse(openIdContext, retryAfter).AsHttpResult();
 
-        UsageRecorder.Record(openIdContext.Tenant.TenantId, TenantUsageMeters.Requests);
-        if (decision.IsOverage)
-            UsageRecorder.Record(openIdContext.Tenant.TenantId, TenantUsageMeters.RequestsOverage);
+        var result = await next(context);
 
-        return await next(context);
+        if (isMetered && !RateLimitErrors.IsRefused(httpContext))
+        {
+            var tenantId = openIdContext.Tenant.TenantId;
+            UsageRecorder.Record(tenantId, TenantUsageMeters.Requests);
+            if (decision.IsOverage)
+                UsageRecorder.Record(tenantId, TenantUsageMeters.RequestsOverage);
+        }
+
+        return result;
     }
 }

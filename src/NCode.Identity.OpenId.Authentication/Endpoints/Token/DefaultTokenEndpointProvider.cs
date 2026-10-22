@@ -158,7 +158,7 @@ internal class DefaultTokenEndpointProvider(
                 cancellationToken
             );
             if (quotaDecision.RetryAfter is { } retryAfter)
-                return RateLimitErrors.Create(openIdContext, retryAfter).AsHttpResult();
+                return RateLimitErrors.Refuse(openIdContext, retryAfter).AsHttpResult();
 
             UsageRecorder.Record(openIdContext.Tenant.TenantId, TenantUsageMeters.TokenRequests);
             if (quotaDecision.IsOverage)

@@ -130,6 +130,19 @@ public class TenantUsageTests
         return client;
     }
 
+    // An anonymous token request is metered: the endpoint rejects it, but no rate limit or quota refuses it.
+    private static async Task<HttpStatusCode> PostAnonymousTokenRequestAsync(HttpClient client)
+    {
+        using var content = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+            }
+        );
+        using var response = await client.PostAsync("/oauth2/token", content);
+        return response.StatusCode;
+    }
+
     private static long GetCount(JsonElement usage, string meter) =>
         usage
             .GetProperty("entries")
@@ -151,13 +164,15 @@ public class TenantUsageTests
 
         for (var i = 0; i < 3; ++i)
         {
-            using var discovery = await client.GetAsync("/.well-known/openid-configuration");
-            Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
+            Assert.NotEqual(
+                HttpStatusCode.TooManyRequests,
+                await PostAnonymousTokenRequestAsync(client)
+            );
         }
 
-        // The ledger is written by the periodic flush, so poll until the counts arrive. The three discovery requests
-        // and the administrator's token request are admitted requests; the token request is also a confidential
-        // client's token request.
+        // The ledger is written by the periodic flush, so poll until the counts arrive. The three anonymous token
+        // requests and the administrator's token request are admitted requests; the administrator's is also a
+        // confidential client's token request.
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var deadline = DateTime.UtcNow.AddSeconds(30);
         JsonElement usage;
@@ -196,29 +211,69 @@ public class TenantUsageTests
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateClient(factory);
 
-        // The administrator's token request spent the first of the two requests the quota allows; the first discovery
-        // request spends the second, the next two are admitted as overage, and the overage ceiling refuses the last.
+        // The administrator's token request spent the first of the two requests the quota allows; the first anonymous
+        // token request spends the second, the next two are admitted as overage, and the overage ceiling refuses the
+        // last. Discovery is public metadata, so it spends neither (ADR-0198).
+        using (var discovery = await client.GetAsync("/.well-known/openid-configuration"))
+            Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
+
         var statusCodes = new List<HttpStatusCode>();
         for (var i = 0; i < 4; ++i)
-        {
-            using var discovery = await client.GetAsync("/.well-known/openid-configuration");
-            statusCodes.Add(discovery.StatusCode);
-        }
+            statusCodes.Add(await PostAnonymousTokenRequestAsync(client));
 
-        Assert.Equal(
-            [
-                HttpStatusCode.OK,
-                HttpStatusCode.OK,
-                HttpStatusCode.OK,
-                HttpStatusCode.TooManyRequests,
-            ],
-            statusCodes
-        );
+        Assert.DoesNotContain(HttpStatusCode.TooManyRequests, statusCodes[..3]);
+        Assert.Equal(HttpStatusCode.TooManyRequests, statusCodes[3]);
 
         var usage = await WaitForUsageAsync(administrator, TenantUsageMeters.Requests, 4);
         usage = await WaitForUsageAsync(administrator, TenantUsageMeters.RequestsOverage, 2);
         Assert.Equal(4, GetCount(usage, TenantUsageMeters.Requests));
         Assert.Equal(2, GetCount(usage, TenantUsageMeters.RequestsOverage));
+    }
+
+    [Fact]
+    public async Task GetUsage_WhenTheClientLimitRefusesARequest_DoesNotRecordIt()
+    {
+        // The per-client limit refuses inside the token endpoint, after the tenant-wide limits admitted the request; a
+        // refused request is not usage (ADR-0199).
+        using var host = CreateHost(
+            new Dictionary<string, string?> { [OpenIdSettingNames.RateLimitClientPerMinute] = "1" }
+        );
+        using var factory = CreateFactory(host);
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var client = CreateClient(factory);
+
+        var credentials = Encoding.UTF8.GetBytes($"{BootstrapClientId}:{BootstrapClientSecret}");
+        using var refusedRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
+        {
+            Headers =
+            {
+                Authorization = new AuthenticationHeaderValue(
+                    "Basic",
+                    Convert.ToBase64String(credentials)
+                ),
+            },
+            Content = new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["scope"] = "read:clients",
+                }
+            ),
+        };
+        using (var refused = await client.SendAsync(refusedRequest))
+            Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        Assert.NotEqual(
+            HttpStatusCode.TooManyRequests,
+            await PostAnonymousTokenRequestAsync(client)
+        );
+
+        // The administrator's token request and the anonymous one are usage; the refused request is not. Wait for both,
+        // then for a few more flushes, so a recorded refusal would have reached the ledger too.
+        await WaitForUsageAsync(administrator, TenantUsageMeters.Requests, 2);
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
+        var usage = await WaitForUsageAsync(administrator, TenantUsageMeters.Requests, 2);
+        Assert.Equal(2, GetCount(usage, TenantUsageMeters.Requests));
+        Assert.Equal(1, GetCount(usage, TenantUsageMeters.TokenRequests));
     }
 
     [Fact]

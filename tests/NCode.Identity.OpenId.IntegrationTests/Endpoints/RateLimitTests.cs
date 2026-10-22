@@ -54,6 +54,14 @@ public class RateLimitTests
             }
         );
 
+    private static FormUrlEncodedContent AnonymousBody() =>
+        new(
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+            }
+        );
+
     private static async Task AssertTooManyRequestsAsync(
         HttpResponseMessage response,
         TimeSpan maxRetryAfter
@@ -107,22 +115,45 @@ public class RateLimitTests
     #region Quota Tests
 
     [Fact]
-    public async Task Discovery_WhenTheTenantHasSpentItsDailyQuota_ReturnsTooManyRequestsUntilMidnight()
+    public async Task PostToken_WhenTheTenantHasSpentItsDailyQuota_ReturnsTooManyRequestsUntilMidnight()
     {
         using var factory = CreateFactory(OpenIdSettingNames.QuotaTenantRequestsPerDay, "2");
         var client = CreateClient(factory);
 
         // A quota is one fixed window per UTC day, so the third request is refused unless midnight UTC passes between
-        // the requests; Retry-After then points at most one day ahead.
+        // the requests; Retry-After then points at most one day ahead. A request the endpoint itself rejects still
+        // spends the quota.
         for (var i = 0; i < 2; ++i)
         {
-            using var admitted = await client.GetAsync("/.well-known/openid-configuration");
-            Assert.Equal(HttpStatusCode.OK, admitted.StatusCode);
+            using var admitted = await client.PostAsync(TokenPath, AnonymousBody());
+            Assert.NotEqual(HttpStatusCode.TooManyRequests, admitted.StatusCode);
         }
 
-        using var response = await client.GetAsync("/.well-known/openid-configuration");
+        using var response = await client.PostAsync(TokenPath, AnonymousBody());
 
         await AssertTooManyRequestsAsync(response, TimeSpan.FromDays(1));
+    }
+
+    [Fact]
+    public async Task Discovery_WhenRequestedRepeatedly_DoesNotSpendTheDailyQuota()
+    {
+        // Discovery and the JSON Web Key Set are public metadata, so anonymous callers cannot spend the tenant's quota
+        // and refuse its clients (ADR-0198); the per-minute limits still cover them.
+        using var factory = CreateFactory(OpenIdSettingNames.QuotaTenantRequestsPerDay, "1");
+        var client = CreateClient(factory);
+
+        for (var i = 0; i < 3; ++i)
+        {
+            using var discovery = await client.GetAsync("/.well-known/openid-configuration");
+            Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
+            using var jwks = await client.GetAsync("/oauth2/jwks");
+            Assert.Equal(HttpStatusCode.OK, jwks.StatusCode);
+        }
+
+        using var response = await client.PostAsync(TokenPath, AnonymousBody());
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode != HttpStatusCode.TooManyRequests, body);
     }
 
     [Fact]

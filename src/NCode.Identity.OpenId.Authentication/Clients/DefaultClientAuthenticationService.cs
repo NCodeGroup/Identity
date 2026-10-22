@@ -85,7 +85,7 @@ internal class DefaultClientAuthenticationService(
             );
             if (decision.RetryAfter is { } retryAfter)
                 authenticationResult = new ClientAuthenticationResult(
-                    RateLimitErrors.Create(openIdContext, retryAfter)
+                    RateLimitErrors.Refuse(openIdContext, retryAfter)
                 );
         }
 

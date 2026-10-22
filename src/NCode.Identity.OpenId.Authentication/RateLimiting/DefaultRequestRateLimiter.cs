@@ -76,6 +76,7 @@ internal class DefaultRequestRateLimiter(
     /// <inheritdoc />
     public async ValueTask<RateLimitDecision> AcquireForTenantAsync(
         OpenIdContext openIdContext,
+        bool isMetered,
         CancellationToken cancellationToken
     )
     {
@@ -117,8 +118,12 @@ internal class DefaultRequestRateLimiter(
                 return decision;
         }
 
-        // The daily quota is judged last, so a request a per-minute limit refuses does not spend the tenant's quota.
-        if (settings.TryGetValue(OpenIdSettingKeys.QuotaTenantRequestsPerDay, out var quota))
+        // The daily quota is judged last, so a request a per-minute limit refuses does not spend the tenant's quota. A
+        // request that is not metered, such as one for public metadata, never spends it (ADR-0198).
+        if (
+            isMetered
+            && settings.TryGetValue(OpenIdSettingKeys.QuotaTenantRequestsPerDay, out var quota)
+        )
         {
             return await AcquireQuotaAsync(
                 tenantId,

@@ -412,10 +412,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   The processor's `catch` uses the redirect context built from the outer query, so a request whose `state` and
   `response_mode=jwt` are only inside the object gets an unsigned error without `state` (RFC 6749 §4.1.2.1). Touch
   point: `DefaultAuthorizationRequestProcessor.cs:68-79`.
-- **`R4` — Keep unauthenticated metadata endpoints out of the daily quota and overage.** `RateLimitEndpointFilter`
-  covers discovery and JWKS, so anonymous traffic can spend a tenant's quota, bill its overage, and then refuse its
-  clients until 00:00 UTC. Keep those endpoints under the per-minute limits only, and update ADR-0198 and ADR-0200.
-  Touch points: `RateLimitEndpointFilter.cs:56-65`, `OpenIdEndpointGroup.cs:82`.
 - **`R5` — Bound the cost of failing open when Valkey is unreachable.** Each counter call waits for the client's
   async timeout (about 5 s), the checks run in sequence (about 15 s per request, 25 s per confidential token request),
   and each failure logs a warning with a stack trace. Add a 50–100 ms per-call timeout, a breaker (or an
@@ -443,8 +439,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
   Touch points: `DefaultAuthorizationEndpointHandler.cs:354-363`, `AuthorizationResponseWriter.cs:80-81`.
 - **`R12` — Require `nonce` (with `openid`) or `state` under `fapi1-advanced`.** Touch point:
   `DefaultValidateAuthorizationRequestHandler.cs:285-289, 325-331`.
-- **`R13` — Record request usage after the endpoint runs.** Requests the per-client limit or token quota refuse are
-  billed, including as overage (contradicts ADR-0199 §2). Touch point: `RateLimitEndpointFilter.cs:63-67`.
 - **`R14` — Close the gaps in `ExpandOnlyRule`.** It ignores raw SQL, allows nullable→required with a default (a test
   asserts it), and misses new unique indexes, foreign keys, and check constraints on existing tables. Touch points:
   `ExpandOnlyRule.cs:30, 98`, `ExpandOnlyRuleTests.cs:195, 326`.

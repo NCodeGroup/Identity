@@ -10,6 +10,11 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **`IOpenIdEndpointMeteredMetadata` and `WithOpenIdMetered(bool)` mark whether an endpoint is the tenant's metered
+  usage.** A metered endpoint's requests spend the daily request quota and are recorded in the usage ledger; an
+  endpoint without the metadata is metered. A package that adds a public metadata endpoint opts it out with
+  `WithOpenIdMetered(false)`.
+
 - **`HealthCheckTags.Readiness`.** `NCode.Identity.Abstractions` publishes the tag (`"ready"`) of every health check
   that decides whether a replica can serve requests. The Valkey adapter tags its check with it and the reference host's
   `/health/ready` endpoint runs the checks that carry it, so a package that adds a readiness check uses the constant
@@ -1282,6 +1287,15 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **Anonymous requests for discovery and the JSON Web Key Set spent a tenant's daily request quota.** Anyone could
+  spend the quota, run up its billable overage, and then have the tenant's clients refused until midnight UTC. The two
+  endpoints are no longer metered: they count only against the per-minute rate limits, and are not recorded as
+  `requests` usage (ADR-0198, ADR-0199, ADR-0200).
+
+- **Requests refused by the per-client rate limit or the token quota were recorded as usage, including overage.** The
+  request filter now records a request once its endpoint has run, and skips one that any limit refused with `429`, so
+  only served requests are billed (ADR-0199 §2).
 
 - **Pruning the tenant usage ledger loaded every expired entry into memory.** `ITenantUsageStore.RemoveBeforeAsync`
   now removes them with one set-based delete, which takes effect immediately rather than when the unit of work is

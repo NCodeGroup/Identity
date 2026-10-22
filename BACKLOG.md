@@ -470,22 +470,6 @@ _None remaining._
   register the `EventLog` provider, and the final flush on stop should not fail against a store that is being torn down
   (pairs with `R25`). Touch points: `DiscoveryInsecureOverrideTests.cs:33`, `HostApplicationFactory.cs`,
   `TenantUsageFlushService.cs:83, 123`.
-- **`R55` — Refuse a tenant or server settings change that leaves a client's redirect URI unpermitted.** A management
-  write to a tenant's or the server's settings that selects `fapi2` or `fapi1-advanced`, or narrows
-  `redirect_uri_kinds_supported`, is not checked against the redirect URIs its clients registered, as
-  `IClientResponseAlgorithmValidator` checks their algorithms; such a client is refused only when it next requests
-  authorization (ADR-0203). Check the change the way algorithm changes are checked, ideally through the one coherence
-  validator of `R40`. Touch points: `TenantApiEndpointHandler.cs:880-930`, `ServerApiEndpointHandler.cs:660-735`,
-  `DefaultClientResponseAlgorithmValidator.cs`.
-- **`R56` — Narrow the `private_use` redirect URI kind and decide the end-session redirect.** The built-in `private_use`
-  kind matches every scheme except `http` and `https`, so a `ws`, `ftp`, `file`, `javascript`, or `data` redirect URI
-  counts as a private-use scheme and passes the `fapi2` ceiling (`https`, `loopback`, `private_use`), although RFC 8252
-  §7.1 means a scheme that an app registers with the operating system. Exclude the well-known non-private schemes, or
-  require the reverse-domain form that RFC 8252 recommends, and say which in ADR-0203. Separately decide whether
-  `post_logout_redirect_uri` gets a kind check and the `Location` escaping that the authorization response has: it is
-  already a string compared ordinally, so `R52` does not apply, but `TypedResults.Redirect` writes it unescaped.
-  Touch points: `PrivateUseRedirectUriKind.cs`, `DefaultEndSessionHandler.cs:113-155`,
-  `DefaultEndSessionEndpointProvider.cs:92-99`.
 - **`R57` — Apply a server settings change at once on every replica.** A server settings PATCH reaches each replica's
   server settings, and through them every tenant's, only at that replica's next poll
   (`OpenId:Server:SettingsPeriodicRefreshInterval`, 5 minutes), the writing replica included. Keys are already
@@ -499,16 +483,6 @@ _None remaining._
   still served on that replica. Evict every cached tenant when the broadcast subscription reconnects
   (StackExchange.Redis `ConnectionRestored`), or give tenant cache entries an absolute lifetime. Touch points:
   `ValkeyReplicaBroadcastSubscriber`, `DefaultOpenIdTenantCache`, `OpenIdTenantOptions`.
-- **`R60` — Name the client-authentication methods without constructing their handlers.**
-  `DefaultClientSettingDescriptorDataSource` resolves every `IClientAuthenticationHandler` to read its
-  `AuthenticationMethod`, and the setting-descriptor catalog it feeds is read by the `OpenIdOptions` validators, so
-  composing the host constructs every handler and its whole dependency graph inside options validation. A handler that
-  depends, however indirectly, on a service whose constructor reads `IOptions<OpenIdOptions>.Value` deadlocks startup
-  (seen when `DefaultOpenIdClientResolver` took `IEffectiveSettingsResolver`; the factories now read options on use).
-  Register the method vocabulary as cheap, dependency-free descriptors (ADR-0150) that the catalog reads, and check at
-  composition that each registered handler has one and each descriptor a handler. Touch points:
-  `DefaultClientSettingDescriptorDataSource.GetAuthMethods`, `Clients/DefaultRegistration.cs`,
-  `DefaultClientAuthenticationService`.
 - **`R61` — Make the tenant re-seed after a server settings change durable, bounded, and complete.**
   `TenantKeyReseedJob` runs on the in-process dispatcher (ADR-0169 decision 10), which has three limits. (1) The queue
   is in memory and the worker does not reschedule a cancelled job, so a restart or shutdown drops the tenants the pass
@@ -545,8 +519,6 @@ _None remaining._
 
 ### Refactor
 
-- **`R40` — One coherence validator for client settings.** Shared by dynamic registration, management, and the
-  conformance seed; move `ClientResponseAlgorithmRule` into Authentication.
 - **`R41` — Rate-limit policy as data.** One descriptor table for partitions, quotas, and meters, a batched Valkey
   round trip, and one metrics wrapper in the Valkey adapters.
 - **`R42` — Split `tls_client_certificate_bound_access_tokens`.** _pre._ Separate advertised server support from the

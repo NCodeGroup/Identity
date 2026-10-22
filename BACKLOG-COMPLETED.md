@@ -2878,3 +2878,52 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   seed, both tenant factories, the client and resource-server resolvers, the conformance seed, and every management
   handler route through it; seeds and previews read the server's committed settings. Only the server factory and the
   root settings source call the security-profile catalog directly. ADR-0204._
+- **`R55` — Refuse a tenant or server settings change that leaves a client's redirect URI unpermitted.** A management
+  write to a tenant's or the server's settings that selects `fapi2` or `fapi1-advanced`, or narrows
+  `redirect_uri_kinds_supported`, is not checked against the redirect URIs its clients registered, as
+  `IClientResponseAlgorithmValidator` checks their algorithms; such a client is refused only when it next requests
+  authorization (ADR-0203). Check the change the way algorithm changes are checked, ideally through the one coherence
+  validator of `R40`. Touch points: `TenantApiEndpointHandler.cs:880-930`, `ServerApiEndpointHandler.cs:660-735`,
+  `DefaultClientResponseAlgorithmValidator.cs`.
+  _Closed: a tenant or server settings change re-checks every coherence rule over the affected clients through
+  `ITenantClientCoherenceChecker`: it walks a tenant only when `IClientCoherenceValidator.ReadsChangedSetting` reports a
+  change to a setting a rule reads, reads clients through untracked projections, and refuses the change with the
+  violations it introduces (narrowing `redirect_uri_kinds_supported`, selecting `fapi1-advanced`, narrowing
+  `token_endpoint_auth_methods_supported`). `ClientCoherenceTests` proves it end to end. ADR-0206._
+- **`R56` — Narrow the `private_use` redirect URI kind and decide the end-session redirect.** The built-in `private_use`
+  kind matches every scheme except `http` and `https`, so a `ws`, `ftp`, `file`, `javascript`, or `data` redirect URI
+  counts as a private-use scheme and passes the `fapi2` ceiling (`https`, `loopback`, `private_use`), although RFC 8252
+  §7.1 means a scheme that an app registers with the operating system. Exclude the well-known non-private schemes, or
+  require the reverse-domain form that RFC 8252 recommends, and say which in ADR-0203. Separately decide whether
+  `post_logout_redirect_uri` gets a kind check and the `Location` escaping that the authorization response has: it is
+  already a string compared ordinally, so `R52` does not apply, but `TypedResults.Redirect` writes it unescaped.
+  Touch points: `PrivateUseRedirectUriKind.cs`, `DefaultEndSessionHandler.cs:113-155`,
+  `DefaultEndSessionEndpointProvider.cs:92-99`.
+  _Closed: the `private_use` kind matches only a reverse-domain scheme (a period and no empty label, such as
+  `com.example.app`; RFC 8252 §7.1, OAuth 2.1 §2.3.1), and a URI of no registered kind (`javascript:`, `data:`, `file:`,
+  `ws:`, `myapp:`) is never permitted, even with `redirect_uri_kinds_supported` unset. End session checks the
+  post-logout URI's kind after the ordinal match, logs a refused kind as its own event, and escapes its `Location`
+  through the shared `RedirectLocation`. ADR-0203 decisions 7 and 10._
+- **`R40` — One coherence validator for client settings.** Shared by dynamic registration, management, and the
+  conformance seed; move `ClientResponseAlgorithmRule` into Authentication.
+  _Closed: client coherence is an open set of registered rules (`IClientCoherenceRule`, `ClientCoherenceViolation`,
+  `IClientCoherenceValidator`): response algorithms, redirect URI kinds (redirect and post-logout URIs), and the token
+  endpoint authentication method against its ceiling. Dynamic registration, the management client API, and the
+  conformance seed check a client's effective settings through the validator, each mapping violations to its own error;
+  `ClientResponseAlgorithmRule` and the management validator moved into the Authentication rules and were deleted.
+  ADR-0206; the remaining invariants are `R62` and `R63`._
+- **`R60` — Name the client-authentication methods without constructing their handlers.**
+  `DefaultClientSettingDescriptorDataSource` resolves every `IClientAuthenticationHandler` to read its
+  `AuthenticationMethod`, and the setting-descriptor catalog it feeds is read by the `OpenIdOptions` validators, so
+  composing the host constructs every handler and its whole dependency graph inside options validation. A handler that
+  depends, however indirectly, on a service whose constructor reads `IOptions<OpenIdOptions>.Value` deadlocks startup
+  (seen when `DefaultOpenIdClientResolver` took `IEffectiveSettingsResolver`; the factories now read options on use).
+  Register the method vocabulary as cheap, dependency-free descriptors (ADR-0150) that the catalog reads, and check at
+  composition that each registered handler has one and each descriptor a handler. Touch points:
+  `DefaultClientSettingDescriptorDataSource.GetAuthMethods`, `Clients/DefaultRegistration.cs`,
+  `DefaultClientAuthenticationService`.
+  _Closed: client-authentication methods are named by dependency-free `ClientAuthenticationMethodDescriptor`
+  registrations read through `IClientAuthenticationMethodCatalog`; the setting descriptors read the catalog, so options
+  validation constructs no handler (a test registers a throwing handler to prove it).
+  `DefaultClientAuthenticationService` refuses to compose when handlers and descriptors do not correspond, and dynamic
+  registration issues a `client_secret` from the descriptor. ADR-0207._

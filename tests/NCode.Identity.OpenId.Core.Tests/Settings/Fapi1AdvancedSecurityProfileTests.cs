@@ -35,7 +35,7 @@ public class Fapi1AdvancedSecurityProfileTests : BaseTests
     }
 
     [Fact]
-    public void Requirements_RequireAConfidentialClientAJwtSecuredCodeResponseAndANonceOrState()
+    public void Requirements_RequireAConfidentialClientAJwtSecuredCodeResponseANonceOrStateAndTheIssuerAudience()
     {
         var profile = new Fapi1AdvancedSecurityProfile();
 
@@ -43,7 +43,8 @@ public class Fapi1AdvancedSecurityProfileTests : BaseTests
             profile.Requirements,
             requirement => Assert.IsType<ConfidentialClientRequirement>(requirement),
             requirement => Assert.IsType<JwtSecuredAuthorizationResponseRequirement>(requirement),
-            requirement => Assert.IsType<NonceOrStateRequirement>(requirement)
+            requirement => Assert.IsType<NonceOrStateRequirement>(requirement),
+            requirement => Assert.IsType<IssuerOnlyRequestObjectAudienceRequirement>(requirement)
         );
     }
 

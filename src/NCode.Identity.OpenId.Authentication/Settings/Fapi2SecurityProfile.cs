@@ -54,6 +54,9 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         new ConfidentialClientRequirement(),
         // A client_assertion may only target the issuer identifier (FAPI 2.0 §5.3.2.1).
         new IssuerOnlyAssertionAudienceRequirement(),
+        // A request object is addressed to the issuer, which no client setting may replace (FAPI 2.0 Message Signing
+        // §5.3.1).
+        new IssuerOnlyRequestObjectAudienceRequirement(),
     ];
 
     /// <inheritdoc />

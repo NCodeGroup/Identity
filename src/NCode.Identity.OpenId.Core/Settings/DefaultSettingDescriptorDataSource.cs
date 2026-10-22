@@ -1077,7 +1077,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // request_object_expected_audience: expected "aud" of a client's request object; empty expects the tenant's
-            // issuer (RFC 9101 §4, ADR-0187) (default empty).
+            // issuer (RFC 9101 §4, ADR-0187), which a FAPI profile requires (ADR-0202) (default empty).
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {

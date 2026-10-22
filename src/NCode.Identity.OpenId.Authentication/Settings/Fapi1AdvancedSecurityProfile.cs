@@ -63,6 +63,8 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
         new JwtSecuredAuthorizationResponseRequirement(),
         // 'nonce' with the 'openid' scope, 'state' without it (§5.2.2.2, §5.2.2.3).
         new NonceOrStateRequirement(),
+        // A request object is addressed to the issuer, which no client setting may replace (§5.2.2).
+        new IssuerOnlyRequestObjectAudienceRequirement(),
     ];
 
     /// <inheritdoc />

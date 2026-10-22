@@ -2716,3 +2716,10 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   without `response_type` or `scope` with `invalid_request_object`, still requires an outer `response_type` to match,
   and ignores an outer `scope`, which OpenID Connect Core §6.1 lets the object supersede. Unit tests cover both
   properties and the new refusals; ADR-0202 decision 6 updated._
+- **`R10` — Stop a client setting from overriding the FAPI request-object audience.** `request_object_expected_audience`
+  is client-scoped and replace-merged, so no profile can cap it. Add a profile requirement that refuses a non-empty
+  value. Touch point: `DefaultLoadAuthorizationRequestHandler.cs:221-228`. _Closed: the new
+  `IssuerOnlyRequestObjectAudienceRequirement`, composed by the `fapi1-advanced` and `fapi2` profiles, refuses a request
+  object from a client that sets `request_object_expected_audience` with `invalid_request_object`, so the issuer stays
+  the required audience. Unit tests cover the requirement and the FAPI 1.0 Advanced profile's composition; ADR-0187 and
+  ADR-0202 updated._

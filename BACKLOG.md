@@ -424,9 +424,6 @@ files) recorded these items. Severity follows the review: **P1** blocks merging 
 
 ### P2
 
-- **`R10` — Stop a client setting from overriding the FAPI request-object audience.** `request_object_expected_audience`
-  is client-scoped and replace-merged, so no profile can cap it. Add a profile requirement that refuses a non-empty
-  value. Touch point: `DefaultLoadAuthorizationRequestHandler.cs:221-228`.
 - **`R11` — Match redirect URIs exactly and cap loopback redirects under FAPI.** _pre._ The query is not compared,
   `allow_loopback_redirect` defaults to `true`, and the response writer keeps request-supplied query parameters.
   Touch points: `DefaultAuthorizationEndpointHandler.cs:354-363`, `AuthorizationResponseWriter.cs:80-81`.

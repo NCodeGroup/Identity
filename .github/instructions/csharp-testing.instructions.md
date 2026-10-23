@@ -208,6 +208,13 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **A strict-mock test of a read-and-retry loop returns a new object for each read**
   (`SetupSequence(...).ReturnsAsync(first).ReturnsAsync(second)`): the code under test changes the object it read, so
   one shared instance makes the second read see the first attempt's own write.
+- 👁 **Test a read-modify-write through the update function it passes.** The strict setup of `UpdatePayloadAsync`
+  captures the `update` argument in its callback; the test invokes it with the stored grant the scenario means, such as
+  one a concurrent request changed, and asserts the update it returns (`DefaultSessionServiceTests`,
+  [ADR-0222](../../docs/adr/0222-a-grants-payload-is-changed-by-a-read-modify-write.md)).
+- 👁 **A mocked `OpenIdContext` or `OpenIdTenant` that the code under test disposes sets up its protected
+  `DisposeAsyncCore`.** `mock.Protected().Setup<ValueTask>("DisposeAsyncCore")…Verifiable()`; `DisposeAsync` is not
+  virtual and calls it (`EndedSessionTerminationServiceTests`).
 - 👁 **A global query filter is bypassed for change-tracked entities.** A `HasQueryFilter` predicate (e.g. the
   tenant-scoping filter, [ADR-0018](../../docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md)) is
   applied to a **database** query, but a first-level-cache hit — an entity already tracked from a prior `Add`/read,

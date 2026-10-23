@@ -67,8 +67,8 @@ public interface ISessionService
     /// <param name="sessionId">The opaque session identifier (<c>sid</c>).</param>
     /// <param name="clientId">The identifier of the participating client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> if an
-    /// active session was found and updated; otherwise <c>false</c>.</returns>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when this
+    /// call added the client; <c>false</c> when the session is not active or already lists the client.</returns>
     ValueTask<bool> AddClientAsync(
         OpenIdContext openIdContext,
         string sessionId,
@@ -88,6 +88,22 @@ public interface ISessionService
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when the
     /// session remains valid; otherwise <c>false</c> (missing, revoked, expired, or idle-timed-out).</returns>
     ValueTask<bool> ValidateAndTouchAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Terminates the session identified by <paramref name="sessionId"/> through the session-termination seam when it
+    /// has ended, at its absolute end or at the end of its idle window, unless another caller terminated it. Of the
+    /// requests and background passes that find one ended session, only one terminates it.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="sessionId">The opaque session identifier (<c>sid</c>).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when this
+    /// call terminated the session; <c>false</c> when it is missing, revoked, or has not ended.</returns>
+    ValueTask<bool> TerminateIfEndedAsync(
         OpenIdContext openIdContext,
         string sessionId,
         CancellationToken cancellationToken

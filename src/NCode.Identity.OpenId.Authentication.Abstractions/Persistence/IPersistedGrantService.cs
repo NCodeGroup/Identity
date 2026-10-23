@@ -90,15 +90,38 @@ public interface IPersistedGrantService
     );
 
     /// <summary>
-    /// Updates a grant as being revoked if it is still active. A revocation that loses a concurrency race reads the
-    /// grant again and retries a few times; it fails when every attempt loses.
+    /// Revokes a grant unless it is already revoked, whether or not it expired, and reports whether this call revoked
+    /// it. A revocation that loses a concurrency race reads the grant again and retries a few times; it fails when
+    /// every attempt loses.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
     /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask SetRevokedOnceAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when
+    /// this call revoked the grant. The result is <c>false</c> when the grant does not exist or is already revoked,
+    /// including by a concurrent request.</returns>
+    ValueTask<bool> SetRevokedOnceAsync(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Revokes a session grant, together with every other grant issued under its session identifier, in one unit of
+    /// work unless the session grant is already revoked, whether or not it expired, and reports whether this call
+    /// revoked it. A revocation that loses a concurrency race reads the grants again and retries a few times; it fails
+    /// when every attempt loses.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted session grant.</param>
+    /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when
+    /// this call revoked the session grant and the grants issued under it. The result is <c>false</c> when the grant
+    /// does not exist, belongs to another tenant, or is already revoked, including by a concurrent request.</returns>
+    ValueTask<bool> RevokeSessionOnceAsync(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         DateTimeOffset revokedWhen,
@@ -241,41 +264,27 @@ public interface IPersistedGrantService
     );
 
     /// <summary>
-    /// Replaces the payload of a grant if it is still active. This supports grants whose payload carries a mutable
-    /// state (for example, a pending device authorization request that transitions from pending to approved or denied).
+    /// Changes the payload, and optionally the expiration, of a grant that is still active by applying a function to
+    /// the grant as it is stored.
     /// </summary>
+    /// <remarks>
+    /// The change is applied to the grant as stored and is written under the concurrency token of that read. A write
+    /// that loses a concurrency race reads the grant again and applies the function again, a few times; the call fails
+    /// when every attempt loses. The function may therefore run more than once, so it decides from its argument only.
+    /// </remarks>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
-    /// <param name="payload">The new payload to persist for the grant.</param>
+    /// <param name="update">The function that receives the grant as stored and returns the change to apply, or
+    /// <c>null</c> to leave the grant unchanged.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> if an
-    /// active grant was found and updated; otherwise, <c>false</c>.</returns>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> if this
+    /// call changed the grant. The result is <c>false</c> when the grant does not exist or is not active, in which case
+    /// the function is not called, and when the function returns <c>null</c>.</returns>
     ValueTask<bool> UpdatePayloadAsync<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
-        TPayload payload,
-        CancellationToken cancellationToken
-    );
-
-    /// <summary>
-    /// Replaces the payload and the expiration of a grant if it is still active, in one unit of work. This supports a
-    /// grant whose expiry slides with its use, such as an end-user session whose idle window is renewed.
-    /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
-    /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
-    /// <param name="payload">The new payload to persist for the grant.</param>
-    /// <param name="expiresWhen">The <see cref="DateTimeOffset"/> to set the expiration time to.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> if an
-    /// active grant was found and updated; otherwise, <c>false</c>, also when a concurrent request changed the grant
-    /// after it was read, whose change stands.</returns>
-    ValueTask<bool> UpdatePayloadAndExpirationAsync<TPayload>(
-        OpenIdContext openIdContext,
-        PersistedGrantId grantId,
-        TPayload payload,
-        DateTimeOffset expiresWhen,
+        Func<PersistedGrant<TPayload>, PersistedGrantUpdate<TPayload>?> update,
         CancellationToken cancellationToken
     );
 }

@@ -45,7 +45,8 @@ public static class DefaultRegistration
         /// overrides the base <c>NCode.Identity.OpenId.Authentication</c> handler that reports the password grant as
         /// unsupported, so calling it is what enables the grant. It also registers the account-sourced UserInfo
         /// scope-claims enricher, so the UserInfo endpoint returns the subject's profile/email/address/phone claims
-        /// from the local account (OpenID Connect Core 1.0 §5.4).
+        /// from the local account (OpenID Connect Core 1.0 §5.4). It also registers the subject-validation handler that
+        /// refuses a subject whose local account is disabled or no longer exists.
         /// </summary>
         /// <param name="localAccountStore">The local-account store builder — the compile-time proof that a
         /// <c>ILocalAccountStore</c> is registered, so this capability cannot be added without one.</param>
@@ -75,6 +76,7 @@ public static class DefaultRegistration
             >();
 
             AddLocalAccountUserInfoClaims(serviceCollection);
+            AddLocalAccountSubjectValidation(serviceCollection);
 
             return builder;
         }
@@ -84,7 +86,9 @@ public static class DefaultRegistration
         /// opt-in interactive login/consent surface (<c>AddInteractiveAuthentication</c>) verifies credentials against
         /// the configured <c>ILocalAccountStore</c> — the same credential path the resource-owner password grant uses.
         /// The host registers the interactive surface separately. A host fronting a different backend (LDAP, an external
-        /// identity provider, passwordless) registers its own <see cref="IInteractiveCredentialVerifier"/> instead.
+        /// identity provider, passwordless) registers its own <see cref="IInteractiveCredentialVerifier"/> instead. It
+        /// also registers the subject-validation handler that refuses a subject whose local account is disabled or no
+        /// longer exists.
         /// </summary>
         /// <param name="localAccountStore">The local-account store builder — the compile-time proof that a
         /// <c>ILocalAccountStore</c> is registered, so this capability cannot be added without one.</param>
@@ -103,6 +107,7 @@ public static class DefaultRegistration
             >();
 
             AddLocalAccountUserInfoClaims(serviceCollection);
+            AddLocalAccountSubjectValidation(serviceCollection);
 
             return builder;
         }
@@ -116,6 +121,16 @@ public static class DefaultRegistration
             ServiceDescriptor.Singleton<
                 ICommandHandler<GetUserInfoClaimsCommand>,
                 DefaultGetLocalAccountUserInfoClaimsHandler
+            >()
+        );
+
+    // The subject-validation handler is grant-agnostic (it runs wherever a subject is validated), so both the
+    // password-grant and interactive registrations wire it; TryAddEnumerable adds it exactly once.
+    private static void AddLocalAccountSubjectValidation(IServiceCollection serviceCollection) =>
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICommandHandler<ValidateSubjectAuthenticationCommand>,
+                DefaultValidateLocalAccountSubjectHandler
             >()
         );
 }

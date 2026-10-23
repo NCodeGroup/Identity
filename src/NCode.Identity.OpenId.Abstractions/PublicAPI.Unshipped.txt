@@ -440,6 +440,7 @@ NCode.Identity.OpenId.Contexts.IOpenIdContextFactory
 NCode.Identity.OpenId.Contexts.IOpenIdContextFactory.CreateForRequestAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Mediator.IMediator! mediator, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Contexts.OpenIdContext!>
 NCode.Identity.OpenId.Contexts.IOpenIdContextFactory.CreateForControlPlaneAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Mediator.IMediator! mediator, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Contexts.OpenIdContext!>
 NCode.Identity.OpenId.Contexts.IOpenIdContextFactory.CreateForTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, NCode.Mediator.IMediator! mediator, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Contexts.OpenIdContext!>
+NCode.Identity.OpenId.Contexts.IOpenIdContextFactory.CreateForBackgroundAsync(System.IServiceProvider! serviceProvider, string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Contexts.OpenIdContext!>
 NCode.Identity.OpenId.Contexts.IOpenIdContextFeature
 NCode.Identity.OpenId.Contexts.IOpenIdContextFeature.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 NCode.Identity.OpenId.Contexts.OpenIdContext
@@ -758,6 +759,8 @@ NCode.Identity.OpenId.Results.OpenIdResult<T>.OpenIdResult(T! response) -> void
 NCode.Identity.OpenId.Results.OpenIdResult<T>.Response.get -> T!
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider.GetJsonConverters(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.JsonConverter!>!
+NCode.Identity.OpenId.Servers.IMaterializedServerAccessor
+NCode.Identity.OpenId.Servers.IMaterializedServerAccessor.GetServerAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Servers.OpenIdServer!>
 NCode.Identity.OpenId.Servers.IOpenIdServerFactory
 NCode.Identity.OpenId.Servers.IOpenIdServerFactory.CreateAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Servers.OpenIdServer!>
 NCode.Identity.OpenId.Servers.IOpenIdServerProvider

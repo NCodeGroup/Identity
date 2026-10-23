@@ -613,7 +613,8 @@ rationale.
   service's periodic work, and log what it could not finish (`TenantUsageFlushService.StopAsync`,
   [ADR-0209](../../docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
 - 👁 **A hosted service that reads the store waits for the server to be materialized.** It starts from
-  `IMaterializedServerRegistry.GetServerAsync`, which completes at the replica's first request, never at host start: a
+  `IMaterializedServerAccessor.GetServerAsync`, public so a package other than the core waits the same way, which
+  completes at the replica's first request, never at host start: a
   host starts while its database may still be migrating, and the integration factory seeds the server's settings before
   the first request (`HostApplicationFactory.SeedServerSettingsAsync`)
   ([ADR-0219](../../docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
@@ -649,6 +650,19 @@ rationale.
   through `IGrantStore.RevokeWhereAsync` and a save of your own; a revocation does not depend on what its caller read,
   so the server retries it instead of answering `412`. See
   [ADR-0215](../../docs/adr/0215-a-revocation-wins-a-concurrency-race.md).
+- 👁 **Change a stored grant's payload with the read-modify-write
+  `IPersistedGrantService.UpdatePayloadAsync(…, update, …)`, never by writing a payload computed from an earlier
+  read.** The service applies `update` to the grant as stored under that read's concurrency token and again after a
+  lost race, so `update` decides from its argument and returns `null` when the stored grant does not need the change.
+  See [ADR-0222](../../docs/adr/0222-a-grants-payload-is-changed-by-a-read-modify-write.md).
+- 👁 **When a request and a background pass can both act on one record, the caller whose write claims it acts.**
+  `RevokeSessionOnceAsync` reports whether this call revoked the session grant, in the unit of work that also revokes
+  the grants issued under it, so a failure after the claim leaves no token active, and only that caller terminates an
+  ended session. See [ADR-0223](../../docs/adr/0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md).
+- 👁 **Background work that runs protocol machinery in a tenant creates its context with
+  `IOpenIdContextFactory.CreateForBackgroundAsync` in its own DI scope.** The context has no endpoint, connection or
+  user, and it is disposed before the scope. See
+  [ADR-0223](../../docs/adr/0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md).
 - 👁 **Read a stored grant's payload through `IPersistedGrantService` or `IPersistedPayloadSerializer`, never
   `PayloadJson.Deserialize<T>()`.** A grant's `PayloadJson` is a schema-versioned envelope (`$ver`, `$payload`), so
   deserializing it as the payload reads none of the payload's members and throws for a `required` one; a session

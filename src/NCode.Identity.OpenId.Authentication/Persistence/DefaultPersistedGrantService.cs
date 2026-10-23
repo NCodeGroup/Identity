@@ -251,7 +251,7 @@ internal class DefaultPersistedGrantService(
     }
 
     /// <inheritdoc />
-    public async ValueTask SetRevokedOnceAsync(
+    public async ValueTask<bool> SetRevokedOnceAsync(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         DateTimeOffset revokedWhen,
@@ -268,13 +268,13 @@ internal class DefaultPersistedGrantService(
 
             var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
             if (envelope is null)
-                return;
+                return false;
 
             if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
-                return;
+                return false;
 
             if (envelope.RevokedWhen is not null)
-                return;
+                return false;
 
             envelope.RevokedWhen = revokedWhen;
 
@@ -284,12 +284,68 @@ internal class DefaultPersistedGrantService(
 
                 await storeManager.SaveChangesAsync(cancellationToken);
 
-                return;
+                return true;
             }
             catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
             {
                 // A concurrent write changed the grant after it was read, such as a sliding-expiration update.
                 // A revocation must win, so it reads the grant again. See ADR-0215.
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> RevokeSessionOnceAsync(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    )
+    {
+        var grantType = grantId.GrantType;
+        var hashedKey = GetHashedKey(grantId);
+
+        for (var attempt = 1; ; attempt++)
+        {
+            await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+            var store = storeManager.GetStore<IGrantStore>();
+
+            var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
+            if (envelope is null)
+                return false;
+
+            if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
+                return false;
+
+            if (envelope.RevokedWhen is not null)
+                return false;
+
+            envelope.RevokedWhen = revokedWhen;
+
+            try
+            {
+                await store.UpdateAsync(envelope, cancellationToken);
+
+                if (envelope.SessionId is { Length: > 0 } sessionId)
+                {
+                    // The grants issued under the session are revoked in the unit of work that revokes the session,
+                    // so a failure after the claim leaves none of them active. See ADR-0223.
+                    await store.RevokeWhereAsync(
+                        new GrantFilter { SessionId = sessionId },
+                        revokedWhen,
+                        cancellationToken
+                    );
+                }
+
+                await storeManager.SaveChangesAsync(cancellationToken);
+
+                return true;
+            }
+            catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
+            {
+                // A concurrent write changed the session or a grant issued under it after it was read. The
+                // revocation reads them again, and a concurrent revocation of the session ends it with false.
+                // See ADR-0215.
             }
         }
     }
@@ -612,89 +668,74 @@ internal class DefaultPersistedGrantService(
     public async ValueTask<bool> UpdatePayloadAsync<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
-        TPayload payload,
+        Func<PersistedGrant<TPayload>, PersistedGrantUpdate<TPayload>?> update,
         CancellationToken cancellationToken
     )
     {
-        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
-        var openIdEnvironment = openIdContext.Environment;
-
         var grantType = grantId.GrantType;
         var hashedKey = GetHashedKey(grantId);
 
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IGrantStore>();
-
-        var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
-        if (envelope is null)
-            return false;
-
-        if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
-            return false;
-
-        if (GetStatus(utcNow, envelope) != PersistedGrantStatus.Active)
-            return false;
-
-        envelope.PayloadJson = PayloadSerializer.Serialize(
-            payload,
-            openIdEnvironment.JsonSerializerOptions
-        );
-
-        await store.UpdateAsync(envelope, cancellationToken);
-
-        await storeManager.SaveChangesAsync(cancellationToken);
-
-        return true;
-    }
-
-    /// <inheritdoc />
-    public async ValueTask<bool> UpdatePayloadAndExpirationAsync<TPayload>(
-        OpenIdContext openIdContext,
-        PersistedGrantId grantId,
-        TPayload payload,
-        DateTimeOffset expiresWhen,
-        CancellationToken cancellationToken
-    )
-    {
-        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
-
-        var grantType = grantId.GrantType;
-        var hashedKey = GetHashedKey(grantId);
-
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IGrantStore>();
-
-        var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
-        if (envelope is null)
-            return false;
-
-        if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
-            return false;
-
-        if (GetStatus(utcNow, envelope) != PersistedGrantStatus.Active)
-            return false;
-
-        var openIdEnvironment = openIdContext.Environment;
-
-        envelope.PayloadJson = PayloadSerializer.Serialize(
-            payload,
-            openIdEnvironment.JsonSerializerOptions
-        );
-        envelope.ExpiresWhen = expiresWhen;
-
-        try
+        for (var attempt = 1; ; attempt++)
         {
-            await store.UpdateAsync(envelope, cancellationToken);
+            var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
-            await storeManager.SaveChangesAsync(cancellationToken);
-        }
-        catch (StoreConcurrencyException)
-        {
-            // Another request changed the grant after it was read, such as a concurrent touch of the session, and its
-            // change stands. See ADR-0220.
-            return false;
-        }
+            await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+            var store = storeManager.GetStore<IGrantStore>();
 
-        return true;
+            var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
+            if (envelope is null)
+                return false;
+
+            if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
+                return false;
+
+            if (GetStatus(utcNow, envelope) != PersistedGrantStatus.Active)
+                return false;
+
+            var jsonSerializerOptions = openIdContext.Environment.JsonSerializerOptions;
+
+            var storedPayload = PayloadSerializer.Deserialize<TPayload>(
+                envelope.PayloadJson,
+                jsonSerializerOptions
+            );
+
+            var stored = new PersistedGrant<TPayload>
+            {
+                Status = PersistedGrantStatus.Active,
+                TenantId = envelope.TenantId,
+                ClientId = envelope.ClientId,
+                SubjectId = envelope.SubjectId,
+                SessionId = envelope.SessionId,
+                RefreshTokenLineageId = envelope.RefreshTokenLineageId,
+                ExpiresWhen = envelope.ExpiresWhen,
+                ConsumedWhen = envelope.ConsumedWhen,
+                Payload = storedPayload,
+            };
+
+            if (update(stored) is not { } change)
+                return false;
+
+            envelope.PayloadJson = PayloadSerializer.Serialize(
+                change.Payload,
+                jsonSerializerOptions
+            );
+
+            if (change.ExpiresWhen is { } expiresWhen)
+                envelope.ExpiresWhen = expiresWhen;
+
+            try
+            {
+                await store.UpdateAsync(envelope, cancellationToken);
+
+                await storeManager.SaveChangesAsync(cancellationToken);
+
+                return true;
+            }
+            catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
+            {
+                // Another request changed the grant after it was read, so the update is applied to the grant as it is
+                // stored now. See ADR-0222.
+            }
+        }
     }
 }

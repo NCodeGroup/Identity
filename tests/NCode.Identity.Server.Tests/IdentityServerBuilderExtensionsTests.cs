@@ -23,6 +23,7 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.Frontend;
@@ -212,6 +213,45 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
 
         Assert.Contains("'OpenId:GrantRetention'", exception.Message, StringComparison.Ordinal);
         Assert.Contains("'Interval'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenEndedSessionTerminationConfigured_BindsIt()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:EndedSessionTermination:Interval"] = "00:05:00",
+            }
+        );
+
+        var options = serviceProvider
+            .GetRequiredService<IOptions<EndedSessionTerminationOptions>>()
+            .Value;
+
+        Assert.Equal(TimeSpan.FromMinutes(5), options.Interval);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenEndedSessionTerminationHasUnknownKey_Throws()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:EndedSessionTermination:PruneInterval"] = "00:05:00",
+            }
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            serviceProvider.GetRequiredService<IOptions<EndedSessionTerminationOptions>>().Value
+        );
+
+        Assert.Contains(
+            "'OpenId:EndedSessionTermination'",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("'PruneInterval'", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

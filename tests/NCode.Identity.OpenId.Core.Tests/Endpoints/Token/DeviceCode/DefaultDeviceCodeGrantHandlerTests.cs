@@ -162,6 +162,44 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             .Verifiable();
     }
 
+    private Func<PersistedGrantUpdate<DeviceCodeGrant>?> SetupPollUpdate(
+        PersistedGrant<DeviceCodeGrant> stored
+    )
+    {
+        Func<PersistedGrant<DeviceCodeGrant>, PersistedGrantUpdate<DeviceCodeGrant>?>? captured =
+            null;
+
+        MockPersistedGrantService
+            .Setup(x =>
+                x.UpdatePayloadAsync<DeviceCodeGrant>(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<PersistedGrantId>(),
+                    It.IsAny<
+                        Func<
+                            PersistedGrant<DeviceCodeGrant>,
+                            PersistedGrantUpdate<DeviceCodeGrant>?
+                        >
+                    >(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (
+                    OpenIdContext _,
+                    PersistedGrantId _,
+                    Func<
+                        PersistedGrant<DeviceCodeGrant>,
+                        PersistedGrantUpdate<DeviceCodeGrant>?
+                    > update,
+                    CancellationToken _
+                ) => captured = update
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        return () => captured?.Invoke(stored);
+    }
+
     #endregion
 
     #region GrantTypes
@@ -242,17 +280,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             .Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
-        MockPersistedGrantService
-            .Setup(x =>
-                x.UpdatePayloadAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<PersistedGrantId>(),
-                    It.IsAny<DeviceCodeGrant>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(new ValueTask<bool>(true))
-            .Verifiable();
+        var update = SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Pending));
 
         var result = await Handler.HandleAsync(
             mockContext.Object,
@@ -264,6 +292,34 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
 
         Assert.Same(mockError.Object, result);
         Assert.Equal(OpenIdConstants.ErrorCodes.AuthorizationPending, CapturedErrorCode);
+        Assert.Equal(UtcNow, update()?.Payload.LastPolledWhen);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheRequestIsApprovedBeforeThePollIsRecorded_KeepsTheApproval()
+    {
+        var (mockContext, mockClient, mockSettings, mockTokenRequest, mockError) = CreateScaffold();
+        SetupLookup(CreateGrant(DeviceAuthorizationStatus.Pending));
+
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.DeviceCodePollingInterval))
+            .Returns(TimeSpan.FromSeconds(5))
+            .Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+
+        var update = SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Approved));
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+        Assert.Equal(OpenIdConstants.ErrorCodes.AuthorizationPending, CapturedErrorCode);
+        Assert.Null(update());
     }
 
     [Fact]
@@ -278,17 +334,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
             .Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
-        MockPersistedGrantService
-            .Setup(x =>
-                x.UpdatePayloadAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<PersistedGrantId>(),
-                    It.IsAny<DeviceCodeGrant>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(new ValueTask<bool>(true))
-            .Verifiable();
+        SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Pending));
 
         var result = await Handler.HandleAsync(
             mockContext.Object,

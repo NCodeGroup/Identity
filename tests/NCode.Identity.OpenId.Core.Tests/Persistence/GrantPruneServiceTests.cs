@@ -44,7 +44,6 @@ public sealed class GrantPruneServiceTests : IDisposable
         MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockGrantStore = MockRepository.Create<IGrantStore>();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         Service = new GrantPruneService(
             MockStoreManagerFactory.Object,
             Options.Create(new GrantRetentionOptions()),
@@ -61,6 +60,7 @@ public sealed class GrantPruneServiceTests : IDisposable
 
     private void SetupStores()
     {
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         MockStoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MockStoreManager.Object)
@@ -83,6 +83,7 @@ public sealed class GrantPruneServiceTests : IDisposable
             .Setup(x =>
                 x.RemoveEndedBeforeAsync(
                     Now - TimeSpan.FromDays(14),
+                    GrantPruneService.GrantTypesEndedByRevocation,
                     GrantPruneService.BatchSize,
                     cancellationToken
                 )
@@ -106,6 +107,7 @@ public sealed class GrantPruneServiceTests : IDisposable
             .SetupSequence(x =>
                 x.RemoveEndedBeforeAsync(
                     Now - TimeSpan.FromDays(14),
+                    GrantPruneService.GrantTypesEndedByRevocation,
                     GrantPruneService.BatchSize,
                     cancellationToken
                 )
@@ -129,6 +131,7 @@ public sealed class GrantPruneServiceTests : IDisposable
             .Setup(x =>
                 x.RemoveEndedBeforeAsync(
                     Now - TimeSpan.FromDays(14),
+                    GrantPruneService.GrantTypesEndedByRevocation,
                     GrantPruneService.BatchSize,
                     cancellationToken
                 )
@@ -152,6 +155,7 @@ public sealed class GrantPruneServiceTests : IDisposable
             .Setup(x =>
                 x.RemoveEndedBeforeAsync(
                     Now - TimeSpan.FromDays(14),
+                    GrantPruneService.GrantTypesEndedByRevocation,
                     GrantPruneService.BatchSize,
                     cancellationToken
                 )
@@ -165,6 +169,19 @@ public sealed class GrantPruneServiceTests : IDisposable
 
         await Service.PruneAsync(cancellationToken);
         await Service.PruneAsync(cancellationToken);
+    }
+
+    #endregion
+
+    #region GrantTypesEndedByRevocation Property Tests
+
+    [Fact]
+    public void GrantTypesEndedByRevocation_Always_IsTheSessionGrantType()
+    {
+        Assert.Equal<string>(
+            [OpenIdConstants.PersistedGrantTypes.Session],
+            GrantPruneService.GrantTypesEndedByRevocation
+        );
     }
 
     #endregion

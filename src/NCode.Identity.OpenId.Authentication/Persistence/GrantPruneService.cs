@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Frozen;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -42,6 +43,17 @@ internal sealed class GrantPruneService(
     /// The number of grants removed in one unit of work.
     /// </summary>
     internal const int BatchSize = 256;
+
+    /// <summary>
+    /// Gets the types of the grants that end only when they are revoked, so an expired grant of such a type is kept
+    /// until it is revoked.
+    /// </summary>
+    // See ADR-0223.
+    internal static FrozenSet<string> GrantTypesEndedByRevocation { get; } =
+        FrozenSet.ToFrozenSet(
+            [OpenIdConstants.PersistedGrantTypes.Session],
+            StringComparer.Ordinal
+        );
 
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
@@ -100,7 +112,12 @@ internal sealed class GrantPruneService(
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IGrantStore>();
-        var removed = await store.RemoveEndedBeforeAsync(endedBefore, BatchSize, cancellationToken);
+        var removed = await store.RemoveEndedBeforeAsync(
+            endedBefore,
+            GrantTypesEndedByRevocation,
+            BatchSize,
+            cancellationToken
+        );
 
         try
         {

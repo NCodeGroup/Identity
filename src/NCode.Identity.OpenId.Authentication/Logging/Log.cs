@@ -490,6 +490,34 @@ internal static partial class Log
     internal static partial void GrantPruneFailed(this ILogger logger, Exception exception);
 
     [LoggerMessage(
+        EventId = EventIds.EndedSessionTerminationFailed,
+        Level = LogLevel.Warning,
+        Message = "The sessions that ended while unused could not be terminated; the termination is retried at the next pass."
+    )]
+    internal static partial void EndedSessionTerminationFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.EndedSessionTerminationFailedForTenant,
+        Level = LogLevel.Warning,
+        Message = "The sessions of tenant {TenantId} that ended while unused could not all be terminated; a session whose grants were not revoked is terminated at the next pass."
+    )]
+    internal static partial void EndedSessionTerminationFailedForTenant(
+        this ILogger logger,
+        string tenantId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.EndedSessionsTerminated,
+        Level = LogLevel.Information,
+        Message = "{Count} sessions that ended while unused were terminated."
+    )]
+    internal static partial void EndedSessionsTerminated(this ILogger logger, int count);
+
+    [LoggerMessage(
         EventId = EventIds.IncoherentClientReported,
         Level = LogLevel.Warning,
         Message = "The client '{ClientId}' of the tenant '{TenantId}' is incoherent with the server's settings and fails at its next request: {Violations}"

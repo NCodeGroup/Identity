@@ -1,6 +1,8 @@
 # 219. Server settings converge on every replica through one reconciliation
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): background work in another
+  package waits for the server through `IMaterializedServerAccessor`)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -39,7 +41,9 @@ below them. Three kinds of change move them: a management write to the document,
      settings come from a data source that polls on its interval and refreshes on demand, one refresh at a time.
    - The server provider registers the server it materializes with `IMaterializedServerRegistry`, a singleton without
      dependencies, so a handler or a background service reaches the server without depending on the services that
-     build it.
+     build it. The registry is reachable from other packages as the public `IMaterializedServerAccessor`, whose
+     `GetServerAsync` waits until the replica materializes its server
+     ([ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)).
 2. **A replica that may have missed a message drops what the message would have invalidated.**
    `IReplicaBroadcastHandler.HandleMissedMessagesAsync` is called when messages on the handler's channel may not have
    reached this replica. The Valkey subscriber calls it for a channel's handlers once the channel is subscribed, and

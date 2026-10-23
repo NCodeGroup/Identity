@@ -169,13 +169,10 @@ internal class DefaultCibaGrantHandler(
         var tooFast =
             payload.LastPolledWhen is { } lastPolledWhen && utcNow - lastPolledWhen < interval;
 
-        await PersistedGrantService.UpdatePayloadAsync(
+        await PersistedGrantService.UpdatePayloadAsync<CibaGrant>(
             openIdContext,
             grantId,
-            payload with
-            {
-                LastPolledWhen = utcNow,
-            },
+            stored => RecordPoll(stored, utcNow),
             cancellationToken
         );
 
@@ -190,6 +187,21 @@ internal class DefaultCibaGrantHandler(
                 OpenIdConstants.ErrorCodes.AuthorizationPending,
                 "The end user has not yet completed the backchannel authentication request."
             );
+    }
+
+    private static PersistedGrantUpdate<CibaGrant>? RecordPoll(
+        PersistedGrant<CibaGrant> stored,
+        DateTimeOffset utcNow
+    )
+    {
+        // An approval that lands between this poll's read and its write stands. See ADR-0222.
+        if (stored.Payload.Status != DeviceAuthorizationStatus.Pending)
+            return null;
+
+        return new PersistedGrantUpdate<CibaGrant>
+        {
+            Payload = stored.Payload with { LastPolledWhen = utcNow },
+        };
     }
 
     private async ValueTask<IOpenIdResponse> HandleApprovedAsync(

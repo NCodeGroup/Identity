@@ -148,7 +148,7 @@ public class DefaultRevokeTokenHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
         MockAuditEventRecorder
             .Setup(x =>

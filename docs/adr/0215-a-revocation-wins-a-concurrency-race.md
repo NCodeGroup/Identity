@@ -1,6 +1,8 @@
 # 215. A revocation wins a concurrency race
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): `SetRevokedOnceAsync` reports
+  whether it revoked the grant)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -44,9 +46,13 @@ a race.**
      `SubjectId`;
    - the management bulk revocation, by its subject, client, and session filter;
    - the management revocation of a single grant.
-3. **A revocation of one grant retries the same way.** `SetRevokedOnceAsync` keeps its name and its signature. The
-   revocation endpoint calls it for a refresh token that names no lineage, and the device verification endpoint calls
-   it for the user code.
+3. **A revocation of one grant retries the same way.** `SetRevokedOnceAsync` reports whether this call revoked the
+   grant: it returns `false` when the grant is unknown, belongs to another tenant, or is already revoked, also by a
+   concurrent request. The claim of an ended session is `RevokeSessionOnceAsync`, which revokes the grants issued
+   under the session in the same unit of work
+   ([ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)). The revocation endpoint calls
+   `SetRevokedOnceAsync` for a refresh token that names no lineage, and the device verification endpoint calls it for
+   the user code.
 4. **A filter selects one grant by its public identifier.** `GrantFilter.GrantId`, the opaque public identifier that
    the store matches on `NormalizedGrantId`, is part of `GrantFilter.IsEmpty`.
 5. **The management revocation of a single grant audits what it revoked.** The endpoint reads the grant, for the `404`

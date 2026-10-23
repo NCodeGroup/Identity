@@ -69,10 +69,22 @@ internal sealed class DefaultCibaRequestService(
             authReqId
         );
 
-        var updated = await PersistedGrantService.UpdatePayloadAsync(
+        // Only the call that decides a pending request delivers, so a concurrent approval issues no second set of
+        // tokens. See ADR-0222.
+        var updated = await PersistedGrantService.UpdatePayloadAsync<CibaGrant>(
             openIdContext,
             grantId,
-            payload,
+            stored =>
+                stored.Payload.Status == DeviceAuthorizationStatus.Pending
+                    ? new PersistedGrantUpdate<CibaGrant>
+                    {
+                        Payload = stored.Payload with
+                        {
+                            Status = DeviceAuthorizationStatus.Approved,
+                            SubjectAuthentication = subjectAuthentication,
+                        },
+                    }
+                    : null,
             cancellationToken
         );
 
@@ -174,13 +186,16 @@ internal sealed class DefaultCibaRequestService(
             authReqId
         );
 
-        return await PersistedGrantService.UpdatePayloadAsync(
+        return await PersistedGrantService.UpdatePayloadAsync<CibaGrant>(
             openIdContext,
             grantId,
-            pendingOrNull.Value with
-            {
-                Status = DeviceAuthorizationStatus.Denied,
-            },
+            stored =>
+                stored.Payload.Status == DeviceAuthorizationStatus.Pending
+                    ? new PersistedGrantUpdate<CibaGrant>
+                    {
+                        Payload = stored.Payload with { Status = DeviceAuthorizationStatus.Denied },
+                    }
+                    : null,
             cancellationToken
         );
     }

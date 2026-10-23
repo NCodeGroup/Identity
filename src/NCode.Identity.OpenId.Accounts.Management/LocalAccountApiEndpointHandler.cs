@@ -21,12 +21,15 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Buffers;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Management.Contracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -34,6 +37,7 @@ using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 
@@ -63,14 +67,17 @@ PATCH  api/tenants/{tenantId}/local-accounts/{localAccountId}/metadata
 /// Provides the management endpoints for local accounts. Local accounts are end-user subjects, not ownable resources,
 /// so every operation authorizes against the owning tenant scope (there is no per-account owner model). The host must
 /// register an <see cref="ILocalAccountStore"/> implementation (the Entity Framework reference or the ASP.NET Core
-/// Identity adapter) that these endpoints operate over.
+/// Identity adapter) that these endpoints operate over. Deleting or disabling an account ends every session of its
+/// principal.
 /// </summary>
 internal class LocalAccountApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     ICryptoService cryptoService,
     ILocalAccountValidator localAccountValidator,
-    IManagementAuditRecorder managementAuditRecorder
+    IManagementAuditRecorder managementAuditRecorder,
+    ISessionService sessionService,
+    IOpenIdContextFactory openIdContextFactory
 ) : ManagementApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -83,6 +90,8 @@ internal class LocalAccountApiEndpointHandler(
 
     private ILocalAccountValidator LocalAccountValidator { get; } = localAccountValidator;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
+    private ISessionService SessionService { get; } = sessionService;
+    private IOpenIdContextFactory OpenIdContextFactory { get; } = openIdContextFactory;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -374,8 +383,6 @@ internal class LocalAccountApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        await accountStore.RemoveAsync(localAccountId, cancellationToken);
-
         // Cascade the account's self-issued connection, and the owning principal when this was its only identity.
         var identityStore = storeManager.GetStore<IFederatedIdentityStore>();
         var identity = await identityStore.GetByIssuerSubjectAsync(
@@ -383,6 +390,20 @@ internal class LocalAccountApiEndpointHandler(
             localAccountId,
             cancellationToken
         );
+        if (identity is not null)
+        {
+            // The principal's sessions end before the deletion commits, while they can still be listed to notify their relying parties. See ADR-0224.
+            await TerminateSessionsAsync(
+                httpContext,
+                tenantId,
+                identity.PrincipalId,
+                SessionTerminationReasons.AccountDeleted,
+                cancellationToken
+            );
+        }
+
+        await accountStore.RemoveAsync(localAccountId, cancellationToken);
+
         if (identity is not null)
         {
             await identityStore.RemoveAsync(identity.FederatedIdentityId, cancellationToken);
@@ -455,6 +476,28 @@ internal class LocalAccountApiEndpointHandler(
         account.IsEnabled = isEnabled;
         await store.UpdateAsync(account, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        if (!isEnabled)
+        {
+            var identity = await storeManager
+                .GetStore<IFederatedIdentityStore>()
+                .GetByIssuerSubjectAsync(
+                    AccountConstants.SelfIssuer,
+                    localAccountId,
+                    cancellationToken
+                );
+            if (identity is not null)
+            {
+                // A disabled account's sessions end, which revokes every grant of its principal and notifies its relying parties. See ADR-0224.
+                await TerminateSessionsAsync(
+                    httpContext,
+                    tenantId,
+                    identity.PrincipalId,
+                    SessionTerminationReasons.AccountDisabled,
+                    cancellationToken
+                );
+            }
+        }
 
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(
             httpContext,
@@ -705,6 +748,27 @@ internal class LocalAccountApiEndpointHandler(
         return await storeManager
             .GetStore<IFederatedPrincipalStore>()
             .GetOrDefaultAsync(identity.PrincipalId, cancellationToken);
+    }
+
+    // Materializes a context for the addressed tenant so session termination runs the seam (grant revocation,
+    // back-channel logout, auditing) in that tenant's security domain rather than the request's resolved tenant.
+    private async ValueTask TerminateSessionsAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string principalId,
+        string reason,
+        CancellationToken cancellationToken
+    )
+    {
+        var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
+        await using var tenantContext = await OpenIdContextFactory.CreateForTenantAsync(
+            httpContext,
+            tenantId,
+            mediator,
+            cancellationToken
+        );
+
+        await SessionService.RevokeAllAsync(tenantContext, principalId, reason, cancellationToken);
     }
 
     private async ValueTask<bool> AuthorizeTenantAsync(

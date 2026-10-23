@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R92`     | `R91`      |
+| `R` — Review findings                 | `R96`     | `R95`      |
 
 ---
 
@@ -430,6 +430,15 @@ _None remaining._
   deleted or disabled, and refuse a token request for a subject that is gone or disabled. Touch points:
   `LocalAccountApiEndpointHandler` (`DeleteLocalAccountAsync`, `SetEnabledAsync`), `ISessionService`,
   `ValidateSubjectAuthenticationCommand`.
+- **`R92` — Validate the subject at the device-code, CIBA and token-exchange grants.** These grants issue tokens for
+  the subject that their approval or `subject_token` names without sending `ValidateSubjectAuthenticationCommand`, so a
+  disabled local account is not refused there (ADR-0224). The device verification endpoint approves with an
+  authentication cookie whose server-side session it does not validate. Validate the subject at each grant and the
+  session at the endpoint. Touch points: `DefaultDeviceCodeGrantHandler`, `DefaultCibaGrantHandler`,
+  `DefaultValidateTokenExchangeGrantHandler`, `DefaultDeviceVerificationEndpointHandler`.
+- **`R94` — End a local account's sessions when an administrator resets its password.** The reset rotates a security
+  stamp that nothing reads, so the sessions and refresh tokens of a compromised account keep working (OWASP ASVS
+  V3.3.3). Touch points: `LocalAccountApiEndpointHandler.ResetPasswordAsync`, `SessionTerminationReasons`.
 
 ### P3
 
@@ -500,6 +509,12 @@ _None remaining._
   session is terminated. Apply the change to the payload that the service read (a read-modify-write inside the service,
   retried on `StoreConcurrencyException`), or pass the concurrency token that the caller read. Touch points:
   `DefaultSessionService`, `IPersistedGrantService`, `DefaultPersistedGrantService`.
+- **`R93` — Let an administrator block any end user.** Only a local account has a status, so a principal whose
+  connections are all external cannot be blocked (ADR-0224); Auth0 blocks a user whatever its connections. Touch
+  points: `PersistedFederatedPrincipal`, `DefaultValidateLocalAccountSubjectHandler`, the management API.
+- **`R95` — Terminate a session at most once on every termination path.** `RevokeAsync`, `RevokeAllExceptAsync` and the
+  concurrent-session eviction dispatch `OnSessionTerminatedCommand` without the claim of ADR-0223, so a session that two
+  paths terminate at once notifies its relying parties twice. Touch point: `DefaultSessionService`.
 
 ### Refactor
 

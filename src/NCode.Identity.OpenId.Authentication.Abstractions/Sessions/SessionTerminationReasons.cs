@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 /// </summary>
 /// <remarks>
 /// The reasons are an open vocabulary (ADR-0150): a consumer or an extension that ends a session for its own cause, such
-/// as a risk signal, a password change, or a disabled account, passes its own name. Names are compared ordinally.
+/// as a risk signal or a password change, passes its own name. Names are compared ordinally.
 /// </remarks>
 [PublicAPI]
 public static class SessionTerminationReasons
@@ -46,6 +46,16 @@ public static class SessionTerminationReasons
     /// The session reached its absolute lifetime and expired.
     /// </summary>
     public const string AbsoluteExpiry = "absolute_expiry";
+
+    /// <summary>
+    /// The end-user's account was deleted, so every session of its principal was terminated.
+    /// </summary>
+    public const string AccountDeleted = "account_deleted";
+
+    /// <summary>
+    /// The end-user's account was disabled, so every session of its principal was terminated.
+    /// </summary>
+    public const string AccountDisabled = "account_disabled";
 
     /// <summary>
     /// The session was evicted to keep the subject within the concurrent-session limit.

@@ -57,6 +57,11 @@ internal static class DefaultRegistration
                 DefaultMaterializedServerRegistry
             >();
 
+            // Background work in another package waits for the server through the public accessor (ADR-0223).
+            serviceCollection.TryAddSingleton<IMaterializedServerAccessor>(serviceProvider =>
+                serviceProvider.GetRequiredService<IMaterializedServerRegistry>()
+            );
+
             // A committed server settings change is applied on this replica before the write returns and then announced
             // to every replica (ADR-0219).
             serviceCollection.TryAddEnumerable(

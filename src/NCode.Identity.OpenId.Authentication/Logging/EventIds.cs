@@ -85,4 +85,7 @@ internal static class EventIds
     public const int ClientCoherenceCheckFailed = Base + 54;
     public const int ClientCoherenceChecked = Base + 55;
     public const int SessionAbsoluteExpired = Base + 56;
+    public const int EndedSessionTerminationFailed = Base + 57;
+    public const int EndedSessionTerminationFailedForTenant = Base + 58;
+    public const int EndedSessionsTerminated = Base + 59;
 }

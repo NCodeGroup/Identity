@@ -229,7 +229,7 @@ internal class DefaultSessionService(
     }
 
     /// <inheritdoc />
-    public async ValueTask<bool> AddClientAsync(
+    public ValueTask<bool> AddClientAsync(
         OpenIdContext openIdContext,
         string sessionId,
         string clientId,
@@ -238,28 +238,29 @@ internal class DefaultSessionService(
     {
         var grantId = CreateGrantId(openIdContext, sessionId);
 
-        var grant = await PersistedGrantService.GetOrDefaultAsync<SessionGrant>(
+        // Added to the session as stored, so a client a concurrent request added stays. See ADR-0222.
+        return PersistedGrantService.UpdatePayloadAsync<SessionGrant>(
             openIdContext,
             grantId,
-            cancellationToken
-        );
-
-        if (grant is not { Status: PersistedGrantStatus.Active } active)
-            return false;
-
-        var payload = active.Payload;
-        if (payload.ClientIds.Contains(clientId, StringComparer.Ordinal))
-            return true;
-
-        var updatedPayload = payload with { ClientIds = [.. payload.ClientIds, clientId] };
-
-        return await PersistedGrantService.UpdatePayloadAsync(
-            openIdContext,
-            grantId,
-            updatedPayload,
+            stored => AddClient(stored, clientId),
             cancellationToken
         );
     }
+
+    // The change that lists the client in the session as stored, or null when the session already lists it.
+    private static PersistedGrantUpdate<SessionGrant>? AddClient(
+        PersistedGrant<SessionGrant> stored,
+        string clientId
+    ) =>
+        stored.Payload.ClientIds.Contains(clientId, StringComparer.Ordinal)
+            ? null
+            : new PersistedGrantUpdate<SessionGrant>
+            {
+                Payload = stored.Payload with
+                {
+                    ClientIds = [.. stored.Payload.ClientIds, clientId],
+                },
+            };
 
     /// <inheritdoc />
     public async ValueTask<bool> ValidateAndTouchAsync(
@@ -287,25 +288,15 @@ internal class DefaultSessionService(
         // request has no valid session. See ADR-0220.
         if (GetEndReason(payload, session.ExpiresWhen, now) is { } endReason)
         {
-            await TerminateAsync(
+            await TerminateEndedAsync(
                 openIdContext,
-                endReason,
-                session.SubjectId,
+                grantId,
                 sessionId,
-                payload.ClientIds,
+                session,
+                endReason,
+                now,
                 cancellationToken
             );
-
-            if (
-                string.Equals(
-                    endReason,
-                    SessionTerminationReasons.AbsoluteExpiry,
-                    StringComparison.Ordinal
-                )
-            )
-                Logger.SessionAbsoluteExpired(sessionId);
-            else
-                Logger.SessionIdleExpired(sessionId);
 
             return false;
         }
@@ -314,28 +305,134 @@ internal class DefaultSessionService(
         // every one.
         if (
             now - payload.LastActivityWhen >= TouchGranularity
-            && GetAbsoluteEnd(payload, session.ExpiresWhen) is { } absoluteEnd
+            && GetAbsoluteEnd(payload, session.ExpiresWhen) is not null
         )
         {
-            var touched = payload with
+            try
             {
-                LastActivityWhen = now,
-                AbsoluteExpiresWhen = absoluteEnd,
-            };
-
-            // A touch that finds the grant changed since the service read it is dropped, and the other change stands.
-            // The touch writes the payload read above, so a write between the two reads is overwritten (backlog R91).
-            // See ADR-0220.
-            await PersistedGrantService.UpdatePayloadAndExpirationAsync(
-                openIdContext,
-                grantId,
-                touched,
-                GetEnd(touched, absoluteEnd),
-                cancellationToken
-            );
+                await PersistedGrantService.UpdatePayloadAsync<SessionGrant>(
+                    openIdContext,
+                    grantId,
+                    stored => Touch(stored, now),
+                    cancellationToken
+                );
+            }
+            catch (StoreConcurrencyException)
+            {
+                // Every attempt lost to another write of the session, each of which records its activity, so the
+                // touch is dropped. See ADR-0222.
+            }
         }
 
         return true;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> TerminateIfEndedAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        CancellationToken cancellationToken
+    )
+    {
+        var grantId = CreateGrantId(openIdContext, sessionId);
+
+        var grant = await PersistedGrantService.GetOrDefaultAsync<SessionGrant>(
+            openIdContext,
+            grantId,
+            cancellationToken
+        );
+
+        if (grant is not { } session || session.Status == PersistedGrantStatus.Revoked)
+            return false;
+
+        var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+
+        if (GetEndReason(session.Payload, session.ExpiresWhen, now) is not { } endReason)
+            return false;
+
+        return await TerminateEndedAsync(
+            openIdContext,
+            grantId,
+            sessionId,
+            session,
+            endReason,
+            now,
+            cancellationToken
+        );
+    }
+
+    // Terminates the session that has ended through the termination seam and logs why it ended. Returns false without
+    // terminating it when another caller revoked its grant first.
+    private async ValueTask<bool> TerminateEndedAsync(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        string sessionId,
+        PersistedGrant<SessionGrant> session,
+        string endReason,
+        DateTimeOffset now,
+        CancellationToken cancellationToken
+    )
+    {
+        // Of the requests and background passes that find one ended session, only the one that revokes its grant
+        // terminates it, so its relying parties are notified once. The same unit of work revokes the grants issued
+        // under the session, so a failure of the dispatch that follows leaves no token of the session active.
+        // See ADR-0223.
+        if (
+            !await PersistedGrantService.RevokeSessionOnceAsync(
+                openIdContext,
+                grantId,
+                now,
+                cancellationToken
+            )
+        )
+            return false;
+
+        await TerminateAsync(
+            openIdContext,
+            endReason,
+            session.SubjectId,
+            sessionId,
+            session.Payload.ClientIds,
+            cancellationToken
+        );
+
+        if (
+            string.Equals(
+                endReason,
+                SessionTerminationReasons.AbsoluteExpiry,
+                StringComparison.Ordinal
+            )
+        )
+            Logger.SessionAbsoluteExpired(sessionId);
+        else
+            Logger.SessionIdleExpired(sessionId);
+
+        return true;
+    }
+
+    // The change that renews the sliding window of the session as stored, or null when another request touched it
+    // within the granularity or it has ended.
+    private static PersistedGrantUpdate<SessionGrant>? Touch(
+        PersistedGrant<SessionGrant> stored,
+        DateTimeOffset now
+    )
+    {
+        var payload = stored.Payload;
+
+        if (
+            now - payload.LastActivityWhen < TouchGranularity
+            || GetAbsoluteEnd(payload, stored.ExpiresWhen) is not { } absoluteEnd
+            || GetEndReason(payload, stored.ExpiresWhen, now) is not null
+        )
+            return null;
+
+        var touched = payload with { LastActivityWhen = now, AbsoluteExpiresWhen = absoluteEnd };
+
+        return new PersistedGrantUpdate<SessionGrant>
+        {
+            Payload = touched,
+            ExpiresWhen = GetEnd(touched, absoluteEnd),
+        };
     }
 
     /// <inheritdoc />

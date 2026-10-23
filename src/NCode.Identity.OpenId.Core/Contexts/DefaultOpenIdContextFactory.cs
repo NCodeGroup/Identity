@@ -18,6 +18,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Servers;
@@ -127,7 +128,7 @@ internal class DefaultOpenIdContextFactory(
     }
 
     /// <inheritdoc />
-    public async ValueTask<OpenIdContext> CreateForTenantAsync(
+    public virtual async ValueTask<OpenIdContext> CreateForTenantAsync(
         HttpContext httpContext,
         string tenantId,
         IMediator mediator,
@@ -161,6 +162,19 @@ internal class DefaultOpenIdContextFactory(
             tenantReference,
             propertyBag
         );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<OpenIdContext> CreateForBackgroundAsync(
+        IServiceProvider serviceProvider,
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        // See ADR-0223.
+        var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+        return await CreateForTenantAsync(httpContext, tenantId, mediator, cancellationToken);
     }
 
     /// <summary>

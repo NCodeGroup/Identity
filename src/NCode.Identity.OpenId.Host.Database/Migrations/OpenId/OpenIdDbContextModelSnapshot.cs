@@ -583,6 +583,8 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
                     b.HasIndex("TenantId", "SessionId");
 
+                    b.HasIndex("GrantType", "RevokedWhen", "ExpiresWhen");
+
                     b.ToTable("Grants", (string)null);
                 });
 

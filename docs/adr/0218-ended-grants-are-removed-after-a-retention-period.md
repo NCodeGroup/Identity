@@ -3,7 +3,9 @@
 - **Status:** Accepted (amended by
   [ADR-0220](0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md): every session grant ends;
   [ADR-0221](0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md): the options are
-  configured and validated when the host starts)
+  configured and validated when the host starts;
+  [ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): a session ends when it is
+  terminated)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -25,19 +27,25 @@ after the grant ended.
 supports.**
 
 1. **A grant ends when it expires or, if earlier, when it is revoked.** A grant that neither expires nor is revoked
-   never ends and is kept.
+   never ends and is kept. A grant of a type that ends only when it is revoked, an end-user session, ends when it is
+   revoked, whether or not it expired
+   ([ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)).
 2. **The store stages a bounded batch for removal.**
-   `IGrantStore.RemoveEndedBeforeAsync(endedBefore, limit, cancellationToken)` stages up to `limit` grants with
-   `ExpiresWhen < endedBefore` or `RevokedWhen < endedBefore`, ordered by `Id`, for removal when the unit of work is
-   saved, and returns the count. A `limit` below one throws `ArgumentOutOfRangeException`. The Entity Framework store
-   reads the rows and removes them through the change tracker, as `ITenantUsageStore.RemoveBeforeAsync` does
+   `IGrantStore.RemoveEndedBeforeAsync(endedBefore, grantTypesEndedByRevocation, limit, cancellationToken)` stages up
+   to `limit` grants for removal when the unit of work is saved, ordered by `Id`, and returns the count. A grant whose
+   type is in `grantTypesEndedByRevocation` is staged only when `RevokedWhen < endedBefore`; any other grant is staged
+   when `ExpiresWhen < endedBefore` or `RevokedWhen < endedBefore`. A `limit` below one throws
+   `ArgumentOutOfRangeException`. The Entity Framework store reads the rows and removes them through the change
+   tracker, as `ITenantUsageStore.RemoveBeforeAsync` does
    ([ADR-0213](0213-the-usage-ledger-is-pruned-in-bounded-batches.md)).
 3. **`GrantPruneService` prunes on a timer.** It is a hosted service that ticks every
    `GrantRetentionOptions.PruneInterval` on a `PeriodicTimer` and removes the grants that ended before the current time
-   minus `GrantRetentionOptions.Retention`, in units of work of 256 grants, repeating while a batch is full. A batch
-   whose save loses a race, which is another replica that removed rows of it, counts as a full batch, because it is
-   progress, and the next batch is read. Any other failure is logged (`GrantPruneFailed`, event 2052, Warning), and the
-   prune runs again at the next tick. Every replica runs the service, and concurrent prunes waste at most one batch.
+   minus `GrantRetentionOptions.Retention`, in units of work of 256 grants, repeating while a batch is full. It passes
+   the end-user session grant type as the grant type that ends by revocation, so a session that was not terminated is
+   kept. A batch whose save loses a race, which is another replica that removed rows of it, counts as a full batch,
+   because it is progress, and the next batch is read. Any other failure is logged (`GrantPruneFailed`, event 2052,
+   Warning), and the prune runs again at the next tick. Every replica runs the service, and concurrent prunes waste at
+   most one batch.
 4. **`GrantRetentionOptions` configures it.** The options type is `public sealed` with `Retention`, which defaults to 14
    days, and `PruneInterval`, which defaults to one hour. They are validated when the host starts: `Retention` is not
    negative, and `PruneInterval` is a period that a timer accepts. They are bound from `OpenId:GrantRetention`

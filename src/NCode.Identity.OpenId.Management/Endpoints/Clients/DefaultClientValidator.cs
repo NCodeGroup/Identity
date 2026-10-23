@@ -178,32 +178,12 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
         CancellationToken cancellationToken
     )
     {
-        var error = await AuthorizeAsync(
+        return await AuthorizeAsync(
             user,
             ResourceNode.For(client.TenantId, ResourceNodeTypes.Client, client.ClientId),
             Operations.Delete,
             "The caller is not authorized to delete this client.",
             "Authentication is required to delete this client."
         );
-        if (error is not null)
-        {
-            return error;
-        }
-
-        var clientStore = storeManager.GetStore<IClientStore>();
-        var hasDependents = await clientStore.HasDependentsAsync(
-            client.ClientId,
-            cancellationToken
-        );
-        if (hasDependents)
-        {
-            return new ManagementError
-            {
-                StatusCode = StatusCodes.Status409Conflict,
-                Detail = "The client cannot be deleted while it still has dependent secrets.",
-            };
-        }
-
-        return null;
     }
 }

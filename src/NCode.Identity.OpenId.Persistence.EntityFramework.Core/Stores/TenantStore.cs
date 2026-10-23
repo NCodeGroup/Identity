@@ -17,10 +17,12 @@
 #endregion
 
 using System.Linq.Expressions;
+using System.Reflection;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
+using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;
@@ -36,6 +38,18 @@ internal class TenantStore(
     OpenIdDbContext openIdDbContext
 ) : CoreBaseStoreWithResourceId<PersistedTenant, TenantEntity>, ITenantStore
 {
+    /// <summary>
+    /// Gets the generic method that removes the rows of one entity type that a tenant owns.
+    /// </summary>
+    private static MethodInfo RemoveOwnedRowsMethod { get; } =
+        typeof(TenantStore).GetMethod(
+            nameof(RemoveOwnedRowsAsync),
+            BindingFlags.Instance | BindingFlags.NonPublic
+        )
+        ?? throw new InvalidOperationException(
+            $"The '{nameof(RemoveOwnedRowsAsync)}' method could not be found."
+        );
+
     /// <inheritdoc />
     protected override IStoreProvider StoreProvider { get; } = storeProvider;
 
@@ -613,39 +627,7 @@ internal class TenantStore(
             );
         }
 
-        // A tenant's keys and the system resources its seed provisions are part of it (ADR-0169).
-        DbContext.TenantSecrets.RemoveRange(tenantEntity.Secrets);
-        DbContext.Secrets.RemoveRange(
-            tenantEntity.Secrets.Select(tenantSecret => tenantSecret.Secret)
-        );
-
-        var systemResourceServers = await DbContext
-            .ResourceServers.IgnoreQueryFilters()
-            .Include(resourceServer => resourceServer.Scopes)
-            .Include(resourceServer => resourceServer.Secrets)
-                .ThenInclude(resourceServerSecret => resourceServerSecret.Secret)
-            .Where(resourceServer =>
-                resourceServer.TenantId == tenantEntity.Id && resourceServer.IsSystem
-            )
-            .ToListAsync(cancellationToken);
-
-        foreach (var resourceServerEntity in systemResourceServers)
-        {
-            DbContext.Scopes.RemoveRange(resourceServerEntity.Scopes);
-            DbContext.ResourceServerSecrets.RemoveRange(resourceServerEntity.Secrets);
-            DbContext.Secrets.RemoveRange(
-                resourceServerEntity.Secrets.Select(resourceServerSecret =>
-                    resourceServerSecret.Secret
-                )
-            );
-            DbContext.ResourceServers.Remove(resourceServerEntity);
-        }
-
-        var roleAssignments = await DbContext
-            .RoleAssignments.IgnoreQueryFilters()
-            .Where(roleAssignment => roleAssignment.TenantId == tenantEntity.Id)
-            .ToListAsync(cancellationToken);
-        DbContext.RoleAssignments.RemoveRange(roleAssignments);
+        await RemoveTenantOwnedRowsAsync(tenantEntity.NormalizedTenantId, cancellationToken);
 
         DbContext.Tenants.Remove(tenantEntity);
 
@@ -671,6 +653,78 @@ internal class TenantStore(
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Removes every row that a tenant owns, together with the secrets that those rows reference. Every entity that a
+    /// tenant owns implements <see cref="ISupportTenantEntity"/>, including an entity that another package contributes
+    /// to the model, such as a local account, so it is erased with its tenant exactly as the tenant query filter scopes it.
+    /// </summary>
+    /// <param name="normalizedTenantId">The normalized identifier of the tenant whose rows are removed.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    // See ADR-0212.
+    private async ValueTask RemoveTenantOwnedRowsAsync(
+        string normalizedTenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var clrTypes = DbContext
+            .Model.GetEntityTypes()
+            .Select(entityType => entityType.ClrType)
+            .Where(clrType => typeof(ISupportTenantEntity).IsAssignableFrom(clrType))
+            .Distinct()
+            .ToList();
+
+        var secretIds = new List<long>();
+        foreach (var clrType in clrTypes)
+        {
+            if (
+                RemoveOwnedRowsMethod
+                    .MakeGenericMethod(clrType)
+                    .Invoke(this, [normalizedTenantId, cancellationToken])
+                is not ValueTask<IReadOnlyList<ISupportTenantEntity>> removal
+            )
+            {
+                throw new InvalidOperationException(
+                    $"The '{nameof(RemoveOwnedRowsAsync)}' method did not return the removed rows of '{clrType}'."
+                );
+            }
+
+            var rows = await removal;
+            secretIds.AddRange(rows.OfType<ISupportSecretEntity>().Select(row => row.SecretId));
+        }
+
+        if (secretIds.Count == 0)
+        {
+            return;
+        }
+
+        var secrets = await DbContext
+            .Secrets.Where(secret => secretIds.Contains(secret.Id))
+            .ToListAsync(cancellationToken);
+        DbContext.Secrets.RemoveRange(secrets);
+    }
+
+    /// <summary>
+    /// Removes the rows of one entity type that a tenant owns, and returns the rows that were removed.
+    /// </summary>
+    /// <typeparam name="TEntity">The type of the tenant-owned entity.</typeparam>
+    /// <param name="normalizedTenantId">The normalized identifier of the tenant whose rows are removed.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the rows that were removed.</returns>
+    private async ValueTask<IReadOnlyList<ISupportTenantEntity>> RemoveOwnedRowsAsync<TEntity>(
+        string normalizedTenantId,
+        CancellationToken cancellationToken
+    )
+        where TEntity : class, ISupportTenantEntity
+    {
+        var rows = await DbContext
+            .Set<TEntity>()
+            .IgnoreQueryFilters()
+            .Where(entity => entity.NormalizedTenantId == normalizedTenantId)
+            .ToListAsync(cancellationToken);
+        DbContext.Set<TEntity>().RemoveRange(rows);
+        return rows;
     }
 
     /// <summary>
@@ -749,8 +803,8 @@ internal class TenantStore(
     }
 
     /// <summary>
-    /// Determines whether a tenant has clients or resource servers that block its deletion. Its secrets, its system
-    /// resource servers, and its role assignments are part of the tenant and are removed with it (ADR-0169).
+    /// Determines whether a tenant has clients or resource servers that block its deletion. Everything else the tenant
+    /// owns, its end users' data included, is removed with it.
     /// </summary>
     private async ValueTask<bool> HasDependentsAsync(
         TenantEntity tenantEntity,

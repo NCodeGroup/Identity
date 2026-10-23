@@ -559,39 +559,35 @@ internal class ClientStore(
             return false;
         }
 
-        // Evaluate the guard against the change tracker, not a fresh DB query: a caller that removed the client's
-        // secrets earlier in this same unit of work (e.g. DCR deregistration) has them marked Deleted but not yet
-        // saved, so a database query would still see them and wrongly block the removal.
-        var hasSecrets = clientEntity.Secrets.Any(clientSecret =>
-            DbContext.Entry(clientSecret).State != EntityState.Deleted
+        // Everything that exists for the client is removed with it: its secrets, its grants to resource servers, its consents, and the grants issued to it. See ADR-0212.
+        DbContext.ClientSecrets.RemoveRange(clientEntity.Secrets);
+        DbContext.Secrets.RemoveRange(
+            clientEntity.Secrets.Select(clientSecret => clientSecret.Secret)
         );
-        if (hasSecrets)
-        {
-            throw new InvalidOperationException(
-                $"The OpenId Client with ClientId='{clientId}' cannot be removed because it still has one or more secrets."
-            );
-        }
+
+        var clientKey = clientEntity.Id;
+
+        DbContext.ClientGrants.RemoveRange(
+            await DbContext
+                .ClientGrants.IgnoreQueryFilters()
+                .Where(entity => entity.ClientId == clientKey)
+                .ToListAsync(cancellationToken)
+        );
+        DbContext.Consents.RemoveRange(
+            await DbContext
+                .Consents.IgnoreQueryFilters()
+                .Where(entity => entity.ClientId == clientKey)
+                .ToListAsync(cancellationToken)
+        );
+        DbContext.Grants.RemoveRange(
+            await DbContext
+                .Grants.IgnoreQueryFilters()
+                .Where(entity => entity.ClientId == clientKey)
+                .ToListAsync(cancellationToken)
+        );
 
         DbContext.Clients.Remove(clientEntity);
 
         return true;
-    }
-
-    /// <inheritdoc />
-    public async ValueTask<bool> HasDependentsAsync(
-        string clientId,
-        CancellationToken cancellationToken
-    )
-    {
-        var clientEntity = await GetEntityOrDefaultAsync(clientId, cancellationToken);
-        if (clientEntity is null)
-        {
-            return false;
-        }
-
-        return await DbContext.ClientSecrets.AnyAsync(
-            clientSecret => clientSecret.ClientId == clientEntity.Id,
-            cancellationToken
-        );
     }
 }

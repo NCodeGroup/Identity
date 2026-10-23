@@ -467,9 +467,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                 cancellationToken
             ),
             var method when method == HttpMethods.Delete => await DeleteClientAsync(
-                httpContext,
                 clientId,
-                grantId,
                 cancellationToken
             ),
             _ => TypedResults.StatusCode(StatusCodes.Status405MethodNotAllowed),
@@ -653,14 +651,10 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     private async ValueTask<IResult> DeleteClientAsync(
-        HttpContext httpContext,
         string clientId,
-        PersistedGrantId registrationGrantId,
         CancellationToken cancellationToken
     )
     {
-        var openIdContext = httpContext.GetOpenIdContext();
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -668,25 +662,9 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (client is null)
             return TypedResults.NotFound();
 
-        // A client cannot be removed while it still owns secrets, so remove its dependents first.
-        var clientSecrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
-        if (clientSecrets is not null)
-        {
-            foreach (var secret in clientSecrets.Value)
-            {
-                await store.RemoveSecretAsync(clientId, secret.SecretId, cancellationToken);
-            }
-        }
-
+        // The store removes the client's keys and grants with it, its registration access token included. See ADR-0212.
         await store.RemoveAsync(clientId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
-
-        await PersistedGrantService.SetRevokedOnceAsync(
-            openIdContext,
-            registrationGrantId,
-            TimeProvider.GetUtcNow(),
-            cancellationToken
-        );
 
         return TypedResults.NoContent();
     }

@@ -105,6 +105,10 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             Payload = new RefreshTokenGrant("client-1", scopes, scopes, null, default),
         };
 
+    private static PersistedGrant<RefreshTokenGrant> CreateActiveGrantInLineage(
+        IReadOnlyList<string> scopes
+    ) => CreateActiveGrant(scopes) with { RefreshTokenLineageId = "lineage-1" };
+
     private (
         Mock<OpenIdContext> context,
         Mock<OpenIdClient> client,
@@ -160,6 +164,17 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             .Verifiable();
     }
 
+    private static void SetupValidation(Mock<IMediator> mockMediator) =>
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.IsAny<ValidateTokenGrantCommand<RefreshTokenGrant>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
     private void SetupTokenResponse(
         Mock<OpenIdContext> mockContext,
         Mock<OpenIdClient> mockClient,
@@ -171,15 +186,7 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             .Returns(CreateStrictMock<OpenIdEnvironment>().Object)
             .Verifiable();
 
-        mockMediator
-            .Setup(x =>
-                x.SendAsync(
-                    It.IsAny<ValidateTokenGrantCommand<RefreshTokenGrant>>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+        SetupValidation(mockMediator);
 
         MockTokenService
             .Setup(x =>
@@ -191,6 +198,43 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                 )
             )
             .Returns(new ValueTask<SecurityToken>(CreateSecurityToken("access-token-value")))
+            .Verifiable();
+    }
+
+    // The answer to a reuse: the replay audit and, under the default reuse policy, the revocation of the lineage.
+    private void SetupReuseAnswer(
+        Mock<OpenIdContext> mockContext,
+        Mock<OpenIdClient> mockClient,
+        Mock<IReadOnlySettingCollection> mockSettings
+    )
+    {
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenReusePolicy))
+            .Returns(OpenIdConstants.RefreshTokenReusePolicy.RevokeAll)
+            .Verifiable();
+
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordRefreshTokenReplayAsync(
+                    mockContext.Object,
+                    mockClient.Object,
+                    null,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeByRefreshTokenLineageAsync(
+                    mockContext.Object,
+                    "lineage-1",
+                    CreatedWhen,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<long>(2L))
             .Verifiable();
     }
 
@@ -470,6 +514,194 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
             .Verifiable();
 
         // The strict grant-service mock has no setup for lineage revocation: policy 'none' must not revoke the family.
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenRotationIsEnabled_ReturnsTheSuccessorRefreshToken()
+    {
+        var (mockContext, mockClient, mockMediator, mockTokenRequest, mockSettings, _) =
+            CreateScaffold();
+
+        SetupLookup(mockTokenRequest, CreateActiveGrantInLineage(["api", "offline_access"]));
+        SetupTokenResponse(mockContext, mockClient, mockMediator);
+
+        mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
+        mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
+        mockTokenRequest
+            .SetupGet(x => x.GrantType)
+            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Verifiable();
+
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenRotationEnabled))
+            .Returns(true)
+            .Verifiable();
+
+        MockTokenService
+            .Setup(x =>
+                x.RotateRefreshTokenAsync(
+                    mockContext.Object,
+                    mockClient.Object,
+                    CreateGrantId(),
+                    It.Is<CreateSecurityTokenRequest>(request =>
+                        request.RefreshTokenLineageId == "lineage-1"
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<SecurityToken?>(CreateSecurityToken("successor-refresh-token")))
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        var response = Assert.IsType<TokenResponse>(result);
+        Assert.Equal("successor-refresh-token", response.RefreshToken);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAConcurrentRequestRotatedTheTokenFirst_AnswersAsReuseAndRevokesTheLineage()
+    {
+        var (mockContext, mockClient, mockMediator, mockTokenRequest, mockSettings, mockError) =
+            CreateScaffold();
+
+        // Minting is not set up on the strict mocks: a lost spend must mint nothing.
+        SetupLookup(mockTokenRequest, CreateActiveGrantInLineage(["api", "offline_access"]));
+        SetupValidation(mockMediator);
+
+        mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
+        mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
+        mockTokenRequest
+            .SetupGet(x => x.GrantType)
+            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Verifiable();
+
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenRotationEnabled))
+            .Returns(true)
+            .Verifiable();
+
+        MockTokenService
+            .Setup(x =>
+                x.RotateRefreshTokenAsync(
+                    mockContext.Object,
+                    mockClient.Object,
+                    CreateGrantId(),
+                    It.IsAny<CreateSecurityTokenRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<SecurityToken?>((SecurityToken?)null))
+            .Verifiable();
+
+        SetupReuseAnswer(mockContext, mockClient, mockSettings);
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenRotationIsEnabledWithoutOfflineAccess_RevokesThePresentedToken()
+    {
+        var (mockContext, mockClient, mockMediator, mockTokenRequest, mockSettings, _) =
+            CreateScaffold();
+
+        SetupLookup(mockTokenRequest, CreateActiveGrant(["api"]));
+        SetupTokenResponse(mockContext, mockClient, mockMediator);
+
+        mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
+        mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
+        mockTokenRequest
+            .SetupGet(x => x.GrantType)
+            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Verifiable();
+
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenRotationEnabled))
+            .Returns(true)
+            .Verifiable();
+
+        MockPersistedGrantService
+            .Setup(x =>
+                x.TryRevokeOnceAsync(
+                    mockContext.Object,
+                    CreateGrantId(),
+                    CreatedWhen,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<bool>(true))
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        var response = Assert.IsType<TokenResponse>(result);
+        Assert.Null(response.RefreshToken);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheSpendWithoutASuccessorIsLost_AnswersAsReuse()
+    {
+        var (mockContext, mockClient, mockMediator, mockTokenRequest, mockSettings, mockError) =
+            CreateScaffold();
+
+        // Minting is not set up on the strict mocks: a lost spend must mint nothing.
+        SetupLookup(mockTokenRequest, CreateActiveGrantInLineage(["api"]));
+        SetupValidation(mockMediator);
+
+        mockTokenRequest.SetupGet(x => x.Scopes).Returns((List<string>?)null).Verifiable();
+        mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
+        mockTokenRequest
+            .SetupGet(x => x.GrantType)
+            .Returns(OpenIdConstants.GrantTypes.RefreshToken)
+            .Verifiable();
+
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RefreshTokenRotationEnabled))
+            .Returns(true)
+            .Verifiable();
+
+        MockPersistedGrantService
+            .Setup(x =>
+                x.TryRevokeOnceAsync(
+                    mockContext.Object,
+                    CreateGrantId(),
+                    CreatedWhen,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<bool>(false))
+            .Verifiable();
+
+        SetupReuseAnswer(mockContext, mockClient, mockSettings);
+
         var result = await Handler.HandleAsync(
             mockContext.Object,
             mockClient.Object,

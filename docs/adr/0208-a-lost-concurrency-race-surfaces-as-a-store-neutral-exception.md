@@ -1,6 +1,7 @@
 # 208. A lost concurrency race surfaces as a store-neutral exception
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0211](0211-a-rotated-refresh-token-is-spent-with-its-successor.md):
+  refresh-token rotation; [ADR-0214](0214-a-management-write-that-loses-a-race-is-answered-412.md): management writes)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -61,10 +62,10 @@ caller that wanted to handle the race would have to depend on the technology of 
   second spend. No request reaches its client as `500` for it.
 - A store that is not built on Entity Framework reports a lost race by throwing `StoreConcurrencyException`, and a
   caller handles it without a reference to the store technology.
-- A management write that loses a race still reaches its client as `500`, until the endpoints map the exception
-  (backlog `R70`).
-- Refresh-token rotation is not a single-use spend yet: it revokes the grant with `SetRevokedOnceAsync` and does not
-  consume it, so two concurrent refreshes of one token are not answered as a reuse (backlog `R69`).
+- A management write that loses a race is answered `412`
+  ([ADR-0214](0214-a-management-write-that-loses-a-race-is-answered-412.md)).
+- Refresh-token rotation spends the presented token with its successor in one unit of work, and a concurrent second
+  spend is answered as a reuse ([ADR-0211](0211-a-rotated-refresh-token-is-spent-with-its-successor.md)).
 - **Breaking:** an Entity Framework store reports a stale token as `StoreConcurrencyException`, not as
   `DbUpdateConcurrencyException`. A caller that catches the Entity Framework type around a store method or around
   `IStoreManager.SaveChangesAsync` catches the store-neutral type instead. A caller that saves through a `DbContext`

@@ -70,17 +70,19 @@ public interface ITenantUsageStore : IStore
     );
 
     /// <summary>
-    /// Removes every tenant's usage counted before <paramref name="day"/>, the end of the ledger's retention, and the
-    /// last added batch of every replica whose latest usage day is before it.
+    /// Removes, when the unit of work is saved, up to <paramref name="limit"/> of the usage entries counted before
+    /// <paramref name="day"/>, the end of the ledger's retention, and the last added batch of every replica whose
+    /// latest usage day is before it.
     /// </summary>
     /// <remarks>
-    /// The removal is two set-based deletes, one of the usage and one of the checkpoints. Each takes effect immediately
-    /// rather than when the unit of work is saved, so pruning a large ledger never loads its entries. The two deletes
-    /// are not one transaction, so a caller whose removal fails retries it, which is safe because the removal is
-    /// idempotent.
+    /// A caller prunes by repeating the removal, each time in a new unit of work, until fewer entries than the limit
+    /// are removed. Two callers that remove the same entries conflict: the later commit fails as a lost concurrency
+    /// race, and that caller reads the next batch.
     /// </remarks>
     /// <param name="day">The first UTC calendar day to keep.</param>
+    /// <param name="limit">The greatest number of usage entries to remove; it must be at least one.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the count of usage entries removed.</returns>
-    ValueTask<int> RemoveBeforeAsync(DateOnly day, CancellationToken cancellationToken);
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the count of usage entries staged for removal.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is less than one.</exception>
+    ValueTask<int> RemoveBeforeAsync(DateOnly day, int limit, CancellationToken cancellationToken);
 }

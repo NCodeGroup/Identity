@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R75`     | `R74`      |
+| `R` — Review findings                 | `R80`     | `R79`      |
 
 ---
 
@@ -436,6 +436,18 @@ _None remaining._
   loser's write raises `StoreConcurrencyException` and the client sees a `500`. Spend the token through a conditional
   consume, as `ConsumeOnceOrDefault` does (ADR-0208), and answer the loser as a reused token. Touch points:
   `DefaultRefreshTokenGrantHandler`, `DefaultPersistedGrantService.SetRevokedOnceAsync`.
+- **`R77` — Rotate or sender-constrain a public client's refresh tokens.** OAuth 2.1 §4.3.1 and RFC 9700 §4.14.2
+  require one or the other for a public client. `refresh_token_rotation_enabled` defaults to `false` and nothing
+  requires either for a client that is not confidential, so a public client without DPoP receives a reusable bearer
+  refresh token. Rotate unless the grant is DPoP-bound, or refuse such a client with a coherence rule (ADR-0206).
+  Touch points: `DefaultSettingDescriptorDataSource`, `DefaultRefreshTokenGrantHandler`,
+  `OpenIdClient.IsConfidential`.
+- **`R78` — Make a revocation win a concurrency race.** `SetRevokedOnceAsync` (revocation endpoint),
+  `RevokeBySessionAsync` (logout, authorization-code replay) and `RevokeWhereAsync` (bulk revocation) read and stamp
+  under concurrency tokens; when a concurrent write such as a sliding-expiration refresh changes a row first, nothing
+  is revoked and the request fails (`500` at the protocol endpoints, where RFC 7009 answers `200`; `412` in the
+  management API). Read again and retry, as the lineage revocation does (ADR-0211). Touch points:
+  `DefaultPersistedGrantService`, `DefaultRevokeTokenHandler`, `GrantApiEndpointHandler`.
 
 ### P3
 
@@ -512,6 +524,18 @@ _None remaining._
   `json` formatter (`Logging__Console__FormatterName`) in the container image or the chart's default environment, and
   keep `simple` for development. Touch points: `src/NCode.Identity.OpenId.Host/Dockerfile`,
   `charts/ncode-identity-host/values.yaml`, ADR-0210.
+- **`R75` — Remove a deleted client's or resource server's owner assignments.** Ownership is a role assignment keyed
+  by the resource's identifier, not a foreign key, so `ClientApiEndpointHandler.DeleteClientAsync` and
+  `ResourceServerApiEndpointHandler.DeleteAsync` leave it, and `IRoleAssignmentStore.GetByPrincipalAsync` still lists
+  it. Remove it in the resource's unit of work (ADR-0212). Touch points: `IResourceOwnershipService`, both handlers.
+- **`R76` — Remove expired and revoked grants after a retention period.** No grant row is ever removed, so the grants
+  table grows without bound, and deleting a client or a tenant loads all of its grants into one unit of work
+  (ADR-0212). Remove them in bounded batches, as the usage ledger is pruned (ADR-0213). Touch points: `IGrantStore`,
+  `GrantStore`, a hosted service like `TenantUsageFlushService`.
+- **`R79` — Offer an opt-in refresh-token reuse interval.** A client that retries a refresh after losing the response
+  is answered as a reuse, which revokes its lineage (ADR-0211). Auth0 offers a reuse interval and Okta a grace period;
+  add a client setting, off by default, within which a rotated token is refused without revoking the lineage. Touch
+  points: `DefaultRefreshTokenGrantHandler`, `DefaultSettingDescriptorDataSource`, ADR-0087.
 
 ### Refactor
 

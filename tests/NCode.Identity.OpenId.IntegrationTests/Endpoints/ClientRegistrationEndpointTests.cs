@@ -645,6 +645,48 @@ public class ClientRegistrationEndpointTests
         Assert.False(update.RootElement.TryGetProperty("jwks", out _));
     }
 
+    [Fact]
+    public async Task DeleteRegistration_RemovesTheClientWithItsKeysAndRegistrationAccessToken()
+    {
+        using var factory = new AnonymousRegistrationApplicationFactory();
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var rsa = RSA.Create(2048);
+
+        using var registrationResponse = await client.PostAsJsonAsync(
+            "/oauth2/register",
+            CreateKeyRegistration(CreateRsaJwk(rsa, "client-key"))
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registration = JsonDocument.Parse(registrationBody);
+        var root = registration.RootElement;
+        var registrationClientUri = root.GetProperty("registration_client_uri").GetString();
+        var registrationAccessToken = root.GetProperty("registration_access_token").GetString();
+
+        using var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, registrationClientUri);
+        deleteRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            registrationAccessToken
+        );
+        using var deleteResponse = await client.SendAsync(deleteRequest);
+
+        var deleteBody = await deleteResponse.Content.ReadAsStringAsync();
+        Assert.True(deleteResponse.StatusCode == HttpStatusCode.NoContent, deleteBody);
+
+        // The registration access token is removed with the client, so it no longer authenticates a read.
+        using var readRequest = new HttpRequestMessage(HttpMethod.Get, registrationClientUri);
+        readRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            registrationAccessToken
+        );
+        using var readResponse = await client.SendAsync(readRequest);
+
+        var readBody = await readResponse.Content.ReadAsStringAsync();
+        Assert.True(readResponse.StatusCode == HttpStatusCode.Unauthorized, readBody);
+    }
+
     #endregion
 
     #region Client Authentication Methods

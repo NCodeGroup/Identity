@@ -10,7 +10,9 @@
   `jwks` amended by [ADR-0161](0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md): its
   keys are imported under the client-key policy and stored as the client's secrets, the response projects them back,
   and an update replaces them; the initial access token amended in place: it is spent by the one registration it
-  authorizes and expires within thirty days)
+  authorizes and expires within thirty days; deregistration amended by
+  [ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md): the store removes the client with its secrets and grants
+  in one unit of work)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 
@@ -96,8 +98,9 @@ Concretely:
   `response_types` to `code` per RFC 7591; a grant type that uses a redirect (`authorization_code`, `implicit`) requires
   at least one `redirect_uris` value; and each redirect URI must be a valid absolute URI without a fragment. Failures
   return the RFC 7591 error codes `invalid_client_metadata` / `invalid_redirect_uri`.
-- **Delete removes dependents first.** A client cannot be removed while it owns secrets, so `DELETE` removes the
-  client's secrets, then the client, then revokes the `registration_access_token` grant.
+- **Delete removes the client with what it owns.** `DELETE` removes the client, and the store removes its secrets and
+  grants, the `registration_access_token` grant included, in the same unit of work
+  ([ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md)).
 
 ## Options considered
 

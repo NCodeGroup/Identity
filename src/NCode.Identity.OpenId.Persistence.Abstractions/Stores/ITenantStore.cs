@@ -240,26 +240,28 @@ public interface ITenantStore : IStore<PersistedTenant>
     );
 
     /// <summary>
-    /// Removes an OpenId Tenant from the store. The removal is rejected while the tenant still has dependents: its
-    /// clients and the resource servers created in it, which must be removed first.
+    /// Removes an OpenId Tenant and everything it owns from the store. The removal is rejected while the tenant still
+    /// has clients or resource servers created in it, which must be removed first.
     /// </summary>
     /// <remarks>
-    /// A tenant's secrets, its system resource servers (with their scopes and secrets), and its role assignments are
-    /// part of the tenant and are removed with it in the same unit of work.
-    /// Removing a tenant retires its identifier and its issuer in the same unit of work, so neither is reissued
-    /// (ADR-0189). Changing a tenant's issuer through <c>UpdateAsync</c> likewise retires the issuer it gave up.
+    /// Everything else is removed in the same unit of work: the tenant's secrets, its system resource servers with
+    /// their scopes and secrets, its role assignments, and the data of its end users: their local accounts, federated
+    /// principals and identities, sessions, and other grants. Its usage is kept so its last days can still be billed.
+    /// Removing a tenant retires its identifier and its issuer in the same unit of work, so neither is reissued.
+    /// Changing a tenant's issuer through <c>UpdateAsync</c> likewise retires the issuer it gave up.
     /// </remarks>
     /// <param name="tenantId">The identifier of the OpenId Tenant to remove.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
     /// if the tenant was removed; otherwise <c>false</c> when no matching tenant existed.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the tenant still has clients or resource servers.</exception>
+    // See ADR-0189 and ADR-0212.
     ValueTask<bool> RemoveAsync(string tenantId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Determines whether an OpenId Tenant still has dependents (its clients, or the resource servers created in it)
-    /// that would block its removal. Its secrets, its system resource servers, and its role assignments are part of the
-    /// tenant and are not dependents.
+    /// that would block its removal. Everything else the tenant owns, its end users' data included, is part of the
+    /// tenant and is not a dependent.
     /// </summary>
     /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>

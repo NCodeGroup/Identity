@@ -156,13 +156,16 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     }
 
     [Fact]
-    public async Task RemoveAsync_WhenHasSecrets_Throws()
+    public async Task RemoveAsync_WhenHasSecrets_RemovesThemWithIt()
     {
         await SeedClientAsync(CreateSecret("secret-1"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _store.RemoveAsync(ClientId, CancellationToken.None)
-        );
+        var removed = await _store.RemoveAsync(ClientId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+
+        Assert.True(removed);
+        var reloaded = await _store.GetOrDefaultAsync(ClientId, CancellationToken.None);
+        Assert.Null(reloaded);
     }
 
     [Fact]
@@ -185,25 +188,5 @@ public sealed class ClientStoreLifecycleTests : IDisposable
         var removed = await _store.RemoveAsync("missing", CancellationToken.None);
 
         Assert.False(removed);
-    }
-
-    [Fact]
-    public async Task HasDependentsAsync_WhenNoSecrets_ReturnsFalse()
-    {
-        await SeedClientAsync();
-
-        var result = await _store.HasDependentsAsync(ClientId, CancellationToken.None);
-
-        Assert.False(result);
-    }
-
-    [Fact]
-    public async Task HasDependentsAsync_WhenHasSecrets_ReturnsTrue()
-    {
-        await SeedClientAsync(CreateSecret("secret-1"));
-
-        var result = await _store.HasDependentsAsync(ClientId, CancellationToken.None);
-
-        Assert.True(result);
     }
 }

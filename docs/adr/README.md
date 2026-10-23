@@ -246,3 +246,7 @@ standards.
 | [0208](./0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) | A lost concurrency race surfaces as a store-neutral exception | Accepted |
 | [0209](./0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md) | A replica adds each usage batch to the ledger once | Accepted |
 | [0210](./0210-the-reference-hosts-log-to-standard-output.md) | The reference hosts log to standard output | Accepted |
+| [0211](./0211-a-rotated-refresh-token-is-spent-with-its-successor.md) | A rotated refresh token is spent with its successor, and a lost spend is a reuse | Accepted |
+| [0212](./0212-deleting-an-owner-removes-what-it-owns.md) | Deleting a client or a tenant removes what it owns, its end users' data included | Accepted |
+| [0213](./0213-the-usage-ledger-is-pruned-in-bounded-batches.md) | The usage ledger is pruned in bounded batches that every provider supports | Accepted |
+| [0214](./0214-a-management-write-that-loses-a-race-is-answered-412.md) | A management write that loses a concurrency race is answered 412 | Accepted |

@@ -47,9 +47,8 @@ public class DefaultPersistedGrantServiceTests : BaseTests
         MockPayloadSerializer = CreateStrictMock<IPersistedPayloadSerializer>();
         MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
 
-        var mockContext = CreateStrictMock<OpenIdContext>();
-        mockContext.SetupGet(x => x.Environment).Returns(MockEnvironment.Object).Verifiable();
-        OpenIdContext = mockContext.Object;
+        MockContext = CreateStrictMock<OpenIdContext>();
+        OpenIdContext = MockContext.Object;
 
         Service = new DefaultPersistedGrantService(
             TimeProvider.System,
@@ -65,6 +64,7 @@ public class DefaultPersistedGrantServiceTests : BaseTests
     private Mock<IGrantStore> MockGrantStore { get; }
     private Mock<IPersistedPayloadSerializer> MockPayloadSerializer { get; }
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
+    private Mock<OpenIdContext> MockContext { get; }
     private OpenIdContext OpenIdContext { get; }
     private JsonSerializerOptions JsonOptions { get; } = new(JsonSerializerDefaults.Web);
     private DefaultPersistedGrantService Service { get; }
@@ -74,7 +74,10 @@ public class DefaultPersistedGrantServiceTests : BaseTests
     private PersistedGrantId CreateGrantId() =>
         Service.CreateGrantId(TenantId, GrantType, GrantKey);
 
-    private static PersistedGrant CreateEnvelope(DateTimeOffset? consumedWhen = null) =>
+    private static PersistedGrant CreateEnvelope(
+        DateTimeOffset? consumedWhen = null,
+        DateTimeOffset? revokedWhen = null
+    ) =>
         new()
         {
             GrantType = GrantType,
@@ -87,10 +90,39 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             RefreshTokenLineageId = null,
             CreatedWhen = DateTimeOffset.UtcNow,
             ExpiresWhen = DateTimeOffset.UtcNow.AddHours(1),
-            RevokedWhen = null,
+            RevokedWhen = revokedWhen,
             ConsumedWhen = consumedWhen,
             PayloadJson = JsonElement.Parse("{}"),
         };
+
+    private static PersistedGrant<string> CreateSuccessor() =>
+        new()
+        {
+            Status = PersistedGrantStatus.Active,
+            TenantId = TenantId,
+            ClientId = "client-1",
+            SubjectId = "subject-1",
+            SessionId = null,
+            RefreshTokenLineageId = "lineage-1",
+            Payload = "successor",
+        };
+
+    private void SetupEnvironment() =>
+        MockContext.SetupGet(x => x.Environment).Returns(MockEnvironment.Object).Verifiable();
+
+    private void SetupStoreManager()
+    {
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+
+        MockStoreManager
+            .Setup(x => x.GetStore<IGrantStore>())
+            .Returns(MockGrantStore.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+    }
 
     private void SetupLookup(PersistedGrant envelope)
     {
@@ -106,16 +138,7 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             .Returns(HashedKey)
             .Verifiable();
 
-        MockStoreManagerFactory
-            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MockStoreManager.Object)
-            .Verifiable();
-
-        MockStoreManager
-            .Setup(x => x.GetStore<IGrantStore>())
-            .Returns(MockGrantStore.Object)
-            .Verifiable();
-        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        SetupStoreManager();
 
         MockGrantStore
             .Setup(x => x.GetOrDefaultAsync(GrantType, HashedKey, It.IsAny<CancellationToken>()))
@@ -125,11 +148,25 @@ public class DefaultPersistedGrantServiceTests : BaseTests
 
     private void SetupDeserialize()
     {
+        SetupEnvironment();
+
         MockEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(JsonOptions).Verifiable();
 
         MockPayloadSerializer
             .Setup(x => x.Deserialize<string>(It.IsAny<JsonElement>(), JsonOptions))
             .Returns("payload")
+            .Verifiable();
+    }
+
+    private void SetupSerialize()
+    {
+        SetupEnvironment();
+
+        MockEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(JsonOptions).Verifiable();
+
+        MockPayloadSerializer
+            .Setup(x => x.Serialize("successor", JsonOptions))
+            .Returns(JsonElement.Parse("{}"))
             .Verifiable();
     }
 
@@ -211,6 +248,7 @@ public class DefaultPersistedGrantServiceTests : BaseTests
     {
         var envelope = CreateEnvelope(consumedWhen: DateTimeOffset.UtcNow.AddMinutes(-1));
         SetupLookup(envelope);
+        SetupEnvironment();
 
         var result = await Service.ConsumeOnceOrDefault<string>(
             OpenIdContext,
@@ -219,6 +257,238 @@ public class DefaultPersistedGrantServiceTests : BaseTests
         );
 
         Assert.Null(result);
+    }
+
+    #endregion
+
+    #region TryRevokeOnceAsync Tests
+
+    [Fact]
+    public async Task TryRevokeOnceAsync_WhenTheGrantIsActive_RevokesItAndReturnsTrue()
+    {
+        var envelope = CreateEnvelope();
+        var revokedWhen = DateTimeOffset.UtcNow;
+        SetupLookup(envelope);
+        SetupUpdate(envelope, ValueTask.CompletedTask);
+        SetupSaveChanges(ValueTask.CompletedTask);
+
+        var result = await Service.TryRevokeOnceAsync(
+            OpenIdContext,
+            CreateGrantId(),
+            revokedWhen,
+            CancellationToken.None
+        );
+
+        Assert.True(result);
+        Assert.Equal(revokedWhen, envelope.RevokedWhen);
+    }
+
+    [Fact]
+    public async Task TryRevokeOnceAsync_WhenAnotherRequestSavesFirst_ReturnsFalse()
+    {
+        var envelope = CreateEnvelope();
+        SetupLookup(envelope);
+        SetupUpdate(envelope, ValueTask.CompletedTask);
+        SetupSaveChanges(ValueTask.FromException(new StoreConcurrencyException("conflict")));
+
+        var result = await Service.TryRevokeOnceAsync(
+            OpenIdContext,
+            CreateGrantId(),
+            DateTimeOffset.UtcNow,
+            CancellationToken.None
+        );
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task TryRevokeOnceAsync_WhenTheGrantIsRevoked_ReturnsFalse()
+    {
+        var envelope = CreateEnvelope(revokedWhen: DateTimeOffset.UtcNow.AddMinutes(-1));
+        SetupLookup(envelope);
+
+        var result = await Service.TryRevokeOnceAsync(
+            OpenIdContext,
+            CreateGrantId(),
+            DateTimeOffset.UtcNow,
+            CancellationToken.None
+        );
+
+        Assert.False(result);
+    }
+
+    #endregion
+
+    #region ReplaceOnceOrDefault Tests
+
+    [Fact]
+    public async Task ReplaceOnceOrDefault_WhenTheReplacedGrantIsActive_RevokesItAndStoresTheSuccessor()
+    {
+        var replaced = CreateEnvelope();
+        var createdWhen = DateTimeOffset.UtcNow;
+        SetupLookup(replaced);
+        SetupSerialize();
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns("grant-2")
+            .Verifiable();
+        SetupUpdate(replaced, ValueTask.CompletedTask);
+        MockGrantStore
+            .Setup(x =>
+                x.AddAsync(
+                    It.Is<PersistedGrant>(g => g.GrantId == "grant-2" && g.RevokedWhen == null),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupSaveChanges(ValueTask.CompletedTask);
+
+        var result = await Service.ReplaceOnceOrDefault(
+            OpenIdContext,
+            CreateGrantId(),
+            CreateGrantId(),
+            CreateSuccessor(),
+            createdWhen,
+            TimeSpan.FromHours(1),
+            CancellationToken.None
+        );
+
+        Assert.Equal("grant-2", result);
+        Assert.Equal(createdWhen, replaced.RevokedWhen);
+    }
+
+    [Fact]
+    public async Task ReplaceOnceOrDefault_WhenAnotherRequestSavesFirst_ReturnsNull()
+    {
+        var replaced = CreateEnvelope();
+        SetupLookup(replaced);
+        SetupSerialize();
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns("grant-2")
+            .Verifiable();
+        SetupUpdate(replaced, ValueTask.CompletedTask);
+        MockGrantStore
+            .Setup(x =>
+                x.AddAsync(
+                    It.Is<PersistedGrant>(g => g.GrantId == "grant-2" && g.RevokedWhen == null),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupSaveChanges(ValueTask.FromException(new StoreConcurrencyException("conflict")));
+
+        var result = await Service.ReplaceOnceOrDefault(
+            OpenIdContext,
+            CreateGrantId(),
+            CreateGrantId(),
+            CreateSuccessor(),
+            DateTimeOffset.UtcNow,
+            TimeSpan.FromHours(1),
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ReplaceOnceOrDefault_WhenTheReplacedGrantIsRevoked_ReturnsNull()
+    {
+        var replaced = CreateEnvelope(revokedWhen: DateTimeOffset.UtcNow.AddMinutes(-1));
+        SetupLookup(replaced);
+
+        var result = await Service.ReplaceOnceOrDefault(
+            OpenIdContext,
+            CreateGrantId(),
+            CreateGrantId(),
+            CreateSuccessor(),
+            DateTimeOffset.UtcNow,
+            TimeSpan.FromHours(1),
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+    }
+
+    #endregion
+
+    #region RevokeByRefreshTokenLineageAsync Tests
+
+    [Fact]
+    public async Task RevokeByRefreshTokenLineageAsync_WhenTheFirstSaveLosesARace_ReadsTheLineageAgain()
+    {
+        SetupStoreManager();
+        MockGrantStore
+            .Setup(x =>
+                x.RevokeByRefreshTokenLineageAsync(
+                    "lineage-1",
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(2L)
+            .Verifiable(Times.Exactly(2));
+        MockStoreManager
+            .SetupSequence(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new StoreConcurrencyException("conflict"))
+            .Returns(ValueTask.CompletedTask);
+
+        var result = await Service.RevokeByRefreshTokenLineageAsync(
+            OpenIdContext,
+            "lineage-1",
+            DateTimeOffset.UtcNow,
+            CancellationToken.None
+        );
+
+        Assert.Equal(2L, result);
+    }
+
+    [Fact]
+    public async Task RevokeByRefreshTokenLineageAsync_WhenEverySaveLosesARace_Throws()
+    {
+        SetupStoreManager();
+        MockGrantStore
+            .Setup(x =>
+                x.RevokeByRefreshTokenLineageAsync(
+                    "lineage-1",
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(2L)
+            .Verifiable(Times.Exactly(3));
+        SetupSaveChanges(ValueTask.FromException(new StoreConcurrencyException("conflict")));
+
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
+            await Service.RevokeByRefreshTokenLineageAsync(
+                OpenIdContext,
+                "lineage-1",
+                DateTimeOffset.UtcNow,
+                CancellationToken.None
+            )
+        );
+    }
+
+    #endregion
+
+    #region UpdateExpirationAsync Tests
+
+    [Fact]
+    public async Task UpdateExpirationAsync_WhenAnotherRequestSavesFirst_Returns()
+    {
+        var envelope = CreateEnvelope();
+        SetupLookup(envelope);
+        SetupUpdate(envelope, ValueTask.CompletedTask);
+        SetupSaveChanges(ValueTask.FromException(new StoreConcurrencyException("conflict")));
+
+        await Service.UpdateExpirationAsync(
+            OpenIdContext,
+            CreateGrantId(),
+            DateTimeOffset.UtcNow.AddHours(2),
+            CancellationToken.None
+        );
     }
 
     #endregion

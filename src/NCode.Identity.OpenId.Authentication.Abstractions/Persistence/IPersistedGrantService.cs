@@ -104,9 +104,58 @@ public interface IPersistedGrantService
     );
 
     /// <summary>
+    /// Revokes a grant if it is still active and reports whether this call revoked it.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
+    /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> if this
+    /// call revoked the grant. The result is <c>false</c> when the grant does not exist, is not active, or a
+    /// concurrent request changed it first.</returns>
+    ValueTask<bool> TryRevokeOnceAsync(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Revokes the replaced grant if it is still active and stores the specified grant in the same unit of work, so
+    /// the replacement exists only if this call revoked the grant it replaces.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="replacedGrantId">Contains the identifiers of the persisted grant to revoke.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted grant to store.</param>
+    /// <param name="grant">Contains the payload of the persisted grant to store.</param>
+    /// <param name="createdWhen">The <see cref="DateTimeOffset"/> when the grant to store was created, which is also
+    /// when the replaced grant is revoked.</param>
+    /// <param name="lifetime">The optional lifetime of the persisted grant to store. If <c>null</c>, the grant does not expire.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the opaque,
+    /// server-generated public identifier of the stored grant. The result is <c>null</c>, and nothing is stored, when
+    /// the replaced grant does not exist, is not active, or a concurrent request changed it first.</returns>
+    /// <exception cref="InvalidOperationException">The specified grant is not active.</exception>
+    ValueTask<string?> ReplaceOnceOrDefault<TPayload>(
+        OpenIdContext openIdContext,
+        PersistedGrantId replacedGrantId,
+        PersistedGrantId grantId,
+        PersistedGrant<TPayload> grant,
+        DateTimeOffset createdWhen,
+        TimeSpan? lifetime,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Revokes every active grant belonging to the specified refresh-token rotation family. Used by refresh-token
     /// reuse detection to revoke the whole family when a replayed token is presented.
     /// </summary>
+    /// <remarks>
+    /// A revocation that loses a concurrency race with another write to a grant of the family, such as a rotation that
+    /// commits in between, reads the family again and retries a few times, so a grant added concurrently is revoked too.
+    /// It fails when every attempt loses.
+    /// </remarks>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="refreshTokenLineageId">The opaque identifier of the refresh-token rotation family to revoke.</param>
     /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>

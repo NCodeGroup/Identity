@@ -18,6 +18,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 
@@ -77,6 +78,28 @@ public interface ITokenService
     ValueTask<SecurityToken> CreateRefreshTokenAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
+        CreateSecurityTokenRequest tokenRequest,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Generates a refresh token that replaces a presented one. The presented token's grant is revoked and the
+    /// replacement grant is stored in the same unit of work, so the replacement token exists only if this call spent
+    /// the presented token. The replacement token joins the rotation family named by
+    /// <see cref="CreateSecurityTokenRequest.RefreshTokenLineageId"/>.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
+    /// <param name="presentedGrantId">The <see cref="PersistedGrantId"/> of the refresh token that the client presented and that the replacement token replaces.</param>
+    /// <param name="tokenRequest">The <see cref="CreateSecurityTokenRequest"/> that contains the information required to generate the refresh token.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="SecurityToken"/>
+    /// that represents the replacement refresh token, or <c>null</c> when the presented token is no longer active
+    /// because a concurrent request rotated or revoked it first, in which case nothing is stored or audited.</returns>
+    ValueTask<SecurityToken?> RotateRefreshTokenAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        PersistedGrantId presentedGrantId,
         CreateSecurityTokenRequest tokenRequest,
         CancellationToken cancellationToken
     );

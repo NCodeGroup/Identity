@@ -56,4 +56,11 @@ internal static partial class Log
         Message = "The operation referenced a resource that does not exist"
     )]
     internal static partial void MissingDependency(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.LostConcurrencyRace,
+        Level = LogLevel.Debug,
+        Message = "A management request lost a concurrency race with another request and was answered 412"
+    )]
+    internal static partial void LostConcurrencyRace(this ILogger logger, Exception exception);
 }

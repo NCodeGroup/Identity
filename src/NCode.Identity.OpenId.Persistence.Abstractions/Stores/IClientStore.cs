@@ -170,23 +170,14 @@ public interface IClientStore : IStore<PersistedClient>
     );
 
     /// <summary>
-    /// Removes an OpenId Client from the store. The removal is rejected while the client still has dependent
-    /// child resources (any secrets); those dependents must be removed first.
+    /// Removes an OpenId Client from the store together with everything that exists for it: its secrets, its grants
+    /// to resource servers, the consents its end users gave it, and the grants issued to it, such as its
+    /// authorization codes, tokens, and registration access token. Nothing blocks the removal.
     /// </summary>
     /// <param name="clientId">The identifier of the OpenId Client to remove.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
     /// if the client was removed; otherwise <c>false</c> when no matching client existed.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the client still has dependent child resources.</exception>
+    // See ADR-0212.
     ValueTask<bool> RemoveAsync(string clientId, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Determines whether an OpenId Client still has dependent child resources (any secrets) that would block
-    /// its removal.
-    /// </summary>
-    /// <param name="clientId">The identifier of the OpenId Client.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
-    /// when the client has dependent child resources; otherwise <c>false</c> (including when no such client exists).</returns>
-    ValueTask<bool> HasDependentsAsync(string clientId, CancellationToken cancellationToken);
 }

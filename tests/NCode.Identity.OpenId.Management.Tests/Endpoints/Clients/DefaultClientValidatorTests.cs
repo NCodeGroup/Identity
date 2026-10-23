@@ -427,35 +427,9 @@ public sealed class DefaultClientValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateDeleteAsync_WhenHasDependents_Returns409()
-    {
-        SetupAuthorization(AuthorizationResult.Success());
-        SetupClientStore();
-        MockClientStore
-            .Setup(x => x.HasDependentsAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true)
-            .Verifiable();
-
-        var error = await Validator.ValidateDeleteAsync(
-            CreateUser(authenticated: true),
-            CreateClient(),
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
-    }
-
-    [Fact]
     public async Task ValidateDeleteAsync_WhenValid_ReturnsNull()
     {
         SetupAuthorization(AuthorizationResult.Success());
-        SetupClientStore();
-        MockClientStore
-            .Setup(x => x.HasDependentsAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false)
-            .Verifiable();
 
         var error = await Validator.ValidateDeleteAsync(
             CreateUser(authenticated: true),

@@ -3165,3 +3165,47 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: `ClientCoherenceReportHandler` checks every stored client, the bootstrap administrator's included, against
   the reconciled server settings and logs each incoherent one with its violations, then a summary; a tenant that cannot
   be checked is logged and the pass continues. ADR-0219 and ADR-0206; listing them in the management API is `R87`._
+- **`R80` — Expire an abandoned end-user session.** `session_absolute_lifetime` and `session_idle_timeout` default to
+  zero, so a session grant has no expiry, and one that its user never signs out of never ends. The grant prune
+  (ADR-0218) keeps it forever. Choose secure defaults, and give an idle session an end that the prune sees. Touch
+  points: `DefaultSettingDescriptorDataSource`, `DefaultSessionService`, `GrantPruneService`.
+  _Closed: `session_absolute_lifetime` and `session_idle_timeout` default to 30 days and 3 days and refuse zero, so
+  every session ends; a session grant expires at the earlier of its absolute end and the end of its idle window, slides
+  on use in one unit of work (`UpdatePayloadAndExpirationAsync`), is terminated through `OnSessionTerminatedCommand` by
+  a request that finds it ended (either limit), and is then pruned. The session listing reads the stored payload
+  correctly and reports a non-null end; the `BoundEndUserSessions` migration removes stored out-of-range values and
+  bounds unbounded session grants. ADR-0220; sessions that end unused are `R90`, the touch race `R91`._
+- **`R81` — Require a reuse interval for a FAPI 2.0 client whose refresh tokens always rotate.** FAPI 2.0 §5.3.2.1
+  Note 1 requires an authorization server that rotates a refresh token to let the client retry with the rotated token.
+  Add a coherence rule (ADR-0206) over `security_profiles`, `refresh_token_rotation_policy` and
+  `refresh_token_reuse_interval`.
+  _Closed: `refresh_token_rotation_retry_required` (an `Or` floor) is set by the FAPI 2.0 ceiling, and
+  `RefreshTokenRotationRetryCoherenceRule` refuses a client whose refresh tokens rotate (`always`, or `unbound` for a
+  public client) without a reuse interval. ADR-0217 decision 11 and ADR-0206._
+- **`R82` — Remove a deleted principal's role assignments.** `LocalAccountApiEndpointHandler` removes the federated
+  principal with its last identity, but the role assignments of that principal, ownership included, remain. Touch
+  points: `LocalAccountApiEndpointHandler`, `IFederatedPrincipalStore.RemoveAsync`, `RoleAssignmentStore`.
+  _Closed: deleting a federated principal removes its role assignments in every tenant, ownership included, in the same
+  unit of work, and deleting a tenant removes the assignments its principals hold in other tenants. ADR-0212 decision 7;
+  the account's sessions and grants are `R89`._
+- **`R83` — Bind `GrantRetentionOptions` and `TenantUsageOptions` to configuration.** Neither binds to a configuration
+  section, so an operator cannot change a retention or an interval through configuration. Touch points:
+  `IdentityServerBuilderExtensions.AddConfiguration`, `ThrowOnUnknownSubsection`.
+  _Closed: `GrantRetentionOptions` and `TenantUsageOptions` bind from `OpenId:GrantRetention` and `OpenId:TenantUsage`
+  and are validated when the host starts by dependency-free validators whose messages name the option and its
+  configuration key. ADR-0221._
+- **`R84` — Audit a refresh token presented again within its reuse interval.** An operator cannot tell a client's
+  retry from a stolen token that is used within the window. Record an audit event for the retry. Touch points:
+  `IAuditEventRecorder`, `DefaultRefreshTokenGrantHandler`.
+  _Closed: a refresh token presented again within its reuse interval and answered with another successor is audited as
+  `token.refresh.retry` (`RefreshTokenRetryAuditEvent`, outcome success); a refused retry records nothing. ADR-0217
+  decision 10._
+- **`R86` — Validate the server's and the tenant's intervals and lifetimes when the host starts.**
+  `OpenIdServerOptions` (`SettingsPeriodicRefreshInterval`, `SecretsPeriodicRefreshInterval`,
+  `ReconciliationLeaseDuration`) and `OpenIdTenantOptions` (`SettingsPeriodicRefreshInterval`,
+  `SecretsPeriodicRefreshInterval`, `TenantCacheLifetime`) accept zero and negative values, which stop a poll, keep the
+  reconciliation from ever taking its lease, or fail the first tenant cache write. Touch points: an
+  `IValidateOptions<OpenIdOptions>` beside `ServerSettingsOptionsValidator`.
+  _Closed: the server's and tenants' intervals and lifetimes (settings refresh and reconciliation lease, tenant cache
+  lifetime and the other polls) are validated when the host starts against the periods a .NET timer accepts
+  (`NCode.Time.TimerPeriod`), so a misconfiguration fails the start instead of faulting a hosted service. ADR-0221._

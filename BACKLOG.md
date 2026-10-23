@@ -421,10 +421,6 @@ _None remaining._
 - **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
   replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
   `src/frontend/apps/auth/src/main.tsx:12-21`.
-- **`R80` — Expire an abandoned end-user session.** `session_absolute_lifetime` and `session_idle_timeout` default to
-  zero, so a session grant has no expiry, and one that its user never signs out of never ends. The grant prune
-  (ADR-0218) keeps it forever. Choose secure defaults, and give an idle session an end that the prune sees. Touch
-  points: `DefaultSettingDescriptorDataSource`, `DefaultSessionService`, `GrantPruneService`.
 - **`R89` — End a deleted or disabled account's sessions and grants.** Deleting a local account removes the federated
   principal with its last identity, and the principal's role assignments with it (ADR-0212), but the subject's
   sessions, refresh tokens and consents remain, and disabling an account keeps them as well.
@@ -471,29 +467,10 @@ _None remaining._
   `json` formatter (`Logging__Console__FormatterName`) in the container image or the chart's default environment, and
   keep `simple` for development. Touch points: `src/NCode.Identity.OpenId.Host/Dockerfile`,
   `charts/ncode-identity-host/values.yaml`, ADR-0210.
-- **`R81` — Require a reuse interval for a FAPI 2.0 client whose refresh tokens always rotate.** FAPI 2.0 §5.3.2.1
-  Note 1 requires an authorization server that rotates a refresh token to let the client retry with the rotated token.
-  Add a coherence rule (ADR-0206) over `security_profiles`, `refresh_token_rotation_policy` and
-  `refresh_token_reuse_interval`.
-- **`R82` — Remove a deleted principal's role assignments.** `LocalAccountApiEndpointHandler` removes the federated
-  principal with its last identity, but the role assignments of that principal, ownership included, remain. Touch
-  points: `LocalAccountApiEndpointHandler`, `IFederatedPrincipalStore.RemoveAsync`, `RoleAssignmentStore`.
-- **`R83` — Bind `GrantRetentionOptions` and `TenantUsageOptions` to configuration.** Neither binds to a configuration
-  section, so an operator cannot change a retention or an interval through configuration. Touch points:
-  `IdentityServerBuilderExtensions.AddConfiguration`, `ThrowOnUnknownSubsection`.
-- **`R84` — Audit a refresh token presented again within its reuse interval.** An operator cannot tell a client's
-  retry from a stolen token that is used within the window. Record an audit event for the retry. Touch points:
-  `IAuditEventRecorder`, `DefaultRefreshTokenGrantHandler`.
 - **`R85` — Run the in-process dispatcher's jobs with bounded concurrency.** `JobDispatchWorker` runs one job at a
   time, so a delivery that waits on an unreachable endpoint (a CIBA notification or a back-channel logout) delays every
   job queued behind it. Run jobs in parallel up to a limit from `InProcessJobDispatcherOptions`. Touch points:
   `JobDispatchWorker`, `InProcessJobQueue`, `InProcessJobDispatcherOptions`.
-- **`R86` — Validate the server's and the tenant's intervals and lifetimes when the host starts.**
-  `OpenIdServerOptions` (`SettingsPeriodicRefreshInterval`, `SecretsPeriodicRefreshInterval`,
-  `ReconciliationLeaseDuration`) and `OpenIdTenantOptions` (`SettingsPeriodicRefreshInterval`,
-  `SecretsPeriodicRefreshInterval`, `TenantCacheLifetime`) accept zero and negative values, which stop a poll, keep the
-  reconciliation from ever taking its lease, or fail the first tenant cache write. Touch points: an
-  `IValidateOptions<OpenIdOptions>` beside `ServerSettingsOptionsValidator`.
 - **`R87` — List the incoherent clients in the management API.** The reconciliation of the server's settings logs each
   stored client that the settings make incoherent (ADR-0219), so an operator without the logs cannot find them. Add a
   read-only report per tenant. Touch points: `ClientApiEndpointHandler`, `IClientCoherenceValidator`,

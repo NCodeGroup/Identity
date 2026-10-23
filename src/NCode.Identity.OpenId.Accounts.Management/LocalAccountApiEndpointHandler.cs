@@ -479,14 +479,15 @@ internal class LocalAccountApiEndpointHandler(
 
         if (!isEnabled)
         {
-            // A disabled account's sessions end, which revokes every grant of its principal and notifies its relying parties. See ADR-0224.
+            // A disabled account's sessions end, which revokes every grant of its principal and notifies its relying
+            // parties. The change is committed, so a client disconnect does not cancel the termination. See ADR-0224.
             await TerminateAccountSessionsAsync(
                 httpContext,
                 tenantId,
                 storeManager,
                 localAccountId,
                 SessionTerminationReasons.AccountDisabled,
-                cancellationToken
+                CancellationToken.None
             );
         }
 
@@ -532,14 +533,16 @@ internal class LocalAccountApiEndpointHandler(
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        // A reset password ends the sessions of the account's principal and revokes its grants, so the tokens of a compromised account stop at once. See ADR-0226.
+        // A reset password ends the sessions of the account's principal and revokes its grants, so the tokens of a
+        // compromised account stop at once. The change is committed, so a client disconnect does not cancel the
+        // termination. See ADR-0226.
         await TerminateAccountSessionsAsync(
             httpContext,
             tenantId,
             storeManager,
             localAccountId,
             SessionTerminationReasons.PasswordReset,
-            cancellationToken
+            CancellationToken.None
         );
 
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(

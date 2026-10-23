@@ -164,13 +164,14 @@ internal class PrincipalApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // A blocked principal's sessions end, which revokes its grants and notifies its relying parties. See ADR-0226.
+        // A blocked principal's sessions end, which revokes its grants and notifies its relying parties. The change is
+        // committed, so a client disconnect does not cancel the termination. See ADR-0226.
         await TerminateSessionsAsync(
             httpContext,
             tenantId,
             principal.PrincipalId,
             SessionTerminationReasons.UserBlocked,
-            cancellationToken
+            CancellationToken.None
         );
 
         await RecordPrincipalChangedAsync(httpContext, tenantId, principal, cancellationToken);

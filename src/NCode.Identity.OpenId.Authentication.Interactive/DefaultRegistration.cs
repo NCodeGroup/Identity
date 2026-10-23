@@ -118,6 +118,13 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<InteractiveBundleReader>();
             serviceCollection.TryAddSingleton<InteractiveSurfacePaths>();
 
+            // A credential backend that holds passwords replaces this default, which reports that no change is
+            // supported.
+            serviceCollection.TryAddSingleton<
+                IInteractivePasswordChanger,
+                DefaultInteractivePasswordChanger
+            >();
+
             // The branding settings join the descriptor catalog only where the surface that shows them is registered.
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

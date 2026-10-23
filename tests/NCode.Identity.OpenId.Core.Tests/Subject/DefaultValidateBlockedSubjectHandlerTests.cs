@@ -20,7 +20,6 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -98,7 +97,7 @@ public class DefaultValidateBlockedSubjectHandlerTests : BaseTests
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
     }
 
-    private ValidateSubjectAuthenticationCommand CreateCommand(
+    private ValidateSubjectStandingCommand CreateCommand(
         Mock<OpenIdContext> mockContext,
         OperationDisposition<IOpenIdError> disposition
     )
@@ -110,13 +109,10 @@ public class DefaultValidateBlockedSubjectHandlerTests : BaseTests
             PrincipalId
         );
 
-        return new ValidateSubjectAuthenticationCommand(
+        return new ValidateSubjectStandingCommand(
             mockContext.Object,
-            CreateStrictMock<OpenIdClient>().Object,
-            CreateStrictMock<IOpenIdRequest>().Object,
             subjectAuthentication,
-            disposition,
-            EnforceAuthenticationAge: false
+            disposition
         );
     }
 

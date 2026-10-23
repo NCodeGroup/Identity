@@ -110,6 +110,26 @@ internal class DefaultAuthorizeHandler(
         );
         if (subjectDisposition.HasError)
         {
+            // A refused standing, which a new authentication cannot change, is answered to the client whatever the
+            // prompt; any other refusal asks the end user to authenticate again.
+            // See ADR-0229.
+            var standing = await ValidateStandingAsync(
+                openIdContext,
+                authenticationTicket,
+                cancellationToken
+            );
+            if (standing.HasError)
+            {
+                await AuditEventRecorder.RecordAuthorizationDeniedAsync(
+                    openIdContext,
+                    openIdClient,
+                    authenticationTicket.PrincipalId,
+                    standing.Error.Code,
+                    cancellationToken
+                );
+                return Failed(standing.Error);
+            }
+
             // A no-prompt request that cannot interact is a genuine denial; otherwise the user agent is
             // challenged to interact, which is not an authorization decision.
             if (noPrompt)
@@ -230,6 +250,27 @@ internal class DefaultAuthorizeHandler(
                 // The authorization endpoint is the interactive step where max_age / subject_max_age decide whether to
                 // force re-authentication.
                 EnforceAuthenticationAge: true
+            ),
+            cancellationToken
+        );
+
+        return operationDisposition;
+    }
+
+    private static async ValueTask<OperationDisposition<IOpenIdError>> ValidateStandingAsync(
+        OpenIdContext openIdContext,
+        SubjectAuthentication subjectAuthentication,
+        CancellationToken cancellationToken
+    )
+    {
+        var mediator = openIdContext.Mediator;
+        var operationDisposition = new OperationDisposition<IOpenIdError>();
+
+        await mediator.SendAsync(
+            new ValidateSubjectStandingCommand(
+                openIdContext,
+                subjectAuthentication,
+                operationDisposition
             ),
             cancellationToken
         );

@@ -521,6 +521,44 @@ public sealed class GrantStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task RevokeWhereAsync_WithoutSession_RevokesOnlyTheGrantsIssuedUnderNoSession()
+    {
+        await _store.AddAsync(
+            CreateGrant(
+                hashedKey: "hk-s1",
+                grantId: "grant-s1",
+                subjectId: "alice",
+                sessionId: "sid-1"
+            ),
+            CancellationToken.None
+        );
+        await _store.AddAsync(
+            CreateGrant(hashedKey: "hk-n1", grantId: "grant-n1", subjectId: "alice"),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var revokedWhen = DateTimeOffset.UnixEpoch.AddMinutes(10);
+        var count = await _store.RevokeWhereAsync(
+            new GrantFilter { SubjectId = "alice", WithoutSession = true },
+            revokedWhen,
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(1, count);
+
+        var withSession = await _store.GetOrDefaultAsync("grant-s1", CancellationToken.None);
+        var withoutSession = await _store.GetOrDefaultAsync("grant-n1", CancellationToken.None);
+        Assert.NotNull(withSession);
+        Assert.NotNull(withoutSession);
+        Assert.Null(withSession.RevokedWhen);
+        Assert.Equal(revokedWhen, withoutSession.RevokedWhen);
+    }
+
+    [Fact]
     public async Task RevokeWhereAsync_WhenFilteredByGrantId_RevokesOnlyThatGrant()
     {
         await _store.AddAsync(

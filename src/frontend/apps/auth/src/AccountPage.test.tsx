@@ -104,6 +104,19 @@ describe('AccountPage', () => {
     );
   });
 
+  it('links to the change-password page', async () => {
+    renderPage({
+      antiforgeryToken: 'the-token',
+      loadSession: () => Promise.resolve({ subject: 'user-123' }),
+    });
+
+    expect(await screen.findByTestId('account-session')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Change password' })).toHaveAttribute(
+      'href',
+      '/account/password',
+    );
+  });
+
   it('shows a loading state until the session resolves, and keeps sign-out available', () => {
     renderPage({
       antiforgeryToken: 'the-token',

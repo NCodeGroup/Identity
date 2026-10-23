@@ -27,9 +27,9 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
 /// Represents a mediator command that validates an authenticated subject for an OpenID request, applying the
-/// post-authentication checks (for example, <c>max_age</c>, a required ACR, and account state) that must pass before
-/// the subject is used to issue tokens. A handler records a failure on <paramref name="OperationDisposition"/> rather
-/// than returning a result.
+/// post-authentication checks (for example, <c>max_age</c> and a required ACR) that must pass before the subject is
+/// used to issue tokens. It includes the end user's standing (<see cref="ValidateSubjectStandingCommand"/>). A handler
+/// records a failure on <paramref name="OperationDisposition"/> rather than returning a result.
 /// </summary>
 /// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
 /// <param name="OpenIdClient">The <see cref="OpenIdClient"/> the request is for.</param>

@@ -1,6 +1,10 @@
 # 227. A session is terminated at most once on every path
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0228](0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md):
+  a claim returns the session as it was revoked, and a replayed code terminates its session;
+  [ADR-0230](0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md): a termination of every
+  other session revokes the grants issued under no session)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -54,9 +58,9 @@ dispatches.**
   notify the relying parties has been made.
 - **Skip the subject-wide dispatch when no session was claimed.** Rejected: the handlers that extend the seam would miss
   a subject-wide termination, and its audit record.
-- **Return the claimed session from `RevokeSessionOnceAsync`.** Deferred (backlog `R97`): a termination notifies the
-  clients that its session listed when it was read, and `RevokeSessionOnceAsync` reports only whether the call revoked
-  the session.
+- **Return the claimed session from `RevokeSessionOnceAsync`.** A termination notifies the clients that its session
+  lists when it is claimed. Adopted by
+  [ADR-0228](0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md).
 
 ## Consequences
 
@@ -64,10 +68,10 @@ dispatches.**
 - A subject-wide termination always revokes the grants of the subject before its dispatch, and it is audited also when
   it terminated no session.
 - The sessions management API reports the sessions that the request terminated.
-- A client that an authorization request adds to a session between the read and the claim receives no back-channel
-  logout, although its tokens are revoked (backlog `R97`).
-- The replay of an authorization code revokes the grants of its session without the seam, so the relying parties of the
-  session are not notified (backlog `R96`).
+- A termination notifies the clients that its session lists when it is claimed, and a replayed code terminates its
+  session through the seam, as
+  [ADR-0228](0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md)
+  decides.
 - **Breaking:** `ISessionService.RevokeAsync` returns `bool`, and `RevokeAllAsync` and `RevokeAllExceptAsync` return the
   number of sessions that the call terminated.
 - This implements backlog `R95`.

@@ -52,36 +52,94 @@ public static class InteractiveLogin
         string password
     )
     {
-        using var loginPage = await client.GetAsync(
-            $"{LoginPath}?ReturnUrl={Uri.EscapeDataString(ReturnUrl)}"
-        );
-        var requestToken = ReadSetCookieValue(loginPage, AntiforgeryRequestCookieName);
-        var cookieToken = ReadSetCookieRaw(loginPage, AntiforgeryCookiePrefix);
+        using var login = await SubmitLoginAsync(client, userName, password, ReturnUrl);
+        Assert.Equal(HttpStatusCode.Found, login.StatusCode);
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, LoginPath);
+        var sessionCookie = ReadSessionCookie(login);
+        Assert.NotNull(sessionCookie);
+        return sessionCookie;
+    }
+
+    /// <summary>
+    /// Posts the interactive login form for <paramref name="userName"/> and returns the response, whatever its status,
+    /// so a test can assert a refusal as well as a sign-in. The caller disposes the response.
+    /// </summary>
+    /// <param name="client">The <see cref="HttpClient"/> of the host, with automatic redirects and cookies off.</param>
+    /// <param name="userName">The user name of a local account.</param>
+    /// <param name="password">The password sent for the account.</param>
+    /// <param name="returnUrl">The local URL the login page was asked to return to.</param>
+    /// <returns>The response of the login form post.</returns>
+    public static Task<HttpResponseMessage> SubmitLoginAsync(
+        HttpClient client,
+        string userName,
+        string password,
+        string returnUrl
+    ) =>
+        PostFormAsync(
+            client,
+            $"{LoginPath}?ReturnUrl={Uri.EscapeDataString(returnUrl)}",
+            LoginPath,
+            sessionCookie: null,
+            new Dictionary<string, string>
+            {
+                ["username"] = userName,
+                ["password"] = password,
+                ["ReturnUrl"] = returnUrl,
+            }
+        );
+
+    /// <summary>
+    /// Reads the value of the session cookie that a response sets.
+    /// </summary>
+    /// <param name="response">The response of a sign-in or a form post.</param>
+    /// <returns>The value of the <see cref="SessionCookieName"/> cookie, or <see langword="null"/> when the response
+    /// does not set it.</returns>
+    public static string? ReadSessionCookie(HttpResponseMessage response) =>
+        ReadSetCookieValue(response, SessionCookieName);
+
+    /// <summary>
+    /// Posts a form of the interactive surface the way a browser does: it loads the page to obtain the antiforgery
+    /// cookies (a page the host serves no bundle for answers <c>503</c> but still sets them), then posts the fields with
+    /// the antiforgery token. The caller disposes the response.
+    /// </summary>
+    /// <param name="client">The <see cref="HttpClient"/> of the host, with automatic redirects and cookies off.</param>
+    /// <param name="pageUrl">The URL of the page that renders the form.</param>
+    /// <param name="actionPath">The path the form posts to.</param>
+    /// <param name="sessionCookie">The value of the session cookie to send, or <see langword="null"/> to send none.</param>
+    /// <param name="fields">The form fields, without the antiforgery token.</param>
+    /// <returns>The response of the form post.</returns>
+    public static async Task<HttpResponseMessage> PostFormAsync(
+        HttpClient client,
+        string pageUrl,
+        string actionPath,
+        string? sessionCookie,
+        IReadOnlyDictionary<string, string> fields
+    )
+    {
+        using var pageRequest = new HttpRequestMessage(HttpMethod.Get, pageUrl);
+        if (sessionCookie is not null)
+            pageRequest.Headers.Add("Cookie", $"{SessionCookieName}={sessionCookie}");
+
+        using var page = await client.SendAsync(pageRequest);
+        var requestToken = ReadSetCookieValue(page, AntiforgeryRequestCookieName);
+        var cookieToken = ReadSetCookieRaw(page, AntiforgeryCookiePrefix);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, actionPath);
         List<string> cookies = [];
+        if (sessionCookie is not null)
+            cookies.Add($"{SessionCookieName}={sessionCookie}");
         if (cookieToken is not null)
             cookies.Add(cookieToken);
         if (requestToken is not null)
             cookies.Add($"{AntiforgeryRequestCookieName}={Uri.EscapeDataString(requestToken)}");
         if (cookies.Count > 0)
             request.Headers.Add("Cookie", string.Join("; ", cookies));
-        request.Content = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["username"] = userName,
-                ["password"] = password,
-                ["ReturnUrl"] = ReturnUrl,
-                [AntiforgeryFieldName] = requestToken ?? string.Empty,
-            }
-        );
 
-        using var login = await client.SendAsync(request);
-        Assert.Equal(HttpStatusCode.Found, login.StatusCode);
+        var form = fields.ToDictionary(field => field.Key, field => field.Value);
+        form[AntiforgeryFieldName] = requestToken ?? string.Empty;
+        request.Content = new FormUrlEncodedContent(form);
 
-        var sessionCookie = ReadSetCookieValue(login, SessionCookieName);
-        Assert.NotNull(sessionCookie);
-        return sessionCookie;
+        return await client.SendAsync(request);
     }
 
     private static string? ReadSetCookieValue(HttpResponseMessage response, string name)

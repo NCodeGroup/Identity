@@ -47,6 +47,13 @@ public readonly record struct GrantFilter
     public string? SessionId { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether only the grants issued under no session are selected. It narrows the other
+    /// criteria and does not count as one: a filter with nothing but this value set is still <see cref="IsEmpty"/>, so
+    /// it does not scope a bulk operation by itself.
+    /// </summary>
+    public bool WithoutSession { get; init; }
+
+    /// <summary>
     /// Gets the opaque public identifier of the grant selected, or <c>null</c> to not constrain by grant.
     /// </summary>
     public string? GrantId { get; init; }

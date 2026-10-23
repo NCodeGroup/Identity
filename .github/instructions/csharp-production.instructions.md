@@ -633,11 +633,15 @@ rationale.
 - 👁 **Every grant that issues tokens for a subject validates it before it spends its credential.** A token grant sends
   `ValidateSubjectAuthenticationCommand` through `TokenGrantSubjectValidation.ValidateAsync` from its
   `ValidateTokenGrantCommand<TGrant>` handler, an out-of-band approval sends it with no request, and a stored credential
-  issued to a client (an authorization code, a device code, an `auth_req_id`) is redeemed only by that client. A
-  capability with its own reason to refuse an end user adds a `ValidateSubjectAuthenticationCommand` handler with
-  `TryAddEnumerable`, which then runs at every grant. See
-  [ADR-0225](../../docs/adr/0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md) and
-  [ADR-0226](../../docs/adr/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md).
+  issued to a client (an authorization code, a device code, an `auth_req_id`) is redeemed only by that client. The end
+  user's standing (a blocked principal, a disabled or deleted local account) is `ValidateSubjectStandingCommand`, which
+  every `ValidateSubjectAuthenticationCommand` includes, the interactive sign-in sends before it creates a session, and
+  the authorization request answers with `access_denied` instead of a login challenge; a capability with its own reason
+  to refuse an end user adds a `ValidateSubjectStandingCommand` handler with `TryAddEnumerable`. See
+  [ADR-0225](../../docs/adr/0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md),
+  [ADR-0226](../../docs/adr/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md)
+  and
+  [ADR-0229](../../docs/adr/0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md).
 - 👁 **A refresh-token rotation spends the presented token and stores its successor in one unit of work**
   (`ITokenService.RotateRefreshTokenAsync` over `IPersistedGrantService.ReplaceOnceOrDefault`), after every check and
   before any token is minted. A spend that loses to a spend or a revocation is answered as a reuse, and one that loses
@@ -664,13 +668,26 @@ rationale.
   lost race, so `update` decides from its argument and returns `null` when the stored grant does not need the change.
   See [ADR-0222](../../docs/adr/0222-a-grants-payload-is-changed-by-a-read-modify-write.md).
 - 👁 **When a request and a background pass can both act on one record, the caller whose write claims it acts.**
-  `RevokeSessionOnceAsync` reports whether this call revoked the session grant, in the unit of work that also revokes
-  the grants issued under it, so a failure after the claim leaves no token active, and only that caller terminates an
-  ended session. See [ADR-0223](../../docs/adr/0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md).
-  Every path that terminates a named session goes through `ISessionService`, which claims the session this way before
-  it dispatches `OnSessionTerminatedCommand`; never dispatch the command for a named session yourself, and revoke a
-  subject's grants before a subject-wide dispatch. See
-  [ADR-0227](../../docs/adr/0227-a-session-is-terminated-at-most-once-on-every-path.md).
+  `RevokeSessionOnceAsync` returns the session grant as this call revoked it, or `null` when another caller did, in the
+  unit of work that also revokes the grants issued under it, so a failure after the claim leaves no token active, and
+  only that caller terminates an ended session. See
+  [ADR-0223](../../docs/adr/0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md). Every path that
+  terminates a named session goes through `ISessionService`, which claims the session this way before it dispatches
+  `OnSessionTerminatedCommand`; never dispatch the command for a named session yourself, and revoke a subject's grants
+  before a subject-wide dispatch. See
+  [ADR-0227](../../docs/adr/0227-a-session-is-terminated-at-most-once-on-every-path.md). A termination notifies the
+  clients that the claimed grant lists, never the clients an earlier read listed, and a subject-wide termination claims
+  every unrevoked session, an ended one included
+  ([ADR-0228](../../docs/adr/0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md)).
+- 👁 **A security effect that follows a committed change — ending the sessions after a password change or reset, an
+  account disable or a principal block — runs with `CancellationToken.None`.** A client disconnect must not leave the
+  change committed without its effect; a step that precedes its commit keeps the request token. See
+  [ADR-0226](../../docs/adr/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md).
+- 👁 **The interactive surface serves a cookie only while the session it names is active.** An interactive endpoint
+  authenticates its cookie through the handler's `AuthenticateSessionAsync`, never `AuthenticateAsync` directly, and a
+  refusal that resumes a parked authorization request answers it through `IContinueRefusalService`, which delivers the
+  error to the client, never a redirect elsewhere. See
+  [ADR-0229](../../docs/adr/0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md).
 - 👁 **Background work that runs protocol machinery in a tenant creates its context with
   `IOpenIdContextFactory.CreateForBackgroundAsync` in its own DI scope.** The context has no endpoint, connection or
   user, and it is disposed before the scope. See

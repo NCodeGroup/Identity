@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -84,6 +85,39 @@ public sealed class LocalAccountStoreTests : IDisposable
         await _store.AddAsync(account, password: null, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
+    }
+
+    private LocalAccountStore CreateStoreWithPasswords() =>
+        new(
+            Mock.Of<IStoreProvider>(),
+            _provider.GetRequiredService<IIdGenerator<long>>(),
+            new PlainPasswordHasher(),
+            _dbContext
+        );
+
+    private async Task AddWithPasswordAndDetachAsync(
+        LocalAccountStore store,
+        PersistedLocalAccount account,
+        string password
+    )
+    {
+        await store.AddAsync(account, Encoding.UTF8.GetBytes(password), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+    }
+
+    private sealed class PlainPasswordHasher : IPasswordHasher
+    {
+        public string HashPassword(ReadOnlySpan<byte> password) =>
+            "plain:" + Convert.ToBase64String(password);
+
+        public PasswordVerificationResult VerifyHashedPassword(
+            string hashedPassword,
+            ReadOnlySpan<byte> password
+        ) =>
+            string.Equals(hashedPassword, HashPassword(password), StringComparison.Ordinal)
+                ? PasswordVerificationResult.Success
+                : PasswordVerificationResult.Failed;
     }
 
     #endregion
@@ -179,6 +213,65 @@ public sealed class LocalAccountStoreTests : IDisposable
         var loaded = await _store.GetByUserNameOrDefaultAsync("nobody", CancellationToken.None);
 
         Assert.Null(loaded);
+    }
+
+    #endregion
+
+    #region VerifyCredentialAsync Tests
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenTheAccountIsDisabled_ReturnsTheAccount()
+    {
+        var store = CreateStoreWithPasswords();
+        await AddWithPasswordAndDetachAsync(
+            store,
+            CreateAccount("account-1", "alice", isEnabled: false),
+            "secret"
+        );
+
+        var result = await store.VerifyCredentialAsync(
+            "alice",
+            Encoding.UTF8.GetBytes("secret"),
+            CancellationToken.None
+        );
+
+        Assert.NotNull(result);
+        Assert.Equal("account-1", result.LocalAccountId);
+        Assert.False(result.IsEnabled);
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenThePasswordIsWrong_ReturnsNull()
+    {
+        var store = CreateStoreWithPasswords();
+        await AddWithPasswordAndDetachAsync(
+            store,
+            CreateAccount("account-1", "alice", isEnabled: false),
+            "secret"
+        );
+
+        var result = await store.VerifyCredentialAsync(
+            "alice",
+            Encoding.UTF8.GetBytes("wrong"),
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenTheAccountHasNoPassword_ReturnsNull()
+    {
+        var store = CreateStoreWithPasswords();
+        await AddAndDetachAsync(CreateAccount("account-1", "alice"));
+
+        var result = await store.VerifyCredentialAsync(
+            "alice",
+            Encoding.UTF8.GetBytes("secret"),
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
     }
 
     #endregion

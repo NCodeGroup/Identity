@@ -4,8 +4,16 @@ import { ConsentForm } from './ConsentForm.js';
 import { LoginForm } from './LoginForm.js';
 import { AccountPage } from './AccountPage.js';
 import { AuthorizedAppsPage } from './AuthorizedAppsPage.js';
+import { PasswordPage } from './PasswordPage.js';
 import { SessionsPage } from './SessionsPage.js';
-import { isAccountPath, isApplicationsPath, isConsentPath, isSessionsPath } from './params.js';
+import {
+  describePasswordError,
+  isAccountPath,
+  isApplicationsPath,
+  isConsentPath,
+  isPasswordPath,
+  isSessionsPath,
+} from './params.js';
 
 /** The per-request inputs the interactive surfaces render against, derived from the environment. */
 export type RouteContext = {
@@ -13,6 +21,10 @@ export type RouteContext = {
   readonly returnUrl: string;
   readonly antiforgeryToken: string;
   readonly errorMessage?: string | null;
+  /** The raw `error` query code, which each surface maps to its own message. */
+  readonly errorCode?: string | null;
+  /** The `status` query value a surface reports a completed operation with. */
+  readonly status?: string | null;
   /** The tenant's branding; its display name titles the surfaces that present the tenant. */
   readonly branding?: BrandingConfig;
 };
@@ -36,6 +48,17 @@ function productNameOf(branding: BrandingConfig | undefined): { productName?: st
  * should still present a login.
  */
 const ROUTES: readonly Route[] = [
+  {
+    match: isPasswordPath,
+    render: ({ antiforgeryToken, branding, errorCode, status }) => (
+      <PasswordPage
+        antiforgeryToken={antiforgeryToken}
+        errorMessage={describePasswordError(errorCode ?? null)}
+        changed={status === 'changed'}
+        {...productNameOf(branding)}
+      />
+    ),
+  },
   {
     match: isSessionsPath,
     render: ({ antiforgeryToken, branding }) => (

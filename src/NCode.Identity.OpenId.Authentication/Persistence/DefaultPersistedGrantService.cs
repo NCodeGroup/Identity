@@ -295,7 +295,7 @@ internal class DefaultPersistedGrantService(
     }
 
     /// <inheritdoc />
-    public async ValueTask<bool> RevokeSessionOnceAsync(
+    public async ValueTask<PersistedGrant<TPayload>?> RevokeSessionOnceAsync<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         DateTimeOffset revokedWhen,
@@ -312,13 +312,13 @@ internal class DefaultPersistedGrantService(
 
             var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
             if (envelope is null)
-                return false;
+                return null;
 
             if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
-                return false;
+                return null;
 
             if (envelope.RevokedWhen is not null)
-                return false;
+                return null;
 
             envelope.RevokedWhen = revokedWhen;
 
@@ -338,15 +338,35 @@ internal class DefaultPersistedGrantService(
                 }
 
                 await storeManager.SaveChangesAsync(cancellationToken);
-
-                return true;
             }
             catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
             {
                 // A concurrent write changed the session or a grant issued under it after it was read. The
-                // revocation reads them again, and a concurrent revocation of the session ends it with false.
+                // revocation reads them again, and a concurrent revocation of the session ends it with null.
                 // See ADR-0215.
+                continue;
             }
+
+            // The session is returned as this call revoked it, so its termination notifies every client it lists;
+            // the payload is read after the save, so a payload that cannot be read never keeps a session active.
+            // See ADR-0228.
+            var payload = PayloadSerializer.Deserialize<TPayload>(
+                envelope.PayloadJson,
+                openIdContext.Environment.JsonSerializerOptions
+            );
+
+            return new PersistedGrant<TPayload>
+            {
+                Status = PersistedGrantStatus.Revoked,
+                TenantId = envelope.TenantId,
+                ClientId = envelope.ClientId,
+                SubjectId = envelope.SubjectId,
+                SessionId = envelope.SessionId,
+                RefreshTokenLineageId = envelope.RefreshTokenLineageId,
+                ExpiresWhen = envelope.ExpiresWhen,
+                ConsumedWhen = envelope.ConsumedWhen,
+                Payload = payload,
+            };
         }
     }
 

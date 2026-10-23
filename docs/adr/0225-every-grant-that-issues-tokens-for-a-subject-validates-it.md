@@ -1,6 +1,10 @@
 # 225. Every grant that issues tokens for a subject validates it
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0229](0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md): the end user's
+  standing is its own command, which every subject validation includes;
+  [ADR-0231](0231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md): a denial is delivered to a ping or
+  push client)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -43,8 +47,8 @@ that client.**
    status checks and before a poll is recorded (RFC 8628 §3.4, CIBA Core §11).
 4. **A CIBA approval validates the approving subject.** `DefaultCibaRequestService.ApproveAsync` validates the subject
    before it records the approval, for every delivery mode, because push delivery issues tokens at the approval. A
-   refused subject denies the request (`DenyAsync`) and `ApproveAsync` returns `false`. The denial reaches no ping or
-   push client (backlog `R100`).
+   refused subject denies the request (`DenyAsync`) and `ApproveAsync` returns `false`. A ping or push client is told of
+   the denial ([ADR-0231](0231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md)).
 5. **A subject can be validated outside a protocol request.** `ValidateSubjectAuthenticationCommand.OpenIdRequest` is
    `IOpenIdRequest?`, and `null` means that the subject is validated outside a protocol request, as at a CIBA approval.
    `DefaultValidateSubjectAuthenticationHandler` then skips the `max_age` of the request, the `idp:` values of its
@@ -85,7 +89,8 @@ that client.**
 - A refused device code or `auth_req_id` stays unspent, and every poll is refused until it expires.
 - A CIBA approval callback passes a subject that carries its tenant and is authenticated, as a token request requires.
 - The allowed identity providers of the exchanging client apply to the `idp` of the subject token.
-- A denied CIBA request notifies no ping or push client (backlog `R100`).
+- A denied CIBA request is delivered to a ping or push client
+  ([ADR-0231](0231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md)).
 - **Breaking:** `ValidateSubjectAuthenticationCommand.OpenIdRequest` is nullable, `ICibaRequestService.ApproveAsync`
   returns `false` for a refused subject, a device code or `auth_req_id` that another client presents is
   `invalid_grant`, and `DefaultAuthenticateSubjectHandler` depends on `ISessionService`.

@@ -69,7 +69,7 @@ internal class DefaultAuthenticatePasswordGrantHandler(
         }
 
         var account = await VerifyCredentialsAsync(username, password, cancellationToken);
-        if (account is null)
+        if (account is not { IsEnabled: true })
         {
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
                 openIdContext,

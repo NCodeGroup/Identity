@@ -162,6 +162,8 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
             return null;
         }
 
+        // A locked-out user's password is not verified: the lockout defends against guessing, so a correct password must
+        // not be told apart from a wrong one. See ADR-0229.
         var isEnabled =
             !userManager.SupportsUserLockout || !await userManager.IsLockedOutAsync(user);
         if (!isEnabled)

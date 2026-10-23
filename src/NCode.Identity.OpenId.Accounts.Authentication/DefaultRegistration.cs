@@ -88,7 +88,8 @@ public static class DefaultRegistration
         /// The host registers the interactive surface separately. A host fronting a different backend (LDAP, an external
         /// identity provider, passwordless) registers its own <see cref="IInteractiveCredentialVerifier"/> instead. It
         /// also registers the subject-validation handler that refuses a subject whose local account is disabled or no
-        /// longer exists.
+        /// longer exists, and the <see cref="IInteractivePasswordChanger"/> that lets an end user change the password
+        /// of their local account on the self-service surface.
         /// </summary>
         /// <param name="localAccountStore">The local-account store builder — the compile-time proof that a
         /// <c>ILocalAccountStore</c> is registered, so this capability cannot be added without one.</param>
@@ -105,6 +106,16 @@ public static class DefaultRegistration
                 IInteractiveCredentialVerifier,
                 LocalAccountInteractiveCredentialVerifier
             >();
+
+            // Replace (not TryAdd) so this capability wins over the surface's default changer, which reports that no
+            // change is supported, whatever the order the two registrations run in.
+            // See ADR-0230.
+            serviceCollection.Replace(
+                ServiceDescriptor.Singleton<
+                    IInteractivePasswordChanger,
+                    LocalAccountInteractivePasswordChanger
+                >()
+            );
 
             AddLocalAccountUserInfoClaims(serviceCollection);
             AddLocalAccountSubjectValidation(serviceCollection);
@@ -124,12 +135,12 @@ public static class DefaultRegistration
             >()
         );
 
-    // The subject-validation handler is grant-agnostic (it runs wherever a subject is validated), so both the
-    // password-grant and interactive registrations wire it; TryAddEnumerable adds it exactly once.
+    // The subject-validation handler is grant-agnostic (it runs wherever an end user's standing is validated), so both
+    // the password-grant and interactive registrations wire it; TryAddEnumerable adds it exactly once.
     private static void AddLocalAccountSubjectValidation(IServiceCollection serviceCollection) =>
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<
-                ICommandHandler<ValidateSubjectAuthenticationCommand>,
+                ICommandHandler<ValidateSubjectStandingCommand>,
                 DefaultValidateLocalAccountSubjectHandler
             >()
         );

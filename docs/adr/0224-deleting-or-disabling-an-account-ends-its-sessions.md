@@ -4,7 +4,9 @@
   [ADR-0225](0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md): every grant that issues tokens checks
   the account;
   [ADR-0226](0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md): an
-  administrator can block any end user, and a password reset ends the account's sessions)
+  administrator can block any end user, and a password reset ends the account's sessions;
+  [ADR-0229](0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md): the account check is
+  part of the end user's standing, which the interactive sign-in also applies)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

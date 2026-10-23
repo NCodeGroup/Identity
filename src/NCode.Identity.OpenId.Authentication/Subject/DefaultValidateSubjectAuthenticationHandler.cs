@@ -38,8 +38,8 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// Provides a default implementation of a handler for the <see cref="ValidateSubjectAuthenticationCommand"/> message.
 /// </summary>
 /// <remarks>
-/// A capability that knows the subject's account registers another handler that refuses an inactive account, as the
-/// local-account capability does.
+/// The end user's standing (a blocked principal, a disabled or deleted local account) is validated by the handlers of
+/// <see cref="ValidateSubjectStandingCommand"/>, which another handler of this command sends.
 /// </remarks>
 internal class DefaultValidateSubjectAuthenticationHandler(
     TimeProvider timeProvider,

@@ -55,6 +55,9 @@ export const SESSIONS_REVOKE_ACTION = 'sessions/revoke';
 /** The surface path the active-sessions page posts to in order to revoke every session (optionally the others only). */
 export const SESSIONS_REVOKE_ALL_ACTION = 'sessions/revoke-all';
 
+/** The self-service change-password page; its form posts to the same path. */
+export const PASSWORD_PATH = 'password';
+
 /** The path that renders the consent page (every other path renders login). */
 export const CONSENT_PATH = 'consent';
 
@@ -113,6 +116,11 @@ export function isSessionsPath(pathname: string, baseUri: string = document.base
   return isSurfacePath(pathname, SESSIONS_PATH, baseUri);
 }
 
+/** True when the given path should render the change-password page. */
+export function isPasswordPath(pathname: string, baseUri: string = document.baseURI): boolean {
+  return isSurfacePath(pathname, PASSWORD_PATH, baseUri);
+}
+
 /** Maps a login error code to a human-readable message. */
 export function describeLoginError(error: string | null): string | null {
   switch (error) {
@@ -122,7 +130,27 @@ export function describeLoginError(error: string | null): string | null {
       return 'The username or password is incorrect.';
     case 'invalid_request':
       return 'Enter both a username and a password.';
+    case 'access_denied':
+      return 'This account cannot sign in. Contact your administrator.';
     default:
       return 'Sign-in failed. Please try again.';
+  }
+}
+
+/** Maps a change-password error code to a human-readable message. */
+export function describePasswordError(error: string | null): string | null {
+  switch (error) {
+    case null:
+      return null;
+    case 'invalid_request':
+      return 'Enter your current password and a new password.';
+    case 'password_mismatch':
+      return 'The new passwords do not match.';
+    case 'invalid_current_password':
+      return 'The current password is incorrect.';
+    case 'not_supported':
+      return 'Your account has no password to change here.';
+    default:
+      return 'The password could not be changed. Please try again.';
   }
 }

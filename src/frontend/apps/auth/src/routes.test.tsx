@@ -65,6 +65,25 @@ describe('resolveRoute', () => {
     );
   });
 
+  it('renders the change-password surface for the password path', () => {
+    const { container } = renderRoute({ ...baseContext, pathname: '/account/password' });
+    expect(container.querySelector('#change-password')).not.toBeNull();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('password-changed')).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('maps the password error code and status', () => {
+    renderRoute({
+      ...baseContext,
+      pathname: '/account/password',
+      errorCode: 'invalid_current_password',
+      status: 'changed',
+    });
+    expect(screen.getByText('The current password is incorrect.')).toBeInTheDocument();
+    expect(screen.getByTestId('password-changed')).toBeInTheDocument();
+  });
+
   it.each([
     ['/account/', 'account-loading'],
     ['/account/applications/', 'applications-loading'],
@@ -118,6 +137,7 @@ describe('resolveRoute', () => {
     ['/account', 'Acme account'],
     ['/account/applications', 'Acme — authorized applications'],
     ['/account/sessions', 'Acme — active sessions'],
+    ['/account/password', 'Acme — change password'],
   ])('titles %s with the tenant display name', (pathname, title) => {
     renderRoute({ ...baseContext, pathname, branding: { displayName: 'Acme' } });
     expect(screen.getByText(title)).toBeInTheDocument();

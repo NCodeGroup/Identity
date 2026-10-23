@@ -33,6 +33,8 @@ export function App({
         returnUrl: getQueryParam(search, 'ReturnUrl') ?? '/',
         antiforgeryToken: readCookie(cookie, ANTIFORGERY_COOKIE) ?? '',
         errorMessage: describeLoginError(getQueryParam(search, 'error')),
+        errorCode: getQueryParam(search, 'error'),
+        status: getQueryParam(search, 'status'),
         ...(branding ? { branding } : {}),
       })}
     </>

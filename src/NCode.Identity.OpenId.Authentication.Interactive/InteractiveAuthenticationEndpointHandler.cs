@@ -29,10 +29,14 @@ using Microsoft.AspNetCore.StaticFiles;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Consent;
 using NCode.Identity.OpenId.Authentication.Endpoints;
+using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Settings;
 using NCode.Json;
@@ -45,12 +49,15 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// bundle for the login, consent, and account ("me") pages, verifies credentials through the registered
 /// <see cref="IInteractiveCredentialVerifier"/>, issues the cookie session on success, exposes the current session as
 /// JSON, and clears it on logout. The login, consent, and logout forms submit as native form POSTs carrying the
-/// antiforgery token, so the server-driven cookie challenge/redirect flow is preserved.
+/// antiforgery token, so the server-driven cookie challenge/redirect flow is preserved. The self-service surface
+/// serves the cookie only while the session it names is active.
 /// </summary>
 internal sealed class InteractiveAuthenticationEndpointHandler(
     IInteractiveCredentialVerifier credentialVerifier,
     IPrincipalResolver principalResolver,
     IConsentService consentService,
+    IContinueRefusalService continueRefusalService,
+    IInteractivePasswordChanger passwordChanger,
     ISessionService sessionService,
     TimeProvider timeProvider,
     IAntiforgery antiforgery,
@@ -62,6 +69,15 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     // a full "sign out everywhere".
     private const string SignOutOthersScope = "others";
 
+    // The `error` and `status` query values the change-password page reads back to show its message.
+    private const string ErrorQueryName = "error";
+    private const string StatusQueryName = "status";
+    private const string PasswordInvalidRequestError = "invalid_request";
+    private const string PasswordMismatchError = "password_mismatch";
+    private const string InvalidCurrentPasswordError = "invalid_current_password";
+    private const string PasswordNotSupportedError = "not_supported";
+    private const string PasswordChangedStatus = "changed";
+
     private const string AssetRouteParameterName = "asset";
 
     private static FileExtensionContentTypeProvider AssetContentTypes { get; } = new();
@@ -69,6 +85,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     private IInteractiveCredentialVerifier CredentialVerifier { get; } = credentialVerifier;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IConsentService ConsentService { get; } = consentService;
+    private IContinueRefusalService ContinueRefusalService { get; } = continueRefusalService;
+    private IInteractivePasswordChanger PasswordChanger { get; } = passwordChanger;
     private ISessionService SessionService { get; } = sessionService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IAntiforgery Antiforgery { get; } = antiforgery;
@@ -116,6 +134,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             InteractiveAuthenticationDefaults.SessionsRevokeAllPath,
             PostRevokeAllSessionsAsync
         );
+        surface.MapGet(InteractiveAuthenticationDefaults.PasswordPath, GetPasswordPageAsync);
+        surface.MapPost(InteractiveAuthenticationDefaults.PasswordPath, PostPasswordAsync);
         // The bundle's files are served beneath the tenant's surface, where the pages' base resolves them (ADR-0193).
         // Every page and API route above is a literal route, which takes precedence; the order makes that explicit.
         surface
@@ -192,9 +212,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         var appName = "An application";
         IReadOnlyList<InteractiveAuthenticationPageRenderer.ScopeView> scopes = [];
 
-        var authenticateResult = await httpContext.AuthenticateAsync(
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
         if (authenticateResult.Succeeded && !string.IsNullOrEmpty(rawReturnUrl))
         {
             var openIdContext = httpContext.GetOpenIdContext();
@@ -246,9 +264,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetAccountPageAsync(HttpContext httpContext)
     {
-        var authenticateResult = await httpContext.AuthenticateAsync(
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.AccountPath);
@@ -278,11 +294,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// Returns the current end-user's session as JSON for the account page, or <c>401</c> when the request is not
     /// authenticated.
     /// </summary>
-    public static async ValueTask<IResult> GetMeAsync(HttpContext httpContext)
+    public async ValueTask<IResult> GetMeAsync(HttpContext httpContext)
     {
-        var authenticateResult = await httpContext.AuthenticateAsync(
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Unauthorized();
@@ -330,6 +344,9 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// <summary>
     /// Verifies the posted credentials through the registered verifier and, on success, signs in the cookie session
     /// and redirects to the validated local return URL; on failure it redirects back to the login page with an error.
+    /// An end user whose standing is refused, such as a blocked principal or a disabled account, signs in nowhere: no
+    /// session is created, and the parked authorization request the return URL names is answered with the refusal,
+    /// otherwise the login page shows it.
     /// </summary>
     public async ValueTask<IResult> PostLoginAsync(
         HttpContext httpContext,
@@ -373,6 +390,24 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             httpContext.RequestAborted
         );
 
+        // The end user's standing is validated before a session is created, so a blocked principal or a disabled
+        // account signs in nowhere.
+        // See ADR-0229.
+        var standing = await ValidateStandingAsync(
+            openIdContext,
+            principal,
+            httpContext.RequestAborted
+        );
+        if (standing.HasError)
+        {
+            return await RefuseSignInAsync(
+                httpContext,
+                openIdContext,
+                safeReturnUrl,
+                standing.Error
+            );
+        }
+
         // Establish a server-side session and mint its opaque `sid` onto the cookie principal so every subsequent
         // authorize request resolves the same session and the `sid` claim can be emitted into issued tokens.
         await EstablishSessionAsync(openIdContext, principal, httpContext.RequestAborted);
@@ -383,6 +418,55 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
 
         return TypedResults.Redirect(safeReturnUrl);
+    }
+
+    private async ValueTask<IResult> RefuseSignInAsync(
+        HttpContext httpContext,
+        OpenIdContext openIdContext,
+        string safeReturnUrl,
+        IOpenIdError error
+    )
+    {
+        var refusal = await ContinueRefusalService.RefuseAsync(
+            openIdContext,
+            safeReturnUrl,
+            error,
+            httpContext.RequestAborted
+        );
+        if (refusal.HasHttpResult)
+        {
+            return refusal.HttpResult;
+        }
+
+        return TypedResults.Redirect(
+            BuildLoginRedirect(httpContext, safeReturnUrl, OpenIdConstants.ErrorCodes.AccessDenied)
+        );
+    }
+
+    private static async ValueTask<OperationDisposition<IOpenIdError>> ValidateStandingAsync(
+        OpenIdContext openIdContext,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken
+    )
+    {
+        var mediator = openIdContext.Mediator;
+        var operationDisposition = new OperationDisposition<IOpenIdError>();
+
+        await mediator.SendAsync(
+            new ValidateSubjectStandingCommand(
+                openIdContext,
+                new SubjectAuthentication(
+                    InteractiveAuthenticationDefaults.CookieSchemeName,
+                    new AuthenticationProperties(),
+                    principal,
+                    openIdContext.GetSubjectId(principal) ?? string.Empty
+                ),
+                operationDisposition
+            ),
+            cancellationToken
+        );
+
+        return operationDisposition;
     }
 
     private async ValueTask EstablishSessionAsync(
@@ -483,9 +567,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         [FromQuery(Name = "ReturnUrl")] string? returnUrl
     )
     {
-        var authenticateResult = await httpContext.AuthenticateAsync(
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Unauthorized();
@@ -533,7 +615,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// Records the granular consent outcome: an allow persists the subject's decision — the requested scopes (resolved
     /// authoritatively from the continuation, not the posted form) and the subset the subject selected (the posted
     /// <c>scope</c> fields, intersected with the requested scopes) — and returns to the original authorize URL to
-    /// resume; a deny abandons the flow.
+    /// resume; a deny answers the parked authorization request with an <c>access_denied</c> error at the client's
+    /// redirect URI, or returns to the home page when the return URL names no parked request.
     /// </summary>
     public async ValueTask<IResult> PostConsentAsync(
         HttpContext httpContext,
@@ -542,15 +625,25 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     )
     {
         var safeReturnUrl = ResolveSafeReturnUrl(httpContext, returnUrl);
+        var openIdContext = httpContext.GetOpenIdContext();
 
         if (string.Equals(action, "deny", StringComparison.OrdinalIgnoreCase))
         {
-            return TypedResults.Redirect("/");
+            // A denial answers the parked authorization request with `access_denied` (OpenID Connect Core 1.0
+            // §3.1.2.6).
+            // See ADR-0229.
+            var refusal = await ContinueRefusalService.RefuseAsync(
+                openIdContext,
+                safeReturnUrl,
+                openIdContext.ErrorFactory.AccessDenied(
+                    "The end user denied the authorization request."
+                ),
+                httpContext.RequestAborted
+            );
+            return refusal.HasHttpResult ? refusal.HttpResult : TypedResults.Redirect("/");
         }
 
-        var authenticateResult = await httpContext.AuthenticateAsync(
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Redirect(
@@ -558,7 +651,6 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             );
         }
 
-        var openIdContext = httpContext.GetOpenIdContext();
         var subjectId = openIdContext.GetSubjectId(authenticateResult.Principal);
         if (string.IsNullOrEmpty(subjectId) || string.IsNullOrEmpty(returnUrl))
         {
@@ -636,9 +728,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetApplicationsPageAsync(HttpContext httpContext)
     {
-        var authenticateResult = await httpContext.AuthenticateAsync(
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.ApplicationsPath);
@@ -653,9 +743,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetApplicationsAsync(HttpContext httpContext)
     {
-        var authenticateResult = await httpContext.AuthenticateAsync(
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Unauthorized();
@@ -701,9 +789,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         [FromForm(Name = "client_id")] string? clientId
     )
     {
-        var authenticateResult = await httpContext.AuthenticateAsync(
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.ApplicationsPath);
@@ -735,9 +821,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetSessionsPageAsync(HttpContext httpContext)
     {
-        var authenticateResult = await httpContext.AuthenticateAsync(
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.SessionsPath);
@@ -752,9 +836,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// </summary>
     public async ValueTask<IResult> GetSessionsAsync(HttpContext httpContext)
     {
-        var authenticateResult = await httpContext.AuthenticateAsync(
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
         if (!authenticateResult.Succeeded)
         {
             return TypedResults.Unauthorized();
@@ -810,9 +892,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         [FromForm(Name = "sid")] string? sessionId
     )
     {
-        var authenticateResult = await httpContext.AuthenticateAsync(
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.SessionsPath);
@@ -864,15 +944,14 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// Revokes the current end-user's sessions in bulk (self-service), then redirects back to the active-sessions page.
     /// When <c>scope</c> is <c>others</c> ("sign out everywhere else") the request's own session is retained; otherwise
     /// every session is revoked and the login cookie is cleared ("sign out everywhere").
+    /// Signing out everywhere else also revokes every grant the end user holds under no session.
     /// </summary>
     public async ValueTask<IResult> PostRevokeAllSessionsAsync(
         HttpContext httpContext,
         [FromForm(Name = "scope")] string? scope
     )
     {
-        var authenticateResult = await httpContext.AuthenticateAsync(
-            InteractiveAuthenticationDefaults.CookieSchemeName
-        );
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
         if (!authenticateResult.Succeeded)
         {
             return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.SessionsPath);
@@ -929,6 +1008,134 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
     }
 
+    /// <summary>
+    /// Serves the change-password page (the single-page bundle), establishing the antiforgery token its form echoes
+    /// back. A request without an active session is redirected to the login page with the change-password page as its
+    /// return URL.
+    /// </summary>
+    public async ValueTask<IResult> GetPasswordPageAsync(HttpContext httpContext)
+    {
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        if (!authenticateResult.Succeeded)
+        {
+            return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.PasswordPath);
+        }
+
+        return await ServeBundleAsync(httpContext);
+    }
+
+    /// <summary>
+    /// Changes the current end-user's password from the change-password form, then redirects back to the page with the
+    /// outcome: <c>?status=changed</c>, or <c>?error=</c> with <c>invalid_request</c> for a missing field,
+    /// <c>password_mismatch</c> when the confirmation differs from the new password, <c>invalid_current_password</c>
+    /// when the current password is wrong, or <c>not_supported</c> when the credential backend has no password to
+    /// change. A change keeps the current session and ends every other session. A request without an active session is
+    /// redirected to the login page.
+    /// </summary>
+    public async ValueTask<IResult> PostPasswordAsync(
+        HttpContext httpContext,
+        [FromForm(Name = "current_password")] string? currentPassword,
+        [FromForm(Name = "new_password")] string? newPassword,
+        [FromForm(Name = "confirm_password")] string? confirmPassword
+    )
+    {
+        var authenticateResult = await AuthenticateSessionAsync(httpContext);
+        if (!authenticateResult.Succeeded)
+        {
+            return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.PasswordPath);
+        }
+
+        var openIdContext = httpContext.GetOpenIdContext();
+        var principal = authenticateResult.Principal;
+        var subjectId = openIdContext.GetSubjectId(principal);
+        var currentSessionId = principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
+        if (string.IsNullOrEmpty(subjectId) || string.IsNullOrEmpty(currentSessionId))
+        {
+            return RedirectToLogin(httpContext, InteractiveAuthenticationDefaults.PasswordPath);
+        }
+
+        if (string.IsNullOrEmpty(currentPassword) || string.IsNullOrEmpty(newPassword))
+        {
+            return RedirectToPasswordPage(httpContext, ErrorQueryName, PasswordInvalidRequestError);
+        }
+
+        if (!string.Equals(newPassword, confirmPassword, StringComparison.Ordinal))
+        {
+            return RedirectToPasswordPage(httpContext, ErrorQueryName, PasswordMismatchError);
+        }
+
+        var result = await PasswordChanger.ChangePasswordAsync(
+            openIdContext,
+            principal,
+            currentPassword,
+            newPassword,
+            httpContext.RequestAborted
+        );
+        switch (result)
+        {
+            case InteractivePasswordChangeResult.Changed:
+                // A change keeps the current session, ends every other one and revokes the grants issued under no
+                // session. The password is already saved, so a client disconnect does not cancel the termination.
+                // See ADR-0226 and ADR-0230.
+                await SessionService.RevokeAllExceptAsync(
+                    openIdContext,
+                    subjectId,
+                    currentSessionId,
+                    SessionTerminationReasons.PasswordChanged,
+                    CancellationToken.None
+                );
+                return RedirectToPasswordPage(httpContext, StatusQueryName, PasswordChangedStatus);
+
+            case InteractivePasswordChangeResult.CurrentPasswordInvalid:
+                return RedirectToPasswordPage(
+                    httpContext,
+                    ErrorQueryName,
+                    InvalidCurrentPasswordError
+                );
+
+            default:
+                return RedirectToPasswordPage(
+                    httpContext,
+                    ErrorQueryName,
+                    PasswordNotSupportedError
+                );
+        }
+    }
+
+    /// <summary>
+    /// Authenticates the login cookie and requires the session it names to be active, so a cookie whose session has
+    /// ended or been revoked serves nothing. A cookie without an active session is cleared and reported as no result.
+    /// </summary>
+    // See ADR-0229.
+    private async ValueTask<AuthenticateResult> AuthenticateSessionAsync(HttpContext httpContext)
+    {
+        var authenticateResult = await httpContext.AuthenticateAsync(
+            InteractiveAuthenticationDefaults.CookieSchemeName
+        );
+        if (!authenticateResult.Succeeded)
+        {
+            return authenticateResult;
+        }
+
+        // The cookie serves the surface only while the session it names is active, so the cookie of an ended, revoked,
+        // or blocked end user's session serves nothing.
+        var sessionId = authenticateResult.Principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
+        if (
+            string.IsNullOrEmpty(sessionId)
+            || !await SessionService.ValidateAndTouchAsync(
+                httpContext.GetOpenIdContext(),
+                sessionId,
+                httpContext.RequestAborted
+            )
+        )
+        {
+            await httpContext.SignOutAsync(InteractiveAuthenticationDefaults.CookieSchemeName);
+            return AuthenticateResult.NoResult();
+        }
+
+        return authenticateResult;
+    }
+
     private async ValueTask<IResult> ServeBundleAsync(HttpContext httpContext)
     {
         IssueAntiforgeryTokens(httpContext);
@@ -955,6 +1162,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             null or "" => null,
             "invalid_credentials" => "The username or password is incorrect.",
             "invalid_request" => "Enter both a username and a password.",
+            OpenIdConstants.ErrorCodes.AccessDenied =>
+                "This account cannot sign in. Contact your administrator.",
             _ => "Sign-in failed. Please try again.",
         };
 
@@ -999,6 +1208,16 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
     private string BuildLoginRedirect(HttpContext httpContext, string returnUrl, string error) =>
         BuildLoginUrl(httpContext, returnUrl) + $"&error={Uri.EscapeDataString(error)}";
+
+    private RedirectHttpResult RedirectToPasswordPage(
+        HttpContext httpContext,
+        string queryName,
+        string queryValue
+    ) =>
+        TypedResults.Redirect(
+            $"{SurfacePaths.GetSurfacePath(httpContext, InteractiveAuthenticationDefaults.PasswordPath)}"
+                + $"?{queryName}={Uri.EscapeDataString(queryValue)}"
+        );
 
     // Guards against an open redirect: a local path (single leading slash, not a protocol-relative or
     // backslash-escaped authority), or an absolute URL that targets this same origin (the OP's own continue

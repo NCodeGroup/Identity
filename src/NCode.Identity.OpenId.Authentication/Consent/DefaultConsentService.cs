@@ -17,9 +17,9 @@
 #endregion
 
 using System.Text.Json;
-using Microsoft.AspNetCore.WebUtilities;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.ResourceServers;
@@ -276,7 +276,7 @@ internal class DefaultConsentService(
         CancellationToken cancellationToken
     )
     {
-        var state = ExtractContinuationState(returnUrl);
+        var state = ContinueUrls.GetStateOrDefault(returnUrl);
         if (string.IsNullOrEmpty(state))
             return null;
 
@@ -316,16 +316,4 @@ internal class DefaultConsentService(
         && !string.IsNullOrEmpty(clientName)
             ? clientName
             : null;
-
-    // The parked authorization request is addressed by the continue endpoint's opaque 'state' key, carried inside the
-    // local return URL the consent surface was redirected to; the framework query parser decodes it.
-    private static string? ExtractContinuationState(string returnUrl)
-    {
-        var separatorIndex = returnUrl.IndexOf('?', StringComparison.Ordinal);
-        if (separatorIndex < 0)
-            return null;
-
-        var query = QueryHelpers.ParseQuery(returnUrl[separatorIndex..]);
-        return query.TryGetValue("state", out var values) ? values.ToString() : null;
-    }
 }

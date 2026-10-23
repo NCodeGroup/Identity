@@ -23,7 +23,6 @@ using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -171,7 +170,7 @@ public class DefaultValidateLocalAccountSubjectHandlerTests : BaseTests
         mockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
     }
 
-    private ValidateSubjectAuthenticationCommand CreateCommand(
+    private ValidateSubjectStandingCommand CreateCommand(
         Mock<OpenIdContext> mockContext,
         OperationDisposition<IOpenIdError> disposition,
         string? issuer = null
@@ -190,13 +189,10 @@ public class DefaultValidateLocalAccountSubjectHandlerTests : BaseTests
             PrincipalId
         );
 
-        return new ValidateSubjectAuthenticationCommand(
+        return new ValidateSubjectStandingCommand(
             mockContext.Object,
-            CreateStrictMock<OpenIdClient>().Object,
-            CreateStrictMock<IOpenIdRequest>().Object,
             subjectAuthentication,
-            disposition,
-            EnforceAuthenticationAge: false
+            disposition
         );
     }
 

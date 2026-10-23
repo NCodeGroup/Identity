@@ -301,6 +301,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **Drive the device flow through its endpoints.** Start it at `/oauth2/device_authorization`, sign the user in with
   `InteractiveLogin.SignInAsync`, approve at `/oauth2/device` with the session cookie and the form fields `user_code`
   and `action=approve`, and redeem the `device_code` at `/oauth2/token` (`LocalAccountLifecycleTests`).
+- 👁 **Post an interactive form through `InteractiveLogin.PostFormAsync`.** It reads the page's antiforgery tokens and
+  posts the fields with them and the session cookie; a bundle page answers `503` in the integration host but still
+  issues the tokens. Assert a refused sign-in with `SubmitLoginAsync`, which returns the response, and
+  `ReadSessionCookie`.
 - 👁 **Assert a URI the server must deliver as written on `Headers.Location.OriginalString`.** `HttpClient` parses
   the header into a `Uri`, whose `AbsoluteUri` and `ToString()` normalize it, so such an assertion passes while the
   server sends `myapp://callback/` for `myapp://callback`.

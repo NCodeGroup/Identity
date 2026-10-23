@@ -2957,3 +2957,81 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   Advanced requires binding and defaults support on, and the `SeparateCertificateBindingRequirement` migration
   translates stored documents. A profile's defaults take effect at the server root (ADR-0148). ADR-0097; the scope-blind
   profile default is `R68`._
+- **`R25` — Make the usage-ledger flush idempotent, or document that it may overcount.** Touch point:
+  `TenantUsageFlushService.cs:117-123`.
+  _Closed: a replica numbers its usage batches and the ledger records its last added batch in a checkpoint row committed
+  with the counts (`TenantUsageCheckpoints`), so a batch retried after a save whose outcome was unknown is skipped
+  rather than counted twice; a failed batch is held and retried in order before new usage is drained, and checkpoints
+  are pruned with retention. ADR-0209 and ADR-0199._
+- **`R54` — Make the integration suite's host teardown reliable.** Full parallel runs of
+  `NCode.Identity.OpenId.IntegrationTests` intermittently exit 1 although every test passes, and a rerun is clean. Two
+  shapes have been seen: `[Test Class Cleanup Failure (…DiscoveryInsecureOverrideTests)] System.AggregateException`,
+  and, on Windows, a test failing in `WebApplicationFactory.Dispose()` because `TenantUsageFlushService.StopAsync`'s
+  final flush fails and logging `TenantUsageFlushFailed` reaches the already-disposed Windows `EventLog` provider
+  (`ObjectDisposedException: EventLogInternal`). Make a fixture's disposal never throw: the test host should not
+  register the `EventLog` provider, and the final flush on stop should not fail against a store that is being torn down
+  (pairs with `R25`). Touch points: `DiscoveryInsecureOverrideTests.cs:33`, `HostApplicationFactory.cs`,
+  `TenantUsageFlushService.cs:83, 123`.
+  _Closed: the integration host is stopped through its own run loop (`ApplicationRunLoopHost`), so each hosted service
+  stops once and disposal does not race the final flush; the final usage flush runs once, never throws, and logs what it
+  discards; both reference hosts log to the console and EventSource only (ADR-0210). Three consecutive `./build/dod.ps1
+  -Fast` runs passed. ADR-0209 decision 5; pruning on EF InMemory is `R73`._
+- **`R62` — Check the remaining client invariants as coherence rules.** The coherence validator (ADR-0206) checks a
+  value a client registers against the effective setting that must permit it. Three checks still live in one caller: (1)
+  requirements between a client's settings — `id_token_encryption_required` needs an `id_token_encrypted_response_alg`,
+  a `ping` or `push` `backchannel_token_delivery_mode` needs a `client_notification_endpoint`, and that mode must be in
+  `backchannel_token_delivery_modes_supported` for a client that uses the CIBA grant — which only dynamic registration
+  checks; (2) a value a client's own document lists in a ceiling that merges with `Intersect` (`grant_types_supported`,
+  `response_types_supported`, and the request-object, `token_endpoint_auth_signing_alg` and CIBA signing lists) but its
+  tenant excludes: dynamic registration refuses it, while the management API stores it and the effective list silently
+  loses the value; (3) `DeveloperInteractiveSeedHandler` stores its clients without the validator. Let a violation name
+  a missing companion setting, give a rule the client's own document, and route the developer seeder through the
+  validator. Touch points: `DefaultClientRegistrationEndpointHandler.ValidateAlgorithmMetadata`,
+  `ValidateSupportedMetadata`, `ValidateBackchannelMetadata`, `IClientCoherenceRule`, `DeveloperInteractiveSeedHandler`.
+  _Closed: a coherence rule reads the client's registered and effective settings (`ClientCoherenceContext`), and a
+  violation describes itself (`GoverningSettingName`, `Description`, `Missing`). `RegisteredValueCoherenceRule`,
+  `IdTokenEncryptionCoherenceRule` and `BackchannelTokenDeliveryCoherenceRule` cover the relations dynamic registration
+  alone checked, `IClientCoherenceValidator.Validate(tenantSettings, clientSettings)` resolves both views itself, and
+  the developer seeder runs the validator. ADR-0206; `Min`/`Max` clamps are `R71`._
+- **`R63` — Close the loose ends of the client coherence checks.** (1) `BootstrapAdminSeedHandler` stores the
+  bootstrap administrator's `client_secret_basic` client without `IClientCoherenceValidator`, so a ceiling that excludes
+  `client_secret_basic` seeds an administrator that cannot authenticate, found at the first sign-in rather than at
+  start; route it through the validator as `ConformanceSeedHandler` does (the developer seeder is `R62`). (2) The
+  front-channel logout page of `DefaultEndSessionEndpointProvider` has no test, although ADR-0203 relies on it never
+  receiving a URI of no kind; cover its markup for a permitted and a refused post-logout URI. (3) A tenant or server
+  settings change that excludes many clients answers with one message per client, so the response grows with the number
+  of incoherent clients; cap the messages and state how many more there are. Touch points:
+  `BootstrapAdminSeedHandler.cs`, `DefaultEndSessionEndpointProvider.cs`,
+  `TenantApiEndpointHandler.ValidateClientCoherenceAsync`, `ServerApiEndpointHandler.ValidateClientCoherenceAsync`,
+  `BaseApiEndpointHandler.SettingsValidationProblem`.
+  _Closed: the bootstrap administrator, developer and conformance seeders check the clients they create through one
+  `SeededClientValidator` (the bootstrap seeder before it imports the secret); the front-channel logout page markup is
+  tested for a permitted and a refused post-logout URI; a validation problem lists at most ten errors per setting and
+  counts the rest. ADR-0206; stored clients after a configuration change are `R72`._
+- **`R65` — Accept `dpop_bound_access_tokens` at dynamic registration.** RFC 9449 §5.2 client metadata. Map it to
+  `require_dpop` as `R42` mapped `tls_client_certificate_bound_access_tokens`, and decide whether `require_dpop` keeps
+  its name. Touch points: `RegisterClientRequest`, `DefaultClientRegistrationEndpointHandler.BuildSettingsObject`.
+  _Closed: dynamic registration accepts the RFC 9449 §5.2 `dpop_bound_access_tokens` metadata and maps it to
+  `require_dpop_bound_access_tokens`, the renamed `require_dpop`, so both sender-constraint requirements are `require_`
+  plus their RFC metadata name. `DPoPBoundAccessTokenCoherenceRule` refuses the requirement where no DPoP proof can be
+  accepted, and the `RenameDPoPRequirement` migration translates stored documents. ADR-0097._
+- **`R66` — Answer a concurrent second spend of a single-use grant with its protocol error.** `ConsumeOnceOrDefault`
+  lets the loser's `SaveChanges` throw a concurrency exception, which reaches the client as a `500` for authorization
+  codes, device codes, CIBA requests, pushed requests and initial access tokens. Touch points:
+  `DefaultPersistedGrantService.ConsumeOnceOrDefault`, `GrantStore.UpdateAsync`.
+  _Closed: EF stores report a lost race as the store-neutral `StoreConcurrencyException`, and `ConsumeOnceOrDefault`
+  answers it as a spent grant, so a concurrent second spend of an authorization code, device code, CIBA request, pushed
+  request, initial access token or paused-flow `state` receives its protocol error rather than `500`. ADR-0208;
+  refresh-token rotation is `R69` and management writes are `R70`._
+- **`R68` — Apply a security profile's defaults only to settings that apply at the expanding scope.**
+  `ISecurityProfileCatalog.Expand` applies a profile's defaults to whatever scope selects the profile, including a
+  setting that does not apply at that scope. When only a client selects `fapi1-advanced`, its default
+  `tls_client_certificate_bound_access_tokens = true` (a tenant setting) lands in the client's effective settings and
+  overrides the tenant's `false`, so `CertificateBoundAccessTokenCoherenceRule` cannot report that client. The catalog
+  knows the scope when it expands a persisted document (`Expand(settingsJson, scopeName, ...)`), so a default whose
+  descriptor's `AppliesTo` excludes that scope is not applied there; the cascade then supplies the tenant's value and
+  the coherence rule reports the client. Decide how the one-argument `Expand` and the root baseline overload learn the
+  scope. Touch points: `DefaultSecurityProfileCatalog.ApplyDefaults`, `ISecurityProfileCatalog`, ADR-0148, ADR-0206.
+  _Closed: every `ISecurityProfileCatalog.Expand` names its scope, an unregistered scope is refused, and a profile
+  default applies only to a setting that applies within that scope, so a client that alone selects `fapi1-advanced`
+  keeps its tenant's certificate-binding support and the coherence rule reports it. ADR-0148 and ADR-0202._

@@ -551,17 +551,15 @@ public static class OpenIdSettingNames
 
     /// <summary>
     /// Contains the name of the tenant <c>session_absolute_lifetime</c> setting: the absolute lifetime applied to the
-    /// server-side end-user session established at sign-in, after which the session expires regardless of activity. A
-    /// value of <see cref="System.TimeSpan.Zero"/> disables the absolute lifetime (the session is bounded only by the
-    /// idle timeout, if any). Defaults to <see cref="System.TimeSpan.Zero"/>. Not advertised in discovery.
+    /// server-side end-user session established at sign-in, after which the session ends however it is used. Between
+    /// one second and 365 days; defaults to 30 days. Not advertised in discovery.
     /// </summary>
     public const string SessionAbsoluteLifetime = "session_absolute_lifetime";
 
     /// <summary>
     /// Contains the name of the tenant <c>session_idle_timeout</c> setting: the sliding inactivity window after which
-    /// an end-user session expires if it is not used. Each authorize request that resolves the session renews the
-    /// window. A value of <see cref="System.TimeSpan.Zero"/> disables the idle timeout. Defaults to
-    /// <see cref="System.TimeSpan.Zero"/>. Not advertised in discovery.
+    /// an end-user session ends if it is not used. Each authorize request that resolves the session renews the
+    /// window. Between one second and 100 days; defaults to 3 days. Not advertised in discovery.
     /// </summary>
     public const string SessionIdleTimeout = "session_idle_timeout";
 
@@ -598,6 +596,14 @@ public static class OpenIdSettingNames
     /// Contains the name of <c>refresh_token_reuse_interval</c> setting.
     /// </summary>
     public const string RefreshTokenReuseInterval = "refresh_token_reuse_interval";
+
+    /// <summary>
+    /// Contains the name of the client <c>refresh_token_rotation_retry_required</c> setting: whether a client whose
+    /// refresh tokens rotate must be able to retry a rotation, that is have a positive
+    /// <c>refresh_token_reuse_interval</c>. Once a parent scope requires it, a child cannot un-require it. Defaults to
+    /// <c>false</c>; the FAPI 2.0 security profile requires it. Not advertised in discovery.
+    /// </summary>
+    public const string RefreshTokenRotationRetryRequired = "refresh_token_rotation_retry_required";
 
     /// <summary>
     /// Contains the name of <c>refresh_token_lifetime</c> setting.

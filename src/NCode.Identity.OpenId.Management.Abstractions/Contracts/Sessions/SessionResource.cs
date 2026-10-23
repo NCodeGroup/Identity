@@ -50,9 +50,10 @@ public sealed class SessionResource
     public required DateTimeOffset LastActivityWhen { get; init; }
 
     /// <summary>
-    /// Gets when the session expires, or <c>null</c> when it has no absolute lifetime.
+    /// Gets when the session ends unless it is used again: the end of its idle window or, if earlier, the end of its
+    /// absolute lifetime.
     /// </summary>
-    public required DateTimeOffset? ExpiresWhen { get; init; }
+    public required DateTimeOffset ExpiresWhen { get; init; }
 
     /// <summary>
     /// Gets when the end-user authenticated for the session (the source of the <c>auth_time</c> claim).

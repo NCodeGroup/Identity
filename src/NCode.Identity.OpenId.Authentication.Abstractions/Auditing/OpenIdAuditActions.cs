@@ -44,6 +44,12 @@ public static class OpenIdAuditActions
     public const string RefreshTokenReplay = "token.refresh.replay";
 
     /// <summary>
+    /// A rotated refresh token was presented again within its reuse interval and answered as a retry of its
+    /// rotation.
+    /// </summary>
+    public const string RefreshTokenRetry = "token.refresh.retry";
+
+    /// <summary>
     /// An authorization request was granted for a subject.
     /// </summary>
     public const string AuthorizationGranted = "authorization.granted";

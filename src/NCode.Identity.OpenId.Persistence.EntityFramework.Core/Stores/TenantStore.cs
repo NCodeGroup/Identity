@@ -627,6 +627,23 @@ internal class TenantStore(
             );
         }
 
+        // The role assignments that the tenant's principals hold at the nodes of other tenants are removed with them.
+        // See ADR-0212.
+        var normalizedTenantId = tenantEntity.NormalizedTenantId;
+        var principals = DbContext.FederatedPrincipals.IgnoreQueryFilters();
+        DbContext.RoleAssignments.RemoveRange(
+            await DbContext
+                .RoleAssignments.IgnoreQueryFilters()
+                .Where(assignment =>
+                    assignment.NormalizedTenantId != normalizedTenantId
+                    && principals.Any(principal =>
+                        principal.NormalizedTenantId == normalizedTenantId
+                        && principal.NormalizedPrincipalId == assignment.NormalizedPrincipalId
+                    )
+                )
+                .ToListAsync(cancellationToken)
+        );
+
         await RemoveTenantOwnedRowsAsync(tenantEntity.NormalizedTenantId, cancellationToken);
 
         DbContext.Tenants.Remove(tenantEntity);

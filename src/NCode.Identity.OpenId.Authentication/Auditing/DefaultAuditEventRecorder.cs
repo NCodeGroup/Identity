@@ -225,6 +225,29 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
     }
 
     /// <inheritdoc />
+    public ValueTask RecordRefreshTokenRetryAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        string? subjectId,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new RefreshTokenRetryAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = Activity.Current?.Id,
+            TenantId = openIdContext.Tenant.TenantId,
+            Source = openIdContext.EndpointName,
+            SubjectId = subjectId,
+            ClientId = openIdClient.ClientId,
+            Outcome = AuditOutcome.Success,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public ValueTask RecordOpenIdErrorAsync(
         OpenIdContext openIdContext,
         IOpenIdError error,

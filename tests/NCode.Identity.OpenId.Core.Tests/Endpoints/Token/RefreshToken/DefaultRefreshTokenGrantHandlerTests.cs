@@ -875,7 +875,8 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         var (mockContext, mockClient, mockMediator, mockTokenRequest, mockSettings, _) =
             CreateScaffold();
 
-        // The strict mocks have no setup for the replay audit, the rotation or the spend: a retry is none of them.
+        // The strict mocks have no setup for the replay audit, the rotation or the spend: a retry is none of them. The
+        // retry audit is the only audit.
         SetupLookup(
             mockTokenRequest,
             CreateRotatedGrant(["api", "offline_access"], CreatedWhen.AddSeconds(-10))
@@ -902,6 +903,18 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                 )
             )
             .Returns(new ValueTask<SecurityToken?>(CreateSecurityToken("another-refresh-token")))
+            .Verifiable();
+
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordRefreshTokenRetryAsync(
+                    mockContext.Object,
+                    mockClient.Object,
+                    null,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
         var result = await Handler.HandleAsync(
@@ -1020,7 +1033,8 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
         var (mockContext, mockClient, mockMediator, mockTokenRequest, mockSettings, _) =
             CreateScaffold();
 
-        // The strict mocks have no setup for the replay audit or the lineage revocation: a retry is neither.
+        // The strict mocks have no setup for the replay audit or the lineage revocation: a retry is neither. The retry
+        // audit is the only audit.
         SetupLookup(mockTokenRequest, CreateActiveGrantInLineage(["api", "offline_access"]));
         SetupTokenResponse(mockContext, mockClient, mockMediator);
         SetupReuseInterval(mockSettings, TimeSpan.FromSeconds(30));
@@ -1082,6 +1096,18 @@ public class DefaultRefreshTokenGrantHandlerTests : BaseTests
                 )
             )
             .Returns(new ValueTask<SecurityToken?>(CreateSecurityToken("another-refresh-token")))
+            .Verifiable();
+
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordRefreshTokenRetryAsync(
+                    mockContext.Object,
+                    mockClient.Object,
+                    null,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
         var result = await Handler.HandleAsync(

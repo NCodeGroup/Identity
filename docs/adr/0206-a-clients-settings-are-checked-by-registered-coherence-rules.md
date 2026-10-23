@@ -4,7 +4,8 @@
   describes itself, every configuration seeder runs the validator, and dynamic registration keeps no relation check of
   its own, and by
   [ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a change of the server's
-  settings that is not a write is reported)
+  settings that is not a write is reported; a client whose refresh tokens rotate where a retry is required has a reuse
+  interval)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -55,7 +56,7 @@ authorization.
    Rules are an open strategy collection ([ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md)). They are
    registered with `TryAddEnumerable`, which keeps one registration per implementation type, so each rule is its own
    class and a package adds a rule with one registration.
-2. **Eight built-in rules** live in `NCode.Identity.OpenId.Authentication`, in the namespace
+2. **Nine built-in rules** live in `NCode.Identity.OpenId.Authentication`, in the namespace
    `NCode.Identity.OpenId.Authentication.Clients.Coherence`:
    - `ResponseAlgorithmCoherenceRule` checks the algorithms that a client registers for the JWTs addressed to it: its ID
      tokens, UserInfo responses, introspection responses, and authorization responses. A registered signing algorithm
@@ -90,6 +91,17 @@ authorization.
      `grant_types_supported` is unset or lists `urn:openid:params:grant-type:ciba`, and
      `backchannel_token_delivery_modes_supported` is set, the mode must be one that the list contains. A client that
      cannot use CIBA keeps its default `poll` unchecked.
+   - `RefreshTokenRotationRetryCoherenceRule` checks that a client whose effective
+     `refresh_token_rotation_retry_required` is `true` and whose refresh tokens can rotate has a positive effective
+     `refresh_token_reuse_interval`, and reports the interval otherwise. The refresh tokens of a client can rotate
+     (`RefreshTokenRotationRequirement.CanRotate`) under the `always` rotation policy, and those of a public client,
+     whose `token_endpoint_auth_method` is `none`, under the `unbound` policy
+     ([ADR-0216](0216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md)). FAPI 2.0 §5.3.2.1 Note 1 requires
+     a server that rotates refresh tokens to let a client retry, so the FAPI 2.0 security profile sets
+     `refresh_token_rotation_retry_required` through its ceiling. The rule names no profile: the profile contributes the
+     requirement as data, and no relation among the members of a vocabulary is encoded in code
+     ([ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md),
+     [ADR-0217](0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)).
 3. **One validator runs the rules and detects a change.** `IClientCoherenceValidator` has two members:
    - `Validate(tenantSettings, clientSettings)` returns the violations of every registered rule. It reads the
      registered settings from the client's settings document and resolves the effective settings through
@@ -185,4 +197,4 @@ authorization.
   server cannot honor.
 - A deployment or a reload that makes a stored client incoherent is logged, client by client, once per change of the
   server's effective settings.
-- This implements backlog `R40`, `R55`, `R62`, `R63` and `R72`.
+- This implements backlog `R40`, `R55`, `R62`, `R63`, `R72` and `R81`.

@@ -51,6 +51,17 @@ public class Fapi2SecurityProfileTests : BaseTests
         new Fapi2SecurityProfile().ApplyCeilingSettings(mockCeiling.Object);
     }
 
+    [Fact]
+    public void ApplyCeilingSettings_RequiresARetryWhenARefreshTokenRotates()
+    {
+        var mockCeiling = CreateLooseMock<ISecurityProfileCeilingBuilder>();
+        mockCeiling
+            .Setup(x => x.Set(OpenIdSettingKeys.RefreshTokenRotationRetryRequired, true))
+            .Verifiable();
+
+        new Fapi2SecurityProfile().ApplyCeilingSettings(mockCeiling.Object);
+    }
+
     #endregion
 
     #region ApplyDefaultSettings Tests

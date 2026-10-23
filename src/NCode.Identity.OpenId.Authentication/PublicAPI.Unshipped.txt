@@ -305,6 +305,7 @@ static readonly NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdA
 static readonly NCode.Identity.OpenId.Authentication.Messages.Parameters.OpenIdAuthenticationParameters.RequestObjectSource -> NCode.Identity.OpenId.Messages.Parameters.KnownParameter<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.RequestObjectSource>!
 static readonly NCode.Identity.OpenId.Authentication.Messages.Parsers.AuthenticationParameterParsers.RequestClaims -> NCode.Identity.OpenId.Messages.Parsers.JsonParser<NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages.IRequestClaims!>!
 const NCode.Identity.OpenId.Authentication.Metrics.OpenIdAuthenticationMetrics.MeterName = "NCode.Identity.OpenId.Authentication" -> string!
+const NCode.Identity.OpenId.Authentication.Persistence.GrantRetentionOptions.SectionName = "GrantRetention" -> string!
 NCode.Identity.OpenId.Authentication.Metrics.OpenIdAuthenticationMetrics
 NCode.Identity.OpenId.Authentication.Persistence.GrantRetentionOptions
 NCode.Identity.OpenId.Authentication.Persistence.GrantRetentionOptions.GrantRetentionOptions() -> void
@@ -316,6 +317,7 @@ const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.Requests = "r
 const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.TokenRequests = "token_requests" -> string!
 const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.RequestsOverage = "requests_overage" -> string!
 const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.TokenRequestsOverage = "token_requests_overage" -> string!
+const NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.SectionName = "TenantUsage" -> string!
 NCode.Identity.OpenId.Authentication.Usage.ITenantUsageRecorder
 NCode.Identity.OpenId.Authentication.Usage.ITenantUsageRecorder.Record(string! tenantId, string! meter) -> void
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters

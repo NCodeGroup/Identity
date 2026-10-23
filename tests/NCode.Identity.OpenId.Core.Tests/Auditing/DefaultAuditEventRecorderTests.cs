@@ -511,6 +511,56 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
     #endregion
 
+    #region RecordRefreshTokenRetryAsync Tests
+
+    [Fact]
+    public async Task RecordRefreshTokenRetryAsync_PublishesRetryAuditEventWithSuccessOutcome()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockClient = MockRepository.Create<OpenIdClient>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
+
+        RefreshTokenRetryAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(
+                    It.IsAny<RefreshTokenRetryAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (RefreshTokenRetryAuditEvent auditEvent, CancellationToken _) =>
+                    captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordRefreshTokenRetryAsync(
+            mockContext.Object,
+            mockClient.Object,
+            "subject-1",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("token.refresh.retry", captured.Action);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal("client-1", captured.ClientId);
+        Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Equal("api/token", captured.Source);
+    }
+
+    #endregion
+
     #region Session Lifecycle Tests
 
     [Fact]

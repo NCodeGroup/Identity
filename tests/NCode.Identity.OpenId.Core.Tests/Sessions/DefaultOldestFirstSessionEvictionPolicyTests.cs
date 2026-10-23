@@ -36,7 +36,7 @@ public class DefaultOldestFirstSessionEvictionPolicyTests
             sessionId,
             "subject-1",
             createdWhen,
-            ExpiresWhen: null,
+            ExpiresWhen: createdWhen.AddDays(3),
             new SessionGrant
             {
                 AuthTime = createdWhen,

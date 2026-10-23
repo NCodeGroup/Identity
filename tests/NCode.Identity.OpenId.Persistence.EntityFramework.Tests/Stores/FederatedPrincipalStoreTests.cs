@@ -60,6 +60,22 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
             ConcurrencyToken = string.Empty,
         };
 
+    private static PersistedRoleAssignment CreateAssignment(
+        string assignmentId,
+        string tenantId,
+        string principalId
+    ) =>
+        new()
+        {
+            TenantId = tenantId,
+            AssignmentId = assignmentId,
+            PrincipalId = principalId,
+            RoleName = "Owner",
+            ResourceType = "tenant",
+            ResourceId = tenantId,
+            ConcurrencyToken = string.Empty,
+        };
+
     [Fact]
     public async Task AddAsync_WhenPersisted_RoundTripsByPrincipalId()
     {
@@ -92,4 +108,48 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
 
         Assert.Null(loaded);
     }
+
+    #region RemoveAsync Tests
+
+    [Fact]
+    public async Task RemoveAsync_RemovesTheRoleAssignmentsOfThePrincipalInEveryTenant()
+    {
+        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
+        _dbContext.SeedTenant(idGenerator, "tenant-2");
+        await _store.AddAsync(CreatePrincipal("principal-1"), CancellationToken.None);
+        await _store.AddAsync(CreatePrincipal("principal-2"), CancellationToken.None);
+        var roleAssignmentStore = new RoleAssignmentStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext
+        );
+        await roleAssignmentStore.AddAsync(
+            CreateAssignment("assign-1", TenantId, "principal-1"),
+            CancellationToken.None
+        );
+        await roleAssignmentStore.AddAsync(
+            CreateAssignment("assign-2", "tenant-2", "Principal-1"),
+            CancellationToken.None
+        );
+        await roleAssignmentStore.AddAsync(
+            CreateAssignment("assign-3", TenantId, "principal-2"),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        await _store.RemoveAsync("principal-1", CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var remaining = await _dbContext
+            .RoleAssignments.IgnoreQueryFilters()
+            .Select(entity => entity.AssignmentId)
+            .OrderBy(assignmentId => assignmentId)
+            .ToListAsync();
+        Assert.Equal(["assign-3"], remaining);
+        Assert.Null(await _store.GetOrDefaultAsync("principal-1", CancellationToken.None));
+    }
+
+    #endregion
 }

@@ -942,30 +942,32 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
-            // session_absolute_lifetime: absolute lifetime of the server-side end-user session, after which it expires
-            // regardless of activity. TimeSpan.Zero disables it (bounded only by the idle timeout, if any). Default
-            // Zero. Not advertised (leaking session policy aids attackers). Override (Replace): a tenant fully replaces
-            // the value. (F25)
+            // session_absolute_lifetime: absolute lifetime of the server-side end-user session, after which it ends
+            // however it is used. Between one second and 365 days; default 30 days (Auth0's tenant default and NIST
+            // SP 800-63B's AAL1 reauthentication of at least once per 30 days; the maximum is Auth0's). Not advertised
+            // (leaking session policy aids attackers). Override (Replace): a tenant fully replaces the value.
+            // (ADR-0220)
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SessionAbsoluteLifetime,
                 AppliesTo = Tenants,
-                Rule = OpenIdSettingRules.NonNegativeDuration(),
-                Default = TimeSpan.Zero,
+                Rule = SettingRules.Between(TimeSpan.FromSeconds(1), TimeSpan.FromDays(365)),
+                Default = TimeSpan.FromDays(30),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
             };
 
-            // session_idle_timeout: sliding inactivity window after which the end-user session expires if unused; each
-            // authorize request that resolves the session renews it. TimeSpan.Zero disables it. Default Zero. Not
-            // advertised. Override (Replace): a tenant fully replaces the value. (F25)
+            // session_idle_timeout: sliding inactivity window after which the end-user session ends if unused; each
+            // authorize request that resolves the session renews it. Between one second and 100 days; default 3 days
+            // (Auth0's inactivity default; the maximum is Auth0's enterprise maximum). Not advertised. Override
+            // (Replace): a tenant fully replaces the value. (ADR-0220)
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SessionIdleTimeout,
                 AppliesTo = Tenants,
-                Rule = OpenIdSettingRules.NonNegativeDuration(),
-                Default = TimeSpan.Zero,
+                Rule = SettingRules.Between(TimeSpan.FromSeconds(1), TimeSpan.FromDays(100)),
+                Default = TimeSpan.FromDays(3),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1059,6 +1061,20 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
+            };
+
+            // refresh_token_rotation_retry_required: whether a client whose refresh tokens rotate must be able to retry
+            // a rotation, that is have a positive refresh_token_reuse_interval (default false; FAPI 2.0 §5.3.2.1
+            // requires it).
+            // Floor (Or): once a parent requires it, a child cannot un-require it. (ADR-0206, ADR-0217)
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.RefreshTokenRotationRetryRequired,
+                AppliesTo = Clients,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Or,
             };
 
             // refresh_token_lifetime: validity window for issued refresh tokens (default 30 days).

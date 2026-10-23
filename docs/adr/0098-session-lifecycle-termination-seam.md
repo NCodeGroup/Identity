@@ -1,6 +1,8 @@
 # 98. Session lifecycle as an observable termination seam
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0220](0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md): a request that finds an
+  ended session terminates it with `absolute_expiry` or `idle_timeout`)
 - **Date:** 2026-10-14
 - **Deciders:** NCode Group
 
@@ -42,9 +44,10 @@ seam (as `DefaultTokenService` drives the claims seam).
   that ends a session for its own cause, such as a risk signal, a password change, or a disabled account, passes its
   own name, and the handlers and the audit event carry it unchanged. Names are compared ordinally.
 
-    Every termination path dispatches it: the `end_session_endpoint` (reason `Logout`), idle expiry and concurrent
-    eviction inside `DefaultSessionService`, and the `ISessionService.RevokeAsync` / `RevokeAllAsync` administrative and
-    global-sign-out paths. `DefaultSessionService` drives the seam through `openIdContext.Mediator`.
+    Every termination path dispatches it: the `end_session_endpoint` (reason `Logout`), idle and absolute expiry found
+    on an authorize request, concurrent eviction inside `DefaultSessionService`, and the `ISessionService.RevokeAsync`
+    / `RevokeAllAsync` administrative and global-sign-out paths. `DefaultSessionService` drives the seam through
+    `openIdContext.Mediator`.
 
 - **Creation → inline.** A session is established by exactly one owner (interactive sign-in); it is not a fan-out
   concern, so per [ADR-0001](0001-mediator-vs-dependency-injection-logic-classes.md) ("the mediator must be earned") it

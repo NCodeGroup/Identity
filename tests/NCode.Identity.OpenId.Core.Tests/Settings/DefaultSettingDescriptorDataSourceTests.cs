@@ -240,6 +240,50 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
     }
 
     [Fact]
+    public void Collection_RefreshTokenRotationRetryRequired_IsAClientRequirementAParentFloors()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<bool>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.RefreshTokenRotationRetryRequired)
+        );
+        var parentSetting = descriptor.Create(true);
+        var childSetting = descriptor.Create(false);
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.False(descriptor.Default);
+        Assert.Equal([OpenIdSettingScopes.Client], descriptor.AppliesTo.AsEnumerable());
+        Assert.False(descriptor.IsDiscoverable);
+        Assert.True(merged.Value);
+    }
+
+    [Fact]
+    public void Collection_SessionAbsoluteLifetime_DefaultsTo30DaysAndAcceptsAtMostAYear()
+    {
+        var descriptor = Assert.IsType<SettingDescriptor<TimeSpan>>(
+            GetDescriptor(CreateDataSource(), OpenIdSettingNames.SessionAbsoluteLifetime)
+        );
+
+        Assert.Equal(TimeSpan.FromDays(30), descriptor.Default);
+        Assert.False(descriptor.TryValidate(TimeSpan.Zero, out _));
+        Assert.True(descriptor.TryValidate(TimeSpan.FromDays(365), out _));
+        Assert.False(descriptor.TryValidate(TimeSpan.FromDays(366), out _));
+    }
+
+    [Fact]
+    public void Collection_SessionIdleTimeout_DefaultsTo3DaysAndAcceptsAtMost100Days()
+    {
+        var descriptor = Assert.IsType<SettingDescriptor<TimeSpan>>(
+            GetDescriptor(CreateDataSource(), OpenIdSettingNames.SessionIdleTimeout)
+        );
+
+        Assert.Equal(TimeSpan.FromDays(3), descriptor.Default);
+        Assert.False(descriptor.TryValidate(TimeSpan.Zero, out _));
+        Assert.True(descriptor.TryValidate(TimeSpan.FromDays(100), out _));
+        Assert.False(descriptor.TryValidate(TimeSpan.FromDays(101), out _));
+    }
+
+    [Fact]
     public void Collection_EveryDefaultIsInItsOwnDomain()
     {
         var dataSource = CreateDataSource("fapi2");

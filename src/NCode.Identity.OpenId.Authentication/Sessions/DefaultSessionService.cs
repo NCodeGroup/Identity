@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Auditing;
@@ -37,6 +36,7 @@ internal class DefaultSessionService(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     IPersistedGrantService persistedGrantService,
+    IPersistedPayloadSerializer payloadSerializer,
     IStoreManagerFactory storeManagerFactory,
     ISessionEvictionPolicy evictionPolicy,
     IAuditEventRecorder auditEventRecorder,
@@ -53,6 +53,7 @@ internal class DefaultSessionService(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
+    private IPersistedPayloadSerializer PayloadSerializer { get; } = payloadSerializer;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ISessionEvictionPolicy EvictionPolicy { get; } = evictionPolicy;
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
@@ -65,6 +66,33 @@ internal class DefaultSessionService(
             sessionId
         );
 
+    // See ADR-0220.
+    private static DateTimeOffset? GetAbsoluteEnd(
+        SessionGrant payload,
+        DateTimeOffset? expiresWhen
+    ) => payload.AbsoluteExpiresWhen ?? expiresWhen;
+
+    // When the session ends unless it is used again: the end of its idle window or, if earlier, its absolute end.
+    private static DateTimeOffset GetEnd(SessionGrant payload, DateTimeOffset absoluteEnd) =>
+        payload.IdleTimeout is { } idle && payload.LastActivityWhen + idle < absoluteEnd
+            ? payload.LastActivityWhen + idle
+            : absoluteEnd;
+
+    // Why the session has ended at 'now', or null while it lasts.
+    private static string? GetEndReason(
+        SessionGrant payload,
+        DateTimeOffset? expiresWhen,
+        DateTimeOffset now
+    )
+    {
+        if (GetAbsoluteEnd(payload, expiresWhen) is not { } absoluteEnd || now >= absoluteEnd)
+            return SessionTerminationReasons.AbsoluteExpiry;
+
+        return expiresWhen <= now || now >= GetEnd(payload, absoluteEnd)
+            ? SessionTerminationReasons.IdleTimeout
+            : null;
+    }
+
     /// <inheritdoc />
     public async ValueTask<string> CreateAsync(
         OpenIdContext openIdContext,
@@ -72,6 +100,9 @@ internal class DefaultSessionService(
         CancellationToken cancellationToken
     )
     {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(request.AbsoluteLifetime, TimeSpan.Zero);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(request.IdleTimeout, TimeSpan.Zero);
+
         var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
         // Enforce the concurrent-session cap before persisting the new session so that, once it is added, the subject
@@ -95,6 +126,7 @@ internal class DefaultSessionService(
             ClientIds = [],
             LastActivityWhen = createdWhen,
             IdleTimeout = request.IdleTimeout,
+            AbsoluteExpiresWhen = createdWhen + request.AbsoluteLifetime,
             UserAgent = request.UserAgent,
             RemoteIpAddress = request.RemoteIpAddress,
         };
@@ -111,12 +143,16 @@ internal class DefaultSessionService(
             Payload = payload,
         };
 
+        // The grant expires when the session ends unless it is used again: at the end of its idle window or, if
+        // earlier, at its absolute end. See ADR-0220.
         await PersistedGrantService.AddAsync(
             openIdContext,
             grantId,
             grant,
             createdWhen,
-            request.Lifetime,
+            request.IdleTimeout < request.AbsoluteLifetime
+                ? request.IdleTimeout
+                : request.AbsoluteLifetime,
             cancellationToken
         );
 
@@ -240,42 +276,61 @@ internal class DefaultSessionService(
             cancellationToken
         );
 
-        if (grant is not { Status: PersistedGrantStatus.Active } active)
+        if (grant is not { } session || session.Status == PersistedGrantStatus.Revoked)
             return false;
 
-        var payload = active.Payload;
-        if (payload.IdleTimeout is not { } idleTimeout)
-            return true;
-
+        var payload = session.Payload;
         var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
-        var elapsed = now - payload.LastActivityWhen;
 
-        // The session has been idle past its sliding window: expire it through the termination seam (revoke its grants,
-        // notify its relying parties, audit) and treat the request as having no valid session.
-        if (elapsed >= idleTimeout)
+        // A session that has ended, at its absolute end or at the end of its idle window, is terminated through the
+        // termination seam (revoke its grants, notify its relying parties, audit) whichever bound ended it, and the
+        // request has no valid session. See ADR-0220.
+        if (GetEndReason(payload, session.ExpiresWhen, now) is { } endReason)
         {
             await TerminateAsync(
                 openIdContext,
-                SessionTerminationReasons.IdleTimeout,
-                active.SubjectId,
+                endReason,
+                session.SubjectId,
                 sessionId,
                 payload.ClientIds,
                 cancellationToken
             );
-            Logger.SessionIdleExpired(sessionId);
+
+            if (
+                string.Equals(
+                    endReason,
+                    SessionTerminationReasons.AbsoluteExpiry,
+                    StringComparison.Ordinal
+                )
+            )
+                Logger.SessionAbsoluteExpired(sessionId);
+            else
+                Logger.SessionIdleExpired(sessionId);
+
             return false;
         }
 
-        // Renew the sliding window, throttled so a burst of requests does not write on every one.
-        if (elapsed >= TouchGranularity)
+        // Renew the sliding window and the grant's expiry together, throttled so a burst of requests does not write on
+        // every one.
+        if (
+            now - payload.LastActivityWhen >= TouchGranularity
+            && GetAbsoluteEnd(payload, session.ExpiresWhen) is { } absoluteEnd
+        )
         {
-            await PersistedGrantService.UpdatePayloadAsync(
+            var touched = payload with
+            {
+                LastActivityWhen = now,
+                AbsoluteExpiresWhen = absoluteEnd,
+            };
+
+            // A touch that finds the grant changed since the service read it is dropped, and the other change stands.
+            // The touch writes the payload read above, so a write between the two reads is overwritten (backlog R91).
+            // See ADR-0220.
+            await PersistedGrantService.UpdatePayloadAndExpirationAsync(
                 openIdContext,
                 grantId,
-                payload with
-                {
-                    LastActivityWhen = now,
-                },
+                touched,
+                GetEnd(touched, absoluteEnd),
                 cancellationToken
             );
         }
@@ -316,18 +371,18 @@ internal class DefaultSessionService(
                 if (envelope.SessionId is not { Length: > 0 } sessionId)
                     continue;
 
-                // Skip sessions that are no longer usable: revoked, past their absolute expiry, or idle-timed-out.
+                // Skip sessions that are no longer usable: revoked or ended.
                 if (envelope.RevokedWhen is not null)
                     continue;
 
-                if (envelope.ExpiresWhen is { } expiresWhen && expiresWhen <= now)
-                    continue;
-
-                var payload = envelope.PayloadJson.Deserialize<SessionGrant>(jsonOptions);
+                var payload = PayloadSerializer.Deserialize<SessionGrant>(
+                    envelope.PayloadJson,
+                    jsonOptions
+                );
 
                 if (
-                    payload.IdleTimeout is { } idleTimeout
-                    && now - payload.LastActivityWhen >= idleTimeout
+                    GetAbsoluteEnd(payload, envelope.ExpiresWhen) is not { } absoluteEnd
+                    || GetEndReason(payload, envelope.ExpiresWhen, now) is not null
                 )
                 {
                     continue;
@@ -338,7 +393,7 @@ internal class DefaultSessionService(
                         sessionId,
                         envelope.SubjectId,
                         envelope.CreatedWhen,
-                        envelope.ExpiresWhen,
+                        GetEnd(payload, absoluteEnd),
                         payload
                     )
                 );

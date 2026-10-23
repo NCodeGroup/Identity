@@ -596,6 +596,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RefreshTokenReuseInterval);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_rotation_retry_required' setting.
+    /// </summary>
+    public static SettingKey<bool> RefreshTokenRotationRetryRequired =>
+        new(OpenIdSettingNames.RefreshTokenRotationRetryRequired);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_lifetime' setting.
     /// </summary>
     public static SettingKey<TimeSpan> RefreshTokenLifetime =>

@@ -23,6 +23,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
+using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.Frontend;
 using NCode.Identity.Server.KeyRingProtection;
@@ -47,7 +49,9 @@ public static class IdentityServerBuilderExtensions
             nameof(OpenIdOptions.Server),
             nameof(OpenIdOptions.Tenant),
             TenantResolutionSubsection,
-            MutualTlsSubsection
+            MutualTlsSubsection,
+            GrantRetentionOptions.SectionName,
+            TenantUsageOptions.SectionName
         );
 
     /// <param name="builder">The <see cref="IIdentityServerBuilder"/> to configure.</param>
@@ -56,7 +60,7 @@ public static class IdentityServerBuilderExtensions
         /// <summary>
         /// Binds the server's options from configuration, so a host does not have to repeat the binding boilerplate.
         /// The OpenID configuration section (<see cref="OpenIdOptions.DefaultSectionName"/> unless
-        /// <paramref name="sectionName"/> names another) holds four subsections, each bound to one options type:
+        /// <paramref name="sectionName"/> names another) holds six subsections, each bound to one options type:
         /// <list type="bullet">
         /// <item><description><c>Server</c> — <see cref="OpenIdServerOptions"/>, including the server's
         /// <c>Settings</c>.</description></item>
@@ -66,6 +70,10 @@ public static class IdentityServerBuilderExtensions
         /// selects, and the route the tenant is served under.</description></item>
         /// <item><description><c>MutualTls</c> — <see cref="MutualTlsForwardingOptions"/>: how a forwarded mutual-TLS
         /// client certificate is read.</description></item>
+        /// <item><description><c>GrantRetention</c> — <see cref="GrantRetentionOptions"/>: how long ended grants are
+        /// kept and how often they are removed.</description></item>
+        /// <item><description><c>TenantUsage</c> — <see cref="TenantUsageOptions"/>: how often each replica adds its
+        /// usage to the ledger and how long the ledger keeps it.</description></item>
         /// </list>
         /// The top-level <c>BootstrapAdmin</c> section binds <see cref="BootstrapAdminOptions"/>, and the
         /// <c>DataProtection:KeyProtection</c> section binds <see cref="KeyRingProtectionOptions"/>: when it names a
@@ -103,7 +111,8 @@ public static class IdentityServerBuilderExtensions
             var tenantSection = openIdSection.GetSection(nameof(OpenIdOptions.Tenant));
             var tenantResolutionSection = openIdSection.GetSection(TenantResolutionSubsection);
             var mutualTlsSection = openIdSection.GetSection(MutualTlsSubsection);
-
+            var grantRetentionSection = openIdSection.GetSection(GrantRetentionOptions.SectionName);
+            var tenantUsageSection = openIdSection.GetSection(TenantUsageOptions.SectionName);
             // The bootstrap administrator credential is sourced from its own top-level section so it can be supplied
             // out of band (for example, environment variables); absent it, the feature stays inert (ADR-0044).
             var bootstrapAdminSection = configuration.GetSection(
@@ -136,6 +145,16 @@ public static class IdentityServerBuilderExtensions
             serviceCollection
                 .AddOptions<MutualTlsForwardingOptions>()
                 .Configure(options => mutualTlsSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            serviceCollection
+                .AddOptions<GrantRetentionOptions>()
+                .Configure(options => grantRetentionSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            serviceCollection
+                .AddOptions<TenantUsageOptions>()
+                .Configure(options => tenantUsageSection.BindStrictly(options))
                 .ValidateOnStart();
 
             serviceCollection

@@ -188,6 +188,18 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             .Verifiable();
     }
 
+    private void SetupSerializeUpdatedPayload()
+    {
+        SetupEnvironment();
+
+        MockEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(JsonOptions).Verifiable();
+
+        MockPayloadSerializer
+            .Setup(x => x.Serialize("payload", JsonOptions))
+            .Returns(JsonElement.Parse("{\"a\":1}"))
+            .Verifiable();
+    }
+
     private void SetupUpdate(PersistedGrant envelope, ValueTask result) =>
         MockGrantStore
             .Setup(x => x.UpdateAsync(envelope, It.IsAny<CancellationToken>()))
@@ -852,6 +864,70 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             DateTimeOffset.UtcNow.AddHours(2),
             CancellationToken.None
         );
+    }
+
+    #endregion
+
+    #region UpdatePayloadAndExpirationAsync Tests
+
+    [Fact]
+    public async Task UpdatePayloadAndExpirationAsync_WhenTheGrantIsActive_ReplacesThePayloadAndTheExpiration()
+    {
+        var envelope = CreateEnvelope();
+        var expiresWhen = DateTimeOffset.UtcNow.AddHours(2);
+        SetupLookup(envelope);
+        SetupSerializeUpdatedPayload();
+        SetupUpdate(envelope, ValueTask.CompletedTask);
+        SetupSaveChanges(ValueTask.CompletedTask);
+
+        var updated = await Service.UpdatePayloadAndExpirationAsync(
+            OpenIdContext,
+            CreateGrantId(),
+            "payload",
+            expiresWhen,
+            CancellationToken.None
+        );
+
+        Assert.True(updated);
+        Assert.Equal(expiresWhen, envelope.ExpiresWhen);
+        Assert.Equal("{\"a\":1}", envelope.PayloadJson.GetRawText());
+    }
+
+    [Fact]
+    public async Task UpdatePayloadAndExpirationAsync_WhenTheGrantIsRevoked_ReturnsFalse()
+    {
+        var envelope = CreateEnvelope(revokedWhen: DateTimeOffset.UtcNow);
+        SetupLookup(envelope);
+
+        var updated = await Service.UpdatePayloadAndExpirationAsync(
+            OpenIdContext,
+            CreateGrantId(),
+            "payload",
+            DateTimeOffset.UtcNow.AddHours(2),
+            CancellationToken.None
+        );
+
+        Assert.False(updated);
+    }
+
+    [Fact]
+    public async Task UpdatePayloadAndExpirationAsync_WhenAnotherRequestSavesFirst_ReturnsFalse()
+    {
+        var envelope = CreateEnvelope();
+        SetupLookup(envelope);
+        SetupSerializeUpdatedPayload();
+        SetupUpdate(envelope, ValueTask.CompletedTask);
+        SetupSaveChanges(ValueTask.FromException(new StoreConcurrencyException("conflict")));
+
+        var updated = await Service.UpdatePayloadAndExpirationAsync(
+            OpenIdContext,
+            CreateGrantId(),
+            "payload",
+            DateTimeOffset.UtcNow.AddHours(2),
+            CancellationToken.None
+        );
+
+        Assert.False(updated);
     }
 
     #endregion

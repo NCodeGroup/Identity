@@ -347,6 +347,13 @@ internal static partial class Log
     internal static partial void SessionIdleExpired(this ILogger logger, string sessionId);
 
     [LoggerMessage(
+        EventId = EventIds.SessionAbsoluteExpired,
+        Level = LogLevel.Information,
+        Message = "End-user session '{SessionId}' expired at the end of its absolute lifetime."
+    )]
+    internal static partial void SessionAbsoluteExpired(this ILogger logger, string sessionId);
+
+    [LoggerMessage(
         EventId = EventIds.SessionEvicted,
         Level = LogLevel.Information,
         Message = "Evicted end-user session '{SessionId}' to enforce the subject's concurrent-session limit."

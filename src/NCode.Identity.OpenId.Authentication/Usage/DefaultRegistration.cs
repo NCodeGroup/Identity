@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Usage;
@@ -32,7 +33,13 @@ internal static class DefaultRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.AddOptions<TenantUsageOptions>();
+            serviceCollection.AddOptions<TenantUsageOptions>().ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<TenantUsageOptions>,
+                    TenantUsageOptionsValidator
+                >()
+            );
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddSingleton<DefaultTenantUsageRecorder>();
             serviceCollection.TryAddSingleton<ITenantUsageRecorder>(serviceProvider =>

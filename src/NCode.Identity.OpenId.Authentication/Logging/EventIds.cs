@@ -84,4 +84,5 @@ internal static class EventIds
     public const int IncoherentClientReported = Base + 53;
     public const int ClientCoherenceCheckFailed = Base + 54;
     public const int ClientCoherenceChecked = Base + 55;
+    public const int SessionAbsoluteExpired = Base + 56;
 }

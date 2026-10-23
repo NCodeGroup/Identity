@@ -421,16 +421,6 @@ _None remaining._
 - **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
   replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
   `src/frontend/apps/auth/src/main.tsx:12-21`.
-- **`R92` — Validate the subject at the device-code, CIBA and token-exchange grants.** These grants issue tokens for
-  the subject that their approval or `subject_token` names without sending `ValidateSubjectAuthenticationCommand`, so a
-  disabled local account is not refused there (ADR-0224). The device verification endpoint approves with an
-  authentication cookie whose server-side session it does not validate. Validate the subject at each grant and the
-  session at the endpoint. Touch points: `DefaultDeviceCodeGrantHandler`, `DefaultCibaGrantHandler`,
-  `DefaultValidateTokenExchangeGrantHandler`, `DefaultDeviceVerificationEndpointHandler`.
-- **`R94` — End a local account's sessions when an administrator resets its password.** The reset rotates a security
-  stamp that nothing reads, so the sessions and refresh tokens of a compromised account keep working (OWASP ASVS
-  V3.3.3). Touch points: `LocalAccountApiEndpointHandler.ResetPasswordAsync`, `SessionTerminationReasons`.
-
 ### P3
 
 - **`R30` — Serve interactive bundle assets without resolving the tenant.** Touch point:
@@ -481,12 +471,6 @@ _None remaining._
   effective settings did not change in a setting it reads (`TenantKeyUsage`,
   `IClientCoherenceValidator.ReadsChangedSetting`). Touch points: `PersistedServer.ReconciledSettingsFingerprint`,
   `TenantKeyReconciliationHandler`, `ClientCoherenceReportHandler`.
-- **`R93` — Let an administrator block any end user.** Only a local account has a status, so a principal whose
-  connections are all external cannot be blocked (ADR-0224); Auth0 blocks a user whatever its connections. Touch
-  points: `PersistedFederatedPrincipal`, `DefaultValidateLocalAccountSubjectHandler`, the management API.
-- **`R95` — Terminate a session at most once on every termination path.** `RevokeAsync`, `RevokeAllExceptAsync` and the
-  concurrent-session eviction dispatch `OnSessionTerminatedCommand` without the claim of ADR-0223, so a session that two
-  paths terminate at once notifies its relying parties twice. Touch point: `DefaultSessionService`.
 - **`R96` — Terminate the session through the termination seam when an authorization code is replayed.**
   `DefaultAuthorizationCodeGrantHandler.RevokeSessionOnReplayAsync` revokes the grants of the code's session with
   `IPersistedGrantService.RevokeWhereAsync` (ADR-0112) and dispatches no `OnSessionTerminatedCommand`, so the session's

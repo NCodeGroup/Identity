@@ -3252,3 +3252,34 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   after a lost race (`PersistedGrantUpdate<TPayload>`); the session touch and client addition, device verification, the
   device-code and CIBA polls and the CIBA decision all use it, so no concurrent write is overwritten and two concurrent
   CIBA approvals deliver once. The payload-replacing methods are removed. ADR-0222._
+- **`R92` — Validate the subject at the device-code, CIBA and token-exchange grants.** These grants issue tokens for
+  the subject that their approval or `subject_token` names without sending `ValidateSubjectAuthenticationCommand`, so a
+  disabled local account is not refused there (ADR-0224). The device verification endpoint approves with an
+  authentication cookie whose server-side session it does not validate. Validate the subject at each grant and the
+  session at the endpoint. Touch points: `DefaultDeviceCodeGrantHandler`, `DefaultCibaGrantHandler`,
+  `DefaultValidateTokenExchangeGrantHandler`, `DefaultDeviceVerificationEndpointHandler`.
+  _Closed: the device-code, CIBA and token-exchange grants validate the subject before they spend their credential (one
+  shared `TokenGrantSubjectValidation`), a CIBA approval validates the approving subject, a device code or `auth_req_id`
+  is redeemed only by the client it was issued to (`invalid_grant` otherwise), the device verification cookie's
+  server-side session is checked, and `ValidateSubjectAuthenticationCommand.OpenIdRequest` is nullable for validation
+  without a protocol request. ADR-0225; notifying a denied CIBA client is `R100`._
+- **`R93` — Let an administrator block any end user.** Only a local account has a status, so a principal whose
+  connections are all external cannot be blocked (ADR-0224); Auth0 blocks a user whatever its connections. Touch
+  points: `PersistedFederatedPrincipal`, `DefaultValidateLocalAccountSubjectHandler`, the management API.
+  _Closed: a federated principal carries a block state (`IsBlocked`, migration `AddFederatedPrincipalIsBlocked`);
+  `DefaultValidateBlockedSubjectHandler` refuses a blocked principal at every grant with `access_denied`, and the
+  management API gets, blocks and unblocks a principal, ending its sessions with `user_blocked` and keeping its
+  consents. ADR-0226; the interactive sign-in is `R98`._
+- **`R94` — End a local account's sessions when an administrator resets its password.** The reset rotates a security
+  stamp that nothing reads, so the sessions and refresh tokens of a compromised account keep working (OWASP ASVS
+  V3.3.3). Touch points: `LocalAccountApiEndpointHandler.ResetPasswordAsync`, `SessionTerminationReasons`.
+  _Closed: an administrator's password reset ends every session of the account with `password_reset` after the change
+  commits; ADR-0226 decides the self-service change (end every other session, revoke every grant not issued under the
+  current one). The self-service change itself is `R99`._
+- **`R95` — Terminate a session at most once on every termination path.** `RevokeAsync`, `RevokeAllExceptAsync` and the
+  concurrent-session eviction dispatch `OnSessionTerminatedCommand` without the claim of ADR-0223, so a session that two
+  paths terminate at once notifies its relying parties twice. Touch point: `DefaultSessionService`.
+  _Closed: every termination path (revoke one, revoke all but current, eviction, revoke all, RP-initiated logout) claims
+  the session through `RevokeSessionOnceAsync` before notifying relying parties, revoke-all revokes the subject's grants
+  first and refuses an empty subject, and the revoke methods report what the call terminated, which the sessions
+  management API returns. ADR-0227; the authorization-code replay is `R96`._

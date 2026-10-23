@@ -595,6 +595,11 @@ rationale.
   request. State that must outlive a request or be seen by another replica goes to the database or to the shared-state
   port; in-memory state (`IMemoryCache`, static or singleton fields) is only for data that can be rebuilt on a miss, and
   must tolerate eviction and restarts. Never write durable data to the local filesystem.
+- 👁 **A hosted service whose `StopAsync` does work runs it once and never throws.** A host can be stopped twice at
+  once (`StopAsync` called while `RunAsync` stops it too), and the stop that returns first lets its caller dispose
+  the service provider under the other's work. Memoize the stop task under a `Lock`, serialize it with the
+  service's periodic work, and log what it could not finish (`TenantUsageFlushService.StopAsync`,
+  [ADR-0209](../../docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
 - 👁 **A single-use or freshness check records into `IExpiringKeySet`, never a get-then-set.** A replay guard (a
   `jti`), a server-issued nonce, or any "accept once" record is an atomic add-if-absent on the shared-state port
   (`NCode.Identity.SharedState.Abstractions`), whose adapter the composition root chooses — in-process for one replica,
@@ -623,6 +628,10 @@ rationale.
   work and an increment after it. See
   [ADR-0196](../../docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) and
   [ADR-0198](../../docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
+- 👁 **A write that a background loop retries is idempotent.** A save can commit and still fail at its caller (a lost
+  acknowledgement, a timeout, a cancelled shutdown). Give the write an identity that the store records in the same
+  unit of work, and skip a write whose identity is already there: the usage ledger's per-replica batch checkpoint,
+  [ADR-0209](../../docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md).
 - 👁 **Public metadata is unmetered, and a limit an endpoint enforces refuses through `RateLimitErrors.Refuse`.** An
   endpoint any anonymous caller or cache fetches (discovery, the JSON Web Key Set) is marked `WithOpenIdMetered(false)`,
   so it spends only the per-minute limits, never the tenant's daily quota or billable usage. `RateLimitEndpointFilter`
@@ -970,6 +979,10 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
 
 ## 11. Logging & metrics
 
+- 👁 **A library never registers or removes a logging provider; the host's composition root chooses its sinks.** The
+  reference hosts log to standard output on every platform, with
+  `builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger()`, and never to the Windows Event Log
+  ([ADR-0210](../../docs/adr/0210-the-reference-hosts-log-to-standard-output.md)).
 - 👁 **Log through source-generated `[LoggerMessage]` methods**, never `ILogger.Log*` calls with an interpolated
   message — the generator gives allocation-free, strongly-typed, structured logging. Group the partial methods for a
   package in a `Logging/Log.cs` `internal static partial class Log`, written as **extension methods on `ILogger`**

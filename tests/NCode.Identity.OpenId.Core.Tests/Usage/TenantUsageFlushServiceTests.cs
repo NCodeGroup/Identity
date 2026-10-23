@@ -16,9 +16,11 @@
 
 #endregion
 
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -99,7 +101,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task FlushAsync_AddsTheRecordedUsageInOneUnitOfWork()
+    public async Task FlushAsync_AddsTheRecordedUsageAsTheReplicasFirstBatch()
     {
         var cancellationToken = CancellationToken.None;
         SetupStores();
@@ -107,7 +109,12 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
         Recorder.Record("tenant-1", TenantUsageMeters.Requests);
         MockTenantUsageStore
             .Setup(x =>
-                x.AddAsync(IsUsage("tenant-1", TenantUsageMeters.Requests, 2), cancellationToken)
+                x.AddAsync(
+                    Service.ReplicaId,
+                    1,
+                    IsUsage("tenant-1", TenantUsageMeters.Requests, 2),
+                    cancellationToken
+                )
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -122,42 +129,19 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task FlushAsync_WhenTheCommitFails_KeepsTheUsageForTheNextFlush()
+    public async Task FlushAsync_WhenTheCommitFails_RetriesTheBatchUnderItsNumber()
     {
         var cancellationToken = CancellationToken.None;
         SetupStores();
         Recorder.Record("tenant-1", TenantUsageMeters.Requests);
         MockTenantUsageStore
             .Setup(x =>
-                x.AddAsync(IsUsage("tenant-1", TenantUsageMeters.Requests, 1), cancellationToken)
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(cancellationToken))
-            .ThrowsAsync(new InvalidOperationException("conflict"))
-            .Verifiable();
-
-        await Service.FlushAsync(cancellationToken);
-
-        var usage = Assert.Single(Recorder.Drain());
-        Assert.Equal(new TenantUsageKey("tenant-1", Today, TenantUsageMeters.Requests), usage.Key);
-        Assert.Equal(1, usage.Value);
-    }
-
-    [Fact]
-    public async Task FlushAsync_WhenOneBatchFails_KeepsOnlyThatBatchForTheNextFlush()
-    {
-        var cancellationToken = CancellationToken.None;
-        SetupStores();
-        for (var index = 0; index <= TenantUsageFlushService.BatchSize; ++index)
-        {
-            Recorder.Record($"tenant-{index:D4}", TenantUsageMeters.Requests);
-        }
-
-        MockTenantUsageStore
-            .Setup(x =>
-                x.AddAsync(It.IsAny<IReadOnlyCollection<PersistedTenantUsage>>(), cancellationToken)
+                x.AddAsync(
+                    Service.ReplicaId,
+                    1,
+                    IsUsage("tenant-1", TenantUsageMeters.Requests, 1),
+                    cancellationToken
+                )
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
@@ -167,8 +151,121 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
             .Returns(ValueTask.CompletedTask);
 
         await Service.FlushAsync(cancellationToken);
+        await Service.FlushAsync(cancellationToken);
 
-        Assert.Equal(TenantUsageFlushService.BatchSize, Recorder.Drain().Count);
+        Assert.Empty(Recorder.Drain());
+    }
+
+    [Fact]
+    public async Task FlushAsync_WhileABatchIsHeld_LeavesNewUsageInTheRecorder()
+    {
+        var cancellationToken = CancellationToken.None;
+        SetupStores();
+        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        MockTenantUsageStore
+            .Setup(x =>
+                x.AddAsync(
+                    Service.ReplicaId,
+                    1,
+                    IsUsage("tenant-1", TenantUsageMeters.Requests, 1),
+                    cancellationToken
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Exactly(2));
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(cancellationToken))
+            .ThrowsAsync(new InvalidOperationException("unreachable"))
+            .Verifiable(Times.Exactly(2));
+
+        await Service.FlushAsync(cancellationToken);
+        Recorder.Record("tenant-2", TenantUsageMeters.Requests);
+        await Service.FlushAsync(cancellationToken);
+
+        Assert.Equal("tenant-2", Assert.Single(Recorder.Drain()).Key.TenantId);
+    }
+
+    [Fact]
+    public async Task FlushAsync_WhenABatchFails_DoesNotAddTheBatchesAfterIt()
+    {
+        var cancellationToken = CancellationToken.None;
+        var numbers = new List<long>();
+        SetupStores();
+        for (var index = 0; index <= TenantUsageFlushService.BatchSize; ++index)
+        {
+            Recorder.Record($"tenant-{index:D4}", TenantUsageMeters.Requests);
+        }
+
+        MockTenantUsageStore
+            .Setup(x =>
+                x.AddAsync(
+                    Service.ReplicaId,
+                    It.IsAny<long>(),
+                    It.IsAny<IReadOnlyCollection<PersistedTenantUsage>>(),
+                    cancellationToken
+                )
+            )
+            .Callback(
+                (
+                    Guid _,
+                    long number,
+                    IReadOnlyCollection<PersistedTenantUsage> _,
+                    CancellationToken _
+                ) => numbers.Add(number)
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(cancellationToken))
+            .ThrowsAsync(new InvalidOperationException("conflict"))
+            .Verifiable(Times.Once);
+
+        await Service.FlushAsync(cancellationToken);
+
+        Assert.Equal([1L], numbers);
+    }
+
+    [Fact]
+    public async Task FlushAsync_WhenAHeldBatchIsAdded_AddsTheBatchesAfterItInOrder()
+    {
+        var cancellationToken = CancellationToken.None;
+        var numbers = new List<long>();
+        SetupStores();
+        for (var index = 0; index <= TenantUsageFlushService.BatchSize; ++index)
+        {
+            Recorder.Record($"tenant-{index:D4}", TenantUsageMeters.Requests);
+        }
+
+        MockTenantUsageStore
+            .Setup(x =>
+                x.AddAsync(
+                    Service.ReplicaId,
+                    It.IsAny<long>(),
+                    It.IsAny<IReadOnlyCollection<PersistedTenantUsage>>(),
+                    cancellationToken
+                )
+            )
+            .Callback(
+                (
+                    Guid _,
+                    long number,
+                    IReadOnlyCollection<PersistedTenantUsage> _,
+                    CancellationToken _
+                ) => numbers.Add(number)
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Exactly(3));
+        MockStoreManager
+            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
+            .ThrowsAsync(new InvalidOperationException("conflict"))
+            .Returns(ValueTask.CompletedTask)
+            .Returns(ValueTask.CompletedTask);
+
+        await Service.FlushAsync(cancellationToken);
+        await Service.FlushAsync(cancellationToken);
+
+        Assert.Equal([1L, 1L, 2L], numbers);
+        Assert.Empty(Recorder.Drain());
     }
 
     #endregion
@@ -209,6 +306,179 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
 
         await Service.PruneAsync(cancellationToken);
         await Service.PruneAsync(cancellationToken);
+    }
+
+    #endregion
+
+    #region StopAsync Tests
+
+    [Fact]
+    public async Task StopAsync_WhenCalledTwice_RunsOneFinalFlush()
+    {
+        var cancellationToken = CancellationToken.None;
+        var save = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        SetupStores();
+        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        MockTenantUsageStore
+            .Setup(x =>
+                x.AddAsync(
+                    Service.ReplicaId,
+                    1,
+                    IsUsage("tenant-1", TenantUsageMeters.Requests, 1),
+                    cancellationToken
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(cancellationToken))
+            .Returns(new ValueTask(save.Task))
+            .Verifiable(Times.Once);
+
+        var first = Service.StopAsync(cancellationToken);
+        var second = Service.StopAsync(cancellationToken);
+        save.SetResult();
+        await Task.WhenAll(first, second);
+
+        Assert.Same(first, second);
+    }
+
+    [Fact]
+    public async Task StopAsync_WhenTheFinalFlushFails_LogsTheUsageAsDiscardedWithoutThrowing()
+    {
+        var cancellationToken = CancellationToken.None;
+        var mockLogger = MockRepository.Create<ILogger<TenantUsageFlushService>>();
+        mockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
+        mockLogger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Warning,
+                    It.Is<EventId>(eventId => eventId.Id == EventIds.TenantUsageFlushFailed),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception?>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+                )
+            )
+            .Verifiable(Times.Once);
+        mockLogger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Warning,
+                    It.Is<EventId>(eventId => eventId.Id == EventIds.TenantUsageDiscardedOnStop),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception?>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+                )
+            )
+            .Verifiable(Times.Once);
+        using var service = new TenantUsageFlushService(
+            Recorder,
+            MockStoreManagerFactory.Object,
+            Options.Create(new TenantUsageOptions()),
+            MockTimeProvider.Object,
+            mockLogger.Object
+        );
+        SetupStores();
+        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        MockTenantUsageStore
+            .Setup(x =>
+                x.AddAsync(
+                    service.ReplicaId,
+                    1,
+                    IsUsage("tenant-1", TenantUsageMeters.Requests, 1),
+                    cancellationToken
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(cancellationToken))
+            .ThrowsAsync(new InvalidOperationException("unreachable"))
+            .Verifiable(Times.Once);
+
+        await service.StopAsync(cancellationToken);
+
+        Assert.Empty(Recorder.Drain());
+    }
+
+    [Fact]
+    public async Task StopAsync_WhileAFlushRuns_WaitsForItAndAddsTheUsageAfterIt()
+    {
+        var cancellationToken = CancellationToken.None;
+        var numbers = new List<long>();
+        var firstAdd = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        SetupStores();
+        MockTenantUsageStore
+            .Setup(x =>
+                x.AddAsync(
+                    Service.ReplicaId,
+                    It.IsAny<long>(),
+                    It.IsAny<IReadOnlyCollection<PersistedTenantUsage>>(),
+                    cancellationToken
+                )
+            )
+            .Returns(
+                (
+                    Guid _,
+                    long number,
+                    IReadOnlyCollection<PersistedTenantUsage> _,
+                    CancellationToken _
+                ) =>
+                {
+                    numbers.Add(number);
+                    return number == 1 ? new ValueTask(firstAdd.Task) : ValueTask.CompletedTask;
+                }
+            )
+            .Verifiable(Times.Exactly(2));
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(cancellationToken))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Exactly(2));
+        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+
+        var flush = Service.FlushAsync(cancellationToken).AsTask();
+        Recorder.Record("tenant-2", TenantUsageMeters.Requests);
+        var stop = Service.StopAsync(cancellationToken);
+
+        Assert.False(stop.IsCompleted);
+
+        firstAdd.SetResult();
+        await flush;
+        await stop;
+
+        Assert.Equal([1L, 2L], numbers);
+    }
+
+    [Fact]
+    public async Task StopAsync_WhenTheStopTokenIsCancelledBeforeTheGate_LogsTheUsageAsDiscardedWithoutFlushing()
+    {
+        var mockLogger = MockRepository.Create<ILogger<TenantUsageFlushService>>();
+        mockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
+        mockLogger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Warning,
+                    It.Is<EventId>(eventId => eventId.Id == EventIds.TenantUsageDiscardedOnStop),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception?>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+                )
+            )
+            .Verifiable(Times.Once);
+        using var service = new TenantUsageFlushService(
+            Recorder,
+            MockStoreManagerFactory.Object,
+            Options.Create(new TenantUsageOptions()),
+            MockTimeProvider.Object,
+            mockLogger.Object
+        );
+        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await service.StopAsync(cancellation.Token);
+
+        Assert.Empty(Recorder.Drain());
     }
 
     #endregion

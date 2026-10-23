@@ -28,7 +28,9 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
@@ -302,6 +304,50 @@ public class TenantUsageTests
         using var response = await client.GetAsync(UsagePath);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    #endregion
+
+    #region Shutdown Tests
+
+    [Fact]
+    public async Task HostStop_AfterAdmittedRequests_AddsTheirUsageToTheLedger()
+    {
+        // The default one-minute flush interval means only the final flush at the host's stop writes the ledger. The
+        // factory shares its in-memory database with the host it derives, so the parent factory reads what the stopped
+        // host added.
+        using var host = CreateHost();
+        var recordingHost = host.WithWebHostBuilder(_ => { });
+        var client = CreateClient(recordingHost);
+        for (var i = 0; i < 3; ++i)
+        {
+            Assert.NotEqual(
+                HttpStatusCode.TooManyRequests,
+                await PostAnonymousTokenRequestAsync(client)
+            );
+        }
+
+        await recordingHost.DisposeAsync();
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var storeManagerFactory = host.Services.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var usage = await storeManager
+            .GetStore<ITenantUsageStore>()
+            .ListAsync(
+                HostApplicationFactory.TenantId,
+                today.AddDays(-1),
+                today.AddDays(1),
+                CancellationToken.None
+            );
+        Assert.Equal(
+            3L,
+            usage
+                .Where(entry => entry.Meter == TenantUsageMeters.Requests)
+                .Sum(entry => entry.Count)
+        );
     }
 
     #endregion

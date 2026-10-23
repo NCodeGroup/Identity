@@ -44,6 +44,11 @@ var configuration = builder.Configuration;
 var hostEnvironment = builder.Environment;
 var serviceCollection = builder.Services;
 
+// Logs go to standard output on every platform: the console provider writes them, and the EventSource provider hands
+// them to a diagnostics tool that attaches (dotnet-monitor, dotnet-trace). The default builder's Windows Event Log and
+// debugger providers are left out. See ADR-0210.
+builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger();
+
 // SAFETY GATE: refuse to start a Production deployment that still has development-only conveniences enabled
 // (developer signing keys, a wildcard host filter, developer CORS configuration, seeded accounts). Every one of them is
 // silent — the server would start, serve traffic, and look healthy — so this fails before the port is bound.

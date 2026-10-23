@@ -64,19 +64,4 @@ internal sealed class DefaultTenantUsageRecorder(TimeProvider timeProvider) : IT
             return drained;
         }
     }
-
-    /// <summary>
-    /// Returns usage that could not be added to the ledger, so the next flush adds it.
-    /// </summary>
-    /// <param name="usage">The usage to return.</param>
-    public void Restore(IEnumerable<KeyValuePair<TenantUsageKey, long>> usage)
-    {
-        lock (_sync)
-        {
-            foreach (var (key, count) in usage)
-            {
-                _pending[key] = _pending.GetValueOrDefault(key) + count;
-            }
-        }
-    }
 }

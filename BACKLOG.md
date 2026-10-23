@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R73`     | `R72`      |
+| `R` — Review findings                 | `R75`     | `R74`      |
 
 ---
 
@@ -549,6 +549,19 @@ _None remaining._
   existing bootstrap administrator client is not re-checked either. Check them in a background pass after a
   configuration change and report them. Touch points: `RootSettingsCollectionDataSource.HandleChange`,
   `ITenantClientCoherenceChecker`, `BootstrapAdminSeedHandler`.
+- **`R73` — Prune the usage ledger on a provider without set-based deletes.** `TenantUsageStore.RemoveBeforeAsync`
+  removes expired days and replica checkpoints with `ExecuteDeleteAsync`, which EF InMemory does not support. In the
+  integration suite every prune therefore fails, and `TenantUsageFlushService` retries it at every flush — every 50 ms
+  in `TenantUsageTests` — logging `TenantUsagePruneFailed` each time. ADR-0199 rejected bulk updates because not every
+  provider supports them, so the prune should follow the same rule, or a failed prune should wait for its next day.
+  Touch points: `TenantUsageStore.RemoveBeforeAsync`, `TenantUsageFlushService.PruneAsync`,
+  `TenantUsageTests.CreateFactory`.
+- **`R74` — Write one-line JSON console logs in container deployments.** The reference hosts log only to standard
+  output (ADR-0210), in the console provider's default `simple` format. That format spreads one entry, and the stack
+  trace of its exception, over several lines, so a container log collector splits it into separate records. Select the
+  `json` formatter (`Logging__Console__FormatterName`) in the container image or the chart's default environment, and
+  keep `simple` for development. Touch points: `src/NCode.Identity.OpenId.Host/Dockerfile`,
+  `charts/ncode-identity-host/values.yaml`, ADR-0210.
 
 ### Refactor
 

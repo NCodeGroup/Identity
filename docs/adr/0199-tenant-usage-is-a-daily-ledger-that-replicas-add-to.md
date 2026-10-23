@@ -1,6 +1,7 @@
 # 199. Tenant usage is a daily ledger that replicas add to
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0209](0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md): a replica
+  numbers its batches and the ledger adds each once)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
 
@@ -41,9 +42,11 @@ default and the management API reads it.**
    `TenantUsageOptions.FlushInterval` (one minute) and adds them in batches of 256 rows, each read with one query per
    day and saved as one unit of work, so the time between a batch's read and its save stays short however many tenants
    are active. The row's concurrency token serializes replicas that add to the same row; this works on every
-   provider, including ones without bulk updates. A failed save — a conflict with another replica or an unreachable
-   database — returns that batch's counts to memory and the next flush adds them. A graceful stop flushes once more, so
-   an abrupt stop loses at most one interval of one replica's usage.
+   provider, including ones without bulk updates. A failed save — a conflict with another replica, an unreachable
+   database, or a save whose outcome is unknown — holds the batch, and the next flush retries it under its number
+   before it drains new usage; the ledger adds each batch once
+   ([ADR-0209](0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)). A graceful stop flushes once more, so an
+   abrupt stop loses at most one interval of one replica's usage.
 4. **The ledger keeps 400 days by default.** That covers a full year with a margin for a late invoice or dispute.
    `TenantUsageOptions.Retention` changes it. Each replica removes the days past retention once per UTC day; the
    removal is idempotent, so replicas need not coordinate.
@@ -79,6 +82,7 @@ default and the management API reads it.**
 - [ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-0197](0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) — protocol metrics
 - [ADR-0198](0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) — daily quotas
+- [ADR-0209](0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md) — a replica adds each usage batch once
 - `src/NCode.Identity.OpenId.Authentication/Usage/`,
   `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Stores/TenantUsageStore.cs`,
   `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/TenantApiEndpointHandler.cs`

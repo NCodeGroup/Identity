@@ -29,7 +29,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 /// Provides a default implementation of <see cref="ITenantUsageStore"/> that uses Entity Framework Core for
 /// persistence. An addition reads the batch's entries for each day in one query and updates them under their
 /// concurrency tokens, which every provider supports, so two replicas adding to the same entry cannot lose either count:
-/// the second commit fails and is retried.
+/// the second commit fails and is retried. Each addition records the replica's last added batch in the same unit of
+/// work, so a batch the replica retries after a save that committed is skipped.
 /// </summary>
 internal sealed class TenantUsageStore(
     IStoreProvider storeProvider,
@@ -52,6 +53,60 @@ internal sealed class TenantUsageStore(
 
     /// <inheritdoc />
     public async ValueTask AddAsync(
+        Guid replicaId,
+        long batchNumber,
+        IReadOnlyCollection<PersistedTenantUsage> usage,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(batchNumber, 1);
+        ArgumentOutOfRangeException.ThrowIfZero(usage.Count, nameof(usage));
+
+        // A checkpoint added earlier in this unit of work is not yet in the database.
+        var checkpoint =
+            DbContext.TenantUsageCheckpoints.Local.FirstOrDefault(entity =>
+                entity.ReplicaId == replicaId
+            )
+            ?? await DbContext.TenantUsageCheckpoints.SingleOrDefaultAsync(
+                entity => entity.ReplicaId == replicaId,
+                cancellationToken
+            );
+
+        // The replica added this batch before: a save that committed but reported a failure is retried under its number.
+        if (checkpoint is not null && checkpoint.LastBatchNumber >= batchNumber)
+            return;
+
+        await AddUsageAsync(usage, cancellationToken);
+
+        var lastDay = usage.Max(entry => entry.Day);
+        if (checkpoint is null)
+        {
+            await DbContext.TenantUsageCheckpoints.AddAsync(
+                new TenantUsageCheckpointEntity
+                {
+                    Id = IdGenerator.CreateId(),
+                    ReplicaId = replicaId,
+                    LastBatchNumber = batchNumber,
+                    LastDay = lastDay,
+                    ConcurrencyToken = Guid.NewGuid().ToString("N"),
+                },
+                cancellationToken
+            );
+            return;
+        }
+
+        checkpoint.LastBatchNumber = batchNumber;
+        if (lastDay > checkpoint.LastDay)
+            checkpoint.LastDay = lastDay;
+    }
+
+    /// <summary>
+    /// Adds each entry's count to its tenant's usage of the meter on the day, creating the day's entry when it does not
+    /// exist.
+    /// </summary>
+    /// <param name="usage">The usage to add.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    private async ValueTask AddUsageAsync(
         IReadOnlyCollection<PersistedTenantUsage> usage,
         CancellationToken cancellationToken
     )
@@ -131,11 +186,17 @@ internal sealed class TenantUsageStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<int> RemoveBeforeAsync(
-        DateOnly day,
-        CancellationToken cancellationToken
-    ) =>
-        await DbContext
+    public async ValueTask<int> RemoveBeforeAsync(DateOnly day, CancellationToken cancellationToken)
+    {
+        var removed = await DbContext
             .TenantUsage.Where(usage => usage.Day < day)
             .ExecuteDeleteAsync(cancellationToken);
+
+        // A checkpoint guards only usage its replica can still retry; past the retention it guards nothing.
+        await DbContext
+            .TenantUsageCheckpoints.Where(checkpoint => checkpoint.LastDay < day)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        return removed;
+    }
 }

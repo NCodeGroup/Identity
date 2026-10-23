@@ -56,7 +56,8 @@ namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 /// (EF Core caches its internal service provider by option configuration, so a shared database name
 /// would cause parallel test hosts to collide). At present the tenant has no signing keys; once an
 /// ephemeral development key composition exists, this factory (or a derived one) can apply it so that
-/// token-signing and a non-empty JWKS can be asserted.
+/// token-signing and a non-empty JWKS can be asserted. A host is stopped through its own run loop
+/// (<see cref="ApplicationRunLoopHost"/>), so each hosted service is stopped once.
 /// </remarks>
 public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 {
@@ -1240,4 +1241,9 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             });
         });
     }
+
+    /// <inheritdoc />
+    protected override Microsoft.Extensions.Hosting.IHost CreateHost(
+        Microsoft.Extensions.Hosting.IHostBuilder builder
+    ) => new ApplicationRunLoopHost(base.CreateHost(builder));
 }

@@ -467,4 +467,11 @@ internal static partial class Log
         Message = "The usage ledger's expired days could not be removed; the removal is retried at the next flush."
     )]
     internal static partial void TenantUsagePruneFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.TenantUsageDiscardedOnStop,
+        Level = LogLevel.Warning,
+        Message = "The usage of {EntryCount} tenant-day meters could not be added to the usage ledger before the replica stopped and is lost."
+    )]
+    internal static partial void TenantUsageDiscardedOnStop(this ILogger logger, int entryCount);
 }

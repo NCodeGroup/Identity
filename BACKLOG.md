@@ -584,20 +584,6 @@ _None remaining._
   `json` formatter (`Logging__Console__FormatterName`) in the container image or the chart's default environment, and
   keep `simple` for development. Touch points: `src/NCode.Identity.OpenId.Host/Dockerfile`,
   `charts/ncode-identity-host/values.yaml`, ADR-0210.
-- **`R85` — Run the in-process dispatcher's jobs with bounded concurrency.** `JobDispatchWorker` runs one job at a
-  time, so a delivery that waits on an unreachable endpoint (a CIBA notification or a back-channel logout) delays every
-  job queued behind it. Run jobs in parallel up to a limit from `InProcessJobDispatcherOptions`. Touch points:
-  `JobDispatchWorker`, `InProcessJobQueue`, `InProcessJobDispatcherOptions`.
-- **`R87` — List the incoherent clients in the management API.** The reconciliation of the server's settings logs each
-  stored client that the settings make incoherent (ADR-0219), so an operator without the logs cannot find them. Add a
-  read-only report per tenant. Touch points: `ClientApiEndpointHandler`, `IClientCoherenceValidator`,
-  `ClientCoherenceReportHandler`.
-- **`R88` — Reconcile only the tenants and clients a server settings change affects.** The reconciliation reads the
-  keys of every tenant that uses a configured algorithm and checks every client on each change, because only a
-  fingerprint of the settings it last reconciled is stored. Storing those settings would let it skip a tenant whose
-  effective settings did not change in a setting it reads (`TenantKeyUsage`,
-  `IClientCoherenceValidator.ReadsChangedSetting`). Touch points: `PersistedServer.ReconciledSettingsFingerprint`,
-  `TenantKeyReconciliationHandler`, `ClientCoherenceReportHandler`.
 - **`R103` — Bind the in-process dispatcher's options from configuration.** `AddIdentityServer()` registers the
   in-process dispatcher without configuration, so a host tunes `InProcessJobDispatcherOptions` (`QueueCapacity`,
   `FullMode`, `MaxConcurrentJobs`, ADR-0232) only in code, and the reference host offers no key for them. Bind one

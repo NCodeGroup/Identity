@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The management API lists a tenant's incoherent clients.** `GET api/tenants/{tenantId}/incoherent-clients` checks a
+  page of the tenant's stored clients (`cursor`, `limit` up to 100) against the tenant's effective settings and returns
+  each client they make incoherent with every violation (`settingName`, `value`, `governingSettingName`,
+  `description`), or the `documentError` of a settings document that cannot be honored; a page can list no client while
+  `continuationToken` remains. `IClientCoherenceReporter` finds them for the API and for the reconciliation's report,
+  and `IncoherentClient`, `IncoherentClientResource` and `ClientCoherenceViolationResource` describe them
+  ([ADR-0233](docs/adr/0233-the-management-api-lists-a-tenants-incoherent-clients.md), backlog `R87`).
+
 - **An end user can change their password.** The self-service page `account/password` takes the current password and
   a new one; a change ends every other session of the principal with `password_changed`, which sends back-channel
   logout, revokes every grant issued under no session, and keeps the current session and the consents. "Sign out
@@ -659,6 +667,24 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **The in-process dispatcher runs jobs concurrently.** Up to `InProcessJobDispatcherOptions.MaxConcurrentJobs` jobs
+  (16 by default) run at once, so a delivery that waits on an unreachable endpoint holds one worker while the jobs
+  behind it run on the others. `MaxConcurrentJobs` and `QueueCapacity` must be at least 1, which the host checks when it
+  starts ([ADR-0232](docs/adr/0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md),
+  backlog `R85`).
+
+- **Breaking: a reconciliation of the server's settings reaches only the tenants its change affects.**
+  `PersistedServer.ReconciledSettings` records the effective settings every tenant and client was reconciled against
+  (the `AddServerReconciledSettings` migration adds the `Servers.ReconciledSettingsJson` column), and
+  `ReconcileServerSettingsCommand.PreviousSettings` carries them to the handlers: `TenantKeyReconciliationHandler` reads
+  the keys only of a tenant that uses an algorithm it did not use before, and `ClientCoherenceReportHandler` checks the
+  clients only of a tenant whose effective settings changed in a setting a coherence rule reads.
+  `IServerStore.UpdateReconciledSettingsAsync` records the fingerprint and the settings and takes the place of
+  `UpdateReconciledSettingsFingerprintAsync`, and `IServerStore.UpdateSettingsAsync` keeps the recorded settings unless
+  the settings of an earlier change were never reconciled
+  ([ADR-0234](docs/adr/0234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md),
+  backlog `R88`).
 
 - **Breaking: a session's lifetimes are required, and a listed session always reports when it ends.**
   `CreateSessionRequest.AbsoluteLifetime` and `CreateSessionRequest.IdleTimeout` are required positive `TimeSpan`s and
@@ -1849,6 +1875,13 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A dispatched job whose handler times out is retried, and the host keeps running.** A handler's
+  `OperationCanceledException` that does not come from the host stopping, such as the `TaskCanceledException` of an
+  `HttpClient` timeout during a back-channel logout or CIBA delivery, fails the attempt and retries the job with
+  back-off; it does not end the dispatcher's worker or stop the host. A job whose handlers fail is retried once per
+  attempt, however many of them failed, and a handler that cannot be resolved fails the attempt
+  ([ADR-0232](docs/adr/0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md), backlog `R85`).
 
 - **A replayed authorization code terminates its session through the termination seam.** A second redemption of a
   redeemed code terminates the code's session with `authorization_code_replay`, so its grants are revoked, its relying

@@ -66,6 +66,8 @@ GET    api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/public-key
 PUT    api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}
 DELETE api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}
 
+GET   api/tenants/{tenantId}/incoherent-clients
+
 */
 
 /// <summary>
@@ -86,6 +88,7 @@ internal class ClientApiEndpointHandler(
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IClientCoherenceValidator clientCoherenceValidator,
+    IClientCoherenceReporter clientCoherenceReporter,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ClientApiEndpointHandler> logger
@@ -107,6 +110,7 @@ internal class ClientApiEndpointHandler(
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
+    private IClientCoherenceReporter ClientCoherenceReporter { get; } = clientCoherenceReporter;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -176,6 +180,12 @@ internal class ClientApiEndpointHandler(
         clients
             .MapDelete("/{clientId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
+
+        // The report is not under /clients because /clients/{clientId} would answer it as a client identifier.
+        endpoints
+            .MapGet("/incoherent-clients", ListIncoherentClientsAsync)
+            .WithTags(OpenIdConstants.EndpointTags.Clients)
+            .Produces<CollectionResource<IncoherentClientResource>>();
     }
 
     /// <summary>
@@ -344,6 +354,35 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
+    /// Maps an <see cref="IncoherentClient"/> to its <see cref="IncoherentClientResource"/> representation.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
+    /// <param name="client">The <see cref="IncoherentClient"/> to map.</param>
+    /// <returns>The mapped <see cref="IncoherentClientResource"/>.</returns>
+    internal virtual IncoherentClientResource ToIncoherentClientResource(
+        string tenantId,
+        IncoherentClient client
+    )
+    {
+        return new IncoherentClientResource
+        {
+            TenantId = tenantId,
+            ClientId = client.ClientId,
+            Violations =
+            [
+                .. client.Violations.Select(violation => new ClientCoherenceViolationResource
+                {
+                    SettingName = violation.SettingName,
+                    Value = violation.Value,
+                    GoverningSettingName = violation.GoverningSettingName,
+                    Description = violation.Description,
+                }),
+            ],
+            DocumentError = client.DocumentError,
+        };
+    }
+
+    /// <summary>
     /// Maps a <see cref="PersistedClientSecrets"/> to its <see cref="ClientSecretsResource"/> representation.
     /// </summary>
     /// <param name="secrets">The <see cref="PersistedClientSecrets"/> to map.</param>
@@ -402,6 +441,63 @@ internal class ClientApiEndpointHandler(
                     );
             },
             ToClientResource
+        );
+    }
+
+    /// <summary>
+    /// Lists the clients of a tenant that the tenant's effective settings make incoherent.
+    /// </summary>
+    /// <remarks>
+    /// A page checks up to <paramref name="limit"/> clients of the tenant and lists the incoherent ones among them, so
+    /// a page can list none while a continuation token remains. A tenant without settings has no incoherent clients.
+    /// </remarks>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
+    /// <param name="limit">The maximum number of clients to check on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">A page of incoherent clients.</response>
+    // See ADR-0233.
+    [EndpointName("api/clients/incoherent/list")]
+    internal virtual async ValueTask<IResult> ListIncoherentClientsAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken
+    )
+    {
+        // The report is authorized like the client list: for the addressed tenant.
+        var effectiveLimit = NormalizeLimit(limit);
+
+        return await ProcessListAsync(
+            httpContext,
+            TenantScopeResource.For(tenantId),
+            async () =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                var tenantSettings = await MergeTenantSettingsAsync(
+                    tenantId,
+                    storeManager,
+                    cancellationToken
+                );
+                if (tenantSettings is null)
+                {
+                    return new PagedResult<IncoherentClient> { Items = [], NextCursor = null };
+                }
+
+                var page = new PageRequest { Cursor = cursor, Limit = effectiveLimit };
+                return await ClientCoherenceReporter.FindIncoherentClientsAsync(
+                    storeManager,
+                    tenantId,
+                    tenantSettings,
+                    page,
+                    cancellationToken
+                );
+            },
+            client => ToIncoherentClientResource(tenantId, client)
         );
     }
 

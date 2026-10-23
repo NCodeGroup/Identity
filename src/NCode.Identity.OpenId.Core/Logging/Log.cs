@@ -130,7 +130,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.ServerSettingsReconciliationStarted,
         Level = LogLevel.Information,
-        Message = "Reconciling every tenant and client with the settings '{Fingerprint}' of the server '{ServerId}'"
+        Message = "Reconciling the tenants and clients that the settings '{Fingerprint}' of the server '{ServerId}' affect"
     )]
     internal static partial void ServerSettingsReconciliationStarted(
         this ILogger logger,
@@ -141,7 +141,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.ServerSettingsReconciled,
         Level = LogLevel.Information,
-        Message = "Reconciled every tenant and client with the settings '{Fingerprint}' of the server '{ServerId}'"
+        Message = "Reconciled the tenants and clients that the settings '{Fingerprint}' of the server '{ServerId}' affect"
     )]
     internal static partial void ServerSettingsReconciled(
         this ILogger logger,
@@ -155,6 +155,17 @@ internal static partial class Log
         Message = "Reconciling the settings of the server '{ServerId}' failed; it is attempted again when the reconciliation lease expires"
     )]
     internal static partial void ServerSettingsReconciliationFailed(
+        this ILogger logger,
+        string serverId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ReconciledServerSettingsUnreadable,
+        Level = LogLevel.Warning,
+        Message = "The settings that the server '{ServerId}' was last reconciled against cannot be read, so every tenant and client is reconciled"
+    )]
+    internal static partial void ReconciledServerSettingsUnreadable(
         this ILogger logger,
         string serverId,
         Exception exception

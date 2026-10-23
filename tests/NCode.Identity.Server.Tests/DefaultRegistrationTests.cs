@@ -405,6 +405,16 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public void AddIdentityServer_RegistersTheClientCoherenceReporter()
+    {
+        using var host = BuildHost([]);
+
+        var reporter = host.Services.GetRequiredService<IClientCoherenceReporter>();
+
+        Assert.Equal("DefaultClientCoherenceReporter", reporter.GetType().Name);
+    }
+
+    [Fact]
     public void AddIdentityServer_RegistersTheClientCoherenceReportHandler()
     {
         // Without this handler a change to the server's settings that is not a write leaves the stored clients that it

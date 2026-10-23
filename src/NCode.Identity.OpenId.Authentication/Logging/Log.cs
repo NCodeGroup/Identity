@@ -543,7 +543,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.ClientCoherenceChecked,
         Level = LogLevel.Information,
-        Message = "Checked every stored client against the settings of the server '{ServerId}': {IncoherentClientCount} incoherent"
+        Message = "Checked the stored clients of the tenants that a change to the settings of the server '{ServerId}' affects: {IncoherentClientCount} incoherent"
     )]
     internal static partial void ClientCoherenceChecked(
         this ILogger logger,

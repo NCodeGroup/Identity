@@ -152,6 +152,11 @@ internal static class DefaultRegistration
                 DefaultClientCoherenceValidator
             >();
 
+            serviceCollection.TryAddSingleton<
+                IClientCoherenceReporter,
+                DefaultClientCoherenceReporter
+            >();
+
             // The validator runs every registered rule, so a package adds a coherence rule the same way: one
             // TryAddEnumerable registration of its IClientCoherenceRule (ADR-0206).
             serviceCollection.TryAddEnumerable(

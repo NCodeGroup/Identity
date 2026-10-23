@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): background work in another
-  package waits for the server through `IMaterializedServerAccessor`)
+  package waits for the server through `IMaterializedServerAccessor`; and
+  by [ADR-0234](0234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md): the
+  reconciliation records the settings it reconciled against and reaches only the tenants a change affects)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

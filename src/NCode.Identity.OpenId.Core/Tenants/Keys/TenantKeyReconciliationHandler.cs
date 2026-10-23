@@ -25,7 +25,6 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
@@ -38,15 +37,18 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// replicas, so the key the server's settings permit is provisioned without waiting for the tenant to be materialized
 /// again. A tenant that already holds every key its settings use is not evicted.
 /// A tenant that holds no key is left to its first materialization, which seeds it in full.
+/// When the command carries the settings it was last reconciled against, a tenant's keys are read only if the tenant
+/// uses, under the current settings, a configured algorithm that it did not use under those: a tenant that used every
+/// one of them was reconciled with them already. Without them every tenant that uses a configured algorithm is read.
 /// </summary>
 /// <remarks>
 /// The handler checks the invariant from the current state rather than from a change, so it provisions the keys that a
 /// change to the server's settings permits, one that a configuration reload applied, and one that a deployment brought,
-/// alike. A tenant that cannot be handled is logged and skipped, and the pass continues: the tenant is seeded again the
-/// next time it is materialized. The handler is idempotent, because announcing a tenant that is already seeded
-/// provisions nothing.
+/// alike; the settings the command carries only narrow the tenants it reads. A tenant that cannot be handled is logged
+/// and skipped, and the pass continues: the tenant is seeded again the next time it is materialized. The handler is
+/// idempotent, because announcing a tenant that is already seeded provisions nothing.
 /// </remarks>
-// See ADR-0169 (decision 10) and ADR-0219.
+// See ADR-0169 (decision 10), ADR-0219 and ADR-0234.
 internal sealed class TenantKeyReconciliationHandler(
     IOptions<OpenIdOptions> optionsAccessor,
     ITenantKeyPolicy tenantKeyPolicy,
@@ -101,7 +103,7 @@ internal sealed class TenantKeyReconciliationHandler(
                 {
                     var lacksKey = await LacksKeyAsync(
                         tenantStore,
-                        command.Settings,
+                        command,
                         tenantSettings,
                         resolution.Specifications,
                         cancellationToken
@@ -129,14 +131,14 @@ internal sealed class TenantKeyReconciliationHandler(
 
     private async ValueTask<bool> LacksKeyAsync(
         ITenantStore tenantStore,
-        IReadOnlySettingCollection serverSettings,
+        ReconcileServerSettingsCommand command,
         PersistedTenantSettings tenantSettings,
         IReadOnlyList<TenantKeySpecification> specifications,
         CancellationToken cancellationToken
     )
     {
         var settings = EffectiveSettingsResolver.Resolve(
-            serverSettings,
+            command.Settings,
             OpenIdSettingScopes.Tenant,
             tenantSettings.Value
         );
@@ -147,6 +149,27 @@ internal sealed class TenantKeyReconciliationHandler(
             .ToList();
         if (used.Count == 0)
             return false;
+
+        // A tenant that used every one of these algorithms before the change was reconciled with them already.
+        // See ADR-0234.
+        if (command.PreviousSettings is { } previousServerSettings)
+        {
+            var previousSettings = EffectiveSettingsResolver.Resolve(
+                previousServerSettings,
+                OpenIdSettingScopes.Tenant,
+                tenantSettings.Value
+            );
+            if (
+                used.All(specification =>
+                    TenantKeyUsage.IsUsed(
+                        Options.AlgorithmSettings,
+                        previousSettings,
+                        specification.Algorithm
+                    )
+                )
+            )
+                return false;
+        }
 
         var secrets = await tenantStore.GetSecretsOrDefaultAsync(
             tenantSettings.TenantId,

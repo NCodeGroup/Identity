@@ -40,6 +40,13 @@ rationale.
   request's `HttpContext.RequestAborted` means the client went away; at an endpoint/middleware boundary rethrow it so
   the framework abandons the request — never convert it into a rendered error response, a retry, or an audit write (the
   aborted token would fail those writes anyway).
+- 👁 **A background loop treats an `OperationCanceledException` as a failure unless its own stopping token is
+  cancelled.** An `HttpClient` timeout throws `TaskCanceledException` while the loop's token is untouched, so a filter
+  `when (exception is not OperationCanceledException)` lets one slow endpoint end the loop and, under the host's default
+  `BackgroundServiceExceptionBehavior.StopHost`, stop the process. Catch the failure of one unit of work with
+  `when (!stoppingToken.IsCancellationRequested)` and end the loop quietly only when that token is cancelled
+  (`JobDispatchWorker`,
+  [ADR-0232](../../docs/adr/0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md)).
 - ✅ **Prefer C# 12+ collection expressions** over `new[] { … }` / `new List<T> { … }` / `Array.Empty<T>()`:
   `byte[] data = [1, 2, 3];`, `List<string> names = ["a", "b"];`, `int[] empty = [];`. Cast when a target type needs
   it for generic inference, e.g. `(byte[])[1, 2, 3]` for a `ReadOnlyMemory<T>` parameter.
@@ -363,7 +370,10 @@ rationale.
   `ClientCoherenceViolation.Missing`. Every entry point that stores a client, a configuration seeder through
   `SeededClientValidator` included, and every tenant or server settings change checks it with
   `IClientCoherenceValidator.Validate(tenantSettings, clientSettings)`; never add the check to one caller
-  ([ADR-0206](../../docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)).
+  ([ADR-0206](../../docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)). List a tenant's
+  incoherent clients, in a report or a background pass, only through `IClientCoherenceReporter`, which checks one page
+  under the tenant's scope and reports a document the rules cannot read as `IncoherentClient.DocumentError`
+  ([ADR-0233](../../docs/adr/0233-the-management-api-lists-a-tenants-incoherent-clients.md)).
 - 👁 **Options validation never constructs a strategy that has dependencies.** `IOptions<OpenIdOptions>.Value` runs
   every `IValidateOptions<OpenIdOptions>`, which read the setting-descriptor catalog, so every setting data source, and
   every catalog it consults to name a domain (the client-authentication method descriptors, the redirect URI kinds, the
@@ -389,14 +399,18 @@ rationale.
   it. A pass that brings tenants or clients in line with the server's settings is a handler of
   `ReconcileServerSettingsCommand`, which one replica runs in the background whenever the server's effective settings
   change ([ADR-0219](../../docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md));
-  never put such a pass on the in-process job dispatcher, whose single worker it would hold.
+  never put such a pass on the in-process job dispatcher, whose bounded workers it would hold.
 - 👁 **State derived from settings converges by reconciliation, not by replaying an event.** A background pass reads the
   current state and repairs what differs, so a pass that a restart interrupted is run again and nothing depends on a
-  queued job that a restart loses. Record durably what the pass reconciled against
-  (`PersistedServer.ReconciledSettingsFingerprint`), clear the record in the unit of work that changes its input, write
-  the record alone so it never overwrites a concurrent write, and take an `IExpiringKeySet` lease keyed by the input's
+  queued job that a restart loses. Record durably what the pass reconciled against — the input itself beside its
+  fingerprint (`PersistedServer.ReconciledSettings`, `ReconciledSettingsFingerprint`) — and let each handler compare
+  it with the current input (`ReconcileServerSettingsCommand.PreviousSettings`) to skip what the change cannot affect,
+  reconciling everything when there is nothing to compare with. Mark the record stale in the unit of work that changes
+  its input, discard the compared input when a second change arrives before the first was reconciled, write the
+  record alone so it never overwrites a concurrent write, and take an `IExpiringKeySet` lease keyed by the input's
   version so one replica runs each pass
-  ([ADR-0219](../../docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+  ([ADR-0219](../../docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
+  [ADR-0234](../../docs/adr/0234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md)).
 - 👁 **Build a protocol endpoint to the canonical shape** per [ADR-0086](../../docs/adr/0086-canonical-openid-endpoint-shape.md):
   a **thin** `IEndpointProvider` whose `HandleRouteAsync` only orchestrates — verb/content-type guard →
   `IClientAuthenticationService.AuthenticateClientAsync` → load a **strongly-typed** `OpenIdMessage<T>` request

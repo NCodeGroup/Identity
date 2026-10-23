@@ -69,6 +69,7 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IMediator> MockMediator { get; }
     private IReadOnlySettingCollection ServerSettings { get; }
+    private IReadOnlySettingCollection PreviousServerSettings { get; }
     private ServiceProvider ServiceProvider { get; }
     private TenantKeyReconciliationHandler Handler { get; }
 
@@ -81,20 +82,26 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
         MockTenantStore = CreateStrictMock<ITenantStore>();
         MockMediator = CreateStrictMock<IMediator>();
         ServerSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        PreviousServerSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
 
         ServiceProvider = new ServiceCollection()
             .AddScoped(_ => MockMediator.Object)
             .BuildServiceProvider();
 
-        Handler = new TenantKeyReconciliationHandler(
+        Handler = CreateHandler(CreateLooseMock<ILogger<TenantKeyReconciliationHandler>>().Object);
+    }
+
+    private TenantKeyReconciliationHandler CreateHandler(
+        ILogger<TenantKeyReconciliationHandler> logger
+    ) =>
+        new(
             Options.Create(OpenIdOptions),
             MockPolicy.Object,
             MockEffectiveSettingsResolver.Object,
             MockStoreManagerFactory.Object,
             ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
-            CreateLooseMock<ILogger<TenantKeyReconciliationHandler>>().Object
+            logger
         );
-    }
 
     protected override void Dispose(bool disposing)
     {
@@ -191,6 +198,44 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_WhenTheChangeAddsNoAlgorithmATenantUses_DoesNotReadItsKeys()
+    {
+        SetupSpecifications();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
+
+        // The tenant uses RS256 under the current settings and used RS256 and ES256 under the previous ones, so the
+        // change adds nothing it uses. The handler logs a tenant it cannot handle and continues, so a strict logger
+        // without setups fails the test when the handler reads the tenant's keys.
+        SetupTenantSettings(FirstTenantId, ["RS256"]);
+        SetupTenantSettings(PreviousServerSettings, FirstTenantId, ["RS256", "ES256"]);
+        var handler = CreateHandler(
+            CreateStrictMock<ILogger<TenantKeyReconciliationHandler>>().Object
+        );
+
+        await handler.HandleAsync(CreateCommandWithPreviousSettings(), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheChangeAddsAnAlgorithmATenantUses_AnnouncesItsSettingsChange()
+    {
+        SetupSpecifications();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
+
+        // The tenant uses RS256 under the current settings and used PS256 under the previous ones, and holds only a key
+        // that does not satisfy RS256.
+        var other = CreateSecret("other");
+        SetupTenantSettings(FirstTenantId, ["RS256"]);
+        SetupTenantSettings(PreviousServerSettings, FirstTenantId, ["PS256"]);
+        SetupSecrets(FirstTenantId, [other]);
+        MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, other)).Returns(false).Verifiable();
+        SetupAnnouncement(FirstTenantId);
+
+        await Handler.HandleAsync(CreateCommandWithPreviousSettings(), CancellationToken.None);
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenProvisioningIsDisabled_ReadsNoTenant()
     {
         // Every mock is strict with no setup: resolving the specifications or reading a tenant fails the test.
@@ -209,6 +254,9 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
         && value.GetString() == tenantId;
 
     private ReconcileServerSettingsCommand CreateCommand() => new(ServerId, ServerSettings);
+
+    private ReconcileServerSettingsCommand CreateCommandWithPreviousSettings() =>
+        new(ServerId, ServerSettings) { PreviousSettings = PreviousServerSettings };
 
     private void SetupSpecifications() =>
         MockPolicy
@@ -260,10 +308,17 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
             .Verifiable();
 
     private void SetupTenantSettings(string tenantId, string[] algorithms) =>
+        SetupTenantSettings(ServerSettings, tenantId, algorithms);
+
+    private void SetupTenantSettings(
+        IReadOnlySettingCollection serverSettings,
+        string tenantId,
+        string[] algorithms
+    ) =>
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
-                    ServerSettings,
+                    serverSettings,
                     OpenIdSettingScopes.Tenant,
                     It.Is<JsonElement>(e => IsTenantDocument(e, tenantId))
                 )

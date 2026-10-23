@@ -1012,6 +1012,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("ReconciledSettingsJson")
+                        .HasColumnType("text");
+
                     b.Property<string>("SecretsConcurrencyToken")
                         .IsRequired()
                         .HasMaxLength(50)

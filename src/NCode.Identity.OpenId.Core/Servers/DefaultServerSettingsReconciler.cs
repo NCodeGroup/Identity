@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -24,6 +25,7 @@ using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -35,15 +37,18 @@ namespace NCode.Identity.OpenId.Servers;
 /// row, resolves the server's effective settings from the row's committed document and this replica's configuration,
 /// and compares their fingerprint with the one recorded as reconciled. On a difference it takes a lease in the
 /// <see cref="IExpiringKeySet"/> that names the row's concurrency token and the fingerprint, so one replica reconciles
-/// each change, sends a <see cref="ReconcileServerSettingsCommand"/>, and records the fingerprint while the row is
-/// unchanged. A lease that is held, a pass that fails, and a record that loses a race with a change to the row leave
-/// the settings unreconciled, so the caller tries again.
+/// each change, sends a <see cref="ReconcileServerSettingsCommand"/> that carries the settings recorded as reconciled
+/// (none when the record is missing or cannot be read), and records the fingerprint and the settings it reconciled
+/// while the row is unchanged. A lease that is held, a pass that fails, and a record that loses a race with a change
+/// to the row leave the settings unreconciled, so the caller tries again.
 /// </summary>
 // See ADR-0219.
 internal sealed class DefaultServerSettingsReconciler(
     IStoreManagerFactory storeManagerFactory,
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,
+    ISettingSerializer settingSerializer,
+    ISettingCollectionFactory settingCollectionFactory,
     IExpiringKeySet expiringKeySet,
     IServiceScopeFactory serviceScopeFactory,
     IOptions<OpenIdOptions> optionsAccessor,
@@ -61,6 +66,8 @@ internal sealed class DefaultServerSettingsReconciler(
         effectiveSettingsResolver;
     private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
         openIdEnvironmentProvider;
+    private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+    private ISettingCollectionFactory SettingCollectionFactory { get; } = settingCollectionFactory;
     private IExpiringKeySet ExpiringKeySet { get; } = expiringKeySet;
     private IServiceScopeFactory ServiceScopeFactory { get; } = serviceScopeFactory;
     private IOptions<OpenIdOptions> OptionsAccessor { get; } = optionsAccessor;
@@ -104,16 +111,46 @@ internal sealed class DefaultServerSettingsReconciler(
         if (!await ExpiringKeySet.TryAddAsync(leaseKey, leaseExpiresWhen, cancellationToken))
             return false;
 
+        var previousSettings = ReadReconciledSettings(persistedServer, jsonOptions);
         Logger.ServerSettingsReconciliationStarted(serverId, fingerprint);
-        var command = new ReconcileServerSettingsCommand(serverId, settings);
+        var command = new ReconcileServerSettingsCommand(serverId, settings)
+        {
+            PreviousSettings = previousSettings,
+        };
         await SendAsync(command, cancellationToken);
 
         persistedServer.ReconciledSettingsFingerprint = fingerprint;
+        persistedServer.ReconciledSettings = ServerSettingsSnapshot.Write(settings, jsonOptions);
         if (!await TryRecordAsync(persistedServer, cancellationToken))
             return false;
 
         Logger.ServerSettingsReconciled(serverId, fingerprint);
         return true;
+    }
+
+    // A record that cannot be read leaves nothing to compare a change with, so every tenant and client is reconciled.
+    private IReadOnlySettingCollection? ReadReconciledSettings(
+        PersistedServer persistedServer,
+        JsonSerializerOptions jsonOptions
+    )
+    {
+        if (persistedServer.ReconciledSettings is not { } json)
+            return null;
+
+        try
+        {
+            var settings = SettingSerializer.DeserializeSettings(
+                json,
+                OpenIdSettingScopes.Server,
+                jsonOptions
+            );
+            return SettingCollectionFactory.Create(settings);
+        }
+        catch (JsonException exception)
+        {
+            Logger.ReconciledServerSettingsUnreadable(persistedServer.ServerId, exception);
+            return null;
+        }
     }
 
     private async ValueTask<PersistedServer?> GetServerOrDefaultAsync(
@@ -138,7 +175,8 @@ internal sealed class DefaultServerSettingsReconciler(
         await mediator.SendAsync(command, cancellationToken);
     }
 
-    // Records the fingerprint only while the row is unchanged since it was read; a change during the pass reconciles again.
+    // Records the fingerprint and the settings only while the row is unchanged since it was read; a change during the pass
+    // reconciles again.
     private async ValueTask<bool> TryRecordAsync(
         PersistedServer persistedServer,
         CancellationToken cancellationToken
@@ -148,10 +186,7 @@ internal sealed class DefaultServerSettingsReconciler(
         var store = storeManager.GetStore<IServerStore>();
         try
         {
-            await store.UpdateReconciledSettingsFingerprintAsync(
-                persistedServer,
-                cancellationToken
-            );
+            await store.UpdateReconciledSettingsAsync(persistedServer, cancellationToken);
             await storeManager.SaveChangesAsync(cancellationToken);
             return true;
         }

@@ -22,7 +22,6 @@ using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
@@ -41,22 +40,22 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
-    private Mock<IClientStore> MockClientStore { get; }
-    private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
+    private Mock<IClientCoherenceReporter> MockReporter { get; }
     private Mock<IClientCoherenceValidator> MockValidator { get; }
     private IReadOnlySettingCollection ServerSettings { get; }
+    private IReadOnlySettingCollection PreviousServerSettings { get; }
 
     public ClientCoherenceReportHandlerTests()
     {
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockTenantStore = CreateStrictMock<ITenantStore>();
-        MockClientStore = CreateStrictMock<IClientStore>();
-        MockAmbientTenantAccessor = CreateStrictMock<IAmbientTenantAccessor>();
         MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
+        MockReporter = CreateStrictMock<IClientCoherenceReporter>();
         MockValidator = CreateStrictMock<IClientCoherenceValidator>();
         ServerSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        PreviousServerSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
     }
 
     private ClientCoherenceReportHandler CreateHandler(
@@ -64,9 +63,9 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     ) =>
         new(
             MockStoreManagerFactory.Object,
-            MockAmbientTenantAccessor.Object,
             MockEffectiveSettingsResolver.Object,
             MockValidator.Object,
+            MockReporter.Object,
             logger
         );
 
@@ -89,46 +88,34 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
         SetupStores();
         SetupTenantPage(FirstTenantId);
         SetupTenantSettings(FirstTenantId, tenantSettings);
-        SetupScope(FirstTenantId, []);
-        SetupClientPage(ClientId);
-        SetupValidation(tenantSettings, ClientId, [violation]);
+        SetupReport(
+            FirstTenantId,
+            tenantSettings,
+            null,
+            null,
+            new IncoherentClient { ClientId = ClientId, Violations = [violation] }
+        );
         var handler = CreateHandler(mockLogger.Object);
 
         await handler.HandleAsync(CreateCommand(), CancellationToken.None);
     }
 
     [Fact]
-    public async Task HandleAsync_ReadsEachTenantsClientsUnderItsScope()
+    public async Task HandleAsync_ChecksTheClientsOfEveryTenant()
     {
         var firstSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         var secondSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
-        List<string> events = [];
         SetupStores();
         SetupTenantPage(FirstTenantId, SecondTenantId);
         SetupTenantSettings(FirstTenantId, firstSettings);
         SetupTenantSettings(SecondTenantId, secondSettings);
-        SetupScope(FirstTenantId, events);
-        SetupScope(SecondTenantId, events);
-        SetupClientPage(events, ClientId);
-        SetupValidation(firstSettings, ClientId, []);
-        SetupValidation(secondSettings, ClientId, []);
+        SetupReport(FirstTenantId, firstSettings, null, null);
+        SetupReport(SecondTenantId, secondSettings, null, null);
         var handler = CreateHandler(
             CreateLooseMock<ILogger<ClientCoherenceReportHandler>>().Object
         );
 
         await handler.HandleAsync(CreateCommand(), CancellationToken.None);
-
-        Assert.Equal(
-            [
-                $"begin:{FirstTenantId}",
-                $"read:{FirstTenantId}",
-                $"end:{FirstTenantId}",
-                $"begin:{SecondTenantId}",
-                $"read:{SecondTenantId}",
-                $"end:{SecondTenantId}",
-            ],
-            events
-        );
     }
 
     [Fact]
@@ -138,7 +125,7 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
         SetupStores();
         SetupTenantPage(FirstTenantId, SecondTenantId);
 
-        // The first tenant's settings document cannot be resolved, so the tenant is skipped before its scope begins.
+        // The first tenant's settings document cannot be resolved, so the tenant is skipped before its clients are read.
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
@@ -150,9 +137,7 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
             .Throws(new JsonException("boom"))
             .Verifiable();
         SetupTenantSettings(SecondTenantId, secondSettings);
-        SetupScope(SecondTenantId, []);
-        SetupClientPage(ClientId);
-        SetupValidation(secondSettings, ClientId, []);
+        SetupReport(SecondTenantId, secondSettings, null, null);
         var handler = CreateHandler(
             CreateLooseMock<ILogger<ClientCoherenceReportHandler>>().Object
         );
@@ -161,7 +146,7 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenAClientDocumentCannotBeHonored_ReportsIt()
+    public async Task HandleAsync_WhenAClientDocumentCannotBeHonored_ReportsTheReason()
     {
         var tenantSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         var mockLogger = CreateWarningLogger(message =>
@@ -170,17 +155,91 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
         SetupStores();
         SetupTenantPage(FirstTenantId);
         SetupTenantSettings(FirstTenantId, tenantSettings);
-        SetupScope(FirstTenantId, []);
-        SetupClientPage(ClientId);
-        MockValidator
-            .Setup(x =>
-                x.Validate(tenantSettings, It.Is<JsonElement>(e => IsDocument(e, ClientId)))
-            )
-            .Throws(new JsonException("the document cannot be honored"))
-            .Verifiable();
+        SetupReport(
+            FirstTenantId,
+            tenantSettings,
+            null,
+            null,
+            new IncoherentClient
+            {
+                ClientId = ClientId,
+                Violations = [],
+                DocumentError = "the document cannot be honored",
+            }
+        );
         var handler = CreateHandler(mockLogger.Object);
 
         await handler.HandleAsync(CreateCommand(), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_FollowsTheReportersCursor()
+    {
+        var tenantSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        SetupStores();
+        SetupTenantPage(FirstTenantId);
+        SetupTenantSettings(FirstTenantId, tenantSettings);
+        SetupReport(FirstTenantId, tenantSettings, null, "next");
+        SetupReport(FirstTenantId, tenantSettings, "next", null);
+        var handler = CreateHandler(
+            CreateLooseMock<ILogger<ClientCoherenceReportHandler>>().Object
+        );
+
+        await handler.HandleAsync(CreateCommand(), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheChangeAltersNoSettingARuleReads_DoesNotCheckTheTenantsClients()
+    {
+        var currentSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        var previousSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        SetupStores();
+        SetupTenantPage(FirstTenantId);
+        SetupTenantSettings(FirstTenantId, currentSettings);
+        SetupTenantSettings(PreviousServerSettings, FirstTenantId, previousSettings);
+        SetupReadsChangedSetting(previousSettings, currentSettings, changed: false);
+
+        // The handler logs a tenant it cannot check and continues, so the quiet logger fails the test when the handler
+        // calls the strict reporter.
+        var handler = CreateHandler(CreateQuietLogger().Object);
+
+        await handler.HandleAsync(CreateCommandWithPreviousSettings(), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheChangeAltersASettingARuleReads_ReportsTheTenantsIncoherentClients()
+    {
+        var currentSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        var previousSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        var mockLogger = CreateWarningLogger(message =>
+            message.Contains($"'{ClientId}'") && message.Contains($"'{FirstTenantId}'")
+        );
+        SetupStores();
+        SetupTenantPage(FirstTenantId);
+        SetupTenantSettings(FirstTenantId, currentSettings);
+        SetupTenantSettings(PreviousServerSettings, FirstTenantId, previousSettings);
+        SetupReadsChangedSetting(previousSettings, currentSettings, changed: true);
+        SetupReport(
+            FirstTenantId,
+            currentSettings,
+            null,
+            null,
+            new IncoherentClient
+            {
+                ClientId = ClientId,
+                Violations =
+                [
+                    new ClientCoherenceViolation(
+                        "redirect_uris",
+                        "http://x",
+                        "redirect_uri_kinds_supported"
+                    ),
+                ],
+            }
+        );
+        var handler = CreateHandler(mockLogger.Object);
+
+        await handler.HandleAsync(CreateCommandWithPreviousSettings(), CancellationToken.None);
     }
 
     #endregion
@@ -196,6 +255,19 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
         JsonElement.Parse($$"""{"name":"{{name}}"}""");
 
     private ReconcileServerSettingsCommand CreateCommand() => new(ServerId, ServerSettings);
+
+    private ReconcileServerSettingsCommand CreateCommandWithPreviousSettings() =>
+        new(ServerId, ServerSettings) { PreviousSettings = PreviousServerSettings };
+
+    private void SetupReadsChangedSetting(
+        IReadOnlySettingCollection previousSettings,
+        IReadOnlySettingCollection currentSettings,
+        bool changed
+    ) =>
+        MockValidator
+            .Setup(x => x.ReadsChangedSetting(previousSettings, currentSettings))
+            .Returns(changed)
+            .Verifiable();
 
     // A strict logger that accepts only a warning whose message satisfies the predicate.
     private Mock<ILogger<ClientCoherenceReportHandler>> CreateWarningLogger(
@@ -224,6 +296,18 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     private static bool IsMessage(object? state, Func<string, bool> isExpectedMessage) =>
         isExpectedMessage(state?.ToString() ?? string.Empty);
 
+    // A strict logger that skips the information summary and fails the test on any warning, such as the one the handler
+    // logs for a tenant it could not check.
+    private Mock<ILogger<ClientCoherenceReportHandler>> CreateQuietLogger()
+    {
+        var mockLogger = CreateStrictMock<ILogger<ClientCoherenceReportHandler>>();
+        mockLogger
+            .Setup(x => x.IsEnabled(It.IsAny<LogLevel>()))
+            .Returns((LogLevel level) => level == LogLevel.Warning)
+            .Verifiable();
+        return mockLogger;
+    }
+
     private void SetupStores()
     {
         MockStoreManagerFactory
@@ -233,10 +317,6 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
         MockStoreManager
             .Setup(x => x.GetStore<ITenantStore>())
             .Returns(MockTenantStore.Object)
-            .Verifiable();
-        MockStoreManager
-            .Setup(x => x.GetStore<IClientStore>())
-            .Returns(MockClientStore.Object)
             .Verifiable();
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
@@ -266,10 +346,17 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
             .Verifiable();
 
     private void SetupTenantSettings(string tenantId, IReadOnlySettingCollection settings) =>
+        SetupTenantSettings(ServerSettings, tenantId, settings);
+
+    private void SetupTenantSettings(
+        IReadOnlySettingCollection serverSettings,
+        string tenantId,
+        IReadOnlySettingCollection settings
+    ) =>
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
-                    ServerSettings,
+                    serverSettings,
                     OpenIdSettingScopes.Tenant,
                     It.Is<JsonElement>(e => IsDocument(e, tenantId))
                 )
@@ -277,71 +364,27 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
             .Returns(settings)
             .Verifiable();
 
-    // Records the order in which a tenant's scope begins and ends, and its clients are read, in the events.
-    private void SetupScope(string tenantId, List<string> events)
-    {
-        var mockScope = CreateStrictMock<IDisposable>();
-        mockScope
-            .Setup(x => x.Dispose())
-            .Callback(() => events.Add($"end:{tenantId}"))
-            .Verifiable();
-        MockAmbientTenantAccessor
-            .Setup(x => x.BeginScope(tenantId))
-            .Callback(() => events.Add($"begin:{tenantId}"))
-            .Returns(mockScope.Object)
-            .Verifiable();
-    }
-
-    private void SetupClientPage(params string[] clientIds) => SetupClientPage([], clientIds);
-
-    // Every tenant is read through the same store, so the page names the tenant that the ambient scope is for.
-    private void SetupClientPage(List<string> events, params string[] clientIds) =>
-        MockClientStore
+    // The reporter checks one page of the tenant's clients and returns the incoherent ones among them.
+    private void SetupReport(
+        string tenantId,
+        IReadOnlySettingCollection tenantSettings,
+        string? cursor,
+        string? nextCursor,
+        params IncoherentClient[] clients
+    ) =>
+        MockReporter
             .Setup(x =>
-                x.GetSettingsPageAsync(
-                    It.Is<PageRequest>(page => page.Cursor == null && page.Limit == 100),
+                x.FindIncoherentClientsAsync(
+                    MockStoreManager.Object,
+                    tenantId,
+                    tenantSettings,
+                    It.Is<PageRequest>(page => page.Cursor == cursor && page.Limit == 100),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(() =>
-            {
-                var tenantId = ReadTenantId(events);
-                events.Add($"read:{tenantId}");
-                return ValueTask.FromResult(
-                    new PagedResult<PersistedClientSettings>
-                    {
-                        Items =
-                        [
-                            .. clientIds.Select(clientId => new PersistedClientSettings
-                            {
-                                TenantId = tenantId,
-                                ClientId = clientId,
-                                Value = CreateDocument(clientId),
-                            }),
-                        ],
-                        NextCursor = null,
-                    }
-                );
-            })
-            .Verifiable();
-
-    // The tenant whose scope has begun and not yet ended, which is the last "begin" event.
-    private static string ReadTenantId(List<string> events)
-    {
-        var begin = events.LastOrDefault(e => e.StartsWith("begin:", StringComparison.Ordinal));
-        return begin is null ? FirstTenantId : begin["begin:".Length..];
-    }
-
-    private void SetupValidation(
-        IReadOnlySettingCollection tenantSettings,
-        string clientId,
-        IReadOnlyList<ClientCoherenceViolation> violations
-    ) =>
-        MockValidator
-            .Setup(x =>
-                x.Validate(tenantSettings, It.Is<JsonElement>(e => IsDocument(e, clientId)))
+            .ReturnsAsync(
+                new PagedResult<IncoherentClient> { Items = clients, NextCursor = nextCursor }
             )
-            .Returns(violations)
             .Verifiable();
 
     #endregion

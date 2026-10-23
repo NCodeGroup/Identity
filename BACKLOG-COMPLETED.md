@@ -3283,3 +3283,40 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   the session through `RevokeSessionOnceAsync` before notifying relying parties, revoke-all revokes the subject's grants
   first and refuses an empty subject, and the revoke methods report what the call terminated, which the sessions
   management API returns. ADR-0227; the authorization-code replay is `R96`._
+- **`R96` — Terminate the session through the termination seam when an authorization code is replayed.**
+  `DefaultAuthorizationCodeGrantHandler.RevokeSessionOnReplayAsync` revokes the grants of the code's session with
+  `IPersistedGrantService.RevokeWhereAsync` (ADR-0112) and dispatches no `OnSessionTerminatedCommand`, so the session's
+  relying parties receive no back-channel logout and the termination is not audited. Terminate it with
+  `ISessionService.RevokeAsync` and a reason of its own. Touch points: `DefaultAuthorizationCodeGrantHandler`,
+  `SessionTerminationReasons`, ADR-0112.
+  _Closed: a replayed authorization code terminates its session through `ISessionService.RevokeAsync` with the reason
+  `authorization_code_replay`, which audits the termination and notifies its relying parties (ADR-0228)._
+- **`R97` — Notify the relying parties a session lists when it is claimed.** A termination reads the session, then
+  claims it with `IPersistedGrantService.RevokeSessionOnceAsync`, which reports only whether this call revoked it
+  (ADR-0227). A client that an authorize request adds between the read and the claim receives no back-channel logout,
+  although its tokens are revoked. Return the session as claimed and notify its clients. Touch points:
+  `IPersistedGrantService.RevokeSessionOnceAsync`, `DefaultSessionService`.
+  _Closed: `RevokeSessionOnceAsync` returns the claimed session grant, every termination notifies the clients that grant
+  lists, and a subject-wide termination claims every unrevoked session, ended or not (ADR-0228)._
+- **`R98` — Refuse a blocked end user at the interactive sign-in.** The login page signs a blocked principal in and
+  establishes a session; every grant refuses it and the authorization request sends it back to the login page
+  (`login_required` for `prompt=none`) (ADR-0226), but the session exists and the self-service pages serve it. Refuse
+  the sign-in, as Auth0 does. Touch points:
+  `InteractiveAuthenticationEndpointHandler.PostLoginAsync`, `IInteractiveCredentialVerifier`.
+  _Closed: `ValidateSubjectStandingCommand` refuses a blocked principal or a disabled account at every grant, at the
+  interactive sign-in before a session is created and at the authorization request, which answers `access_denied`; a
+  parked continuation is refused through `IContinueRefusalService`, a consent denial answers `access_denied`, and every
+  interactive endpoint requires an active session (ADR-0229)._
+- **`R99` — Let an end user change their password.** The server offers no self-service password change. A change ends
+  every other session of the principal with the reason `password_changed`, revokes every grant not issued under the
+  current session, and keeps the current session (ADR-0226). Touch points:
+  `NCode.Identity.OpenId.Authentication.Interactive`, `ILocalAccountStore.SetPasswordAsync`, `ISessionService`.
+  _Closed: an end user changes their password at `/account/password` through `IInteractivePasswordChanger`; the change
+  keeps the current session, ends every other one and revokes the grants issued under no session
+  (`GrantFilter.WithoutSession`), and the auth app serves the page (ADR-0230)._
+- **`R100` — Tell a ping or push client that its CIBA request was denied.** `ICibaRequestService.DenyAsync`, and an
+  approval whose subject is refused (ADR-0225), record the denial but notify no client, so a ping or push client waits
+  until the request expires. Send the ping notification, after which the token endpoint answers `access_denied`, or the
+  push error payload (CIBA Core §12). Touch points: `DefaultCibaRequestService`, `CibaDeliveryJob`.
+  _Closed: a ping or push CIBA client is notified when its request is denied, a push with an error payload and no tokens
+  (ADR-0231)._

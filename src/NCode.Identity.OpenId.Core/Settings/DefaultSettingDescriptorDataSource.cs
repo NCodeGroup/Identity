@@ -1027,6 +1027,40 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
+            // refresh_token_rotation_policy: which refresh tokens are rotated, that is replaced by a new refresh token
+            // each time they are used — unbound (the default) rotates a token bound neither to a proof-of-possession
+            // key nor to client authentication, that is a public client's token without a DPoP or certificate binding,
+            // as RFC 9700 §2.2.2 and §4.14.2 require; always rotates every refresh token. No value turns off the
+            // rotation of a public client's unbound token. (ADR-0216)
+            // Override (Replace): a child fully replaces the parent value, so a tenant cannot force rotation on its
+            // clients; the floor that matters is the requirement that a public client's unbound token is rotated.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.RefreshTokenRotationPolicy,
+                AppliesTo = Clients,
+                Rule = OpenIdSettingRules.RefreshTokenRotationPolicy(),
+                Default = OpenIdConstants.RefreshTokenRotationPolicy.Unbound,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // refresh_token_reuse_interval: how long after a rotation the rotated refresh token may be presented again
+            // as a retry instead of a reuse, so a client that lost the rotation response can recover; the retry is
+            // answered as the rotation was and the rotation family is not revoked. TimeSpan.Zero turns it off
+            // (default); at most one minute, because a longer window weakens reuse detection. (ADR-0217)
+            // Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.RefreshTokenReuseInterval,
+                AppliesTo = Clients,
+                Rule = OpenIdSettingRules.RefreshTokenReuseInterval(),
+                Default = TimeSpan.Zero,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
             // refresh_token_lifetime: validity window for issued refresh tokens (default 30 days).
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
@@ -1038,18 +1072,6 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Min,
-            };
-
-            // refresh_token_rotation_enabled: issue a new refresh token on each use and revoke the prior one (default false).
-            // Floor (Or): once a parent enables rotation, a child cannot disable it.
-            yield return new SettingDescriptor<bool>
-            {
-                Name = OpenIdSettingNames.RefreshTokenRotationEnabled,
-                AppliesTo = Clients,
-                Default = false,
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Or,
             };
 
             // request_object_encryption_alg_values_supported: permitted "alg" values for encrypting request objects.

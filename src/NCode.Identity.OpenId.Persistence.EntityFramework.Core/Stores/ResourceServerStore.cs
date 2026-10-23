@@ -501,11 +501,27 @@ internal class ResourceServerStore(
             );
         }
 
+        var tenantKey = resourceServerEntity.TenantId;
+        var normalizedResourceServerId = resourceServerEntity.NormalizedResourceServerId;
+
         DbContext.Scopes.RemoveRange(resourceServerEntity.Scopes);
         DbContext.ResourceServerSecrets.RemoveRange(resourceServerEntity.Secrets);
         DbContext.Secrets.RemoveRange(
             resourceServerEntity.Secrets.Select(resourceServerSecret => resourceServerSecret.Secret)
         );
+
+        // The role assignments at the resource server's node are removed with it. See ADR-0212.
+        DbContext.RoleAssignments.RemoveRange(
+            await DbContext
+                .RoleAssignments.IgnoreQueryFilters()
+                .Where(entity =>
+                    entity.TenantId == tenantKey
+                    && entity.ResourceType == OpenIdResourceTypes.ResourceServer
+                    && entity.NormalizedResourceId == normalizedResourceServerId
+                )
+                .ToListAsync(cancellationToken)
+        );
+
         DbContext.ResourceServers.Remove(resourceServerEntity);
     }
 

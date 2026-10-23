@@ -216,16 +216,13 @@ internal class GrantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IGrantStore>();
-
-        var revoked = await store.RevokeWhereAsync(
+        // A revocation retries a lost race instead of answering 412. See ADR-0215.
+        var revoked = await PersistedGrantService.RevokeWhereAsync(
+            httpContext.GetOpenIdContext(),
             filter,
             TimeProvider.GetUtcNow(),
             cancellationToken
         );
-
-        await storeManager.SaveChangesAsync(cancellationToken);
 
         await ManagementAuditRecorder.RecordGrantsRevokedAsync(
             httpContext,
@@ -479,22 +476,28 @@ internal class GrantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Soft-revoke is idempotent: an already-revoked grant is left untouched.
+        // Soft-revoke is idempotent: an already-revoked grant is left untouched. A revocation retries a lost race
+        // instead of answering 412. See ADR-0215.
         if (grant.RevokedWhen is null)
         {
-            grant.RevokedWhen = TimeProvider.GetUtcNow();
-
-            await store.UpdateAsync(grant, cancellationToken);
-            await storeManager.SaveChangesAsync(cancellationToken);
-
-            await ManagementAuditRecorder.RecordGrantRevokedAsync(
-                httpContext,
-                tenantId,
-                grant.SubjectId,
-                grant.ClientId,
-                grant.GrantType,
+            var revoked = await PersistedGrantService.RevokeWhereAsync(
+                httpContext.GetOpenIdContext(),
+                new GrantFilter { GrantId = grant.GrantId },
+                TimeProvider.GetUtcNow(),
                 cancellationToken
             );
+
+            if (revoked > 0)
+            {
+                await ManagementAuditRecorder.RecordGrantRevokedAsync(
+                    httpContext,
+                    tenantId,
+                    grant.SubjectId,
+                    grant.ClientId,
+                    grant.GrantType,
+                    cancellationToken
+                );
+            }
         }
 
         return TypedResults.NoContent();

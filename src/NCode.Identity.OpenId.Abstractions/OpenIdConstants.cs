@@ -475,6 +475,25 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
+    /// Contains constants for which refresh tokens are rotated, that is replaced by a new refresh token each time they
+    /// are used.
+    /// </summary>
+    public static class RefreshTokenRotationPolicy
+    {
+        /// <summary>
+        /// Indicates that a refresh token is rotated when it is bound neither to a proof-of-possession key nor to
+        /// client authentication, that is a public client's token without a DPoP or certificate binding, as the OAuth
+        /// 2.0 Security BCP (RFC 9700) requires.
+        /// </summary>
+        public const string Unbound = "unbound";
+
+        /// <summary>
+        /// Indicates that every refresh token is rotated.
+        /// </summary>
+        public const string Always = "always";
+    }
+
+    /// <summary>
     /// Contains constants for how the revocation status of a <c>tls_client_auth</c> client certificate chain is
     /// checked. The values are the revocation policy: revocation is either required or not checked. How the status
     /// is obtained is the replaceable client certificate revocation checker.

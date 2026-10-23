@@ -529,6 +529,42 @@ internal class DefaultTokenService(
         );
     }
 
+    /// <inheritdoc />
+    public async ValueTask<SecurityToken?> ReissueRefreshTokenAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        CreateSecurityTokenRequest tokenRequest,
+        CancellationToken cancellationToken
+    )
+    {
+        if (string.IsNullOrEmpty(tokenRequest.RefreshTokenLineageId))
+            throw new ArgumentException(
+                "The request must name the refresh-token rotation family to join.",
+                nameof(tokenRequest)
+            );
+
+        var prepared = PrepareRefreshToken(openIdContext, openIdClient, tokenRequest);
+
+        var grantKey = await PersistedGrantService.AddToRefreshTokenLineageOrDefault(
+            openIdContext,
+            prepared.GrantId,
+            prepared.Grant,
+            prepared.CreatedWhen,
+            prepared.Lifetime,
+            cancellationToken
+        );
+
+        if (grantKey is null)
+            return null;
+
+        return await AuditIssuedRefreshTokenAsync(
+            openIdContext,
+            openIdClient,
+            prepared,
+            cancellationToken
+        );
+    }
+
     private PreparedRefreshToken PrepareRefreshToken(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,

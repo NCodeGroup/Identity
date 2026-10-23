@@ -250,3 +250,7 @@ standards.
 | [0212](./0212-deleting-an-owner-removes-what-it-owns.md) | Deleting a client or a tenant removes what it owns, its end users' data included | Accepted |
 | [0213](./0213-the-usage-ledger-is-pruned-in-bounded-batches.md) | The usage ledger is pruned in bounded batches that every provider supports | Accepted |
 | [0214](./0214-a-management-write-that-loses-a-race-is-answered-412.md) | A management write that loses a concurrency race is answered 412 | Accepted |
+| [0215](./0215-a-revocation-wins-a-concurrency-race.md) | A revocation wins a concurrency race | Accepted |
+| [0216](./0216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md) | A refresh token is rotated unless it is sender-constrained | Accepted |
+| [0217](./0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md) | A rotated refresh token may be retried within a reuse interval | Accepted |
+| [0218](./0218-ended-grants-are-removed-after-a-retention-period.md) | Ended grants are removed after a retention period | Accepted |

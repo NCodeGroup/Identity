@@ -151,6 +151,21 @@ internal static class OpenIdSettingRules
         );
 
     /// <summary>
+    /// Gets the rule for a refresh token rotation policy: <c>unbound</c> or <c>always</c>.
+    /// </summary>
+    public static SettingRule<string> RefreshTokenRotationPolicy() =>
+        SettingRules.OneOf(
+            OpenIdConstants.RefreshTokenRotationPolicy.Unbound,
+            OpenIdConstants.RefreshTokenRotationPolicy.Always
+        );
+
+    /// <summary>
+    /// Gets the rule for a refresh token reuse interval: from zero, which turns it off, to one minute.
+    /// </summary>
+    public static SettingRule<TimeSpan> RefreshTokenReuseInterval() =>
+        SettingRules.Between(TimeSpan.Zero, TimeSpan.FromSeconds(60));
+
+    /// <summary>
     /// Gets the rule for a grant type: a grant type the server names, or an absolute URI, which is how RFC 6749 §4.5
     /// names an extension grant type (the device code, CIBA, and token exchange grants among them).
     /// </summary>

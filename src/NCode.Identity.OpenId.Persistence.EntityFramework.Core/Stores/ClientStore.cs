@@ -559,13 +559,15 @@ internal class ClientStore(
             return false;
         }
 
-        // Everything that exists for the client is removed with it: its secrets, its grants to resource servers, its consents, and the grants issued to it. See ADR-0212.
+        // Everything that exists for the client is removed with it: its secrets, its grants to resource servers, its consents, the grants issued to it, and the role assignments at its resource node, whose resource type is the client's. See ADR-0212.
         DbContext.ClientSecrets.RemoveRange(clientEntity.Secrets);
         DbContext.Secrets.RemoveRange(
             clientEntity.Secrets.Select(clientSecret => clientSecret.Secret)
         );
 
         var clientKey = clientEntity.Id;
+        var tenantKey = clientEntity.TenantId;
+        var normalizedClientId = clientEntity.NormalizedClientId;
 
         DbContext.ClientGrants.RemoveRange(
             await DbContext
@@ -583,6 +585,16 @@ internal class ClientStore(
             await DbContext
                 .Grants.IgnoreQueryFilters()
                 .Where(entity => entity.ClientId == clientKey)
+                .ToListAsync(cancellationToken)
+        );
+        DbContext.RoleAssignments.RemoveRange(
+            await DbContext
+                .RoleAssignments.IgnoreQueryFilters()
+                .Where(entity =>
+                    entity.TenantId == tenantKey
+                    && entity.ResourceType == OpenIdResourceTypes.Client
+                    && entity.NormalizedResourceId == normalizedClientId
+                )
                 .ToListAsync(cancellationToken)
         );
 

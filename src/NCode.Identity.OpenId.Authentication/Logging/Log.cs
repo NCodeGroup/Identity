@@ -474,4 +474,11 @@ internal static partial class Log
         Message = "The usage of {EntryCount} tenant-day meters could not be added to the usage ledger before the replica stopped and is lost."
     )]
     internal static partial void TenantUsageDiscardedOnStop(this ILogger logger, int entryCount);
+
+    [LoggerMessage(
+        EventId = EventIds.GrantPruneFailed,
+        Level = LogLevel.Warning,
+        Message = "The grants that ended before their retention could not be removed; the removal is retried at the next prune."
+    )]
+    internal static partial void GrantPruneFailed(this ILogger logger, Exception exception);
 }

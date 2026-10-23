@@ -570,6 +570,8 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.HasIndex("NormalizedGrantId")
                         .IsUnique();
 
+                    b.HasIndex("RevokedWhen");
+
                     b.HasIndex("GrantType", "HashedKey")
                         .IsUnique();
 

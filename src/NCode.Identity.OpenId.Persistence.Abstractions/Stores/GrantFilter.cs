@@ -47,6 +47,11 @@ public readonly record struct GrantFilter
     public string? SessionId { get; init; }
 
     /// <summary>
+    /// Gets the opaque public identifier of the grant selected, or <c>null</c> to not constrain by grant.
+    /// </summary>
+    public string? GrantId { get; init; }
+
+    /// <summary>
     /// Gets the grant type selected, or <c>null</c> to not constrain by grant type.
     /// </summary>
     public string? GrantType { get; init; }
@@ -59,5 +64,6 @@ public readonly record struct GrantFilter
         string.IsNullOrEmpty(SubjectId)
         && string.IsNullOrEmpty(ClientId)
         && string.IsNullOrEmpty(SessionId)
+        && string.IsNullOrEmpty(GrantId)
         && string.IsNullOrEmpty(GrantType);
 }

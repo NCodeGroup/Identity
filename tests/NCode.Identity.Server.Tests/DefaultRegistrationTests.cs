@@ -27,6 +27,7 @@ using Moq;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
@@ -740,6 +741,24 @@ public sealed class DefaultRegistrationTests
 
         Assert.Contains("Tenant:KeyProvisioning", exception.Message, StringComparison.Ordinal);
         Assert.Contains(expectedReason, exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_WhenTheGrantRetentionIsNegative_FailsToStart()
+    {
+        using var host = BuildHost(
+            [],
+            serviceCollection =>
+                serviceCollection.Configure<GrantRetentionOptions>(options =>
+                    options.Retention = TimeSpan.FromDays(-1)
+                )
+        );
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains("GrantRetentionOptions", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

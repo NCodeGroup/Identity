@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Settings;
 using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
@@ -94,24 +95,33 @@ internal class DefaultRefreshTokenGrantHandler(
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var persistedGrant = persistedGrantOrNull.Value;
+        var isRetry = false;
         if (persistedGrant.Status != PersistedGrantStatus.Active)
         {
             // A revoked grant presented again is a reuse/replay signal (likely rotated away or
             // revoked on suspicion), distinct from a benign expiry.
             if (persistedGrant.Status == PersistedGrantStatus.Revoked)
             {
-                return await AnswerReuseAsync(
-                    openIdContext,
-                    openIdClient,
-                    persistedGrant,
-                    utcNow,
-                    cancellationToken
-                );
-            }
+                if (!IsWithinReuseInterval(settings, persistedGrant, utcNow))
+                {
+                    return await AnswerReuseAsync(
+                        openIdContext,
+                        openIdClient,
+                        persistedGrant,
+                        utcNow,
+                        cancellationToken
+                    );
+                }
 
-            return errorFactory
-                .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
-                .WithStatusCode(StatusCodes.Status400BadRequest);
+                // A rotated token presented again within the reuse interval is a retry, not a reuse. See ADR-0217.
+                isRetry = true;
+            }
+            else
+            {
+                return errorFactory
+                    .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+                    .WithStatusCode(StatusCodes.Status400BadRequest);
+            }
         }
 
         var refreshTokenGrant = persistedGrant.Payload;
@@ -182,13 +192,36 @@ internal class DefaultRefreshTokenGrantHandler(
             Confirmation = effectiveBinding.Confirmation,
         };
 
-        var rotationEnabled = settings.GetValue(OpenIdSettingKeys.RefreshTokenRotationEnabled);
+        var rotates =
+            isRetry
+            || RefreshTokenRotationRequirement.IsRequired(
+                openIdClient,
+                refreshTokenGrant.Confirmation
+            );
         var issuesRefreshToken = securityTokenRequest.EffectiveScopes.Contains(
             OpenIdConstants.ScopeTypes.OfflineAccess
         );
 
         string? responseRefreshToken = null;
-        if (rotationEnabled && issuesRefreshToken)
+        if (isRetry)
+        {
+            responseRefreshToken = await ReissueRefreshTokenForRetryAsync(
+                openIdContext,
+                openIdClient,
+                persistedGrant,
+                securityTokenRequest,
+                issuesRefreshToken,
+                cancellationToken
+            );
+
+            if (responseRefreshToken is null)
+            {
+                return errorFactory
+                    .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+                    .WithStatusCode(StatusCodes.Status400BadRequest);
+            }
+        }
+        else if (rotates && issuesRefreshToken)
         {
             var successor = await TokenService.RotateRefreshTokenAsync(
                 openIdContext,
@@ -198,7 +231,39 @@ internal class DefaultRefreshTokenGrantHandler(
                 cancellationToken
             );
 
-            if (successor is not { } rotated)
+            if (successor is { } rotated)
+            {
+                responseRefreshToken = rotated.TokenValue;
+            }
+            else if (
+                await WasRotatedByConcurrentRequestAsync(
+                    openIdContext,
+                    settings,
+                    persistedGrantId,
+                    utcNow,
+                    cancellationToken
+                )
+            )
+            {
+                // A rotation that lost to a concurrent rotation is a retry while the reuse interval lasts: the winner
+                // consumed the grant a moment ago. See ADR-0217.
+                responseRefreshToken = await ReissueRefreshTokenForRetryAsync(
+                    openIdContext,
+                    openIdClient,
+                    persistedGrant,
+                    securityTokenRequest,
+                    issuesRefreshToken,
+                    cancellationToken
+                );
+
+                if (responseRefreshToken is null)
+                {
+                    return errorFactory
+                        .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+                        .WithStatusCode(StatusCodes.Status400BadRequest);
+                }
+            }
+            else
             {
                 return await AnswerReuseAsync(
                     openIdContext,
@@ -208,10 +273,8 @@ internal class DefaultRefreshTokenGrantHandler(
                     cancellationToken
                 );
             }
-
-            responseRefreshToken = rotated.TokenValue;
         }
-        else if (rotationEnabled)
+        else if (rotates)
         {
             var spent = await PersistedGrantService.TryRevokeOnceAsync(
                 openIdContext,
@@ -248,7 +311,7 @@ internal class DefaultRefreshTokenGrantHandler(
         var expirationPolicy = settings.GetValue(OpenIdSettingKeys.RefreshTokenExpirationPolicy);
         var useSlidingExpiration =
             expirationPolicy == OpenIdConstants.RefreshTokenExpirationPolicy.Sliding;
-        if (useSlidingExpiration && !rotationEnabled)
+        if (useSlidingExpiration && !rotates)
         {
             var lifetime = settings.GetValue(OpenIdSettingKeys.RefreshTokenLifetime);
             var expiresWhen = utcNow + lifetime;
@@ -262,6 +325,77 @@ internal class DefaultRefreshTokenGrantHandler(
         }
 
         return tokenResponse;
+    }
+
+    // A grant that a rotation spent is a retry, not a reuse, while its reuse interval lasts and the grant has not
+    // expired. A grant that was revoked otherwise is a reuse. See ADR-0217.
+    private static bool IsWithinReuseInterval(
+        IReadOnlySettingCollection settings,
+        PersistedGrant<RefreshTokenGrant> grant,
+        DateTimeOffset utcNow
+    )
+    {
+        if (
+            grant.ConsumedWhen is not { } rotatedWhen
+            || (grant.ExpiresWhen is { } expiresWhen && expiresWhen <= utcNow)
+        )
+        {
+            return false;
+        }
+
+        return utcNow
+            < rotatedWhen + settings.GetValue(OpenIdSettingKeys.RefreshTokenReuseInterval);
+    }
+
+    // A retry is answered only when it can issue another refresh token in a lineage that is still active. Otherwise it
+    // is refused (null) without a replay audit and without revoking the lineage. See ADR-0217.
+    private async ValueTask<string?> ReissueRefreshTokenForRetryAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        PersistedGrant<RefreshTokenGrant> persistedGrant,
+        CreateSecurityTokenRequest securityTokenRequest,
+        bool issuesRefreshToken,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!issuesRefreshToken || string.IsNullOrEmpty(persistedGrant.RefreshTokenLineageId))
+            return null;
+
+        var reissued = await TokenService.ReissueRefreshTokenAsync(
+            openIdContext,
+            openIdClient,
+            securityTokenRequest,
+            cancellationToken
+        );
+
+        return reissued?.TokenValue;
+    }
+
+    // A rotation that lost its spend was won by a concurrent rotation when the grant, read again, is a rotated grant
+    // that is within the reuse interval. The grant is not read again when the interval is off. See ADR-0217.
+    private async ValueTask<bool> WasRotatedByConcurrentRequestAsync(
+        OpenIdContext openIdContext,
+        IReadOnlySettingCollection settings,
+        PersistedGrantId persistedGrantId,
+        DateTimeOffset utcNow,
+        CancellationToken cancellationToken
+    )
+    {
+        if (settings.GetValue(OpenIdSettingKeys.RefreshTokenReuseInterval) <= TimeSpan.Zero)
+            return false;
+
+        var currentOrNull = await PersistedGrantService.GetOrDefaultAsync<RefreshTokenGrant>(
+            openIdContext,
+            persistedGrantId,
+            cancellationToken
+        );
+
+        if (!currentOrNull.HasValue)
+            return false;
+
+        var current = currentOrNull.Value;
+        return current.Status == PersistedGrantStatus.Revoked
+            && IsWithinReuseInterval(settings, current, utcNow);
     }
 
     // A refresh token presented after it was rotated or revoked, or spent first by a concurrent request, is a reuse

@@ -103,4 +103,24 @@ public interface ITokenService
         CreateSecurityTokenRequest tokenRequest,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Generates another refresh token in the rotation family named by
+    /// <see cref="CreateSecurityTokenRequest.RefreshTokenLineageId"/>, for a client that presents a rotated refresh
+    /// token again within its reuse interval. The token is stored only while a grant of the family is still active.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
+    /// <param name="tokenRequest">The <see cref="CreateSecurityTokenRequest"/> that contains the information required to generate the refresh token.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="SecurityToken"/>
+    /// that represents the refresh token, or <c>null</c> when no grant of the family is active, in which case nothing
+    /// is stored or audited.</returns>
+    /// <exception cref="ArgumentException">The request names no refresh-token rotation family.</exception>
+    ValueTask<SecurityToken?> ReissueRefreshTokenAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        CreateSecurityTokenRequest tokenRequest,
+        CancellationToken cancellationToken
+    );
 }

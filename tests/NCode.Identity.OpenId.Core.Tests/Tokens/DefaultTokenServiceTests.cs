@@ -300,6 +300,23 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
             .Returns(new ValueTask<string?>(replacementGrantKey))
             .Verifiable();
 
+    private void SetupAddToLineage(PersistedGrantId successorId, string? grantKey) =>
+        MockPersistedGrantService
+            .Setup(x =>
+                x.AddToRefreshTokenLineageOrDefault(
+                    MockContext.Object,
+                    successorId,
+                    It.Is<PersistedGrant<RefreshTokenGrant>>(grant =>
+                        grant.RefreshTokenLineageId == "lineage-1" && grant.ClientId == "client-1"
+                    ),
+                    CreatedWhen,
+                    TimeSpan.FromDays(30),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<string?>(grantKey))
+            .Verifiable();
+
     #endregion
 
     #region CreateAccessTokenAsync Tests
@@ -453,6 +470,71 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
         );
 
         Assert.Null(securityToken);
+    }
+
+    #endregion
+
+    #region ReissueRefreshTokenAsync Tests
+
+    [Fact]
+    public async Task ReissueRefreshTokenAsync_WhenTheLineageIsActive_ReturnsTheTokenInItsLineage()
+    {
+        var successorId = SetupSuccessor();
+        SetupAddToLineage(successorId, "grant-2");
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordTokenIssuedAsync(
+                    MockContext.Object,
+                    MockClient.Object,
+                    null,
+                    It.IsAny<SecurityToken>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var securityToken = await Service.ReissueRefreshTokenAsync(
+            MockContext.Object,
+            MockClient.Object,
+            CreateRotationRequest(),
+            CancellationToken.None
+        );
+
+        Assert.NotNull(securityToken);
+        Assert.Equal("successor", securityToken.Value.TokenValue);
+    }
+
+    [Fact]
+    public async Task ReissueRefreshTokenAsync_WhenNoGrantOfTheLineageIsActive_ReturnsNullWithoutAuditing()
+    {
+        var successorId = SetupSuccessor();
+        SetupAddToLineage(successorId, null);
+
+        var securityToken = await Service.ReissueRefreshTokenAsync(
+            MockContext.Object,
+            MockClient.Object,
+            CreateRotationRequest(),
+            CancellationToken.None
+        );
+
+        Assert.Null(securityToken);
+    }
+
+    [Fact]
+    public async Task ReissueRefreshTokenAsync_WhenTheRequestNamesNoLineage_Throws()
+    {
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Service.ReissueRefreshTokenAsync(
+                MockContext.Object,
+                MockClient.Object,
+                CreateRotationRequest() with
+                {
+                    RefreshTokenLineageId = null,
+                },
+                CancellationToken.None
+            )
+        );
     }
 
     #endregion

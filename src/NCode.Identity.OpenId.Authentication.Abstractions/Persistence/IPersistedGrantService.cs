@@ -19,6 +19,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Persistence;
 
@@ -89,7 +90,8 @@ public interface IPersistedGrantService
     );
 
     /// <summary>
-    /// Updates a grant as being revoked if it is still active.
+    /// Updates a grant as being revoked if it is still active. A revocation that loses a concurrency race reads the
+    /// grant again and retries a few times; it fails when every attempt loses.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
@@ -111,8 +113,9 @@ public interface IPersistedGrantService
     /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> if this
-    /// call revoked the grant. The result is <c>false</c> when the grant does not exist, is not active, or a
-    /// concurrent request changed it first.</returns>
+    /// call revoked the grant. The result is <c>false</c> when the grant does not exist or is not active, including
+    /// when a concurrent request spent or revoked it first. A concurrent write that leaves the grant active is read
+    /// again; the call fails when every attempt loses.</returns>
     ValueTask<bool> TryRevokeOnceAsync(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
@@ -121,8 +124,8 @@ public interface IPersistedGrantService
     );
 
     /// <summary>
-    /// Revokes the replaced grant if it is still active and stores the specified grant in the same unit of work, so
-    /// the replacement exists only if this call revoked the grant it replaces.
+    /// Revokes the replaced grant if it is still active, marks it consumed, and stores the specified grant in the same
+    /// unit of work, so the replacement exists only if this call revoked the grant it replaces.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="replacedGrantId">Contains the identifiers of the persisted grant to revoke.</param>
@@ -135,7 +138,9 @@ public interface IPersistedGrantService
     /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the opaque,
     /// server-generated public identifier of the stored grant. The result is <c>null</c>, and nothing is stored, when
-    /// the replaced grant does not exist, is not active, or a concurrent request changed it first.</returns>
+    /// the replaced grant does not exist or is not active, including when a concurrent request spent or revoked it
+    /// first. A concurrent write that leaves the replaced grant active is read again; the call fails when every
+    /// attempt loses.</returns>
     /// <exception cref="InvalidOperationException">The specified grant is not active.</exception>
     ValueTask<string?> ReplaceOnceOrDefault<TPayload>(
         OpenIdContext openIdContext,
@@ -148,8 +153,36 @@ public interface IPersistedGrantService
     );
 
     /// <summary>
+    /// Stores the grant in the refresh-token rotation family it names if a grant of that family is still active, in
+    /// one unit of work that also updates every active grant of the family, so a concurrent revocation of the family
+    /// either prevents the store or, when it reads the family again, revokes the stored grant too.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted grant to store.</param>
+    /// <param name="grant">Contains the payload of the persisted grant to store, and the family it joins.</param>
+    /// <param name="createdWhen">The <see cref="DateTimeOffset"/> when the grant to store was created.</param>
+    /// <param name="lifetime">The optional lifetime of the persisted grant to store. If <c>null</c>, the grant does not expire.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the opaque,
+    /// server-generated public identifier of the stored grant. The result is <c>null</c>, and nothing is stored, when
+    /// no grant of the family is active. A concurrent write to a grant of the family is read again; the call fails
+    /// when every attempt loses.</returns>
+    /// <exception cref="InvalidOperationException">The specified grant is not active.</exception>
+    /// <exception cref="ArgumentException">The specified grant names no refresh-token rotation family.</exception>
+    ValueTask<string?> AddToRefreshTokenLineageOrDefault<TPayload>(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        PersistedGrant<TPayload> grant,
+        DateTimeOffset createdWhen,
+        TimeSpan? lifetime,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Revokes every active grant belonging to the specified refresh-token rotation family. Used by refresh-token
-    /// reuse detection to revoke the whole family when a replayed token is presented.
+    /// reuse detection to revoke the whole family when a replayed token is presented, and by the revocation endpoint
+    /// to revoke the family of the refresh token it is given.
     /// </summary>
     /// <remarks>
     /// A revocation that loses a concurrency race with another write to a grant of the family, such as a rotation that
@@ -170,20 +203,24 @@ public interface IPersistedGrantService
     );
 
     /// <summary>
-    /// Revokes every active grant belonging to the specified end-user session — the <c>session</c> grant itself plus
-    /// the access- and refresh-token grants issued under it. Used by authorization-code replay detection to revoke the
-    /// tokens previously issued from a reused code (RFC 6749 §4.1.2); it performs the revocation only, without the
-    /// back-channel-logout or audit side effects of a user-initiated logout.
+    /// Revokes every active grant that the filter selects, such as the grants of an end-user session, a subject, or a
+    /// client.
     /// </summary>
+    /// <remarks>
+    /// A revocation that loses a concurrency race with another write to one of the selected grants, such as a rotation
+    /// that commits in between, reads the selected grants again and retries a few times, so a grant added concurrently
+    /// is revoked too. It fails when every attempt loses.
+    /// </remarks>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
-    /// <param name="sessionId">The opaque end-user session identifier (<c>sid</c>) whose grants to revoke.</param>
+    /// <param name="filter">The <see cref="GrantFilter"/> that selects the grants to revoke.</param>
     /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
     /// grants that were revoked.</returns>
-    ValueTask<long> RevokeBySessionAsync(
+    /// <exception cref="ArgumentException">The filter sets no criterion.</exception>
+    ValueTask<long> RevokeWhereAsync(
         OpenIdContext openIdContext,
-        string sessionId,
+        GrantFilter filter,
         DateTimeOffset revokedWhen,
         CancellationToken cancellationToken
     );

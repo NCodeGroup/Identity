@@ -157,7 +157,8 @@ public interface IResourceServerStore : IStore<PersistedResourceServer>
     );
 
     /// <summary>
-    /// Removes a resource server (and its scopes) from the store.
+    /// Removes a resource server from the store together with its scopes, its secrets, and every role assignment at
+    /// its resource node, ownership included.
     /// </summary>
     /// <param name="resourceServerId">The opaque identifier of the resource server to remove.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>

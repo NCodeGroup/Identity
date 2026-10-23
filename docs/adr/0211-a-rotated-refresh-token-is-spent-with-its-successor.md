@@ -1,6 +1,9 @@
 # 211. A rotated refresh token is spent with its successor, and a lost spend is a reuse
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0215](0215-a-revocation-wins-a-concurrency-race.md): every revocation retries a
+  lost race; [ADR-0217](0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md): a rotation marks the
+  spent grant consumed, a spend reads again after a write that left the grant active, and a retry within the reuse
+  interval is not a reuse)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -45,8 +48,8 @@ the spend is answered as a reuse.**
 ## Options considered
 
 - **A grace interval for a concurrent loser as the default.** Rejected: RFC 9700 makes no exception for a concurrent
-  request, and Auth0 (reuse interval) and Okta (grace period) offer the interval as an opt-in. It may become an opt-in
-  here (backlog `R79`).
+  request, and Auth0 (reuse interval) and Okta (grace period) offer the interval as an opt-in. It is an opt-in
+  ([ADR-0217](0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)).
 - **Mint, then spend.** Rejected: a lost spend would have minted and audited tokens that are never delivered.
 - **Spend and store the successor in separate units of work.** Rejected: the lineage revocation of a loser can run
   between the two and miss the successor.

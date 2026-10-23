@@ -204,6 +204,42 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
     }
 
     [Fact]
+    public void Collection_RefreshTokenRotationPolicy_DefaultsToUnboundAndAChildReplaces()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<string>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.RefreshTokenRotationPolicy)
+        );
+        var parentSetting = descriptor.Create("always");
+        var childSetting = descriptor.Create("unbound");
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.Equal("unbound", descriptor.Default);
+        Assert.Equal([OpenIdSettingScopes.Client], descriptor.AppliesTo.AsEnumerable());
+        Assert.False(descriptor.IsDiscoverable);
+        Assert.Equal("unbound", merged.Value);
+    }
+
+    [Fact]
+    public void Collection_RefreshTokenReuseInterval_IsOffByDefaultAndAChildReplaces()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<TimeSpan>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.RefreshTokenReuseInterval)
+        );
+        var parentSetting = descriptor.Create(TimeSpan.FromSeconds(10));
+        var childSetting = descriptor.Create(TimeSpan.FromSeconds(30));
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.Equal(TimeSpan.Zero, descriptor.Default);
+        Assert.Equal([OpenIdSettingScopes.Client], descriptor.AppliesTo.AsEnumerable());
+        Assert.False(descriptor.IsDiscoverable);
+        Assert.Equal(TimeSpan.FromSeconds(30), merged.Value);
+    }
+
+    [Fact]
     public void Collection_EveryDefaultIsInItsOwnDomain()
     {
         var dataSource = CreateDataSource("fapi2");

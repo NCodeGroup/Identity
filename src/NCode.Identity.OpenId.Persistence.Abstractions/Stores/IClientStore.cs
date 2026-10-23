@@ -172,7 +172,8 @@ public interface IClientStore : IStore<PersistedClient>
     /// <summary>
     /// Removes an OpenId Client from the store together with everything that exists for it: its secrets, its grants
     /// to resource servers, the consents its end users gave it, and the grants issued to it, such as its
-    /// authorization codes, tokens, and registration access token. Nothing blocks the removal.
+    /// authorization codes, tokens, and registration access token, and every role assignment at the client's
+    /// resource node, ownership included. Nothing blocks the removal.
     /// </summary>
     /// <param name="clientId">The identifier of the OpenId Client to remove.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>

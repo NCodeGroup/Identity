@@ -1,7 +1,10 @@
 # 87. Refresh-token reuse detection revokes the whole rotation family
 
 - **Status:** Accepted (amended by [ADR-0211](0211-a-rotated-refresh-token-is-spent-with-its-successor.md): rotation
-  spends the presented token with its successor in one unit of work, and a lost spend is a reuse)
+  spends the presented token with its successor in one unit of work, and a lost spend is a reuse;
+  [ADR-0216](0216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md): which refresh tokens rotate;
+  [ADR-0217](0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md): a rotated token may be retried
+  within an opt-in reuse interval)
 - **Date:** 2026-10-12
 - **Deciders:** NCode Group
 

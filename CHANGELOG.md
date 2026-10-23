@@ -10,6 +10,22 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **`refresh_token_reuse_interval` lets a client retry a refresh with its rotated refresh token.** The interval is off
+  by default and at most 60 seconds. A rotated refresh token that is presented within the interval is answered as the
+  rotation was, and the retry receives a new refresh token in the same rotation family, so a client that lost the
+  response, or two tabs that refresh at once, keep their session. A rotation marks the spent grant consumed, and the
+  revocation endpoint revokes the whole family of a refresh token.
+  `IPersistedGrantService.AddToRefreshTokenLineageOrDefault`, `ITokenService.ReissueRefreshTokenAsync`, and
+  `IGrantStore.GetActiveByRefreshTokenLineageAsync` store and read the branch
+  ([ADR-0217](docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), backlog `R79`).
+
+- **Grants are removed after a retention period.** `GrantPruneService` runs hourly in every replica and removes, in
+  bounded batches, the grants that expired or were revoked more than `GrantRetentionOptions.Retention` ago (14 days by
+  default), so the grants table holds live grants and those that ended within the retention.
+  `IGrantStore.RemoveEndedBeforeAsync` stages one batch for removal, and the `AddGrantRevokedWhenIndex` migration
+  indexes `Grants.RevokedWhen`
+  ([ADR-0218](docs/adr/0218-ended-grants-are-removed-after-a-retention-period.md), backlog `R76`).
+
 - **`ClientCoherenceContext` gives a coherence rule the settings a client registers and its effective settings, and
   three more built-in rules read it.** `IClientCoherenceRule.FindViolations` receives the client's own settings
   document as written, without its tenant's settings and without any security profile's ceilings and defaults, beside
@@ -1440,6 +1456,17 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **A public client's refresh token is rotated unless it is sender-constrained.** `refresh_token_rotation_policy`
+  (`unbound`, the default, or `always`) replaces `refresh_token_rotation_enabled`. `unbound` rotates a refresh token
+  that is bound neither to a proof-of-possession key nor to client authentication, and `always` rotates every refresh
+  token. No setting turns off the rotation of a public client's unbound refresh token (RFC 9700 §4.14.2), and the FAPI
+  2.0 security profile defaults a client to `unbound`. **Breaking:** the `refresh_token_rotation_enabled` setting and
+  `OpenIdSettingNames`/`OpenIdSettingKeys.RefreshTokenRotationEnabled` are removed, and the
+  `RenameRefreshTokenRotationSetting` migration rewrites stored settings documents (`true` becomes `always`, `false` is
+  removed). The policy merges by replacement, so a tenant's `always` is a default that a client's own `unbound`
+  replaces; a public client's unbound token rotates whatever the policy
+  ([ADR-0216](docs/adr/0216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md), backlog `R77`).
+
 - **A refresh token that two requests present at once is spent once, and the other request is answered as a reuse.**
   With rotation on, the presented token is revoked and its successor stored in one unit of work before any token is
   issued. The losing request receives `invalid_grant` and the `token.refresh.replay` audit event, and under
@@ -1648,6 +1675,20 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A revocation wins a concurrency race.** The revocation endpoint, the device user code, logout and session eviction,
+  the replay of an authorization code, and the management revocations read the grants again in a new unit of work and
+  retry when another write changed a grant first, so a concurrent write such as a sliding-expiration update does not
+  leave a grant active or reach the caller as `500` or `412`. **Breaking:** `IPersistedGrantService.RevokeWhereAsync`
+  replaces `RevokeBySessionAsync`, `GrantFilter.GrantId` is added, and
+  `DefaultRevokeGrantsOnSessionTerminatedHandler` revokes through `IPersistedGrantService`
+  ([ADR-0215](docs/adr/0215-a-revocation-wins-a-concurrency-race.md), backlog `R78`).
+
+- **Deleting a client or a resource server removes the role assignments at its node.** The assignments of every role,
+  ownership included, are removed in the same unit of work, also when a dynamically registered client is deregistered.
+  The built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values, so a store that removes a resource finds
+  the assignments at its node
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R75`).
 
 - **Deleting a client that held grants, consents or resource-server grants, deregistering a dynamically registered
   client, or deleting a tenant whose users had signed in failed with a foreign-key violation (`500` on PostgreSQL).**

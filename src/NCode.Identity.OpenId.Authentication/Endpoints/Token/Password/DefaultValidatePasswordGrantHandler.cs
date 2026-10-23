@@ -16,16 +16,9 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
-using NCode.Identity.OpenId.Authentication.Subject;
-using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Messages;
 using NCode.Mediator;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.Password;
 
@@ -54,44 +47,12 @@ internal class DefaultValidatePasswordGrantHandler
         // client_id/authenticated-client match is enforced upstream by DefaultClientAuthenticationService
 
         // validate the subject
-        await ValidateSubjectAsync(
+        await TokenGrantSubjectValidation.ValidateAsync(
             openIdContext,
             openIdClient,
             tokenRequest,
             subjectAuthentication,
             cancellationToken
         );
-    }
-
-    private static async ValueTask ValidateSubjectAsync(
-        OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
-        IOpenIdRequest openIdRequest,
-        SubjectAuthentication subjectAuthentication,
-        CancellationToken cancellationToken
-    )
-    {
-        var mediator = openIdContext.Mediator;
-        var operationDisposition = new OperationDisposition<IOpenIdError>();
-
-        await mediator.SendAsync(
-            new ValidateSubjectAuthenticationCommand(
-                openIdContext,
-                openIdClient,
-                openIdRequest,
-                subjectAuthentication,
-                operationDisposition,
-                // Direct ROPC authentication: there is no prior interactive authorization step whose max_age applies.
-                EnforceAuthenticationAge: false
-            ),
-            cancellationToken
-        );
-
-        if (operationDisposition.HasError)
-        {
-            throw operationDisposition
-                .Error.WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
-        }
     }
 }

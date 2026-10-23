@@ -77,4 +77,14 @@ public static class SessionTerminationReasons
     /// signing out another device, or "sign out everywhere else").
     /// </summary>
     public const string UserInitiated = "user_initiated";
+
+    /// <summary>
+    /// An administrator reset the end-user's password, so every session of its principal was terminated.
+    /// </summary>
+    public const string PasswordReset = "password_reset";
+
+    /// <summary>
+    /// An administrator blocked the end-user, so every session of its principal was terminated.
+    /// </summary>
+    public const string UserBlocked = "user_blocked";
 }

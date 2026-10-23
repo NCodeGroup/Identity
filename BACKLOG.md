@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R96`     | `R95`      |
+| `R` — Review findings                 | `R101`    | `R100`     |
 
 ---
 
@@ -487,6 +487,30 @@ _None remaining._
 - **`R95` — Terminate a session at most once on every termination path.** `RevokeAsync`, `RevokeAllExceptAsync` and the
   concurrent-session eviction dispatch `OnSessionTerminatedCommand` without the claim of ADR-0223, so a session that two
   paths terminate at once notifies its relying parties twice. Touch point: `DefaultSessionService`.
+- **`R96` — Terminate the session through the termination seam when an authorization code is replayed.**
+  `DefaultAuthorizationCodeGrantHandler.RevokeSessionOnReplayAsync` revokes the grants of the code's session with
+  `IPersistedGrantService.RevokeWhereAsync` (ADR-0112) and dispatches no `OnSessionTerminatedCommand`, so the session's
+  relying parties receive no back-channel logout and the termination is not audited. Terminate it with
+  `ISessionService.RevokeAsync` and a reason of its own. Touch points: `DefaultAuthorizationCodeGrantHandler`,
+  `SessionTerminationReasons`, ADR-0112.
+- **`R97` — Notify the relying parties a session lists when it is claimed.** A termination reads the session, then
+  claims it with `IPersistedGrantService.RevokeSessionOnceAsync`, which reports only whether this call revoked it
+  (ADR-0227). A client that an authorize request adds between the read and the claim receives no back-channel logout,
+  although its tokens are revoked. Return the session as claimed and notify its clients. Touch points:
+  `IPersistedGrantService.RevokeSessionOnceAsync`, `DefaultSessionService`.
+- **`R98` — Refuse a blocked end user at the interactive sign-in.** The login page signs a blocked principal in and
+  establishes a session; every grant refuses it and the authorization request sends it back to the login page
+  (`login_required` for `prompt=none`) (ADR-0226), but the session exists and the self-service pages serve it. Refuse
+  the sign-in, as Auth0 does. Touch points:
+  `InteractiveAuthenticationEndpointHandler.PostLoginAsync`, `IInteractiveCredentialVerifier`.
+- **`R99` — Let an end user change their password.** The server offers no self-service password change. A change ends
+  every other session of the principal with the reason `password_changed`, revokes every grant not issued under the
+  current session, and keeps the current session (ADR-0226). Touch points:
+  `NCode.Identity.OpenId.Authentication.Interactive`, `ILocalAccountStore.SetPasswordAsync`, `ISessionService`.
+- **`R100` — Tell a ping or push client that its CIBA request was denied.** `ICibaRequestService.DenyAsync`, and an
+  approval whose subject is refused (ADR-0225), record the denial but notify no client, so a ping or push client waits
+  until the request expires. Send the ping notification, after which the token endpoint answers `access_denied`, or the
+  push error payload (CIBA Core §12). Touch points: `DefaultCibaRequestService`, `CibaDeliveryJob`.
 
 ### Refactor
 

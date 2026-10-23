@@ -48,6 +48,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
     private Mock<IRedirectUriKindCatalog> MockRedirectUriKindCatalog { get; }
     private Mock<IFrontChannelLogoutService> MockFrontChannelLogoutService { get; }
     private Mock<ISessionStateService> MockSessionStateService { get; }
+    private Mock<ISessionService> MockSessionService { get; }
     private FakeLogger<DefaultEndSessionHandler> Logger { get; } = new();
     private DefaultEndSessionHandler Handler { get; }
 
@@ -57,11 +58,13 @@ public class DefaultEndSessionHandlerTests : BaseTests
         MockRedirectUriKindCatalog = CreateStrictMock<IRedirectUriKindCatalog>();
         MockFrontChannelLogoutService = CreateStrictMock<IFrontChannelLogoutService>();
         MockSessionStateService = CreateStrictMock<ISessionStateService>();
+        MockSessionService = CreateStrictMock<ISessionService>();
         Handler = new DefaultEndSessionHandler(
             MockClientResolver.Object,
             MockRedirectUriKindCatalog.Object,
             MockFrontChannelLogoutService.Object,
             MockSessionStateService.Object,
+            MockSessionService.Object,
             Logger
         );
     }
@@ -126,12 +129,33 @@ public class DefaultEndSessionHandlerTests : BaseTests
             )
             .Returns(new ValueTask<EndSessionSubject>(subject))
             .Verifiable();
-        mockMediator
-            .Setup(x =>
-                x.SendAsync(It.IsAny<OnSessionTerminatedCommand>(), It.IsAny<CancellationToken>())
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+
+        if (subject.SessionId is { Length: > 0 } sessionId)
+        {
+            MockSessionService
+                .Setup(x =>
+                    x.RevokeAsync(
+                        It.IsAny<OpenIdContext>(),
+                        sessionId,
+                        SessionTerminationReasons.Logout,
+                        It.IsAny<CancellationToken>()
+                    )
+                )
+                .ReturnsAsync(true)
+                .Verifiable();
+        }
+        else
+        {
+            mockMediator
+                .Setup(x =>
+                    x.SendAsync(
+                        It.IsAny<OnSessionTerminatedCommand>(),
+                        It.IsAny<CancellationToken>()
+                    )
+                )
+                .Returns(ValueTask.CompletedTask)
+                .Verifiable();
+        }
 
         mockAuthService
             .Setup(x =>
@@ -188,6 +212,20 @@ public class DefaultEndSessionHandlerTests : BaseTests
     #endregion
 
     #region HandleAsync Tests
+
+    [Fact]
+    public async Task HandleAsync_WhenTheLogoutNamesNoSession_DispatchesTheTerminationForTheSubject()
+    {
+        var scaffold = CreateScaffold(
+            new EndSessionSubject(SubjectId, null, ClientId, []),
+            postLogoutRedirectUri: null,
+            state: null
+        );
+
+        var disposition = await Handler.HandleAsync(scaffold.Command, CancellationToken.None);
+
+        Assert.Null(disposition.RedirectUri);
+    }
 
     [Fact]
     public async Task HandleAsync_WhenNoPostLogoutRedirectUri_RunsPipelineAndReturnsNullRedirect()

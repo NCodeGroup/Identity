@@ -284,6 +284,11 @@ public static partial class OpenIdConstants
         public const string LocalAccounts = "LocalAccounts";
 
         /// <summary>
+        /// Contains the OpenAPI tag applied to the <c>principals</c> management endpoints.
+        /// </summary>
+        public const string Principals = "Principals";
+
+        /// <summary>
         /// Contains the OpenAPI tag applied to the server <c>capabilities</c> discovery endpoint.
         /// </summary>
         public const string Capabilities = "Capabilities";

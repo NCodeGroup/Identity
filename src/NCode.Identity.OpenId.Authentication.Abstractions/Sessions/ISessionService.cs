@@ -127,15 +127,18 @@ public interface ISessionService
     /// <summary>
     /// Terminates a single session, dispatching the session-termination side effects (grant revocation, back-channel
     /// logout notification, and auditing) through the <see cref="OnSessionTerminatedCommand"/> seam. Other sessions the
-    /// subject holds are left intact.
+    /// subject holds are left intact. Of the callers that terminate one session at the same time, only one terminates
+    /// it.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="sessionId">The opaque session identifier (<c>sid</c>) to terminate.</param>
     /// <param name="reason">The reason the session is being terminated: one of <see cref="SessionTerminationReasons"/> or
     /// an extension's own name.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask RevokeAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when this
+    /// call terminated the session; <c>false</c> when the session does not exist or is already revoked, including by a
+    /// concurrent caller.</returns>
+    ValueTask<bool> RevokeAsync(
         OpenIdContext openIdContext,
         string sessionId,
         string reason,
@@ -143,17 +146,19 @@ public interface ISessionService
     );
 
     /// <summary>
-    /// Terminates every session the specified subject holds ("sign out everywhere"), dispatching the
-    /// session-termination side effects through the <see cref="OnSessionTerminatedCommand"/> seam as a single
-    /// subject-wide termination.
+    /// Terminates every session the specified subject holds ("sign out everywhere") and revokes every grant the subject
+    /// holds, dispatching the session-termination side effects through the <see cref="OnSessionTerminatedCommand"/>
+    /// seam as a single subject-wide termination.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="subjectId">The stable, server-owned principal identifier whose sessions are terminated.</param>
     /// <param name="reason">The reason the sessions are being terminated: one of <see cref="SessionTerminationReasons"/> or
     /// an extension's own name.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask RevokeAllAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of sessions
+    /// this call terminated; a session a concurrent caller terminated first is not counted.</returns>
+    /// <exception cref="ArgumentException">The <paramref name="subjectId"/> is null or empty.</exception>
+    ValueTask<int> RevokeAllAsync(
         OpenIdContext openIdContext,
         string subjectId,
         string reason,
@@ -172,8 +177,10 @@ public interface ISessionService
     /// <param name="reason">The reason the sessions are being terminated: one of <see cref="SessionTerminationReasons"/> or
     /// an extension's own name.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask RevokeAllExceptAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of sessions
+    /// this call terminated; a session a concurrent caller terminated first is not counted.</returns>
+    /// <exception cref="ArgumentException">The <paramref name="subjectId"/> is null or empty.</exception>
+    ValueTask<int> RevokeAllExceptAsync(
         OpenIdContext openIdContext,
         string subjectId,
         string exceptSessionId,

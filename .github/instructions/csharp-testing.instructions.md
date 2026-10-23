@@ -157,6 +157,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   `Setup(x => x.ContainsAsync(ExpiringKeys.Create("p", tenant, nonce), ct))` does not compile. Build the value into a
   local first (`var expectedKey = ExpiringKeys.Create(…);`) and match it in the setup; this also keeps the matched value
   visible in the test.
+- 👁 **Stop the unit at the mediator to inspect a command it builds midway.** When the behavior under test is the
+  content of a command the unit sends before more work (the subject a token exchange validates), capture the command in
+  the setup's callback and return `ValueTask.FromException(...)`, so the unit stops there and the test mocks nothing
+  after it (`DefaultTokenExchangeGrantHandlerTests`).
 - 👁 **Match a `JsonElement` argument by content.** `JsonElement` compares document references, and a Moq matcher is an
   expression tree that cannot contain `out _`, so call a static helper
   (`It.Is<JsonElement>(e => HasProperty(e, "foo"))`).
@@ -294,6 +298,9 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   authorization request endpoint) and redeems it with `TestPkce.CodeVerifier`; a test without them exercises the
   refusal, not the flow. Sign a user in with `InteractiveLogin.SignInAsync` rather than another copy of the antiforgery
   dance.
+- 👁 **Drive the device flow through its endpoints.** Start it at `/oauth2/device_authorization`, sign the user in with
+  `InteractiveLogin.SignInAsync`, approve at `/oauth2/device` with the session cookie and the form fields `user_code`
+  and `action=approve`, and redeem the `device_code` at `/oauth2/token` (`LocalAccountLifecycleTests`).
 - 👁 **Assert a URI the server must deliver as written on `Headers.Location.OriginalString`.** `HttpClient` parses
   the header into a `Uri`, whose `AbsoluteUri` and `ToString()` normalize it, so such an assertion passes while the
   server sends `myapp://callback/` for `myapp://callback`.

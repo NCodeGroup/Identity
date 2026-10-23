@@ -118,6 +118,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Clients = "Clients" -> 
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Grants = "Grants" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.LocalAccounts = "LocalAccounts" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.OpenId = "oidc" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Principals = "Principals" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.ResourceServers = "ResourceServers" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Servers = "Servers" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Sessions = "Sessions" -> string!

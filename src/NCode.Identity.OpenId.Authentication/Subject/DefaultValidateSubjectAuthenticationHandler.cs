@@ -111,7 +111,7 @@ internal class DefaultValidateSubjectAuthenticationHandler(
         if (enforceAuthenticationAge)
         {
             // verify the request's max age
-            var requestMaxAge = openIdRequest.Parameters.GetValueOrDefault(
+            var requestMaxAge = openIdRequest?.Parameters.GetValueOrDefault(
                 OpenIdCommonParameters.MaxAge
             );
             if (!ValidateMaxAge(authTime, requestMaxAge))
@@ -170,9 +170,15 @@ internal class DefaultValidateSubjectAuthenticationHandler(
 
     private static bool IsRequestedAcrSatisfied(
         ClaimsPrincipal subject,
-        IOpenIdRequest openIdRequest
+        IOpenIdRequest? openIdRequest
     )
     {
+        // a subject validated outside a protocol request has no requested acr to satisfy
+        if (openIdRequest is null)
+        {
+            return true;
+        }
+
         // Per OpenID Connect Core 1.0 §5.5.1.1, acr is only a hard requirement when it is requested as an *essential*
         // id_token.acr claim with specific values; the issued acr MUST then match one of them. A voluntary request
         // (including the entire `acr_values` parameter, which the spec defines as voluntary) is best-effort and imposes
@@ -236,8 +242,14 @@ internal class DefaultValidateSubjectAuthenticationHandler(
         return allowed.Contains(receivedIdp, StringComparer.Ordinal);
     }
 
-    private static bool IsRequestedIdpValid(string? receivedIdp, IOpenIdRequest openIdRequest)
+    private static bool IsRequestedIdpValid(string? receivedIdp, IOpenIdRequest? openIdRequest)
     {
+        // a subject validated outside a protocol request has no requested idp to match
+        if (openIdRequest is null)
+        {
+            return true;
+        }
+
         // if no specific acr values were requested, then any idp is valid
         var acrValues = openIdRequest.Parameters.GetValueOrDefault(
             OpenIdCommonParameters.AcrValues

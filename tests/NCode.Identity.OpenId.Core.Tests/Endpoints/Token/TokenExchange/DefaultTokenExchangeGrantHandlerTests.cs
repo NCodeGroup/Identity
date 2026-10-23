@@ -20,6 +20,8 @@ using System.Security.Claims;
 using System.Text.Json;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
+using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange;
 using NCode.Identity.OpenId.Authentication.ResourceServers;
@@ -29,6 +31,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -397,6 +400,85 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
+    }
+
+    #endregion
+
+    #region Subject
+
+    [Fact]
+    public async Task HandleAsync_WhenTheSubjectTokenIsValid_ValidatesTheSubjectAsOneOfThisTenant()
+    {
+        var (mockContext, _) = SetupContextWithErrorFactory();
+        var mockClient = SetupConfidentialClient();
+        var mockTokenRequest = SetupTokenRequest();
+
+        SetupSubjectValidatorSuccess(
+            "subject.jwt",
+            $$"""{"client_id":"{{RequesterClientId}}","sub":"subject-1"}"""
+        );
+
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        mockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<IStoreManager>(mockStoreManager.Object))
+            .Verifiable();
+
+        MockPrincipalResolver
+            .Setup(x =>
+                x.ResolvePrincipalIdOrDefaultAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<string?>("principal-1"))
+            .Verifiable();
+
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(DateTimeOffset.UnixEpoch).Verifiable();
+
+        var mockTenant = CreateStrictMock<OpenIdTenant>();
+        mockTenant.SetupGet(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockContext.SetupGet(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockContext
+            .Setup(x => x.NormalizeSubjectId(It.IsAny<ClaimsPrincipal>(), "principal-1"))
+            .Returns((ClaimsPrincipal subject, string _) => subject)
+            .Verifiable();
+
+        ValidateTokenGrantCommand<TokenExchangeGrant>? captured = null;
+        Mock.Get(mockContext.Object.Mediator)
+            .Setup(x =>
+                x.SendAsync(
+                    It.IsAny<ValidateTokenGrantCommand<TokenExchangeGrant>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (ValidateTokenGrantCommand<TokenExchangeGrant> command, CancellationToken _) =>
+                    captured = command
+            )
+            .Returns(ValueTask.FromException(new InvalidOperationException("stop")))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Handler.HandleAsync(
+                mockContext.Object,
+                mockClient.Object,
+                mockTokenRequest.Object,
+                ProofOfPossessionBinding.Unbound,
+                CancellationToken.None
+            )
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal(
+            "tenant-1",
+            captured.Value.Grant.SubjectAuthentication.AuthenticationProperties.GetString(
+                OpenIdConstants.AuthenticationPropertyItems.TenantId
+            )
+        );
     }
 
     #endregion

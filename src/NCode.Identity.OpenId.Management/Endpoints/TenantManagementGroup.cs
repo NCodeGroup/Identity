@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Grants;
+using NCode.Identity.OpenId.Management.Endpoints.Principals;
 using NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 using NCode.Identity.OpenId.Management.Endpoints.Sessions;
 using NCode.Registration.AspNetCore;
@@ -58,6 +59,7 @@ internal sealed class TenantManagementGroup : IEndpointGroup
         builder.AddGrantEndpoint();
         builder.AddResourceServerEndpoint();
         builder.AddSessionEndpoint();
+        builder.AddPrincipalEndpoint();
         builder.AddGroup<ClientManagementGroup>();
     }
 }

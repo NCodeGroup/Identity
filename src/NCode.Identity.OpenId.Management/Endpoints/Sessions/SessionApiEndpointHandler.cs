@@ -167,7 +167,7 @@ internal class SessionApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="subjectId">The subject whose sessions are revoked.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <response code="200">The number of sessions that were revoked.</response>
+    /// <response code="200">The number of sessions this request terminated.</response>
     /// <response code="400">No subject was supplied.</response>
     [EndpointName("api/sessions/revoke-many")]
     internal virtual async ValueTask<IResult> RevokeSessionsAsync(
@@ -203,14 +203,7 @@ internal class SessionApiEndpointHandler(
             cancellationToken
         );
 
-        // Count the sessions to report before terminating them (the subject-wide termination itself returns no count).
-        var sessions = await SessionService.GetSessionsAsync(
-            tenantContext,
-            subjectId,
-            cancellationToken
-        );
-
-        await SessionService.RevokeAllAsync(
+        var revoked = await SessionService.RevokeAllAsync(
             tenantContext,
             subjectId,
             SessionTerminationReasons.AdministrativeRevocation,
@@ -222,11 +215,11 @@ internal class SessionApiEndpointHandler(
             tenantId,
             subjectId,
             sessionId: null,
-            sessions.Count,
+            revoked,
             cancellationToken
         );
 
-        return TypedResults.Json(new SessionRevocationResult { Revoked = sessions.Count });
+        return TypedResults.Json(new SessionRevocationResult { Revoked = revoked });
     }
 
     /// <summary>
@@ -274,7 +267,7 @@ internal class SessionApiEndpointHandler(
             return TypedResults.NoContent();
         }
 
-        await SessionService.RevokeAsync(
+        var terminated = await SessionService.RevokeAsync(
             tenantContext,
             sessionId,
             SessionTerminationReasons.AdministrativeRevocation,
@@ -286,7 +279,7 @@ internal class SessionApiEndpointHandler(
             tenantId,
             found.SubjectId,
             sessionId,
-            revokedCount: 1,
+            revokedCount: terminated ? 1 : 0,
             cancellationToken
         );
 

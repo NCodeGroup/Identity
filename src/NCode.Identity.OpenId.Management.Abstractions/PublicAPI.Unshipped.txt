@@ -4,6 +4,7 @@ abstract NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Client = "client" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ClientSecret = "client.secret" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.InitialAccessToken = "initial_access_token" -> string!
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Principal = "principal" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ResourceServer = "resource_server" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ResourceServerScope = "resource_server.scope" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ResourceServerSecret = "resource_server.secret" -> string!
@@ -127,6 +128,7 @@ NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordServerS
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes
+NCode.Identity.OpenId.Management.Auditing.PrincipalChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.ResourceServerChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.ResourceServerScopeChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.ResourceServerScopeChangedAuditEvent.ResourceServerId.get -> string!
@@ -290,6 +292,16 @@ NCode.Identity.OpenId.Management.Contracts.OwnerResource.PrincipalId.get -> stri
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.PrincipalId.init -> void
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.RoleName.get -> string!
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.RoleName.init -> void
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.IsBlocked.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.IsBlocked.init -> void
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.PrincipalId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.PrincipalId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.PrincipalResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ClientGrantResource() -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ClientId.get -> string!
@@ -576,6 +588,7 @@ override NCode.Identity.OpenId.Management.Auditing.ClientChangedAuditEvent.Resou
 override NCode.Identity.OpenId.Management.Auditing.ClientSecretChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.Action.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.PrincipalChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerScopeChangedAuditEvent.ResourceType.get -> string!

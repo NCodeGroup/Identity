@@ -630,6 +630,14 @@ rationale.
   check passes and before its effect.** A refused request leaves it usable. `IExpiringKeySet` is for single-use state
   with no durable row. See
   [ADR-0192](../../docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md).
+- 👁 **Every grant that issues tokens for a subject validates it before it spends its credential.** A token grant sends
+  `ValidateSubjectAuthenticationCommand` through `TokenGrantSubjectValidation.ValidateAsync` from its
+  `ValidateTokenGrantCommand<TGrant>` handler, an out-of-band approval sends it with no request, and a stored credential
+  issued to a client (an authorization code, a device code, an `auth_req_id`) is redeemed only by that client. A
+  capability with its own reason to refuse an end user adds a `ValidateSubjectAuthenticationCommand` handler with
+  `TryAddEnumerable`, which then runs at every grant. See
+  [ADR-0225](../../docs/adr/0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md) and
+  [ADR-0226](../../docs/adr/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md).
 - 👁 **A refresh-token rotation spends the presented token and stores its successor in one unit of work**
   (`ITokenService.RotateRefreshTokenAsync` over `IPersistedGrantService.ReplaceOnceOrDefault`), after every check and
   before any token is minted. A spend that loses to a spend or a revocation is answered as a reuse, and one that loses
@@ -659,6 +667,10 @@ rationale.
   `RevokeSessionOnceAsync` reports whether this call revoked the session grant, in the unit of work that also revokes
   the grants issued under it, so a failure after the claim leaves no token active, and only that caller terminates an
   ended session. See [ADR-0223](../../docs/adr/0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md).
+  Every path that terminates a named session goes through `ISessionService`, which claims the session this way before
+  it dispatches `OnSessionTerminatedCommand`; never dispatch the command for a named session yourself, and revoke a
+  subject's grants before a subject-wide dispatch. See
+  [ADR-0227](../../docs/adr/0227-a-session-is-terminated-at-most-once-on-every-path.md).
 - 👁 **Background work that runs protocol machinery in a tenant creates its context with
   `IOpenIdContextFactory.CreateForBackgroundAsync` in its own DI scope.** The context has no endpoint, connection or
   user, and it is disposed before the scope. See

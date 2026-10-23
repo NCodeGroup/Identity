@@ -1,6 +1,8 @@
 # 35. Federated principals: one actor, many connection-identities, with a server-owned stable id
 
-- **Status:** Accepted (amended 2026-10-07)
+- **Status:** Accepted (amended 2026-10-07; amended by
+  [ADR-0226](0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md): an
+  administrator can block a principal)
 - **Date:** 2026-10-02
 - **Deciders:** NCode Group
 

@@ -25,7 +25,9 @@ using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication;
 
@@ -56,6 +58,21 @@ internal sealed class DefaultCibaRequestService(
         var pendingOrNull = await GetPendingAsync(openIdContext, authReqId, cancellationToken);
         if (!pendingOrNull.HasValue)
             return false;
+
+        // The approving subject is validated before the approval is recorded: push delivery issues the tokens at
+        // approval, and a refused approval denies the request. See ADR-0225.
+        if (
+            !await IsSubjectValidAsync(
+                openIdContext,
+                openIdClient,
+                subjectAuthentication,
+                cancellationToken
+            )
+        )
+        {
+            await DenyAsync(openIdContext, openIdClient, authReqId, cancellationToken);
+            return false;
+        }
 
         var payload = pendingOrNull.Value with
         {
@@ -198,6 +215,32 @@ internal sealed class DefaultCibaRequestService(
                     : null,
             cancellationToken
         );
+    }
+
+    private static async ValueTask<bool> IsSubjectValidAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        SubjectAuthentication subjectAuthentication,
+        CancellationToken cancellationToken
+    )
+    {
+        var operationDisposition = new OperationDisposition<IOpenIdError>();
+
+        // The approval happens outside a protocol request, so there is no request to validate against, and the
+        // authentication age the authorization request enforced is not checked again.
+        await openIdContext.Mediator.SendAsync(
+            new ValidateSubjectAuthenticationCommand(
+                openIdContext,
+                openIdClient,
+                OpenIdRequest: null,
+                subjectAuthentication,
+                operationDisposition,
+                EnforceAuthenticationAge: false
+            ),
+            cancellationToken
+        );
+
+        return !operationDisposition.HasError;
     }
 
     private async ValueTask<CibaGrant?> GetPendingAsync(

@@ -17,16 +17,11 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.ResourceServers;
-using NCode.Identity.OpenId.Authentication.Subject;
-using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Messages;
 using NCode.Mediator;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
 
@@ -91,46 +86,13 @@ internal class DefaultValidateRefreshTokenGrantHandler(IClientScopeService clien
         // validate the subject
         if (subjectAuthentication.HasValue)
         {
-            await ValidateSubjectAsync(
+            await TokenGrantSubjectValidation.ValidateAsync(
                 openIdContext,
                 openIdClient,
                 tokenRequest,
                 subjectAuthentication.Value,
                 cancellationToken
             );
-        }
-    }
-
-    private static async ValueTask ValidateSubjectAsync(
-        OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
-        IOpenIdRequest openIdRequest,
-        SubjectAuthentication subjectAuthentication,
-        CancellationToken cancellationToken
-    )
-    {
-        var mediator = openIdContext.Mediator;
-        var operationDisposition = new OperationDisposition<IOpenIdError>();
-
-        await mediator.SendAsync(
-            new ValidateSubjectAuthenticationCommand(
-                openIdContext,
-                openIdClient,
-                openIdRequest,
-                subjectAuthentication,
-                operationDisposition,
-                // Back-channel refresh: authentication-age freshness was enforced at the original authorization, so
-                // do not re-check the fixed auth_time against the later refresh-time clock.
-                EnforceAuthenticationAge: false
-            ),
-            cancellationToken
-        );
-
-        if (operationDisposition.HasError)
-        {
-            throw operationDisposition
-                .Error.WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
         }
     }
 }

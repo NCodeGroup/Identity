@@ -191,6 +191,14 @@ internal class DefaultTokenExchangeGrantHandler(
             ReadAuthTime(subjectResult.Payload) ?? TimeProvider.GetUtcNowWithPrecisionInSeconds();
         var authenticationProperties = new AuthenticationProperties { IssuedUtc = createdWhen };
 
+        // The subject token was validated as one this tenant issued, so the subject belongs to this tenant; an ID token
+        // carries no tid claim. See ADR-0225.
+        var tenantId = openIdContext.Tenant.TenantId;
+        authenticationProperties.SetString(
+            OpenIdConstants.AuthenticationPropertyItems.TenantId,
+            tenantId
+        );
+
         var subjectAuthentication = SubjectAuthentication.Create(
             openIdContext,
             OpenIdConstants.GrantTypes.TokenExchange,

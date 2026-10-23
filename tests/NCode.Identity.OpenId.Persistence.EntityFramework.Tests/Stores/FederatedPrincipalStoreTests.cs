@@ -168,6 +168,42 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
         Assert.Null(loaded);
     }
 
+    [Fact]
+    public async Task AddAsync_WhenBlocked_RoundTripsTheBlockState()
+    {
+        var principal = CreatePrincipal("principal-1");
+        principal.IsBlocked = true;
+        await _store.AddAsync(principal, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var loaded = await _store.GetOrDefaultAsync("principal-1", CancellationToken.None);
+
+        Assert.NotNull(loaded);
+        Assert.True(loaded.IsBlocked);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenBlocked_PersistsTheBlockState()
+    {
+        await _store.AddAsync(CreatePrincipal("principal-1"), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var loaded = await _store.GetOrDefaultAsync("principal-1", CancellationToken.None);
+        Assert.NotNull(loaded);
+        Assert.False(loaded.IsBlocked);
+        loaded.IsBlocked = true;
+        await _store.UpdateAsync(loaded, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetOrDefaultAsync("principal-1", CancellationToken.None);
+
+        Assert.NotNull(reloaded);
+        Assert.True(reloaded.IsBlocked);
+    }
+
     #region RemoveAsync Tests
 
     [Fact]

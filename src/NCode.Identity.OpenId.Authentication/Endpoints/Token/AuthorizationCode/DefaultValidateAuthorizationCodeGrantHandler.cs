@@ -25,12 +25,8 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Pkce;
 using NCode.Identity.OpenId.Authentication.ResourceServers;
-using NCode.Identity.OpenId.Authentication.Subject;
-using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Messages;
 using NCode.Mediator;
-using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode;
 
@@ -130,7 +126,7 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
                 .AsException();
 
         // validate the subject
-        await ValidateSubjectAsync(
+        await TokenGrantSubjectValidation.ValidateAsync(
             openIdContext,
             openIdClient,
             authorizationRequest,
@@ -165,39 +161,6 @@ internal class DefaultValidateAuthorizationCodeGrantHandler(
             authorizationRequest,
             effectiveScopes
         );
-    }
-
-    private static async ValueTask ValidateSubjectAsync(
-        OpenIdContext openIdContext,
-        OpenIdClient openIdClient,
-        IOpenIdRequest openIdRequest,
-        SubjectAuthentication subjectAuthentication,
-        CancellationToken cancellationToken
-    )
-    {
-        var mediator = openIdContext.Mediator;
-        var operationDisposition = new OperationDisposition<IOpenIdError>();
-
-        await mediator.SendAsync(
-            new ValidateSubjectAuthenticationCommand(
-                openIdContext,
-                openIdClient,
-                openIdRequest,
-                subjectAuthentication,
-                operationDisposition,
-                // Back-channel code exchange: authentication-age freshness was already enforced at authorization, so
-                // do not re-check the fixed auth_time against the later token-endpoint clock.
-                EnforceAuthenticationAge: false
-            ),
-            cancellationToken
-        );
-
-        if (operationDisposition.HasError)
-        {
-            throw operationDisposition
-                .Error.WithStatusCode(StatusCodes.Status400BadRequest)
-                .AsException();
-        }
     }
 
     // PKCE (RFC 7636 §4.6, OAuth 2.1 §4.1.3): a code bound to a code_challenge is redeemed only with the matching

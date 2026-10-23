@@ -1,7 +1,9 @@
 # 85. CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication) over the persisted-grant store
 
 - **Status:** Accepted (amended by [ADR-0155](0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): a
-  signed backchannel request is verified only with an asymmetric algorithm, and an encrypted one is rejected)
+  signed backchannel request is verified only with an asymmetric algorithm, and an encrypted one is rejected;
+  [ADR-0225](0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md): an auth_req_id is redeemed only by its
+  client, and its approval and its redemption validate the subject)
 - **Date:** 2026-10-12
 - **Deciders:** NCode Group
 

@@ -1,6 +1,8 @@
 # 223. A session that ends unused is terminated once, in the background
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0227](0227-a-session-is-terminated-at-most-once-on-every-path.md): every other path that terminates a session
+  claims it the same way)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -117,8 +119,8 @@ interval, and the grant prune keeps a session until it is terminated.**
 - The ended sessions of a disabled tenant wait for the tenant.
 - A context of a background pass has no request: no endpoint, connection, or user, and an empty audit `Source`.
 - An operator sets the interval with `OpenId:EndedSessionTermination:Interval`, and a misspelled key stops the host.
-- The claim of decision 1 covers a request and a pass that find an ended session. `RevokeAsync`, `RevokeAllExceptAsync`,
-  and the eviction of a session at the concurrent-session limit do not claim the session (backlog `R95`).
+- Every other path that terminates a named session claims it the same way
+  ([ADR-0227](0227-a-session-is-terminated-at-most-once-on-every-path.md)).
 - A failure or a cancellation of the dispatch after the claim loses the back-channel logout and the audit of that
   session, which the failure reports (a request fails, and a pass logs the tenant); the grants of the session are
   revoked.

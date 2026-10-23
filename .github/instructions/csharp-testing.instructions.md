@@ -121,6 +121,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **Hermetic — no network, no ambient host.** Use `DefaultHttpContext` with a test `RequestServices`, in-memory
   fakes, and constructed `ClaimsPrincipal`s. A resource/principal/stub a single test needs is a small local
   `private sealed` type in the test file.
+- 👁 **A test that listens to a framework meter sees the whole process.** A `MeterListener` or OpenTelemetry reader
+  subscribed to `System.Net.Http` (or any shared meter name) also collects the instruments other tests record in
+  parallel, so assert the property on **every** collected point and look for this test's own point with
+  `Assert.Contains` — never `Assert.Single` over a shared instrument.
 - 👁 **Dispose a test's real service provider asynchronously.** A test that resolves the real algorithms or key types
   (`AddSecretsLibrary().AddJoseLibrary()`) owns a container holding a service that implements only
   `IAsyncDisposable` (the algorithm-collection provider), so a synchronous `ServiceProvider.Dispose()` throws
@@ -229,11 +233,13 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   `IClassFixture` that protects/unprotects secrets (confidential clients, encrypted key material) leaks
   keyring/serializer state between tests, and the second run fails (`invalid_client`). Give each such test its own
   `using var factory = new HostApplicationFactory();`.
-- 👁 **Each factory instance owns an isolated in-memory database, which every host it builds shares.**
-  `HostApplicationFactory` holds one `InMemoryDatabaseRoot`. `factory.WithWebHostBuilder(…)` builds a separate host
-  (its own service provider, caches, and hosted services) over that database. So data one host commits is visible to
-  the others, but a tenant one host materialized, or usage it recorded and has not flushed, is not. Seed before the
-  host that must see the data serves its first request.
+- 👁 **Each `HostApplicationFactory` instance owns one in-memory database and one root key, which every host it builds
+  shares.** The factory keeps its `InMemoryDatabaseRoot` and root key on the instance. `factory.WithWebHostBuilder(…)`
+  builds a separate host (its own service provider, caches, and hosted services) over that database and root key,
+  because hosts that share a database must unwrap the same master keys. So data one host commits is visible to the
+  others, but a tenant one host materialized, or usage it recorded and has not flushed, is not. Seed before the host
+  that must see the data serves its first request. A test that needs isolation creates its own
+  `HostApplicationFactory`.
 - 👁 **Never assert a startup failure through `WebApplicationFactory`.** When the host's entry point throws after
   `Build()` — mapping endpoints resolves options, so a configuration error usually lands there — the host's
   `await using var app` disposes the service provider, and under load the factory's deferred `StartAsync` reaches that

@@ -40,6 +40,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
@@ -87,6 +88,7 @@ internal class ResourceServerApiEndpointHandler(
     ISecretGenerator secretGenerator,
     IClientKeyImporter keyImporter,
     ISecretPublicKeyConverter secretPublicKeyConverter,
+    ISecretProtectorProvider secretProtectorProvider,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
@@ -104,6 +106,7 @@ internal class ResourceServerApiEndpointHandler(
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private IClientKeyImporter KeyImporter { get; } = keyImporter;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
@@ -1156,10 +1159,17 @@ internal class ResourceServerApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(resourceServer.TenantId),
+            [],
+            cancellationToken
+        );
+
         GeneratedSecret generatedSecret;
         try
         {
             generatedSecret = SecretGenerator.GenerateSecret(
+                protector,
                 new GenerateSecretRequest
                 {
                     SecretId = secretId,
@@ -1382,9 +1392,22 @@ internal class ResourceServerApiEndpointHandler(
             cancellationToken
         );
 
-        var scoped = resourceServerSecret is null
-            ? null
-            : TenantOwnedResource.For(resourceServerSecret.TenantId, resourceServerSecret.Value);
+        if (resourceServerSecret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        // The owner is the tenant that owns the secret, not the route value.
+        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+            SecretOwner.ForTenant(resourceServerSecret.TenantId),
+            [resourceServerSecret.Value],
+            cancellationToken
+        );
+
+        var scoped = TenantOwnedResource.For(
+            resourceServerSecret.TenantId,
+            resourceServerSecret.Value
+        );
 
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
         return await ProcessGetAsync(
@@ -1392,7 +1415,7 @@ internal class ResourceServerApiEndpointHandler(
             scoped,
             node,
             Operations.Read,
-            x => SecretPublicKeyConverter.Convert(x.Value)
+            x => SecretPublicKeyConverter.Convert(protector, x.Value)
         );
     }
 

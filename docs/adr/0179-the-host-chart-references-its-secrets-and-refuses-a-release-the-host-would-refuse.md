@@ -1,6 +1,10 @@
 # 179. The host chart references its secrets and refuses a release the host would refuse
 
 - **Status:** Accepted
+  (amended by [ADR-0228](0228-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the
+  chart references the root key, previous root key and recovery key Secrets and ConfigMap in place of the
+  key-protection certificates, and refuses a Production release without a root key held outside the pod or a recovery
+  decision)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

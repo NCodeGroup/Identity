@@ -15,7 +15,7 @@
 | ≥ 3 nodes for service HA                                                  | Traefik sourcing tenant PKI / mTLS config from our datastores   |
 | Traefik as the load balancer, with mTLS                                   | Mix-and-match vendors (compute, Postgres, Valkey, KMS)          |
 | Entry-level, shared CPU OK, monthly billing                               |                                                                 |
-| Backing services: **PostgreSQL** (EF Core / Npgsql) and **Valkey** (cache) | Remote keys (Azure Key Vault et al.) — backlog `S7`             |
+| Backing services: **PostgreSQL** (EF Core / Npgsql) and **Valkey** (cache) | Root key in a KMS (ADR-0228); remote signing — backlog `S7`    |
 
 Every option is judged against the platform's operating principles — cattle not pets, immutable artifacts, everything as
 code, stateless services, redundancy by default, proven recoverability, and secure by default
@@ -33,14 +33,14 @@ first — it is the system of record), how much of that is managed, capacity, la
 
 | Rank  | Topology                                   | What runs where                                                                                                                                                                                                                         | Monthly total                                                    | What the money buys                                                                                     | Trade-offs                                                                                                                                                       |
 | ----- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1** | **Akamai Dallas — managed HA**             | **Kubernetes:** LKE, 4 × Linode 2 GB (4 vCPU / 8 GB, workers only — control plane is managed) · **LB:** NodeBalancer · **Postgres:** Akamai managed, **3-node HA**, same DC · **Valkey:** in-cluster, primary + replica + Sentinel · **Keys:** Azure Key Vault, South Central US (federated identity) | 4 × $12 + NB $10 + PG $37 = **$95**                              | HA in every tier except the free, non-HA control plane; managed failover, backups, and patching for the database; ~15–20 ms | x86; 2 GB nodes leave modest headroom. Variants: 3 × 4 GB + HA DB = $119, or 3 × 4 GB + single-node DB = $98.                                                   |
+| **1** | **Akamai Dallas — managed HA**             | **Kubernetes:** LKE, 4 × Linode 2 GB (4 vCPU / 8 GB, workers only — control plane is managed) · **LB:** NodeBalancer · **Postgres:** Akamai managed, **3-node HA**, same DC · **Valkey:** in-cluster, primary + replica + Sentinel · **Keys:** AWS KMS root key, us-west-2 (web identity federation — no stored credential) | 4 × $12 + NB $10 + PG $37 = **$95**                              | HA in every tier except the free, non-HA control plane; managed failover, backups, and patching for the database; ~15–20 ms | x86; 2 GB nodes leave modest headroom. Variants: 3 × 4 GB + HA DB = $119, or 3 × 4 GB + single-node DB = $98.                                                   |
 | **2** | **OCI Phoenix — maximum capacity**         | **Kubernetes:** k3s HA (3 servers, embedded etcd) on 3 × Ampere A1 (2 OCPU / 12 GB each = 6 vCPU / 36 GB), one per availability domain · **LB:** OCI Network LB (free) · **Postgres:** CloudNativePG, 3 instances, backups → S3 (Object Lock) or OCI Object Storage · **Valkey:** in-cluster HA · **Keys:** OCI Vault (instance principal, no secret) | A1 beyond the free allowance $27.74 + block storage ~$4 = **~$32** | ~3× rank 1's capacity; HA in every tier **including** the control plane, spread across 3 availability domains; 10 TB free egress | You operate k3s and Postgres; arm64 images; A1 capacity can be scarce; home region fixed at sign-up. A 3 × 1 OCPU / 8 GB cluster fits the free allowance (~$4). |
-| **3** | **Vultr Dallas — lean nodes, HA DB**       | **Kubernetes:** VKE, 3 × 1 vCPU / 2 GB · **LB:** Vultr LB · **Postgres:** Vultr managed, 2 GB + 1 replica · **Valkey:** in-cluster · **Keys:** Azure Key Vault, South Central US                                                                 | $30 + LB $10 + PG $50 = **$90**                                  | Managed control plane and HA database                                                                  | One fewer node and a 2-node (not 3-node) database vs. rank 1 for about the same money; VKE HA control-plane price unpublished. Variant: k3s on 3 × 2 vCPU / 4 GB + single-node DB = $97.    |
-| **4** | **DigitalOcean Kansas City — closest**     | **Kubernetes:** DOKS, 3 × 2 GiB Premium Intel · **LB:** DO LB · **Postgres:** DO managed, 1 GiB single node · **Valkey:** in-cluster · **Keys:** Azure Key Vault, Central US                                                                     | $48 + LB $12 + PG $15.15 = **~$75**                              | Lowest latency (~10–15 ms); managed control plane and database                                         | **No database HA within budget** (2 GiB + standby is $60.90 → ~$121); MKC1 offers Premium-Intel droplets and limited DB plans only _(verify)_.                 |
-| **5** | **Civo NYC1 — free egress**                | **Kubernetes:** Civo managed k3s, 3 × 4 GB · **LB:** Civo LB · **Postgres:** CloudNativePG in-cluster · **Valkey:** in-cluster · **Keys:** Azure Key Vault, East US                                                                              | $65.19 + LB $10.86 = **~$76**                                    | 6 cores / 12 GB; unlimited free egress                                                                  | You operate Postgres (Civo's managed PG starts at $43.45 → ~$119); east-coast latency (35–45 ms); no published HA control plane.                                |
+| **3** | **Vultr Dallas — lean nodes, HA DB**       | **Kubernetes:** VKE, 3 × 1 vCPU / 2 GB · **LB:** Vultr LB · **Postgres:** Vultr managed, 2 GB + 1 replica · **Valkey:** in-cluster · **Keys:** AWS KMS root key, us-west-2                                                                       | $30 + LB $10 + PG $50 = **$90**                                  | Managed control plane and HA database                                                                  | One fewer node and a 2-node (not 3-node) database vs. rank 1 for about the same money; VKE HA control-plane price unpublished. Variant: k3s on 3 × 2 vCPU / 4 GB + single-node DB = $97.    |
+| **4** | **DigitalOcean Kansas City — closest**     | **Kubernetes:** DOKS, 3 × 2 GiB Premium Intel · **LB:** DO LB · **Postgres:** DO managed, 1 GiB single node · **Valkey:** in-cluster · **Keys:** AWS KMS root key, us-west-2                                                                     | $48 + LB $12 + PG $15.15 = **~$75**                              | Lowest latency (~10–15 ms); managed control plane and database                                         | **No database HA within budget** (2 GiB + standby is $60.90 → ~$121); MKC1 offers Premium-Intel droplets and limited DB plans only _(verify)_.                 |
+| **5** | **Civo NYC1 — free egress**                | **Kubernetes:** Civo managed k3s, 3 × 4 GB · **LB:** Civo LB · **Postgres:** CloudNativePG in-cluster · **Valkey:** in-cluster · **Keys:** AWS KMS root key, us-west-2                                                                           | $65.19 + LB $10.86 = **~$76**                                    | 6 cores / 12 GB; unlimited free egress                                                                  | You operate Postgres (Civo's managed PG starts at $43.45 → ~$119); east-coast latency (35–45 ms); no published HA control plane.                                |
 
-Every row adds the shared free services below. Key Vault usage is excluded: backlog `S7` isn't built yet, and it is
-cents per month once it is.
+Every row adds the shared free services below. The root key is excluded: one key and a few requests per replica start
+cost about a dollar a month (ADR-0228).
 
 **Why this order:**
 
@@ -105,6 +105,7 @@ control plane (+$60).
 | Metrics, logs, traces, synthetics, load tests  | Grafana Cloud Free                            | 10k active series, 50 GB logs, 50 GB traces, 14-day retention, 3 users, 100k synthetic API checks, 500 k6 VU-hours       |
 | Uptime alerts (alternative)                    | UptimeRobot Free                              | 50 monitors, 5-minute interval (positioned for hobby / non-profit use)                                                   |
 | Signing keys on OCI (production-capable)       | OCI Vault                                     | Software keys free; first 20 HSM key versions free, then $0.5334/version/month                                           |
+| Root key (ADR-0228)                            | AWS KMS (the platform's account)              | $1 per key per month (plus $1 for each of the first two yearly rotations) and $0.03 per 10,000 requests, 20,000 requests per month free _(verify)_ |
 | Key Vault experiments, ephemeral conformance   | Azure via the Visual Studio credit            | $50/month, dev/test only ([§10](#10-devtest-and-conformance-on-azure-visual-studio-credit))                               |
 | Inbound email (`security@`, vendor accounts)   | Cloudflare Email Routing                      | Free; receive-and-forward only (sending needs Workers Paid)                                                              |
 | Outbound email, when needed                    | OCI Email Delivery                            | 3,000 emails/month                                                                                                       |
@@ -145,7 +146,7 @@ flowchart LR
     T1 & T2 & T3 -->|HTTP + X-Forwarded-Tls-Client-Cert| API[Identity server<br/>2-3 replicas]
     API --> PG[(PostgreSQL)]
     API --> VK[(Valkey)]
-    API -.->|sign only| KMS[KMS / Key Vault<br/>future S7]
+    API -.->|unwrap at start; sign with S7| KMS[KMS<br/>root key ADR-0228]
 ```
 
 - The cloud LB must be **L4 TCP pass-through** (never TLS-terminating, never an L7/CDN proxy) so Traefik sees the client
@@ -319,9 +320,10 @@ No production load data exists yet, so these are **planning estimates**; confirm
 - **Bandwidth is not a cost driver.** Token responses are a few KB; even 1M interactive logins/month at ~500 KB of
   assets each is ~0.5 TB, below every vendor's included transfer.
 - **Multi-replica readiness:** Data Protection keys already persist to Postgres
-  ([ADR-0073](adr/0073-postgres-dev-database-and-aspire-migration-worker.md); a Production host refuses the ring unless it is encrypted at rest —
-  [ADR-0177](adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)); the DPoP
-  nonce and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`
+  ([ADR-0073](adr/0073-postgres-dev-database-and-aspire-migration-worker.md); each key is encrypted under the server
+  master key, whose root key lives outside the database —
+  [ADR-0228](adr/0228-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)); the DPoP nonce
+  and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`
   connection string ([ADR-0164](adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); the
   in-process job dispatcher does not coordinate across nodes (backlog `D5`).
 
@@ -485,7 +487,15 @@ An `IngressRouteTCP` with `tls.passthrough: true` can route the mTLS hostname by
 header to trust — at the cost of Traefik's L7 features for that host. Per-tenant trust comes from the server's trust
 anchors (`F43`).
 
-## 9. Remote keys / KMS (backlog `S7`, `S9`)
+## 9. Root key and remote keys / KMS (ADR-0228, backlog `S7`)
+
+Every deployment needs one root key in a key management service (ADR-0228); it wraps the master keys that protect
+stored secrets and is called only when a replica first meets an owner. Remote signing (`S7`) is the separate,
+per-request use priced below. The root key lives in AWS KMS, in the account that already holds the platform's OpenTofu
+state key. A cluster reaches it through web identity federation, which needs the cluster's service-account issuer to be
+publicly discoverable, because AWS IAM fetches the issuer's discovery document and JWKS; a cluster whose issuer is
+private needs IAM Roles Anywhere (backlog `S19`) or the `local` provider. Google Cloud KMS, by contrast, accepts an
+uploaded JWKS, so a private issuer is no obstacle there.
 
 | Service                    | Key cost                                         | Sign-operation cost                                            | Throughput notes                                                         |
 | -------------------------- | ------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -506,9 +516,8 @@ Design considerations for `S7`:
   Central US (Illinois) for Chicago, West US 3 (Arizona) for Phoenix — and serve JWKS from cached public keys.
 - **Throttling:** ~400 EC signatures/s per Key Vault (software keys) is far above entry-level load, but the signer must
   handle `429` with back-off.
-- **Credentials:** authenticate the cluster to Azure with **workload identity federation** (a Kubernetes
-  service-account token as a federated credential) — no client secrets. GitHub Actions likewise uses OIDC federation
-  for `azurerm`.
+- **Credentials:** workload identity federation, never a client secret: AWS and Azure need a publicly discoverable
+  issuer; Google Cloud accepts an uploaded JWKS. GitHub Actions likewise uses OIDC federation for OpenTofu.
 - **Cross-vendor is fine here:** unlike Postgres, KMS calls are few per request and public keys are cacheable.
 - **Experiment on the Visual Studio credit** ([§10](#10-devtest-and-conformance-on-azure-visual-studio-credit)): a
   Standard vault costs only per operation, so `S7` prototyping is effectively free.
@@ -541,7 +550,7 @@ Prices — West Central US, Linux, pay-as-you-go, from the public Azure Retail P
 | Standard public IPv4                       | $3.65             | $0.005    |
 | PostgreSQL Flexible Server B1ms            | $14.89 + $0.14/GB-mo storage | ~$0.020 |
 | Internet egress                            | First 100 GB/mo free, then ~$0.08–$0.09/GB | — |
-| Key Vault                                  | See [§9](#9-remote-keys--kms-backlog-s7-s9) | — |
+| Key Vault                                  | See [§9](#9-root-key-and-remote-keys--kms-adr-0228-backlog-s7) | — |
 
 VM prices exclude the OS managed disk (a few dollars per month, _(verify)_).
 
@@ -619,11 +628,12 @@ speed-test endpoint from the Denver network the users are on.
 
 **Must-do before customers (code and composition, tracked in the backlog):**
 
-- **The Data Protection key ring must be wrapped by a key outside the database.** The host persists the ring to the
-  same Postgres database as the secrets it protects, so a database backup or dump would otherwise hold everything
-  needed to decrypt the signing keys. A Production host refuses to start until the ring has an `IXmlEncryptor`: mount
-  an RSA certificate from the secret store under `DataProtection:KeyProtection`, or use a key management service
-  ([ADR-0177](adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md); pairs with `S7` / `S9`).
+- **Stored secrets must be protected by a root key outside the database.** The host persists signing keys, client
+  secrets and the Data Protection key ring in the same Postgres database, so a backup would otherwise hold everything
+  needed to use them. Every private value is encrypted under a per-owner master key wrapped by a root key held in a key
+  management service, and a Production host refuses to start without a real root key and a recovery decision
+  ([ADR-0228](adr/0228-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md); pairs with
+  `S7`).
 - **Kubernetes deployment artifacts** — backlog `F46`, done. `NCode.Identity.OpenId.Host` already trusts forwarded headers
   only from configured proxies (set `ReverseProxy:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,

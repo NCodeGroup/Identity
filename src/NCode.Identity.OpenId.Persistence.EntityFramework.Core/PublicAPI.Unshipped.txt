@@ -199,6 +199,38 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.Tena
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ISupportSecretEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ISupportSecretEntity.Secret.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ISupportSecretEntity.SecretId.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.CreatedWhen.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.KeyCheck.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.KeyCheck.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.KeyId.get -> System.Guid
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.KeyId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.MasterKeyEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.NormalizedOwnerId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.NormalizedOwnerId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.OwnerId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.OwnerId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.OwnerType.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.OwnerType.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RecoveryKeyId.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RecoveryKeyId.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RecoveryWrappedKey.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RecoveryWrappedKey.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RetiredWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RetiredWhen.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RootKeyId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RootKeyId.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RootKeyProvider.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RootKeyProvider.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RootWrappedKey.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RootWrappedKey.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.Version.get -> int
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.Version.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity.ConcurrencyToken.set -> void

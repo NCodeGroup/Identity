@@ -17,17 +17,19 @@
 #endregion
 
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
 /// <summary>
-/// Provides the default implementation of <see cref="ISecretPublicKeyConverter"/>. It deserializes the secret and
-/// asks the key's <see cref="ISecretKeyTypeDescriptor"/> (the single extensibility seam, ADR-0104) to export its
-/// public material as a <c>JWK</c> and a <c>SubjectPublicKeyInfo</c> <c>PEM</c>. Secrets without exportable public
-/// material (for example symmetric keys) yield <c>null</c>.
+/// Provides the default implementation of <see cref="ISecretPublicKeyConverter"/>. It unprotects the private key
+/// with the owner's <see cref="ISecretProtector"/> and asks the key's <see cref="ISecretKeyTypeDescriptor"/> (the
+/// single extensibility seam) to export its public half as a <c>JWK</c> and a <c>SubjectPublicKeyInfo</c> <c>PEM</c>.
+/// Secrets without exportable public material (for example symmetric keys) yield <c>null</c>.
 /// </summary>
 // See ADR-0104.
 internal class DefaultSecretPublicKeyConverter(
@@ -40,10 +42,12 @@ internal class DefaultSecretPublicKeyConverter(
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
     /// <inheritdoc />
-    public PublicKeyResource? Convert(PersistedSecret secret)
-    {
-        var secretKey = SecretSerializer.DeserializeSecret(secret);
+    // See ADR-0228.
+    public PublicKeyResource? Convert(ISecretProtector protector, PersistedSecret secret) =>
+        ExportPublicKey(secret, SecretSerializer.DeserializeSecret(protector, secret));
 
+    private PublicKeyResource? ExportPublicKey(PersistedSecret secret, SecretKey secretKey)
+    {
         if (!SecretKeyTypeCatalog.TryGet(secretKey.KeyType, out var descriptor))
         {
             return null;

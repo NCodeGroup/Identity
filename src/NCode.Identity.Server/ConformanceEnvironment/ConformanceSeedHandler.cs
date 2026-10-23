@@ -32,6 +32,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.Logging;
 using NCode.Mediator;
 
@@ -55,6 +56,7 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 internal sealed class ConformanceSeedHandler(
     ConformanceSeedOptions options,
     ISecretGenerator secretGenerator,
+    ISecretProtectorProvider secretProtectorProvider,
     IClientKeyImporter clientKeyImporter,
     ICryptoService cryptoService,
     TimeProvider timeProvider,
@@ -70,6 +72,7 @@ internal sealed class ConformanceSeedHandler(
     ];
     private ConformanceSeedOptions Options { get; } = options;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -151,7 +154,15 @@ internal sealed class ConformanceSeedHandler(
 
         var secrets = new List<PersistedSecret>();
         if (!string.IsNullOrEmpty(client.ClientSecret))
-            secrets.Add(CreatePersistedSecret(client.ClientSecret));
+        {
+            // A client seeded with only its keys never loads the tenant's master key.
+            var protector = await SecretProtectorProvider.GetProtectorAsync(
+                SecretOwner.ForTenant(tenantId),
+                [],
+                cancellationToken
+            );
+            secrets.Add(CreatePersistedSecret(protector, client.ClientSecret));
+        }
         if (!string.IsNullOrEmpty(client.Jwks))
             secrets.AddRange(ImportKeys(clientId, client.Jwks));
 
@@ -323,7 +334,7 @@ internal sealed class ConformanceSeedHandler(
         // runtime must not inherit the conformance clients and test user.
         string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 
-    private PersistedSecret CreatePersistedSecret(string encodedSecret)
+    private PersistedSecret CreatePersistedSecret(ISecretProtector protector, string encodedSecret)
     {
         // The secret is supplied Base64Url-encoded (not plaintext) so a raw process-memory snapshot does not expose it
         // directly; decode it straight into a pinned, zeroed-on-return buffer.
@@ -337,6 +348,7 @@ internal sealed class ConformanceSeedHandler(
         // Persist the given client_secret through the single shared-secret primitive (ADR-0110) so its stored UTF-8
         // shape cannot drift from generated secrets.
         return SecretGenerator.ImportSharedSecret(
+            protector,
             new ImportSharedSecretRequest
             {
                 // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so the id reveals nothing.

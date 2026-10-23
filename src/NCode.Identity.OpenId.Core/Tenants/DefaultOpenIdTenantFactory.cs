@@ -35,6 +35,7 @@ using NCode.Identity.Results;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
@@ -56,6 +57,7 @@ public class DefaultOpenIdTenantFactory(
     IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
+    ISecretProtectorProvider secretProtectorProvider,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
     IEffectiveSettingsResolver effectiveSettingsResolver
@@ -96,6 +98,11 @@ public class DefaultOpenIdTenantFactory(
     /// Gets the <see cref="ISecretSerializer"/> used to serialize/deserialize secrets.
     /// </summary>
     protected ISecretSerializer SecretSerializer { get; } = secretSerializer;
+
+    /// <summary>
+    /// Gets the <see cref="ISecretProtectorProvider"/> used to get the <see cref="ISecretProtector"/> that unprotects a tenant's secrets.
+    /// </summary>
+    protected ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
 
     /// <summary>
     /// Gets the <see cref="ISecretKeyCollectionProviderFactory"/> used to create <see cref="ISecretKeyCollectionProvider"/> instances.
@@ -544,7 +551,7 @@ public class DefaultOpenIdTenantFactory(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="ISecretKeyCollectionProvider"/> instance.</returns>
     /// <exception cref="InvalidOperationException">A key of the tenant cannot be unprotected.</exception>
-    protected virtual ValueTask<
+    protected virtual async ValueTask<
         AsyncSharedReferenceLease<ISecretKeyCollectionProvider>
     > GetTenantSecretsAsync(
         HttpContext httpContext,
@@ -559,7 +566,10 @@ public class DefaultOpenIdTenantFactory(
     )
     {
         var refreshInterval = OpenIdOptions.Tenant.SecretsPeriodicRefreshInterval;
-        var initialCollection = DeserializeTenantSecrets(persistedTenant);
+        var initialCollection = await DeserializeTenantSecretsAsync(
+            persistedTenant,
+            cancellationToken
+        );
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedTenant,
@@ -570,24 +580,33 @@ public class DefaultOpenIdTenantFactory(
 
         var provider = SecretKeyCollectionProviderFactory.Create(dataSource, owns: true);
 
-        return ValueTask.FromResult(provider.AsSharedReference());
+        return provider.AsSharedReference();
     }
 
-    // A tenant key that cannot be unprotected means the Data Protection key ring that protected it is missing or has
-    // changed. The server never discards or replaces such a key (ADR-0169), so the tenant fails with a reason an
-    // operator can act on instead of the key ring's bare cryptographic error.
-    private IReadOnlyCollection<SecretKey> DeserializeTenantSecrets(PersistedTenant persistedTenant)
+    // A tenant key that cannot be unprotected means the master key that protected it, or the root key that wraps that
+    // master key, is missing or has changed. The server never discards or replaces such a key (ADR-0169), so the
+    // tenant fails with a reason an operator can act on instead of the bare cryptographic error.
+    private async ValueTask<IReadOnlyCollection<SecretKey>> DeserializeTenantSecretsAsync(
+        PersistedTenant persistedTenant,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
-            return SecretSerializer.DeserializeSecrets(persistedTenant.Secrets.Value);
+            var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+                SecretOwner.ForTenant(persistedTenant.TenantId),
+                persistedTenant.Secrets.Value,
+                cancellationToken
+            );
+
+            return SecretSerializer.DeserializeSecrets(protector, persistedTenant.Secrets.Value);
         }
         catch (CryptographicException exception)
         {
             throw new InvalidOperationException(
                 $"The keys of the tenant with id '{persistedTenant.TenantId}' cannot be unprotected, so the tenant "
-                    + "cannot be served. The Data Protection key ring that protected them is missing or has changed: "
-                    + "restore it. The server does not discard or replace a key it cannot read.",
+                    + "cannot be served. The master key that protected them, or the root key that wraps it, is missing "
+                    + "or has changed: restore it. The server does not discard or replace a key it cannot read.",
                 exception
             );
         }
@@ -613,7 +632,13 @@ public class DefaultOpenIdTenantFactory(
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 
-        var secrets = SecretSerializer.DeserializeSecrets(newSecrets.Value);
+        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+            SecretOwner.ForTenant(tenantId),
+            newSecrets.Value,
+            cancellationToken
+        );
+
+        var secrets = SecretSerializer.DeserializeSecrets(protector, newSecrets.Value);
 
         // update the state after successfully deserializing the secrets
         persistedTenant.Secrets = newSecrets;

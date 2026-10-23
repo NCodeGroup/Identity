@@ -1040,6 +1040,40 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   non-secret bytes — and flatten a multi-segment `Sequence<byte>` to a contiguous span via `GetSpanLease(isSensitive:)`,
   never manual concatenation. This is the general convention for all byte-array/memory/buffer usage; existing `byte[]`
   surfaces migrate incrementally. See [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md).
+- 👁 **Allocate a `byte[]` only when an external API demands an array, and then rent or pin it.** A rented buffer
+  (`BufferFactory.Rent(…, isSensitive:, out …)`, `CreatePooledBufferWriter(isSensitive:)`) or a small, fixed
+  `stackalloc` is the default for every transient; a secret held by an object or across an `await` is a sensitive
+  rental held as an `IDisposable` lease beside the `Memory<byte>` it returned
+  (`BufferFactory.Rent(…, isSensitive: true, out Memory<byte>)`, a pinned secure-pool array zeroed when returned),
+  because `BufferFactory.CreatePinnedArray` returns a `ref struct` for synchronous, method-local use only; never a bare
+  array or `GC.AllocateArray`. An API that needs an array gets one from a rental via `MemoryMarshal.TryGetArray`.
+  `new byte[]`, `.ToArray()`, `ArrayBufferWriter<T>` and `MemoryStream` appear only at an API that requires them (an SDK
+  request stream), over a rented or pinned array. An interface method's output is a `Span<T>`/`Memory<T>` with a
+  returned count, or a generic `ref TWriter … allows ref struct` writer with a sizing method beside it
+  (`IAesKeyWrap.WrapKey` with `GetEncryptedContentKeySizeBytes`); Moq proxies such methods. See
+  [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md). `BufferFactory.Rent`'s `out` span or
+  memory is exactly the requested length — never slice it back to that length — and the `out Span<T>` overload is the
+  default; take `out Memory<T>` only for a buffer stored in a field or used across an `await`.
+- 👁 **Sensitive text is never a `string`.** Read a key or secret file as bytes into a secure buffer
+  (`File.OpenHandle` + `RandomAccess.Read`) and decode it from UTF-8; write sensitive XML with an `XmlWriter` over a
+  sensitive pooled writer and read it back with an `XmlReader` over that buffer; transform identifiers on hot paths
+  into rented `char` spans (`MemoryExtensions.ToLowerInvariant(source, destination)`) instead of allocating strings.
+  A `string` is produced only for a non-secret value at a storage or wire boundary — an envelope stored in a text
+  column, a persisted identifier — exactly once, written in place by `string.Create` — never by renting a `char`
+  buffer and copying it out with `new string(span)`. Pass span inputs through an `internal readonly ref struct`
+  state (`string.Create`'s `TState` allows ref structs) and `ReadOnlyMemory<T>` inputs through a value tuple; when an
+  interface implementation writes the characters, check `writer.WrittenCount == chars.Length`, so no `'\0'` remainder
+  is ever persisted. See [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md) and
+  [ADR-0228](../../docs/adr/0228-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md).
+- 👁 **Size a collection from a count you already know, and keep per-call paths free of avoidable allocations.** Pass the
+  capacity (`new HashSet<T>(source.Count)`, `new List<T>(n)`, `new Dictionary<TKey, TValue>(n)`) whenever the final or
+  maximum count is known; return a shared empty instance (`FrozenSet<T>.Empty`, a `[]` collection expression) rather
+  than allocating an empty one — but `list ?? []` types the `[]` as the list and allocates one, so write
+  `list ?? (IReadOnlyCollection<T>)[]` to get the shared empty array; create a collection lazily when it may stay
+  empty; and on a path that runs per request replace LINQ (`All`, `Any`, `Where(…).ToHashSet()`) with a `foreach` —
+  each LINQ call allocates a delegate and an enumerator — testing `Count == 0` first so an interface's boxed
+  enumerator is not created for nothing. See
+  [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md).
 - 👁 **Cryptographic and numeric hot-path primitives are optimized aggressively; readability is secondary there.**
   Inner loops of the math/crypto primitives (field, scalar, and group arithmetic; encoders; constant-time helpers)
   should use every applicable trick — `[MethodImpl(MethodImplOptions.AggressiveInlining |
@@ -1064,7 +1098,8 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   (`Logger.SubjectValidationFailed(reason)`), and mark the class `[ExcludeFromCodeCoverage]` (generated plumbing).
 - 👁 **A message template is a constant with named placeholders** (`"… {DisplayName}"`), never string interpolation or
   concatenation; a value that also feeds an error/response is defined **once** (§6) and passed to the log method as a
-  structured argument.
+  structured argument. Pass a value as its own type, never a pre-built `ToString()` — the generated method formats it
+  only when the level is enabled.
 - 👁 **Event IDs are named `const`s in a per-package `Logging/EventIds.cs`** — an `internal static class EventIds`
   with a `private const int Base` set to the package's band (below) and one `public const int` per event defined as
   `Base + n`. **Each constant is named _exactly_ as the `[LoggerMessage]` method it identifies**

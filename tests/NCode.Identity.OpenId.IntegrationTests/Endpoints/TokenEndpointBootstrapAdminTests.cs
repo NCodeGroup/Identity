@@ -181,7 +181,7 @@ public class TokenEndpointBootstrapAdminTests
         using var factory = new BootstrapConfiguredFactory();
 
         // Stage the bootstrap client with a secret that does not match configuration (as a prior run's now-unusable
-        // data-protection keys would leave it). The provisioning pass on the first token request must heal it to the
+        // master keys would leave it). The provisioning pass on the first token request must heal it to the
         // configured secret before client authentication; without the self-heal this request fails invalid_client.
         await factory.SeedClientDirectlyAsync(BootstrapClientId, "stale-secret-value");
 

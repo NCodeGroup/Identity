@@ -41,6 +41,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -61,6 +62,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<IClientKeyImporter> MockKeyImporter { get; }
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
+    private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
     private Mock<ITenantValidator> MockTenantValidator { get; }
     private Mock<ITenantResolver> MockTenantResolver { get; }
     private Mock<ITenantProvisioner> MockTenantProvisioner { get; }
@@ -85,6 +87,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockKeyImporter = MockRepository.Create<IClientKeyImporter>();
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
+        MockSecretProtectorProvider = MockRepository.Create<ISecretProtectorProvider>();
         MockTenantValidator = MockRepository.Create<ITenantValidator>();
         MockTenantResolver = MockRepository.Create<ITenantResolver>();
         MockTenantProvisioner = MockRepository.Create<ITenantProvisioner>();
@@ -160,6 +163,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockSecretGenerator.Object,
             MockKeyImporter.Object,
             MockSecretPublicKeyConverter.Object,
+            MockSecretProtectorProvider.Object,
             TimeProvider.System,
             MockCryptoService.Object,
             MockSettingSerializer.Object,
@@ -1004,6 +1008,22 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     #region CreateSecretAsync Tests
 
+    private ISecretProtector SetupCreateSecretProtector()
+    {
+        var protector = MockRepository.Create<ISecretProtector>().Object;
+        MockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    It.Is<IReadOnlyCollection<string>>(v => v.Count == 0),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+        return protector;
+    }
+
     [Fact]
     public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
     {
@@ -1015,9 +1035,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
 
+        var protector = SetupCreateSecretProtector();
         var generated = CreatePersistedSecret();
         MockSecretGenerator
-            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x => x.GenerateSecret(protector, It.IsAny<GenerateSecretRequest>()))
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
             .Verifiable();
         MockTenantStore
@@ -1076,9 +1097,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
 
+        var protector = SetupCreateSecretProtector();
         var generated = CreatePersistedSecret();
         MockSecretGenerator
-            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x => x.GenerateSecret(protector, It.IsAny<GenerateSecretRequest>()))
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
             .Verifiable();
         MockTenantStore
@@ -1145,6 +1167,22 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             Pem = "-----BEGIN PUBLIC KEY-----\nMII=\n-----END PUBLIC KEY-----",
         };
 
+    private ISecretProtector SetupSecretProtector()
+    {
+        var protector = MockRepository.Create<ISecretProtector>().Object;
+        MockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+        return protector;
+    }
+
     [Fact]
     public async Task GetPublicKeyAsync_WhenAsymmetricAndAuthorized_ReturnsJson()
     {
@@ -1155,9 +1193,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
+        var protector = SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretPublicKeyConverter
-            .Setup(x => x.Convert(It.IsAny<PersistedSecret>()))
+            .Setup(x => x.Convert(protector, It.IsAny<PersistedSecret>()))
             .Returns(CreatePublicKeyResource())
             .Verifiable();
 
@@ -1185,9 +1224,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
+        var protector = SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretPublicKeyConverter
-            .Setup(x => x.Convert(It.IsAny<PersistedSecret>()))
+            .Setup(x => x.Convert(protector, It.IsAny<PersistedSecret>()))
             .Returns((PublicKeyResource?)null)
             .Verifiable();
 
@@ -1236,6 +1276,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
+        SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);

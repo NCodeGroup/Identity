@@ -45,6 +45,7 @@ using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
@@ -65,6 +66,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<IClientKeyImporter> MockClientKeyImporter { get; }
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
+    private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
     private Mock<IClientValidator> MockClientValidator { get; }
     private Mock<ISecretValidator> MockSecretValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
@@ -94,6 +96,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockClientKeyImporter = MockRepository.Create<IClientKeyImporter>();
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
+        MockSecretProtectorProvider = MockRepository.Create<ISecretProtectorProvider>();
         MockClientValidator = MockRepository.Create<IClientValidator>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
         MockSecretValidator
@@ -170,6 +173,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockClientKeyImporter.Object,
             ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
             MockSecretPublicKeyConverter.Object,
+            MockSecretProtectorProvider.Object,
             TimeProvider.System,
             MockCryptoService.Object,
             MockSettingSerializer.Object,
@@ -1266,6 +1270,22 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     #region CreateSecretAsync Tests
 
+    private ISecretProtector SetupGenerateSecretProtector()
+    {
+        var protector = MockRepository.Create<ISecretProtector>().Object;
+        MockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    It.Is<IReadOnlyCollection<string>>(v => v.Count == 0),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+        return protector;
+    }
+
     [Fact]
     public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
     {
@@ -1277,9 +1297,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
 
+        var protector = SetupGenerateSecretProtector();
         var generated = CreatePersistedSecret();
         MockSecretGenerator
-            .Setup(x => x.GenerateSharedSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x => x.GenerateSharedSecret(protector, It.IsAny<GenerateSecretRequest>()))
             .Returns(
                 new GeneratedSecret { Secret = generated, SecretMaterial = "revealed-material" }
             )
@@ -1320,9 +1341,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
 
+        var protector = SetupGenerateSecretProtector();
         var generated = CreatePersistedSecret();
         MockSecretGenerator
-            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x => x.GenerateSecret(protector, It.IsAny<GenerateSecretRequest>()))
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
             .Verifiable();
         MockClientStore
@@ -1439,9 +1461,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
 
+        var protector = SetupGenerateSecretProtector();
         var generated = CreatePersistedSecret();
         MockSecretGenerator
-            .Setup(x => x.GenerateSharedSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x => x.GenerateSharedSecret(protector, It.IsAny<GenerateSecretRequest>()))
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = "material" })
             .Verifiable();
         MockClientStore
@@ -1631,6 +1654,22 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             Pem = "-----BEGIN PUBLIC KEY-----\nMII=\n-----END PUBLIC KEY-----",
         };
 
+    private ISecretProtector SetupSecretProtector()
+    {
+        var protector = MockRepository.Create<ISecretProtector>().Object;
+        MockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+        return protector;
+    }
+
     [Fact]
     public async Task GetPublicKeyAsync_WhenAsymmetricAndAuthorized_ReturnsJson()
     {
@@ -1641,9 +1680,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             )
             .ReturnsAsync(CreateClientSecret())
             .Verifiable();
+        var protector = SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretPublicKeyConverter
-            .Setup(x => x.Convert(It.IsAny<PersistedSecret>()))
+            .Setup(x => x.Convert(protector, It.IsAny<PersistedSecret>()))
             .Returns(CreatePublicKeyResource())
             .Verifiable();
 
@@ -1672,9 +1712,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             )
             .ReturnsAsync(CreateClientSecret())
             .Verifiable();
+        var protector = SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretPublicKeyConverter
-            .Setup(x => x.Convert(It.IsAny<PersistedSecret>()))
+            .Setup(x => x.Convert(protector, It.IsAny<PersistedSecret>()))
             .Returns((PublicKeyResource?)null)
             .Verifiable();
 
@@ -1725,6 +1766,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             )
             .ReturnsAsync(CreateClientSecret())
             .Verifiable();
+        SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -2066,11 +2108,13 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId("secret-2");
 
+        var protector = SetupGenerateSecretProtector();
         var expiresWhen = DateTimeOffset.UnixEpoch.AddYears(3);
         var replacement = CreatePersistedSecret("secret-2", "replacement-ct");
         MockSecretGenerator
             .Setup(x =>
                 x.GenerateSharedSecret(
+                    protector,
                     It.Is<GenerateSecretRequest>(generate =>
                         generate.SecretId == "secret-2"
                         && generate.SecretType == rotated.SecretType

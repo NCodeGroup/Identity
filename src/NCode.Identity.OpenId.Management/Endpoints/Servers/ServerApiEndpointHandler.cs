@@ -42,6 +42,7 @@ using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -79,6 +80,7 @@ internal class ServerApiEndpointHandler(
     ISecretGenerator secretGenerator,
     IClientKeyImporter keyImporter,
     ISecretPublicKeyConverter secretPublicKeyConverter,
+    ISecretProtectorProvider secretProtectorProvider,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
@@ -99,6 +101,7 @@ internal class ServerApiEndpointHandler(
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private IClientKeyImporter KeyImporter { get; } = keyImporter;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
@@ -821,10 +824,17 @@ internal class ServerApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForServer(serverId),
+            [],
+            cancellationToken
+        );
+
         GeneratedSecret generatedSecret;
         try
         {
             generatedSecret = SecretGenerator.GenerateSecret(
+                protector,
                 new GenerateSecretRequest
                 {
                     SecretId = secretId,
@@ -1020,13 +1030,23 @@ internal class ServerApiEndpointHandler(
         var store = storeManager.GetStore<IServerStore>();
 
         var secret = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
+        if (secret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+            SecretOwner.ForServer(serverId),
+            [secret],
+            cancellationToken
+        );
 
         return await ProcessGetAsync(
             httpContext,
             secret,
             authorizationResource: null,
             Operations.Read,
-            SecretPublicKeyConverter.Convert
+            x => SecretPublicKeyConverter.Convert(protector, x)
         );
     }
 

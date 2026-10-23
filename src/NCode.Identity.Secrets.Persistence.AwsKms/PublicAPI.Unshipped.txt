@@ -1,0 +1,9 @@
+#nullable enable
+const NCode.Identity.Secrets.Persistence.AwsKms.Options.AwsKmsRootKeyOptions.DefaultSectionName = "SecretProtection:RootKeyProviders:AwsKms" -> string!
+NCode.Identity.Secrets.Persistence.AwsKms.DefaultRegistration
+NCode.Identity.Secrets.Persistence.AwsKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!)
+NCode.Identity.Secrets.Persistence.AwsKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!).AddAwsKmsRootKeyProvider(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
+NCode.Identity.Secrets.Persistence.AwsKms.Options.AwsKmsRootKeyOptions
+NCode.Identity.Secrets.Persistence.AwsKms.Options.AwsKmsRootKeyOptions.AwsKmsRootKeyOptions() -> void
+NCode.Identity.Secrets.Persistence.AwsKms.Options.AwsKmsRootKeyOptions.KeyArn.get -> string?
+NCode.Identity.Secrets.Persistence.AwsKms.Options.AwsKmsRootKeyOptions.KeyArn.set -> void

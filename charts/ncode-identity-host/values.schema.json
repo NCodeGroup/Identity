@@ -158,17 +158,64 @@
         }
       }
     },
-    "keyProtection": {
+    "secretProtection": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "certificateSecret": {
+        "rootKeyProvider": {
           "type": "string"
         },
-        "previousCertificateSecrets": {
-          "type": "array",
-          "items": {
-            "type": "string"
+        "local": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "keySecret": {
+              "type": "string"
+            },
+            "previousKeySecrets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "awsKms": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "keyArn": {
+              "type": "string"
+            },
+            "webIdentity": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "roleArn": {
+                  "type": "string"
+                },
+                "audience": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tokenExpirationSeconds": {
+                  "type": "integer",
+                  "minimum": 600
+                }
+              }
+            }
+          }
+        },
+        "recovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "publicKeyConfigMap": {
+              "type": "string"
+            },
+            "disabled": {
+              "type": "boolean"
+            }
           }
         }
       }

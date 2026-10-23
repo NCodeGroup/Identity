@@ -41,6 +41,7 @@ using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -61,6 +62,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<IClientKeyImporter> MockKeyImporter { get; }
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
+    private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
     private Mock<IServerValidator> MockServerValidator { get; }
     private Mock<ISecretValidator> MockSecretValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
@@ -84,6 +86,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockKeyImporter = MockRepository.Create<IClientKeyImporter>();
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
+        MockSecretProtectorProvider = MockRepository.Create<ISecretProtectorProvider>();
         MockServerValidator = MockRepository.Create<IServerValidator>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
         MockSecretValidator
@@ -137,6 +140,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             MockSecretGenerator.Object,
             MockKeyImporter.Object,
             MockSecretPublicKeyConverter.Object,
+            MockSecretProtectorProvider.Object,
             TimeProvider.System,
             MockCryptoService.Object,
             MockSettingSerializer.Object,
@@ -1126,6 +1130,22 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
     #region CreateSecretAsync Tests
 
+    private ISecretProtector SetupCreateSecretProtector()
+    {
+        var protector = MockRepository.Create<ISecretProtector>().Object;
+        MockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForServer(ServerId),
+                    It.Is<IReadOnlyCollection<string>>(v => v.Count == 0),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+        return protector;
+    }
+
     [Fact]
     public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
     {
@@ -1137,9 +1157,10 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
 
+        var protector = SetupCreateSecretProtector();
         var generated = CreatePersistedSecret();
         MockSecretGenerator
-            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x => x.GenerateSecret(protector, It.IsAny<GenerateSecretRequest>()))
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
             .Verifiable();
         MockServerStore
@@ -1231,8 +1252,9 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
+        var protector = SetupCreateSecretProtector();
         MockSecretGenerator
-            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x => x.GenerateSecret(protector, It.IsAny<GenerateSecretRequest>()))
             .Throws(new ArgumentException("bad size"))
             .Verifiable();
 
@@ -1260,9 +1282,10 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
 
+        var protector = SetupCreateSecretProtector();
         var generated = CreatePersistedSecret();
         MockSecretGenerator
-            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x => x.GenerateSecret(protector, It.IsAny<GenerateSecretRequest>()))
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
             .Verifiable();
         MockServerStore
@@ -1381,6 +1404,22 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             Pem = "-----BEGIN PUBLIC KEY-----\nMII=\n-----END PUBLIC KEY-----",
         };
 
+    private ISecretProtector SetupSecretProtector()
+    {
+        var protector = MockRepository.Create<ISecretProtector>().Object;
+        MockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForServer(ServerId),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+        return protector;
+    }
+
     [Fact]
     public async Task GetPublicKeyAsync_WhenAsymmetricAndAuthorized_ReturnsJson()
     {
@@ -1391,9 +1430,10 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
+        var protector = SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretPublicKeyConverter
-            .Setup(x => x.Convert(It.IsAny<PersistedSecret>()))
+            .Setup(x => x.Convert(protector, It.IsAny<PersistedSecret>()))
             .Returns(CreatePublicKeyResource())
             .Verifiable();
 
@@ -1421,9 +1461,10 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
+        var protector = SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretPublicKeyConverter
-            .Setup(x => x.Convert(It.IsAny<PersistedSecret>()))
+            .Setup(x => x.Convert(protector, It.IsAny<PersistedSecret>()))
             .Returns((PublicKeyResource?)null)
             .Verifiable();
 
@@ -1472,6 +1513,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
+        SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);

@@ -106,7 +106,7 @@ NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RedirectUris
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RequireConsent.get -> bool
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.RequireConsent.set -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed.ShouldSeed.get -> bool
-NCode.Identity.Server.EphemeralOpenIdTenantFactory.EphemeralOpenIdTenantFactory(NCode.Identity.OpenId.Tenants.ITenantResolver! tenantResolver, Microsoft.Extensions.Options.IOptions<NCode.Identity.OpenId.OpenIdOptions!>! optionsAccessor, NCode.Persistence.Stores.IStoreManagerFactory! storeManagerFactory, NCode.Identity.OpenId.Tenants.IOpenIdTenantCache! tenantCache, NCode.Identity.Settings.IReadOnlySettingCollectionProviderFactory! settingCollectionProviderFactory, NCode.Identity.Settings.ISettingSerializer! settingSerializer, NCode.Identity.Secrets.Persistence.ISecretSerializer! secretSerializer, NCode.Identity.Secrets.Collections.ISecretKeyCollectionProviderFactory! secretKeyCollectionProviderFactory, NCode.Collections.Providers.ICollectionDataSourceFactory! collectionDataSourceFactory, NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver! effectiveSettingsResolver, NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory! secretKeyFactory) -> void
+NCode.Identity.Server.EphemeralOpenIdTenantFactory.EphemeralOpenIdTenantFactory(NCode.Identity.OpenId.Tenants.ITenantResolver! tenantResolver, Microsoft.Extensions.Options.IOptions<NCode.Identity.OpenId.OpenIdOptions!>! optionsAccessor, NCode.Persistence.Stores.IStoreManagerFactory! storeManagerFactory, NCode.Identity.OpenId.Tenants.IOpenIdTenantCache! tenantCache, NCode.Identity.Settings.IReadOnlySettingCollectionProviderFactory! settingCollectionProviderFactory, NCode.Identity.Settings.ISettingSerializer! settingSerializer, NCode.Identity.Secrets.Persistence.ISecretSerializer! secretSerializer, NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider! secretProtectorProvider, NCode.Identity.Secrets.Collections.ISecretKeyCollectionProviderFactory! secretKeyCollectionProviderFactory, NCode.Collections.Providers.ICollectionDataSourceFactory! collectionDataSourceFactory, NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver! effectiveSettingsResolver, NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory! secretKeyFactory) -> void
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
 NCode.Identity.Server.IdentityServerApiReferenceEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapIdentityServerApiReference(System.Action<NCode.Identity.Server.IdentityServerApiReferenceOptions!>? configureOptions = null) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
@@ -207,21 +207,6 @@ NCode.Identity.Server.DeveloperKeyMode.None = 2 -> NCode.Identity.Server.Develop
 NCode.Identity.Server.DevelopmentEnvironmentRegistration
 NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
 NCode.Identity.Server.DevelopmentEnvironmentRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDevelopmentEnvironment(Microsoft.Extensions.Configuration.IConfiguration! configuration, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
-const NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.DefaultSectionName = "DataProtection:KeyProtection" -> string!
-NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions
-NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.CertificatePath.get -> string!
-NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.CertificatePath.set -> void
-NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.KeyRingCertificateOptions() -> void
-NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.Password.get -> string?
-NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.Password.set -> void
-NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.PrivateKeyPath.get -> string?
-NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions.PrivateKeyPath.set -> void
-NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions
-NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.Certificate.get -> NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions?
-NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.Certificate.set -> void
-NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.KeyRingProtectionOptions() -> void
-NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.PreviousCertificates.get -> NCode.Identity.Server.KeyRingProtection.KeyRingCertificateOptions![]!
-NCode.Identity.Server.KeyRingProtection.KeyRingProtectionOptions.PreviousCertificates.set -> void
 NCode.Identity.Server.TelemetryRegistration
 NCode.Identity.Server.TelemetryRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Server.TelemetryRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddOpenTelemetryMetrics(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

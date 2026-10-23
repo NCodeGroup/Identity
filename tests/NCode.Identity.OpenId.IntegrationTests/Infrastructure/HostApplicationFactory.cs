@@ -16,9 +16,9 @@
 
 #endregion
 
-using System.Buffers;
 using System.Buffers.Text;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Microsoft.AspNetCore.Hosting;
@@ -29,7 +29,6 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Extensions.DataProtection;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
@@ -41,6 +40,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Persistence.Stores;
 
@@ -97,6 +97,11 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     // Shared across every host built from this factory instance (including WithWebHostBuilder-derived hosts) so data
     // seeded through one host is visible to another; a per-host root would give each its own empty database.
     private InMemoryDatabaseRoot DatabaseRoot { get; } = new();
+
+    // Every host this factory builds, including WithWebHostBuilder derivatives that share its database, must unwrap the
+    // same master keys, so they share one root key. An inline key is allowed outside Production; this one is generated
+    // per run and never committed.
+    private string RootKey { get; } = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
 
     /// <summary>
     /// Persists the server's own settings document. The server is materialized once, by the first request that needs
@@ -386,11 +391,17 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        // Persist the given client_secret through the same shared-secret primitive production uses (ADR-0110), so the
-        // stored UTF-8 shape is identical to a generated secret's and client authentication round-trips.
+        // Persist the given client_secret through the same shared-secret primitive production uses (ADR-0110), protected
+        // under the tenant's master key, so the stored UTF-8 shape is identical to a generated secret's and client
+        // authentication round-trips.
+        var protector = await serviceProvider
+            .GetRequiredService<ISecretProtectorProvider>()
+            .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
+
         var persistedSecret = serviceProvider
             .GetRequiredService<ISecretGenerator>()
             .ImportSharedSecret(
+                protector,
                 new ImportSharedSecretRequest
                 {
                     SecretId = $"{clientId}-secret",
@@ -500,14 +511,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         X509Certificate2 certificate
     )
     {
-        var protector = serviceProvider
-            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
-            .CreateDataProtector();
-
-        // Only the public certificate is registered; the server verifies assertions with it.
+        // Only the public certificate is registered, stored unencrypted; the server verifies assertions with it.
         var certificateBytes = certificate.Export(X509ContentType.Cert);
-        var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(certificateBytes, ref writer);
 
         using var publicKey = certificate.GetRSAPublicKey();
         var keySizeBits = publicKey!.KeySize;
@@ -523,7 +528,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
             KeySizeBits = keySizeBits,
-            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+            EncodedValue = Base64Url.EncodeToString(certificateBytes),
         };
     }
 
@@ -650,13 +655,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        var protector = serviceProvider
-            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
-            .CreateDataProtector();
-
         var certificateBytes = certificate.Export(X509ContentType.Cert);
-        var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(certificateBytes, ref writer);
 
         using var publicKey = certificate.GetRSAPublicKey();
         var keySizeBits = publicKey!.KeySize;
@@ -671,7 +670,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
             KeySizeBits = keySizeBits,
-            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+            EncodedValue = Base64Url.EncodeToString(certificateBytes),
         };
 
         var settings = new Dictionary<string, object>(additionalSettings)
@@ -812,17 +811,16 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        var protector = serviceProvider
-            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
-            .CreateDataProtector();
+        var protector = await serviceProvider
+            .GetRequiredService<ISecretProtectorProvider>()
+            .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
 
+        var secretId = $"{clientId}-secret";
         var secretBytes = Encoding.UTF8.GetBytes(clientSecret);
-        var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(secretBytes, ref writer);
 
         var persistedSecret = new PersistedSecret
         {
-            SecretId = $"{clientId}-secret",
+            SecretId = secretId,
             Use = null,
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
@@ -830,7 +828,10 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
             KeySizeBits = secretBytes.Length * 8,
-            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+            EncodedValue = protector.ProtectToString(
+                secretBytes,
+                SecretProtectionContext.ForPersistedSecret(secretId)
+            ),
         };
 
         var settings = new Dictionary<string, object>
@@ -971,12 +972,11 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             await storeManager.SaveChangesAsync(CancellationToken.None);
         }
 
-        var protector = serviceProvider
-            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
-            .CreateDataProtector();
+        var protector = await serviceProvider
+            .GetRequiredService<ISecretProtectorProvider>()
+            .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
+        var secretId = $"{clientId}-secret";
         var secretBytes = Encoding.UTF8.GetBytes(storedSecret);
-        var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(secretBytes, ref writer);
 
         var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
             new Dictionary<string, object>()
@@ -1003,7 +1003,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                     [
                         new PersistedSecret
                         {
-                            SecretId = $"{clientId}-secret",
+                            SecretId = secretId,
                             Use = null,
                             Algorithm = null,
                             CreatedWhen = DateTimeOffset.UnixEpoch,
@@ -1011,7 +1011,10 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                             SecretType = SecretTypes.Symmetric,
                             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
                             KeySizeBits = secretBytes.Length * 8,
-                            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+                            EncodedValue = protector.ProtectToString(
+                                secretBytes,
+                                SecretProtectionContext.ForPersistedSecret(secretId)
+                            ),
                         },
                     ],
                 },
@@ -1184,6 +1187,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 new Dictionary<string, string?>
                 {
                     ["OpenId:TenantResolution:StaticSingle:Issuer"] = TestServerIssuer,
+                    ["SecretProtection:RootKeyProvider"] = "local",
+                    ["SecretProtection:RootKeyProviders:Local:Key"] = RootKey,
                 }
             )
         );

@@ -591,6 +591,98 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.ToTable("Grants", (string)null);
                 });
 
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset>("CreatedWhen")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("KeyCheck")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("KeyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NormalizedOwnerId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("RecoveryKeyId")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("RecoveryWrappedKey")
+                        .HasMaxLength(4096)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(4096)");
+
+                    b.Property<DateTimeOffset?>("RetiredWhen")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RootKeyId")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("RootKeyProvider")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("RootWrappedKey")
+                        .IsRequired()
+                        .HasMaxLength(4096)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(4096)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KeyId")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerType", "NormalizedOwnerId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MasterKeys_OwnerType_NormalizedOwnerId_Active")
+                        .HasFilter("\"RetiredWhen\" IS NULL");
+
+                    b.HasIndex("OwnerType", "NormalizedOwnerId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("MasterKeys", (string)null);
+                });
+
             modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity", b =>
                 {
                     b.Property<long>("Id")

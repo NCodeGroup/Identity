@@ -19,14 +19,16 @@
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.Secrets.Persistence;
 
 /// <summary>
 /// Contains the metadata used to import a caller-supplied shared secret (for example an OAuth <c>client_secret</c>)
 /// as a new <see cref="PersistedSecret"/>. The secret value itself is supplied separately to
-/// <see cref="ISecretGenerator.ImportSharedSecret"/> as the UTF-8 octets of the opaque string, and its bit length
-/// is derived from those octets, so this request carries only the descriptive metadata.
+/// <see cref="ISecretGenerator.ImportSharedSecret(ISecretProtector, ImportSharedSecretRequest, ReadOnlySpan{byte})"/>
+/// as the UTF-8 octets of the opaque string, and its bit length is derived from those octets, so this request carries
+/// only the descriptive metadata.
 /// </summary>
 // See ADR-0110.
 [PublicAPI]

@@ -27,8 +27,9 @@ using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Server.Frontend;
-using NCode.Identity.Server.KeyRingProtection;
+using NCode.Identity.Server.SecretProtection;
 using NCode.Registration;
 using NCode.Registration.AspNetCore;
 
@@ -79,23 +80,23 @@ public static class IdentityServerBuilderExtensions
         /// <item><description><c>EndedSessionTermination</c> — <see cref="EndedSessionTerminationOptions"/>: how often
         /// the sessions that ended while unused are terminated.</description></item>
         /// </list>
-        /// The top-level <c>BootstrapAdmin</c> section binds <see cref="BootstrapAdminOptions"/>, and the
-        /// <c>DataProtection:KeyProtection</c> section binds <see cref="KeyRingProtectionOptions"/>: when it names a
-        /// certificate, the Data Protection key ring is encrypted at rest with it.
+        /// The top-level <c>BootstrapAdmin</c> section binds <see cref="BootstrapAdminOptions"/>, and the top-level
+        /// <c>SecretProtection</c> section binds <see cref="SecretProtectionOptions"/>: it names the root key provider
+        /// that protects the stored secrets and the Data Protection key ring at rest.
         /// </summary>
         /// <remarks>
         /// Binding is strict and checked when the host starts: a key that maps to no option — a misspelling, or a
         /// setting placed in the wrong subsection — stops the host with an error naming the key, rather than leaving
-        /// the option at its default without any sign that the setting was ignored. The key ring protection
-        /// certificates are loaded immediately, because Data Protection takes certificate instances, so a missing file
-        /// or a wrong password stops the host during composition.
+        /// the option at its default without any sign that the setting was ignored. The <c>SecretProtection</c>
+        /// section is also checked immediately: a direct child other than <c>RootKeyProvider</c>, <c>Recovery</c> and
+        /// <c>RootKeyProviders</c> stops the host during composition.
         /// </remarks>
         /// <param name="configuration">The <see cref="IConfiguration"/> to bind the options from.</param>
         /// <param name="sectionName">The configuration section name that holds the OpenID options, or <c>null</c> to use
         /// <see cref="OpenIdOptions.DefaultSectionName"/>.</param>
         /// <returns>The same <see cref="IIdentityServerBuilder"/> instance for method chaining.</returns>
-        /// <exception cref="InvalidOperationException">A key ring protection certificate is configured but cannot be
-        /// loaded or carries no RSA private key.</exception>
+        /// <exception cref="InvalidOperationException">The <c>SecretProtection</c> section has a direct child other
+        /// than <c>RootKeyProvider</c>, <c>Recovery</c> and <c>RootKeyProviders</c>.</exception>
         public IIdentityServerBuilder AddConfiguration(
             IConfiguration configuration,
             string? sectionName = null
@@ -174,8 +175,8 @@ public static class IdentityServerBuilderExtensions
                 .Configure(options => bootstrapAdminSection.BindStrictly(options))
                 .ValidateOnStart();
 
-            // The key ring is stored beside the data it protects, so it is wrapped with a key held elsewhere (ADR-0177).
-            KeyRingProtectionRegistration.AddKeyRingProtection(builder, configuration);
+            // Stored secrets and the Data Protection key ring are protected under a root key held outside the database (ADR-0228).
+            SecretProtectionRegistration.AddSecretProtection(builder, configuration);
 
             return builder;
         }

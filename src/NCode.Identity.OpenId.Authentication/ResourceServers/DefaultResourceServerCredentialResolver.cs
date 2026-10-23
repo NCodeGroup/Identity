@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.ResourceServers;
@@ -36,6 +37,7 @@ internal class DefaultResourceServerCredentialResolver(
     IAmbientTenantAccessor ambientTenantAccessor,
     IEffectiveSettingsResolver effectiveSettingsResolver,
     ISecretSerializer secretSerializer,
+    ISecretProtectorProvider secretProtectorProvider,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory
 ) : IResourceServerCredentialResolver
 {
@@ -44,6 +46,7 @@ internal class DefaultResourceServerCredentialResolver(
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } =
         secretKeyCollectionProviderFactory;
 
@@ -136,7 +139,15 @@ internal class DefaultResourceServerCredentialResolver(
         {
             foreach (var resourceServer in matches.Values)
             {
-                resourceServers.Add(CreateResolvedResourceServer(openIdContext, resourceServer));
+                var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+                    SecretOwner.ForTenant(openIdContext.Tenant.TenantId),
+                    resourceServer.Secrets.Value,
+                    cancellationToken
+                );
+
+                resourceServers.Add(
+                    CreateResolvedResourceServer(openIdContext, resourceServer, protector)
+                );
             }
         }
         catch
@@ -176,7 +187,13 @@ internal class DefaultResourceServerCredentialResolver(
             return new ResourceServerCredentialResolution { ResourceServers = [] };
         }
 
-        var resolved = CreateResolvedResourceServer(openIdContext, resourceServer);
+        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+            SecretOwner.ForTenant(openIdContext.Tenant.TenantId),
+            resourceServer.Secrets.Value,
+            cancellationToken
+        );
+
+        var resolved = CreateResolvedResourceServer(openIdContext, resourceServer, protector);
         return new ResourceServerCredentialResolution { ResourceServers = [resolved] };
     }
 
@@ -184,7 +201,8 @@ internal class DefaultResourceServerCredentialResolver(
     // document is read like every scope's (ADR-0204), and it selects no profile.
     private ResolvedResourceServer CreateResolvedResourceServer(
         OpenIdContext openIdContext,
-        PersistedResourceServer resourceServer
+        PersistedResourceServer resourceServer,
+        ISecretProtector protector
     )
     {
         var tenantEffectiveSettings = openIdContext.Tenant.SettingsProvider.Collection;
@@ -196,7 +214,7 @@ internal class DefaultResourceServerCredentialResolver(
         );
 
         var secretsProvider = SecretKeyCollectionProviderFactory.CreateStatic(
-            SecretSerializer.DeserializeSecrets(resourceServer.Secrets.Value)
+            SecretSerializer.DeserializeSecrets(protector, resourceServer.Secrets.Value)
         );
 
         return new ResolvedResourceServer

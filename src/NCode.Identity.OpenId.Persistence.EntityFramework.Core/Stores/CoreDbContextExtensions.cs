@@ -32,6 +32,8 @@ internal static class CoreDbContextExtensions
     {
         public DbSet<SecretEntity> Secrets => context.Set<SecretEntity>();
 
+        public DbSet<MasterKeyEntity> MasterKeys => context.Set<MasterKeyEntity>();
+
         public DbSet<ServerEntity> Servers => context.Set<ServerEntity>();
 
         public DbSet<ServerSecretEntity> ServerSecrets => context.Set<ServerSecretEntity>();

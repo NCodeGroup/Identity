@@ -22,10 +22,10 @@ using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core;
 
 /// <summary>
-/// Contributes the core OpenID schema (clients, grants, tenants, secrets, resource servers, scopes, roles, servers, and
-/// federated principals/identities) to the shared <see cref="OpenIdDbContext"/> model. Because the framework context is
-/// <c>DbSet</c>-less, each core entity is added to the model here; the framework's schema-agnostic passes
-/// (restrict-all-foreign-keys and the tenant-scope filter over every
+/// Contributes the core OpenID schema (clients, grants, tenants, secrets, master keys, resource servers, scopes, roles,
+/// servers, and federated principals/identities) to the shared <see cref="OpenIdDbContext"/> model. Because the
+/// framework context is <c>DbSet</c>-less, each core entity is added to the model here; the framework's schema-agnostic
+/// passes (restrict-all-foreign-keys and the tenant-scope filter over every
 /// <see cref="NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportTenantEntity"/>) then cover
 /// them.
 /// </summary>
@@ -35,6 +35,7 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
     public void Configure(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<SecretEntity>().ToTable("Secrets");
+        modelBuilder.Entity<MasterKeyEntity>().ToTable("MasterKeys");
         modelBuilder.Entity<ServerEntity>().ToTable("Servers");
         modelBuilder.Entity<ServerSecretEntity>().ToTable("ServerSecrets");
         modelBuilder.Entity<TenantSecretEntity>().ToTable("TenantSecrets");
@@ -53,6 +54,19 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
         modelBuilder.Entity<RetiredIssuerEntity>().ToTable("RetiredIssuers");
         modelBuilder.Entity<TenantUsageEntity>().ToTable("TenantUsage");
         modelBuilder.Entity<TenantUsageCheckpointEntity>().ToTable("TenantUsageCheckpoints");
+
+        // An owner has at most one active master key (the one with no retirement time), so enforce uniqueness only
+        // over the active rows (a filtered index): two replicas that race to create an owner's first key cannot both
+        // succeed, and the loser reloads the winner's key. Retired keys are unconstrained here (their versions are
+        // unique through the owner-and-version index). The in-memory provider ignores the filter and does not enforce
+        // indexes. Quote the column so the raw filter is portable: Postgres folds unquoted identifiers to lower case
+        // (the column is PascalCase), while SQLite treats the quoted name as the same identifier.
+        modelBuilder
+            .Entity<MasterKeyEntity>()
+            .HasIndex(entity => new { entity.OwnerType, entity.NormalizedOwnerId })
+            .IsUnique()
+            .HasFilter("\"RetiredWhen\" IS NULL")
+            .HasDatabaseName("IX_MasterKeys_OwnerType_NormalizedOwnerId_Active");
 
         // A tenant's issuer is optional (a tenant without one derives its origin from the request), so enforce
         // uniqueness only over non-null values (a filtered index). Two tenants sharing an issuer is a protocol-level

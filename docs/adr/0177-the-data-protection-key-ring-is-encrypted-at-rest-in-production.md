@@ -1,6 +1,6 @@
 # 177. The Data Protection key ring is encrypted at rest in Production
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0228](0228-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

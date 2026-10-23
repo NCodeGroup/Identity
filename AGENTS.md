@@ -9,7 +9,9 @@ abstractions, and DI composition — plus a runnable `NCode.Identity.OpenId.Host
 Production projects live under `src/`; test projects (the `*Tests` projects) live under `tests/`.
 
 - **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.JsonWebTokens`
-- **Secrets** — `NCode.Identity.Secrets(.Abstractions)`, `NCode.Identity.Secrets.Persistence(.Abstractions)`
+- **Secrets** — `NCode.Identity.Secrets(.Abstractions)`, `NCode.Identity.Secrets.Persistence(.Abstractions)` and its
+  opt-in `NCode.Identity.Secrets.Persistence.AwsKms` adapter (the AWS KMS root key provider,
+  [ADR-0228](docs/adr/0228-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md))
 - **OpenID** — `NCode.Identity.OpenId.Abstractions` + `.Core` (environments, errors, messages, serialization),
   `.Authentication(.Abstractions)` (endpoints, grant handlers, token/claims services), `.Management(.Abstractions)`
   (the `.Abstractions` package holds the wire contracts under the `NCode.Identity.OpenId.Management.Contracts` namespace),

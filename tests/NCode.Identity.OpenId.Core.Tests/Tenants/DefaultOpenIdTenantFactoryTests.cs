@@ -34,6 +34,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
@@ -57,6 +58,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
             mocks.Create<IReadOnlySettingCollectionProviderFactory>().Object,
             mocks.Create<ISettingSerializer>().Object,
             mocks.Create<ISecretSerializer>().Object,
+            mocks.Create<ISecretProtectorProvider>().Object,
             mocks.Create<ISecretKeyCollectionProviderFactory>().Object,
             mocks.Create<ICollectionDataSourceFactory>().Object,
             mocks.Create<IEffectiveSettingsResolver>().Object
@@ -390,25 +392,73 @@ public sealed class DefaultOpenIdTenantFactoryTests
     #region GetTenantSecretsAsync Tests
 
     [Fact]
-    public async Task GetTenantSecretsAsync_WhenAKeyCannotBeUnprotected_FailsNamingTheTenantAndTheKeyRing()
+    public async Task GetTenantSecretsAsync_WhenAKeyCannotBeUnprotected_FailsNamingTheTenantAndTheMasterKey()
     {
         var mocks = new MockRepository(MockBehavior.Strict);
         var persistedTenant = CreatePersistedTenant("https://op.example/acme");
-        var keyRingFailure = new CryptographicException("The key was not found in the key ring.");
+        var protector = mocks.Create<ISecretProtector>().Object;
+        var secretProtectorProvider = mocks.Create<ISecretProtectorProvider>();
+        secretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant("acme"),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+        var masterKeyFailure = new CryptographicException("The master key was not found.");
         var secretSerializer = mocks.Create<ISecretSerializer>();
         secretSerializer
-            .Setup(x => x.DeserializeSecrets(persistedTenant.Secrets.Value))
-            .Throws(keyRingFailure)
+            .Setup(x => x.DeserializeSecrets(protector, persistedTenant.Secrets.Value))
+            .Throws(masterKeyFailure)
             .Verifiable();
-        var factory = new TestableTenantFactory(mocks, secretSerializer.Object);
+        var factory = new TestableTenantFactory(
+            mocks,
+            secretSerializer.Object,
+            secretProtectorProvider.Object
+        );
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await factory.InvokeGetTenantSecretsAsync(persistedTenant)
         );
 
         Assert.Contains("tenant with id 'acme'", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("Data Protection key ring", exception.Message, StringComparison.Ordinal);
-        Assert.Same(keyRingFailure, exception.InnerException);
+        Assert.Contains("master key", exception.Message, StringComparison.Ordinal);
+        Assert.Same(masterKeyFailure, exception.InnerException);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task GetTenantSecretsAsync_WhenTheMasterKeyCannotBeLoaded_FailsNamingTheTenantAndTheMasterKey()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var persistedTenant = CreatePersistedTenant("https://op.example/acme");
+        var masterKeyFailure = new CryptographicException("The master key was not found.");
+        var secretProtectorProvider = mocks.Create<ISecretProtectorProvider>();
+        secretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant("acme"),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(masterKeyFailure)
+            .Verifiable();
+        var factory = new TestableTenantFactory(
+            mocks,
+            secretProtectorProvider: secretProtectorProvider.Object
+        );
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await factory.InvokeGetTenantSecretsAsync(persistedTenant)
+        );
+
+        Assert.Contains("tenant with id 'acme'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("master key", exception.Message, StringComparison.Ordinal);
+        Assert.Same(masterKeyFailure, exception.InnerException);
         mocks.Verify();
     }
 
@@ -452,7 +502,8 @@ public sealed class DefaultOpenIdTenantFactoryTests
 
     private sealed class TestableTenantFactory(
         MockRepository mocks,
-        ISecretSerializer? secretSerializer = null
+        ISecretSerializer? secretSerializer = null,
+        ISecretProtectorProvider? secretProtectorProvider = null
     )
         : DefaultOpenIdTenantFactory(
             mocks.Create<ITenantResolver>().Object,
@@ -462,6 +513,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
             mocks.Create<IReadOnlySettingCollectionProviderFactory>().Object,
             mocks.Create<ISettingSerializer>().Object,
             secretSerializer ?? mocks.Create<ISecretSerializer>().Object,
+            secretProtectorProvider ?? mocks.Create<ISecretProtectorProvider>().Object,
             mocks.Create<ISecretKeyCollectionProviderFactory>().Object,
             mocks.Create<ICollectionDataSourceFactory>().Object,
             mocks.Create<IEffectiveSettingsResolver>().Object

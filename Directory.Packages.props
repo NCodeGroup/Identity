@@ -96,6 +96,13 @@
     <PackageVersion Include="StackExchange.Redis" Version="3.4.5" />
   </ItemGroup>
 
+  <!-- Root key provider (NCode.Identity.Secrets.Persistence.AwsKms only). AWSSDK.SecurityToken is loaded by the AWS SDK
+       at runtime to exchange a web identity token for credentials. -->
+  <ItemGroup>
+    <PackageVersion Include="AWSSDK.KeyManagementService" Version="4.0.100.20" />
+    <PackageVersion Include="AWSSDK.SecurityToken" Version="4.0.101.6" />
+  </ItemGroup>
+
   <!-- Metrics export (NCode.Identity.Server only; the library packages depend only on System.Diagnostics.Metrics).
        See ADR-0197. -->
   <ItemGroup>

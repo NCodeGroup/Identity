@@ -53,4 +53,22 @@ public static class SecretEncodings
     /// public key only (a relying party's registered certificate).
     /// </summary>
     public const string X509 = "x509";
+
+    /// <summary>
+    /// Determines whether a secret encoding holds only public key material, which is stored without encryption.
+    /// Every other encoding holds private or symmetric material and is always stored encrypted.
+    /// </summary>
+    /// <param name="secretEncoding">The secret encoding to evaluate.</param>
+    /// <returns>
+    /// <see langword="true"/> when <paramref name="secretEncoding"/> is <see cref="Spki"/> or <see cref="X509"/>;
+    /// otherwise, <see langword="false"/>.
+    /// </returns>
+    // See ADR-0228.
+    public static bool IsPublic(string secretEncoding)
+    {
+        ArgumentNullException.ThrowIfNull(secretEncoding);
+
+        return string.Equals(secretEncoding, Spki, StringComparison.Ordinal)
+            || string.Equals(secretEncoding, X509, StringComparison.Ordinal);
+    }
 }

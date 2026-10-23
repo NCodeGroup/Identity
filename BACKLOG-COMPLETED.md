@@ -3119,3 +3119,49 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   and a rotation that lost to a concurrent rotation, with another successor in the same family instead of revoking it;
   rotation marks the spent grant consumed, and the revocation endpoint revokes the whole family. ADR-0217; auditing such
   a retry is `R84`._
+- **`R57` — Apply a server settings change at once on every replica.** A server settings PATCH reaches each replica's
+  server settings, and through them every tenant's, only at that replica's next poll
+  (`OpenId:Server:SettingsPeriodicRefreshInterval`, 5 minutes), the writing replica included. Keys are already
+  provisioned from the committed document (ADR-0204, ADR-0169 decision 10), so the lag affects what is advertised and
+  enforced, not signing. Announce the change on the replica broadcast channel (ADR-0205) and refresh the server's polled
+  settings when it arrives. Touch points: `DefaultOpenIdServerFactory.CreateServerSettingsDataSourceAsync`,
+  `ServerApiEndpointHandler.UpdateSettingsAsync`.
+  _Closed: a committed server settings write refreshes the writing replica's server settings before the response returns
+  (`OpenIdServer.RefreshSettingsAsync` over `RefreshableSettingsCollectionDataSource`) and announces the server id on
+  the `server-settings-changed` broadcast channel, so every replica reads the committed settings again at once; the
+  periodic poll stays as the fallback. ADR-0219._
+- **`R58` — Bound how long a replica serves a tenant whose change message it missed.** Valkey pub/sub delivers at most
+  once. A replica that is disconnected when a tenant change is announced (ADR-0205) keeps its cached tenant, and a busy
+  tenant's 4-hour sliding expiration keeps it there indefinitely, so a disabled, deleted, or re-addressed tenant is
+  still served on that replica. Evict every cached tenant when the broadcast subscription reconnects
+  (StackExchange.Redis `ConnectionRestored`), or give tenant cache entries an absolute lifetime. Touch points:
+  `ValkeyReplicaBroadcastSubscriber`, `DefaultOpenIdTenantCache`, `OpenIdTenantOptions`.
+  _Closed: a broadcast handler is told when it may have missed messages
+  (`IReplicaBroadcastHandler.HandleMissedMessagesAsync`, called by the Valkey subscriber after each subscription and on
+  every connection restore), and the tenant handler clears the cache (`IOpenIdTenantCache.ClearAsync`); a cached tenant
+  lives at most an absolute `TenantCacheLifetime` of 15 minutes. ADR-0219 and ADR-0205._
+- **`R61` — Make the tenant re-seed after a server settings change durable, bounded, and complete.**
+  `TenantKeyReseedJob` runs on the in-process dispatcher (ADR-0169 decision 10), which has three limits. (1) The queue
+  is in memory and the worker does not reschedule a cancelled job, so a restart or shutdown drops the tenants the pass
+  had not reached; they are seeded when next materialized, but a replica that keeps one cached advertises its algorithm
+  without the key until then. (2) `JobDispatchWorker` runs one job at a time, so a pass over thousands of tenants, each
+  seed possibly generating RSA keys, delays every other job behind it, back-channel logout deliveries included. (3) A
+  change to `OpenId:Server:Settings` through a configuration reload can permit an algorithm without sending
+  `ServerSettingsChangedCommand`, so no re-seed runs. Options: a durable `IJobDispatcher` adapter, a reconciliation pass
+  that seeds every tenant once at startup and after a reload, and a separate worker for bulk jobs. Touch points:
+  `TenantKeyReseedJobHandler`, `JobDispatchWorker`, `RootSettingsCollectionDataSource.HandleChange`.
+  _Closed: whenever the server's effective settings differ from the ones last reconciled
+  (`ReconciledSettingsFingerprint`, migration `AddServerReconciledSettingsFingerprint`), one replica under a
+  shared-state lease sends `ReconcileServerSettingsCommand` in the background, after a management write, a configuration
+  reload or a deployment. `TenantKeyReconciliationHandler` re-seeds every seeded tenant that lacks a key its settings
+  use (a tenant holding no key is left to its first materialization); the in-process re-seed job and Core's Dispatch
+  dependency are removed. ADR-0219; bounded dispatcher concurrency is `R85`, reconciling only affected tenants `R88`._
+- **`R72` — Check stored clients when the server's configuration changes.** A settings write is refused while it would
+  make a stored client incoherent (ADR-0206), but `OpenId:Server:Settings` in configuration is not checked against
+  stored clients, so a deployment or reload that narrows a ceiling leaves clients that fail at their next request; an
+  existing bootstrap administrator client is not re-checked either. Check them in a background pass after a
+  configuration change and report them. Touch points: `RootSettingsCollectionDataSource.HandleChange`,
+  `ITenantClientCoherenceChecker`, `BootstrapAdminSeedHandler`.
+  _Closed: `ClientCoherenceReportHandler` checks every stored client, the bootstrap administrator's included, against
+  the reconciled server settings and logs each incoherent one with its violations, then a summary; a tenant that cannot
+  be checked is logged and the pass continues. ADR-0219 and ADR-0206; listing them in the management API is `R87`._

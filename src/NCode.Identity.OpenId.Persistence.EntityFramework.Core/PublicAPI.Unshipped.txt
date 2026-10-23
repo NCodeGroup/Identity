@@ -431,6 +431,18 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Mtl
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.MtlsEndpointAliasAuthority.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedMtlsEndpointAliasHost.get -> string?
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.NormalizedMtlsEndpointAliasHost.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity.Id.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity.LastBatchNumber.get -> long
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity.LastBatchNumber.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity.LastDay.get -> System.DateOnly
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity.LastDay.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity.ReplicaId.get -> System.Guid
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity.ReplicaId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageCheckpointEntity.TenantUsageCheckpointEntity() -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.ConcurrencyToken.set -> void

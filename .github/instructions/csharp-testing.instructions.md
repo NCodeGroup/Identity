@@ -197,12 +197,11 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   `IClassFixture` that protects/unprotects secrets (confidential clients, encrypted key material) leaks
   keyring/serializer state between tests, and the second run fails (`invalid_client`). Give each such test its own
   `using var factory = new HostApplicationFactory();`.
-- 👁 **Each factory instance owns an isolated in-memory database, and `WithWebHostBuilder` builds a _separate_ host with
-  its _own_ database.** `HostApplicationFactory.ConfigureWebHost` creates a fresh `InMemoryDatabaseRoot` per host,
-  so `factory` and `factory.WithWebHostBuilder(…)` do **not** share data. A test that both **seeds** data and
-  **configures** the host must do both on the **same** instance: configure through a subclass that overrides
-  `ConfigureWebHost` (calling `base` first), then seed via that instance's helpers — never seed one instance and request
-  another, or the request hits a different, empty database.
+- 👁 **Each factory instance owns an isolated in-memory database, which every host it builds shares.**
+  `HostApplicationFactory` holds one `InMemoryDatabaseRoot`. `factory.WithWebHostBuilder(…)` builds a separate host
+  (its own service provider, caches, and hosted services) over that database. So data one host commits is visible to
+  the others, but a tenant one host materialized, or usage it recorded and has not flushed, is not. Seed before the
+  host that must see the data serves its first request.
 - 👁 **Never assert a startup failure through `WebApplicationFactory`.** When the host's entry point throws after
   `Build()` — mapping endpoints resolves options, so a configuration error usually lands there — the host's
   `await using var app` disposes the service provider, and under load the factory's deferred `StartAsync` reaches that
@@ -210,6 +209,16 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   fails in the parallel gate. Assert startup failures against a host built directly
   (`Host.CreateEmptyApplicationBuilder`, the registration under test, then `StartAsync`), and keep factory-based tests
   for hosts that start.
+- 👁 **The integration host is stopped by its own run loop, once.**
+  - The host's entry point awaits `RunAsync`, which stops the host when the application stops and then disposes it.
+  - `WebApplicationFactory` would stop the same host again, concurrently. The run loop then disposed the service
+    provider under the other stop's work: a usage flush failed, and its warning hit the disposed Windows Event Log
+    provider and threw from a random test's disposal.
+  - `HostApplicationFactory.CreateHost` returns an `ApplicationRunLoopHost`. Its `StopAsync` calls `StopApplication`
+    and waits for `ApplicationStopped`, and its `Dispose` leaves disposal to the run loop.
+  - Never call `StopAsync` or `Dispose` on a factory's host; dispose the factory.
+- 👁 **The integration host logs only through the console and EventSource providers.** It inherits them from the host's
+  composition root, so a test writes nothing to the machine's Windows Event Log; `ProgramTests` pins the set.
 - 👁 **A directly built host that composes the whole server needs a store-factory stub.** `AddIdentityServer()` leaves
   the persistence provider to the host, yet a client-authentication handler, the effective-settings resolver, and
   services the host starts depend on `IStoreManagerFactory`. A configuration-only test registers a never-called strict

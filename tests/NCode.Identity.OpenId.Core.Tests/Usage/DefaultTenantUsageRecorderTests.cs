@@ -113,22 +113,4 @@ public sealed class DefaultTenantUsageRecorderTests : IDisposable
     }
 
     #endregion
-
-    #region Restore Tests
-
-    [Fact]
-    public void Restore_AddsTheUsageToWhatWasRecordedSince()
-    {
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-        var key = new TenantUsageKey("tenant-1", Today, TenantUsageMeters.Requests);
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
-        var drained = Recorder.Drain();
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
-
-        Recorder.Restore(drained);
-
-        Assert.Equal(2, Recorder.Drain()[key]);
-    }
-
-    #endregion
 }

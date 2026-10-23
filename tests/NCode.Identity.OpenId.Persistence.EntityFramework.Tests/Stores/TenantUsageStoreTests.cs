@@ -74,24 +74,40 @@ public sealed class TenantUsageStoreTests : IDisposable
             Count = count,
         };
 
-    private async Task AddAsync(string tenantId, DateOnly day, string meter, long count)
+    private async Task AddBatchAsync(
+        Guid replicaId,
+        long batchNumber,
+        string tenantId,
+        DateOnly day,
+        string meter,
+        long count
+    )
     {
         using var scope = _provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         await CreateStore(context)
-            .AddAsync([Usage(tenantId, day, meter, count)], CancellationToken.None);
+            .AddAsync(
+                replicaId,
+                batchNumber,
+                [Usage(tenantId, day, meter, count)],
+                CancellationToken.None
+            );
         await context.SaveChangesAsync();
     }
 
+    private Task AddAsync(string tenantId, DateOnly day, string meter, long count) =>
+        AddBatchAsync(Guid.NewGuid(), 1, tenantId, day, meter, count);
+
     private async Task<IReadOnlyList<DataContracts.PersistedTenantUsage>> ListAsync(
         DateOnly firstDay,
-        DateOnly lastDay
+        DateOnly lastDay,
+        string tenantId = TenantId
     )
     {
         using var scope = _provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         return await CreateStore(context)
-            .ListAsync(TenantId, firstDay, lastDay, CancellationToken.None);
+            .ListAsync(tenantId, firstDay, lastDay, CancellationToken.None);
     }
 
     #region AddAsync Tests
@@ -120,9 +136,19 @@ public sealed class TenantUsageStoreTests : IDisposable
         var first = firstScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var second = secondScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         await CreateStore(first)
-            .AddAsync([Usage(TenantId, Day, Requests, 2)], CancellationToken.None);
+            .AddAsync(
+                Guid.NewGuid(),
+                1,
+                [Usage(TenantId, Day, Requests, 2)],
+                CancellationToken.None
+            );
         await CreateStore(second)
-            .AddAsync([Usage(TenantId, Day, Requests, 5)], CancellationToken.None);
+            .AddAsync(
+                Guid.NewGuid(),
+                1,
+                [Usage(TenantId, Day, Requests, 5)],
+                CancellationToken.None
+            );
 
         await first.SaveChangesAsync();
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => second.SaveChangesAsync());
@@ -139,9 +165,19 @@ public sealed class TenantUsageStoreTests : IDisposable
         var first = firstScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var second = secondScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         await CreateStore(first)
-            .AddAsync([Usage(TenantId, Day, Requests, 2)], CancellationToken.None);
+            .AddAsync(
+                Guid.NewGuid(),
+                1,
+                [Usage(TenantId, Day, Requests, 2)],
+                CancellationToken.None
+            );
         await CreateStore(second)
-            .AddAsync([Usage(TenantId, Day, Requests, 5)], CancellationToken.None);
+            .AddAsync(
+                Guid.NewGuid(),
+                1,
+                [Usage(TenantId, Day, Requests, 5)],
+                CancellationToken.None
+            );
 
         await first.SaveChangesAsync();
         await Assert.ThrowsAsync<DbUpdateException>(() => second.SaveChangesAsync());
@@ -153,6 +189,7 @@ public sealed class TenantUsageStoreTests : IDisposable
     [Fact]
     public async Task AddAsync_WhenABatchSpansDaysAndRepeatsAnEntry_AddsEachToItsDay()
     {
+        var replicaId = Guid.NewGuid();
         await AddAsync(TenantId, Day, Requests, 1);
 
         using (var scope = _provider.CreateScope())
@@ -160,6 +197,8 @@ public sealed class TenantUsageStoreTests : IDisposable
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
             var store = CreateStore(context);
             await store.AddAsync(
+                replicaId,
+                1,
                 [
                     Usage(TenantId, Day, Requests, 2),
                     Usage(TenantId, Day.AddDays(1), Requests, 3),
@@ -168,10 +207,14 @@ public sealed class TenantUsageStoreTests : IDisposable
                 CancellationToken.None
             );
             await store.AddAsync(
+                replicaId,
+                2,
                 [Usage(TenantId, Day.AddDays(1), TokenRequests, 5)],
                 CancellationToken.None
             );
             await store.AddAsync(
+                replicaId,
+                3,
                 [Usage(TenantId, Day.AddDays(1), TokenRequests, 6)],
                 CancellationToken.None
             );
@@ -187,6 +230,71 @@ public sealed class TenantUsageStoreTests : IDisposable
             (await ListAsync(Day, Day.AddDays(1))).Select(entry =>
                 (entry.Day, entry.Meter, entry.Count)
             )
+        );
+    }
+
+    [Fact]
+    public async Task AddAsync_WhenTheReplicaAddedTheBatchBefore_AddsNothing()
+    {
+        var replicaId = Guid.NewGuid();
+        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 3);
+        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 3);
+
+        var entry = Assert.Single(await ListAsync(Day, Day));
+        Assert.Equal(3, entry.Count);
+    }
+
+    [Fact]
+    public async Task AddAsync_WhenTheBatchFollowsTheReplicasLastBatch_AddsIt()
+    {
+        var replicaId = Guid.NewGuid();
+        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 3);
+        await AddBatchAsync(replicaId, 2, TenantId, Day, Requests, 4);
+
+        var entry = Assert.Single(await ListAsync(Day, Day));
+        Assert.Equal(7, entry.Count);
+    }
+
+    [Fact]
+    public async Task AddAsync_WhenTheBatchIsNumberedBelowTheReplicasLastBatch_AddsNothing()
+    {
+        var replicaId = Guid.NewGuid();
+        await AddBatchAsync(replicaId, 2, TenantId, Day, Requests, 4);
+        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 3);
+
+        var entry = Assert.Single(await ListAsync(Day, Day));
+        Assert.Equal(4, entry.Count);
+    }
+
+    [Fact]
+    public async Task AddAsync_WhenAnotherUnitOfWorkAddedTheBatchFirst_FailsTheCommit()
+    {
+        var replicaId = Guid.NewGuid();
+        await AddBatchAsync(replicaId, 1, TenantId, Day, Requests, 1);
+
+        using var firstScope = _provider.CreateScope();
+        using var secondScope = _provider.CreateScope();
+        var first = firstScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+        var second = secondScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+        await CreateStore(first)
+            .AddAsync(replicaId, 2, [Usage("tenant-2", Day, Requests, 2)], CancellationToken.None);
+        await CreateStore(second)
+            .AddAsync(replicaId, 2, [Usage("tenant-3", Day, Requests, 5)], CancellationToken.None);
+
+        await first.SaveChangesAsync();
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => second.SaveChangesAsync());
+
+        Assert.Empty(await ListAsync(Day, Day, "tenant-3"));
+    }
+
+    [Fact]
+    public async Task AddAsync_WhenTheUsageIsEmpty_Throws()
+    {
+        using var scope = _provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            CreateStore(context).AddAsync(Guid.NewGuid(), 1, [], CancellationToken.None).AsTask()
         );
     }
 
@@ -236,6 +344,30 @@ public sealed class TenantUsageStoreTests : IDisposable
         Assert.Equal(2, removed);
         var entry = Assert.Single(await ListAsync(Day.AddDays(-5), Day));
         Assert.Equal(Day, entry.Day);
+    }
+
+    [Fact]
+    public async Task RemoveBeforeAsync_RemovesTheCheckpointsOfReplicasThatLastAddedEarlierDays()
+    {
+        var earlier = Guid.NewGuid();
+        var current = Guid.NewGuid();
+        await AddBatchAsync(earlier, 1, TenantId, Day.AddDays(-1), Requests, 1);
+        await AddBatchAsync(current, 1, TenantId, Day, Requests, 2);
+
+        using (var scope = _provider.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+            await CreateStore(context).RemoveBeforeAsync(Day, CancellationToken.None);
+        }
+
+        using var readScope = _provider.CreateScope();
+        var readContext = readScope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+        var replicaIds = await readContext
+            .Set<TenantUsageCheckpointEntity>()
+            .Select(entity => entity.ReplicaId)
+            .ToListAsync();
+
+        Assert.Equal([current], replicaIds);
     }
 
     #endregion

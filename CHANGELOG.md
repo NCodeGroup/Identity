@@ -564,6 +564,26 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Breaking: `ITenantUsageStore.AddAsync` adds a numbered batch of one replica's usage, and the ledger adds each batch
+  once.** `AddAsync(replicaId, batchNumber, usage, cancellationToken)` takes the identifier the replica drew when it
+  started and the number of the batch, from one, in the order the replica adds its batches. It adds the counts and
+  records the number as the replica's last added batch in the same unit of work, and a batch numbered at or below the
+  last added one changes nothing, so a batch that a replica retries is added once. An empty `usage` and a `batchNumber`
+  below one throw `ArgumentOutOfRangeException`. A store implementer skips such a batch, records the number with the
+  counts, and removes the checkpoints of the replicas whose latest usage day is before the day in `RemoveBeforeAsync`,
+  which still returns the count of usage entries removed. The Entity Framework store keeps the checkpoint in
+  `TenantUsageCheckpointEntity`, and a deployment applies the migration `AddTenantUsageCheckpoints`, which creates the
+  `TenantUsageCheckpoints` table
+  ([ADR-0209](docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), backlog `R25`).
+
+- **The reference hosts write logs to standard output only.** `NCode.Identity.OpenId.Host` and
+  `NCode.Identity.OpenId.Host.MigrationService` register the console and EventSource logging providers on every
+  platform, and not the debug provider or, on Windows, the Event Log provider that the default builders add. The
+  console writes to standard output in the format that `Logging:Console:FormatterName` selects, and EventSource writes
+  nothing until `dotnet-monitor` or `dotnet-trace` attaches. A reference host writes nothing to the Windows Event Log,
+  and a deployment that needs another sink, such as the Event Log of a Windows service, adds it in its own composition
+  root ([ADR-0210](docs/adr/0210-the-reference-hosts-log-to-standard-output.md), backlog `R54`).
+
 - **Breaking: a coherence rule reads a `ClientCoherenceContext`, and the validator resolves a client's settings
   itself.** `IClientCoherenceRule.FindViolations(ClientCoherenceContext)` takes the client's registered and effective
   settings, and `IClientCoherenceValidator.Validate(tenantSettings, clientSettings)` is the one way to check a client:
@@ -1602,6 +1622,18 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A usage batch whose save committed but reported a failure was added to the ledger twice.** A save can commit and
+  still fail at its caller, for example when the connection drops after the commit, and the flush then added the same
+  batch again, so a tenant's billed usage was overcounted. A replica numbers its batches, and the ledger skips a batch
+  that its replica already added
+  ([ADR-0209](docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), backlog `R25`).
+
+- **A host stopped twice at once could dispose its services under the usage ledger's final flush.** The stop that
+  returned first let its caller dispose the service provider while the other stop's flush was still adding usage, and
+  the flush failed. The final flush runs once and every stop waits for it, the usage it cannot add is logged as
+  discarded (event 2051), and the stop does not throw
+  ([ADR-0209](docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), backlog `R54`).
 
 - **A value that a client registers in a list, and that its tenant or a security profile excludes, was accepted and
   failed at the client's next request.** The effective list omitted the value silently, and nothing compared it with

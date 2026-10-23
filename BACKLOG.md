@@ -421,15 +421,6 @@ _None remaining._
 - **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
   replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
   `src/frontend/apps/auth/src/main.tsx:12-21`.
-- **`R89` — End a deleted or disabled account's sessions and grants.** Deleting a local account removes the federated
-  principal with its last identity, and the principal's role assignments with it (ADR-0212), but the subject's
-  sessions, refresh tokens and consents remain, and disabling an account keeps them as well.
-  `DefaultValidateSubjectAuthenticationHandler` does not check that a subject still exists or is enabled, so a refresh
-  token of a deleted or disabled account is redeemed until it expires. Terminate the subject's sessions through
-  `ISessionService.RevokeAllAsync` (back-channel logout included), revoke its grants and consents when its account is
-  deleted or disabled, and refuse a token request for a subject that is gone or disabled. Touch points:
-  `LocalAccountApiEndpointHandler` (`DeleteLocalAccountAsync`, `SetEnabledAsync`), `ISessionService`,
-  `ValidateSubjectAuthenticationCommand`.
 - **`R92` — Validate the subject at the device-code, CIBA and token-exchange grants.** These grants issue tokens for
   the subject that their approval or `subject_token` names without sending `ValidateSubjectAuthenticationCommand`, so a
   disabled local account is not refused there (ADR-0224). The device verification endpoint approves with an
@@ -490,25 +481,6 @@ _None remaining._
   effective settings did not change in a setting it reads (`TenantKeyUsage`,
   `IClientCoherenceValidator.ReadsChangedSetting`). Touch points: `PersistedServer.ReconciledSettingsFingerprint`,
   `TenantKeyReconciliationHandler`, `ClientCoherenceReportHandler`.
-- **`R90` — Terminate an end-user session that ends while no request uses it.** A session's grant expires at the end
-  of its idle window or its absolute lifetime (ADR-0220), and a request that finds an ended session terminates it
-  through `OnSessionTerminatedCommand`. A session that ends with no request is only pruned: the grants issued under it
-  are not revoked, its relying parties receive no back-channel logout (Auth0's `session-expired` initiator), and the
-  check-session iframe reports no change. A session that the previous release stored without an expiry during a
-  rollout is kept until a request finds it. Terminate ended, unrevoked sessions in a background pass that runs on one
-  replica at a time; it needs an `OpenIdContext` per tenant, which `IOpenIdContextFactory.CreateForTenantAsync` builds
-  only from an `HttpContext`. Touch points: `DefaultSessionService`, `GrantPruneService`, `OnSessionTerminatedCommand`,
-  `IGrantStore`.
-- **`R91` — Make the session touch and the addition of a client lose no concurrent write.**
-  `DefaultSessionService.ValidateAndTouchAsync` and `AddClientAsync` compute a payload from the grant they read.
-  `IPersistedGrantService.UpdatePayloadAsync` and `UpdatePayloadAndExpirationAsync` then read the grant again and
-  replace its payload, so the concurrency token only guards the time between that second read and the save. A write that
-  lands between the two reads is overwritten: the touch, which the authorize request that resolves a session performs at
-  most once a minute (ADR-0220), removes a client that a concurrent authorize request added to the session, and two
-  concurrent additions lose one. A client that is missing from the session receives no back-channel logout when the
-  session is terminated. Apply the change to the payload that the service read (a read-modify-write inside the service,
-  retried on `StoreConcurrencyException`), or pass the concurrency token that the caller read. Touch points:
-  `DefaultSessionService`, `IPersistedGrantService`, `DefaultPersistedGrantService`.
 - **`R93` — Let an administrator block any end user.** Only a local account has a status, so a principal whose
   connections are all external cannot be blocked (ADR-0224); Auth0 blocks a user whatever its connections. Touch
   points: `PersistedFederatedPrincipal`, `DefaultValidateLocalAccountSubjectHandler`, the management API.

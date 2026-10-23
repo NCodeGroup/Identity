@@ -45,6 +45,7 @@ public class DefaultMasterKeyRingTests : IDisposable
     private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
     private readonly Queue<IStoreManager> _storeManagers = new();
+    private bool _storeManagerFactorySetUp;
     private readonly EphemeralRootKeyProvider _provider = new();
     private readonly RecoveryKeyWrapper _recovery = new(
         Microsoft.Extensions.Options.Options.Create(
@@ -60,14 +61,7 @@ public class DefaultMasterKeyRingTests : IDisposable
             Microsoft.Extensions.Options.Options.Create(new SecretProtectionOptions())
         );
         _factory = new MasterKeyFactory(catalog, _recovery, TimeProvider.System);
-
-        // Every store manager that the ring is expected to create is queued by a test, so a read that the test does
-        // not expect fails because the queue is empty, and a read that never happens fails the check on dispose.
         _storeManagerFactory = _mocks.Create<IStoreManagerFactory>();
-        _storeManagerFactory
-            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .Returns(() => new ValueTask<IStoreManager>(_storeManagers.Dequeue()))
-            .Verifiable();
     }
 
     public void Dispose()
@@ -86,9 +80,25 @@ public class DefaultMasterKeyRingTests : IDisposable
             NullLogger<DefaultMasterKeyRing>.Instance
         );
 
+    // Every store manager that the ring is expected to create is queued by a test, so a read that the test does not
+    // expect fails because the queue is empty, and a read that never happens fails the check on dispose. A test that
+    // queues no store manager leaves the factory without a setup, so the strict mock fails it if the ring reads the
+    // store.
+    private void SetupStoreManagerFactory() =>
+        _storeManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .Returns(() => new ValueTask<IStoreManager>(_storeManagers.Dequeue()))
+            .Verifiable();
+
     // Queues a store manager whose only expected members are the master key store and its disposal.
     private (Mock<IMasterKeyStore> Store, Mock<IStoreManager> Manager) EnqueueStoreManager()
     {
+        if (!_storeManagerFactorySetUp)
+        {
+            SetupStoreManagerFactory();
+            _storeManagerFactorySetUp = true;
+        }
+
         var store = _mocks.Create<IMasterKeyStore>();
         var manager = _mocks.Create<IStoreManager>();
         manager.Setup(x => x.GetStore<IMasterKeyStore>()).Returns(store.Object).Verifiable();
@@ -242,6 +252,19 @@ public class DefaultMasterKeyRingTests : IDisposable
     }
 
     #region GetProtectorAsync Tests
+
+    [Fact]
+    public async Task GetProtector_DefaultOwner_Throws()
+    {
+        // No store manager is queued, so a read of the store would fail the test.
+        using var ring = CreateRing();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await ring.GetProtectorAsync(default, [], CancellationToken.None)
+        );
+
+        Assert.Equal("owner", exception.ParamName);
+    }
 
     [Fact]
     public async Task GetProtector_NoKeys_CreatesVersionOne()
@@ -526,6 +549,16 @@ public class DefaultMasterKeyRingTests : IDisposable
     #endregion
 
     #region Evict Tests
+
+    [Fact]
+    public void Evict_DefaultOwner_Throws()
+    {
+        using var ring = CreateRing();
+
+        var exception = Assert.Throws<ArgumentException>(() => ring.Evict(default));
+
+        Assert.Equal("owner", exception.ParamName);
+    }
 
     [Fact]
     public async Task Evict_ThenGetProtector_ReloadsStore()

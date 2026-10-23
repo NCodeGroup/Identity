@@ -55,7 +55,7 @@ that change remains:
 
 ## Steps
 
-### [ ] 1. Reject `default(SecretOwner)` in the master key ring
+### [x] 1. Reject `default(SecretOwner)` in the master key ring
 - Files: `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyRing.cs`,
   `tests/NCode.Identity.Secrets.Persistence.Tests/Protection/DefaultMasterKeyRingTests.cs`
 - Change (F1, F5):

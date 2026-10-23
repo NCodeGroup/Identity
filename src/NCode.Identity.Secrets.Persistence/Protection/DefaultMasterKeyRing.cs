@@ -82,6 +82,7 @@ internal class DefaultMasterKeyRing(
         CancellationToken cancellationToken
     )
     {
+        ThrowIfDefault(owner);
         ArgumentNullException.ThrowIfNull(protectedValues);
 
         LogRecoveryWarningOnce();
@@ -125,6 +126,8 @@ internal class DefaultMasterKeyRing(
     /// <inheritdoc />
     public void Evict(SecretOwner owner)
     {
+        ThrowIfDefault(owner);
+
         // The count changes before the entry is removed, so a load that publishes afterwards sees the change.
         Interlocked.Increment(ref _evictionCount);
         Entries.TryRemove(owner, out _);
@@ -159,6 +162,18 @@ internal class DefaultMasterKeyRing(
         }
 
         Gates.Clear();
+    }
+
+    // The constructor of SecretOwner validates both parts, but default(SecretOwner) bypasses it.
+    private static void ThrowIfDefault(SecretOwner owner)
+    {
+        if (owner.OwnerType is null)
+        {
+            throw new ArgumentException(
+                "The owner is the default value of SecretOwner, which identifies no owner; create it with SecretOwner.ForServer, SecretOwner.ForTenant or its constructor.",
+                nameof(owner)
+            );
+        }
     }
 
     private static DefaultSecretProtector CreateProtector(

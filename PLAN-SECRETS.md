@@ -1,5 +1,20 @@
 # Plan: close the secret protection review's remaining findings
 
+## Status
+
+Paused at the maintainer's request on 2026-10-23, after Step 2. Resume with Step 3.
+
+- **Done and verified** (each step's Done-when passed; committed and pushed): Step 1 (`84cb9e7a`, after one re-plan —
+  decision F5), Step 2 (`eae479d4`), Step 5 (`613f15db`), Step 6 (`77b600bc`).
+- **Remaining:** Steps 3 and 4 (finding 3 — the four `GetPublicKeyAsync` endpoints still acquire the protector before
+  authorizing the caller, so the code does not yet match ADR-0228 decision 7), then Steps 7–9.
+- **The changelog is ahead of the code:** Step 6's `[Unreleased]` bullet describes the asynchronous-mapper overload
+  that Step 3 adds. If Steps 3–4 are dropped, remove that bullet.
+- **Not yet gated:** since `70f5ec26` only the steps' Done-when checks have run (the targeted tests of Steps 1 and 2,
+  a build of LocalDev for Step 5); the Definition of Done (Step 7) and the review (Step 8) have not.
+- This plan is kept as `PLAN-SECRETS.md` (the maintainer's name for it) and is pushed with its checkpoint commits on
+  `copilot/secrets-key-hierarchy`, so retiring it (Step 9) rewrites pushed history and needs a force-push with a lease.
+
 ## Goal
 
 Fix the four findings the review of the secret protection key hierarchy (ADR-0228) left open, so no known defect of
@@ -166,5 +181,6 @@ that change remains:
 - Files: `PLAN-SECRETS.md` (delete); history (coordinator)
 - Change: placeholder — promote any decision not already carried by the code, the ADR or the changelog; delete
   `PLAN-SECRETS.md`; fold every commit since `70f5ec26` into the single feature commit (`git reset --soft` onto the parent's
-  tip and recommit with the feature commit's message); run `./build/dod.ps1`; force-push with a lease.
+  tip and recommit with the feature commit's message); run `./build/dod.ps1`; force-push with a lease (the
+  checkpoints are on `origin`).
 - Done when: `exit 1`

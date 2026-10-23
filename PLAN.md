@@ -35,6 +35,11 @@ that change remains:
   directory and moves it into place without overwriting; a zero-length `root-key` (left by the old in-place write) is
   deleted and regenerated, which is safe because a key being written is never visible under the final name.
 
+- **F5 — The ring tests set up the store manager factory only when a test queues a store manager (re-plan of Step 1).**
+  The fixture set up `IStoreManagerFactory.CreateAsync` as `.Verifiable()` in its constructor, so a test that must
+  prove the store is never read (a rejected default owner) failed on dispose. The testing instructions require a
+  strict `.Verifiable()` setup to be consumed on every path that uses the shared scaffold, and to move a setup only
+  some paths read into those tests; resetting the mock in the test was rejected because it sidesteps that rule.
 ## Context for the executor
 
 - Repository conventions: `.github/instructions/csharp-production.instructions.md` (production) and
@@ -53,14 +58,23 @@ that change remains:
 ### [ ] 1. Reject `default(SecretOwner)` in the master key ring
 - Files: `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyRing.cs`,
   `tests/NCode.Identity.Secrets.Persistence.Tests/Protection/DefaultMasterKeyRingTests.cs`
-- Change (F1): add `private static void ThrowIfDefault(SecretOwner owner)` that throws
-  `new ArgumentException("The owner is the default value of SecretOwner, which identifies no owner; create it with SecretOwner.ForServer, SecretOwner.ForTenant or its constructor.", nameof(owner))`
-  when `owner.OwnerType is null`. Call it first in `GetProtectorAsync` (before `ArgumentNullException.ThrowIfNull`)
-  and first in `Evict`. Tests: `GetProtector_DefaultOwner_Throws` (in the `GetProtectorAsync Tests` region; asserts
-  `ArgumentException` with `ParamName == "owner"`, and that no store manager is created — queue none) and
-  `Evict_DefaultOwner_Throws` (in the `Evict Tests` region).
-- Done when: `$t = Get-Content -Raw tests/NCode.Identity.Secrets.Persistence.Tests/Protection/DefaultMasterKeyRingTests.cs; foreach ($n in 'GetProtector_DefaultOwner_Throws','Evict_DefaultOwner_Throws') { if (-not $t.Contains($n)) { exit 1 } }; dotnet test tests/NCode.Identity.Secrets.Persistence.Tests/NCode.Identity.Secrets.Persistence.Tests.csproj --nologo --filter "FullyQualifiedName~DefaultMasterKeyRingTests" -- RunConfiguration.TreatNoTestsAsError=true`
-
+- Change (F1, F5):
+  1. Production: add `private static void ThrowIfDefault(SecretOwner owner)` that throws
+     `new ArgumentException("The owner is the default value of SecretOwner, which identifies no owner; create it with SecretOwner.ForServer, SecretOwner.ForTenant or its constructor.", nameof(owner))`
+     when `owner.OwnerType is null`. Call it first in `GetProtectorAsync` (before `ArgumentNullException.ThrowIfNull`)
+     and first in `Evict`.
+  2. Test scaffold (F5): move the `_storeManagerFactory` `CreateAsync` setup out of the constructor into a private
+     `SetupStoreManagerFactory()` that `EnqueueStoreManager()` calls the first time it runs (track it with a
+     `private bool _storeManagerFactorySetUp;` field). Keep the setup itself unchanged (`.Returns(() => new
+     ValueTask<IStoreManager>(_storeManagers.Dequeue()))` and `.Verifiable()`), keep creating the mock in the
+     constructor, and move the constructor's comment onto the new method, adding that a test that queues no store
+     manager leaves the factory without a setup, so the strict mock fails it if the ring reads the store.
+  3. Tests: `GetProtector_DefaultOwner_Throws` (in the `GetProtectorAsync Tests` region:
+     `var exception = await Assert.ThrowsAsync<ArgumentException>(async () => await ring.GetProtectorAsync(default, [], CancellationToken.None));`
+     then `Assert.Equal("owner", exception.ParamName)`; queue no store manager) and `Evict_DefaultOwner_Throws` (in the
+     `Evict Tests` region, `Assert.Throws<ArgumentException>(() => ring.Evict(default))` and the same `ParamName`
+     check). Both build the ring with `CreateRing()`.
+- Done when: `$t = Get-Content -Raw tests/NCode.Identity.Secrets.Persistence.Tests/Protection/DefaultMasterKeyRingTests.cs; foreach ($n in 'GetProtector_DefaultOwner_Throws','Evict_DefaultOwner_Throws','SetupStoreManagerFactory') { if (-not $t.Contains($n)) { exit 1 } }; dotnet test tests/NCode.Identity.Secrets.Persistence.Tests/NCode.Identity.Secrets.Persistence.Tests.csproj --nologo --filter "FullyQualifiedName~DefaultMasterKeyRingTests" -- RunConfiguration.TreatNoTestsAsError=true`
 ### [ ] 2. Treat a blank root key provider name as unset
 - Files: `src/NCode.Identity.Secrets.Persistence/Protection/DefaultRootKeyProviderCatalog.cs`,
   `src/NCode.Identity.Secrets.Persistence.Abstractions/Options/SecretProtectionOptions.cs` (doc only),

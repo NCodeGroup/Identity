@@ -37,6 +37,8 @@ internal class DefaultPersistedGrantService(
     IPersistedPayloadSerializer payloadSerializer
 ) : IPersistedGrantService
 {
+    private const int MaxRevocationAttempts = 3;
+
     // This uses C# compiler's ability to refer to static data directly.
     // For more information see https://vcsjones.dev/2019/02/01/csharp-readonly-span-bytes-static
     private static ReadOnlySpan<char> TenantDelimiter => "~~";
@@ -78,6 +80,25 @@ internal class DefaultPersistedGrantService(
         if (grant.Status != PersistedGrantStatus.Active)
             throw new InvalidOperationException("The grant must be active.");
 
+        var envelope = CreateEnvelope(openIdContext, grantId, grant, createdWhen, lifetime);
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IGrantStore>();
+
+        await store.AddAsync(envelope, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return envelope.GrantId;
+    }
+
+    private PersistedGrant CreateEnvelope<TPayload>(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        PersistedGrant<TPayload> grant,
+        DateTimeOffset createdWhen,
+        TimeSpan? lifetime
+    )
+    {
         var openIdEnvironment = openIdContext.Environment;
 
         var hashedKey = GetHashedKey(grantId);
@@ -89,7 +110,7 @@ internal class DefaultPersistedGrantService(
             openIdEnvironment.JsonSerializerOptions
         );
 
-        var envelope = new PersistedGrant
+        return new PersistedGrant
         {
             GrantType = grantId.GrantType,
             HashedKey = hashedKey,
@@ -105,14 +126,6 @@ internal class DefaultPersistedGrantService(
             ConsumedWhen = null,
             PayloadJson = payloadJson,
         };
-
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IGrantStore>();
-
-        await store.AddAsync(envelope, cancellationToken);
-        await storeManager.SaveChangesAsync(cancellationToken);
-
-        return envelope.GrantId;
     }
 
     private static PersistedGrantStatus GetStatus(DateTimeOffset utcNow, PersistedGrant envelope)
@@ -268,8 +281,128 @@ internal class DefaultPersistedGrantService(
     }
 
     /// <inheritdoc />
+    public async ValueTask<bool> TryRevokeOnceAsync(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    )
+    {
+        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+
+        var grantType = grantId.GrantType;
+        var hashedKey = GetHashedKey(grantId);
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IGrantStore>();
+
+        var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
+        if (envelope is null)
+            return false;
+
+        if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
+            return false;
+
+        if (GetStatus(utcNow, envelope) != PersistedGrantStatus.Active)
+            return false;
+
+        envelope.RevokedWhen = revokedWhen;
+
+        try
+        {
+            await store.UpdateAsync(envelope, cancellationToken);
+
+            await storeManager.SaveChangesAsync(cancellationToken);
+        }
+        catch (StoreConcurrencyException)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<string?> ReplaceOnceOrDefault<TPayload>(
+        OpenIdContext openIdContext,
+        PersistedGrantId replacedGrantId,
+        PersistedGrantId grantId,
+        PersistedGrant<TPayload> grant,
+        DateTimeOffset createdWhen,
+        TimeSpan? lifetime,
+        CancellationToken cancellationToken
+    )
+    {
+        if (grant.Status != PersistedGrantStatus.Active)
+            throw new InvalidOperationException("The grant must be active.");
+
+        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IGrantStore>();
+
+        var replaced = await store.GetOrDefaultAsync(
+            replacedGrantId.GrantType,
+            GetHashedKey(replacedGrantId),
+            cancellationToken
+        );
+        if (replaced is null)
+            return null;
+
+        if (!string.Equals(replaced.TenantId, replacedGrantId.TenantId, StringComparison.Ordinal))
+            return null;
+
+        if (GetStatus(utcNow, replaced) != PersistedGrantStatus.Active)
+            return null;
+
+        replaced.RevokedWhen = createdWhen;
+
+        var envelope = CreateEnvelope(openIdContext, grantId, grant, createdWhen, lifetime);
+
+        try
+        {
+            await store.UpdateAsync(replaced, cancellationToken);
+            await store.AddAsync(envelope, cancellationToken);
+
+            await storeManager.SaveChangesAsync(cancellationToken);
+        }
+        catch (StoreConcurrencyException)
+        {
+            // Another request revoked or rotated the replaced grant after it was read, so nothing is stored.
+            // See ADR-0211.
+            return null;
+        }
+
+        return envelope.GrantId;
+    }
+
+    /// <inheritdoc />
     public async ValueTask<long> RevokeByRefreshTokenLineageAsync(
         OpenIdContext openIdContext,
+        string refreshTokenLineageId,
+        DateTimeOffset revokedWhen,
+        CancellationToken cancellationToken
+    )
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await RevokeLineageOnceAsync(
+                    refreshTokenLineageId,
+                    revokedWhen,
+                    cancellationToken
+                );
+            }
+            catch (StoreConcurrencyException) when (attempt < MaxRevocationAttempts)
+            {
+                // A grant of the lineage changed after it was read, such as a rotation that committed in between.
+                // A revocation must win, so it reads the lineage again. See ADR-0211.
+            }
+        }
+    }
+
+    private async ValueTask<long> RevokeLineageOnceAsync(
         string refreshTokenLineageId,
         DateTimeOffset revokedWhen,
         CancellationToken cancellationToken
@@ -334,9 +467,17 @@ internal class DefaultPersistedGrantService(
 
         envelope.ExpiresWhen = expiresWhen;
 
-        await store.UpdateAsync(envelope, cancellationToken);
+        try
+        {
+            await store.UpdateAsync(envelope, cancellationToken);
 
-        await storeManager.SaveChangesAsync(cancellationToken);
+            await storeManager.SaveChangesAsync(cancellationToken);
+        }
+        catch (StoreConcurrencyException)
+        {
+            // Another request changed the grant after it was read, such as a concurrent refresh that extended it,
+            // and its change stands. See ADR-0211.
+        }
     }
 
     /// <inheritdoc />

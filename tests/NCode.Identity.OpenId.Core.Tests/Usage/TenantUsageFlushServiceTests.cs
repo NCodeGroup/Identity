@@ -278,7 +278,13 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
         var cancellationToken = CancellationToken.None;
         SetupStores();
         MockTenantUsageStore
-            .Setup(x => x.RemoveBeforeAsync(Today.AddDays(-10), cancellationToken))
+            .Setup(x =>
+                x.RemoveBeforeAsync(
+                    Today.AddDays(-10),
+                    TenantUsageFlushService.BatchSize,
+                    cancellationToken
+                )
+            )
             .ReturnsAsync(3)
             .Verifiable(Times.Once);
         MockStoreManager
@@ -296,7 +302,13 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
         var cancellationToken = CancellationToken.None;
         SetupStores();
         MockTenantUsageStore
-            .Setup(x => x.RemoveBeforeAsync(Today.AddDays(-10), cancellationToken))
+            .Setup(x =>
+                x.RemoveBeforeAsync(
+                    Today.AddDays(-10),
+                    TenantUsageFlushService.BatchSize,
+                    cancellationToken
+                )
+            )
             .ReturnsAsync(3)
             .Verifiable(Times.Exactly(2));
         MockStoreManager
@@ -305,6 +317,53 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
             .Returns(ValueTask.CompletedTask);
 
         await Service.PruneAsync(cancellationToken);
+        await Service.PruneAsync(cancellationToken);
+    }
+
+    [Fact]
+    public async Task PruneAsync_WhenABatchIsFull_RemovesTheNextBatch()
+    {
+        var cancellationToken = CancellationToken.None;
+        SetupStores();
+        MockTenantUsageStore
+            .SetupSequence(x =>
+                x.RemoveBeforeAsync(
+                    Today.AddDays(-10),
+                    TenantUsageFlushService.BatchSize,
+                    cancellationToken
+                )
+            )
+            .ReturnsAsync(TenantUsageFlushService.BatchSize)
+            .ReturnsAsync(5);
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(cancellationToken))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Exactly(2));
+
+        await Service.PruneAsync(cancellationToken);
+        await Service.PruneAsync(cancellationToken);
+    }
+
+    [Fact]
+    public async Task PruneAsync_WhenAnotherReplicaRemovedTheBatchFirst_ReadsTheNextBatch()
+    {
+        var cancellationToken = CancellationToken.None;
+        SetupStores();
+        MockTenantUsageStore
+            .Setup(x =>
+                x.RemoveBeforeAsync(
+                    Today.AddDays(-10),
+                    TenantUsageFlushService.BatchSize,
+                    cancellationToken
+                )
+            )
+            .ReturnsAsync(3)
+            .Verifiable(Times.Exactly(2));
+        MockStoreManager
+            .SetupSequence(x => x.SaveChangesAsync(cancellationToken))
+            .ThrowsAsync(new StoreConcurrencyException("conflict"))
+            .Returns(ValueTask.CompletedTask);
+
         await Service.PruneAsync(cancellationToken);
     }
 

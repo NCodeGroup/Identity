@@ -1,6 +1,7 @@
 # 209. A replica adds each usage batch to the ledger once
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0213](0213-the-usage-ledger-is-pruned-in-bounded-batches.md): the prune removes
+  a bounded batch per unit of work)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -39,9 +40,9 @@ the counts, and a failed batch is retried under its number.**
    stays bounded. The order matters: the ledger skips any number at or below the last one added, so a later batch must
    never commit before an earlier one. A flush that is cancelled logs nothing, and the final flush retries its batch.
 4. **The checkpoint is removed with the days past retention.** The checkpoint keeps `LastDay`, the latest usage day the
-   replica added. `RemoveBeforeAsync(day)` removes the checkpoints whose `LastDay` is before the day along with the
-   usage entries before it, and returns the count of usage entries removed. A checkpoint lives as long as the usage it
-   guards.
+   replica added. `RemoveBeforeAsync(day, limit)` removes the checkpoints whose `LastDay` is before the day along with
+   up to `limit` of the usage entries before it ([ADR-0213](0213-the-usage-ledger-is-pruned-in-bounded-batches.md)), and
+   returns the count of usage entries removed. A checkpoint lives as long as the usage it guards.
 5. **The final flush runs once, never throws, and logs what it discards.** `TenantUsageFlushService.StopAsync` memoizes
    its task under a lock, so every later or concurrent caller awaits the same flush and no stop returns while the flush
    runs. A semaphore serializes the periodic flush and the final flush: the final flush waits for it with the stop

@@ -30,7 +30,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 /// persistence. An addition reads the batch's entries for each day in one query and updates them under their
 /// concurrency tokens, which every provider supports, so two replicas adding to the same entry cannot lose either count:
 /// the second commit fails and is retried. Each addition records the replica's last added batch in the same unit of
-/// work, so a batch the replica retries after a save that committed is skipped.
+/// work, so a batch the replica retries after a save that committed is skipped. A removal stages a bounded batch
+/// through the change tracker, which every provider supports.
 /// </summary>
 internal sealed class TenantUsageStore(
     IStoreProvider storeProvider,
@@ -186,17 +187,29 @@ internal sealed class TenantUsageStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<int> RemoveBeforeAsync(DateOnly day, CancellationToken cancellationToken)
+    // See ADR-0213.
+    public async ValueTask<int> RemoveBeforeAsync(
+        DateOnly day,
+        int limit,
+        CancellationToken cancellationToken
+    )
     {
-        var removed = await DbContext
-            .TenantUsage.Where(usage => usage.Day < day)
-            .ExecuteDeleteAsync(cancellationToken);
+        ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+
+        var usage = await DbContext
+            .TenantUsage.Where(entity => entity.Day < day)
+            .OrderBy(entity => entity.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+        DbContext.TenantUsage.RemoveRange(usage);
 
         // A checkpoint guards only usage its replica can still retry; past the retention it guards nothing.
-        await DbContext
+        // A replica process adds one checkpoint, so these are few.
+        var checkpoints = await DbContext
             .TenantUsageCheckpoints.Where(checkpoint => checkpoint.LastDay < day)
-            .ExecuteDeleteAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
+        DbContext.TenantUsageCheckpoints.RemoveRange(checkpoints);
 
-        return removed;
+        return usage.Count;
     }
 }

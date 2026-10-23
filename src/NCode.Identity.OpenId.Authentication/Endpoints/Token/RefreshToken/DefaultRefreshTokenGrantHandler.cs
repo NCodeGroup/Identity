@@ -100,29 +100,13 @@ internal class DefaultRefreshTokenGrantHandler(
             // revoked on suspicion), distinct from a benign expiry.
             if (persistedGrant.Status == PersistedGrantStatus.Revoked)
             {
-                await AuditEventRecorder.RecordRefreshTokenReplayAsync(
+                return await AnswerReuseAsync(
                     openIdContext,
                     openIdClient,
-                    persistedGrant.Payload.SubjectAuthentication?.PrincipalId,
+                    persistedGrant,
+                    utcNow,
                     cancellationToken
                 );
-
-                var reusePolicy = settings.GetValue(OpenIdSettingKeys.RefreshTokenReusePolicy);
-                var lineageId = persistedGrant.RefreshTokenLineageId;
-                if (
-                    reusePolicy == OpenIdConstants.RefreshTokenReusePolicy.RevokeAll
-                    && !string.IsNullOrEmpty(lineageId)
-                )
-                {
-                    // Reuse detection: revoke the whole rotation family so a stolen token cannot be
-                    // exchanged even if the attacker raced ahead of the legitimate client (RFC 9700).
-                    await PersistedGrantService.RevokeByRefreshTokenLineageAsync(
-                        openIdContext,
-                        lineageId,
-                        utcNow,
-                        cancellationToken
-                    );
-                }
             }
 
             return errorFactory
@@ -185,24 +169,79 @@ internal class DefaultRefreshTokenGrantHandler(
             cancellationToken
         );
 
-        var rotationEnabled = settings.GetValue(OpenIdSettingKeys.RefreshTokenRotationEnabled);
-        if (rotationEnabled)
+        var securityTokenRequest = new CreateSecurityTokenRequest
         {
-            await PersistedGrantService.SetRevokedOnceAsync(
+            CreatedWhen = utcNow,
+            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.RefreshToken,
+            OriginalScopes = refreshTokenGrant.OriginalScopes,
+            EffectiveScopes = tokenRequest.Scopes ?? refreshTokenGrant.OriginalScopes,
+            Resources = tokenRequest.Resources,
+            RefreshToken = refreshToken,
+            RefreshTokenLineageId = persistedGrant.RefreshTokenLineageId,
+            SubjectAuthentication = refreshTokenGrant.SubjectAuthentication,
+            Confirmation = effectiveBinding.Confirmation,
+        };
+
+        var rotationEnabled = settings.GetValue(OpenIdSettingKeys.RefreshTokenRotationEnabled);
+        var issuesRefreshToken = securityTokenRequest.EffectiveScopes.Contains(
+            OpenIdConstants.ScopeTypes.OfflineAccess
+        );
+
+        string? responseRefreshToken = null;
+        if (rotationEnabled && issuesRefreshToken)
+        {
+            var successor = await TokenService.RotateRefreshTokenAsync(
+                openIdContext,
+                openIdClient,
+                persistedGrantId,
+                securityTokenRequest,
+                cancellationToken
+            );
+
+            if (successor is not { } rotated)
+            {
+                return await AnswerReuseAsync(
+                    openIdContext,
+                    openIdClient,
+                    persistedGrant,
+                    utcNow,
+                    cancellationToken
+                );
+            }
+
+            responseRefreshToken = rotated.TokenValue;
+        }
+        else if (rotationEnabled)
+        {
+            var spent = await PersistedGrantService.TryRevokeOnceAsync(
                 openIdContext,
                 persistedGrantId,
                 utcNow,
                 cancellationToken
             );
+
+            if (!spent)
+            {
+                return await AnswerReuseAsync(
+                    openIdContext,
+                    openIdClient,
+                    persistedGrant,
+                    utcNow,
+                    cancellationToken
+                );
+            }
+        }
+        else if (issuesRefreshToken)
+        {
+            responseRefreshToken = refreshToken;
         }
 
         var tokenResponse = await CreateTokenResponseAsync(
             openIdContext,
             openIdClient,
-            tokenRequest,
-            refreshTokenGrant,
-            persistedGrant.RefreshTokenLineageId,
-            effectiveBinding,
+            securityTokenRequest,
+            effectiveBinding.TokenType,
+            responseRefreshToken,
             cancellationToken
         );
 
@@ -225,37 +264,62 @@ internal class DefaultRefreshTokenGrantHandler(
         return tokenResponse;
     }
 
+    // A refresh token presented after it was rotated or revoked, or spent first by a concurrent request, is a reuse
+    // (RFC 9700 §4.14.2). See ADR-0211.
+    private async ValueTask<IOpenIdResponse> AnswerReuseAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        PersistedGrant<RefreshTokenGrant> persistedGrant,
+        DateTimeOffset utcNow,
+        CancellationToken cancellationToken
+    )
+    {
+        var errorFactory = openIdContext.ErrorFactory;
+        var settings = openIdClient.Settings;
+
+        await AuditEventRecorder.RecordRefreshTokenReplayAsync(
+            openIdContext,
+            openIdClient,
+            persistedGrant.Payload.SubjectAuthentication?.PrincipalId,
+            cancellationToken
+        );
+
+        var reusePolicy = settings.GetValue(OpenIdSettingKeys.RefreshTokenReusePolicy);
+        var lineageId = persistedGrant.RefreshTokenLineageId;
+        if (
+            reusePolicy == OpenIdConstants.RefreshTokenReusePolicy.RevokeAll
+            && !string.IsNullOrEmpty(lineageId)
+        )
+        {
+            // Reuse detection: revoke the whole rotation family so a stolen token cannot be
+            // exchanged even if the attacker raced ahead of the legitimate client (RFC 9700).
+            await PersistedGrantService.RevokeByRefreshTokenLineageAsync(
+                openIdContext,
+                lineageId,
+                utcNow,
+                cancellationToken
+            );
+        }
+
+        return errorFactory
+            .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+            .WithStatusCode(StatusCodes.Status400BadRequest);
+    }
+
     private async ValueTask<TokenResponse> CreateTokenResponseAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
-        ITokenRequest tokenRequest,
-        RefreshTokenGrant refreshTokenGrant,
-        string? refreshTokenLineageId,
-        ProofOfPossessionBinding proofOfPossessionBinding,
+        CreateSecurityTokenRequest securityTokenRequest,
+        string tokenType,
+        string? refreshToken,
         CancellationToken cancellationToken
     )
     {
         var openIdEnvironment = openIdContext.Environment;
-        var (_, originalScopes, _, subjectAuthentication, _) = refreshTokenGrant;
-
-        var effectiveScopes = tokenRequest.Scopes ?? originalScopes;
 
         var tokenResponse = TokenResponse.Create(openIdEnvironment);
 
-        tokenResponse.Scopes = effectiveScopes.ToList();
-
-        var securityTokenRequest = new CreateSecurityTokenRequest
-        {
-            CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.RefreshToken,
-            OriginalScopes = originalScopes,
-            EffectiveScopes = effectiveScopes,
-            Resources = tokenRequest.Resources,
-            RefreshToken = tokenRequest.RefreshToken,
-            RefreshTokenLineageId = refreshTokenLineageId,
-            SubjectAuthentication = subjectAuthentication,
-            Confirmation = proofOfPossessionBinding.Confirmation,
-        };
+        tokenResponse.Scopes = securityTokenRequest.EffectiveScopes.ToList();
 
         {
             var securityToken = await TokenService.CreateAccessTokenAsync(
@@ -267,10 +331,10 @@ internal class DefaultRefreshTokenGrantHandler(
 
             tokenResponse.AccessToken = securityToken.TokenValue;
             tokenResponse.ExpiresIn = securityToken.TokenLifetime.Duration;
-            tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
+            tokenResponse.TokenType = tokenType;
         }
 
-        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+        if (securityTokenRequest.EffectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
         {
             var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 
@@ -284,32 +348,7 @@ internal class DefaultRefreshTokenGrantHandler(
             tokenResponse.IdToken = securityToken.TokenValue;
         }
 
-        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
-        {
-            var settings = openIdClient.Settings;
-            var rotationEnabled = settings.GetValue(OpenIdSettingKeys.RefreshTokenRotationEnabled);
-
-            if (rotationEnabled)
-            {
-                var newRequest = securityTokenRequest with
-                {
-                    AccessToken = tokenResponse.AccessToken,
-                };
-
-                var securityToken = await TokenService.CreateRefreshTokenAsync(
-                    openIdContext,
-                    openIdClient,
-                    newRequest,
-                    cancellationToken
-                );
-
-                tokenResponse.RefreshToken = securityToken.TokenValue;
-            }
-            else
-            {
-                tokenResponse.RefreshToken = tokenRequest.RefreshToken;
-            }
-        }
+        tokenResponse.RefreshToken = refreshToken;
 
         return tokenResponse;
     }

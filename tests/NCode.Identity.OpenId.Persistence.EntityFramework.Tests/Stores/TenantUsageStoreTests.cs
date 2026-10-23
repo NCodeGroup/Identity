@@ -328,7 +328,7 @@ public sealed class TenantUsageStoreTests : IDisposable
     #region RemoveBeforeAsync Tests
 
     [Fact]
-    public async Task RemoveBeforeAsync_RemovesOnlyEarlierDaysOfEveryTenantWithoutSaving()
+    public async Task RemoveBeforeAsync_WhenSaved_RemovesOnlyEarlierDaysOfEveryTenant()
     {
         await AddAsync(TenantId, Day.AddDays(-1), Requests, 1);
         await AddAsync("tenant-2", Day.AddDays(-2), Requests, 1);
@@ -338,12 +338,43 @@ public sealed class TenantUsageStoreTests : IDisposable
         using (var scope = _provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-            removed = await CreateStore(context).RemoveBeforeAsync(Day, CancellationToken.None);
+            removed = await CreateStore(context).RemoveBeforeAsync(Day, 10, CancellationToken.None);
+            await context.SaveChangesAsync();
         }
 
         Assert.Equal(2, removed);
         var entry = Assert.Single(await ListAsync(Day.AddDays(-5), Day));
         Assert.Equal(Day, entry.Day);
+    }
+
+    [Fact]
+    public async Task RemoveBeforeAsync_WhenMoreEntriesThanTheLimit_RemovesTheLimit()
+    {
+        await AddAsync(TenantId, Day.AddDays(-1), Requests, 1);
+        await AddAsync(TenantId, Day.AddDays(-1), TokenRequests, 1);
+        await AddAsync(TenantId, Day.AddDays(-2), Requests, 1);
+
+        int removed;
+        using (var scope = _provider.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+            removed = await CreateStore(context).RemoveBeforeAsync(Day, 2, CancellationToken.None);
+            await context.SaveChangesAsync();
+        }
+
+        Assert.Equal(2, removed);
+        Assert.Single(await ListAsync(Day.AddDays(-5), Day));
+    }
+
+    [Fact]
+    public async Task RemoveBeforeAsync_WhenTheLimitIsBelowOne_Throws()
+    {
+        using var scope = _provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            CreateStore(context).RemoveBeforeAsync(Day, 0, CancellationToken.None).AsTask()
+        );
     }
 
     [Fact]
@@ -357,7 +388,8 @@ public sealed class TenantUsageStoreTests : IDisposable
         using (var scope = _provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-            await CreateStore(context).RemoveBeforeAsync(Day, CancellationToken.None);
+            await CreateStore(context).RemoveBeforeAsync(Day, 10, CancellationToken.None);
+            await context.SaveChangesAsync();
         }
 
         using var readScope = _provider.CreateScope();

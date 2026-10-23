@@ -564,6 +564,20 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Breaking: refresh-token rotation goes through `ITokenService.RotateRefreshTokenAsync`, which stores the successor
+  with `IPersistedGrantService.ReplaceOnceOrDefault`; `IPersistedGrantService.TryRevokeOnceAsync` spends a token that
+  has no successor.** A custom implementation implements the three members
+  ([ADR-0211](docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md), backlog `R69`).
+
+- **Breaking: deleting a client removes everything that exists for it, and `IClientStore.HasDependentsAsync` is
+  removed.** `IClientStore.RemoveAsync` removes its secrets, grants to resource servers, consents, and the grants issued
+  to it in the same unit of work; the management API and RFC 7592 deregistration answer `204` whatever the client holds
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R59`).
+
+- **Breaking: `ITenantUsageStore.RemoveBeforeAsync(day, limit, cancellationToken)` removes a bounded batch when the unit
+  of work is saved,** and the flush service prunes in batches of 256 entries
+  ([ADR-0213](docs/adr/0213-the-usage-ledger-is-pruned-in-bounded-batches.md), backlog `R73`).
+
 - **Breaking: `ITenantUsageStore.AddAsync` adds a numbered batch of one replica's usage, and the ledger adds each batch
   once.** `AddAsync(replicaId, batchNumber, usage, cancellationToken)` takes the identifier the replica drew when it
   started and the number of the batch, from one, in the order the replica adds its batches. It adds the counts and
@@ -1426,6 +1440,18 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **A refresh token that two requests present at once is spent once, and the other request is answered as a reuse.**
+  With rotation on, the presented token is revoked and its successor stored in one unit of work before any token is
+  issued. The losing request receives `invalid_grant` and the `token.refresh.replay` audit event, and under
+  `refresh_token_reuse_policy` `revoke_all` (the default) the whole rotation family is revoked, the winner's new token
+  included (RFC 9700 §4.14.2)
+  ([ADR-0211](docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md), backlog `R69`).
+
+- **Deleting a tenant erases the data of its end users.** Its local accounts and their claims, federated principals and
+  identities, sessions and other grants are removed with it; the `409` for its clients and resource servers is
+  unchanged and its usage is kept
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R59`).
+
 - **Revocation data is fetched only through the outbound-request guard.** The platform chain engine retrieves nothing:
   certificate downloads are disabled and its own revocation check is off (`X509RevocationMode.NoCheck`), so no AIA, CRL,
   or OCSP URL in a presented certificate is fetched by the platform. The server fetches a CRL itself through the named
@@ -1622,6 +1648,23 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **Deleting a client that held grants, consents or resource-server grants, deregistering a dynamically registered
+  client, or deleting a tenant whose users had signed in failed with a foreign-key violation (`500` on PostgreSQL).**
+  The removal takes what exists for the owner in the same unit of work
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R59`).
+
+- **A management write that lost a concurrency race reached its client as `500`;** it is answered
+  `412 Precondition Failed`
+  ([ADR-0214](docs/adr/0214-a-management-write-that-loses-a-race-is-answered-412.md), backlog `R70`).
+
+- **The usage ledger was never pruned on EF InMemory, and the failure was logged at every flush.** The prune removes
+  bounded batches through the change tracker, which every provider supports
+  ([ADR-0213](docs/adr/0213-the-usage-ledger-is-pruned-in-bounded-batches.md), backlog `R73`).
+
+- **A refresh that extended a sliding expiration at the same moment as another could reach its client as `500`.** The
+  update keeps the other request's change
+  ([ADR-0211](docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md), backlog `R69`).
 
 - **A usage batch whose save committed but reported a failure was added to the ledger twice.** A save can commit and
   still fail at its caller, for example when the connection drops after the commit, and the flush then added the same

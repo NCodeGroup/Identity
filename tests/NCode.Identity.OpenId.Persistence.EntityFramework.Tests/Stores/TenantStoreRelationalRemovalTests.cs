@@ -216,6 +216,72 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
         await SeedRoleAssignmentAsync(tenantId);
     }
 
+    private async Task SeedEndUserDataAsync(string tenantId)
+    {
+        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
+        var grantStore = new GrantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        var principalStore = new FederatedPrincipalStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext
+        );
+        var identityStore = new FederatedIdentityStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext
+        );
+
+        await grantStore.AddAsync(
+            new PersistedGrant
+            {
+                GrantType = "session",
+                HashedKey = $"{tenantId}-session",
+                GrantId = $"{tenantId}-session",
+                ConcurrencyToken = string.Empty,
+                TenantId = tenantId,
+                ClientId = null,
+                SubjectId = "subject-1",
+                SessionId = null,
+                RefreshTokenLineageId = null,
+                CreatedWhen = DateTimeOffset.UnixEpoch,
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddHours(1),
+                RevokedWhen = null,
+                ConsumedWhen = null,
+                PayloadJson = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+
+        await principalStore.AddAsync(
+            new PersistedFederatedPrincipal
+            {
+                TenantId = tenantId,
+                PrincipalId = $"{tenantId}-principal",
+                ConcurrencyToken = string.Empty,
+            },
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+
+        await identityStore.AddAsync(
+            new PersistedFederatedIdentity
+            {
+                TenantId = tenantId,
+                FederatedIdentityId = $"{tenantId}-identity",
+                PrincipalId = $"{tenantId}-principal",
+                Issuer = "https://issuer.example",
+                Subject = $"{tenantId}-subject",
+                JoinKey = null,
+                ConcurrencyToken = string.Empty,
+            },
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+
+        _dbContext.ChangeTracker.Clear();
+    }
+
     private async Task<RowCounts> CountRowsAsync()
     {
         _dbContext.ChangeTracker.Clear();
@@ -297,6 +363,38 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
         );
 
         Assert.Equal(before, await CountRowsAsync());
+    }
+
+    [Fact]
+    public async Task RemoveAsync_OnARelationalProvider_RemovesTheEndUserDataOfTheTenant()
+    {
+        await SeedTenantWithSystemRowsAsync(TenantOneId);
+        await SeedTenantWithSystemRowsAsync(TenantTwoId);
+        await SeedEndUserDataAsync(TenantOneId);
+        await SeedEndUserDataAsync(TenantTwoId);
+
+        Assert.Equal(2, await _dbContext.Grants.IgnoreQueryFilters().CountAsync());
+        Assert.Equal(2, await _dbContext.FederatedPrincipals.IgnoreQueryFilters().CountAsync());
+        Assert.Equal(2, await _dbContext.FederatedIdentities.IgnoreQueryFilters().CountAsync());
+
+        var removed = await _store.RemoveAsync(TenantOneId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.True(removed);
+
+        var grant = Assert.Single(await _dbContext.Grants.IgnoreQueryFilters().ToListAsync());
+        Assert.Equal(TenantTwoId, grant.NormalizedTenantId);
+
+        var principal = Assert.Single(
+            await _dbContext.FederatedPrincipals.IgnoreQueryFilters().ToListAsync()
+        );
+        Assert.Equal(TenantTwoId, principal.NormalizedTenantId);
+
+        var identity = Assert.Single(
+            await _dbContext.FederatedIdentities.IgnoreQueryFilters().ToListAsync()
+        );
+        Assert.Equal(TenantTwoId, identity.NormalizedTenantId);
     }
 
     #endregion

@@ -641,7 +641,7 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Core preconditions (authorization + no-dependents) are asserted by the validator (ADR-0014).
+        // The core precondition (authorization) is asserted by the validator (ADR-0014); the store removes everything that exists for the client (ADR-0212).
         var error = await ClientValidator.ValidateDeleteAsync(
             httpContext.User,
             client,

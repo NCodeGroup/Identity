@@ -184,6 +184,12 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   (`.HasIndex(…).IsUnique().HasFilter("… IS NOT NULL")`). A test that must observe the constraint (a duplicate
   rejected, or multiple rows allowed past a filtered `NULL`) runs against **SQLite in-memory** (`EnsureCreated` builds
   and enforces the index); the collision surfaces as a `DbUpdateException` on the offending `SaveChanges`.
+- 👁 **EF InMemory enforces no foreign key.** A deletion whose dependents reference the deleted row is tested on SQLite
+  in-memory, where a missed dependent fails `SaveChanges` (`ClientStoreRelationalRemovalTests`,
+  `TenantStoreRelationalRemovalTests`).
+- 👁 **A test that adds an entity to the `OpenIdDbContext` model calls `EnableServiceProviderCaching(false)`.** Entity
+  Framework caches the model per context type across service providers, so without it the test may receive a model
+  built without its entity (`TenantStoreContributedEntityRemovalTests`).
 - 👁 **A lost race through the store manager is `StoreConcurrencyException`;** only a test that calls
   `DbContext.SaveChangesAsync` directly sees EF's `DbUpdateConcurrencyException`. See
   [ADR-0208](../../docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).

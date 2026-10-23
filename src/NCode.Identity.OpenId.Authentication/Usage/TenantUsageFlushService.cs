@@ -43,7 +43,7 @@ internal sealed class TenantUsageFlushService(
 ) : BackgroundService
 {
     /// <summary>
-    /// The number of ledger entries added in one unit of work.
+    /// The number of ledger entries added or removed in one unit of work.
     /// </summary>
     internal const int BatchSize = 256;
 
@@ -242,7 +242,8 @@ internal sealed class TenantUsageFlushService(
     }
 
     /// <summary>
-    /// Removes the days older than <see cref="TenantUsageOptions.Retention"/>, once per UTC calendar day.
+    /// Removes the days older than <see cref="TenantUsageOptions.Retention"/> in batches of <see cref="BatchSize"/>
+    /// entries, each its own unit of work, once per UTC calendar day.
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
@@ -256,15 +257,41 @@ internal sealed class TenantUsageFlushService(
         try
         {
             var firstKeptDay = DateOnly.FromDateTime(now - Options.Retention);
-            await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-            var store = storeManager.GetStore<ITenantUsageStore>();
-            await store.RemoveBeforeAsync(firstKeptDay, cancellationToken);
-            await storeManager.SaveChangesAsync(cancellationToken);
+            while (await RemoveBatchBeforeAsync(firstKeptDay, cancellationToken) == BatchSize) { }
+
             _lastPrunedDay = today;
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             Logger.TenantUsagePruneFailed(exception);
         }
+    }
+
+    /// <summary>
+    /// Removes one batch of the ledger's entries counted before <paramref name="firstKeptDay"/> in its own unit of work.
+    /// </summary>
+    /// <param name="firstKeptDay">The first UTC calendar day to keep.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the count of entries removed.</returns>
+    private async ValueTask<int> RemoveBatchBeforeAsync(
+        DateOnly firstKeptDay,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantUsageStore>();
+        var removed = await store.RemoveBeforeAsync(firstKeptDay, BatchSize, cancellationToken);
+
+        try
+        {
+            await storeManager.SaveChangesAsync(cancellationToken);
+        }
+        catch (StoreConcurrencyException)
+        {
+            // Another replica removed rows of this batch first, which is progress, so read the next batch. See ADR-0213.
+            return BatchSize;
+        }
+
+        return removed;
     }
 }

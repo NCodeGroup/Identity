@@ -3076,3 +3076,46 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: the usage ledger is pruned in bounded batches of 256 tracked deletes that every provider supports, repeated
   while a batch is full; a batch another replica pruned first counts as progress, and no `ExecuteDelete` remains.
   ADR-0213._
+- **`R75` — Remove a deleted client's or resource server's owner assignments.** Ownership is a role assignment keyed
+  by the resource's identifier, not a foreign key, so `ClientApiEndpointHandler.DeleteClientAsync` and
+  `ResourceServerApiEndpointHandler.DeleteAsync` leave it, and `IRoleAssignmentStore.GetByPrincipalAsync` still lists
+  it. Remove it in the resource's unit of work (ADR-0212). Touch points: `IResourceOwnershipService`, both handlers.
+  _Closed: the client and resource-server stores remove the role assignments at the resource's node, ownership included,
+  in the unit of work that removes the resource, so dynamic-client deregistration is covered too; the built-in
+  `ResourceNodeTypes` are defined as the matching `OpenIdResourceTypes`. ADR-0212 decision 6; a deleted principal's
+  assignments are `R82`._
+- **`R76` — Remove expired and revoked grants after a retention period.** No grant row is ever removed, so the grants
+  table grows without bound, and deleting a client or a tenant loads all of its grants into one unit of work
+  (ADR-0212). Remove them in bounded batches, as the usage ledger is pruned (ADR-0213). Touch points: `IGrantStore`,
+  `GrantStore`, a hosted service like `TenantUsageFlushService`.
+  _Closed: `GrantPruneService` removes a grant 14 days after it ends (expires or, if earlier, is revoked), hourly, in
+  batches of 256 tracked deletes on every replica (`IGrantStore.RemoveEndedBeforeAsync`, index `IX_Grants_RevokedWhen`);
+  its options are validated at start. ADR-0218; sessions without a lifetime are `R80`, binding the options to
+  configuration `R83`._
+- **`R77` — Rotate or sender-constrain a public client's refresh tokens.** OAuth 2.1 §4.3.1 and RFC 9700 §4.14.2
+  require one or the other for a public client. `refresh_token_rotation_enabled` defaults to `false` and nothing
+  requires either for a client that is not confidential, so a public client without DPoP receives a reusable bearer
+  refresh token. Rotate unless the grant is DPoP-bound, or refuse such a client with a coherence rule (ADR-0206).
+  Touch points: `DefaultSettingDescriptorDataSource`, `DefaultRefreshTokenGrantHandler`,
+  `OpenIdClient.IsConfidential`.
+  _Closed: `refresh_token_rotation_policy` (`unbound` default, `always`) replaces `refresh_token_rotation_enabled`; a
+  public client's refresh token that is bound to no DPoP or certificate key always rotates, whatever the policy (RFC
+  9700 §4.14.2, OAuth 2.1 §4.3.1), and FAPI 2.0 defaults to `unbound`. The `RenameRefreshTokenRotationSetting` migration
+  rewrites stored documents (`true` to `always`). ADR-0216._
+- **`R78` — Make a revocation win a concurrency race.** `SetRevokedOnceAsync` (revocation endpoint),
+  `RevokeBySessionAsync` (logout, authorization-code replay) and `RevokeWhereAsync` (bulk revocation) read and stamp
+  under concurrency tokens; when a concurrent write such as a sliding-expiration refresh changes a row first, nothing
+  is revoked and the request fails (`500` at the protocol endpoints, where RFC 7009 answers `200`; `412` in the
+  management API). Read again and retry, as the lineage revocation does (ADR-0211). Touch points:
+  `DefaultPersistedGrantService`, `DefaultRevokeTokenHandler`, `GrantApiEndpointHandler`.
+  _Closed: every revocation (revocation endpoint, session termination, authorization-code replay, management bulk and
+  single revoke) goes through `IPersistedGrantService` and reads again after a lost race, up to three attempts each in a
+  new unit of work; `RevokeWhereAsync` and `GrantFilter.GrantId` replace `RevokeBySessionAsync`. ADR-0215._
+- **`R79` — Offer an opt-in refresh-token reuse interval.** A client that retries a refresh after losing the response
+  is answered as a reuse, which revokes its lineage (ADR-0211). Auth0 offers a reuse interval and Okta a grace period;
+  add a client setting, off by default, within which a rotated token is refused without revoking the lineage. Touch
+  points: `DefaultRefreshTokenGrantHandler`, `DefaultSettingDescriptorDataSource`, ADR-0087.
+  _Closed: `refresh_token_reuse_interval` (off by default, at most 60 seconds) answers a rotated token presented again,
+  and a rotation that lost to a concurrent rotation, with another successor in the same family instead of revoking it;
+  rotation marks the spent grant consumed, and the revocation endpoint revokes the whole family. ADR-0217; auditing such
+  a retry is `R84`._

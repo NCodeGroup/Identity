@@ -38,8 +38,8 @@ public sealed class SecretProtectionOptions
     /// <summary>
     /// Gets or sets the name of the root key provider that protects the master keys, for example
     /// <see cref="RootKeyProviderNames.Ephemeral"/>, <see cref="RootKeyProviderNames.Local"/>,
-    /// <see cref="RootKeyProviderNames.AwsKms"/>, or the name of any other registered provider. When unset, the
-    /// ephemeral provider is used: it keeps a random key in memory, so every restart makes the stored secrets
+    /// <see cref="RootKeyProviderNames.AwsKms"/>, or the name of any other registered provider. When unset or blank,
+    /// the ephemeral provider is used: it keeps a random key in memory, so every restart makes the stored secrets
     /// unreadable, and Production refuses it.
     /// </summary>
     public string? RootKeyProvider { get; set; }

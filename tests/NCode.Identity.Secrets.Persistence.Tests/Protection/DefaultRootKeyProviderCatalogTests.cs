@@ -113,6 +113,23 @@ public class DefaultRootKeyProviderCatalogTests : IDisposable
         Assert.Same(ephemeral.Object, result);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void GetConfigured_Blank_ReturnsEphemeral(string rootKeyProvider)
+    {
+        var ephemeral = CreateProvider(RootKeyProviderNames.Ephemeral);
+        var local = CreateProvider(RootKeyProviderNames.Local);
+        var catalog = CreateCatalog(
+            [ephemeral.Object, local.Object],
+            rootKeyProvider: rootKeyProvider
+        );
+
+        var result = catalog.GetConfigured();
+
+        Assert.Same(ephemeral.Object, result);
+    }
+
     [Fact]
     public void GetConfigured_Set_ReturnsNamedProvider()
     {

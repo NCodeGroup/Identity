@@ -57,8 +57,11 @@ internal class DefaultRootKeyProviderCatalog(
     }
 
     /// <inheritdoc />
-    public IRootKeyProvider GetConfigured() =>
-        Get(ProtectionOptions.Value.RootKeyProvider ?? RootKeyProviderNames.Ephemeral);
+    public IRootKeyProvider GetConfigured()
+    {
+        var name = ProtectionOptions.Value.RootKeyProvider;
+        return Get(string.IsNullOrWhiteSpace(name) ? RootKeyProviderNames.Ephemeral : name);
+    }
 
     private static FrozenDictionary<string, IRootKeyProvider> IndexByName(
         IEnumerable<IRootKeyProvider> providers

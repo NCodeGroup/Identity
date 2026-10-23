@@ -75,7 +75,7 @@ that change remains:
      `Evict Tests` region, `Assert.Throws<ArgumentException>(() => ring.Evict(default))` and the same `ParamName`
      check). Both build the ring with `CreateRing()`.
 - Done when: `$t = Get-Content -Raw tests/NCode.Identity.Secrets.Persistence.Tests/Protection/DefaultMasterKeyRingTests.cs; foreach ($n in 'GetProtector_DefaultOwner_Throws','Evict_DefaultOwner_Throws','SetupStoreManagerFactory') { if (-not $t.Contains($n)) { exit 1 } }; dotnet test tests/NCode.Identity.Secrets.Persistence.Tests/NCode.Identity.Secrets.Persistence.Tests.csproj --nologo --filter "FullyQualifiedName~DefaultMasterKeyRingTests" -- RunConfiguration.TreatNoTestsAsError=true`
-### [ ] 2. Treat a blank root key provider name as unset
+### [x] 2. Treat a blank root key provider name as unset
 - Files: `src/NCode.Identity.Secrets.Persistence/Protection/DefaultRootKeyProviderCatalog.cs`,
   `src/NCode.Identity.Secrets.Persistence.Abstractions/Options/SecretProtectionOptions.cs` (doc only),
   `tests/NCode.Identity.Secrets.Persistence.Tests/Protection/DefaultRootKeyProviderCatalogTests.cs`

@@ -19,6 +19,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Logging;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
 using NCode.PropertyBag;
@@ -38,12 +39,14 @@ namespace NCode.Identity.OpenId.Tenants;
 // broadcast port).
 internal sealed class TenantChangedHandler(
     IOpenIdTenantCache tenantCache,
+    ISecretProtectorProvider secretProtectorProvider,
     IReplicaBroadcaster replicaBroadcaster,
     IServiceScopeFactory serviceScopeFactory,
     ILogger<TenantChangedHandler> logger
 ) : ICommandHandler<TenantChangedCommand>
 {
     private IOpenIdTenantCache TenantCache { get; } = tenantCache;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private IReplicaBroadcaster ReplicaBroadcaster { get; } = replicaBroadcaster;
     private IServiceScopeFactory ServiceScopeFactory { get; } = serviceScopeFactory;
     private ILogger<TenantChangedHandler> Logger { get; } = logger;
@@ -61,6 +64,10 @@ internal sealed class TenantChangedHandler(
             PropertyBagFactory.Create(),
             cancellationToken
         );
+
+        // A deleted tenant's master keys must not stay usable on any replica, so they leave this replica's memory with
+        // the tenant.
+        SecretProtectorProvider.Evict(SecretOwner.ForTenant(command.TenantId));
 
         // The announcement follows the seed even when the seed fails: the change is committed either way, so the other
         // replicas must still evict the tenant.

@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId;
 /// <remarks>
 /// Provisioning only fills gaps: a key the tenant already holds for an algorithm, whether imported or generated
 /// earlier, suppresses generation for that algorithm and is never replaced, rotated, or removed — not even when it can
-/// no longer be unprotected, which signals a lost or changed Data Protection key ring and fails the tenant instead.
+/// no longer be unprotected, which signals a lost or changed master key or root key and fails the tenant instead.
 /// A deployment that brings its own keys either imports one for each configured algorithm or disables provisioning.
 /// </remarks>
 [PublicAPI]

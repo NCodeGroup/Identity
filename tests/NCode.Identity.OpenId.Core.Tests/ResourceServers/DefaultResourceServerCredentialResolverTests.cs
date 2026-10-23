@@ -32,6 +32,7 @@ using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -49,7 +50,9 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<ISecretSerializer> MockSecretSerializer { get; }
+    private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
     private Mock<ISecretKeyCollectionProviderFactory> MockSecretKeyCollectionProviderFactory { get; }
+    private ISecretProtector Protector { get; }
 
     private Mock<OpenIdContext> MockContext { get; }
     private Mock<OpenIdTenant> MockTenant { get; }
@@ -67,8 +70,10 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockSecretSerializer = MockRepository.Create<ISecretSerializer>();
+        MockSecretProtectorProvider = MockRepository.Create<ISecretProtectorProvider>();
         MockSecretKeyCollectionProviderFactory =
             MockRepository.Create<ISecretKeyCollectionProviderFactory>();
+        Protector = MockRepository.Create<ISecretProtector>().Object;
 
         MockContext = MockRepository.Create<OpenIdContext>();
         MockTenant = MockRepository.Create<OpenIdTenant>();
@@ -80,6 +85,7 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
             MockAmbientTenantAccessor.Object,
             MockEffectiveSettingsResolver.Object,
             MockSecretSerializer.Object,
+            MockSecretProtectorProvider.Object,
             MockSecretKeyCollectionProviderFactory.Object
         );
     }
@@ -137,9 +143,20 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
             .Verifiable();
     }
 
-    // A matched resource server's effective settings are read from the tenant's, which only a match reads.
+    // A matched resource server's effective settings are read from the tenant's, which only a match reads, and its
+    // secrets are read through the tenant's protector (ADR-0235).
     private void SetupMaterialization()
     {
+        MockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(Protector)
+            .Verifiable();
         MockTenant
             .SetupGet(x => x.SettingsProvider)
             .Returns(MockSettingsProvider.Object)
@@ -198,7 +215,9 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
     private void SetupSecretsProviders()
     {
         MockSecretSerializer
-            .Setup(x => x.DeserializeSecrets(It.IsAny<IReadOnlyCollection<PersistedSecret>>()))
+            .Setup(x =>
+                x.DeserializeSecrets(Protector, It.IsAny<IReadOnlyCollection<PersistedSecret>>())
+            )
             .Returns(Array.Empty<SecretKey>())
             .Verifiable();
         MockSecretKeyCollectionProviderFactory
@@ -279,7 +298,9 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
 
         var mockProvider = CreateDisposableSecretsProvider();
         MockSecretSerializer
-            .Setup(x => x.DeserializeSecrets(It.IsAny<IReadOnlyCollection<PersistedSecret>>()))
+            .Setup(x =>
+                x.DeserializeSecrets(Protector, It.IsAny<IReadOnlyCollection<PersistedSecret>>())
+            )
             .Returns(Array.Empty<SecretKey>())
             .Verifiable();
         MockSecretKeyCollectionProviderFactory
@@ -370,7 +391,9 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         var mockFirstProvider = CreateDisposableSecretsProvider();
         var created = 0;
         MockSecretSerializer
-            .Setup(x => x.DeserializeSecrets(It.IsAny<IReadOnlyCollection<PersistedSecret>>()))
+            .Setup(x =>
+                x.DeserializeSecrets(Protector, It.IsAny<IReadOnlyCollection<PersistedSecret>>())
+            )
             .Returns(Array.Empty<SecretKey>())
             .Verifiable();
         MockSecretKeyCollectionProviderFactory
@@ -455,7 +478,9 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         SetupSettingsMerge();
         var mockProvider = CreateDisposableSecretsProvider();
         MockSecretSerializer
-            .Setup(x => x.DeserializeSecrets(It.IsAny<IReadOnlyCollection<PersistedSecret>>()))
+            .Setup(x =>
+                x.DeserializeSecrets(Protector, It.IsAny<IReadOnlyCollection<PersistedSecret>>())
+            )
             .Returns(Array.Empty<SecretKey>())
             .Verifiable();
         MockSecretKeyCollectionProviderFactory

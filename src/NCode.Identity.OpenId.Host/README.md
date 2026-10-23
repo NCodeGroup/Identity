@@ -29,17 +29,39 @@ A container runtime (Docker Desktop or Podman) must be running when you launch t
 
 ### One database holds everything
 
-The single `openiddb` database holds the OpenID data, the **signing keys every tenant is provisioned with**, and the
-**DataProtection key ring** that protects them (persisted via `PersistKeysToDbContext`, not a file under `App_Data/`).
-Because they live together, one purge resets all three consistently, with nothing left on the filesystem.
+The single `openiddb` database holds the OpenID data, the **signing keys every tenant is provisioned with** (encrypted
+under the tenants' master keys, which are rows of the same database), and the **DataProtection key ring** (cookies and
+anti-forgery tokens; persisted via `PersistKeysToDbContext`, not a file under `App_Data/`). Because they live together,
+one purge resets all of them consistently.
 
-Because the ring sits beside the data it protects, a **Production** host refuses to start until the ring is encrypted
-at rest by a key held outside the database
-([ADR-0177](../../docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)). Mount an RSA
-certificate from the secret store and point `DataProtection:KeyProtection:Certificate` at it: set `CertificatePath` and
-`PrivateKeyPath` for PEM files, or `CertificatePath` and `Password` for a PKCS#12 bundle. List the outgoing certificate
-under `PreviousCertificates` when rotating. A key management service registered on the server's `DataProtectionBuilder`
-also satisfies the check.
+### Secret protection
+
+Every stored secret, including the key ring, is encrypted under a key hierarchy whose root key lives **outside** the
+database ([ADR-0235](../../docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+A **Production** host refuses to start without a real root key, and a root key must never be committed. The
+`SecretProtection` section selects it (environment variables use `__`, for example
+`SecretProtection__RootKeyProvider=local`):
+
+| Setting                                           | Meaning                                                        |
+|---------------------------------------------------|----------------------------------------------------------------|
+| `SecretProtection:RootKeyProvider`                | `ephemeral`, `local`, `aws-kms`, or another registered name    |
+| `SecretProtection:RootKeyProviders:Local:KeyPath` | File with a base64url 32-byte key (the `local` provider)       |
+| `SecretProtection:RootKeyProviders:Local:Key`     | The same key inline: Development and tests only                |
+| `SecretProtection:Recovery:PublicKeyPath`         | Offline recovery RSA public key (PEM) that also wraps the keys |
+| `SecretProtection:Recovery:Disabled`              | `true` only to acknowledge running without a recovery key      |
+
+Further providers ship as packages that register themselves by name, such as `aws-kms`, which takes
+`SecretProtection:RootKeyProviders:AwsKms:KeyArn` and finds its AWS credentials through the AWS SDK's default
+credential chain rather than configuration. The [Helm chart](../../charts/ncode-identity-host/README.md) wires these
+settings for a deployment.
+
+**Local development.** Nothing to do: on first run the AppHost writes one development root key to
+`LocalApplicationData/NCode.Identity/LocalDev/root-key` (owner-only on Unix) and hands it to both OP instances it
+starts, the `api` and the conformance instance, which share the one database. That key lives outside the repository.
+`build/dev-db-reset.ps1` resets the database and keeps the key; to replace the key, stop the AppHost, delete the file
+and reset the database together. A Development host started without the AppHost uses `ephemeral`, which suits tests and
+throwaway databases. After pulling a change that alters how secrets are protected, existing development tenants lose
+their unreadable keys automatically and are provisioned again; reset the database if client secrets matter.
 
 ## Schema management (EF Core migrations)
 
@@ -123,9 +145,11 @@ The image starts in the `Production` environment, which refuses to start until t
 
 - `AllowedHosts`: the public host names. A missing value or `*` is refused.
 - `DeveloperKeys__Mode=None`: every tenant gets persisted signing keys instead of developer keys.
-- `DataProtection__KeyProtection__Certificate__CertificatePath`, plus `PrivateKeyPath` or `Password`: the certificate
-  that encrypts the key ring at rest
-  ([ADR-0177](../../docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)).
+- `SecretProtection__RootKeyProvider`: a real root key provider (not `ephemeral`) with its settings, such as
+  `SecretProtection__RootKeyProviders__Local__KeyPath` for `local`, and either
+  `SecretProtection__Recovery__PublicKeyPath` or `SecretProtection__Recovery__Disabled=true`, which acknowledges running
+  without a recovery key
+  ([ADR-0235](../../docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 - `ConnectionStrings__openiddb`: the Postgres database. It also stores the key ring, so the host refuses to start
   without it.
 - `OpenId__TenantResolution__StaticSingle__Issuer`: the public issuer URL, or another tenant resolution mode. A served

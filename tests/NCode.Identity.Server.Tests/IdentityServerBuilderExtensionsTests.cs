@@ -20,12 +20,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Moq;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.Frontend;
 using Xunit;
 
@@ -335,8 +337,10 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
     {
         // The shape the reference host once shipped. Strict binding alone would only throw on first use; the host must
         // refuse to start instead.
+        // The provider has no setup: the strict mock proves the warmup never runs for an invalid configuration.
         using var host = BuildHost(
-            new Dictionary<string, string?> { ["OpenId:Tenant:Mode"] = "StaticSingle" }
+            new Dictionary<string, string?> { ["OpenId:Tenant:Mode"] = "StaticSingle" },
+            out _
         );
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -354,17 +358,37 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
             {
                 ["OpenId:TenantResolution:StrategyCode"] = "StaticSingle",
                 ["OpenId:TenantResolution:StaticSingle:TenantPath"] = "/",
-            }
+            },
+            out var secretProtectorProvider
         );
+
+        // The warmup that AddConfiguration registers loads the protector of the server when the host starts.
+        secretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForServer(OpenIdServerOptions.DefaultServerId),
+                    It.Is<IReadOnlyCollection<string>>(values => values.Count == 0),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<ISecretProtector>(CreateStrictMock<ISecretProtector>().Object))
+            .Verifiable();
 
         await host.StartAsync();
         await host.StopAsync();
     }
 
-    private IHost BuildHost(Dictionary<string, string?> configurationData)
+    private IHost BuildHost(
+        Dictionary<string, string?> configurationData,
+        out Mock<ISecretProtectorProvider> secretProtectorProvider
+    )
     {
         var hostBuilder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings());
         hostBuilder.Configuration.AddInMemoryCollection(configurationData);
+
+        // A real host composes the provider through AddIdentityServer; this bare host supplies a strict stand-in.
+        secretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
+        hostBuilder.Services.AddSingleton(secretProtectorProvider.Object);
 
         var builder = CreateStrictMock<IIdentityServerBuilder>();
         builder.Setup(x => x.ServiceCollection).Returns(hostBuilder.Services).Verifiable();

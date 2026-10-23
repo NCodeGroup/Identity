@@ -21,25 +21,38 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.DevelopmentEnvironment;
-using NCode.Identity.Server.KeyRingProtection;
 using NCode.Identity.Server.ProductionSafety;
 
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Refuses to start a Production deployment whose configuration is only safe for local development.
+/// Refuses to start a Production deployment whose configuration is only safe for local development or does not
+/// protect its stored secrets.
 /// </summary>
 /// <remarks>
-/// Every setting checked here is a convenience that is correct in Development and dangerous on a public origin. Each
-/// one is also silent: a deployment that forgets to override it starts, serves traffic, and looks healthy, which is
-/// precisely why these are startup failures rather than log warnings. Failing before the server binds a port is the
-/// only outcome an operator cannot miss.
+/// Most settings checked here are conveniences that are correct in Development and dangerous on a public origin. The
+/// rest describe a secret protection configuration that cannot keep stored secrets readable and private: no root key
+/// that outlives the process, a root key held inline in configuration, or no decision about recovering a lost root
+/// key. Each finding is also silent: a deployment that forgets to override or supply it starts, serves traffic, and
+/// looks healthy, which is precisely why these are startup failures rather than log warnings. Failing before the
+/// server binds a port is the only outcome an operator cannot miss.
 /// </remarks>
 [PublicAPI]
 public static class ProductionSafetyRegistration
 {
     private const string AllowedHostsConfigurationKey = "AllowedHosts";
+
+    private const string RootKeyProviderConfigurationKey = "SecretProtection:RootKeyProvider";
+
+    private const string LocalRootKeyConfigurationKey =
+        "SecretProtection:RootKeyProviders:Local:Key";
+
+    private const string RecoveryPublicKeyPathConfigurationKey =
+        "SecretProtection:Recovery:PublicKeyPath";
+
+    private const string RecoveryDisabledConfigurationKey = "SecretProtection:Recovery:Disabled";
 
     private const string DeveloperKeyModeConfigurationKey =
         $"{DeveloperKeysOptions.DefaultSectionName}:{nameof(DeveloperKeysOptions.Mode)}";
@@ -50,26 +63,25 @@ public static class ProductionSafetyRegistration
         + "storage every replica shares (for example PersistKeysToDbContext).";
 
     internal const string KeyRingUnprotectedMessage =
-        "Refusing to start in the Production environment: the Data Protection key ring is not encrypted at rest. "
-        + "Configure a certificate under '"
-        + KeyRingProtectionOptions.DefaultSectionName
-        + "', or protect it with a key management service such as ProtectKeysWithAzureKeyVault.";
+        "Refusing to start in the Production environment: the Data Protection key ring has no XmlEncryptor. "
+        + "Configure the 'SecretProtection' section: its root key protects the key ring and every stored secret.";
 
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
         /// Validates that the current configuration is safe to expose publicly, and throws when it is not. The check
         /// runs only in a Production environment; every other environment (Development, Conformance, Staging, and any
-        /// custom name) is left alone so local and test hosts keep their conveniences. It also refuses, as the host
-        /// starts, a Data Protection key ring that has no repository or is not encrypted at rest.
+        /// custom name) is left alone so local and test hosts keep their conveniences. It also refuses a secret
+        /// protection configuration that cannot keep stored secrets readable and private, and, as the host starts, a
+        /// Data Protection key ring that has no repository or is not encrypted at rest.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> to validate.</param>
         /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> that decides whether to validate at all.</param>
         /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
         /// <exception cref="InvalidOperationException">
-        /// The environment is Production and at least one development-only convenience is still enabled. The message
-        /// lists every finding at once, so a misconfigured deployment is fixed in one pass rather than one restart per
-        /// problem.
+        /// The environment is Production and at least one development-only convenience is still enabled, or the secret
+        /// protection configuration is unsafe. The message lists every finding at once, so a misconfigured deployment
+        /// is fixed in one pass rather than one restart per problem.
         /// </exception>
         public IServiceCollection AddProductionSafety(
             IConfiguration configuration,
@@ -101,9 +113,9 @@ public static class ProductionSafetyRegistration
                 violations.Select(violation => $"  - {violation}")
             );
             throw new InvalidOperationException(
-                $"Refusing to start in the Production environment: {violations.Count} development-only "
-                    + $"setting(s) are still enabled.{Environment.NewLine}{detail}{Environment.NewLine}"
-                    + "Override them for this deployment, or run under a non-Production environment name."
+                $"Refusing to start in the Production environment: {violations.Count} setting(s) are unsafe "
+                    + $"for a production deployment.{Environment.NewLine}{detail}{Environment.NewLine}"
+                    + "Fix them for this deployment, or run under a non-Production environment name."
             );
         }
     }
@@ -122,6 +134,9 @@ public static class ProductionSafetyRegistration
         var violations = new List<ProductionSafetyViolation>();
 
         AddDeveloperKeysViolations(configuration, violations);
+
+        // Stored secrets and the key ring are only as safe as the root key that protects them.
+        AddSecretProtectionViolations(configuration, violations);
 
         // A wildcard host filter accepts any Host header, which is what lets a request for an unrelated origin reach
         // the application at all.
@@ -171,6 +186,72 @@ public static class ProductionSafetyRegistration
         }
     }
 
+    private static void AddSecretProtectionViolations(
+        IConfiguration configuration,
+        List<ProductionSafetyViolation> violations
+    )
+    {
+        const string providerResolution =
+            "Set it to a root key provider whose key outlives the process, such as a key management service "
+            + $"('{RootKeyProviderNames.AwsKms}') or '{RootKeyProviderNames.Local}' with a mounted key file.";
+
+        var rootKeyProvider = configuration[RootKeyProviderConfigurationKey];
+        if (string.IsNullOrWhiteSpace(rootKeyProvider))
+        {
+            violations.Add(
+                new ProductionSafetyViolation(
+                    RootKeyProviderConfigurationKey,
+                    "is not set, so the ephemeral root key is used and every restart makes every stored secret "
+                        + "unreadable.",
+                    providerResolution
+                )
+            );
+        }
+        else if (
+            string.Equals(rootKeyProvider, RootKeyProviderNames.Ephemeral, StringComparison.Ordinal)
+        )
+        {
+            violations.Add(
+                new ProductionSafetyViolation(
+                    RootKeyProviderConfigurationKey,
+                    $"'{RootKeyProviderNames.Ephemeral}' keeps the root key in memory, so every restart makes every "
+                        + "stored secret unreadable.",
+                    providerResolution
+                )
+            );
+        }
+
+        // An inline root key in Production configuration is a leaked key even when another provider is selected.
+        if (!string.IsNullOrWhiteSpace(configuration[LocalRootKeyConfigurationKey]))
+        {
+            violations.Add(
+                new ProductionSafetyViolation(
+                    LocalRootKeyConfigurationKey,
+                    "holds a root key inline in configuration.",
+                    "Mount the key as a file and set 'SecretProtection:RootKeyProviders:Local:KeyPath' instead."
+                )
+            );
+        }
+
+        var recoveryDisabled =
+            bool.TryParse(configuration[RecoveryDisabledConfigurationKey], out var disabled)
+            && disabled;
+        if (
+            string.IsNullOrWhiteSpace(configuration[RecoveryPublicKeyPathConfigurationKey])
+            && !recoveryDisabled
+        )
+        {
+            violations.Add(
+                new ProductionSafetyViolation(
+                    RecoveryPublicKeyPathConfigurationKey,
+                    "is not set, so losing the root key loses every stored secret.",
+                    $"Configure a recovery public key, or set '{RecoveryDisabledConfigurationKey}' to true to "
+                        + "accept that risk."
+                )
+            );
+        }
+    }
+
     private static void AddDeveloperKeysViolations(
         IConfiguration configuration,
         List<ProductionSafetyViolation> violations
@@ -199,10 +280,10 @@ public static class ProductionSafetyRegistration
 
         // Developer keys are development-only in BOTH developer modes (ADR-0002, ADR-0021, ADR-0169): Ephemeral regenerates
         // the signing key on every restart, invalidating every token and JWKS cache the moment the process recycles, and
-        // PersistentSigningKey discards a key the data-protection key ring can no longer unprotect and replaces it, which
-        // in production would hide a lost key ring behind a silent key change. Absent configuration is not safe either,
-        // because the mode defaults to Ephemeral — so Production must state DeveloperKeyMode.None explicitly, under which
-        // tenants hold the persisted keys they are provisioned with.
+        // PersistentSigningKey discards a key whose master key, or the root key that wraps it, was lost or changed and
+        // replaces it, which in production would hide a lost root key behind a silent key change. Absent configuration is
+        // not safe either, because the mode defaults to Ephemeral — so Production must state DeveloperKeyMode.None
+        // explicitly, under which tenants hold the persisted keys they are provisioned with.
         if (developerKeys.Mode == DeveloperKeyMode.None)
             return;
 

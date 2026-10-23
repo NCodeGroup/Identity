@@ -61,7 +61,7 @@ public class TenantKeyProvisioningTests
         OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
     ];
 
-    // Each test owns its factory: the keys are protected by the host's data-protection key ring.
+    // Each test owns its factory: the keys are protected by the tenant's master key.
     private static ProductionKeysApplicationFactory CreateStaticFactory() =>
         new(
             new Dictionary<string, string?>

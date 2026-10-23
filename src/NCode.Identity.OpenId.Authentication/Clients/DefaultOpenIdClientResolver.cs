@@ -23,6 +23,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
@@ -39,12 +40,14 @@ internal class DefaultOpenIdClientResolver(
     IStoreManagerFactory storeManagerFactory,
     IOpenIdClientFactory clientFactory,
     ISecretSerializer secretSerializer,
+    ISecretProtectorProvider secretProtectorProvider,
     IEffectiveSettingsResolver effectiveSettingsResolver
 ) : IOpenIdClientResolver
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IOpenIdClientFactory ClientFactory { get; } = clientFactory;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
 
@@ -76,7 +79,12 @@ internal class DefaultOpenIdClientResolver(
             OpenIdSettingScopes.Client,
             persistedClient.Settings.Value
         );
-        var secrets = SecretSerializer.DeserializeSecrets(persistedClient.Secrets.Value);
+        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+            SecretOwner.ForTenant(tenantId),
+            persistedClient.Secrets.Value,
+            cancellationToken
+        );
+        var secrets = SecretSerializer.DeserializeSecrets(protector, persistedClient.Secrets.Value);
 
         var definition = new OpenIdClientDefinition
         {

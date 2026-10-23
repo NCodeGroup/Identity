@@ -16,12 +16,13 @@
 
 #endregion
 
+using System.Buffers.Text;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence;
 
@@ -41,10 +42,7 @@ public class DefaultSecretImporterTests
             new RsaSecretKeyTypeDescriptor(secretKeyFactory),
         ]);
 
-        _importer = new DefaultSecretImporter(
-            new TestDataProtectorFactory<PersistedSecret>(provider.CreateProtector("importer")),
-            catalog
-        );
+        _importer = new DefaultSecretImporter(catalog);
     }
 
     private static SecretKeyImportRequest CreateRequest(
@@ -83,6 +81,48 @@ public class DefaultSecretImporterTests
         Assert.Equal("secret-1", persisted.SecretId);
         Assert.Equal("client-kid", persisted.KeyId);
         Assert.Equal(SecretEncodings.Spki, persisted.SecretEncoding);
+    }
+
+    [Fact]
+    public void ImportSecret_SpkiPem_StoresPlainBase64Url()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = CreateRequest(SecretTypes.Rsa, rsa.ExportSubjectPublicKeyInfoPem(), null);
+
+        var persisted = _importer.ImportSecret(request);
+
+        Assert.Equal(SecretEncodings.Spki, persisted.SecretEncoding);
+        Assert.Equal(
+            rsa.ExportSubjectPublicKeyInfo(),
+            Base64Url.DecodeFromChars(persisted.EncodedValue)
+        );
+    }
+
+    [Fact]
+    public void ImportSecret_Certificate_StoresPlainX509()
+    {
+        using var rsa = RSA.Create(2048);
+        var certificateRequest = new CertificateRequest(
+            "CN=client",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+        using var certificate = certificateRequest.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1),
+            DateTimeOffset.UtcNow.AddDays(1)
+        );
+        var request = CreateRequest(
+            SecretTypes.Rsa,
+            certificate.ExportCertificatePem(),
+            null,
+            format: SecretKeyImportFormats.Certificate
+        );
+
+        var persisted = _importer.ImportSecret(request);
+
+        Assert.Equal(SecretEncodings.X509, persisted.SecretEncoding);
+        Assert.Equal(certificate.RawData, Base64Url.DecodeFromChars(persisted.EncodedValue));
     }
 
     [Fact]

@@ -35,6 +35,7 @@ using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
@@ -61,6 +62,7 @@ public sealed class EphemeralOpenIdTenantFactory(
     IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
+    ISecretProtectorProvider secretProtectorProvider,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
     IEffectiveSettingsResolver effectiveSettingsResolver,
@@ -74,6 +76,7 @@ public sealed class EphemeralOpenIdTenantFactory(
         settingCollectionProviderFactory,
         settingSerializer,
         secretSerializer,
+        secretProtectorProvider,
         secretKeyCollectionProviderFactory,
         collectionDataSourceFactory,
         effectiveSettingsResolver

@@ -77,7 +77,7 @@ entry and/or ADR that closed it.
 | `F` — Feature gaps                    | `F85`     | `F84`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
-| `S` — Secrets management              | `S13`     | `S12`      |
+| `S` — Secrets management              | `S21`     | `S20`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
 | `R` — Review findings                 | `R105`    | `R104`     |
 
@@ -353,24 +353,31 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
 Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md)
 (client-secret material revealed once on create).
 
-- **`S5` — Client-secret storage: hash-at-rest vs reversible protection (needs its own ADR).** A client secret
-  is reveal-once and never returned again, so the server only needs to _verify_ a presented value — a
-  one-way hash (OWASP-preferred) is safer than today's reversible data-protected `EncodedValue`. But
-  symmetric secrets used as actual signing keys (`HS256`) require reversible material. The
-  authentication-secret vs signing-key fork deserves an ADR before changing storage.
-  Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`,
-  `src/NCode.Identity.Secrets.Persistence/DefaultSecretGenerator.cs`,
-  `src/NCode.Identity.Secrets.Persistence/DefaultSecretSerializer.cs`.
+- **`S5` — Hash client secrets that only need verifying (needs its own ADR).** Client secrets are envelope-encrypted
+  under the tenant master key (ADR-0235) but still reversible. A secret used only for `client_secret_basic` /
+  `client_secret_post` should be stored as a verifier: SHA-256 for server-generated secrets (≥ 256 bits of entropy),
+  PBKDF2 (the `DefaultPasswordHasher` format) for operator-supplied ones. Keep a secret reversible only when its client
+  is registered for `client_secret_jwt`, decided when the secret is issued; switching a client to `client_secret_jwt`
+  then needs a new secret. Touch points: `DefaultSecretGenerator`, `CommonClientAuthenticationHandler`,
+  `ClientSecretJwtClientAuthenticationHandler`, the client management endpoints.
+  - Verification uses `CryptographicOperations.FixedTimeEquals`; the verifier format is self-describing
+    (`$ncode-sha256$…` / the existing PBKDF2 format) so it can evolve.
 
-- **`S7` — HSM / KMS / keyless-signing `SecretKey` providers.** The biggest production-modern gap for the secrets
-  library: back an asymmetric `SecretKey` with an external keystore — Azure Key Vault, AWS KMS, PKCS#11 HSM, TPM 2.0,
-  or Windows CNG — so private material **never leaves the boundary** and sign/unwrap operations are delegated to the
-  provider. Needs a `SecretKey` that exposes operations without exportable material (the verify-only public-key
-  primitive from [ADR-0103](docs/adr/0103-public-only-asymmetric-secret-keys.md) is the shape to generalize) and a
-  provider abstraction the JOSE signature/key-management algorithms call instead of in-process BCL primitives.
-  Touch points: [`src/NCode.Identity.Secrets.Abstractions/Keys`](src/NCode.Identity.Secrets.Abstractions/Keys),
-  [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets),
-  [`src/NCode.Identity.Jose/Algorithms`](src/NCode.Identity.Jose/Algorithms). Capture the design in an ADR.
+- **`S7` — Remote (KMS-resident) signing keys.** Let a tenant opt in to signing keys that never leave a key management
+  service: a public-material `SecretKey` that references the remote key, an asynchronous signing path in the JOSE
+  serializer (the current `TrySign` seam is synchronous), algorithm mapping (PS256 → RSA-PSS SHA-256 with a 32-byte
+  salt; ES256 → ECDSA P-256 SHA-256, converting DER signatures to the 64-byte `r‖s` form JWS requires), cached public
+  keys for JWKS, retry with back-off on throttling. Providers reuse the root key provider packages' clients (ADR-0235).
+  Touch points: `src/NCode.Identity.Secrets.Abstractions/Keys`, `src/NCode.Identity.Jose/Algorithms`.
+  - `RemoteAsymmetricSecretKey : AsymmetricSecretKey` holds the public key and a provider reference; an
+    `IRemoteSigner.SignAsync(keyReference, algorithm, signingInput, ct)` seam; the JOSE serializer's encode path awaits
+    the signer before assembling the JWS (the existing synchronous `TrySign` remains for local keys).
+  - Algorithm mapping: PS256 → Cloud KMS `RSA_SIGN_PSS_2048_SHA256` / AWS `RSASSA_PSS_SHA_256` / Azure `PS256` (salt =
+    32 bytes); ES256 → Cloud KMS `EC_SIGN_P256_SHA256` / AWS `ECDSA_SHA_256` (both return DER — convert to the 64-byte
+    IEEE P1363 `r‖s`) / Azure `ES256` (already `r‖s`). Sign a SHA-256 digest where the service accepts one; Infisical's
+    PSS needs the full message.
+  - Public keys cached for JWKS; per-tenant opt-in setting; throttling handled with jittered back-off; key rollover
+    (`S8`) creates new key versions.
 
 - **`S8` — Key lifecycle / rotation primitives.** First-class signing-key rollover: overlapping validity windows,
   activation/retirement grace periods, automatic rotation, and a published JWKS that reflects active **and** retiring
@@ -387,12 +394,122 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   `src/NCode.Identity.Secrets.Persistence`, `src/NCode.Identity.OpenId.Core/Tenants/Keys/`. Capture the design in an
   ADR.
 
-- **`S9` — Envelope encryption / hardware-backed protection at rest.** Protect stored reversible secret material with
-  envelope encryption (a KMS/HSM-held root key wrapping per-secret data keys) rather than the single data-protection
-  key today, and allow hardware-backed root keys. Ties into the `S5` hash-at-rest-vs-reversible fork and the `S7`
-  external-keystore providers. Touch points:
-  `src/NCode.Identity.Secrets.Persistence/DefaultSecretSerializer.cs`,
-  `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`. Capture the design in an ADR.
+- **`S9` — Envelope encryption / hardware-backed protection at rest.** Implemented, awaiting a green delivery:
+  stored secrets and the Data Protection key ring are encrypted under per-owner master keys wrapped by an external
+  root key (`ephemeral`, `local`, `aws-kms`) —
+  [ADR-0235](docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. Remaining: every GitHub Actions run for the commit that delivers it
+  to `main` succeeds; then archive this entry. Provisioning the production root key is `S19`.
+
+- **`S13` — Master key rotation, rekey and status.** Rotate a tenant's or the server's master key (new version active,
+  old retired), broadcast the rotation, rewrap every data key of the owner in a background job, then destroy the
+  retired key. Management API: `GET` and `POST …/encryption-keys/rekey` for tenants and the server (Auth0 parity),
+  scopes `read:encryption_keys` / `update:encryption_keys`, audit events; yearly automatic rotation.
+  - Seam: `IMasterKeyManager` (public, Abstractions) with `GetStatusAsync(SecretOwner, ct)` (versions, created, retired,
+    provider, recovery present — never material) and `RotateAsync(SecretOwner, ct)`.
+  - Rotate: in one unit of work create version n+1 (active) and set `RetiredWhen` on the old key; broadcast
+    `MasterKeyRotated(owner)` through `IReplicaBroadcaster`; every replica calls `Evict(owner)` and, for the server
+    owner, refreshes `ServerSecretProtectorHolder`.
+  - Rewrap job (`NCode.Identity.Dispatch`, delayed about five minutes so replicas converge): for each of the owner's
+    secrets whose envelope names the retired key, unwrap the data key with the old purpose key and wrap it with the new
+    one; the payload is untouched because payload associated data carries an all-zero key id (ADR-0235). Owner's
+    secrets: a tenant's `TenantSecrets`, its clients' and resource servers' secrets; the server's `ServerSecrets`. Write
+    through the owner stores' `UpdateSecretAsync` with concurrency tokens; re-run on conflict.
+  - Data Protection: existing ring keys are not re-encrypted; new ring keys use the new master key, and the retired
+    server key is kept until every ring key it wrapped has expired (Data Protection default lifetime 90 days) plus a
+    grace period.
+  - Destroy: when a verification scan finds no reference, delete the retired row. Backups keep their own copies.
+  - Management API (Auth0 parity with `POST /api/v2/keys/encryption/rekey`):
+    `GET /api/tenants/{tenantId}/encryption-keys`, `POST /api/tenants/{tenantId}/encryption-keys/rekey`, and
+    `/api/servers/{serverId}/…` equivalents; scopes `read:encryption_keys` / `update:encryption_keys`; audit events
+    `master_key_rotated`, `master_key_destroyed`.
+  - Automatic rotation: a hosted timer dispatches a daily job that rotates any active key older than
+    `SecretProtection:MasterKeyRotationPeriod` (default 365 days).
+
+- **`S14` — Rewrap and recovery tool.** A host command (run as a Kubernetes Job) that rewraps every master key under
+  the configured root key provider — unwrapping with the provider recorded per row, or with the offline recovery
+  private key — and can rewrap the recovery copies under a new recovery key.
+  - A host verb, run once as a Kubernetes Job from the host image:
+    `secret-protection rewrap [--recovery-private-key <pem>] [--owner <type:id>] [--dry-run]`.
+  - For every `MasterKeys` row: unwrap with the provider named in the row, or with RSA-OAEP-SHA256 and the recovery
+    private key when given; verify the key check; wrap with the configured provider; recompute the recovery wrap under
+    the configured recovery public key; update with the concurrency token. Idempotent; logs counts only.
+  - `secret-protection rewrap-recovery` rewraps only the recovery copies (new recovery key pair).
+  - The recovery private key is read from a file mounted for the Job only, never from configuration.
+
+- **`S15` — More root key providers.** Google Cloud KMS, Azure Key Vault, Infisical KMS, OpenBao/Vault Transit and
+  PKCS#11 packages, each an `IRootKeyProvider` with its own options section.
+  - Google Cloud KMS:
+    - Package `NCode.Identity.Secrets.Persistence.GoogleCloudKms` (`Google.Cloud.Kms.V1`), provider name
+      `google-cloud-kms`, options `SecretProtection:RootKeyProviders:GoogleCloudKms:KeyName` (the crypto key resource
+      name `projects/<p>/locations/<l>/keyRings/<r>/cryptoKeys/<k>`, validated by a strategy-owned
+      `IValidateOptions`).
+    - `EncryptAsync` / `DecryptAsync` with `AdditionalAuthenticatedData` = the root context; `KeyId` = the response's
+      key version name; decrypt names the crypto key (the version cut off). `RpcException` with `InvalidArgument` →
+      `CryptographicException`; everything else propagates (as the AWS KMS provider does).
+    - Credentials: Application Default Credentials reading an `external_account` credential configuration whose
+      `credential_source.file` is a projected service-account token; the workload identity provider holds the
+      cluster's **uploaded** JWKS, so neither the issuer nor the API server must be public. The chart mounts the token
+      and the credential ConfigMap and sets `GOOGLE_APPLICATION_CREDENTIALS`. A monitor must alert when the cluster's
+      JWKS changes.
+    - Cost: about $0.06 per active key version per month and $0.03 per 10,000 operations (verify).
+  - Azure Key Vault: `Azure.Security.KeyVault.Keys`
+    `CryptographyClient.WrapKeyAsync(KeyWrapAlgorithm.RsaOaep256, key)` / `UnwrapKeyAsync`; `KeyId` = the key version
+    URI. No associated data (the key check binds the row). Credentials: `WorkloadIdentityCredential` (Entra needs a
+    publicly discoverable issuer) or a client certificate. Cost: Standard $0.03 per 10,000 operations; Premium HSM keys
+    $1–5 per key per month.
+  - Infisical KMS, OpenBao/Vault Transit and PKCS#11: Infisical: REST encrypt/decrypt with an `aes-256-gcm` KMS key;
+    machine identity through Universal Auth (stored credential) or Kubernetes Auth (needs API-server reachability).
+    OpenBao Transit: `encrypt`/`decrypt` with `context` on a derived key, Kubernetes auth in-cluster. PKCS#11:
+    `CKM_AES_GCM` through Pkcs11Interop for on-premises HSMs.
+
+- **`S16` — Per-tenant root keys (bring your own key).** A tenant's master key wrapped by a key the tenant controls, so
+  revoking or destroying it shreds the tenant's data immediately, backups included.
+  - A tenant setting names a root key (provider + key reference) that the provider validates. The tenant's master key
+    is wrapped by that key instead of the deployment root, and gets no operator recovery wrap. Revoking or destroying
+    the tenant's key makes its data unreadable everywhere, backups included. The ring re-validates such keys
+    periodically (for example hourly) so a revocation takes effect within that period.
+
+- **`S17` — Encrypt grant payloads.** `GrantEntity.PayloadJson` (authorization codes, refresh tokens, device and PAR
+  requests) is plaintext; encrypt it under the tenant master key (purpose `grant-payload`).
+  - `DefaultPersistedGrantService` protects `PayloadJson` with the tenant protector, purpose `grant-payload`, item id =
+    the grant's hashed key; reads unprotect. AES-GCM costs microseconds per grant. Clean cutover (pre-release).
+
+- **`S18` — Store the public half of private keys.** Let listing endpoints and registration responses read public keys
+  without unprotecting private ones.
+  - Store the SPKI of every generated asymmetric key in a new `PersistedSecret.PublicKey` (base64url) so the management
+    converters and registration responses export public keys without a protector; then drop the protector plumbing from
+    those paths.
+
+- **`S19` — Provision the AWS KMS root key and the cluster's access to it.** In `identity-platform`: the root key (one
+  more `aws-kms-key` module instance), and — if the cluster's service-account issuer is publicly discoverable — an IAM
+  OIDC identity provider plus a role only the host's service account can assume, allowed `kms:Encrypt` / `kms:Decrypt`
+  on that key with the `ncode-identity:root-context` encryption context. If the issuer is not discoverable (an
+  in-cluster name), IAM Roles Anywhere instead: a trust anchor for a cluster CA, a profile and role, a short-lived
+  workload certificate from cert-manager, and the chart serving it to the SDK (for example the
+  `aws_signing_helper serve` sidecar with `AWS_EC2_METADATA_SERVICE_ENDPOINT`).
+  - OpenTofu: the root key as one more `aws-kms-key` module instance (alias `ncode-identity-root`, role
+    `secret-protection`, `deletion_protection = true`, 30-day deletion window, yearly rotation) in the platform's
+    account.
+  - **Publicly discoverable issuer:** `aws_iam_openid_connect_provider` for the cluster's issuer with client id
+    `sts.amazonaws.com`; `aws_iam_role` whose trust policy allows `sts:AssumeRoleWithWebIdentity` only for
+    `system:serviceaccount:<namespace>:<service account>` and audience `sts.amazonaws.com`; an inline policy allowing
+    `kms:Encrypt` / `kms:Decrypt` on the key ARN only, conditioned on `kms:EncryptionContextKeys` =
+    `ncode-identity:root-context`. Outputs: the alias ARN and role ARN for the chart values.
+  - **Private issuer (an in-cluster name):** IAM Roles Anywhere — `aws_rolesanywhere_trust_anchor` for a cluster CA
+    (cert-manager `CA` issuer whose key stays in the cluster), `aws_rolesanywhere_profile` and a role trusting
+    `rolesanywhere.amazonaws.com` conditioned on the certificate subject; cert-manager issues a short-lived workload
+    certificate; the chart gains an optional `aws_signing_helper serve` sidecar and sets
+    `AWS_EC2_METADATA_SERVICE_ENDPOINT` so the SDK's default chain reads its credentials. No code change in the
+    provider.
+  - Infrastructure bootstrap secrets (database and Valkey passwords, DNS tokens) generated with `random_password` and
+    written to Kubernetes Secrets; OpenTofu state is already encrypted with AWS KMS.
+
+- **`S20` — Post-quantum recovery wrap.** Add a hybrid ML-KEM-768 + X25519 recovery wrap once the container images'
+  OpenSSL supports ML-KEM.
+  - Add recovery wrap format `r2`: hybrid ML-KEM-768 + X25519 key encapsulation feeding HKDF, then AES-256-GCM over the
+    master key. Requires `System.Security.Cryptography.MLKem` support in the container images' OpenSSL (3.5+). Keep
+    RSA-OAEP until then; the root and master layers are symmetric and already quantum-resistant.
 
 ## Tooling & agent customization (group `X`)
 
@@ -442,17 +559,14 @@ _None remaining._
   `src/NCode.Identity.OpenId.Host/Dockerfile:17, 28, 60`, `.github/dependabot.yml`.
 - **`R36` — Test the bundle-shell split against the built bundle's real `index.html`.** Touch point:
   `InteractiveBundleShell.cs:51-100`.
-- **`R48` — Refuse to start while a live Data Protection key cannot be unwrapped.** Split from R7, which documented
-  hand rotation of the key-protection certificate. A certificate renewed in place leaves the ring unreadable after a
-  restart. A readiness check is the wrong shape: Data Protection's hosted service runs at startup, finds no default
-  key it can unwrap, and writes a new key (live for 90 days) wrapped by the wrong certificate. Once the certificate is
-  fixed, that key keeps every correctly configured replica unready, because from one replica's view an unreadable key
-  written by a misconfigured pod looks the same as an unreadable key the ring depends on. A first attempt was reverted
-  for this reason. Instead, run the check as a start gate (`ValidateOnStart`, which runs before hosted services) that
-  fails while any live, unrevoked key cannot be unwrapped, so a misconfigured replica stops before it writes a key.
-  Also add a supported way to revoke a key by ID (`IKeyManager.RevokeKey`) for recovery, and document both in
-  ADR-0177 and the chart README. Touch points: `NCode.Identity.Server` (`ProductionSafetyRegistration` pattern),
-  `DataProtection:KeyProtection`, ADR-0177.
+- **`R48` — Refuse to start while a live Data Protection key cannot be decrypted.** Since ADR-0235 the key ring is
+  encrypted under the server master key, and the host unwraps and verifies that key before Data Protection starts, so a
+  wrong or missing root key stops the host before it can write a ring key. What remains: if the server's master key rows
+  are lost and recreated, existing ring keys stay undecryptable while Data Protection writes a new default key. Add a
+  start gate (`ValidateOnStart`, which runs before hosted services) that fails while any live, unrevoked ring key cannot
+  be decrypted, plus a supported way to revoke a key by ID (`IKeyManager.RevokeKey`) for recovery, documented in
+  ADR-0235 and the chart README. Touch points: `NCode.Identity.Server` (`ProductionSafetyRegistration` pattern,
+  `SecretProtection/MasterKeyXmlDecryptor`), ADR-0235.
 - **`R64` — Check client-certificate revocation beyond complete CRLs.** The default checker refuses, as Unknown, an
   OCSP-only PKI, delta, partitioned and indirect CRLs, a CRL signed by a key other than the issuing certificate, and
   RSA-PSS or SHA-1 signatures. It also retries an unreachable distribution point on every request (no negative cache,

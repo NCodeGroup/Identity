@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
@@ -645,6 +646,16 @@ internal class TenantStore(
         );
 
         await RemoveTenantOwnedRowsAsync(tenantEntity.NormalizedTenantId, cancellationToken);
+
+        // A tenant's master keys belong to it through their owner, not a tenant column, so the generic removal above
+        // does not reach them (ADR-0235).
+        var masterKeys = await DbContext
+            .MasterKeys.Where(entity =>
+                entity.OwnerType == SecretOwnerTypes.Tenant
+                && entity.NormalizedOwnerId == normalizedTenantId
+            )
+            .ToListAsync(cancellationToken);
+        DbContext.MasterKeys.RemoveRange(masterKeys);
 
         DbContext.Tenants.Remove(tenantEntity);
 

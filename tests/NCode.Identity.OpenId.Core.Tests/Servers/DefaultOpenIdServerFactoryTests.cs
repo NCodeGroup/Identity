@@ -16,7 +16,10 @@
 
 #endregion
 
+using System.Security.Cryptography;
+using System.Text.Json;
 using IdGen;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -25,8 +28,12 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
@@ -37,6 +44,68 @@ namespace NCode.Identity.OpenId.Core.Tests.Servers;
 public class DefaultOpenIdServerFactoryTests : BaseTests
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(5.0);
+
+    private DefaultOpenIdServerFactory CreateFactory(
+        ISecretSerializer secretSerializer,
+        ISecretProtectorProvider secretProtectorProvider,
+        ICollectionDataSourceFactory? collectionDataSourceFactory = null,
+        ISecretKeyCollectionProviderFactory? secretKeyCollectionProviderFactory = null
+    ) =>
+        new(
+            Options.Create(new OpenIdOptions()),
+            CreateStrictMock<IServiceProvider>().Object,
+            secretSerializer,
+            secretProtectorProvider,
+            CreateStrictMock<IStoreManagerFactory>().Object,
+            collectionDataSourceFactory ?? CreateStrictMock<ICollectionDataSourceFactory>().Object,
+            CreateStrictMock<IReadOnlySettingCollectionProviderFactory>().Object,
+            secretKeyCollectionProviderFactory
+                ?? CreateStrictMock<ISecretKeyCollectionProviderFactory>().Object,
+            CreateStrictMock<ISecurityProfileCatalog>().Object,
+            CreateStrictMock<IIdGenerator<long>>().Object
+        );
+
+    private static PersistedSecret CreateSecret(
+        string secretId,
+        string secretType,
+        string secretEncoding,
+        string encodedValue
+    ) =>
+        new()
+        {
+            SecretId = secretId,
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.MaxValue,
+            SecretType = secretType,
+            SecretEncoding = secretEncoding,
+            KeySizeBits = 256,
+            EncodedValue = encodedValue,
+        };
+
+    private static PersistedServer CreatePersistedServer(
+        string serverId,
+        IReadOnlyCollection<PersistedSecret> secrets
+    ) =>
+        new()
+        {
+            ServerId = serverId,
+            ConcurrencyToken = "token",
+            DisplayName = serverId,
+            Settings = new PersistedServerSettings
+            {
+                ServerId = serverId,
+                ConcurrencyToken = "token",
+                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
+            Secrets = new PersistedServerSecrets
+            {
+                ServerId = serverId,
+                ConcurrencyToken = "token",
+                Value = secrets,
+            },
+        };
 
     #region Constructor Tests
 
@@ -49,6 +118,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
             mockOptionsAccessor.Object,
             CreateStrictMock<IServiceProvider>().Object,
             CreateStrictMock<ISecretSerializer>().Object,
+            CreateStrictMock<ISecretProtectorProvider>().Object,
             CreateStrictMock<IStoreManagerFactory>().Object,
             CreateStrictMock<ICollectionDataSourceFactory>().Object,
             CreateStrictMock<IReadOnlySettingCollectionProviderFactory>().Object,
@@ -58,6 +128,120 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
         );
 
         Assert.NotNull(factory);
+    }
+
+    #endregion
+
+    #region CreateSecretsProviderAsync Tests
+
+    [Fact]
+    public async Task CreateSecretsProviderAsync_LoadsTheServerOwnersProtectorForItsPrivateSecrets()
+    {
+        // The data source and provider factories are the real ones, so the returned provider owns a real
+        // periodic-polling data source that disposing the provider releases.
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSecretsLibrary();
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var persistedServer = CreatePersistedServer(
+            "server-a",
+            [
+                CreateSecret(
+                    "private-secret",
+                    SecretKeyTypes.Symmetric,
+                    SecretEncodings.SymmetricRaw,
+                    "nce1.private"
+                ),
+                CreateSecret(
+                    "public-secret",
+                    SecretKeyTypes.Rsa,
+                    SecretEncodings.Spki,
+                    "public-value"
+                ),
+            ]
+        );
+
+        var protector = CreateStrictMock<ISecretProtector>().Object;
+
+        var mockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
+        mockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForServer("server-a"),
+                    It.Is<IReadOnlyCollection<string>>(v =>
+                        v.Count == 1 && v.Contains("nce1.private")
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+
+        var mockSecretSerializer = CreateStrictMock<ISecretSerializer>();
+        mockSecretSerializer
+            .Setup(x => x.DeserializeSecrets(protector, persistedServer.Secrets.Value))
+            .Returns(Array.Empty<SecretKey>())
+            .Verifiable();
+
+        var factory = CreateFactory(
+            mockSecretSerializer.Object,
+            mockSecretProtectorProvider.Object,
+            serviceProvider.GetRequiredService<ICollectionDataSourceFactory>(),
+            serviceProvider.GetRequiredService<ISecretKeyCollectionProviderFactory>()
+        );
+
+        await using var provider = await factory.CreateSecretsProviderAsync(
+            persistedServer,
+            CreateStrictMock<IPropertyBag>().Object,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(provider);
+    }
+
+    [Fact]
+    public async Task CreateSecretsProviderAsync_WhenTheMasterKeyCannotBeLoaded_Propagates()
+    {
+        var persistedServer = CreatePersistedServer(
+            "server-a",
+            [
+                CreateSecret(
+                    "private-secret",
+                    SecretKeyTypes.Symmetric,
+                    SecretEncodings.SymmetricRaw,
+                    "nce1.private"
+                ),
+            ]
+        );
+
+        var masterKeyFailure = new CryptographicException("The master key was not found.");
+        var mockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
+        mockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForServer("server-a"),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(masterKeyFailure)
+            .Verifiable();
+
+        // The serializer is strict with no setup: deserializing after the failure fails the test.
+        var factory = CreateFactory(
+            CreateStrictMock<ISecretSerializer>().Object,
+            mockSecretProtectorProvider.Object
+        );
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(async () =>
+            await factory.CreateSecretsProviderAsync(
+                persistedServer,
+                CreateStrictMock<IPropertyBag>().Object,
+                CancellationToken.None
+            )
+        );
+
+        Assert.Same(masterKeyFailure, exception);
     }
 
     #endregion
@@ -124,6 +308,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
             Options.Create(new OpenIdOptions()),
             tests.CreateStrictMock<IServiceProvider>().Object,
             tests.CreateStrictMock<ISecretSerializer>().Object,
+            tests.CreateStrictMock<ISecretProtectorProvider>().Object,
             tests.CreateStrictMock<IStoreManagerFactory>().Object,
             tests.CreateStrictMock<ICollectionDataSourceFactory>().Object,
             settingCollectionProviderFactory,

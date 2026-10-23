@@ -3,7 +3,9 @@
 - **Status:** Accepted (create-response reveal refined by [ADR-0050](0050-secret-material-revealed-once-on-create.md);
   client-secret rotation added by [ADR-0183](0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md);
   client deletion amended by [ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md): a client is removed with its
-  secrets, grants, and consents)
+  secrets, grants, and consents; the protection of stored secrets amended by
+  [ADR-0235](0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the owner's master
+  key protects them, in place of a Data Protection key ring)
 - **Date:** 2026-09-29
 - **Deciders:** NCode.Identity maintainers
 

@@ -29,12 +29,13 @@ namespace NCode.Identity.Server;
 
 /// <summary>
 /// Provides the <strong>development-only</strong> signing-key setups: ephemeral in-memory keys for hermetic test hosts,
-/// and persisted keys that heal themselves when the development key ring is lost.
+/// and persisted keys that heal themselves when their master key, or the root key that wraps it, is lost or changed.
 /// </summary>
 /// <remarks>
 /// Neither is needed for a server to have keys: every tenant is provisioned with persisted keys by default. These
 /// setups change only what development needs — keys with no database footprint, or keys that are replaced rather than
-/// failing the tenant when the data-protection key ring that protected them is gone. Neither may be used in production.
+/// failing the tenant when the master key that protected them can no longer be unwrapped. Neither may be used in
+/// production.
 /// </remarks>
 [PublicAPI]
 public static class DeveloperKeysRegistration
@@ -45,9 +46,10 @@ public static class DeveloperKeysRegistration
         /// Applies the development-only signing-key setup selected by <paramref name="mode"/>:
         /// <see cref="DeveloperKeyMode.Ephemeral"/> uses in-memory keys, while
         /// <see cref="DeveloperKeyMode.PersistentSigningKey"/> uses the persisted keys every tenant is provisioned with
-        /// and prunes those the data-protection key ring can no longer unprotect. <see cref="DeveloperKeyMode.None"/>
-        /// leaves the persisted keys exactly as production uses them. The host owns where the data-protection key ring
-        /// is stored (the OpenID host persists it in its database). Must not be used in production.
+        /// and prunes those the tenant's master key can no longer open. <see cref="DeveloperKeyMode.None"/> leaves the
+        /// persisted keys exactly as production uses them. The persisted keys are envelopes under the tenant's master
+        /// key, so the host owns where the root key that wraps the master keys comes from. Must not be used in
+        /// production.
         /// </summary>
         /// <param name="mode">The <see cref="DeveloperKeyMode"/> that selects which setup to apply.</param>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
@@ -89,11 +91,12 @@ public static class DeveloperKeysRegistration
         /// <summary>
         /// Keeps the persisted keys every tenant is provisioned with — so the runtime, the JWKS endpoint, and the
         /// management API share a single source of truth that survives restarts — and adds development-only self-healing:
-        /// a tenant secret the data-protection key ring can no longer unprotect is removed when the tenant is seeded, and
-        /// key provisioning generates a fresh key in its place. The host is responsible for configuring data-protection
-        /// key-ring persistence so the keys can be unprotected across restarts (the OpenID host persists the ring in its
-        /// database). Intended for local development only; must not be used in production, where an undecryptable key
-        /// fails the tenant instead of being discarded.
+        /// a tenant secret that can no longer be opened, because its master key was purged or the root key that wrapped
+        /// the master key changed, is removed when the tenant is seeded, and key provisioning generates a fresh key in
+        /// its place. The persisted keys are envelopes under the tenant's master key, so the host is responsible for
+        /// supplying a root key that stays the same across restarts for as long as its database does. Intended for local
+        /// development only; must not be used in production, where an undecryptable key fails the tenant instead of
+        /// being discarded.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         public IServiceBuilder<IdentityServer> AddPersistentDeveloperKeys()

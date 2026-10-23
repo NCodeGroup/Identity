@@ -41,6 +41,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Json;
 using NCode.Persistence.Stores;
@@ -59,6 +60,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     ISecretGenerator secretGenerator,
     IClientKeyImporter clientKeyImporter,
     ISecretSerializer secretSerializer,
+    ISecretProtectorProvider secretProtectorProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     IStoreManagerFactory storeManagerFactory,
     IPersistedGrantService persistedGrantService,
@@ -95,6 +97,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
@@ -276,7 +279,14 @@ internal class DefaultClientRegistrationEndpointHandler(
             return bindingError;
         }
 
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(tenantId),
+            [],
+            cancellationToken
+        );
+
         var secretsError = BuildClientSecrets(
+            protector,
             request,
             IssuesClientSecret(resolved.TokenEndpointAuthMethod),
             createdWhen,
@@ -1246,11 +1256,13 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Builds the new client's secrets: a generated symmetric secret for a client whose method verifies one, plus the public keys of
-    /// the <c>jwks</c> set the client registers by value, imported under the client-key policy. Returns an error result
-    /// when the set is refused; otherwise <see langword="null"/> with the secrets and one-time client secret.
+    /// Builds the new client's secrets: a generated symmetric secret for a client whose method verifies one, protected
+    /// under the tenant's master key by the given protector, plus the public keys of the <c>jwks</c> set the client
+    /// registers by value, imported under the client-key policy. Returns an error result when the set is refused;
+    /// otherwise <see langword="null"/> with the secrets and one-time client secret.
     /// </summary>
     private IResult? BuildClientSecrets(
+        ISecretProtector protector,
         RegisterClientRequest request,
         bool issuesClientSecret,
         DateTimeOffset createdWhen,
@@ -1269,6 +1281,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             // IsSecretEqual), unlike GenerateSecret's raw-byte crypto-key material whose base64url reveal never
             // round-trips back to the stored bytes.
             var generated = SecretGenerator.GenerateSharedSecret(
+                protector,
                 new GenerateSecretRequest
                 {
                     SecretId = CryptoService.GenerateResourceId(),
@@ -1574,7 +1587,13 @@ internal class DefaultClientRegistrationEndpointHandler(
                 ? null
                 : string.Join(OpenIdConstants.ParameterSeparatorString, orderedScopes);
 
-        return ToResponse(client) with
+        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+            SecretOwner.ForTenant(client.TenantId),
+            client.Secrets.Value,
+            cancellationToken
+        );
+
+        return ToResponse(client, protector) with
         {
             Scope = scope,
         };
@@ -1582,12 +1601,16 @@ internal class DefaultClientRegistrationEndpointHandler(
 
     /// <summary>
     /// Reconstructs the registered metadata of a client information response from a persisted client: the metadata
-    /// from its settings document, and the <c>jwks</c> set from the public keys stored for it.
+    /// from its settings document, and the <c>jwks</c> set from the public keys stored for it, which the given
+    /// protector opens.
     /// </summary>
-    internal virtual RegisterClientResponse ToResponse(PersistedClient client)
+    internal virtual RegisterClientResponse ToResponse(
+        PersistedClient client,
+        ISecretProtector protector
+    )
     {
         var settings = ToJsonObject(client.Settings.Value);
-        var jwks = ExportPublicKeys(client.Secrets.Value);
+        var jwks = ExportPublicKeys(protector, client.Secrets.Value);
 
         return new RegisterClientResponse
         {
@@ -1717,7 +1740,10 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// not part of the set and is never deserialized here.
     /// </summary>
     // See ADR-0161.
-    private JsonElement? ExportPublicKeys(IEnumerable<PersistedSecret> secrets)
+    private JsonElement? ExportPublicKeys(
+        ISecretProtector protector,
+        IEnumerable<PersistedSecret> secrets
+    )
     {
         var keys = new List<JsonWebKey>();
         foreach (var secret in secrets)
@@ -1730,7 +1756,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                 continue;
             }
 
-            var secretKey = SecretSerializer.DeserializeSecret(secret);
+            var secretKey = SecretSerializer.DeserializeSecret(protector, secret);
             var exported = descriptor.ExportPublicKey(secretKey);
             if (exported is not null)
                 keys.Add(exported.Jwk);

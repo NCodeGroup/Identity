@@ -18,27 +18,28 @@
 #endregion
 
 using System.Buffers;
+using System.Collections.Frozen;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
-using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.Secrets.Persistence;
 
 public class DefaultSecretGeneratorTests
 {
+    private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("tenant-one");
+
     private readonly DefaultSecretGenerator _generator;
     private readonly DefaultSecretSerializer _serializer;
 
     public DefaultSecretGeneratorTests()
     {
         var provider = new EphemeralDataProtectionProvider();
-        var serializerProtector = provider.CreateProtector("serializer");
         var factoryProtector = provider.CreateProtector("factory");
-
-        var protectorFactory = new TestDataProtectorFactory<PersistedSecret>(serializerProtector);
 
         var secretKeyFactory = new DefaultSecretKeyFactory(
             new TestDataProtectorFactory<SecretKey>(factoryProtector)
@@ -50,8 +51,8 @@ public class DefaultSecretGeneratorTests
             new EccSecretKeyTypeDescriptor(secretKeyFactory, new DefaultEccCurveCatalog([])),
         ]);
 
-        _generator = new DefaultSecretGenerator(protectorFactory, catalog);
-        _serializer = new DefaultSecretSerializer(catalog, protectorFactory);
+        _generator = new DefaultSecretGenerator(catalog);
+        _serializer = new DefaultSecretSerializer(catalog);
     }
 
     private static GenerateSecretRequest CreateRequest(string secretType, int keySizeBits) =>
@@ -66,14 +67,38 @@ public class DefaultSecretGeneratorTests
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
         };
 
+    private static DefaultSecretProtector CreateProtector()
+    {
+        var keyId = Guid.NewGuid();
+        var masterKey = MasterKey.Create(
+            keyId,
+            TenantOwner,
+            1,
+            RandomNumberGenerator.GetBytes(SecretProtectionFormat.MasterKeySizeBytes)
+        );
+        var keys = new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary();
+        return new DefaultSecretProtector(TenantOwner, masterKey, keys);
+    }
+
+    private static ImportSharedSecretRequest CreateImportRequest(string secretId) =>
+        new()
+        {
+            SecretId = secretId,
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
     #region GenerateSecret Symmetric Tests
 
     [Fact]
     public void GenerateSecret_WhenSymmetric_ProducesRoundTrippableSecret()
     {
+        var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Symmetric, 256);
 
-        var generated = _generator.GenerateSecret(request);
+        var generated = _generator.GenerateSecret(protector, request);
         var persisted = generated.Secret;
 
         Assert.Equal("gen-1", persisted.SecretId);
@@ -86,7 +111,7 @@ public class DefaultSecretGeneratorTests
         Assert.NotEmpty(generated.SecretMaterial);
         Assert.NotEqual(persisted.EncodedValue, generated.SecretMaterial);
 
-        var secretKey = _serializer.DeserializeSecret(persisted);
+        var secretKey = _serializer.DeserializeSecret(protector, persisted);
 
         Assert.IsAssignableFrom<SymmetricSecretKey>(secretKey);
         Assert.Equal(256, secretKey.KeySizeBits);
@@ -95,9 +120,10 @@ public class DefaultSecretGeneratorTests
     [Fact]
     public void GenerateSecret_WhenSymmetricSizeNotMultipleOfEight_Throws()
     {
+        var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Symmetric, 100);
 
-        Assert.Throws<ArgumentException>(() => _generator.GenerateSecret(request));
+        Assert.Throws<ArgumentException>(() => _generator.GenerateSecret(protector, request));
     }
 
     #endregion
@@ -105,48 +131,23 @@ public class DefaultSecretGeneratorTests
     #region GenerateSharedSecret Tests
 
     [Fact]
-    public void GenerateSharedSecret_StoresUtf8OfTheRevealedString()
-    {
-        var request = CreateRequest(SecretTypes.Symmetric, 256);
-
-        var generated = _generator.GenerateSharedSecret(request);
-        var persisted = generated.Secret;
-
-        Assert.Equal(SecretTypes.Symmetric, persisted.SecretType);
-        Assert.Equal(SecretEncodings.SymmetricRaw, persisted.SecretEncoding);
-        Assert.NotNull(generated.SecretMaterial);
-        Assert.NotEmpty(generated.SecretMaterial);
-
-        var secretKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
-            _serializer.DeserializeSecret(persisted)
-        );
-
-        var writer = new ArrayBufferWriter<byte>();
-        secretKey.ExportPrivateKey(ref writer);
-
-        // The core contract (CommonClientAuthenticationHandler.IsSecretEqual): client authentication compares the UTF-8
-        // bytes of the presented secret against the stored key material, so the stored material must be exactly the
-        // UTF-8 bytes of the revealed opaque string — otherwise a generated client_secret can never authenticate.
-        Assert.Equal(
-            Encoding.UTF8.GetBytes(generated.SecretMaterial),
-            writer.WrittenSpan.ToArray()
-        );
-    }
-
-    [Fact]
     public void GenerateSharedSecret_WhenNotSymmetric_Throws()
     {
+        var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Rsa, 2048);
 
-        Assert.Throws<InvalidOperationException>(() => _generator.GenerateSharedSecret(request));
+        Assert.Throws<InvalidOperationException>(() =>
+            _generator.GenerateSharedSecret(protector, request)
+        );
     }
 
     [Fact]
     public void GenerateSharedSecret_WhenSizeNotMultipleOfEight_Throws()
     {
+        var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Symmetric, 100);
 
-        Assert.Throws<ArgumentException>(() => _generator.GenerateSharedSecret(request));
+        Assert.Throws<ArgumentException>(() => _generator.GenerateSharedSecret(protector, request));
     }
 
     #endregion
@@ -154,51 +155,17 @@ public class DefaultSecretGeneratorTests
     #region ImportSharedSecret Tests
 
     [Fact]
-    public void ImportSharedSecret_StoresTheGivenUtf8BytesVerbatim()
-    {
-        var request = new ImportSharedSecretRequest
-        {
-            SecretId = "import-1",
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-        };
-        var secretValue = Encoding.UTF8.GetBytes("my-chosen-client-secret");
-
-        var persisted = _generator.ImportSharedSecret(request, secretValue);
-
-        Assert.Equal("import-1", persisted.SecretId);
-        Assert.Equal(SecretTypes.Symmetric, persisted.SecretType);
-        Assert.Equal(SecretEncodings.SymmetricRaw, persisted.SecretEncoding);
-        Assert.Equal(secretValue.Length * 8, persisted.KeySizeBits);
-
-        var secretKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
-            _serializer.DeserializeSecret(persisted)
-        );
-
-        var writer = new ArrayBufferWriter<byte>();
-        secretKey.ExportPrivateKey(ref writer);
-
-        // The stored key material must be exactly the supplied UTF-8 bytes — the same contract GenerateSharedSecret
-        // guarantees — so client authentication (CommonClientAuthenticationHandler.IsSecretEqual) round-trips.
-        Assert.Equal(secretValue, writer.WrittenSpan.ToArray());
-    }
-
-    [Fact]
     public void ImportSharedSecret_ProducesTheSameStoredShapeAsGenerateSharedSecret()
     {
-        var generated = _generator.GenerateSharedSecret(CreateRequest(SecretTypes.Symmetric, 256));
+        var protector = CreateProtector();
+        var generated = _generator.GenerateSharedSecret(
+            protector,
+            CreateRequest(SecretTypes.Symmetric, 256)
+        );
 
         var imported = _generator.ImportSharedSecret(
-            new ImportSharedSecretRequest
-            {
-                SecretId = "import-2",
-                Use = null,
-                Algorithm = null,
-                CreatedWhen = DateTimeOffset.UnixEpoch,
-                ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            },
+            protector,
+            CreateImportRequest("import-3"),
             Encoding.UTF8.GetBytes(generated.SecretMaterial!)
         );
 
@@ -207,10 +174,10 @@ public class DefaultSecretGeneratorTests
         Assert.Equal(generated.Secret.KeySizeBits, imported.KeySizeBits);
 
         var generatedKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
-            _serializer.DeserializeSecret(generated.Secret)
+            _serializer.DeserializeSecret(protector, generated.Secret)
         );
         var importedKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
-            _serializer.DeserializeSecret(imported)
+            _serializer.DeserializeSecret(protector, imported)
         );
 
         var generatedWriter = new ArrayBufferWriter<byte>();
@@ -221,23 +188,6 @@ public class DefaultSecretGeneratorTests
         Assert.Equal(generatedWriter.WrittenSpan.ToArray(), importedWriter.WrittenSpan.ToArray());
     }
 
-    [Fact]
-    public void ImportSharedSecret_WhenValueEmpty_Throws()
-    {
-        var request = new ImportSharedSecretRequest
-        {
-            SecretId = "import-3",
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-        };
-
-        Assert.Throws<ArgumentException>(() =>
-            _generator.ImportSharedSecret(request, ReadOnlySpan<byte>.Empty)
-        );
-    }
-
     #endregion
 
     #region GenerateSecret Rsa Tests
@@ -245,9 +195,10 @@ public class DefaultSecretGeneratorTests
     [Fact]
     public void GenerateSecret_WhenRsa_ProducesRoundTrippableSecret()
     {
+        var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Rsa, 2048);
 
-        var generated = _generator.GenerateSecret(request);
+        var generated = _generator.GenerateSecret(protector, request);
         var persisted = generated.Secret;
 
         Assert.Equal(SecretTypes.Rsa, persisted.SecretType);
@@ -256,7 +207,7 @@ public class DefaultSecretGeneratorTests
         // ADR-0050: asymmetric private keys are never revealed.
         Assert.Null(generated.SecretMaterial);
 
-        var secretKey = _serializer.DeserializeSecret(persisted);
+        var secretKey = _serializer.DeserializeSecret(protector, persisted);
 
         Assert.IsAssignableFrom<RsaSecretKey>(secretKey);
         Assert.Equal(2048, secretKey.KeySizeBits);
@@ -269,9 +220,10 @@ public class DefaultSecretGeneratorTests
     [Fact]
     public void GenerateSecret_WhenEcc_ProducesRoundTrippableSecret()
     {
+        var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Ecc, 256);
 
-        var generated = _generator.GenerateSecret(request);
+        var generated = _generator.GenerateSecret(protector, request);
         var persisted = generated.Secret;
 
         Assert.Equal(SecretTypes.Ecc, persisted.SecretType);
@@ -280,7 +232,7 @@ public class DefaultSecretGeneratorTests
         // ADR-0050: asymmetric private keys are never revealed.
         Assert.Null(generated.SecretMaterial);
 
-        var secretKey = _serializer.DeserializeSecret(persisted);
+        var secretKey = _serializer.DeserializeSecret(protector, persisted);
 
         Assert.IsAssignableFrom<EccSecretKey>(secretKey);
         Assert.Equal(256, secretKey.KeySizeBits);
@@ -289,9 +241,10 @@ public class DefaultSecretGeneratorTests
     [Fact]
     public void GenerateSecret_WhenEccSizeUnsupported_Throws()
     {
+        var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Ecc, 300);
 
-        Assert.Throws<ArgumentException>(() => _generator.GenerateSecret(request));
+        Assert.Throws<ArgumentException>(() => _generator.GenerateSecret(protector, request));
     }
 
     #endregion
@@ -301,9 +254,10 @@ public class DefaultSecretGeneratorTests
     [Fact]
     public void GenerateSecret_CopiesMetadataFromRequest()
     {
+        var protector = CreateProtector();
         var request = CreateRequest(SecretTypes.Symmetric, 256);
 
-        var persisted = _generator.GenerateSecret(request).Secret;
+        var persisted = _generator.GenerateSecret(protector, request).Secret;
 
         Assert.Equal(request.Use, persisted.Use);
         Assert.Equal(request.Algorithm, persisted.Algorithm);
@@ -314,9 +268,12 @@ public class DefaultSecretGeneratorTests
     [Fact]
     public void GenerateSecret_WhenUnsupportedSecretType_Throws()
     {
+        var protector = CreateProtector();
         var request = CreateRequest("x509", 2048);
 
-        Assert.Throws<InvalidOperationException>(() => _generator.GenerateSecret(request));
+        Assert.Throws<InvalidOperationException>(() =>
+            _generator.GenerateSecret(protector, request)
+        );
     }
 
     #endregion
@@ -326,9 +283,10 @@ public class DefaultSecretGeneratorTests
     [Fact]
     public void GenerateSecret_WhenRsa_ExportsSubjectPublicKeyInfoPem()
     {
-        var generated = _generator.GenerateSecret(CreateRequest(SecretTypes.Rsa, 2048));
+        var protector = CreateProtector();
+        var generated = _generator.GenerateSecret(protector, CreateRequest(SecretTypes.Rsa, 2048));
 
-        var secretKey = _serializer.DeserializeSecret(generated.Secret);
+        var secretKey = _serializer.DeserializeSecret(protector, generated.Secret);
 
         var asymmetric = Assert.IsAssignableFrom<AsymmetricSecretKey>(secretKey);
         Assert.StartsWith("-----BEGIN PUBLIC KEY-----", asymmetric.ExportSubjectPublicKeyInfoPem());
@@ -337,6 +295,7 @@ public class DefaultSecretGeneratorTests
     [Fact]
     public void GenerateSecret_WhenEccWithCurveName_UsesThatCurveSize()
     {
+        var protector = CreateProtector();
         var request = new GenerateSecretRequest
         {
             SecretId = "gen-ecc",
@@ -349,9 +308,130 @@ public class DefaultSecretGeneratorTests
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
         };
 
-        var persisted = _generator.GenerateSecret(request).Secret;
+        var persisted = _generator.GenerateSecret(protector, request).Secret;
 
         Assert.Equal(384, persisted.KeySizeBits);
+    }
+
+    #endregion
+
+    #region Envelope Tests
+
+    [Fact]
+    public void GenerateSecret_ProducesEnvelope()
+    {
+        var protector = CreateProtector();
+
+        var persisted = _generator
+            .GenerateSecret(protector, CreateRequest(SecretTypes.Symmetric, 256))
+            .Secret;
+
+        Assert.StartsWith(
+            SecretProtectionFormat.Prefix,
+            persisted.EncodedValue,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Theory]
+    [InlineData(SecretTypes.Symmetric, 256, typeof(SymmetricSecretKey))]
+    [InlineData(SecretTypes.Rsa, 2048, typeof(RsaSecretKey))]
+    public void GenerateSecret_RoundTripsThroughSerializer(
+        string secretType,
+        int keySizeBits,
+        Type expectedKeyType
+    )
+    {
+        var protector = CreateProtector();
+
+        var persisted = _generator
+            .GenerateSecret(protector, CreateRequest(secretType, keySizeBits))
+            .Secret;
+
+        var secretKey = _serializer.DeserializeSecret(protector, persisted);
+
+        Assert.IsAssignableFrom(expectedKeyType, secretKey);
+        Assert.Equal("gen-1", secretKey.KeyId);
+        Assert.Equal(keySizeBits, secretKey.KeySizeBits);
+    }
+
+    [Fact]
+    public void GenerateSharedSecret_StoresUtf8OfRevealedSecret()
+    {
+        var protector = CreateProtector();
+
+        var generated = _generator.GenerateSharedSecret(
+            protector,
+            CreateRequest(SecretTypes.Symmetric, 256)
+        );
+        var persisted = generated.Secret;
+
+        Assert.StartsWith(
+            SecretProtectionFormat.Prefix,
+            persisted.EncodedValue,
+            StringComparison.Ordinal
+        );
+        Assert.Equal(SecretTypes.Symmetric, persisted.SecretType);
+        Assert.Equal(SecretEncodings.SymmetricRaw, persisted.SecretEncoding);
+        Assert.NotNull(generated.SecretMaterial);
+        Assert.NotEmpty(generated.SecretMaterial);
+
+        var secretKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
+            _serializer.DeserializeSecret(protector, persisted)
+        );
+
+        var writer = new ArrayBufferWriter<byte>();
+        secretKey.ExportPrivateKey(ref writer);
+
+        // The core contract (CommonClientAuthenticationHandler.IsSecretEqual): client authentication compares the UTF-8
+        // bytes of the presented secret against the stored key material, so the stored material must be exactly the
+        // UTF-8 bytes of the revealed opaque string — otherwise a generated client_secret can never authenticate.
+        var expected = Encoding.UTF8.GetBytes(generated.SecretMaterial);
+        Assert.Equal(expected, writer.WrittenSpan.ToArray());
+        Assert.Equal(expected.Length * 8, persisted.KeySizeBits);
+    }
+
+    [Fact]
+    public void ImportSharedSecret_StoresTheGivenUtf8BytesVerbatim()
+    {
+        var protector = CreateProtector();
+        var secretValue = Encoding.UTF8.GetBytes("my-chosen-client-secret");
+
+        var persisted = _generator.ImportSharedSecret(
+            protector,
+            CreateImportRequest("import-1"),
+            secretValue
+        );
+
+        Assert.StartsWith(
+            SecretProtectionFormat.Prefix,
+            persisted.EncodedValue,
+            StringComparison.Ordinal
+        );
+        Assert.Equal("import-1", persisted.SecretId);
+        Assert.Equal(SecretTypes.Symmetric, persisted.SecretType);
+        Assert.Equal(SecretEncodings.SymmetricRaw, persisted.SecretEncoding);
+        Assert.Equal(secretValue.Length * 8, persisted.KeySizeBits);
+
+        var secretKey = Assert.IsAssignableFrom<SymmetricSecretKey>(
+            _serializer.DeserializeSecret(protector, persisted)
+        );
+
+        var writer = new ArrayBufferWriter<byte>();
+        secretKey.ExportPrivateKey(ref writer);
+
+        Assert.Equal(secretValue, writer.WrittenSpan.ToArray());
+    }
+
+    [Fact]
+    public void ImportSharedSecret_WhenValueEmpty_Throws()
+    {
+        var protector = CreateProtector();
+        var request = CreateImportRequest("import-2");
+
+        Assert.Throws<ArgumentException>(() =>
+            _generator.ImportSharedSecret(protector, request, ReadOnlySpan<byte>.Empty)
+        );
     }
 
     #endregion

@@ -70,4 +70,11 @@ internal static partial class Log
         string userName,
         string tenantId
     );
+
+    [LoggerMessage(
+        EventId = EventIds.LocalRootKeyInProduction,
+        Level = LogLevel.Warning,
+        Message = "The root key is a local file; prefer a key management service."
+    )]
+    internal static partial void LocalRootKeyInProduction(this ILogger logger);
 }

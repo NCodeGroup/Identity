@@ -189,4 +189,68 @@ public sealed class ServerStoreLifecycleTests : IDisposable
         Assert.NotNull(reloaded);
         Assert.Equal("Renamed Server", reloaded.DisplayName);
     }
+
+    [Fact]
+    public async Task UpdateReconciledSettingsFingerprintAsync_RecordsTheFingerprint()
+    {
+        await SeedServerAsync();
+
+        var server = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(server);
+        Assert.Null(server.ReconciledSettingsFingerprint);
+        server.ReconciledSettingsFingerprint = "fingerprint-1";
+
+        await _store.UpdateReconciledSettingsFingerprintAsync(server, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(reloaded);
+        Assert.Equal("fingerprint-1", reloaded.ReconciledSettingsFingerprint);
+        Assert.Equal("Test Server", reloaded.DisplayName);
+    }
+
+    [Fact]
+    public async Task UpdateReconciledSettingsFingerprintAsync_WhenTheServerChanged_Throws()
+    {
+        await SeedServerAsync();
+
+        var server = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(server);
+        server.ConcurrencyToken = "stale";
+        server.ReconciledSettingsFingerprint = "fingerprint-1";
+
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
+            await _store.UpdateReconciledSettingsFingerprintAsync(server, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_ClearsTheReconciledSettingsFingerprint()
+    {
+        var seed = CreateServer();
+        seed.ReconciledSettingsFingerprint = "fingerprint-1";
+        await _store.AddAsync(seed, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var seeded = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(seeded);
+        Assert.Equal("fingerprint-1", seeded.ReconciledSettingsFingerprint);
+        _dbContext.ChangeTracker.Clear();
+
+        var settings = await _store.GetSettingsOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(settings);
+        settings.Value = JsonSerializer.SerializeToElement(
+            new Dictionary<string, object> { ["key"] = "value" }
+        );
+
+        await _store.UpdateSettingsAsync(settings, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(reloaded);
+        Assert.Null(reloaded.ReconciledSettingsFingerprint);
+    }
 }

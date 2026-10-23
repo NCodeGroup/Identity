@@ -404,10 +404,10 @@ cluster). Neon and Aiven Free/Developer are fine for dev/staging, not for a prod
 single-use DPoP-proof and client-assertion `jti`s
 ([ADR-0164](adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); losing it on restart only
 reopens a replay window bounded by the proof and assertion lifetimes. Enable AOF persistence if that window matters.
-Valkey also carries the replica broadcast port, so a tenant change reaches every replica at once
+Valkey also carries the replica broadcast port, so a tenant or server settings change reaches every replica at once
 ([ADR-0205](adr/0205-replicas-announce-changes-through-a-broadcast-port.md)); the access-control user needs `PUBLISH`
 and `SUBSCRIBE` as well as the key-set and counter commands, and an outage costs only that promptness, because the
-replicas converge through their polls.
+replicas converge through their polls and the 15-minute tenant cache lifetime.
 Address it with the `valkey` connection string (TLS and an access-control user in production:
 `valkey:6380,ssl=true,user=identity,password=…`); a replica that cannot reach it reports not ready on the `valkey`
 health check and fails those checks closed.

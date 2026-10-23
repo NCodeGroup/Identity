@@ -42,11 +42,11 @@ public sealed class OpenIdTenantOptions
     public TimeSpan SecretsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(15.0);
 
     /// <summary>
-    /// Gets or sets the period of time after which a tenant is removed from the cache.
-    /// The cache uses a sliding expiration.
-    /// The default value is 4 hours.
+    /// Gets or sets the period of time after which a materialized tenant is removed from the cache, however often
+    /// it is used, so a replica that missed the announcement of a change to the tenant serves it at most this long.
+    /// The default value is 15 minutes.
     /// </summary>
-    public TimeSpan TenantCacheExpiration { get; set; } = TimeSpan.FromHours(4.0);
+    public TimeSpan TenantCacheLifetime { get; set; } = TimeSpan.FromMinutes(15.0);
 
     /// <summary>
     /// Gets or sets the options that decide which keys every tenant is provisioned with when it is seeded.

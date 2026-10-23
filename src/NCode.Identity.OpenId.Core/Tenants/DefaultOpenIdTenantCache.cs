@@ -19,6 +19,7 @@
 
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using NCode.Disposables;
 using NCode.PropertyBag;
 
@@ -26,25 +27,22 @@ namespace NCode.Identity.OpenId.Tenants;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdTenantCache"/> abstraction that uses <see cref="IMemoryCache"/>
-/// with a sliding expiration to cache <see cref="OpenIdTenant"/> instances.
+/// with an absolute lifetime to cache <see cref="OpenIdTenant"/> instances. Each tenant is cached for at most
+/// <see cref="OpenIdTenantOptions.TenantCacheLifetime"/>, or until <see cref="ClearAsync"/> evicts every cached tenant.
 /// </summary>
 internal class DefaultOpenIdTenantCache(
     IOptions<OpenIdOptions> optionsAccessor,
     IMemoryCache memoryCache
-) : IOpenIdTenantCache
+) : IOpenIdTenantCache, IDisposable
 {
     private IMemoryCache MemoryCache { get; } = memoryCache;
 
-    private MemoryCacheEntryOptions MemoryCacheEntryOptions { get; } =
-        new()
-        {
-            SlidingExpiration = optionsAccessor.Value.Tenant.TenantCacheExpiration,
+    private TimeSpan Lifetime { get; } = optionsAccessor.Value.Tenant.TenantCacheLifetime;
 
-            PostEvictionCallbacks =
-            {
-                new PostEvictionCallbackRegistration { EvictionCallback = EvictionCallback },
-            },
-        };
+    private Lock Gate { get; } = new();
+
+    // Cancelled by ClearAsync, so every entry cached before the call expires.
+    private CancellationTokenSource Generation { get; set; } = new();
 
     private static string GetCacheKey(string tenantId) =>
         $"NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantCache:{tenantId}";
@@ -97,7 +95,23 @@ internal class DefaultOpenIdTenantCache(
         var key = GetCacheKey(tenantId);
         var newLease = tenant.AddReference();
 
-        MemoryCache.Set(key, newLease, MemoryCacheEntryOptions);
+        CancellationToken generation;
+        lock (Gate)
+        {
+            generation = Generation.Token;
+        }
+
+        var entryOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = Lifetime,
+            ExpirationTokens = { new CancellationChangeToken(generation) },
+            PostEvictionCallbacks =
+            {
+                new PostEvictionCallbackRegistration { EvictionCallback = EvictionCallback },
+            },
+        };
+
+        MemoryCache.Set(key, newLease, entryOptions);
 
         return ValueTask.CompletedTask;
     }
@@ -113,5 +127,43 @@ internal class DefaultOpenIdTenantCache(
         MemoryCache.Remove(GetCacheKey(tenantId));
 
         return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public ValueTask ClearAsync(IPropertyBag propertyBag, CancellationToken cancellationToken)
+    {
+        CancellationTokenSource previous;
+        lock (Gate)
+        {
+            previous = Generation;
+            Generation = new CancellationTokenSource();
+        }
+
+        // The eviction callbacks release the cache's references; a lease already handed out keeps its tenant alive.
+        previous.Cancel();
+        previous.Dispose();
+
+        return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Performs application-defined tasks associated with freeing, releasing, or resetting managed resources.
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing)
+            return;
+
+        lock (Gate)
+        {
+            Generation.Dispose();
+        }
     }
 }

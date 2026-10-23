@@ -481,4 +481,38 @@ internal static partial class Log
         Message = "The grants that ended before their retention could not be removed; the removal is retried at the next prune."
     )]
     internal static partial void GrantPruneFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.IncoherentClientReported,
+        Level = LogLevel.Warning,
+        Message = "The client '{ClientId}' of the tenant '{TenantId}' is incoherent with the server's settings and fails at its next request: {Violations}"
+    )]
+    internal static partial void IncoherentClientReported(
+        this ILogger logger,
+        string tenantId,
+        string clientId,
+        string violations
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientCoherenceCheckFailed,
+        Level = LogLevel.Warning,
+        Message = "The clients of the tenant '{TenantId}' could not be checked against the server's settings"
+    )]
+    internal static partial void ClientCoherenceCheckFailed(
+        this ILogger logger,
+        string tenantId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientCoherenceChecked,
+        Level = LogLevel.Information,
+        Message = "Checked every stored client against the settings of the server '{ServerId}': {IncoherentClientCount} incoherent"
+    )]
+    internal static partial void ClientCoherenceChecked(
+        this ILogger logger,
+        string serverId,
+        int incoherentClientCount
+    );
 }

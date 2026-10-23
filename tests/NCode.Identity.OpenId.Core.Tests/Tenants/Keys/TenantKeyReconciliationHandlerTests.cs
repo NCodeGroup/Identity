@@ -21,13 +21,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using NCode.Identity.Dispatch;
 using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Keys;
+using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -35,42 +37,62 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tenants.Keys;
 
-public sealed class TenantKeyReseedJobHandlerTests : BaseTests
+public sealed class TenantKeyReconciliationHandlerTests : BaseTests
 {
+    private const string ServerId = "default";
     private const string FirstTenantId = "acme";
     private const string SecondTenantId = "globex";
 
+    private static TenantKeySpecification Rs256 { get; } =
+        new()
+        {
+            Algorithm = "RS256",
+            Use = SecretKeyUses.Signature,
+            SecretType = SecretKeyTypes.Rsa,
+            KeySizeBits = 3072,
+        };
+
+    private static TenantKeySpecification Es256 { get; } =
+        new()
+        {
+            Algorithm = "ES256",
+            Use = SecretKeyUses.Signature,
+            SecretType = SecretKeyTypes.Ecc,
+            KeySizeBits = 256,
+        };
+
     private OpenIdOptions OpenIdOptions { get; } = new();
+    private Mock<ITenantKeyPolicy> MockPolicy { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IMediator> MockMediator { get; }
-    private IReadOnlySettingCollection PreviousServerSettings { get; }
-    private IReadOnlySettingCollection CurrentServerSettings { get; }
+    private IReadOnlySettingCollection ServerSettings { get; }
     private ServiceProvider ServiceProvider { get; }
-    private TenantKeyReseedJobHandler Handler { get; }
+    private TenantKeyReconciliationHandler Handler { get; }
 
-    public TenantKeyReseedJobHandlerTests()
+    public TenantKeyReconciliationHandlerTests()
     {
+        MockPolicy = CreateStrictMock<ITenantKeyPolicy>();
         MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockTenantStore = CreateStrictMock<ITenantStore>();
         MockMediator = CreateStrictMock<IMediator>();
-        PreviousServerSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
-        CurrentServerSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        ServerSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
 
         ServiceProvider = new ServiceCollection()
             .AddScoped(_ => MockMediator.Object)
             .BuildServiceProvider();
 
-        Handler = new TenantKeyReseedJobHandler(
+        Handler = new TenantKeyReconciliationHandler(
             Options.Create(OpenIdOptions),
+            MockPolicy.Object,
             MockEffectiveSettingsResolver.Object,
             MockStoreManagerFactory.Object,
             ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
-            CreateLooseMock<ILogger<TenantKeyReseedJobHandler>>().Object
+            CreateLooseMock<ILogger<TenantKeyReconciliationHandler>>().Object
         );
     }
 
@@ -84,105 +106,121 @@ public sealed class TenantKeyReseedJobHandlerTests : BaseTests
         base.Dispose(disposing);
     }
 
+    private OpenIdTenantKeyProvisioningOptions KeyProvisioning =>
+        OpenIdOptions.Tenant.KeyProvisioning;
+
     #region HandleAsync Tests
 
     [Fact]
-    public async Task HandleAsync_WhenATenantsListsGainAnAlgorithm_AnnouncesItsSettingsChange()
+    public async Task HandleAsync_WhenATenantLacksAKeyItsSettingsUse_AnnouncesItsSettingsChange()
     {
-        SetupServerSettings();
+        SetupSpecifications();
         SetupStoreManager();
 
-        // Two pages, so the job follows the cursor rather than stopping after the first page.
+        // Two pages, so the pass follows the cursor rather than stopping after the first page.
         SetupTenantPage(cursor: null, nextCursor: "next", FirstTenantId);
         SetupTenantPage(cursor: "next", nextCursor: null, SecondTenantId);
-        SetupTenantSettings(FirstTenantId, previous: [], current: ["RS256"]);
-        SetupTenantSettings(SecondTenantId, previous: ["ES256"], current: ["ES256", "RS256"]);
-        SetupAnnouncement(FirstTenantId);
-        SetupAnnouncement(SecondTenantId);
 
-        await Handler.HandleAsync(CreateJob(), Context(), CancellationToken.None);
+        // The first tenant lists RS256 and holds only a key that does not satisfy it; the second lists ES256 and holds a
+        // key that satisfies it.
+        var other = CreateSecret("other");
+        var held = CreateSecret("held");
+        SetupTenantSettings(FirstTenantId, ["RS256"]);
+        SetupSecrets(FirstTenantId, [other]);
+        MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, other)).Returns(false).Verifiable();
+        SetupAnnouncement(FirstTenantId);
+        SetupTenantSettings(SecondTenantId, ["ES256"]);
+        SetupSecrets(SecondTenantId, [held]);
+        MockPolicy.Setup(x => x.IsSatisfiedBy(Es256, held)).Returns(true).Verifiable();
+
+        await Handler.HandleAsync(CreateCommand(), CancellationToken.None);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenATenantAlreadyUsedTheAlgorithm_DoesNotAnnounceIt()
+    public async Task HandleAsync_WhenATenantUsesNoConfiguredAlgorithm_DoesNotReadItsKeys()
     {
-        SetupServerSettings();
+        SetupSpecifications();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
-        SetupTenantSettings(FirstTenantId, previous: ["RS256"], current: ["RS256"]);
 
-        // Strict mocks: no SendAsync setup, so announcing the tenant would fail the test.
-        await Handler.HandleAsync(CreateJob(), Context(), CancellationToken.None);
+        // PS256 is listed but not configured, so no key is needed. Strict mocks: no secrets setup, so reading the
+        // tenant's keys would fail the test.
+        SetupTenantSettings(FirstTenantId, ["PS256"]);
+
+        await Handler.HandleAsync(CreateCommand(), CancellationToken.None);
     }
 
     [Fact]
     public async Task HandleAsync_WhenAnAnnouncementFails_ContinuesWithTheNextTenant()
     {
-        SetupServerSettings();
+        SetupSpecifications();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId, SecondTenantId);
-        SetupTenantSettings(FirstTenantId, previous: [], current: ["RS256"]);
-        SetupTenantSettings(SecondTenantId, previous: [], current: ["RS256"]);
+
+        // Both tenants list RS256 and hold only a key that does not satisfy it.
+        var other = CreateSecret("other");
+        MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, other)).Returns(false).Verifiable();
+        SetupTenantSettings(FirstTenantId, ["RS256"]);
+        SetupSecrets(FirstTenantId, [other]);
         SetupAnnouncement(
             FirstTenantId,
             ValueTask.FromException(new InvalidOperationException("boom"))
         );
+        SetupTenantSettings(SecondTenantId, ["RS256"]);
+        SetupSecrets(SecondTenantId, [other]);
         SetupAnnouncement(SecondTenantId);
 
-        await Handler.HandleAsync(CreateJob(), Context(), CancellationToken.None);
+        await Handler.HandleAsync(CreateCommand(), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenATenantHoldsNoKey_LeavesItToItsFirstMaterialization()
+    {
+        SetupSpecifications();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId, SecondTenantId);
+
+        // Both tenants list RS256 and hold no key, one without any secrets and one with an empty collection. Strict
+        // mocks: no announcement setup, so sending one, or testing a key that does not exist, fails the test.
+        SetupTenantSettings(FirstTenantId, ["RS256"]);
+        SetupSecrets(FirstTenantId, secrets: null);
+        SetupTenantSettings(SecondTenantId, ["RS256"]);
+        SetupSecrets(SecondTenantId, secrets: []);
+
+        await Handler.HandleAsync(CreateCommand(), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenProvisioningIsDisabled_ReadsNoTenant()
+    {
+        // Every mock is strict with no setup: resolving the specifications or reading a tenant fails the test.
+        KeyProvisioning.Enabled = false;
+
+        await Handler.HandleAsync(CreateCommand(), CancellationToken.None);
     }
 
     #endregion
 
     #region Scaffolding
 
-    private static bool HasVersion(JsonElement element, int version) =>
-        element.ValueKind == JsonValueKind.Object
-        && element.TryGetProperty("v", out var value)
-        && value.GetInt32() == version;
-
     private static bool IsTenantDocument(JsonElement element, string tenantId) =>
         element.ValueKind == JsonValueKind.Object
         && element.TryGetProperty("tenant", out var value)
         && value.GetString() == tenantId;
 
-    private static DispatchContext Context() =>
-        new()
-        {
-            DispatchId = Guid.NewGuid(),
-            Attempt = 1,
-            MaxAttempts = 5,
-        };
+    private ReconcileServerSettingsCommand CreateCommand() => new(ServerId, ServerSettings);
 
-    private static TenantKeyReseedJob CreateJob() =>
-        new()
-        {
-            PreviousServerSettings = JsonElement.Parse("""{"v":1}"""),
-            ServerSettings = JsonElement.Parse("""{"v":2}"""),
-            Algorithms = ["RS256"],
-        };
-
-    private void SetupServerSettings()
-    {
-        MockEffectiveSettingsResolver
-            .Setup(x =>
-                x.ResolveServerAsync(
-                    It.Is<JsonElement>(e => HasVersion(e, 1)),
-                    It.IsAny<CancellationToken>()
-                )
+    private void SetupSpecifications() =>
+        MockPolicy
+            .Setup(x => x.ResolveSpecifications(KeyProvisioning))
+            .Returns(
+                new TenantKeySpecificationResolution
+                {
+                    Specifications = [Rs256, Es256],
+                    Errors = [],
+                }
             )
-            .ReturnsAsync(PreviousServerSettings)
             .Verifiable();
-        MockEffectiveSettingsResolver
-            .Setup(x =>
-                x.ResolveServerAsync(
-                    It.Is<JsonElement>(e => HasVersion(e, 2)),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(CurrentServerSettings)
-            .Verifiable();
-    }
 
     private void SetupStoreManager()
     {
@@ -221,29 +259,27 @@ public sealed class TenantKeyReseedJobHandlerTests : BaseTests
             )
             .Verifiable();
 
-    private void SetupTenantSettings(string tenantId, string[] previous, string[] current)
-    {
+    private void SetupTenantSettings(string tenantId, string[] algorithms) =>
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
-                    PreviousServerSettings,
+                    ServerSettings,
                     OpenIdSettingScopes.Tenant,
                     It.Is<JsonElement>(e => IsTenantDocument(e, tenantId))
                 )
             )
-            .Returns(CreateSettings(previous))
+            .Returns(CreateSettings(algorithms))
             .Verifiable();
-        MockEffectiveSettingsResolver
-            .Setup(x =>
-                x.Resolve(
-                    CurrentServerSettings,
-                    OpenIdSettingScopes.Tenant,
-                    It.Is<JsonElement>(e => IsTenantDocument(e, tenantId))
-                )
+
+    private void SetupSecrets(string tenantId, IReadOnlyCollection<PersistedSecret>? secrets) =>
+        MockTenantStore
+            .Setup(x => x.GetSecretsOrDefaultAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                secrets is null
+                    ? null
+                    : new PersistedTenantSecrets { TenantId = tenantId, Value = secrets }
             )
-            .Returns(CreateSettings(current))
             .Verifiable();
-    }
 
     private void SetupAnnouncement(string tenantId, ValueTask? result = null) =>
         MockMediator
@@ -270,6 +306,20 @@ public sealed class TenantKeyReseedJobHandlerTests : BaseTests
             .Returns(true);
         return mockSettings.Object;
     }
+
+    private static PersistedSecret CreateSecret(string secretId) =>
+        new()
+        {
+            SecretId = secretId,
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            SecretType = SecretKeyTypes.Ecc,
+            SecretEncoding = SecretEncodings.Pkcs8,
+            KeySizeBits = 256,
+            EncodedValue = "AA",
+        };
 
     #endregion
 }

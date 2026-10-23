@@ -20,7 +20,6 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Dispatch;
 using NCode.Identity.OpenId.Core.ResourceServers;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Servers;
@@ -114,20 +113,14 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // A committed server settings change that permits a configured algorithm re-seeds the tenants it affects in
-            // the background, so a server change never walks every tenant inside its request (ADR-0169, decision 10).
+            // A change to the server's effective settings seeds every tenant that lacks a key its settings use (ADR-0219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    ICommandHandler<ServerSettingsChangedCommand>,
-                    ServerSettingsChangedTenantKeyHandler
+                    ICommandHandler<ReconcileServerSettingsCommand>,
+                    TenantKeyReconciliationHandler
                 >()
             );
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Scoped<
-                    IDispatchJobHandler<TenantKeyReseedJob>,
-                    TenantKeyReseedJobHandler
-                >()
-            );
+
             serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

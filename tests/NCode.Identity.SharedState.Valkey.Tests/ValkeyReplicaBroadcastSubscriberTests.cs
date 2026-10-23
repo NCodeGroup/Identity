@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Identity.SharedState.Valkey.Facades;
@@ -39,10 +40,31 @@ public sealed class ValkeyReplicaBroadcastSubscriberTests : BaseTests
 
     private Mock<ISubscriber> MockSubscriber { get; }
 
+    private Mock<IConnectionMultiplexer> MockMultiplexer { get; }
+
+    private EventHandler<ConnectionFailedEventArgs>? Restored { get; set; }
+
     public ValkeyReplicaBroadcastSubscriberTests()
     {
         MockConnection = CreateStrictMock<IValkeyConnection>();
         MockSubscriber = CreateStrictMock<ISubscriber>();
+        MockMultiplexer = CreateStrictMock<IConnectionMultiplexer>();
+    }
+
+    private void SetupMultiplexer()
+    {
+        MockSubscriber.Setup(x => x.Multiplexer).Returns(MockMultiplexer.Object).Verifiable();
+        MockMultiplexer
+            .SetupAdd(x =>
+                x.ConnectionRestored += It.IsAny<EventHandler<ConnectionFailedEventArgs>>()
+            )
+            .Callback<EventHandler<ConnectionFailedEventArgs>>(handler => Restored = handler)
+            .Verifiable();
+        MockMultiplexer
+            .SetupRemove(x =>
+                x.ConnectionRestored -= It.IsAny<EventHandler<ConnectionFailedEventArgs>>()
+            )
+            .Verifiable();
     }
 
     private Mock<IReplicaBroadcastHandler> CreateHandler(string channel)
@@ -51,6 +73,12 @@ public sealed class ValkeyReplicaBroadcastSubscriberTests : BaseTests
         mockHandler.Setup(x => x.Channel).Returns(channel).Verifiable();
         return mockHandler;
     }
+
+    private static void SetupMissedMessages(Mock<IReplicaBroadcastHandler> mockHandler) =>
+        mockHandler
+            .Setup(x => x.HandleMissedMessagesAsync(CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
     private ValkeyReplicaBroadcastSubscriber CreateSubscriber(
         TimeSpan retryDelay,
@@ -105,17 +133,20 @@ public sealed class ValkeyReplicaBroadcastSubscriberTests : BaseTests
             .Callback(() => handled[0].TrySetResult())
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+        SetupMissedMessages(mockFirst);
         var mockSecond = CreateHandler(Channel);
         mockSecond
             .Setup(x => x.HandleAsync("acme", CancellationToken.None))
             .Callback(() => handled[1].TrySetResult())
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+        SetupMissedMessages(mockSecond);
         MockConnection
             .Setup(x => x.GetSubscriberAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MockSubscriber.Object)
             .Verifiable();
         var subscribed = SetupSubscribe();
+        SetupMultiplexer();
 
         using var subscriber = CreateSubscriber(
             TimeSpan.FromSeconds(5),
@@ -150,7 +181,9 @@ public sealed class ValkeyReplicaBroadcastSubscriberTests : BaseTests
             )
             .Verifiable();
         var subscribed = SetupSubscribe();
+        SetupMultiplexer();
         var mockHandler = CreateHandler(Channel);
+        SetupMissedMessages(mockHandler);
 
         using var subscriber = CreateSubscriber(TimeSpan.FromMilliseconds(10), mockHandler.Object);
         await subscriber.StartAsync(CancellationToken.None);
@@ -214,7 +247,9 @@ public sealed class ValkeyReplicaBroadcastSubscriberTests : BaseTests
                 (_, handler, _) => unsubscribed.Add(handler)
             )
             .Verifiable();
+        SetupMultiplexer();
         var mockHandler = CreateHandler(Channel);
+        SetupMissedMessages(mockHandler);
 
         using var subscriber = CreateSubscriber(TimeSpan.FromMilliseconds(10), mockHandler.Object);
         await subscriber.StartAsync(CancellationToken.None);
@@ -222,6 +257,75 @@ public sealed class ValkeyReplicaBroadcastSubscriberTests : BaseTests
 
         Assert.Equal(2, subscribed.Count);
         Assert.Same(subscribed[0], Assert.Single(unsubscribed));
+
+        await subscriber.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_AfterSubscribingAChannel_TellsItsHandlersTheyMayHaveMissedMessages()
+    {
+        var told = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var mockHandler = CreateHandler(Channel);
+        mockHandler
+            .Setup(x => x.HandleMissedMessagesAsync(CancellationToken.None))
+            .Callback(() => told.TrySetResult())
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockConnection
+            .Setup(x => x.GetSubscriberAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockSubscriber.Object)
+            .Verifiable();
+        SetupSubscribe();
+        SetupMultiplexer();
+
+        using var subscriber = CreateSubscriber(TimeSpan.FromSeconds(5), mockHandler.Object);
+        await subscriber.StartAsync(CancellationToken.None);
+        await told.Task.WaitAsync(Timeout);
+
+        await subscriber.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenTheConnectionIsRestored_TellsEveryHandlerItMayHaveMissedMessages()
+    {
+        var calls = 0;
+        var toldTwice = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var mockHandler = CreateHandler(Channel);
+        mockHandler
+            .Setup(x => x.HandleMissedMessagesAsync(CancellationToken.None))
+            .Callback(() =>
+            {
+                if (Interlocked.Increment(ref calls) == 2)
+                    toldTwice.TrySetResult();
+            })
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockConnection
+            .Setup(x => x.GetSubscriberAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockSubscriber.Object)
+            .Verifiable();
+        var subscribed = SetupSubscribe();
+        SetupMultiplexer();
+
+        using var subscriber = CreateSubscriber(TimeSpan.FromSeconds(5), mockHandler.Object);
+        await subscriber.StartAsync(CancellationToken.None);
+        await subscribed.Task.WaitAsync(Timeout);
+
+        Assert.NotNull(Restored);
+        Restored(
+            this,
+            new ConnectionFailedEventArgs(
+                this,
+                new DnsEndPoint("localhost", 6379),
+                ConnectionType.Subscription,
+                ConnectionFailureType.None,
+                new InvalidOperationException("restored"),
+                "physical"
+            )
+        );
+        await toldTwice.Task.WaitAsync(Timeout);
 
         await subscriber.StopAsync(CancellationToken.None);
     }

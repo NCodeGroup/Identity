@@ -1,6 +1,8 @@
 # 205. Replicas announce changes through a broadcast port
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a handler learns of
+  messages it may have missed, and a server settings change is announced too)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -33,6 +35,8 @@ for state that every replica must see
    - `IReplicaBroadcaster.PublishAsync(channel, message, cancellationToken)` announces a message on a channel.
    - `IReplicaBroadcastHandler` has a `Channel` and `HandleAsync(message, cancellationToken)`. A handler is registered
      with `TryAddEnumerable`, and several handlers may share a channel.
+   - `IReplicaBroadcastHandler.HandleMissedMessagesAsync(cancellationToken)` handles the possibility that messages on
+     the channel did not reach this replica (decision 6).
 
    Channels are an open vocabulary: a name and a string message, compared ordinally. A feature names its own channel and
    registers a handler for it, and the broadcaster knows neither.
@@ -54,9 +58,12 @@ for state that every replica must see
      `broadcast.publish` operation of the Valkey shared-state metrics.
    - `ValkeyReplicaBroadcastSubscriber` is a hosted service. At startup it subscribes this replica to the channel of
      every registered handler, and it retries every 5 seconds while the server is unreachable
-     (`ReplicaBroadcastSubscribeFailed`). The connection restores a subscription after a reconnect. A message is
-     handed to its handlers on a thread-pool thread, so a slow handler never blocks the connection's receive loop, and a
-     handler's failure is logged (`ReplicaBroadcastHandlerFailed`).
+     (`ReplicaBroadcastSubscribeFailed`). The connection restores a subscription after a reconnect. Once a channel is
+     subscribed, the subscriber calls `HandleMissedMessagesAsync` on its handlers, because a message published before
+     the subscription took effect did not reach the replica, and when the connection is restored
+     (`ConnectionRestored`) it calls it on every handler. A message is handed to its handlers on a thread-pool thread,
+     so a slow handler never blocks the connection's receive loop, and a handler's failure is logged
+     (`ReplicaBroadcastHandlerFailed`).
    - The access-control user of the connection needs the `PUBLISH` and `SUBSCRIBE` commands as well as those of the
      other adapters.
 5. **A tenant change is announced on the `tenant-changed` channel.** The message is the tenant identifier.
@@ -65,13 +72,18 @@ for state that every replica must see
      committed either way.
    - `TenantChangeBroadcastHandler` evicts the tenant from the cache of whichever replica receives the announcement.
      The eviction is idempotent, so the second eviction on the replica that made the change is harmless.
+     `TenantChangeBroadcastHandler.HandleMissedMessagesAsync` evicts every cached tenant.
    - A publish failure is logged (`TenantChangeBroadcastFailed`) and swallowed. The write is already committed, so it
      succeeds, and a replica that missed the announcement converges as decision 6 describes.
-6. **A missed message falls back to the polls and the cache expiration.** The announcement is a hint that shortens the
-   window, not the mechanism that closes it. A replica that was disconnected when a message was published learns of a
-   settings change through its poll within 5 minutes and of a secret change within 15, and drops a tenant that was
-   disabled or deleted when its entry expires. Closing that remaining window, with an absolute lifetime for the cached
-   tenant or a flush when the subscription reconnects, is backlog `R58`.
+6. **A missed message is bounded.** The announcement is a hint that shortens the window, not the mechanism that closes
+   it. A replica whose subscription was interrupted evicts every cached tenant when it is restored, and a cached tenant
+   expires `OpenIdTenantOptions.TenantCacheLifetime` (15 minutes) after it was materialized, so a replica that missed
+   an announcement for any other reason, such as a publisher that could not reach Valkey, serves the tenant at most
+   that long, and its polls bound its settings and secrets
+   ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+7. **A server settings change is announced on the `server-settings-changed` channel.** The message is the server
+   identifier, and every replica reads the server's committed settings document again
+   ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
 
 ## Options considered
 
@@ -95,7 +107,8 @@ for state that every replica must see
   `TenantChangedCommand`, so those tenants are announced too.
 - A Valkey outage fails no management write. The publisher logs the failure and the `broadcast.publish` metric records
   it, and the replicas converge as decision 6 describes.
+- A restored Valkey connection evicts every tenant the replica cached.
 - The access-control user of the Valkey connection needs `PUBLISH` and `SUBSCRIBE`.
 - A feature that needs another replica to drop what it cached names a channel and registers an
   `IReplicaBroadcastHandler`, and changes neither the port nor an adapter.
-- This implements backlog `R49`.
+- This implements backlog `R49`; with ADR-0219 it closes `R58`.

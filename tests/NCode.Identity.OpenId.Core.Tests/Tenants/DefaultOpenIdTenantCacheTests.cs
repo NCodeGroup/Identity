@@ -39,20 +39,33 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
         Cache = new DefaultOpenIdTenantCache(Options.Create(new OpenIdOptions()), MemoryCache);
     }
 
-    public void Dispose() => MemoryCache.Dispose();
+    public void Dispose()
+    {
+        Cache.Dispose();
+        MemoryCache.Dispose();
+    }
+
+    private static Mock<OpenIdTenant> CreateMockTenant(TaskCompletionSource? disposed = null)
+    {
+        var mockTenant = new Mock<OpenIdTenant>(MockBehavior.Strict);
+        mockTenant
+            .Protected()
+            .Setup<ValueTask>("DisposeAsyncCore")
+            .Callback(() => disposed?.TrySetResult())
+            .Returns(ValueTask.CompletedTask);
+        return mockTenant;
+    }
+
+    private static TaskCompletionSource CreateCompletionSource() =>
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     #region RemoveAsync Tests
 
     [Fact]
     public async Task RemoveAsync_WhenTheTenantIsCached_ReleasesTheCacheReferenceOnly()
     {
-        var disposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var mockTenant = new Mock<OpenIdTenant>(MockBehavior.Strict);
-        mockTenant
-            .Protected()
-            .Setup<ValueTask>("DisposeAsyncCore")
-            .Callback(disposed.SetResult)
-            .Returns(ValueTask.CompletedTask);
+        var disposed = CreateCompletionSource();
+        var mockTenant = CreateMockTenant(disposed);
         var propertyBag = PropertyBagFactory.Create();
 
         // Only the cache and the handed-out lease hold the tenant once the creator releases its own reference.
@@ -99,6 +112,121 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
             CancellationToken.None
         );
         Assert.False(lease.IsActive);
+    }
+
+    #endregion
+
+    #region ClearAsync Tests
+
+    [Fact]
+    public async Task ClearAsync_EvictsEveryCachedTenant()
+    {
+        const string otherTenantId = "globex";
+        var firstDisposed = CreateCompletionSource();
+        var secondDisposed = CreateCompletionSource();
+        var firstTenant = CreateMockTenant(firstDisposed);
+        var secondTenant = CreateMockTenant(secondDisposed);
+        var propertyBag = PropertyBagFactory.Create();
+
+        // Only the cache holds the tenants once the creators release their own references.
+        await using (var first = AsyncSharedReference.Create(firstTenant.Object))
+        await using (var second = AsyncSharedReference.Create(secondTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, first, propertyBag, CancellationToken.None);
+            await Cache.SetAsync(otherTenantId, second, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.ClearAsync(propertyBag, CancellationToken.None);
+
+        await using (
+            var firstAfterClear = await Cache.TryGetAsync(
+                TenantId,
+                propertyBag,
+                CancellationToken.None
+            )
+        )
+        {
+            Assert.False(firstAfterClear.IsActive);
+        }
+
+        await using (
+            var secondAfterClear = await Cache.TryGetAsync(
+                otherTenantId,
+                propertyBag,
+                CancellationToken.None
+            )
+        )
+        {
+            Assert.False(secondAfterClear.IsActive);
+        }
+
+        // The eviction releases the cache's references, so each tenant is disposed.
+        await firstDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+        await secondDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ClearAsync_KeepsATenantCachedAfterIt()
+    {
+        var mockTenant = CreateMockTenant();
+        var propertyBag = PropertyBagFactory.Create();
+
+        await Cache.ClearAsync(propertyBag, CancellationToken.None);
+
+        await using var owner = AsyncSharedReference.Create(mockTenant.Object);
+        await Cache.SetAsync(TenantId, owner, propertyBag, CancellationToken.None);
+
+        await using var lease = await Cache.TryGetAsync(
+            TenantId,
+            propertyBag,
+            CancellationToken.None
+        );
+
+        Assert.True(lease.IsActive);
+        Assert.Same(mockTenant.Object, lease.Value);
+    }
+
+    #endregion
+
+    #region SetAsync Tests
+
+    [Fact]
+    public async Task SetAsync_WhenTheLifetimeElapses_EvictsTheTenant()
+    {
+        var mockTenant = CreateMockTenant();
+        var propertyBag = PropertyBagFactory.Create();
+        var options = new OpenIdOptions
+        {
+            Tenant = { TenantCacheLifetime = TimeSpan.FromMilliseconds(50) },
+        };
+
+        using var shortLivedMemoryCache = new MemoryCache(new MemoryCacheOptions());
+        using var shortLivedCache = new DefaultOpenIdTenantCache(
+            Options.Create(options),
+            shortLivedMemoryCache
+        );
+
+        await using (var owner = AsyncSharedReference.Create(mockTenant.Object))
+        {
+            await shortLivedCache.SetAsync(TenantId, owner, propertyBag, CancellationToken.None);
+        }
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (true)
+        {
+            await using var lease = await shortLivedCache.TryGetAsync(
+                TenantId,
+                propertyBag,
+                CancellationToken.None
+            );
+
+            if (!lease.IsActive)
+                break;
+
+            Assert.True(DateTime.UtcNow < deadline, "The tenant was not evicted within 5 seconds.");
+
+            await Task.Delay(TimeSpan.FromMilliseconds(20), CancellationToken.None);
+        }
     }
 
     #endregion

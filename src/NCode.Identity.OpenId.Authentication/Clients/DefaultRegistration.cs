@@ -24,6 +24,8 @@ using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Clients.Coherence;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
+using NCode.Identity.OpenId.Servers;
+using NCode.Mediator;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
@@ -193,6 +195,14 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<
                     IClientCoherenceRule,
                     BackchannelTokenDeliveryCoherenceRule
+                >()
+            );
+
+            // A change of the server's settings that is not a write is reported client by client (ADR-0219).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ReconcileServerSettingsCommand>,
+                    ClientCoherenceReportHandler
                 >()
             );
 

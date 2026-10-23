@@ -71,4 +71,13 @@ public interface IOpenIdTenantCache
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Removes every cached <see cref="OpenIdTenant"/> instance, so the next request for any tenant materializes it
+    /// again from the store. A lease already handed out stays usable until its holder releases it.
+    /// </summary>
+    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask ClearAsync(IPropertyBag propertyBag, CancellationToken cancellationToken);
 }

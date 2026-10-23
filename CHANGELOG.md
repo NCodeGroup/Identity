@@ -10,6 +10,33 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **A server settings write takes effect at once on every replica.** After the server settings PATCH commits, the
+  replica that handled it reads the committed document again before it answers and announces the change on the
+  `server-settings-changed` replica broadcast channel, so every replica that receives the announcement reads it again.
+  `OpenIdServer.RefreshSettingsAsync` reads the document on demand, and the poll
+  (`OpenId:Server:SettingsPeriodicRefreshInterval`, 5 minutes) is the fallback for a replica that missed the
+  announcement
+  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R57`).
+
+- **Every tenant and stored client is reconciled with the server's effective settings when they change.** Each replica
+  runs `ServerSettingsReconciliationService`, which reacts to a management write, a configuration reload, and a
+  deployment that changes the server's effective settings. One replica, holding a lease in the shared state for
+  `OpenId:Server:ReconciliationLeaseDuration` (10 minutes by default), sends `ReconcileServerSettingsCommand`:
+  `TenantKeyReconciliationHandler` seeds every tenant that holds keys but lacks one its settings use, and
+  `ClientCoherenceReportHandler` logs every stored client that the settings make incoherent, the bootstrap
+  administrator included. `PersistedServer.ReconciledSettingsFingerprint`, which the
+  `AddServerReconciledSettingsFingerprint` migration adds, records what was reconciled, so a pass that a restart
+  interrupted runs again and a start that changes nothing runs none
+  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R61`
+  and `R72`).
+
+- **A replica that may have missed a broadcast drops what the message would have invalidated.**
+  `IReplicaBroadcastHandler.HandleMissedMessagesAsync` is called by the Valkey subscriber once it subscribes a channel
+  and whenever its connection is restored. The tenant handler evicts every cached tenant through
+  `IOpenIdTenantCache.ClearAsync`, and the server handler reads the server's settings again
+  ([ADR-0205](docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md),
+  [ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R58`).
+
 - **`refresh_token_reuse_interval` lets a client retry a refresh with its rotated refresh token.** The interval is off
   by default and at most 60 seconds. A rotated refresh token that is presented within the interval is answered as the
   rotation was, and the retry receives a new refresh token in the same rotation family, so a client that lost the
@@ -127,9 +154,10 @@ change to the public API is a **major** version bump.
   ([ADR-0205](docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md), backlog `R49`).
 
 - **`ServerSettingsChangedCommand`.** The server settings PATCH sends it after it commits, carrying the previous and the
-  new document. When a list gains an algorithm the server is configured to provision, a background `TenantKeyReseedJob`
-  re-seeds each tenant whose effective lists newly name it, outside the request
-  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), backlog `R50`).
+  new document. Its default handler reads the document again on this replica and announces the change to every replica,
+  and the reconciliation of the server's settings then seeds each tenant that holds keys but lacks one its lists name,
+  outside the request ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md),
+  [ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R50`).
 
 - **`ITenantStore.GetSettingsPageAsync` and `IClientStore.GetSettingsPageAsync`.** Each reads a page of settings
   documents without their secrets and without change tracking, for a pass over every tenant or client (backlog `R21`).
@@ -579,6 +607,26 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **Breaking: a cached tenant expires 15 minutes after it is materialized, however often it is used.**
+  `OpenIdTenantOptions.TenantCacheLifetime` (`OpenId:Tenant:TenantCacheLifetime`) is an absolute lifetime that
+  replaces the 4-hour sliding `TenantCacheExpiration`, so a replica that missed a tenant's change announcement serves
+  the tenant at most that long
+  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R58`).
+
+- **Breaking: `OpenIdServer.RefreshSettingsAsync`, `IOpenIdTenantCache.ClearAsync`,
+  `IReplicaBroadcastHandler.HandleMissedMessagesAsync`, and `IServerStore.UpdateReconciledSettingsFingerprintAsync`
+  are members a custom implementation implements**, and `IServerStore.UpdateSettingsAsync` clears the server's
+  `ReconciledSettingsFingerprint` in the same unit of work
+  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R57`,
+  `R58` and `R61`).
+
+- **The tenant re-seed after a server settings change is part of the reconciliation, not a job on `IJobDispatcher`.**
+  It also runs after a configuration reload and a deployment, it holds no dispatcher worker, and it evicts only the
+  tenants that hold keys but lack one their settings use. `NCode.Identity.OpenId.Core` does not reference
+  `NCode.Identity.Dispatch.Abstractions`
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md),
+  [ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R61`).
 
 - **Breaking: refresh-token rotation goes through `ITokenService.RotateRefreshTokenAsync`, which stores the successor
   with `IPersistedGrantService.ReplaceOnceOrDefault`; `IPersistedGrantService.TryRevokeOnceAsync` spends a token that

@@ -56,4 +56,12 @@ public abstract class OpenIdServer
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.
     /// </summary>
     public abstract IPropertyBag PropertyBag { get; }
+
+    /// <summary>
+    /// Reads the server's persisted settings document again now, so a change that any replica committed takes effect in
+    /// <see cref="SettingsProvider"/> without waiting for the next periodic refresh.
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to cancel the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    public abstract ValueTask RefreshSettingsAsync(CancellationToken cancellationToken);
 }

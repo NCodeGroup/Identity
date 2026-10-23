@@ -18,7 +18,10 @@
 
 using IdGen;
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.SharedState;
+using NCode.Mediator;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Servers;
@@ -46,6 +49,38 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<IOpenIdServerFactory, DefaultOpenIdServerFactory>();
             serviceCollection.TryAddSingleton<IOpenIdServerProvider, DefaultOpenIdServerProvider>();
+
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddSingleton<
+                IMaterializedServerRegistry,
+                DefaultMaterializedServerRegistry
+            >();
+
+            // A committed server settings change is applied on this replica before the write returns and then announced
+            // to every replica (ADR-0219).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ServerSettingsChangedCommand>,
+                    ServerSettingsChangedHandler
+                >()
+            );
+
+            // A server settings change announced on the replica broadcast channel makes every replica read the committed
+            // settings again, so each serves the change rather than only the one that made it (ADR-0219).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IReplicaBroadcastHandler,
+                    ServerSettingsChangeBroadcastHandler
+                >()
+            );
+
+            // Each replica reconciles every tenant and client with the server's effective settings whenever they change,
+            // one replica per change (ADR-0219).
+            serviceCollection.TryAddSingleton<
+                IServerSettingsReconciler,
+                DefaultServerSettingsReconciler
+            >();
+            serviceCollection.AddHostedService<ServerSettingsReconciliationService>();
 
             return builder;
         }

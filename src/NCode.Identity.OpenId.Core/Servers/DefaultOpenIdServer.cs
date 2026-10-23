@@ -31,9 +31,12 @@ internal class DefaultOpenIdServer(
     IReadOnlySettingCollectionProvider configuredSettingsProvider,
     IReadOnlySettingCollectionProvider settingsProvider,
     ISecretKeyCollectionProvider secretsProvider,
+    Func<CancellationToken, ValueTask> refreshSettingsAsync,
     IPropertyBag propertyBag
 ) : OpenIdServer, IAsyncDisposable
 {
+    private Func<CancellationToken, ValueTask> RefreshSettings { get; } = refreshSettingsAsync;
+
     /// <inheritdoc />
     public override string ServerId { get; } = serverId;
 
@@ -49,6 +52,10 @@ internal class DefaultOpenIdServer(
 
     /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = propertyBag;
+
+    /// <inheritdoc />
+    public override ValueTask RefreshSettingsAsync(CancellationToken cancellationToken) =>
+        RefreshSettings(cancellationToken);
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()

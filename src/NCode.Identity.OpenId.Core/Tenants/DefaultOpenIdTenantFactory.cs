@@ -130,8 +130,9 @@ public class DefaultOpenIdTenantFactory(
         // alone (static/path strategies). Host-based tenancy must map its domain to a tenant via the store, so it
         // falls through to a full resolve. A cache hit intentionally serves the cached tenant without re-reading the
         // store. A management write announces the change (TenantChangedCommand), and every replica evicts the tenant
-        // when the announcement arrives (ADR-0205). A replica that missed the announcement falls back to its polls
-        // and the cache's expiration.
+        // when the announcement arrives (ADR-0205). A replica that missed the announcement evicts every cached tenant
+        // when its subscription is restored, and a cached tenant lives at most OpenIdTenantOptions.TenantCacheLifetime
+        // (ADR-0219).
         PersistedTenant? persistedTenant = null;
         if (!TenantResolver.TryGetTenantId(httpContext, out var tenantId))
         {

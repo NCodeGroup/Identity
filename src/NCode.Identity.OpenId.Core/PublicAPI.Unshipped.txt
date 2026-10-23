@@ -22,6 +22,8 @@ NCode.Identity.OpenId.OpenIdOptions.Tenant.get -> NCode.Identity.OpenId.OpenIdTe
 NCode.Identity.OpenId.OpenIdOptions.Tenant.set -> void
 NCode.Identity.OpenId.OpenIdServerOptions
 NCode.Identity.OpenId.OpenIdServerOptions.OpenIdServerOptions() -> void
+NCode.Identity.OpenId.OpenIdServerOptions.ReconciliationLeaseDuration.get -> System.TimeSpan
+NCode.Identity.OpenId.OpenIdServerOptions.ReconciliationLeaseDuration.set -> void
 NCode.Identity.OpenId.OpenIdServerOptions.SecretsPeriodicRefreshInterval.get -> System.TimeSpan
 NCode.Identity.OpenId.OpenIdServerOptions.SecretsPeriodicRefreshInterval.set -> void
 NCode.Identity.OpenId.OpenIdServerOptions.ServerId.get -> string!
@@ -52,8 +54,8 @@ NCode.Identity.OpenId.OpenIdTenantOptions.SecretsPeriodicRefreshInterval.get -> 
 NCode.Identity.OpenId.OpenIdTenantOptions.SecretsPeriodicRefreshInterval.set -> void
 NCode.Identity.OpenId.OpenIdTenantOptions.SettingsPeriodicRefreshInterval.get -> System.TimeSpan
 NCode.Identity.OpenId.OpenIdTenantOptions.SettingsPeriodicRefreshInterval.set -> void
-NCode.Identity.OpenId.OpenIdTenantOptions.TenantCacheExpiration.get -> System.TimeSpan
-NCode.Identity.OpenId.OpenIdTenantOptions.TenantCacheExpiration.set -> void
+NCode.Identity.OpenId.OpenIdTenantOptions.TenantCacheLifetime.get -> System.TimeSpan
+NCode.Identity.OpenId.OpenIdTenantOptions.TenantCacheLifetime.set -> void
 NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantFactory
 NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantFactory.CollectionDataSourceFactory.get -> NCode.Collections.Providers.ICollectionDataSourceFactory!
 NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantFactory.DefaultOpenIdTenantFactory(NCode.Identity.OpenId.Tenants.ITenantResolver! tenantResolver, Microsoft.Extensions.Options.IOptions<NCode.Identity.OpenId.OpenIdOptions!>! optionsAccessor, NCode.Persistence.Stores.IStoreManagerFactory! storeManagerFactory, NCode.Identity.OpenId.Tenants.IOpenIdTenantCache! tenantCache, NCode.Identity.Settings.IReadOnlySettingCollectionProviderFactory! settingCollectionProviderFactory, NCode.Identity.Settings.ISettingSerializer! settingSerializer, NCode.Identity.Secrets.Persistence.ISecretSerializer! secretSerializer, NCode.Identity.Secrets.Collections.ISecretKeyCollectionProviderFactory! secretKeyCollectionProviderFactory, NCode.Collections.Providers.ICollectionDataSourceFactory! collectionDataSourceFactory, NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver! effectiveSettingsResolver) -> void

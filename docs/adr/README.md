@@ -75,7 +75,7 @@ standards.
 | [0034](./0034-persisted-role-assignments-and-ownership.md)                                | Persisted resource-scoped role assignments and ownership                                                                   | Accepted                                                                                                                             |
 | [0035](./0035-federated-principals-and-identity-resolution.md)                            | Federated principals: one actor, many connection-identities, with a server-owned stable id                                 | Accepted                                                                                                                             |
 | [0036](./0036-unified-openid-request-environment.md)                                      | A single OpenID request environment for every HTTP surface                                                                 | Accepted                                                                                                                             |
-| [0037](./0037-tenant-cache-probe-before-store-load.md)                                    | The tenant cache is probed before the store is read on the resolution hot path                                             | Accepted                                                                                                                             |
+| [0037](./0037-tenant-cache-probe-before-store-load.md)                                    | The tenant cache is probed before the store is read on the resolution hot path                                             | Accepted (amended by [0219](./0219-server-settings-converge-on-every-replica-through-one-reconciliation.md))                         |
 | [0038](./0038-setting-merge-lattice-duals.md)                                             | Setting merge is a policy of lattice duals — ceiling, floor, or override                                                   | Accepted (`allow_unsafe_token_response` retired by [0142](./0142-listed-response-types-are-the-only-front-channel-token-control.md)) |
 | [0039](./0039-claims-request-parameter.md)                                                | The OpenID Connect `claims` request parameter is honored end-to-end                                                        | Accepted                                                                                                                             |
 | [0040](./0040-effective-settings-preview-endpoints.md)                                    | Effective-settings preview endpoints for tenant, client, and server                                                        | Accepted (amended by [0149](./0149-settings-declare-the-scopes-they-apply-to.md))                                                    |
@@ -205,7 +205,7 @@ standards.
 | [0166](./0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md) | A tenant is provisioned through one pipeline under every strategy | Accepted (production key provisioning realized by [0169](./0169-every-tenant-is-provisioned-with-persisted-keys.md)) |
 | [0167](./0167-the-server-validates-the-tokens-it-issued-under-one-policy.md) | The server validates the tokens it issued under one policy | Accepted |
 | [0168](./0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md) | Introspection discloses a token only to the party that consumes it | Accepted |
-| [0169](./0169-every-tenant-is-provisioned-with-persisted-keys.md) | Every tenant is provisioned with persisted keys | Accepted |
+| [0169](./0169-every-tenant-is-provisioned-with-persisted-keys.md) | Every tenant is provisioned with persisted keys | Accepted (amended by [0219](./0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)) |
 | [0170](./0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md) | Agent work is planned on a frontier model and executed step by step on a cheaper one | Accepted |
 | [0172](./0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md) | Forwarded client certificates are decoded by a registered format | Accepted |
 | [0173](./0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md) | `tls_client_auth` certificates chain to configured trust anchors | Accepted |
@@ -240,8 +240,8 @@ standards.
 | [0202](./0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md) | FAPI 1.0 Advanced is a second registered security profile | Accepted |
 | [0203](./0203-redirect-uris-are-matched-exactly.md) | Redirect URIs are matched exactly | Accepted |
 | [0204](./0204-a-scopes-effective-settings-are-resolved-by-one-service.md) | A scope's effective settings are resolved by one service | Accepted |
-| [0205](./0205-replicas-announce-changes-through-a-broadcast-port.md) | Replicas announce changes through a broadcast port | Accepted |
-| [0206](./0206-a-clients-settings-are-checked-by-registered-coherence-rules.md) | A client's settings are checked by registered coherence rules | Accepted |
+| [0205](./0205-replicas-announce-changes-through-a-broadcast-port.md) | Replicas announce changes through a broadcast port | Accepted (amended by [0219](./0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)) |
+| [0206](./0206-a-clients-settings-are-checked-by-registered-coherence-rules.md) | A client's settings are checked by registered coherence rules | Accepted (amended by [0219](./0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)) |
 | [0207](./0207-client-authentication-methods-are-named-by-registered-descriptors.md) | Client-authentication methods are named by registered descriptors | Accepted |
 | [0208](./0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) | A lost concurrency race surfaces as a store-neutral exception | Accepted |
 | [0209](./0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md) | A replica adds each usage batch to the ledger once | Accepted |
@@ -254,3 +254,4 @@ standards.
 | [0216](./0216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md) | A refresh token is rotated unless it is sender-constrained | Accepted |
 | [0217](./0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md) | A rotated refresh token may be retried within a reuse interval | Accepted |
 | [0218](./0218-ended-grants-are-removed-after-a-retention-period.md) | Ended grants are removed after a retention period | Accepted |
+| [0219](./0219-server-settings-converge-on-every-replica-through-one-reconciliation.md) | Server settings converge on every replica through one reconciliation | Accepted |

@@ -25,7 +25,8 @@ namespace NCode.Identity.OpenId.Tenants;
 /// Handles the announcement that a tenant changed by evicting the tenant from this replica's
 /// <see cref="IOpenIdTenantCache"/>. Every replica receives the announcement, the one that made the change included, so
 /// the next request on any replica materializes the tenant again. The message is the tenant identifier. Evicting is
-/// idempotent, so the second eviction on the replica that made the change, and a repeated message, are harmless.
+/// idempotent, so the second eviction on the replica that made the change, and a repeated message, are harmless. A
+/// replica that may have missed an announcement evicts every cached tenant.
 /// </summary>
 // See ADR-0205.
 internal sealed class TenantChangeBroadcastHandler(IOpenIdTenantCache tenantCache)
@@ -44,4 +45,8 @@ internal sealed class TenantChangeBroadcastHandler(IOpenIdTenantCache tenantCach
     /// <inheritdoc />
     public ValueTask HandleAsync(string message, CancellationToken cancellationToken) =>
         TenantCache.RemoveAsync(message, PropertyBagFactory.Create(), cancellationToken);
+
+    /// <inheritdoc />
+    public ValueTask HandleMissedMessagesAsync(CancellationToken cancellationToken) =>
+        TenantCache.ClearAsync(PropertyBagFactory.Create(), cancellationToken);
 }

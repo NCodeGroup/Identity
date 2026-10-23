@@ -1168,8 +1168,8 @@ internal class ServerApiEndpointHandler(
     }
 
     // Announces a committed change to the server's settings document, so every handler of the change (the default one
-    // re-seeds the tenants whose keys the new settings require) runs after the write (ADR-0169). The mediator is
-    // request-scoped, so it is resolved from the request's services.
+    // reads the document again on every replica, whose reconciliation then seeds the tenants and checks the clients,
+    // ADR-0219) runs after the write. The mediator is request-scoped, so it is resolved from the request's services.
     private static ValueTask NotifyServerSettingsChangedAsync(
         HttpContext httpContext,
         string serverId,

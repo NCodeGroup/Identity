@@ -8,6 +8,7 @@ NCode.Identity.SharedState.IExpiringKeySet.TryAddAsync(string! key, System.DateT
 NCode.Identity.SharedState.IReplicaBroadcastHandler
 NCode.Identity.SharedState.IReplicaBroadcastHandler.Channel.get -> string!
 NCode.Identity.SharedState.IReplicaBroadcastHandler.HandleAsync(string! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.SharedState.IReplicaBroadcastHandler.HandleMissedMessagesAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.SharedState.IReplicaBroadcaster
 NCode.Identity.SharedState.IReplicaBroadcaster.PublishAsync(string! channel, string! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.SharedState.SharedStateLibrary

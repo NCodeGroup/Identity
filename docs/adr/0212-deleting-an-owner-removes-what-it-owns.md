@@ -1,6 +1,7 @@
 # 212. Deleting a client or a tenant removes what it owns, its end users' data included
 
-- **Status:** Accepted
+- **Status:** Accepted (amended in place: a client or a resource server is removed with the role assignments at its
+  node, and ended grants are pruned)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -19,9 +20,10 @@ enforces no foreign key, so no test of the hermetic host saw any of it (backlog 
 **Deleting an owner removes what it owns, in the same unit of work.**
 
 1. **A client is removed with everything that exists for it.** Deleting a client removes its secrets with their key
-   material, its grants to resource servers, its consents, and every grant issued to it, such as its authorization
-   codes, tokens, pushed authorization requests, device and CIBA grants, and its registration access token. Nothing but
-   authorization blocks the delete, and `IClientStore.HasDependentsAsync` is removed.
+   material, its grants to resource servers, its consents, every role assignment at its resource node, ownership
+   included, and every grant issued to it, such as its authorization codes, tokens, pushed authorization requests,
+   device and CIBA grants, and its registration access token. Nothing but authorization blocks the delete, and
+   `IClientStore.HasDependentsAsync` is removed.
 2. **A tenant is refused while it holds an operator's records, and is otherwise removed with everything it owns.** A
    tenant that holds a client or a non-system resource server is refused (`409 Conflict`)
    ([ADR-0169](0169-every-tenant-is-provisioned-with-persisted-keys.md) decision 11). Everything else the tenant owns is
@@ -40,6 +42,10 @@ enforces no foreign key, so no test of the hermetic host saw any of it (backlog 
 5. **A deregistration relies on the store alone.** `DELETE` of a dynamically registered client
    ([ADR-0063](0063-dynamic-client-registration.md)) removes the client through `IClientStore.RemoveAsync`, which
    removes its secrets and its registration access token with it.
+6. **A resource server is removed with its scopes, its secrets and every role assignment at its node.** The stores find
+   the assignments by the node's resource type, which is the persisted resource type (`OpenIdResourceTypes`), and by
+   the normalized identifier in the resource's tenant, so the management delete and the deregistration of a dynamically
+   registered client both remove them.
 
 ## Options considered
 
@@ -59,12 +65,12 @@ enforces no foreign key, so no test of the hermetic host saw any of it (backlog 
 - Deleting a client ends every refresh token and every reference grant issued to it at once. The JWT access tokens that
   were issued run to their expiry.
 - Deleting a tenant erases its users irreversibly.
-- The store loads every row that it removes into one unit of work, so deleting an owner with a very large number of
-  grants is a large unit of work (backlog `R76`).
-- The owner role assignments of a deleted client remain (backlog `R75`).
-- **Breaking:** `IClientStore.HasDependentsAsync` is removed, and `RemoveAsync` of the client store and of the tenant
-  store removes what the resource owns.
-- This implements backlog `R59`.
+- The store loads the grants that it removes into one unit of work; ended grants are pruned after their retention
+  ([ADR-0218](0218-ended-grants-are-removed-after-a-retention-period.md)), which bounds it.
+- A deleted client or resource server leaves no role assignment at its node.
+- **Breaking:** `IClientStore.HasDependentsAsync` is removed, and `RemoveAsync` of the client store, of the
+  resource-server store, and of the tenant store removes what the resource owns.
+- This implements backlog `R59` and `R75`.
 
 ## References
 
@@ -76,6 +82,7 @@ enforces no foreign key, so no test of the hermetic host saw any of it (backlog 
 - [ADR-0063](0063-dynamic-client-registration.md) — dynamic client registration and its deregistration.
 - [ADR-0018](0018-tenant-scoped-data-access-at-the-persistence-layer.md) — tenant-bound data access is scoped at the
   persistence layer.
-- Code: `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.ClientStore`,
-  `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantStore`,
+- Code: `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.ClientStore`,
+  `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.ResourceServerStore`,
+  `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.TenantStore`,
   `NCode.Identity.OpenId.Authentication.Endpoints.Registration.DefaultClientRegistrationEndpointHandler`.

@@ -134,6 +134,29 @@ public class OpenIdSettingRulesTests
     }
 
     [Theory]
+    [InlineData("unbound", true)]
+    [InlineData("always", true)]
+    [InlineData("never", false)]
+    [InlineData("Always", false)]
+    public void RefreshTokenRotationPolicy_AcceptsTheRotationPolicies(string value, bool expected)
+    {
+        Assert.Equal(expected, IsValid(OpenIdSettingRules.RefreshTokenRotationPolicy(), value));
+    }
+
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(60, true)]
+    [InlineData(61, false)]
+    [InlineData(-1, false)]
+    public void RefreshTokenReuseInterval_AcceptsAtMostOneMinute(int seconds, bool expected)
+    {
+        Assert.Equal(
+            expected,
+            IsValid(OpenIdSettingRules.RefreshTokenReuseInterval(), TimeSpan.FromSeconds(seconds))
+        );
+    }
+
+    [Theory]
     [InlineData("authorization_code", true)]
     [InlineData("implicit", true)]
     [InlineData("hybrid", false)]

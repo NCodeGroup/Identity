@@ -1,6 +1,7 @@
 # 214. A management write that loses a concurrency race is answered 412
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0215](0215-a-revocation-wins-a-concurrency-race.md): a revocation retries a lost
+  race)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -24,8 +25,8 @@ view of the caller, and the caller recovers the same way, by reading it again an
 The filter covers the management API only. A protocol endpoint answers a lost race as its specification requires where a
 spend or rotation handles it
 ([ADR-0208](0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md),
-[ADR-0211](0211-a-rotated-refresh-token-is-spent-with-its-successor.md)); the revocation paths that can still lose a
-race are backlog `R78`.
+[ADR-0211](0211-a-rotated-refresh-token-is-spent-with-its-successor.md)); a revocation reads again and retries
+([ADR-0215](0215-a-revocation-wins-a-concurrency-race.md)).
 
 ## Options considered
 

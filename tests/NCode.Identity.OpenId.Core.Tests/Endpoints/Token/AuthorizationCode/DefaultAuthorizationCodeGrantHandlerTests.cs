@@ -36,6 +36,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Mediator;
 using Xunit;
@@ -252,9 +253,9 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
 
         MockPersistedGrantService
             .Setup(x =>
-                x.RevokeBySessionAsync(
+                x.RevokeWhereAsync(
                     It.IsAny<OpenIdContext>(),
-                    "session-xyz",
+                    It.Is<GrantFilter>(f => f.SessionId == "session-xyz"),
                     It.IsAny<DateTimeOffset>(),
                     It.IsAny<CancellationToken>()
                 )
@@ -271,16 +272,6 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        MockPersistedGrantService.Verify(
-            x =>
-                x.RevokeBySessionAsync(
-                    It.IsAny<OpenIdContext>(),
-                    "session-xyz",
-                    It.IsAny<DateTimeOffset>(),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Once
-        );
     }
 
     [Fact]

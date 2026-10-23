@@ -17,6 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Registration;
 
@@ -31,7 +32,8 @@ internal static class DefaultRegistration
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
         /// <summary>
-        /// Configures the persisted-grant service and its schema-versioned payload serializer.
+        /// Configures the persisted-grant service, its schema-versioned payload serializer, and the hosted service
+        /// that removes the grants that ended before their retention.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
@@ -47,6 +49,17 @@ internal static class DefaultRegistration
                 IPersistedGrantService,
                 DefaultPersistedGrantService
             >();
+
+            serviceCollection
+                .AddOptions<GrantRetentionOptions>()
+                .Validate(
+                    options =>
+                        options.Retention >= TimeSpan.Zero && options.PruneInterval > TimeSpan.Zero,
+                    "The GrantRetentionOptions Retention must not be negative, and its PruneInterval must be positive."
+                )
+                .ValidateOnStart();
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.AddHostedService<GrantPruneService>();
 
             return builder;
         }

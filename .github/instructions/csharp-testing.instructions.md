@@ -187,12 +187,17 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **EF InMemory enforces no foreign key.** A deletion whose dependents reference the deleted row is tested on SQLite
   in-memory, where a missed dependent fails `SaveChanges` (`ClientStoreRelationalRemovalTests`,
   `TenantStoreRelationalRemovalTests`).
+- 👁 **EF Core's SQLite provider cannot compare or order a `DateTimeOffset`.** Test a store query that filters on one,
+  such as a grant's `ExpiresWhen` or `RevokedWhen`, on EF InMemory.
 - 👁 **A test that adds an entity to the `OpenIdDbContext` model calls `EnableServiceProviderCaching(false)`.** Entity
   Framework caches the model per context type across service providers, so without it the test may receive a model
   built without its entity (`TenantStoreContributedEntityRemovalTests`).
 - 👁 **A lost race through the store manager is `StoreConcurrencyException`;** only a test that calls
   `DbContext.SaveChangesAsync` directly sees EF's `DbUpdateConcurrencyException`. See
   [ADR-0208](../../docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).
+- 👁 **A strict-mock test of a read-and-retry loop returns a new object for each read**
+  (`SetupSequence(...).ReturnsAsync(first).ReturnsAsync(second)`): the code under test changes the object it read, so
+  one shared instance makes the second read see the first attempt's own write.
 - 👁 **A global query filter is bypassed for change-tracked entities.** A `HasQueryFilter` predicate (e.g. the
   tenant-scoping filter, [ADR-0018](../../docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md)) is
   applied to a **database** query, but a first-level-cache hit — an entity already tracked from a prior `Add`/read,

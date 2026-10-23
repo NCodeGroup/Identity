@@ -141,5 +141,13 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
             OpenIdSettingKeys.AuthorizationSignedResponseAlg,
             AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
         );
+
+        // FAPI 2.0 §5.3.2.1-9 forbids rotating the sender-constrained refresh tokens of its confidential clients except
+        // in extraordinary circumstances, so a server-wide 'always' is not inherited; the scope that selects the profile
+        // may still choose 'always' (ADR-0216).
+        defaults.Set(
+            OpenIdSettingKeys.RefreshTokenRotationPolicy,
+            OpenIdConstants.RefreshTokenRotationPolicy.Unbound
+        );
     }
 }

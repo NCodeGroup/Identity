@@ -28,6 +28,7 @@ using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode;
@@ -163,9 +164,9 @@ internal class DefaultAuthorizationCodeGrantHandler(
             return;
 
         var revokedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
-        await PersistedGrantService.RevokeBySessionAsync(
+        await PersistedGrantService.RevokeWhereAsync(
             openIdContext,
-            sessionId,
+            new GrantFilter { SessionId = sessionId },
             revokedWhen,
             cancellationToken
         );

@@ -301,6 +301,8 @@ NCode.Identity.OpenId.Persistence.Stores.GrantFilter
 NCode.Identity.OpenId.Persistence.Stores.GrantFilter.ClientId.get -> string?
 NCode.Identity.OpenId.Persistence.Stores.GrantFilter.ClientId.init -> void
 NCode.Identity.OpenId.Persistence.Stores.GrantFilter.GrantFilter() -> void
+NCode.Identity.OpenId.Persistence.Stores.GrantFilter.GrantId.get -> string?
+NCode.Identity.OpenId.Persistence.Stores.GrantFilter.GrantId.init -> void
 NCode.Identity.OpenId.Persistence.Stores.GrantFilter.GrantType.get -> string?
 NCode.Identity.OpenId.Persistence.Stores.GrantFilter.GrantType.init -> void
 NCode.Identity.OpenId.Persistence.Stores.GrantFilter.IsEmpty.get -> bool
@@ -314,6 +316,8 @@ NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetOrDefaultAsync(string! g
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetPageAsync(NCode.Identity.OpenId.Persistence.Stores.GrantFilter filter, NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant!>!>
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.RevokeWhereAsync(NCode.Identity.OpenId.Persistence.Stores.GrantFilter filter, System.DateTimeOffset revokedWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.RevokeByRefreshTokenLineageAsync(string! refreshTokenLineageId, System.DateTimeOffset revokedWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
+NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetActiveByRefreshTokenLineageAsync(string! refreshTokenLineageId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant!>!>
+NCode.Identity.OpenId.Persistence.Stores.IGrantStore.RemoveEndedBeforeAsync(System.DateTimeOffset endedBefore, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.AddScopeAsync(string! resourceServerId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope! persistedScope, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.AddSecretAsync(string! resourceServerId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

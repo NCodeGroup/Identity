@@ -227,6 +227,52 @@ internal class GrantStore(
         return entities.Count;
     }
 
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<PersistedGrant>> GetActiveByRefreshTokenLineageAsync(
+        string refreshTokenLineageId,
+        CancellationToken cancellationToken
+    )
+    {
+        // The grants are tracked, so the caller can update them in the same unit of work. The lineage id is an opaque
+        // resource id matched verbatim.
+        var entities = await DbContext
+            .Grants.Include(entity => entity.Tenant)
+            .Include(entity => entity.Client)
+            .Where(entity =>
+                entity.RevokedWhen == null && entity.RefreshTokenLineageId == refreshTokenLineageId
+            )
+            .ToListAsync(cancellationToken);
+
+        var grants = new List<PersistedGrant>(entities.Count);
+        foreach (var entity in entities)
+        {
+            grants.Add(await MapFromEntityAsync(entity, cancellationToken));
+        }
+
+        return grants;
+    }
+
+    /// <inheritdoc />
+    // See ADR-0218.
+    public async ValueTask<int> RemoveEndedBeforeAsync(
+        DateTimeOffset endedBefore,
+        int limit,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+
+        var cutoff = endedBefore.ToUniversalTime();
+        var entities = await DbContext
+            .Grants.Where(entity => entity.ExpiresWhen < cutoff || entity.RevokedWhen < cutoff)
+            .OrderBy(entity => entity.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+        DbContext.Grants.RemoveRange(entities);
+
+        return entities.Count;
+    }
+
     private static IQueryable<GrantEntity> ApplyGrantFilters(
         IQueryable<GrantEntity> query,
         GrantFilter filter
@@ -250,6 +296,13 @@ internal class GrantStore(
         if (!string.IsNullOrEmpty(filter.SessionId))
         {
             query = query.Where(entity => entity.SessionId == filter.SessionId);
+        }
+
+        // The grant id is the opaque public identifier, which the store matches by its normalized form.
+        if (!string.IsNullOrEmpty(filter.GrantId))
+        {
+            var normalizedGrantId = Normalize(filter.GrantId);
+            query = query.Where(entity => entity.NormalizedGrantId == normalizedGrantId);
         }
 
         // The grant type is a fixed protocol constant, so it is matched verbatim.

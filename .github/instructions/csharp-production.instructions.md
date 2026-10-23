@@ -614,9 +614,12 @@ rationale.
   [ADR-0192](../../docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md).
 - 👁 **A refresh-token rotation spends the presented token and stores its successor in one unit of work**
   (`ITokenService.RotateRefreshTokenAsync` over `IPersistedGrantService.ReplaceOnceOrDefault`), after every check and
-  before any token is minted, and a request whose spend loses is answered as a reuse. A successor stored in a later
-  unit of work can escape the loser's lineage revocation. See
-  [ADR-0211](../../docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md).
+  before any token is minted. A spend that loses to a spend or a revocation is answered as a reuse, and one that loses
+  to a write that left the grant active reads the grant again. `RefreshTokenRotationRequirement` decides whether a token
+  rotates. A successor stored in a later unit of work can escape the loser's lineage revocation. See
+  [ADR-0211](../../docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md),
+  [ADR-0216](../../docs/adr/0216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md) and
+  [ADR-0217](../../docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md).
 - 👁 **A store reports a lost optimistic-concurrency race as `StoreConcurrencyException`, never an Entity Framework
   type.** `IStoreManager.SaveChangesAsync` and a store's own concurrency-token check throw it, so no caller references
   Entity Framework to handle a lost race, and a single-use spend that loses is answered as a second spend. A
@@ -624,6 +627,11 @@ rationale.
   `412`. See
   [ADR-0208](../../docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) and
   [ADR-0214](../../docs/adr/0214-a-management-write-that-loses-a-race-is-answered-412.md).
+- 👁 **A revocation wins a lost race.** Revoke grants through `IPersistedGrantService` (`SetRevokedOnceAsync`,
+  `RevokeWhereAsync`, `RevokeByRefreshTokenLineageAsync`), which read again in a new unit of work and retry, never
+  through `IGrantStore.RevokeWhereAsync` and a save of your own; a revocation does not depend on what its caller read,
+  so the server retries it instead of answering `412`. See
+  [ADR-0215](../../docs/adr/0215-a-revocation-wins-a-concurrency-race.md).
 - 👁 **A fetch of a URL a tenant or certificate supplies uses a named client whose primary handler has the
   `IOutboundHttpForgeryGuard` connect callback, and the platform `X509Chain` retrieves nothing.** Use
   `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through
@@ -641,13 +649,16 @@ rationale.
   unit of work, and skip a write whose identity is already there: the usage ledger's per-replica batch checkpoint,
   [ADR-0209](../../docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md).
 - 👁 **Deleting an owner removes what it owns, in the same unit of work, through the change tracker.** A client's
-  removal takes its secrets, client grants, consents and grants; a tenant's takes every `ISupportTenantEntity` row of
+  removal takes its secrets, client grants, consents and grants; a client's or a resource server's removal also takes
+  the role assignments at its node, ownership included; a tenant's takes every `ISupportTenantEntity` row of
   the model, so an entity a package contributes is erased with its tenant. Foreign keys stay `Restrict`. See
   [ADR-0212](../../docs/adr/0212-deleting-an-owner-removes-what-it-owns.md).
 - 👁 **An Entity Framework store issues no `ExecuteUpdate`/`ExecuteDelete`.** EF InMemory, the hermetic host's provider,
   does not support them, and they bypass the concurrency-token interceptor; a bulk removal stages a bounded batch and
   its caller saves each batch as one unit of work (`ITenantUsageStore.RemoveBeforeAsync`,
-  [ADR-0213](../../docs/adr/0213-the-usage-ledger-is-pruned-in-bounded-batches.md)).
+  [ADR-0213](../../docs/adr/0213-the-usage-ledger-is-pruned-in-bounded-batches.md);
+  `IGrantStore.RemoveEndedBeforeAsync`,
+  [ADR-0218](../../docs/adr/0218-ended-grants-are-removed-after-a-retention-period.md)).
 - 👁 **Public metadata is unmetered, and a limit an endpoint enforces refuses through `RateLimitErrors.Refuse`.** An
   endpoint any anonymous caller or cache fetches (discovery, the JSON Web Key Set) is marked `WithOpenIdMetered(false)`,
   so it spends only the per-minute limits, never the tenant's daily quota or billable usage. `RateLimitEndpointFilter`

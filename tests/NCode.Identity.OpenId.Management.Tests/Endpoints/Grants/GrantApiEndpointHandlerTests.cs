@@ -278,20 +278,16 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     public async Task RevokeGrantsAsync_WhenAuthorized_RevokesAndReturnsCount()
     {
         SetupAuthorization(AuthorizationResult.Success());
-        SetupStore();
-        MockGrantStore
+        MockPersistedGrantService
             .Setup(x =>
                 x.RevokeWhereAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.Is<GrantFilter>(f => f.SubjectId == "subject-1"),
                     It.IsAny<DateTimeOffset>(),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(3)
-            .Verifiable();
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
+            .Returns(new ValueTask<long>(3L))
             .Verifiable();
 
         MockManagementAuditRecorder
@@ -425,13 +421,16 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetOrDefaultAsync(GrantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(grant)
             .Verifiable();
-        MockGrantStore
-            .Setup(x => x.UpdateAsync(grant, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeWhereAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.Is<GrantFilter>(f => f.GrantId == GrantId),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<long>(1L))
             .Verifiable();
 
         MockManagementAuditRecorder
@@ -458,7 +457,41 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
-        Assert.NotNull(grant.RevokedWhen);
+    }
+
+    [Fact]
+    public async Task RevokeGrantAsync_WhenAConcurrentRequestRevokedItFirst_ReturnsNoContentWithoutAuditing()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+
+        MockGrantStore
+            .Setup(x => x.GetOrDefaultAsync(GrantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateGrant())
+            .Verifiable();
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeWhereAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.Is<GrantFilter>(f => f.GrantId == GrantId),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<long>(0L))
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // No audit scaffold: a strict-mock failure would mean the handler audited a revocation it did not make.
+        var result = await Handler.RevokeGrantAsync(
+            httpContext,
+            TenantId,
+            GrantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
     }
 
     [Fact]

@@ -1,7 +1,8 @@
 # 208. A lost concurrency race surfaces as a store-neutral exception
 
 - **Status:** Accepted (amended by [ADR-0211](0211-a-rotated-refresh-token-is-spent-with-its-successor.md):
-  refresh-token rotation; [ADR-0214](0214-a-management-write-that-loses-a-race-is-answered-412.md): management writes)
+  refresh-token rotation; [ADR-0214](0214-a-management-write-that-loses-a-race-is-answered-412.md): management writes;
+  [ADR-0215](0215-a-revocation-wins-a-concurrency-race.md): a revocation retries a lost race)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 

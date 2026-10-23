@@ -28,8 +28,9 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Revocation.Handlers;
 
 /// <summary>
 /// Provides a default implementation of a handler for the <see cref="RevokeTokenCommand"/> message. Only a refresh
-/// token (a persisted grant) is revocable, and only by the client it was issued to; everything else is a no-op so the
-/// endpoint never reveals token state (RFC 7009).
+/// token (a persisted grant) is revocable, and only by the client it was issued to; revoking it revokes its whole
+/// rotation family, every branch included. Everything else is a no-op so the endpoint never reveals token state
+/// (RFC 7009).
 /// </summary>
 internal class DefaultRevokeTokenHandler(
     IPersistedGrantService persistedGrantService,
@@ -86,12 +87,26 @@ internal class DefaultRevokeTokenHandler(
             return;
         }
 
-        await PersistedGrantService.SetRevokedOnceAsync(
-            openIdContext,
-            grantId,
-            TimeProvider.GetUtcNow(),
-            cancellationToken
-        );
+        // Revoking a refresh token revokes its rotation family, every branch included (RFC 7009 §2.1). See ADR-0217.
+        var lineageId = grant.Value.RefreshTokenLineageId;
+        if (!string.IsNullOrEmpty(lineageId))
+        {
+            await PersistedGrantService.RevokeByRefreshTokenLineageAsync(
+                openIdContext,
+                lineageId,
+                TimeProvider.GetUtcNow(),
+                cancellationToken
+            );
+        }
+        else
+        {
+            await PersistedGrantService.SetRevokedOnceAsync(
+                openIdContext,
+                grantId,
+                TimeProvider.GetUtcNow(),
+                cancellationToken
+            );
+        }
 
         await AuditEventRecorder.RecordTokenRevokedAsync(
             openIdContext,

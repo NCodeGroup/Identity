@@ -52,4 +52,24 @@ public class Fapi2SecurityProfileTests : BaseTests
     }
 
     #endregion
+
+    #region ApplyDefaultSettings Tests
+
+    [Fact]
+    public void ApplyDefaultSettings_KeepsASenderConstrainedRefreshTokenUnrotated()
+    {
+        var mockDefaults = CreateLooseMock<ISecurityProfileDefaultsBuilder>();
+        mockDefaults
+            .Setup(x =>
+                x.Set(
+                    OpenIdSettingKeys.RefreshTokenRotationPolicy,
+                    OpenIdConstants.RefreshTokenRotationPolicy.Unbound
+                )
+            )
+            .Verifiable();
+
+        new Fapi2SecurityProfile().ApplyDefaultSettings(mockDefaults.Object);
+    }
+
+    #endregion
 }

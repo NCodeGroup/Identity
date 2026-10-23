@@ -584,16 +584,22 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RefreshTokenReusePolicy);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_rotation_policy' setting.
+    /// </summary>
+    public static SettingKey<string> RefreshTokenRotationPolicy =>
+        new(OpenIdSettingNames.RefreshTokenRotationPolicy);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_reuse_interval' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> RefreshTokenReuseInterval =>
+        new(OpenIdSettingNames.RefreshTokenReuseInterval);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_lifetime' setting.
     /// </summary>
     public static SettingKey<TimeSpan> RefreshTokenLifetime =>
         new(OpenIdSettingNames.RefreshTokenLifetime);
-
-    /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_rotation_enabled' setting.
-    /// </summary>
-    public static SettingKey<bool> RefreshTokenRotationEnabled =>
-        new(OpenIdSettingNames.RefreshTokenRotationEnabled);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_object_encryption_alg_values_supported' setting.

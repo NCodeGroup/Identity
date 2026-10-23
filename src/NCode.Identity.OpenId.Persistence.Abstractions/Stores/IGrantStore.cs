@@ -77,6 +77,19 @@ public interface IGrantStore : IStore<PersistedGrant>
     );
 
     /// <summary>
+    /// Gets every grant of the refresh-token rotation family that is not revoked. The grants are read into the unit of
+    /// work, so the caller can update them in it; a grant that expired is included.
+    /// </summary>
+    /// <param name="refreshTokenLineageId">The opaque identifier of the refresh-token rotation family.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the grants of the
+    /// family that are not revoked.</returns>
+    ValueTask<IReadOnlyList<PersistedGrant>> GetActiveByRefreshTokenLineageAsync(
+        string refreshTokenLineageId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Attempts to retrieve a persisted grant from the store by its opaque <c>GrantId</c>.
     /// </summary>
     /// <param name="grantId">The opaque identifier of the grant.</param>
@@ -98,6 +111,27 @@ public interface IGrantStore : IStore<PersistedGrant>
     ValueTask<PersistedGrant?> GetOrDefaultAsync(
         string grantType,
         string hashedKey,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Removes, when the unit of work is saved, up to <paramref name="limit"/> grants that ended before
+    /// <paramref name="endedBefore"/>. A grant ends when it expires or, if earlier, when it is revoked; a grant that
+    /// neither expires nor is revoked never ends.
+    /// </summary>
+    /// <remarks>
+    /// A caller prunes by repeating the removal, each time in a new unit of work, until fewer grants than the limit
+    /// are removed. Two callers that remove the same grants conflict: the later commit fails as a lost concurrency
+    /// race, and that caller reads the next batch.
+    /// </remarks>
+    /// <param name="endedBefore">The time before which a grant must have ended to be removed.</param>
+    /// <param name="limit">The greatest number of grants to remove; it must be at least one.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the count of grants staged for removal.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is less than one.</exception>
+    ValueTask<int> RemoveEndedBeforeAsync(
+        DateTimeOffset endedBefore,
+        int limit,
         CancellationToken cancellationToken
     );
 }

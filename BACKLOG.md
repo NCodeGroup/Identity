@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R80`     | `R79`      |
+| `R` — Review findings                 | `R85`     | `R84`      |
 
 ---
 
@@ -433,6 +433,10 @@ _None remaining._
   is revoked and the request fails (`500` at the protocol endpoints, where RFC 7009 answers `200`; `412` in the
   management API). Read again and retry, as the lineage revocation does (ADR-0211). Touch points:
   `DefaultPersistedGrantService`, `DefaultRevokeTokenHandler`, `GrantApiEndpointHandler`.
+- **`R80` — Expire an abandoned end-user session.** `session_absolute_lifetime` and `session_idle_timeout` default to
+  zero, so a session grant has no expiry, and one that its user never signs out of never ends. The grant prune
+  (ADR-0218) keeps it forever. Choose secure defaults, and give an idle session an end that the prune sees. Touch
+  points: `DefaultSettingDescriptorDataSource`, `DefaultSessionService`, `GrantPruneService`.
 
 ### P3
 
@@ -511,6 +515,19 @@ _None remaining._
   is answered as a reuse, which revokes its lineage (ADR-0211). Auth0 offers a reuse interval and Okta a grace period;
   add a client setting, off by default, within which a rotated token is refused without revoking the lineage. Touch
   points: `DefaultRefreshTokenGrantHandler`, `DefaultSettingDescriptorDataSource`, ADR-0087.
+- **`R81` — Require a reuse interval for a FAPI 2.0 client whose refresh tokens always rotate.** FAPI 2.0 §5.3.2.1
+  Note 1 requires an authorization server that rotates a refresh token to let the client retry with the rotated token.
+  Add a coherence rule (ADR-0206) over `security_profiles`, `refresh_token_rotation_policy` and
+  `refresh_token_reuse_interval`.
+- **`R82` — Remove a deleted principal's role assignments.** `LocalAccountApiEndpointHandler` removes the federated
+  principal with its last identity, but the role assignments of that principal, ownership included, remain. Touch
+  points: `LocalAccountApiEndpointHandler`, `IFederatedPrincipalStore.RemoveAsync`, `RoleAssignmentStore`.
+- **`R83` — Bind `GrantRetentionOptions` and `TenantUsageOptions` to configuration.** Neither binds to a configuration
+  section, so an operator cannot change a retention or an interval through configuration. Touch points:
+  `IdentityServerBuilderExtensions.AddConfiguration`, `ThrowOnUnknownSubsection`.
+- **`R84` — Audit a refresh token presented again within its reuse interval.** An operator cannot tell a client's
+  retry from a stolen token that is used within the window. Record an audit event for the retry. Touch points:
+  `IAuditEventRecorder`, `DefaultRefreshTokenGrantHandler`.
 
 ### Refactor
 

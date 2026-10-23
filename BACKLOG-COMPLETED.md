@@ -3035,3 +3035,44 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: every `ISecurityProfileCatalog.Expand` names its scope, an unregistered scope is refused, and a profile
   default applies only to a setting that applies within that scope, so a client that alone selects `fapi1-advanced`
   keeps its tenant's certificate-binding support and the coherence rule reports it. ADR-0148 and ADR-0202._
+- **`R59` — Let a tenant or client with end-user data be deleted.** Every foreign key is `Restrict`
+  (`OpenIdDbContext.OnModelCreating`), but the stores check only some dependents. `ClientStore.RemoveAsync` checks only
+  the client's secrets, so a client with grants or consents fails `SaveChanges` with a foreign-key violation (a `500` on
+  PostgreSQL). A tenant whose clients are gone but which holds local accounts, federated principals or identities, or
+  grants fails the same way, because `TenantStore.HasDependentsAsync` checks only clients and resource servers (`R51`).
+  EF InMemory does not enforce foreign keys, so no test sees it. Decide per entity whether end-user data is deleted with
+  its owner or reported as a dependent (409), and test the deletion against a relational provider. Touch points:
+  `ClientStore.RemoveAsync`, `TenantStore.HasDependentsAsync`, `GrantEntity`, `ConsentEntity`, `LocalAccountEntity`.
+  _Closed: deleting a client removes its secrets, resource-server grants, consents and the grants issued to it
+  (`IClientStore.HasDependentsAsync` is removed), so RFC 7592 deregistration works on PostgreSQL. Deleting a tenant
+  removes every row of every entity that implements `ISupportTenantEntity` (end users' local accounts, federated
+  principals and identities, sessions and grants, and entities other packages contribute) and keeps its usage for
+  billing; SQLite tests prove both. ADR-0212; owner role assignments are `R75` and grant retention `R76`._
+- **`R69` — Spend a rotated refresh token atomically.** `DefaultRefreshTokenGrantHandler` reads the grant with
+  `GetOrDefaultAsync` and revokes it with `SetRevokedOnceAsync` after its checks. `SetRevokedOnceAsync` does nothing
+  when another request revoked the grant first, so two concurrent refreshes with one token can both receive new tokens
+  and the reuse that should revoke the lineage (RFC 9700 §4.14.2) goes undetected; when both pass the check, the
+  loser's write raises `StoreConcurrencyException` and the client sees a `500`. Spend the token through a conditional
+  consume, as `ConsumeOnceOrDefault` does (ADR-0208), and answer the loser as a reused token. Touch points:
+  `DefaultRefreshTokenGrantHandler`, `DefaultPersistedGrantService.SetRevokedOnceAsync`.
+  _Closed: rotation revokes the presented refresh token and stores its successor in one unit of work
+  (`ITokenService.RotateRefreshTokenAsync`, `IPersistedGrantService.ReplaceOnceOrDefault`) before any token is minted,
+  and `TryRevokeOnceAsync` spends a token with no successor. A request that loses the spend is answered as a reuse
+  (`invalid_grant`, the replay audit, and under `revoke_all` the lineage revoked, the winner's successor included); the
+  lineage revocation retries a lost race and a sliding update keeps the other request's change. ADR-0211; the other
+  revocation paths are `R78`._
+- **`R70` — Answer a management write that loses a concurrency race with `412`.** A store reports a lost race as
+  `StoreConcurrencyException` (ADR-0208), and the management endpoints let it reach the client as a `500`. Map it in one
+  place to `412 Precondition Failed`. Touch points: `ManagementApiEndpointHandler`, the management endpoint group.
+  _Closed: one management endpoint filter on the root group (`StoreConcurrencyEndpointFilter`) answers a
+  `StoreConcurrencyException` with `412 Precondition Failed` and logs it at Debug (event 3005). ADR-0214._
+- **`R73` — Prune the usage ledger on a provider without set-based deletes.** `TenantUsageStore.RemoveBeforeAsync`
+  removes expired days and replica checkpoints with `ExecuteDeleteAsync`, which EF InMemory does not support. In the
+  integration suite every prune therefore fails, and `TenantUsageFlushService` retries it at every flush — every 50 ms
+  in `TenantUsageTests` — logging `TenantUsagePruneFailed` each time. ADR-0199 rejected bulk updates because not every
+  provider supports them, so the prune should follow the same rule, or a failed prune should wait for its next day.
+  Touch points: `TenantUsageStore.RemoveBeforeAsync`, `TenantUsageFlushService.PruneAsync`,
+  `TenantUsageTests.CreateFactory`.
+  _Closed: the usage ledger is pruned in bounded batches of 256 tracked deletes that every provider supports, repeated
+  while a batch is full; a batch another replica pruned first counts as progress, and no `ExecuteDelete` remains.
+  ADR-0213._

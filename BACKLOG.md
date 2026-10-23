@@ -445,29 +445,6 @@ _None remaining._
   Also add a supported way to revoke a key by ID (`IKeyManager.RevokeKey`) for recovery, and document both in
   ADR-0177 and the chart README. Touch points: `NCode.Identity.Server` (`ProductionSafetyRegistration` pattern),
   `DataProtection:KeyProtection`, ADR-0177.
-- **`R57` — Apply a server settings change at once on every replica.** A server settings PATCH reaches each replica's
-  server settings, and through them every tenant's, only at that replica's next poll
-  (`OpenId:Server:SettingsPeriodicRefreshInterval`, 5 minutes), the writing replica included. Keys are already
-  provisioned from the committed document (ADR-0204, ADR-0169 decision 10), so the lag affects what is advertised and
-  enforced, not signing. Announce the change on the replica broadcast channel (ADR-0205) and refresh the server's polled
-  settings when it arrives. Touch points: `DefaultOpenIdServerFactory.CreateServerSettingsDataSourceAsync`,
-  `ServerApiEndpointHandler.UpdateSettingsAsync`.
-- **`R58` — Bound how long a replica serves a tenant whose change message it missed.** Valkey pub/sub delivers at most
-  once. A replica that is disconnected when a tenant change is announced (ADR-0205) keeps its cached tenant, and a busy
-  tenant's 4-hour sliding expiration keeps it there indefinitely, so a disabled, deleted, or re-addressed tenant is
-  still served on that replica. Evict every cached tenant when the broadcast subscription reconnects
-  (StackExchange.Redis `ConnectionRestored`), or give tenant cache entries an absolute lifetime. Touch points:
-  `ValkeyReplicaBroadcastSubscriber`, `DefaultOpenIdTenantCache`, `OpenIdTenantOptions`.
-- **`R61` — Make the tenant re-seed after a server settings change durable, bounded, and complete.**
-  `TenantKeyReseedJob` runs on the in-process dispatcher (ADR-0169 decision 10), which has three limits. (1) The queue
-  is in memory and the worker does not reschedule a cancelled job, so a restart or shutdown drops the tenants the pass
-  had not reached; they are seeded when next materialized, but a replica that keeps one cached advertises its algorithm
-  without the key until then. (2) `JobDispatchWorker` runs one job at a time, so a pass over thousands of tenants, each
-  seed possibly generating RSA keys, delays every other job behind it, back-channel logout deliveries included. (3) A
-  change to `OpenId:Server:Settings` through a configuration reload can permit an algorithm without sending
-  `ServerSettingsChangedCommand`, so no re-seed runs. Options: a durable `IJobDispatcher` adapter, a reconciliation pass
-  that seeds every tenant once at startup and after a reload, and a separate worker for bulk jobs. Touch points:
-  `TenantKeyReseedJobHandler`, `JobDispatchWorker`, `RootSettingsCollectionDataSource.HandleChange`.
 - **`R64` — Check client-certificate revocation beyond complete CRLs.** The default checker refuses, as Unknown, an
   OCSP-only PKI, delta, partitioned and indirect CRLs, a CRL signed by a key other than the issuing certificate, and
   RSA-PSS or SHA-1 signatures. It also retries an unreachable distribution point on every request (no negative cache,
@@ -479,12 +456,6 @@ _None remaining._
   listed value an `Intersect` ceiling drops and a `true` an `And` ceiling turns off, but a client's own lifetime above
   its tenant's `Min` ceiling is clamped silently. It needs the merge kind of a descriptor, which `SettingDescriptor`
   exposes only as `HasLatticeMerge`. Touch points: `RegisteredValueCoherenceRule`, `SettingDescriptor`, `SettingMerge`.
-- **`R72` — Check stored clients when the server's configuration changes.** A settings write is refused while it would
-  make a stored client incoherent (ADR-0206), but `OpenId:Server:Settings` in configuration is not checked against
-  stored clients, so a deployment or reload that narrows a ceiling leaves clients that fail at their next request; an
-  existing bootstrap administrator client is not re-checked either. Check them in a background pass after a
-  configuration change and report them. Touch points: `RootSettingsCollectionDataSource.HandleChange`,
-  `ITenantClientCoherenceChecker`, `BootstrapAdminSeedHandler`.
 - **`R74` — Write one-line JSON console logs in container deployments.** The reference hosts log only to standard
   output (ADR-0210), in the console provider's default `simple` format. That format spreads one entry, and the stack
   trace of its exception, over several lines, so a container log collector splits it into separate records. Select the

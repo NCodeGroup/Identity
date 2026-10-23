@@ -22,18 +22,25 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Dispatch.Options;
 
 /// <summary>
-/// Configures the built-in in-process job dispatcher's bounded queue. These are the knobs a host tunes for its
-/// throughput and back-pressure needs; a deployment that needs durable or distributed dispatch replaces the adapter
-/// entirely (register a custom <see cref="IJobDispatcher"/>) rather than tuning these.
+/// Configures the built-in in-process job dispatcher's bounded queue and how many of its jobs run at once. These are
+/// the knobs a host tunes for its throughput and back-pressure needs; a deployment that needs durable or distributed
+/// dispatch replaces the adapter entirely (register a custom <see cref="IJobDispatcher"/>) rather than tuning these.
 /// </summary>
 [PublicAPI]
 public sealed class InProcessJobDispatcherOptions
 {
     /// <summary>
     /// Gets or sets the maximum number of pending jobs the in-memory queue buffers before <see cref="FullMode"/>
-    /// applies. The default is <c>1024</c>.
+    /// applies. It must be at least <c>1</c>. The default is <c>1024</c>.
     /// </summary>
     public int QueueCapacity { get; set; } = 1024;
+
+    /// <summary>
+    /// Gets or sets the most jobs the in-process dispatcher runs at once. A job that waits on a slow endpoint holds
+    /// one of them while the others run the jobs queued behind it. It must be at least <c>1</c>; the default is
+    /// <c>16</c>.
+    /// </summary>
+    public int MaxConcurrentJobs { get; set; } = 16;
 
     /// <summary>
     /// Gets or sets the behavior when a job is dispatched while the queue is at <see cref="QueueCapacity"/>. The

@@ -16,38 +16,38 @@
 
 #endregion
 
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
-/// Handles <see cref="ReconcileServerSettingsCommand"/> by checking every stored client of every tenant against the
-/// server's effective settings and logging a warning for each client that the settings make incoherent. A change to the
-/// server's settings that is not a write, such as a configuration reload or a deployment, cannot be refused the way a
-/// write is, so every stored client is checked and each incoherent one is reported, the bootstrap administrator
-/// included.
+/// Handles <see cref="ReconcileServerSettingsCommand"/> by checking the stored clients of the tenants a change to the
+/// server's settings affects against the server's effective settings and logging a warning for each client that the
+/// settings make incoherent. When the command carries the settings it was last reconciled against, a tenant's clients
+/// are checked only if a setting that a coherence rule reads has a different effective value for the tenant; without
+/// them every tenant's clients are checked. A change to the server's settings that is not a write, such as a
+/// configuration reload or a deployment, cannot be refused the way a write is, so each incoherent stored client is
+/// reported, the bootstrap administrator included.
 /// </summary>
 /// <remarks>
 /// A client that fails to authenticate or to be honored at its next request is reported here before that request. The
-/// handler only reports: it never changes a client. A tenant that cannot be checked is logged and skipped, and the
-/// pass continues. The handler is idempotent, because it reads and logs only.
+/// <see cref="IClientCoherenceReporter"/> checks each page of each tenant's clients. The handler only reports: it never
+/// changes a client. A tenant that cannot be checked is logged and skipped, and the pass continues. The handler is
+/// idempotent, because it reads and logs only.
 /// </remarks>
-// See ADR-0206 and ADR-0219.
+// See ADR-0206, ADR-0219 and ADR-0234.
 internal sealed class ClientCoherenceReportHandler(
     IStoreManagerFactory storeManagerFactory,
-    IAmbientTenantAccessor ambientTenantAccessor,
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IClientCoherenceValidator clientCoherenceValidator,
+    IClientCoherenceReporter clientCoherenceReporter,
     ILogger<ClientCoherenceReportHandler> logger
 ) : ICommandHandler<ReconcileServerSettingsCommand>
 {
@@ -55,10 +55,10 @@ internal sealed class ClientCoherenceReportHandler(
     private const int PageSize = 100;
 
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
-    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
+    private IClientCoherenceReporter ClientCoherenceReporter { get; } = clientCoherenceReporter;
     private ILogger<ClientCoherenceReportHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -69,7 +69,6 @@ internal sealed class ClientCoherenceReportHandler(
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var tenantStore = storeManager.GetStore<ITenantStore>();
-        var clientStore = storeManager.GetStore<IClientStore>();
         var incoherentClientCount = 0;
 
         var page = new PageRequest { Limit = PageSize };
@@ -81,8 +80,8 @@ internal sealed class ClientCoherenceReportHandler(
                 try
                 {
                     incoherentClientCount += await ReportTenantAsync(
-                        clientStore,
-                        command.Settings,
+                        storeManager,
+                        command,
                         tenantSettings,
                         cancellationToken
                     );
@@ -103,39 +102,53 @@ internal sealed class ClientCoherenceReportHandler(
 
     // Returns the number of incoherent clients of the tenant.
     private async ValueTask<int> ReportTenantAsync(
-        IClientStore clientStore,
-        IReadOnlySettingCollection serverSettings,
+        IStoreManager storeManager,
+        ReconcileServerSettingsCommand command,
         PersistedTenantSettings tenantSettings,
         CancellationToken cancellationToken
     )
     {
         var tenantId = tenantSettings.TenantId;
         var effectiveTenantSettings = EffectiveSettingsResolver.Resolve(
-            serverSettings,
+            command.Settings,
             OpenIdSettingScopes.Tenant,
             tenantSettings.Value
         );
 
-        // The reconciliation addresses every tenant, so each tenant's clients are read under its own scope.
-        using var scope = AmbientTenantAccessor.BeginScope(tenantId);
+        // A tenant whose settings no coherence rule reads differently cannot hold a client that the change made
+        // incoherent. See ADR-0234.
+        if (command.PreviousSettings is { } previousServerSettings)
+        {
+            var previousTenantSettings = EffectiveSettingsResolver.Resolve(
+                previousServerSettings,
+                OpenIdSettingScopes.Tenant,
+                tenantSettings.Value
+            );
+            if (
+                !ClientCoherenceValidator.ReadsChangedSetting(
+                    previousTenantSettings,
+                    effectiveTenantSettings
+                )
+            )
+                return 0;
+        }
 
         var incoherentClientCount = 0;
         var page = new PageRequest { Limit = PageSize };
         do
         {
-            var result = await clientStore.GetSettingsPageAsync(page, cancellationToken);
-            foreach (var clientSettings in result.Items)
+            var result = await ClientCoherenceReporter.FindIncoherentClientsAsync(
+                storeManager,
+                tenantId,
+                effectiveTenantSettings,
+                page,
+                cancellationToken
+            );
+            foreach (var client in result.Items)
             {
-                var descriptions = FindViolationDescriptions(
-                    effectiveTenantSettings,
-                    clientSettings.Value
-                );
-                if (descriptions.Count == 0)
-                    continue;
-
                 incoherentClientCount++;
-                var violations = string.Join(" ", descriptions);
-                Logger.IncoherentClientReported(tenantId, clientSettings.ClientId, violations);
+                var description = Describe(client);
+                Logger.IncoherentClientReported(tenantId, client.ClientId, description);
             }
 
             page = page with { Cursor = result.NextCursor };
@@ -144,20 +157,8 @@ internal sealed class ClientCoherenceReportHandler(
         return incoherentClientCount;
     }
 
-    // A document the settings cannot honor is reported as a violation too.
-    private IReadOnlyList<string> FindViolationDescriptions(
-        IReadOnlySettingCollection tenantSettings,
-        JsonElement clientSettings
-    )
-    {
-        try
-        {
-            var violations = ClientCoherenceValidator.Validate(tenantSettings, clientSettings);
-            return [.. violations.Select(violation => violation.Description)];
-        }
-        catch (JsonException exception)
-        {
-            return [exception.Message];
-        }
-    }
+    // A document the settings cannot honor is described by its reason.
+    private static string Describe(IncoherentClient client) =>
+        client.DocumentError
+        ?? string.Join(" ", client.Violations.Select(violation => violation.Description));
 }

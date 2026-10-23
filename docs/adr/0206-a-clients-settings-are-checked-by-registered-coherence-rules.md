@@ -5,7 +5,8 @@
   its own, and by
   [ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a change of the server's
   settings that is not a write is reported; a client whose refresh tokens rotate where a retry is required has a reuse
-  interval)
+  interval; and by [ADR-0233](0233-the-management-api-lists-a-tenants-incoherent-clients.md): the management API lists
+  a tenant's incoherent clients through the reporter the reconciliation uses)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 

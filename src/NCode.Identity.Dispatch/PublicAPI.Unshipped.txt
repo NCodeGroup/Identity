@@ -10,5 +10,7 @@ NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions
 NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.FullMode.get -> System.Threading.Channels.BoundedChannelFullMode
 NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.FullMode.set -> void
 NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.InProcessJobDispatcherOptions() -> void
+NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.MaxConcurrentJobs.get -> int
+NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.MaxConcurrentJobs.set -> void
 NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.QueueCapacity.get -> int
 NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.QueueCapacity.set -> void

@@ -170,6 +170,16 @@ NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource.Secrets
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource.Secrets.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.ClientCoherenceViolationResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.Description.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.Description.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.GoverningSettingName.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.GoverningSettingName.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.SettingName.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.SettingName.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.Value.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.Value.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource.ClientEffectiveSettingsResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource.ClientId.get -> string!
@@ -194,6 +204,16 @@ NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.IsDisable
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.IsDisabled.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.Settings.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.ClientId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.ClientId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.DocumentError.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.DocumentError.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.IncoherentClientResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.Violations.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource!>!
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.Violations.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest
 NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest.IsDisabled.set -> void

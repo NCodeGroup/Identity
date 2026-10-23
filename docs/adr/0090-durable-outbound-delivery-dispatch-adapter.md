@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by [ADR-0155](0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): the
   backchannel request-object encryption settings are retired and an encrypted backchannel request is rejected, because
-  CIBA Core §7.1.1 defines only an asymmetrically signed request)
+  CIBA Core §7.1.1 defines only an asymmetrically signed request; and
+  by [ADR-0232](0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md): the in-process adapter runs
+  jobs concurrently up to a limit, and a handler's own cancellation fails the attempt)
 - **Date:** 2026-10-13
 - **Deciders:** NCode Group
 

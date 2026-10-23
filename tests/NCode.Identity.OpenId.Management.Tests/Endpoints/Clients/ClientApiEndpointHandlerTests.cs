@@ -72,6 +72,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IClientCoherenceValidator> MockClientCoherenceValidator { get; }
+    private Mock<IClientCoherenceReporter> MockClientCoherenceReporter { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
@@ -118,6 +119,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockRepository.Create<ISettingScopeCollectionProvider>();
         MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockClientCoherenceValidator = MockRepository.Create<IClientCoherenceValidator>();
+        MockClientCoherenceReporter = MockRepository.Create<IClientCoherenceReporter>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
@@ -176,6 +178,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockSettingScopeCollectionProvider.Object,
             MockEffectiveSettingsResolver.Object,
             MockClientCoherenceValidator.Object,
+            MockClientCoherenceReporter.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<ClientApiEndpointHandler>.Instance
@@ -708,6 +711,185 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         // No store scaffold is set up, so a strict-mock failure would mean authorization ran too late.
         Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    #endregion
+
+    #region ListIncoherentClientsAsync Tests
+
+    [Fact]
+    public async Task ListIncoherentClientsAsync_WhenAuthorized_ReturnsTheIncoherentClients()
+    {
+        var violation = new ClientCoherenceViolation(
+            OpenIdSettingNames.RedirectUris,
+            "http://x",
+            OpenIdSettingNames.RedirectUriKindsSupported
+        );
+        SetupAuthorization(AuthorizationResult.Success());
+        var tenantSettings = SetupIncoherentClientsStore(CreateTenantSettings());
+        Assert.NotNull(tenantSettings);
+        MockClientCoherenceReporter
+            .Setup(x =>
+                x.FindIncoherentClientsAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    tenantSettings,
+                    It.Is<PageRequest>(page => page.Cursor == "c1" && page.Limit == 10),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PagedResult<IncoherentClient>
+                {
+                    Items =
+                    [
+                        new IncoherentClient { ClientId = ClientId, Violations = [violation] },
+                    ],
+                    NextCursor = "next",
+                }
+            )
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ListIncoherentClientsAsync(
+            httpContext,
+            TenantId,
+            cursor: "c1",
+            limit: 10,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<IncoherentClientResource>>>(
+            result
+        );
+        var item = Assert.Single(json.Value!.Items);
+        Assert.Equal(TenantId, item.TenantId);
+        Assert.Equal(ClientId, item.ClientId);
+        Assert.Null(item.DocumentError);
+        var violationResource = Assert.Single(item.Violations);
+        Assert.Equal(violation.SettingName, violationResource.SettingName);
+        Assert.Equal(violation.Value, violationResource.Value);
+        Assert.Equal(violation.GoverningSettingName, violationResource.GoverningSettingName);
+        Assert.Equal(violation.Description, violationResource.Description);
+        Assert.Equal("next", json.Value.ContinuationToken);
+    }
+
+    [Fact]
+    public async Task ListIncoherentClientsAsync_WhenTheDocumentCannotBeHonored_ReturnsTheReason()
+    {
+        const string reason = "the document cannot be honored";
+        SetupAuthorization(AuthorizationResult.Success());
+        var tenantSettings = SetupIncoherentClientsStore(CreateTenantSettings());
+        Assert.NotNull(tenantSettings);
+        MockClientCoherenceReporter
+            .Setup(x =>
+                x.FindIncoherentClientsAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    tenantSettings,
+                    It.Is<PageRequest>(page => page.Cursor == null && page.Limit == 50),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PagedResult<IncoherentClient>
+                {
+                    Items =
+                    [
+                        new IncoherentClient
+                        {
+                            ClientId = ClientId,
+                            Violations = [],
+                            DocumentError = reason,
+                        },
+                    ],
+                    NextCursor = null,
+                }
+            )
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ListIncoherentClientsAsync(
+            httpContext,
+            TenantId,
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<IncoherentClientResource>>>(
+            result
+        );
+        var item = Assert.Single(json.Value!.Items);
+        Assert.Equal(reason, item.DocumentError);
+        Assert.Empty(item.Violations);
+        Assert.Null(json.Value.ContinuationToken);
+    }
+
+    [Fact]
+    public async Task ListIncoherentClientsAsync_WhenTheTenantIsMissing_ReturnsAnEmptyPage()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupIncoherentClientsStore(null);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ListIncoherentClientsAsync(
+            httpContext,
+            TenantId,
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<IncoherentClientResource>>>(
+            result
+        );
+        Assert.Empty(json.Value!.Items);
+        Assert.Null(json.Value.ContinuationToken);
+    }
+
+    [Fact]
+    public async Task ListIncoherentClientsAsync_WhenForbidden_ReturnsForbidWithoutQueryingStore()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ListIncoherentClientsAsync(
+            httpContext,
+            TenantId,
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        // No store scaffold is set up, so a strict-mock failure would mean authorization ran too late.
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    // Returns the tenant's effective settings that the reporter receives, or null when the tenant has no settings.
+    private IReadOnlySettingCollection? SetupIncoherentClientsStore(
+        PersistedTenantSettings? tenantSettings
+    )
+    {
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tenantSettings)
+            .Verifiable();
+
+        return tenantSettings is null ? null : SetupTenantEffectiveSettings();
     }
 
     #endregion

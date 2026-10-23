@@ -222,6 +222,8 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.DisplayName.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.DisplayName.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.PersistedServer() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.ReconciledSettings.get -> System.Text.Json.JsonElement?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.ReconciledSettings.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.ReconciledSettingsFingerprint.get -> string?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.ReconciledSettingsFingerprint.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer.Secrets.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedServerSecrets!
@@ -366,7 +368,7 @@ NCode.Identity.OpenId.Persistence.Stores.IServerStore.GetSettingsOrDefaultAsync(
 NCode.Identity.OpenId.Persistence.Stores.IServerStore.HasDependentsAsync(string! serverId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Persistence.Stores.IServerStore.RemoveAsync(string! serverId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Persistence.Stores.IServerStore.RemoveSecretAsync(string! serverId, string! secretId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
-NCode.Identity.OpenId.Persistence.Stores.IServerStore.UpdateReconciledSettingsFingerprintAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! persistedServer, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Persistence.Stores.IServerStore.UpdateReconciledSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! persistedServer, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IServerStore.UpdateSecretAsync(string! serverId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IServerStore.UpdateSettingsAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedServerSettings! persistedServerSettings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.ITenantStore

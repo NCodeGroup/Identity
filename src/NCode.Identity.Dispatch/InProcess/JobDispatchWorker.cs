@@ -20,22 +20,27 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Dispatch.Logging;
+using NCode.Identity.Dispatch.Options;
 
 namespace NCode.Identity.Dispatch.InProcess;
 
 /// <summary>
-/// Drains the <see cref="InProcessJobQueue"/> and executes each job's registered <see cref="IDispatchJobHandler{TJob}"/>
-/// in its own service scope, retrying failed attempts with exponential back-off up to the per-job attempt limit.
+/// Drains the <see cref="InProcessJobQueue"/> with <c>MaxConcurrentJobs</c> consumers, each running one job at a time,
+/// and executes each job's registered <see cref="IDispatchJobHandler{TJob}"/> in its own service scope, retrying failed
+/// attempts with exponential back-off up to the per-job attempt limit.
 /// </summary>
 internal sealed class JobDispatchWorker(
     InProcessJobQueue queue,
     IServiceScopeFactory serviceScopeFactory,
+    IOptions<InProcessJobDispatcherOptions> optionsAccessor,
     ILogger<JobDispatchWorker> logger
 ) : BackgroundService
 {
     private InProcessJobQueue Queue { get; } = queue;
     private IServiceScopeFactory ServiceScopeFactory { get; } = serviceScopeFactory;
+    private IOptions<InProcessJobDispatcherOptions> OptionsAccessor { get; } = optionsAccessor;
     private ILogger<JobDispatchWorker> Logger { get; } = logger;
 
     // Cached per runtime job type: the closed IDispatchJobHandler<> service type to resolve and the delegate that
@@ -45,6 +50,19 @@ internal sealed class JobDispatchWorker(
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Each consumer runs one job at a time, so a job that waits holds one consumer while the others drain the queue.
+        var consumers = new Task[OptionsAccessor.Value.MaxConcurrentJobs];
+        for (var index = 0; index < consumers.Length; index++)
+        {
+            consumers[index] = ConsumeAsync(stoppingToken);
+        }
+
+        await Task.WhenAll(consumers);
+    }
+
+    // A Task, not a ValueTask, because Task.WhenAll awaits the consumers together.
+    private async Task ConsumeAsync(CancellationToken stoppingToken)
+    {
         try
         {
             await foreach (var item in Queue.Reader.ReadAllAsync(stoppingToken))
@@ -52,19 +70,56 @@ internal sealed class JobDispatchWorker(
                 await ProcessAsync(item, stoppingToken);
             }
         }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        catch (Exception) when (stoppingToken.IsCancellationRequested)
         {
-            // Expected on shutdown.
+            // The queue and its in-flight jobs end with the host.
         }
     }
 
-    private async Task ProcessAsync(DispatchWorkItem item, CancellationToken stoppingToken)
+    private async ValueTask ProcessAsync(DispatchWorkItem item, CancellationToken stoppingToken)
     {
         var jobType = item.Job.GetType();
+
+        Exception? failure;
+        try
+        {
+            failure = await InvokeHandlersAsync(item, jobType, stoppingToken);
+        }
+        catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
+        {
+            // A handler that cannot be resolved fails the attempt, so one job cannot end the consumer that runs it.
+            failure = exception;
+        }
+
+        if (failure is not null)
+        {
+            Reschedule(item, jobType, failure, stoppingToken);
+        }
+    }
+
+    // Runs every registered handler of the job and returns the first failure, or null when none failed.
+    private async ValueTask<Exception?> InvokeHandlersAsync(
+        DispatchWorkItem item,
+        Type jobType,
+        CancellationToken stoppingToken
+    )
+    {
         var binding = GetBinding(jobType);
 
-        using var scope = ServiceScopeFactory.CreateScope();
-        var handlers = scope.ServiceProvider.GetServices(binding.ServiceType);
+        await using var scope = ServiceScopeFactory.CreateAsyncScope();
+        var handlers = scope
+            .ServiceProvider.GetServices(binding.ServiceType)
+            .OfType<object>()
+            .ToList();
+
+        if (handlers.Count == 0)
+        {
+            Logger.NoJobHandlerRegistered(
+                binding.ServiceType.Name,
+                jobType.FullName ?? jobType.Name
+            );
+            return null;
+        }
 
         var context = new DispatchContext
         {
@@ -73,30 +128,21 @@ internal sealed class JobDispatchWorker(
             MaxAttempts = item.Options.MaxAttempts,
         };
 
-        var any = false;
+        Exception? failure = null;
         foreach (var handler in handlers)
         {
-            if (handler is null)
-                continue;
-
-            any = true;
             try
             {
                 await binding.Invoker(handler, item.Job, context, stoppingToken);
             }
-            catch (Exception exception) when (exception is not OperationCanceledException)
+            catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
             {
-                Reschedule(item, jobType, exception, stoppingToken);
+                // A handler's own timeout fails the attempt like any other failure; only the host stopping ends the job.
+                failure ??= exception;
             }
         }
 
-        if (!any)
-        {
-            Logger.NoJobHandlerRegistered(
-                binding.ServiceType.Name,
-                jobType.FullName ?? jobType.Name
-            );
-        }
+        return failure;
     }
 
     // Schedules a retry with exponential back-off, or abandons the job once its attempts are exhausted.

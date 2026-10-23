@@ -51,10 +51,13 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IOpenIdEnvironmentProvider> MockOpenIdEnvironmentProvider { get; }
     private Mock<OpenIdEnvironment> MockOpenIdEnvironment { get; }
+    private Mock<ISettingSerializer> MockSettingSerializer { get; }
+    private Mock<ISettingCollectionFactory> MockSettingCollectionFactory { get; }
     private Mock<IExpiringKeySet> MockExpiringKeySet { get; }
     private Mock<IMediator> MockMediator { get; }
     private IReadOnlySettingCollection Settings { get; }
     private string Fingerprint { get; }
+    private string SettingsSnapshot { get; }
     private ServiceProvider ServiceProvider { get; }
     private DefaultServerSettingsReconciler Reconciler { get; }
 
@@ -66,6 +69,8 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         MockOpenIdEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
         MockOpenIdEnvironment = CreateStrictMock<OpenIdEnvironment>();
+        MockSettingSerializer = CreateStrictMock<ISettingSerializer>();
+        MockSettingCollectionFactory = CreateStrictMock<ISettingCollectionFactory>();
         MockExpiringKeySet = CreateStrictMock<IExpiringKeySet>();
         MockMediator = CreateStrictMock<IMediator>();
 
@@ -74,6 +79,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             [new Setting<bool>(FlagDescriptor, true)]
         );
         Fingerprint = ServerSettingsFingerprint.Compute(Settings, JsonOptions);
+        SettingsSnapshot = ServerSettingsSnapshot.Write(Settings, JsonOptions).GetRawText();
 
         ServiceProvider = new ServiceCollection()
             .AddScoped(_ => MockMediator.Object)
@@ -83,6 +89,8 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             MockStoreManagerFactory.Object,
             MockEffectiveSettingsResolver.Object,
             MockOpenIdEnvironmentProvider.Object,
+            MockSettingSerializer.Object,
+            MockSettingCollectionFactory.Object,
             MockExpiringKeySet.Object,
             ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
             Options.Create(OpenIdOptions),
@@ -130,7 +138,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
     }
 
     [Fact]
-    public async Task ReconcileAsync_WhenTheSettingsChanged_SendsTheCommandAndRecordsTheFingerprint()
+    public async Task ReconcileAsync_WhenTheSettingsChanged_SendsTheCommandAndRecordsTheSettings()
     {
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
@@ -159,7 +167,9 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             .Setup(x =>
                 x.SendAsync(
                     It.Is<ReconcileServerSettingsCommand>(command =>
-                        command.ServerId == ServerId && ReferenceEquals(command.Settings, Settings)
+                        command.ServerId == ServerId
+                        && ReferenceEquals(command.Settings, Settings)
+                        && command.PreviousSettings == null
                     ),
                     cancellationToken
                 )
@@ -168,11 +178,13 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             .Verifiable();
         MockServerStore
             .Setup(x =>
-                x.UpdateReconciledSettingsFingerprintAsync(
+                x.UpdateReconciledSettingsAsync(
                     It.Is<PersistedServer>(server =>
                         server.ServerId == ServerId
                         && server.ConcurrencyToken == ConcurrencyToken
                         && server.ReconciledSettingsFingerprint == Fingerprint
+                        && server.ReconciledSettings.HasValue
+                        && server.ReconciledSettings.Value.GetRawText() == SettingsSnapshot
                     ),
                     cancellationToken
                 )
@@ -189,6 +201,92 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         Assert.True(result);
         Assert.NotNull(leaseExpiresWhen);
         Assert.True(leaseExpiresWhen >= earliestExpiry);
+    }
+
+    [Fact]
+    public async Task ReconcileAsync_WhenSettingsWereReconciledBefore_SendsThemAsThePreviousSettings()
+    {
+        Setting[] previousList = [new Setting<bool>(FlagDescriptor, false)];
+        var previousSettings = CreateStrictMock<ISettingCollection>().Object;
+        SetupStoreManager();
+        SetupServer(
+            reconciledFingerprint: "stale",
+            reconciledSettings: JsonElement.Parse("""{"flag":false}""")
+        );
+        SetupSettings();
+        SetupLease(isAdded: true);
+        MockSettingSerializer
+            .Setup(x =>
+                x.DeserializeSettings(
+                    It.Is<JsonElement>(element => element.GetRawText() == """{"flag":false}"""),
+                    OpenIdSettingScopes.Server,
+                    JsonOptions
+                )
+            )
+            .Returns(previousList)
+            .Verifiable();
+        MockSettingCollectionFactory
+            .Setup(x => x.Create(previousList))
+            .Returns(previousSettings)
+            .Verifiable();
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<ReconcileServerSettingsCommand>(command =>
+                        command.ServerId == ServerId
+                        && ReferenceEquals(command.Settings, Settings)
+                        && ReferenceEquals(command.PreviousSettings, previousSettings)
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupRecord();
+
+        var result = await Reconciler.ReconcileAsync(ServerId, CancellationToken.None);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task ReconcileAsync_WhenThePreviousSettingsCannotBeRead_SendsNoPreviousSettings()
+    {
+        SetupStoreManager();
+        SetupServer(
+            reconciledFingerprint: "stale",
+            reconciledSettings: JsonElement.Parse("""{"flag":false}""")
+        );
+        SetupSettings();
+        SetupLease(isAdded: true);
+        MockSettingSerializer
+            .Setup(x =>
+                x.DeserializeSettings(
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.Server,
+                    JsonOptions
+                )
+            )
+            .Throws(new JsonException("unreadable"))
+            .Verifiable();
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<ReconcileServerSettingsCommand>(command =>
+                        command.ServerId == ServerId
+                        && ReferenceEquals(command.Settings, Settings)
+                        && command.PreviousSettings == null
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupRecord();
+
+        var result = await Reconciler.ReconcileAsync(ServerId, CancellationToken.None);
+
+        Assert.True(result);
     }
 
     [Fact]
@@ -209,7 +307,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             .Verifiable();
         MockServerStore
             .Setup(x =>
-                x.UpdateReconciledSettingsFingerprintAsync(
+                x.UpdateReconciledSettingsAsync(
                     It.IsAny<PersistedServer>(),
                     It.IsAny<CancellationToken>()
                 )
@@ -245,7 +343,10 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         && element.TryGetProperty("v", out var value)
         && value.GetInt32() == version;
 
-    private static PersistedServer CreatePersistedServer(string? reconciledFingerprint) =>
+    private static PersistedServer CreatePersistedServer(
+        string? reconciledFingerprint,
+        JsonElement? reconciledSettings
+    ) =>
         new()
         {
             ServerId = ServerId,
@@ -258,6 +359,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             },
             Secrets = new PersistedServerSecrets { ServerId = ServerId, Value = [] },
             ReconciledSettingsFingerprint = reconciledFingerprint,
+            ReconciledSettings = reconciledSettings,
         };
 
     private void SetupStoreManager()
@@ -274,13 +376,35 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
     }
 
     // The store returns a new row per call, as a store does for each unit of work.
-    private void SetupServer(string? reconciledFingerprint) =>
+    private void SetupServer(
+        string? reconciledFingerprint,
+        JsonElement? reconciledSettings = null
+    ) =>
         MockServerStore
             .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
             .Returns(() =>
-                ValueTask.FromResult<PersistedServer?>(CreatePersistedServer(reconciledFingerprint))
+                ValueTask.FromResult<PersistedServer?>(
+                    CreatePersistedServer(reconciledFingerprint, reconciledSettings)
+                )
             )
             .Verifiable();
+
+    private void SetupRecord()
+    {
+        MockServerStore
+            .Setup(x =>
+                x.UpdateReconciledSettingsAsync(
+                    It.IsAny<PersistedServer>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+    }
 
     private void SetupSettings()
     {

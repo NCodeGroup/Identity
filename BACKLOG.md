@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R103`    | `R102`     |
+| `R` — Review findings                 | `R105`    | `R104`     |
 
 ---
 
@@ -484,6 +484,20 @@ _None remaining._
   effective settings did not change in a setting it reads (`TenantKeyUsage`,
   `IClientCoherenceValidator.ReadsChangedSetting`). Touch points: `PersistedServer.ReconciledSettingsFingerprint`,
   `TenantKeyReconciliationHandler`, `ClientCoherenceReportHandler`.
+- **`R103` — Bind the in-process dispatcher's options from configuration.** `AddIdentityServer()` registers the
+  in-process dispatcher without configuration, so a host tunes `InProcessJobDispatcherOptions` (`QueueCapacity`,
+  `FullMode`, `MaxConcurrentJobs`, ADR-0232) only in code, and the reference host offers no key for them. Bind one
+  section strictly in `AddConfiguration` and validate it when the host starts. Touch points:
+  `IdentityServerBuilderExtensions.AddConfiguration`, `InProcessJobDispatcherOptions`,
+  `InProcessJobDispatcherOptionsValidator`.
+- **`R104` — Let a settings write pass a stored document that cannot be honored.** The tenant and server settings PATCH
+  resolve every stored tenant document and check stored clients with `IClientCoherenceValidator.Validate`, which throw
+  `JsonException` for a document the current settings vocabulary cannot honor, so one such document fails a server
+  settings write, and a tenant settings write that changes a setting a coherence rule reads, with `500`. Report it as
+  `IClientCoherenceReporter` does (ADR-0233) and do not count it as a violation the change introduces. Touch points:
+  `DefaultTenantClientCoherenceChecker`, `ServerApiEndpointHandler.ValidateClientCoherenceAsync`,
+  `TenantApiEndpointHandler`.
+
 ### Refactor
 
 - **`R41` — Rate-limit policy as data.** One descriptor table for partitions, quotas, and meters, a batched Valkey

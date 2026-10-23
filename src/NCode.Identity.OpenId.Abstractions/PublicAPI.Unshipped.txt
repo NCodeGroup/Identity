@@ -769,6 +769,8 @@ NCode.Identity.OpenId.Servers.IOpenIdServerProvider.GetAsync(NCode.Identity.Open
 NCode.Identity.OpenId.Servers.OpenIdServer
 NCode.Identity.OpenId.Servers.OpenIdServer.OpenIdServer() -> void
 NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.PreviousSettings.get -> NCode.Identity.Settings.IReadOnlySettingCollection?
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.PreviousSettings.init -> void
 NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ReconcileServerSettingsCommand() -> void
 NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ReconcileServerSettingsCommand(string! ServerId, NCode.Identity.Settings.IReadOnlySettingCollection! Settings) -> void
 NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ServerId.get -> string!

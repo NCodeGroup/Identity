@@ -18,6 +18,7 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Persistence;
 
@@ -56,4 +57,11 @@ public sealed class PersistedServer : BasePersistedServerResource
     /// </summary>
     [MaxLength(MaxLengths.ConcurrencyToken)]
     public string? ReconciledSettingsFingerprint { get; set; }
+
+    /// <summary>
+    /// Gets or sets the server's effective settings that every tenant and client of the server was last reconciled
+    /// against, as a JSON object of each setting's name and value, or <c>null</c> when there is nothing to compare a
+    /// change with: the settings were never reconciled, or they changed twice before they were.
+    /// </summary>
+    public JsonElement? ReconciledSettings { get; set; }
 }

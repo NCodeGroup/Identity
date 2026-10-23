@@ -337,6 +337,12 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   payload with `IJoseSerializer.CreateEncoder(new JoseSigningOptions(credentials)).Encode(payload)`.
 - 👁 **Assert a background job's effect by polling with a deadline** (a `Stopwatch`, 100 ms steps, about 15 s), never
   with a fixed delay (`TenantKeyProvisioningTests.WaitForSecretIdsAsync`).
+- 👁 **Prove a worker's concurrency with a job that waits for a release.** Dispatch a job whose handler awaits a
+  `TaskCompletionSource` and assert that a second job completes while the first waits; prove the limit by setting it to
+  one and asserting that the second job does not complete within a short wait, then release the first
+  (`InProcessJobDispatchTests`). Fail a dispatched job from a test handler with `ValueTask.FromException`, as an `async`
+  handler fails: the worker invokes handlers through reflection, which wraps a synchronous throw in
+  `TargetInvocationException`, so a synchronous `OperationCanceledException` never reaches the code under test as one.
 - 👁 **Change configuration at runtime through the host's `IConfigurationRoot`.** Set the key on
   `factory.Services.GetRequiredService<IConfiguration>()` cast to `IConfigurationRoot` and call `Reload()`: the test's
   in-memory overlay is the last provider and keeps the value through the reload, and every reload token fires

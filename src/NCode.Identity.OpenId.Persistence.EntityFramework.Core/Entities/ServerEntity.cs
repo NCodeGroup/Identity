@@ -95,6 +95,12 @@ public sealed class ServerEntity : ISupportConcurrencyToken
     [MaxLength(MaxLengths.ConcurrencyToken)]
     public string? ReconciledSettingsFingerprint { get; set; }
 
+    /// <summary>
+    /// Gets or sets the serialized JSON of the server's effective settings that every tenant and client was last
+    /// reconciled against, or <c>null</c> when there is nothing to compare a change with.
+    /// </summary>
+    public JsonElement? ReconciledSettingsJson { get; set; }
+
     // navigation properties
 
     // ReSharper disable once EntityFramework.ModelValidation.CircularDependency

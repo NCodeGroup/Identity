@@ -1,4 +1,4 @@
-# A rolling, highly available release behind an in-cluster ingress, mid-way through a key-protection rotation.
+# A rolling, highly available release behind an in-cluster ingress, mid-way through a local root key rotation.
 replicaCount: 3
 image:
   digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
@@ -15,10 +15,14 @@ database:
   existingSecret: identity-database
 valkey:
   existingSecret: identity-valkey
-keyProtection:
-  certificateSecret: identity-key-protection
-  previousCertificateSecrets:
-    - identity-key-protection-2026
+secretProtection:
+  rootKeyProvider: local
+  local:
+    keySecret: identity-root-key
+    previousKeySecrets:
+      - identity-root-key-2026
+  recovery:
+    disabled: true
 ingress:
   enabled: true
   className: traefik

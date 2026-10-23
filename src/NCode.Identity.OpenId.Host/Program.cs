@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Host.Database;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
+using NCode.Identity.Secrets.Persistence.AwsKms;
 using NCode.Identity.Server;
 using NCode.Identity.SharedState.Valkey;
 using NCode.Registration.AspNetCore;
@@ -87,6 +88,9 @@ var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_Option
 var identityServer = serviceCollection.AddIdentityServer();
 identityServer.AddConfiguration(configuration, openIdOptionsSectionName);
 
+// AWS KMS can hold the root key ('SecretProtection:RootKeyProvider' = 'aws-kms'); its client is created on first use, so the provider is inert otherwise.
+identityServer.SecretPersistenceLibraryBuilder.AddAwsKmsRootKeyProvider(configuration);
+
 // Bind the frontend runtime bootstrap document (ADR-0064) from the 'Frontend' configuration section so the host can
 // publish this deployment's coordinates (API base, issuer, client id, feature flags, branding) to the tier-agnostic
 // bundles via MapFrontendBootstrap below.
@@ -130,10 +134,10 @@ serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 // The dev database is Postgres, orchestrated by the Aspire AppHost (ADR-0073): the AppHost provisions the container
 // and injects the 'openiddb' connection string, and a dedicated migration worker applies the schema before this host
 // starts — so the api never bootstraps the database itself. The developer data-protection key ring is persisted in the
-// same database, so one purge resets the OpenID data, the seeded signing key, and the ring that protects it together.
-// Because the ring sits beside the data it protects, a Production deployment also wraps it with a key held elsewhere
-// — a 'DataProtection:KeyProtection' certificate bound by AddConfiguration, or a key management service — and the
-// production gate refuses to start while it is unprotected (ADR-0177).
+// same database, so one purge resets the OpenID data, the seeded signing key, the tenants' master keys, and the ring
+// together. Stored secrets are encrypted under their owners' master keys and the ring under the server master key,
+// whose root key lives outside the database (the 'SecretProtection' section); the production gate refuses to start
+// without a real root key (ADR-0235).
 
 var connectionString = configuration.GetConnectionString("openiddb");
 if (!string.IsNullOrEmpty(connectionString))

@@ -42,6 +42,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Json;
 using NCode.Persistence.Stores;
@@ -82,6 +83,7 @@ internal class ClientApiEndpointHandler(
     IClientKeyImporter clientKeyImporter,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretPublicKeyConverter secretPublicKeyConverter,
+    ISecretProtectorProvider secretProtectorProvider,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
@@ -102,6 +104,7 @@ internal class ClientApiEndpointHandler(
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
@@ -1038,6 +1041,12 @@ internal class ClientApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(client.TenantId),
+            [],
+            cancellationToken
+        );
+
         GeneratedSecret generatedSecret;
         try
         {
@@ -1059,8 +1068,8 @@ internal class ClientApiEndpointHandler(
             // produces for asymmetric JWKS keys (which never UTF-8 round-trips). See ADR-0110.
             generatedSecret =
                 request.SecretType == SecretTypes.Symmetric
-                    ? SecretGenerator.GenerateSharedSecret(generateRequest)
-                    : SecretGenerator.GenerateSecret(generateRequest);
+                    ? SecretGenerator.GenerateSharedSecret(protector, generateRequest)
+                    : SecretGenerator.GenerateSecret(protector, generateRequest);
         }
         catch (Exception exception)
             when (exception is ArgumentException or InvalidOperationException)
@@ -1288,9 +1297,12 @@ internal class ClientApiEndpointHandler(
             cancellationToken
         );
 
-        var scoped = clientSecret is null
-            ? null
-            : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
+        if (clientSecret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var scoped = TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
 
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
@@ -1298,7 +1310,20 @@ internal class ClientApiEndpointHandler(
             scoped,
             node,
             Operations.Read,
-            x => SecretPublicKeyConverter.Convert(x.Value)
+            async (x, ct) =>
+            {
+                // The owner is the tenant that owns the secret, not the route value.
+                // The protector is acquired only after authorization, so a caller who may not read the secret
+                // never loads its owner's master keys.
+                var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+                    SecretOwner.ForTenant(clientSecret.TenantId),
+                    [x.Value],
+                    ct
+                );
+
+                return SecretPublicKeyConverter.Convert(protector, x.Value);
+            },
+            cancellationToken
         );
     }
 
@@ -1546,11 +1571,18 @@ internal class ClientApiEndpointHandler(
 
         var replacementId = CryptoService.GenerateResourceId();
 
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(client.TenantId),
+            [],
+            cancellationToken
+        );
+
         GeneratedSecret generatedSecret;
         try
         {
             // A client's shared secret is its client_secret, stored as the UTF-8 bytes of the opaque string (ADR-0110).
             generatedSecret = SecretGenerator.GenerateSharedSecret(
+                protector,
                 new GenerateSecretRequest
                 {
                     SecretId = replacementId,

@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Persistence;
 using NCode.Registration;
 
@@ -64,6 +65,7 @@ public static class DefaultRegistration
             serviceCollection.AddStore<TDbContext, IClientGrantStore, ClientGrantStore>();
             serviceCollection.AddStore<TDbContext, IRoleAssignmentStore, RoleAssignmentStore>();
             serviceCollection.AddStore<TDbContext, ITenantUsageStore, TenantUsageStore>();
+            serviceCollection.AddStore<TDbContext, IMasterKeyStore, MasterKeyStore>();
             serviceCollection.AddStore<
                 TDbContext,
                 IFederatedPrincipalStore,

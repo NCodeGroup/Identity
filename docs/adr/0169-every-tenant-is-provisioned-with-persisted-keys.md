@@ -3,7 +3,10 @@
 - **Status:** Accepted (amended by [ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md): deleting a tenant also
   removes the data of its end users; by
   [ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md): the re-seed after a change
-  of the server's settings is part of one reconciliation)
+  of the server's settings is part of one reconciliation; by
+  [ADR-0235](0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): a key is unreadable
+  when its tenant's master key, or the root key that wraps it, is lost or changed, no longer when the Data Protection
+  key ring is)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

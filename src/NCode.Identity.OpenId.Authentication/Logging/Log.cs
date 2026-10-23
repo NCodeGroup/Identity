@@ -100,7 +100,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.ClientAuthenticationCredentialDeserializationFailed,
         Level = LogLevel.Warning,
-        Message = "Client authentication failed: a stored credential for client '{ClientId}' could not be deserialized (for example, a secret protected by an unavailable data-protection key)."
+        Message = "Client authentication failed: a stored credential for client '{ClientId}' could not be deserialized (for example, a secret protected by an unavailable master key or root key)."
     )]
     internal static partial void ClientAuthenticationCredentialDeserializationFailed(
         this ILogger logger,

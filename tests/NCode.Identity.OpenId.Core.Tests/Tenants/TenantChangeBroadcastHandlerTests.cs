@@ -18,6 +18,7 @@
 
 using Moq;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.PropertyBag;
 using Xunit;
 
@@ -29,12 +30,17 @@ public sealed class TenantChangeBroadcastHandlerTests : IDisposable
 
     private MockRepository Mocks { get; } = new(MockBehavior.Strict);
     private Mock<IOpenIdTenantCache> MockTenantCache { get; }
+    private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
     private TenantChangeBroadcastHandler Handler { get; }
 
     public TenantChangeBroadcastHandlerTests()
     {
         MockTenantCache = Mocks.Create<IOpenIdTenantCache>();
-        Handler = new TenantChangeBroadcastHandler(MockTenantCache.Object);
+        MockSecretProtectorProvider = Mocks.Create<ISecretProtectorProvider>();
+        Handler = new TenantChangeBroadcastHandler(
+            MockTenantCache.Object,
+            MockSecretProtectorProvider.Object
+        );
     }
 
     public void Dispose()
@@ -58,6 +64,9 @@ public sealed class TenantChangeBroadcastHandlerTests : IDisposable
     [Fact]
     public async Task HandleAsync_EvictsTheAnnouncedTenant()
     {
+        MockSecretProtectorProvider
+            .Setup(x => x.Evict(SecretOwner.ForTenant(TenantId)))
+            .Verifiable();
         MockTenantCache
             .Setup(x =>
                 x.RemoveAsync(TenantId, It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
@@ -73,8 +82,9 @@ public sealed class TenantChangeBroadcastHandlerTests : IDisposable
     #region HandleMissedMessagesAsync Tests
 
     [Fact]
-    public async Task HandleMissedMessagesAsync_EvictsEveryCachedTenant()
+    public async Task HandleMissedMessagesAsync_EvictsEveryMasterKeyAndClearsTheCache()
     {
+        MockSecretProtectorProvider.Setup(x => x.EvictAll()).Verifiable();
         MockTenantCache
             .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)

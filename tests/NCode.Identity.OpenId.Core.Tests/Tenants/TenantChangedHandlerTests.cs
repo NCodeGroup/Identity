@@ -21,6 +21,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.SharedState;
 using NCode.PropertyBag;
 using Xunit;
@@ -33,6 +34,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
 
     private MockRepository Mocks { get; } = new(MockBehavior.Strict);
     private Mock<IOpenIdTenantCache> MockTenantCache { get; }
+    private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
     private Mock<IReplicaBroadcaster> MockReplicaBroadcaster { get; }
     private Mock<ITenantProvisioner> MockTenantProvisioner { get; }
     private ServiceProvider ServiceProvider { get; }
@@ -41,6 +43,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
     public TenantChangedHandlerTests()
     {
         MockTenantCache = Mocks.Create<IOpenIdTenantCache>();
+        MockSecretProtectorProvider = Mocks.Create<ISecretProtectorProvider>();
         MockReplicaBroadcaster = Mocks.Create<IReplicaBroadcaster>();
         MockTenantProvisioner = Mocks.Create<ITenantProvisioner>();
 
@@ -50,6 +53,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
 
         Handler = new TenantChangedHandler(
             MockTenantCache.Object,
+            MockSecretProtectorProvider.Object,
             MockReplicaBroadcaster.Object,
             ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
             NullLogger<TenantChangedHandler>.Instance
@@ -68,6 +72,11 @@ public sealed class TenantChangedHandlerTests : IDisposable
                 x.RemoveAsync(TenantId, It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
             )
             .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    private void SetupMasterKeyEviction() =>
+        MockSecretProtectorProvider
+            .Setup(x => x.Evict(SecretOwner.ForTenant(TenantId)))
             .Verifiable();
 
     private void SetupBroadcast() =>
@@ -100,6 +109,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
     public async Task HandleAsync_WhenTheSettingsChanged_EvictsSeedsAndAnnouncesTheTenant()
     {
         var calls = new List<string>();
+        SetupMasterKeyEviction();
         MockTenantCache
             .Setup(x =>
                 x.RemoveAsync(TenantId, It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
@@ -136,6 +146,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
     public async Task HandleAsync_WhenAnythingElseChanged_EvictsAndAnnouncesWithoutSeeding()
     {
         SetupEviction();
+        SetupMasterKeyEviction();
         SetupBroadcast();
 
         // Strict mocks: no SeedAsync setup, so a seed would fail the test.
@@ -149,6 +160,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
     public async Task HandleAsync_WhenTheAnnouncementFails_CompletesTheChange()
     {
         SetupEviction();
+        SetupMasterKeyEviction();
         MockTenantProvisioner
             .Setup(x => x.SeedAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreatePersistedTenant())
@@ -176,6 +188,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
     public async Task HandleAsync_WhenTheSeedFails_StillAnnouncesTheChange()
     {
         SetupEviction();
+        SetupMasterKeyEviction();
         SetupBroadcast();
         MockTenantProvisioner
             .Setup(x => x.SeedAsync(TenantId, It.IsAny<CancellationToken>()))

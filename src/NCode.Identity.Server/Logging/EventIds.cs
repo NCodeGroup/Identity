@@ -33,4 +33,5 @@ internal static class EventIds
     public const int BootstrapAdminClientSecretRefreshed = Base + 2;
     public const int ConformanceClientSeeded = Base + 3;
     public const int ConformanceTestUserSeeded = Base + 4;
+    public const int LocalRootKeyInProduction = Base + 5;
 }

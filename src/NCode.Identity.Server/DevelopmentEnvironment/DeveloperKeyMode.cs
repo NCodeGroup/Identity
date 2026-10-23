@@ -35,8 +35,9 @@ public enum DeveloperKeyMode
 
     /// <summary>
     /// The persisted keys every tenant is provisioned with, surviving restarts when paired with a persistent database
-    /// and data-protection key ring, plus development-only self-healing: a key the key ring can no longer unprotect is
-    /// removed and provisioned afresh instead of failing the tenant. Intended for local running.
+    /// and a stable root key, plus development-only self-healing: a key that can no longer be unprotected, because its
+    /// master key or the root key changed, is removed and provisioned afresh instead of failing the tenant. Intended
+    /// for local running.
     /// </summary>
     PersistentSigningKey = 1,
 

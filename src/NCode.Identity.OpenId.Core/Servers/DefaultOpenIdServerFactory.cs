@@ -30,6 +30,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
@@ -48,6 +49,7 @@ internal class DefaultOpenIdServerFactory(
     IOptions<OpenIdOptions> optionsAccessor,
     IServiceProvider serviceProvider,
     ISecretSerializer secretSerializer,
+    ISecretProtectorProvider secretProtectorProvider,
     IStoreManagerFactory storeManagerFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
     IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
@@ -61,6 +63,7 @@ internal class DefaultOpenIdServerFactory(
     private OpenIdOptions Options => OptionsAccessor.Value;
     private IServiceProvider ServiceProvider { get; } = serviceProvider;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ICollectionDataSourceFactory CollectionDataSourceFactory { get; } =
         collectionDataSourceFactory;
@@ -329,7 +332,7 @@ internal class DefaultOpenIdServerFactory(
     /// <summary>
     /// Used to create the <see cref="ISecretKeyCollectionProvider"/> containing secrets only known to the OpenID server.
     /// </summary>
-    protected internal virtual ValueTask<ISecretKeyCollectionProvider> CreateSecretsProviderAsync(
+    protected internal virtual async ValueTask<ISecretKeyCollectionProvider> CreateSecretsProviderAsync(
         PersistedServer persistedServer,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
@@ -337,7 +340,16 @@ internal class DefaultOpenIdServerFactory(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var initialSecrets = SecretSerializer.DeserializeSecrets(persistedServer.Secrets.Value);
+        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+            SecretOwner.ForServer(persistedServer.ServerId),
+            persistedServer.Secrets.Value,
+            cancellationToken
+        );
+
+        var initialSecrets = SecretSerializer.DeserializeSecrets(
+            protector,
+            persistedServer.Secrets.Value
+        );
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedServer,
@@ -348,7 +360,7 @@ internal class DefaultOpenIdServerFactory(
 
         var provider = SecretKeyCollectionProviderFactory.Create(dataSource, owns: true);
 
-        return ValueTask.FromResult(provider);
+        return provider;
     }
 
     private async ValueTask<RefreshCollectionResult<SecretKey>> RefreshSecretsAsync(
@@ -373,7 +385,13 @@ internal class DefaultOpenIdServerFactory(
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 
-        var secrets = SecretSerializer.DeserializeSecrets(newSecrets.Value);
+        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+            SecretOwner.ForServer(serverId),
+            newSecrets.Value,
+            cancellationToken
+        );
+
+        var secrets = SecretSerializer.DeserializeSecrets(protector, newSecrets.Value);
 
         // update the state after successfully deserializing the secrets
         persistedServer.Secrets = newSecrets;

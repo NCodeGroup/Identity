@@ -27,6 +27,27 @@ change to the public API is a **major** version bump.
   `SessionTerminationReasons.PasswordChanged` and `GrantFilter.WithoutSession` are added
   ([ADR-0230](docs/adr/0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md), backlog `R99`).
 
+- **Secret protection key hierarchy** ([ADR-0235](docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+  Stored private and symmetric secrets are AES-256-GCM envelopes (`nce1.`) under a fresh data key, wrapped by an
+  HKDF-derived purpose key of the owner's master key (the server or the tenant), which is wrapped by a root key held by a
+  root key provider (`ephemeral`, `local`, or a registered one) and, optionally, by an offline recovery RSA key. New
+  public contracts: `ISecretProtectorProvider`, `ISecretProtector`, `IRootKeyProvider`, `IMasterKeyStore`,
+  `SecretOwner`, `SecretProtectionOptions`. New `MasterKeys` table (migration `AddMasterKeys`). Implements backlog `S9`.
+
+- **Protect your own data.** `ISecretProtector` is buffer-first (writes into caller-supplied `IBufferWriter<T>`s,
+  with `GetProtectedLength` for sizing, and a `ProtectToString` helper for text columns), so applications protect any
+  sensitive value under a tenant's or the server's master key with a namespaced purpose.
+
+- `ManagementApiEndpointHandler.ProcessGetAsync` has an overload whose asynchronous mapper runs only after authorization
+  succeeds; the secret public-key endpoints use it, so a caller who may not read a secret never loads its owner's master
+  keys.
+
+- **`NCode.Identity.Secrets.Persistence.AwsKms`** — an AWS KMS root key provider (`AddAwsKmsRootKeyProvider`,
+  section `SecretProtection:RootKeyProviders:AwsKms`, key or alias ARN) that binds each wrap to its owner through the
+  KMS encryption context and takes credentials from the AWS SDK's default chain; wired into the reference host and
+  the Helm chart, which federates the pod's service-account token with AWS (`secretProtection.awsKms`) only when
+  `aws-kms` is selected, and refuses a malformed key ARN.
+
 - **An administrator can block any end user.** `POST api/tenants/{tenantId}/principals/{principalId}/block` blocks a
   principal whatever its connections, `POST api/tenants/{tenantId}/principals/{principalId}/unblock` lifts the block,
   and `GET api/tenants/{tenantId}/principals/{principalId}` reports it. Blocking terminates every session of the
@@ -685,6 +706,22 @@ change to the public API is a **major** version bump.
   the settings of an earlier change were never reconciled
   ([ADR-0234](docs/adr/0234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md),
   backlog `R88`).
+
+- **Breaking:** `ISecretSerializer` and `ISecretGenerator` take an `ISecretProtector`; `ISecretSerializer` gains
+  `DeserializePublicSecret`. Imported public keys (`spki`, `x509`) are stored as plain base64url.
+
+- **Breaking:** the Data Protection key ring is encrypted under the server master key; configure the `SecretProtection`
+  section instead of `DataProtection:KeyProtection`, and the chart's `secretProtection` values instead of
+  `keyProtection` (the chart's schema, render-time refusals and CI releases change with it).
+
+- **Breaking (data):** values protected by the old scheme are not readable. In Development, unreadable tenant keys are
+  pruned and re-provisioned automatically; reissue client secrets or reset the local database.
+
+- **Local development:** the LocalDev AppHost generates one development root key per machine (in local application
+  data, never in the repository) and gives it to both OP instances that share the development database; a Development
+  host started any other way uses the ephemeral root key.
+
+- Deleting a tenant deletes its master keys.
 
 - **Breaking: a session's lifetimes are required, and a listed session always reports when it ends.**
   `CreateSessionRequest.AbsoluteLifetime` and `CreateSessionRequest.IdleTimeout` are required positive `TimeSpan`s and
@@ -1588,6 +1625,11 @@ change to the public API is a **major** version bump.
   `AccessTokenConfirmationMethodsSupported`. No stored document needs migrating.
   ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md))
 
+### Removed
+
+- `KeyRingProtectionOptions`, `KeyRingCertificateOptions` and certificate key-ring protection
+  (supersedes ADR-0177).
+
 ### Security
 
 - **A blocked or disabled end user cannot sign in, and the client is answered `access_denied`.** The interactive
@@ -1602,6 +1644,11 @@ change to the public API is a **major** version bump.
   `ILocalAccountStore.VerifyCredentialAsync` returns the disabled account of a valid credential
   ([ADR-0229](docs/adr/0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md), backlog
   `R98`).
+
+- A database dump or backup no longer reveals secret material without the root key. Production refuses the ephemeral
+  root key provider, an inline local root key (whatever provider is selected), and running without a recovery-key
+  decision, reporting them with every other production-safety finding (the failure now reads "setting(s) are unsafe
+  for a production deployment").
 
 - **Every grant that issues tokens for a subject validates it.** The device-code grant, the CIBA grant (at the token
   endpoint, and at the approval for every delivery mode) and the token-exchange grant send

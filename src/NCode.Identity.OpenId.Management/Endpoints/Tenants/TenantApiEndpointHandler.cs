@@ -43,6 +43,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -82,6 +83,7 @@ internal class TenantApiEndpointHandler(
     ISecretGenerator secretGenerator,
     IClientKeyImporter keyImporter,
     ISecretPublicKeyConverter secretPublicKeyConverter,
+    ISecretProtectorProvider secretProtectorProvider,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
@@ -101,6 +103,7 @@ internal class TenantApiEndpointHandler(
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private IClientKeyImporter KeyImporter { get; } = keyImporter;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
@@ -1095,10 +1098,17 @@ internal class TenantApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(tenantId),
+            [],
+            cancellationToken
+        );
+
         GeneratedSecret generatedSecret;
         try
         {
             generatedSecret = SecretGenerator.GenerateSecret(
+                protector,
                 new GenerateSecretRequest
                 {
                     SecretId = secretId,
@@ -1316,6 +1326,11 @@ internal class TenantApiEndpointHandler(
         var store = storeManager.GetStore<ITenantStore>();
 
         var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, cancellationToken);
+        if (secret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
         var scoped = TenantOwnedResource.ForOrDefault(tenantId, secret);
 
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
@@ -1324,7 +1339,19 @@ internal class TenantApiEndpointHandler(
             scoped,
             node,
             Operations.Read,
-            x => SecretPublicKeyConverter.Convert(x.Value)
+            async (x, ct) =>
+            {
+                // The protector is acquired only after authorization, so a caller who may not read the secret
+                // never loads its owner's master keys.
+                var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+                    SecretOwner.ForTenant(tenantId),
+                    [x.Value],
+                    ct
+                );
+
+                return SecretPublicKeyConverter.Convert(protector, x.Value);
+            },
+            cancellationToken
         );
     }
 

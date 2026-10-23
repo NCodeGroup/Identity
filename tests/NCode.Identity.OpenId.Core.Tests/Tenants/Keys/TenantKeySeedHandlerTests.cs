@@ -30,6 +30,7 @@ using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -63,6 +64,8 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
     private Mock<ITenantKeyPolicy> MockPolicy { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
+    private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
+    private Mock<ISecretProtector> MockSecretProtector { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
@@ -73,6 +76,8 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         MockPolicy = CreateStrictMock<ITenantKeyPolicy>();
         MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         MockSecretGenerator = CreateStrictMock<ISecretGenerator>();
+        MockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
+        MockSecretProtector = CreateStrictMock<ISecretProtector>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockTenantStore = CreateStrictMock<ITenantStore>();
@@ -82,6 +87,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
             MockPolicy.Object,
             MockEffectiveSettingsResolver.Object,
             MockSecretGenerator.Object,
+            MockSecretProtectorProvider.Object,
             MockCryptoService.Object,
             TimeProvider.System,
             CreateLooseMock<ILogger<TenantKeySeedHandler>>().Object
@@ -160,6 +166,43 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
 
         Assert.Same(original, tenant.Secrets);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenEveryKeyIsHeld_NeverLoadsTheTenantsProtector()
+    {
+        // The provider is strict with no setup: loading the protector fails the test.
+        var held = CreateSecret("held");
+        var tenant = CreateTenant([held]);
+        SetupSpecifications(Rs256);
+        SetupSettings(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, "RS256");
+        MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, held)).Returns(true).Verifiable();
+
+        await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
+
+        MockSecretProtectorProvider.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSeveralKeysAreMissing_LoadsTheTenantsProtectorOnce()
+    {
+        var tenant = CreateTenant([]);
+        SetupSpecifications(Rs256, Es256);
+        SetupSettings(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, "RS256", "ES256");
+        SetupGeneration();
+        SetupAddSecret();
+
+        await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
+
+        MockSecretProtectorProvider.Verify(
+            x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -309,10 +352,23 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
             .Verifiable();
 
         var requests = new List<GenerateSecretRequest>();
+        MockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    It.Is<IReadOnlyCollection<string>>(values => values.Count == 0),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(MockSecretProtector.Object)
+            .Verifiable();
+
         MockSecretGenerator
-            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x =>
+                x.GenerateSecret(MockSecretProtector.Object, It.IsAny<GenerateSecretRequest>())
+            )
             .Returns(
-                (GenerateSecretRequest request) =>
+                (ISecretProtector _, GenerateSecretRequest request) =>
                 {
                     requests.Add(request);
                     return new GeneratedSecret

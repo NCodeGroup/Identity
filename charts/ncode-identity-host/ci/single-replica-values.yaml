@@ -6,5 +6,9 @@ tenantResolution:
     issuer: https://id.example.com
 database:
   existingSecret: identity-database
-keyProtection:
-  certificateSecret: identity-key-protection
+secretProtection:
+  rootKeyProvider: local
+  local:
+    keySecret: identity-root-key
+  recovery:
+    publicKeyConfigMap: identity-recovery-key

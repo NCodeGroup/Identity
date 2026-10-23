@@ -65,15 +65,29 @@ valkey:
   existingSecret: ""
   connectionStringKey: connection-string
 
-# The certificates that encrypt the Data Protection key ring at rest (DataProtection:KeyProtection, ADR-0177). Each is a
-# kubernetes.io/tls Secret (tls.crt and an unencrypted tls.key). Required in Production. The certificate is long-lived
-# and rotated by hand into a new Secret: never let it renew in place (cert-manager's default), because a key is
-# unwrapped only by the certificate that wrapped it, and the old one would be gone. See "Rotating the key-protection
-# certificate" in the chart's README.
-keyProtection:
-  certificateSecret: ""
-  # Secrets of certificates retired from protecting new keys, kept so the keys they protected still decrypt.
-  previousCertificateSecrets: []
+# Stored secrets and the Data Protection key ring are encrypted under a root key held outside the database; see "Secret
+# protection" in the chart's README.
+secretProtection:
+  # Required in Production: local, or aws-kms once its values are set.
+  rootKeyProvider: ""
+  local:
+    # Secret holding the root key under the key 'key' (base64url, 32 bytes).
+    keySecret: ""
+    # Secrets of older root keys, kept so the master keys they wrapped still unwrap.
+    previousKeySecrets: []
+  awsKms:
+    # ARN of the KMS key, or of an alias that names it: arn:aws:kms:<region>:<account>:alias/<name>.
+    keyArn: ""
+    webIdentity:
+      # IAM role the host's service account assumes through the cluster's IAM OIDC identity provider.
+      roleArn: ""
+      audience: sts.amazonaws.com
+      tokenExpirationSeconds: 3600
+  recovery:
+    # ConfigMap holding the recovery public key under the key 'recovery-public.pem'.
+    publicKeyConfigMap: ""
+    # true only to accept that losing the root key loses every stored secret.
+    disabled: false
 
 service:
   type: ClusterIP

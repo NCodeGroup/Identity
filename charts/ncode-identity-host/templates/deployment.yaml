@@ -1,6 +1,9 @@
 {{- include "identity-host.validate" . }}
 {{- $valkey := include "identity-host.valkeyEnabled" . }}
-{{- $keyProtectionRoot := "/etc/ncode-identity/key-protection" }}
+{{- $secretProtectionRoot := "/etc/ncode-identity/secret-protection" }}
+{{- $awsWebIdentityRoot := "/var/run/secrets/tokens/aws" }}
+{{- /* A pod that does not use AWS KMS never carries AWS credentials, whatever the web identity values say. */}}
+{{- $awsWebIdentity := and (eq .Values.secretProtection.rootKeyProvider "aws-kms") .Values.secretProtection.awsKms.webIdentity.roleArn }}
 {{- $probeHost := include "identity-host.probeHost" . }}
 apiVersion: apps/v1
 kind: Deployment
@@ -107,17 +110,41 @@ spec:
                   name: {{ .Values.valkey.existingSecret }}
                   key: {{ .Values.valkey.connectionStringKey }}
             {{- end }}
-            {{- if .Values.keyProtection.certificateSecret }}
-            - name: DataProtection__KeyProtection__Certificate__CertificatePath
-              value: {{ printf "%s/current/tls.crt" $keyProtectionRoot }}
-            - name: DataProtection__KeyProtection__Certificate__PrivateKeyPath
-              value: {{ printf "%s/current/tls.key" $keyProtectionRoot }}
+            {{- with .Values.secretProtection.rootKeyProvider }}
+            - name: SecretProtection__RootKeyProvider
+              value: {{ . | quote }}
             {{- end }}
-            {{- range $index, $secret := .Values.keyProtection.previousCertificateSecrets }}
-            - name: DataProtection__KeyProtection__PreviousCertificates__{{ $index }}__CertificatePath
-              value: {{ printf "%s/previous-%d/tls.crt" $keyProtectionRoot $index }}
-            - name: DataProtection__KeyProtection__PreviousCertificates__{{ $index }}__PrivateKeyPath
-              value: {{ printf "%s/previous-%d/tls.key" $keyProtectionRoot $index }}
+            {{- if .Values.secretProtection.local.keySecret }}
+            - name: SecretProtection__RootKeyProviders__Local__KeyPath
+              value: {{ printf "%s/root-key/key" $secretProtectionRoot }}
+            {{- end }}
+            {{- range $index, $secret := .Values.secretProtection.local.previousKeySecrets }}
+            - name: SecretProtection__RootKeyProviders__Local__PreviousKeyPaths__{{ $index }}
+              value: {{ printf "%s/previous-%d/key" $secretProtectionRoot $index }}
+            {{- end }}
+            {{- if eq .Values.secretProtection.rootKeyProvider "aws-kms" }}
+            - name: SecretProtection__RootKeyProviders__AwsKms__KeyArn
+              value: {{ .Values.secretProtection.awsKms.keyArn | quote }}
+            # The SDK reads the region from the environment; the key's ARN names it.
+            - name: AWS_REGION
+              value: {{ index (splitList ":" .Values.secretProtection.awsKms.keyArn) 3 | quote }}
+            {{- end }}
+            {{- if $awsWebIdentity }}
+            # The SDK exchanges the projected token for short-lived credentials of this role.
+            - name: AWS_ROLE_ARN
+              value: {{ .Values.secretProtection.awsKms.webIdentity.roleArn | quote }}
+            - name: AWS_WEB_IDENTITY_TOKEN_FILE
+              value: {{ printf "%s/token" $awsWebIdentityRoot }}
+            - name: AWS_ROLE_SESSION_NAME
+              value: {{ include "identity-host.fullname" . | quote }}
+            {{- end }}
+            {{- if .Values.secretProtection.recovery.publicKeyConfigMap }}
+            - name: SecretProtection__Recovery__PublicKeyPath
+              value: {{ printf "%s/recovery/recovery-public.pem" $secretProtectionRoot }}
+            {{- end }}
+            {{- if .Values.secretProtection.recovery.disabled }}
+            - name: SecretProtection__Recovery__Disabled
+              value: "true"
             {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
@@ -171,14 +198,24 @@ spec:
             # The root filesystem is read-only; the runtime's diagnostics socket and temporary files go here.
             - name: tmp
               mountPath: /tmp
-            {{- if .Values.keyProtection.certificateSecret }}
-            - name: key-protection-current
-              mountPath: {{ printf "%s/current" $keyProtectionRoot }}
+            {{- if .Values.secretProtection.local.keySecret }}
+            - name: secret-protection-root-key
+              mountPath: {{ printf "%s/root-key" $secretProtectionRoot }}
               readOnly: true
             {{- end }}
-            {{- range $index, $secret := .Values.keyProtection.previousCertificateSecrets }}
-            - name: key-protection-previous-{{ $index }}
-              mountPath: {{ printf "%s/previous-%d" $keyProtectionRoot $index }}
+            {{- range $index, $secret := .Values.secretProtection.local.previousKeySecrets }}
+            - name: secret-protection-previous-{{ $index }}
+              mountPath: {{ printf "%s/previous-%d" $secretProtectionRoot $index }}
+              readOnly: true
+            {{- end }}
+            {{- if $awsWebIdentity }}
+            - name: aws-web-identity
+              mountPath: {{ $awsWebIdentityRoot }}
+              readOnly: true
+            {{- end }}
+            {{- if .Values.secretProtection.recovery.publicKeyConfigMap }}
+            - name: secret-protection-recovery
+              mountPath: {{ printf "%s/recovery" $secretProtectionRoot }}
               readOnly: true
             {{- end }}
             {{- with .Values.extraVolumeMounts }}
@@ -188,16 +225,32 @@ spec:
         - name: tmp
           emptyDir:
             sizeLimit: 256Mi
-        {{- with .Values.keyProtection.certificateSecret }}
-        - name: key-protection-current
+        {{- with .Values.secretProtection.local.keySecret }}
+        - name: secret-protection-root-key
           secret:
             secretName: {{ . }}
             defaultMode: 0440
         {{- end }}
-        {{- range $index, $secret := .Values.keyProtection.previousCertificateSecrets }}
-        - name: key-protection-previous-{{ $index }}
+        {{- range $index, $secret := .Values.secretProtection.local.previousKeySecrets }}
+        - name: secret-protection-previous-{{ $index }}
           secret:
             secretName: {{ $secret }}
+            defaultMode: 0440
+        {{- end }}
+        {{- if $awsWebIdentity }}
+        # The pod does not mount the default service account token, so this one is projected explicitly, for AWS only.
+        - name: aws-web-identity
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: {{ .Values.secretProtection.awsKms.webIdentity.audience | quote }}
+                  expirationSeconds: {{ .Values.secretProtection.awsKms.webIdentity.tokenExpirationSeconds }}
+                  path: token
+        {{- end }}
+        {{- with .Values.secretProtection.recovery.publicKeyConfigMap }}
+        - name: secret-protection-recovery
+          configMap:
+            name: {{ . }}
             defaultMode: 0440
         {{- end }}
         {{- with .Values.extraVolumes }}

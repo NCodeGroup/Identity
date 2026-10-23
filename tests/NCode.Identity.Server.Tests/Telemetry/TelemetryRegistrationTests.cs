@@ -144,13 +144,20 @@ public sealed class TelemetryRegistrationTests
 
         Assert.Contains(exporter.Points, point => point.Name == "family.counter");
         Assert.DoesNotContain(exporter.Points, point => point.Name == "unrelated.counter");
-        var httpPoint = Assert.Single(
-            exporter.Points,
-            point => point.Name == "http.client.request.duration"
+        // The System.Net.Http meter is process-wide, so other tests' requests may add points.
+        var httpPoints = exporter
+            .Points.Where(point => point.Name == "http.client.request.duration")
+            .ToList();
+        Assert.NotEmpty(httpPoints);
+        Assert.All(
+            httpPoints,
+            point =>
+            {
+                var tag = Assert.Single(point.Tags);
+                Assert.Equal("http.request.method", tag.Key);
+            }
         );
-        var tag = Assert.Single(httpPoint.Tags);
-        Assert.Equal("http.request.method", tag.Key);
-        Assert.Equal("GET", tag.Value);
+        Assert.Contains(httpPoints, point => point.Tags["http.request.method"] as string == "GET");
     }
 
     #endregion

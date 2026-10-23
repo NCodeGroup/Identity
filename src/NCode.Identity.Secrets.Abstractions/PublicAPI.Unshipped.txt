@@ -150,6 +150,7 @@ const NCode.Identity.Secrets.SecretEncodings.Spki = "spki" -> string!
 const NCode.Identity.Secrets.SecretEncodings.SymmetricRaw = "symmetric_raw" -> string!
 const NCode.Identity.Secrets.SecretEncodings.X509 = "x509" -> string!
 NCode.Identity.Secrets.SecretEncodings
+static NCode.Identity.Secrets.SecretEncodings.IsPublic(string! secretEncoding) -> bool
 NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters
 NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters.Format.get -> string!
 NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters.Format.init -> void

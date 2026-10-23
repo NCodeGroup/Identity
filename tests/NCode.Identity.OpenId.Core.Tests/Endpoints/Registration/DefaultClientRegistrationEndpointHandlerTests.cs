@@ -36,6 +36,7 @@ using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -63,7 +64,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         ISecretSerializer secretSerializer,
         ISecretKeyTypeCatalog secretKeyTypeCatalog,
         IClientAuthenticationMethodCatalog? clientAuthenticationMethodCatalog = null,
-        IClientCoherenceValidator? clientCoherenceValidator = null
+        IClientCoherenceValidator? clientCoherenceValidator = null,
+        ISecretProtectorProvider? secretProtectorProvider = null
     ) =>
         new(
             TimeProvider.System,
@@ -72,6 +74,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             CreateStrictMock<ISecretGenerator>().Object,
             CreateStrictMock<IClientKeyImporter>().Object,
             secretSerializer,
+            secretProtectorProvider ?? CreateStrictMock<ISecretProtectorProvider>().Object,
             secretKeyTypeCatalog,
             CreateStrictMock<IStoreManagerFactory>().Object,
             CreateStrictMock<IPersistedGrantService>().Object,
@@ -83,6 +86,25 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
                 ?? CreateStrictMock<IClientAuthenticationMethodCatalog>().Object,
             clientCoherenceValidator ?? CreateStrictMock<IClientCoherenceValidator>().Object
         );
+
+    // The serializer is mocked or never reached, so the protector is never asked to unprotect anything.
+    private ISecretProtector CreateProtector() => CreateStrictMock<ISecretProtector>().Object;
+
+    private ISecretProtectorProvider CreateProtectorProvider(ISecretProtector protector)
+    {
+        var mockProvider = CreateStrictMock<ISecretProtectorProvider>();
+        mockProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant("tenant-1"),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+        return mockProvider.Object;
+    }
 
     private (IOpenIdErrorFactory factory, Func<string?> capturedCode) CreateErrorFactory()
     {
@@ -796,7 +818,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
         var settings = handler.BuildSettingsObject(request, resolved);
         var response = handler.ToResponse(
-            CreateClient(JsonSerializer.SerializeToElement(settings))
+            CreateClient(JsonSerializer.SerializeToElement(settings)),
+            CreateProtector()
         );
 
         // The RFC 8705 §3.4 member is the client's requirement, never the server's support.
@@ -826,7 +849,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
         var settings = handler.BuildSettingsObject(request, resolved);
         var response = handler.ToResponse(
-            CreateClient(JsonSerializer.SerializeToElement(settings))
+            CreateClient(JsonSerializer.SerializeToElement(settings)),
+            CreateProtector()
         );
 
         // The RFC 9449 §5.2 member is the client's requirement, never the server's support.
@@ -881,7 +905,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             },
         };
 
-        var response = handler.ToResponse(client);
+        var response = handler.ToResponse(client, CreateProtector());
 
         Assert.Equal("client-1", response.ClientId);
         Assert.Equal("client_secret_basic", response.TokenEndpointAuthMethod);
@@ -908,7 +932,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var settings = handler.BuildSettingsObject(request, resolved);
         var client = CreateClient(JsonSerializer.SerializeToElement(settings));
 
-        var response = handler.ToResponse(client);
+        var response = handler.ToResponse(client, CreateProtector());
 
         // An omitted response_types would read as the RFC 7591 default ('code').
         Assert.NotNull(response.ResponseTypes);
@@ -940,6 +964,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         var publicKey = CreateSecret("public-key", SecretTypes.Rsa);
         var sharedSecret = CreateSecret("shared-secret", SecretTypes.Symmetric);
         var secretKey = CreateLooseMock<SecretKey>().Object;
+        var protector = CreateProtector();
         var exportedJwk = JsonWebKey.Parse(
             """{"kty":"RSA","kid":"client-kid","n":"AQAB","e":"AQAB"}"""
         );
@@ -968,7 +993,10 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
         // The shared secret has no public key, so it is never deserialized.
         var mockSerializer = CreateStrictMock<ISecretSerializer>();
-        mockSerializer.Setup(x => x.DeserializeSecret(publicKey)).Returns(secretKey).Verifiable();
+        mockSerializer
+            .Setup(x => x.DeserializeSecret(protector, publicKey))
+            .Returns(secretKey)
+            .Verifiable();
 
         var handler = CreateHandler(
             CreateStrictMock<IClientScopeService>().Object,
@@ -981,7 +1009,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             publicKey
         );
 
-        var response = handler.ToResponse(client);
+        var response = handler.ToResponse(client, protector);
 
         Assert.NotNull(response.Jwks);
         var keySet = new JsonWebKeySet(response.Jwks.Value);
@@ -1014,7 +1042,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             sharedSecret
         );
 
-        var response = handler.ToResponse(client);
+        var response = handler.ToResponse(client, CreateProtector());
 
         Assert.Null(response.Jwks);
     }
@@ -1160,7 +1188,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
         var settings = handler.BuildSettingsObject(request, resolved);
         var response = handler.ToResponse(
-            CreateClient(JsonSerializer.SerializeToElement(settings))
+            CreateClient(JsonSerializer.SerializeToElement(settings)),
+            CreateProtector()
         );
 
         // Each metadata member is stored as the client setting the endpoints already enforce.
@@ -1192,7 +1221,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             JsonSerializer.SerializeToElement(new Dictionary<string, object>())
         );
 
-        var response = handler.ToResponse(client);
+        var response = handler.ToResponse(client, CreateProtector());
 
         Assert.Null(response.TokenEndpointAuthSigningAlg);
         Assert.Null(response.BackchannelTokenDeliveryMode);
@@ -1230,7 +1259,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
 
         var settings = handler.BuildSettingsObject(request, resolved);
         var response = handler.ToResponse(
-            CreateClient(JsonSerializer.SerializeToElement(settings))
+            CreateClient(JsonSerializer.SerializeToElement(settings)),
+            CreateProtector()
         );
 
         // A registered request-object algorithm narrows the client's own list to it, which the endpoint enforces.
@@ -1271,7 +1301,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             )
         );
 
-        var response = handler.ToResponse(client);
+        var response = handler.ToResponse(client, CreateProtector());
 
         Assert.Null(response.RequestObjectSigningAlg);
     }
@@ -1289,7 +1319,12 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             )
             .ReturnsAsync(["profile", "openid", "api:read"])
             .Verifiable();
-        var handler = CreateHandler(mockClientScopeService.Object);
+        var handler = CreateHandler(
+            mockClientScopeService.Object,
+            CreateStrictMock<ISecretSerializer>().Object,
+            CreateStrictMock<ISecretKeyTypeCatalog>().Object,
+            secretProtectorProvider: CreateProtectorProvider(CreateProtector())
+        );
         var client = CreateClient(
             JsonSerializer.SerializeToElement(new Dictionary<string, object>())
         );
@@ -1310,7 +1345,12 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
             )
             .ReturnsAsync([])
             .Verifiable();
-        var handler = CreateHandler(mockClientScopeService.Object);
+        var handler = CreateHandler(
+            mockClientScopeService.Object,
+            CreateStrictMock<ISecretSerializer>().Object,
+            CreateStrictMock<ISecretKeyTypeCatalog>().Object,
+            secretProtectorProvider: CreateProtectorProvider(CreateProtector())
+        );
         var client = CreateClient(
             JsonSerializer.SerializeToElement(new Dictionary<string, object>())
         );

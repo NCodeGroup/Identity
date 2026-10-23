@@ -64,7 +64,12 @@ jobs:
           refuse --set-json 'allowedHosts=[]'
           refuse --set 'allowedHosts={*.example.com}'
           refuse --set database.existingSecret=
-          refuse --set keyProtection.certificateSecret=
+          refuse --set secretProtection.rootKeyProvider=
+          refuse --set secretProtection.rootKeyProvider=ephemeral
+          refuse --set secretProtection.local.keySecret=
+          refuse --set secretProtection.rootKeyProvider=aws-kms
+          refuse --set secretProtection.rootKeyProvider=aws-kms --set secretProtection.awsKms.keyArn=not-an-arn
+          refuse --set secretProtection.recovery.publicKeyConfigMap=
           refuse --set tenantResolution.staticSingle.issuer=
           refuse --set tenantResolution.staticSingle.issuer=http://id.example.com
           refuse --set unknownSetting=true

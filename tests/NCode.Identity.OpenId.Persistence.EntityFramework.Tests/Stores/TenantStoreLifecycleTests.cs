@@ -24,6 +24,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -39,6 +40,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     private readonly ClientStore _clientStore;
     private readonly ResourceServerStore _resourceServerStore;
     private readonly RoleAssignmentStore _roleAssignmentStore;
+    private readonly MasterKeyStore _masterKeyStore;
 
     public TenantStoreLifecycleTests()
     {
@@ -62,6 +64,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
             idGenerator,
             _dbContext
         );
+        _masterKeyStore = new MasterKeyStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
     }
 
     public void Dispose()
@@ -203,6 +206,36 @@ public sealed class TenantStoreLifecycleTests : IDisposable
         _dbContext.ChangeTracker.Clear();
     }
 
+    private static PersistedMasterKey CreateMasterKey(
+        string ownerType,
+        string ownerId,
+        int version
+    ) =>
+        new()
+        {
+            KeyId = Guid.NewGuid(),
+            OwnerType = ownerType,
+            OwnerId = ownerId,
+            Version = version,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            RetiredWhen = null,
+            RootKeyProvider = RootKeyProviderNames.Local,
+            RootKeyId = $"root-key-{version}",
+            RootWrappedKey = $"root-wrapped-key-{version}",
+            RecoveryKeyId = null,
+            RecoveryWrappedKey = null,
+            KeyCheck = $"key-check-{version}",
+        };
+
+    private async Task SeedMasterKeysAsync(params PersistedMasterKey[] masterKeys)
+    {
+        foreach (var masterKey in masterKeys)
+            await _masterKeyStore.AddAsync(masterKey, CancellationToken.None);
+
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+    }
+
     [Fact]
     public async Task AddAsync_AssignsRowConcurrencyToken()
     {
@@ -238,6 +271,32 @@ public sealed class TenantStoreLifecycleTests : IDisposable
         Assert.Empty(await _dbContext.TenantSecrets.ToListAsync());
         Assert.Empty(await _dbContext.Secrets.ToListAsync());
         Assert.Empty(await _dbContext.Tenants.ToListAsync());
+    }
+
+    [Fact]
+    public async Task RemoveAsync_TenantWithMasterKeys_RemovesThemAndKeepsOthers()
+    {
+        await SeedTenantAsync();
+        var otherTenantKey = CreateMasterKey(SecretOwnerTypes.Tenant, "tenant-2", 1);
+        var serverKey = CreateMasterKey(SecretOwnerTypes.Server, TenantId, 1);
+        await SeedMasterKeysAsync(
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantId, 1),
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantId.ToUpperInvariant(), 2),
+            otherTenantKey,
+            serverKey
+        );
+
+        var removed = await _store.RemoveAsync(TenantId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+
+        Assert.True(removed);
+        var remainingKeyIds = await _dbContext
+            .MasterKeys.AsNoTracking()
+            .Select(entity => entity.KeyId)
+            .ToListAsync();
+        Assert.Equal(2, remainingKeyIds.Count);
+        Assert.Contains(otherTenantKey.KeyId, remainingKeyIds);
+        Assert.Contains(serverKey.KeyId, remainingKeyIds);
     }
 
     [Fact]

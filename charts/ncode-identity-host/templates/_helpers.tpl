@@ -109,8 +109,23 @@ applied. Rendered for its side effect only.
 {{- if and (eq .Values.tenantResolution.strategyCode "StaticSingle") (not .Values.tenantResolution.staticSingle.issuer) }}
 {{- fail "tenantResolution.staticSingle.issuer must be the public issuer URL." }}
 {{- end }}
-{{- if and (eq .Values.environment "Production") (not .Values.keyProtection.certificateSecret) }}
-{{- fail "keyProtection.certificateSecret must name the TLS Secret whose certificate encrypts the key ring in Production." }}
+{{- if and (eq .Values.secretProtection.rootKeyProvider "aws-kms") (not .Values.secretProtection.awsKms.keyArn) }}
+{{- fail "secretProtection.awsKms.keyArn must name the KMS key or alias that holds the root key." }}
+{{- end }}
+{{- if and (eq .Values.secretProtection.rootKeyProvider "aws-kms") .Values.secretProtection.awsKms.keyArn (not (regexMatch "^arn:aws[a-z-]*:kms:[a-z0-9-]+:[0-9]{12}:(key/[A-Za-z0-9-]+|alias/[A-Za-z0-9/_-]+)$" .Values.secretProtection.awsKms.keyArn)) }}
+{{- fail "secretProtection.awsKms.keyArn must be the ARN of a KMS key or alias, such as arn:aws:kms:us-west-2:111122223333:alias/ncode-identity-root." }}
+{{- end }}
+{{- if eq .Values.environment "Production" }}
+{{- $secretProtection := .Values.secretProtection }}
+{{- if or (not $secretProtection.rootKeyProvider) (eq $secretProtection.rootKeyProvider "ephemeral") }}
+{{- fail "secretProtection.rootKeyProvider must name a root key held outside the pod in Production: local or aws-kms." }}
+{{- end }}
+{{- if and (eq $secretProtection.rootKeyProvider "local") (not $secretProtection.local.keySecret) }}
+{{- fail "secretProtection.local.keySecret must name the Secret holding the local root key." }}
+{{- end }}
+{{- if and (not $secretProtection.recovery.publicKeyConfigMap) (not $secretProtection.recovery.disabled) }}
+{{- fail "secretProtection.recovery must name the recovery public key ConfigMap, or set disabled to accept that losing the root key loses every stored secret." }}
+{{- end }}
 {{- end }}
 {{- if and (gt (int .Values.replicaCount) 1) (not (include "identity-host.valkeyEnabled" .)) }}
 {{- fail "replicaCount above 1 requires valkey.existingSecret: replicas share single-use state through Valkey." }}

@@ -236,8 +236,9 @@ static void EnsurePinnedNodeOnPath(string frontendDirectory)
 
 // Every OP instance that shares the dev database must unwrap the same master keys, and the key stays out of the
 // repository (ADR-0228): the first AppHost run on a machine writes a random 32-byte root key, base64url encoded, to
-// LocalApplicationData and every later run reuses it. The key only ever exists as bytes, zeroed once written — never as
-// a string.
+// LocalApplicationData and every later run reuses it. The key is written to a temporary file and moved into place, so a
+// crash never leaves a partial key under the final name; an empty file left by an older run is replaced. The key only
+// ever exists as bytes, zeroed once written — never as a string.
 static string EnsureDevelopmentRootKey()
 {
     var directory = Path.Combine(
@@ -252,7 +253,15 @@ static string EnsureDevelopmentRootKey()
 
     var path = Path.Combine(directory, "root-key");
     if (File.Exists(path))
-        return path;
+    {
+        // An empty file can only be left by an interrupted in-place write of an older run.
+        if (new FileInfo(path).Length == 0)
+            File.Delete(path);
+        else
+            return path;
+    }
+
+    var temporaryPath = Path.Combine(directory, $"root-key.{Guid.NewGuid():N}.tmp");
 
     Span<byte> key = stackalloc byte[32];
     Span<byte> text = stackalloc byte[43];
@@ -266,8 +275,7 @@ static string EnsureDevelopmentRootKey()
                 $"Encoding the development root key failed with status {status}."
             );
 
-        // CreateNew never overwrites: when another AppHost created the file first, its key is the one to use. Only the
-        // creation is guarded, so a failed write is not mistaken for that race.
+        // The temporary name is unique, so CreateNew only guards against a stray file of the same name.
         var options = new FileStreamOptions
         {
             Mode = FileMode.CreateNew,
@@ -277,19 +285,20 @@ static string EnsureDevelopmentRootKey()
         if (!OperatingSystem.IsWindows())
             options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
 
-        FileStream stream;
+        using (var stream = new FileStream(temporaryPath, options))
+        {
+            stream.Write(text[..written]);
+            stream.Flush(flushToDisk: true);
+        }
+
+        // Move never overwrites: when another AppHost moved its key into place first, that key is the one to use.
         try
         {
-            stream = new FileStream(path, options);
+            File.Move(temporaryPath, path, overwrite: false);
         }
         catch (IOException) when (File.Exists(path))
         {
             return path;
-        }
-
-        using (stream)
-        {
-            stream.Write(text[..written]);
         }
 
         return path;
@@ -298,5 +307,15 @@ static string EnsureDevelopmentRootKey()
     {
         CryptographicOperations.ZeroMemory(key);
         CryptographicOperations.ZeroMemory(text);
+
+        try
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
+        }
+        catch (IOException)
+        {
+            // Cleanup is best-effort and must not hide the real outcome.
+        }
     }
 }

@@ -126,7 +126,7 @@ that change remains:
 - Pattern: Step 3's `ClientApiEndpointHandler.GetPublicKeyAsync` and its forbidden test.
 - Done when: `foreach ($f in 'ResourceServers/ResourceServerApiEndpointHandlerTests.cs','Servers/ServerApiEndpointHandlerTests.cs','Tenants/TenantApiEndpointHandlerTests.cs') { $t = Get-Content -Raw "tests/NCode.Identity.OpenId.Management.Tests/Endpoints/$f"; if (-not $t.Contains('GetPublicKeyAsync_WhenForbidden_ReturnsForbidWithoutProtector')) { exit 1 } }; if (git grep -n -E '^        var protector = await SecretProtectorProvider\.GetProtectorForSecretsAsync' -- src/NCode.Identity.OpenId.Management/Endpoints) { exit 1 }; dotnet test tests/NCode.Identity.OpenId.Management.Tests/NCode.Identity.OpenId.Management.Tests.csproj --nologo --filter "FullyQualifiedName~ApiEndpointHandlerTests" -- RunConfiguration.TreatNoTestsAsError=true`
 
-### [ ] 5. Write the LocalDev development root key atomically
+### [x] 5. Write the LocalDev development root key atomically
 - Files: `src/NCode.Identity.OpenId.LocalDev/Program.cs` (`EnsureDevelopmentRootKey` and the comment above it only)
 - Change (F4):
   1. After computing `path`: when `File.Exists(path)` and `new FileInfo(path).Length == 0`, delete it (an empty file

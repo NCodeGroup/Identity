@@ -3320,3 +3320,26 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   push error payload (CIBA Core §12). Touch points: `DefaultCibaRequestService`, `CibaDeliveryJob`.
   _Closed: a ping or push CIBA client is notified when its request is denied, a push with an error payload and no tokens
   (ADR-0231)._
+- **`R85` — Run the in-process dispatcher's jobs with bounded concurrency.** `JobDispatchWorker` runs one job at a
+  time, so a delivery that waits on an unreachable endpoint (a CIBA notification or a back-channel logout) delays every
+  job queued behind it. Run jobs in parallel up to a limit from `InProcessJobDispatcherOptions`. Touch points:
+  `JobDispatchWorker`, `InProcessJobQueue`, `InProcessJobDispatcherOptions`.
+  _Closed: the in-process dispatcher runs `MaxConcurrentJobs` consumers (default 16) over its one bounded queue,
+  validated when the host starts, and an attempt fails on any error except the host stopping, so a handler's own timeout
+  is retried instead of ending the worker; a job whose handlers fail is retried once per attempt (ADR-0232)._
+- **`R87` — List the incoherent clients in the management API.** The reconciliation of the server's settings logs each
+  stored client that the settings make incoherent (ADR-0219), so an operator without the logs cannot find them. Add a
+  read-only report per tenant. Touch points: `ClientApiEndpointHandler`, `IClientCoherenceValidator`,
+  `ClientCoherenceReportHandler`.
+  _Closed: `IClientCoherenceReporter` checks a page of a tenant's clients and reports a client whose settings document
+  cannot be read with its error; the reconciliation's log and `GET api/tenants/{tenantId}/incoherent-clients` both use
+  it (ADR-0233)._
+- **`R88` — Reconcile only the tenants and clients a server settings change affects.** The reconciliation reads the
+  keys of every tenant that uses a configured algorithm and checks every client on each change, because only a
+  fingerprint of the settings it last reconciled is stored. Storing those settings would let it skip a tenant whose
+  effective settings did not change in a setting it reads (`TenantKeyUsage`,
+  `IClientCoherenceValidator.ReadsChangedSetting`). Touch points: `PersistedServer.ReconciledSettingsFingerprint`,
+  `TenantKeyReconciliationHandler`, `ClientCoherenceReportHandler`.
+  _Closed: the server row records the effective settings it last reconciled (`ReconciledSettings`), and the
+  reconciliation reads the keys only of the tenants that gain an algorithm and checks the clients only of the tenants
+  whose rule-read settings changed; without a readable record everything is reconciled (ADR-0234)._

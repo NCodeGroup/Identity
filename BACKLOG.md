@@ -421,18 +421,6 @@ _None remaining._
 - **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
   replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
   `src/frontend/apps/auth/src/main.tsx:12-21`.
-- **`R77` — Rotate or sender-constrain a public client's refresh tokens.** OAuth 2.1 §4.3.1 and RFC 9700 §4.14.2
-  require one or the other for a public client. `refresh_token_rotation_enabled` defaults to `false` and nothing
-  requires either for a client that is not confidential, so a public client without DPoP receives a reusable bearer
-  refresh token. Rotate unless the grant is DPoP-bound, or refuse such a client with a coherence rule (ADR-0206).
-  Touch points: `DefaultSettingDescriptorDataSource`, `DefaultRefreshTokenGrantHandler`,
-  `OpenIdClient.IsConfidential`.
-- **`R78` — Make a revocation win a concurrency race.** `SetRevokedOnceAsync` (revocation endpoint),
-  `RevokeBySessionAsync` (logout, authorization-code replay) and `RevokeWhereAsync` (bulk revocation) read and stamp
-  under concurrency tokens; when a concurrent write such as a sliding-expiration refresh changes a row first, nothing
-  is revoked and the request fails (`500` at the protocol endpoints, where RFC 7009 answers `200`; `412` in the
-  management API). Read again and retry, as the lineage revocation does (ADR-0211). Touch points:
-  `DefaultPersistedGrantService`, `DefaultRevokeTokenHandler`, `GrantApiEndpointHandler`.
 - **`R80` — Expire an abandoned end-user session.** `session_absolute_lifetime` and `session_idle_timeout` default to
   zero, so a session grant has no expiry, and one that its user never signs out of never ends. The grant prune
   (ADR-0218) keeps it forever. Choose secure defaults, and give an idle session an end that the prune sees. Touch
@@ -503,18 +491,6 @@ _None remaining._
   `json` formatter (`Logging__Console__FormatterName`) in the container image or the chart's default environment, and
   keep `simple` for development. Touch points: `src/NCode.Identity.OpenId.Host/Dockerfile`,
   `charts/ncode-identity-host/values.yaml`, ADR-0210.
-- **`R75` — Remove a deleted client's or resource server's owner assignments.** Ownership is a role assignment keyed
-  by the resource's identifier, not a foreign key, so `ClientApiEndpointHandler.DeleteClientAsync` and
-  `ResourceServerApiEndpointHandler.DeleteAsync` leave it, and `IRoleAssignmentStore.GetByPrincipalAsync` still lists
-  it. Remove it in the resource's unit of work (ADR-0212). Touch points: `IResourceOwnershipService`, both handlers.
-- **`R76` — Remove expired and revoked grants after a retention period.** No grant row is ever removed, so the grants
-  table grows without bound, and deleting a client or a tenant loads all of its grants into one unit of work
-  (ADR-0212). Remove them in bounded batches, as the usage ledger is pruned (ADR-0213). Touch points: `IGrantStore`,
-  `GrantStore`, a hosted service like `TenantUsageFlushService`.
-- **`R79` — Offer an opt-in refresh-token reuse interval.** A client that retries a refresh after losing the response
-  is answered as a reuse, which revokes its lineage (ADR-0211). Auth0 offers a reuse interval and Okta a grace period;
-  add a client setting, off by default, within which a rotated token is refused without revoking the lineage. Touch
-  points: `DefaultRefreshTokenGrantHandler`, `DefaultSettingDescriptorDataSource`, ADR-0087.
 - **`R81` — Require a reuse interval for a FAPI 2.0 client whose refresh tokens always rotate.** FAPI 2.0 §5.3.2.1
   Note 1 requires an authorization server that rotates a refresh token to let the client retry with the rotated token.
   Add a coherence rule (ADR-0206) over `security_profiles`, `refresh_token_rotation_policy` and

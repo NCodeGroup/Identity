@@ -255,3 +255,5 @@ standards.
 | [0217](./0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md) | A rotated refresh token may be retried within a reuse interval | Accepted |
 | [0218](./0218-ended-grants-are-removed-after-a-retention-period.md) | Ended grants are removed after a retention period | Accepted |
 | [0219](./0219-server-settings-converge-on-every-replica-through-one-reconciliation.md) | Server settings converge on every replica through one reconciliation | Accepted |
+| [0220](./0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) | An end-user session always ends, and its grant expires when it does | Accepted |
+| [0221](./0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md) | Intervals and retentions are configured and validated when the host starts | Accepted |

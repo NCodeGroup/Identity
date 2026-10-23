@@ -649,6 +649,11 @@ rationale.
   through `IGrantStore.RevokeWhereAsync` and a save of your own; a revocation does not depend on what its caller read,
   so the server retries it instead of answering `412`. See
   [ADR-0215](../../docs/adr/0215-a-revocation-wins-a-concurrency-race.md).
+- 👁 **Read a stored grant's payload through `IPersistedGrantService` or `IPersistedPayloadSerializer`, never
+  `PayloadJson.Deserialize<T>()`.** A grant's `PayloadJson` is a schema-versioned envelope (`$ver`, `$payload`), so
+  deserializing it as the payload reads none of the payload's members and throws for a `required` one; a session
+  listing that did so failed for every stored session. See
+  [ADR-0220](../../docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md).
 - 👁 **A fetch of a URL a tenant or certificate supplies uses a named client whose primary handler has the
   `IOutboundHttpForgeryGuard` connect callback, and the platform `X509Chain` retrieves nothing.** Use
   `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through
@@ -1116,3 +1121,9 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   something to seed, and an unset target never means "every tenant": every tenant created at runtime would inherit the
   credential. Validate the requirement when the host starts. See
   [ADR-0166](../../docs/adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md).
+- 👁 **A period that options hand to a timer is validated when the host starts with `TimerPeriod.IsValid`**
+  (`NCode.Time`): between one millisecond, the shortest a `PeriodicTimer` accepts, and `TimerPeriod.MaxValue`,
+  4,294,967,294 milliseconds, the longest any .NET timer or `CancellationTokenSource` delay accepts. The options type's
+  `IValidateOptions<T>` names the option and its configuration key, so a period a timer refuses stops the host instead
+  of faulting a hosted service after it started. See
+  [ADR-0221](../../docs/adr/0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md).

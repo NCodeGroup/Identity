@@ -53,6 +53,7 @@ public class DefaultSessionServiceTests : BaseTests
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<ISessionEvictionPolicy> MockEvictionPolicy { get; }
     private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
+    private static DefaultPersistedPayloadSerializer PayloadSerializer { get; } = new([]);
     private DefaultSessionService Service { get; }
 
     public DefaultSessionServiceTests()
@@ -67,6 +68,7 @@ public class DefaultSessionServiceTests : BaseTests
             MockTimeProvider.Object,
             MockCryptoService.Object,
             MockPersistedGrantService.Object,
+            PayloadSerializer,
             MockStoreManagerFactory.Object,
             MockEvictionPolicy.Object,
             MockAuditEventRecorder.Object,
@@ -114,12 +116,12 @@ public class DefaultSessionServiceTests : BaseTests
             },
         };
 
-    #endregion
-
-    #region CreateAsync Tests
-
-    [Fact]
-    public async Task CreateAsync_Always_PersistsSessionGrantAndReturnsSid()
+    private async Task<(
+        string Result,
+        PersistedGrant<SessionGrant> Grant,
+        DateTimeOffset CreatedWhen,
+        TimeSpan? Lifetime
+    )> CreateSessionAsync(CreateSessionRequest request)
     {
         var mockContext = CreateContext();
         var grantId = CreateGrantId();
@@ -180,16 +182,30 @@ public class DefaultSessionServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        var result = await Service.CreateAsync(mockContext.Object, request, CancellationToken.None);
+
+        return (result, capturedGrant, capturedCreatedWhen, capturedLifetime);
+    }
+
+    #endregion
+
+    #region CreateAsync Tests
+
+    [Fact]
+    public async Task CreateAsync_Always_PersistsSessionGrantAndReturnsSid()
+    {
         var request = new CreateSessionRequest
         {
             SubjectId = SubjectId,
             AuthTime = UtcNow,
             AuthenticationMethods = ["pwd"],
             IdentityProvider = "idp-1",
-            Lifetime = TimeSpan.FromHours(8),
+            AbsoluteLifetime = TimeSpan.FromHours(8),
+            IdleTimeout = TimeSpan.FromHours(1),
         };
 
-        var result = await Service.CreateAsync(mockContext.Object, request, CancellationToken.None);
+        var (result, capturedGrant, capturedCreatedWhen, capturedLifetime) =
+            await CreateSessionAsync(request);
 
         Assert.Equal(SessionId, result);
         Assert.Equal(PersistedGrantStatus.Active, capturedGrant.Status);
@@ -199,8 +215,50 @@ public class DefaultSessionServiceTests : BaseTests
         Assert.Equal(new[] { "pwd" }, capturedGrant.Payload.AuthenticationMethods);
         Assert.Equal("idp-1", capturedGrant.Payload.IdentityProvider);
         Assert.Empty(capturedGrant.Payload.ClientIds);
+        Assert.Equal(UtcNow.AddHours(8), capturedGrant.Payload.AbsoluteExpiresWhen);
+        Assert.Equal(TimeSpan.FromHours(1), capturedGrant.Payload.IdleTimeout);
+        Assert.Equal(UtcNow, capturedGrant.Payload.LastActivityWhen);
         Assert.Equal(UtcNow, capturedCreatedWhen);
-        Assert.Equal(TimeSpan.FromHours(8), capturedLifetime);
+        Assert.Equal(TimeSpan.FromHours(1), capturedLifetime);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTheAbsoluteLifetimeIsShorterThanTheIdleTimeout_ExpiresAtTheAbsoluteEnd()
+    {
+        var request = new CreateSessionRequest
+        {
+            SubjectId = SubjectId,
+            AuthTime = UtcNow,
+            AbsoluteLifetime = TimeSpan.FromHours(1),
+            IdleTimeout = TimeSpan.FromDays(3),
+        };
+
+        var (_, capturedGrant, _, capturedLifetime) = await CreateSessionAsync(request);
+
+        Assert.Equal(UtcNow.AddHours(1), capturedGrant.Payload.AbsoluteExpiresWhen);
+        Assert.Equal(TimeSpan.FromHours(1), capturedLifetime);
+    }
+
+    [Theory]
+    [InlineData(0, 60)]
+    [InlineData(60, 0)]
+    public async Task CreateAsync_WhenALifetimeIsNotPositive_Throws(
+        int absoluteSeconds,
+        int idleSeconds
+    )
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        var request = new CreateSessionRequest
+        {
+            SubjectId = SubjectId,
+            AuthTime = UtcNow,
+            AbsoluteLifetime = TimeSpan.FromSeconds(absoluteSeconds),
+            IdleTimeout = TimeSpan.FromSeconds(idleSeconds),
+        };
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+            await Service.CreateAsync(mockContext.Object, request, CancellationToken.None)
+        );
     }
 
     #endregion
@@ -361,14 +419,29 @@ public class DefaultSessionServiceTests : BaseTests
             ClientId = null,
             SubjectId = SubjectId,
             SessionId = SessionId,
+            ExpiresWhen = UtcNow.AddDays(30),
             Payload = new SessionGrant
             {
                 AuthTime = UtcNow,
                 ClientIds = ["client-a"],
                 LastActivityWhen = lastActivityWhen,
                 IdleTimeout = idleTimeout,
+                AbsoluteExpiresWhen = UtcNow.AddDays(30),
             },
         };
+
+    private void SetupTermination(Mock<IMediator> mockMediator, string reason) =>
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c =>
+                        c.Termination.Reason == reason && c.Termination.SessionId == SessionId
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
     private PersistedGrantId SetupGetSession(
         Mock<OpenIdContext> mockContext,
@@ -395,11 +468,39 @@ public class DefaultSessionServiceTests : BaseTests
         return grantId;
     }
 
+    private void SetupTouch(
+        Mock<OpenIdContext> mockContext,
+        PersistedGrantId grantId,
+        Action<SessionGrant, DateTimeOffset> onTouch
+    ) =>
+        MockPersistedGrantService
+            .Setup(x =>
+                x.UpdatePayloadAndExpirationAsync(
+                    mockContext.Object,
+                    grantId,
+                    It.IsAny<SessionGrant>(),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (
+                    OpenIdContext _,
+                    PersistedGrantId _,
+                    SessionGrant payload,
+                    DateTimeOffset expiresWhen,
+                    CancellationToken _
+                ) => onTouch(payload, expiresWhen)
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
     [Fact]
     public async Task ValidateAndTouchAsync_WhenNoIdleTimeout_ReturnsTrueWithoutWrite()
     {
         var mockContext = CreateContext();
         SetupGetSession(mockContext, CreateIdleSession(idleTimeout: null, UtcNow));
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         var result = await Service.ValidateAndTouchAsync(
             mockContext.Object,
@@ -408,6 +509,104 @@ public class DefaultSessionServiceTests : BaseTests
         );
 
         Assert.True(result);
+    }
+
+    [Fact]
+    public async Task ValidateAndTouchAsync_WhenRevoked_ReturnsFalse()
+    {
+        var mockContext = CreateContext();
+        SetupGetSession(
+            mockContext,
+            CreateIdleSession(TimeSpan.FromHours(1), UtcNow) with
+            {
+                Status = PersistedGrantStatus.Revoked,
+            }
+        );
+
+        var result = await Service.ValidateAndTouchAsync(
+            mockContext.Object,
+            SessionId,
+            CancellationToken.None
+        );
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task ValidateAndTouchAsync_WhenPastTheAbsoluteEnd_TerminatesWithAbsoluteExpiry()
+    {
+        var mockContext = CreateContextWithMediator(out var mockMediator);
+        var session = CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddMinutes(-30));
+        SetupGetSession(
+            mockContext,
+            session with
+            {
+                Status = PersistedGrantStatus.Expired,
+                ExpiresWhen = UtcNow.AddMinutes(-1),
+                Payload = session.Payload with { AbsoluteExpiresWhen = UtcNow.AddMinutes(-1) },
+            }
+        );
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupTermination(mockMediator, SessionTerminationReasons.AbsoluteExpiry);
+
+        var result = await Service.ValidateAndTouchAsync(
+            mockContext.Object,
+            SessionId,
+            CancellationToken.None
+        );
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task ValidateAndTouchAsync_WhenTheGrantExpiredBeforeItsAbsoluteEnd_TerminatesWithIdleTimeout()
+    {
+        var mockContext = CreateContextWithMediator(out var mockMediator);
+        var session = CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddMinutes(-30));
+        SetupGetSession(
+            mockContext,
+            session with
+            {
+                Status = PersistedGrantStatus.Expired,
+                ExpiresWhen = UtcNow.AddMinutes(-1),
+                Payload = session.Payload with { AbsoluteExpiresWhen = UtcNow.AddDays(29) },
+            }
+        );
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupTermination(mockMediator, SessionTerminationReasons.IdleTimeout);
+
+        var result = await Service.ValidateAndTouchAsync(
+            mockContext.Object,
+            SessionId,
+            CancellationToken.None
+        );
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task ValidateAndTouchAsync_WhenStoredWithoutAnEnd_TerminatesWithAbsoluteExpiry()
+    {
+        var mockContext = CreateContextWithMediator(out var mockMediator);
+        var session = CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddMinutes(-30));
+        SetupGetSession(
+            mockContext,
+            session with
+            {
+                ExpiresWhen = null,
+                Payload = session.Payload with { AbsoluteExpiresWhen = null },
+            }
+        );
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupTermination(mockMediator, SessionTerminationReasons.AbsoluteExpiry);
+
+        var result = await Service.ValidateAndTouchAsync(
+            mockContext.Object,
+            SessionId,
+            CancellationToken.None
+        );
+
+        Assert.False(result);
     }
 
     [Fact]
@@ -467,21 +666,16 @@ public class DefaultSessionServiceTests : BaseTests
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
         SessionGrant captured = default;
-        MockPersistedGrantService
-            .Setup(x =>
-                x.UpdatePayloadAsync(
-                    mockContext.Object,
-                    grantId,
-                    It.IsAny<SessionGrant>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Callback(
-                (OpenIdContext _, PersistedGrantId _, SessionGrant p, CancellationToken _) =>
-                    captured = p
-            )
-            .ReturnsAsync(true)
-            .Verifiable();
+        DateTimeOffset capturedExpiresWhen = default;
+        SetupTouch(
+            mockContext,
+            grantId,
+            (payload, expiresWhen) =>
+            {
+                captured = payload;
+                capturedExpiresWhen = expiresWhen;
+            }
+        );
 
         var result = await Service.ValidateAndTouchAsync(
             mockContext.Object,
@@ -491,6 +685,74 @@ public class DefaultSessionServiceTests : BaseTests
 
         Assert.True(result);
         Assert.Equal(UtcNow, captured.LastActivityWhen);
+        Assert.Equal(UtcNow.AddDays(30), captured.AbsoluteExpiresWhen);
+        Assert.Equal(UtcNow.AddHours(1), capturedExpiresWhen);
+    }
+
+    [Fact]
+    public async Task ValidateAndTouchAsync_WhenTheAbsoluteEndIsNearerThanTheIdleWindow_SlidesTheExpiryToTheAbsoluteEnd()
+    {
+        var mockContext = CreateContext();
+        var session = CreateIdleSession(TimeSpan.FromHours(1), UtcNow.AddMinutes(-5));
+        var grantId = SetupGetSession(
+            mockContext,
+            session with
+            {
+                ExpiresWhen = UtcNow.AddMinutes(10),
+                Payload = session.Payload with { AbsoluteExpiresWhen = UtcNow.AddMinutes(10) },
+            }
+        );
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+
+        DateTimeOffset capturedExpiresWhen = default;
+        SetupTouch(mockContext, grantId, (_, expiresWhen) => capturedExpiresWhen = expiresWhen);
+
+        var result = await Service.ValidateAndTouchAsync(
+            mockContext.Object,
+            SessionId,
+            CancellationToken.None
+        );
+
+        Assert.True(result);
+        Assert.Equal(UtcNow.AddMinutes(10), capturedExpiresWhen);
+    }
+
+    [Fact]
+    public async Task ValidateAndTouchAsync_WhenStoredWithoutAnAbsoluteEnd_StampsTheGrantsExpiryAsItsAbsoluteEnd()
+    {
+        var mockContext = CreateContext();
+        var session = CreateIdleSession(idleTimeout: null, UtcNow.AddMinutes(-5));
+        var grantId = SetupGetSession(
+            mockContext,
+            session with
+            {
+                ExpiresWhen = UtcNow.AddDays(1),
+                Payload = session.Payload with { AbsoluteExpiresWhen = null },
+            }
+        );
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+
+        SessionGrant captured = default;
+        DateTimeOffset capturedExpiresWhen = default;
+        SetupTouch(
+            mockContext,
+            grantId,
+            (payload, expiresWhen) =>
+            {
+                captured = payload;
+                capturedExpiresWhen = expiresWhen;
+            }
+        );
+
+        var result = await Service.ValidateAndTouchAsync(
+            mockContext.Object,
+            SessionId,
+            CancellationToken.None
+        );
+
+        Assert.True(result);
+        Assert.Equal(UtcNow.AddDays(1), captured.AbsoluteExpiresWhen);
+        Assert.Equal(UtcNow.AddDays(1), capturedExpiresWhen);
     }
 
     [Fact]
@@ -503,7 +765,7 @@ public class DefaultSessionServiceTests : BaseTests
         );
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
-        // No UpdatePayloadAsync setup exists; a strict mock would throw if the window were persisted.
+        // No UpdatePayloadAndExpirationAsync setup exists; a strict mock would throw if the window were persisted.
         var result = await Service.ValidateAndTouchAsync(
             mockContext.Object,
             SessionId,
@@ -586,7 +848,8 @@ public class DefaultSessionServiceTests : BaseTests
         DateTimeOffset? revokedWhen = null,
         TimeSpan? idleTimeout = null,
         DateTimeOffset? lastActivityWhen = null,
-        IReadOnlyList<string>? clientIds = null
+        IReadOnlyList<string>? clientIds = null,
+        DateTimeOffset? absoluteExpiresWhen = null
     ) =>
         new()
         {
@@ -600,16 +863,17 @@ public class DefaultSessionServiceTests : BaseTests
             SessionId = sessionId,
             RefreshTokenLineageId = null,
             CreatedWhen = createdWhen,
-            ExpiresWhen = null,
+            ExpiresWhen = absoluteExpiresWhen ?? createdWhen.AddDays(30),
             RevokedWhen = revokedWhen,
             ConsumedWhen = null,
-            PayloadJson = JsonSerializer.SerializeToElement(
+            PayloadJson = PayloadSerializer.Serialize(
                 new SessionGrant
                 {
                     AuthTime = createdWhen,
                     ClientIds = clientIds ?? [],
                     LastActivityWhen = lastActivityWhen ?? createdWhen,
                     IdleTimeout = idleTimeout,
+                    AbsoluteExpiresWhen = absoluteExpiresWhen ?? createdWhen.AddDays(30),
                 },
                 JsonOptions
             ),
@@ -659,6 +923,86 @@ public class DefaultSessionServiceTests : BaseTests
         );
 
         Assert.Equal(["live"], sessions.Select(session => session.SessionId));
+    }
+
+    [Fact]
+    public async Task GetSessionsAsync_SkipsSessionsPastTheirAbsoluteEnd()
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupSessionEnumeration(
+            mockContext,
+            CreateEnvelope(
+                "ended",
+                UtcNow.AddHours(-2),
+                absoluteExpiresWhen: UtcNow.AddMinutes(-1)
+            ),
+            CreateEnvelope("live", UtcNow.AddMinutes(-1))
+        );
+
+        var sessions = await Service.GetSessionsAsync(
+            mockContext.Object,
+            SubjectId,
+            CancellationToken.None
+        );
+
+        Assert.Equal(["live"], sessions.Select(session => session.SessionId));
+    }
+
+    [Fact]
+    public async Task GetSessionsAsync_SkipsSessionsStoredWithoutAnEnd()
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        var withoutEnd = CreateEnvelope("without-end", UtcNow.AddMinutes(-5));
+        withoutEnd.ExpiresWhen = null;
+        withoutEnd.PayloadJson = PayloadSerializer.Serialize(
+            new SessionGrant
+            {
+                AuthTime = UtcNow.AddMinutes(-5),
+                ClientIds = [],
+                LastActivityWhen = UtcNow.AddMinutes(-5),
+            },
+            JsonOptions
+        );
+        SetupSessionEnumeration(
+            mockContext,
+            withoutEnd,
+            CreateEnvelope("live", UtcNow.AddMinutes(-1))
+        );
+
+        var sessions = await Service.GetSessionsAsync(
+            mockContext.Object,
+            SubjectId,
+            CancellationToken.None
+        );
+
+        Assert.Equal(["live"], sessions.Select(session => session.SessionId));
+    }
+
+    [Fact]
+    public async Task GetSessionsAsync_ReportsWhenTheSessionEndsUnlessItIsUsedAgain()
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupSessionEnumeration(
+            mockContext,
+            CreateEnvelope(
+                "idle-window",
+                UtcNow.AddMinutes(-20),
+                idleTimeout: TimeSpan.FromMinutes(30),
+                lastActivityWhen: UtcNow.AddMinutes(-10)
+            )
+        );
+
+        var sessions = await Service.GetSessionsAsync(
+            mockContext.Object,
+            SubjectId,
+            CancellationToken.None
+        );
+
+        var session = Assert.Single(sessions);
+        Assert.Equal(UtcNow.AddMinutes(20), session.ExpiresWhen);
     }
 
     [Fact]

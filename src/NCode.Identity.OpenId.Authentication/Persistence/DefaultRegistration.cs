@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NCode.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.Persistence;
@@ -50,14 +51,13 @@ internal static class DefaultRegistration
                 DefaultPersistedGrantService
             >();
 
-            serviceCollection
-                .AddOptions<GrantRetentionOptions>()
-                .Validate(
-                    options =>
-                        options.Retention >= TimeSpan.Zero && options.PruneInterval > TimeSpan.Zero,
-                    "The GrantRetentionOptions Retention must not be negative, and its PruneInterval must be positive."
-                )
-                .ValidateOnStart();
+            serviceCollection.AddOptions<GrantRetentionOptions>().ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<GrantRetentionOptions>,
+                    GrantRetentionOptionsValidator
+                >()
+            );
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.AddHostedService<GrantPruneService>();
 

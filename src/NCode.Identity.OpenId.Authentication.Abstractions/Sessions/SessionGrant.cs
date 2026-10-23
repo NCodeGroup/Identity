@@ -68,11 +68,17 @@ public readonly record struct SessionGrant
     public required DateTimeOffset LastActivityWhen { get; init; }
 
     /// <summary>
-    /// Gets the sliding inactivity window after which the session expires if it is not used, or <c>null</c> when no
-    /// idle timeout applies (the session is bounded only by its absolute lifetime, if any). Stamped onto the session at
+    /// Gets the sliding inactivity window after which the session expires if it is not used, or <c>null</c> when the
+    /// session was stored without one, in which case only its absolute end bounds it. Stamped onto the session at
     /// creation so the idle policy travels with the session and is enforced without re-reading host configuration.
     /// </summary>
     public TimeSpan? IdleTimeout { get; init; }
+
+    /// <summary>
+    /// Gets the time the session ends however it is used, or <c>null</c> when the session was stored without one, in
+    /// which case the expiry of its grant is its absolute end.
+    /// </summary>
+    public DateTimeOffset? AbsoluteExpiresWhen { get; init; }
 
     /// <summary>
     /// Gets the <c>User-Agent</c> header observed when the session was established, used to describe the session's

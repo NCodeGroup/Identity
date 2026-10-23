@@ -397,5 +397,40 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
         Assert.Equal(TenantTwoId, identity.NormalizedTenantId);
     }
 
+    [Fact]
+    public async Task RemoveAsync_OnARelationalProvider_RemovesTheRoleAssignmentsItsPrincipalsHoldInOtherTenants()
+    {
+        await SeedTenantWithSystemRowsAsync(TenantOneId);
+        await SeedTenantWithSystemRowsAsync(TenantTwoId);
+        await SeedEndUserDataAsync(TenantOneId);
+        await _roleAssignmentStore.AddAsync(
+            new PersistedRoleAssignment
+            {
+                TenantId = TenantTwoId,
+                AssignmentId = "assign-cross",
+                PrincipalId = $"{TenantOneId}-principal",
+                RoleName = "Owner",
+                ResourceType = "tenant",
+                ResourceId = TenantTwoId,
+                ConcurrencyToken = string.Empty,
+            },
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveAsync(TenantOneId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.True(removed);
+        var remaining = await _dbContext
+            .RoleAssignments.IgnoreQueryFilters()
+            .Select(entity => entity.AssignmentId)
+            .OrderBy(assignmentId => assignmentId)
+            .ToListAsync();
+        Assert.Equal(["assign-tenant-2"], remaining);
+    }
+
     #endregion
 }

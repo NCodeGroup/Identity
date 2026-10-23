@@ -127,7 +127,7 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
             sessionId,
             SubjectId,
             DateTimeOffset.UnixEpoch,
-            ExpiresWhen: null,
+            ExpiresWhen: DateTimeOffset.UnixEpoch.AddDays(3),
             new SessionGrant
             {
                 AuthTime = DateTimeOffset.UnixEpoch,

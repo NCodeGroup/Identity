@@ -257,4 +257,25 @@ public interface IPersistedGrantService
         TPayload payload,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Replaces the payload and the expiration of a grant if it is still active, in one unit of work. This supports a
+    /// grant whose expiry slides with its use, such as an end-user session whose idle window is renewed.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="grantId">Contains the identifiers of the persisted grant.</param>
+    /// <param name="payload">The new payload to persist for the grant.</param>
+    /// <param name="expiresWhen">The <see cref="DateTimeOffset"/> to set the expiration time to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <typeparam name="TPayload">The type of the payload for the persisted grant.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> if an
+    /// active grant was found and updated; otherwise, <c>false</c>, also when a concurrent request changed the grant
+    /// after it was read, whose change stands.</returns>
+    ValueTask<bool> UpdatePayloadAndExpirationAsync<TPayload>(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        TPayload payload,
+        DateTimeOffset expiresWhen,
+        CancellationToken cancellationToken
+    );
 }

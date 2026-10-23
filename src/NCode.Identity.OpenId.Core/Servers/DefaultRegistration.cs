@@ -20,6 +20,7 @@ using IdGen;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
 using NCode.Registration;
@@ -81,6 +82,16 @@ internal static class DefaultRegistration
                 DefaultServerSettingsReconciler
             >();
             serviceCollection.AddHostedService<ServerSettingsReconciliationService>();
+
+            // A server or tenant interval that a timer refuses stops the host when it starts instead of failing the
+            // first time a timer is created (ADR-0221).
+            serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<OpenIdOptions>,
+                    OpenIdIntervalsOptionsValidator
+                >()
+            );
 
             return builder;
         }

@@ -93,6 +93,10 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         ceiling.Set(OpenIdSettingKeys.RequireCodeChallenge, true);
         ceiling.Set(OpenIdSettingKeys.RequirePushedAuthorizationRequests, true);
 
+        // FAPI 2.0 §5.3.2.1 Note 1: a server that rotates refresh tokens lets the client retry with the rotated token
+        // (Or floor), so a client whose refresh tokens rotate needs a reuse interval (ADR-0217).
+        ceiling.Set(OpenIdSettingKeys.RefreshTokenRotationRetryRequired, true);
+
         // Short-lived authorization code and PAR request_uri (Min ceilings can only be shortened by a child).
         ceiling.Set(OpenIdSettingKeys.AuthorizationCodeLifetime, TimeSpan.FromSeconds(60));
         ceiling.Set(OpenIdSettingKeys.PushedAuthorizationRequestLifetime, TimeSpan.FromSeconds(90));

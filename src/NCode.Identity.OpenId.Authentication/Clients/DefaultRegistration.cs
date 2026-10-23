@@ -198,6 +198,13 @@ internal static class DefaultRegistration
                 >()
             );
 
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IClientCoherenceRule,
+                    RefreshTokenRotationRetryCoherenceRule
+                >()
+            );
+
             // A change of the server's settings that is not a write is reported client by client (ADR-0219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

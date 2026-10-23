@@ -19,6 +19,7 @@
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
 
@@ -50,5 +51,35 @@ internal static class RefreshTokenRotationRequirement
             return true;
 
         return !openIdClient.IsConfidential && !confirmation.HasValue;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether a client with these effective settings is issued refresh tokens that can rotate:
+    /// every one under <c>always</c>, and a public client's under <c>unbound</c>.
+    /// </summary>
+    /// <param name="settings">The effective settings of the client.</param>
+    /// <returns><see langword="true"/> when a refresh token issued to the client can be rotated.</returns>
+    public static bool CanRotate(IReadOnlySettingCollection settings)
+    {
+        var policy = settings.GetValue(OpenIdSettingKeys.RefreshTokenRotationPolicy);
+        if (
+            string.Equals(
+                policy,
+                OpenIdConstants.RefreshTokenRotationPolicy.Always,
+                StringComparison.Ordinal
+            )
+        )
+            return true;
+
+        return string.Equals(
+                policy,
+                OpenIdConstants.RefreshTokenRotationPolicy.Unbound,
+                StringComparison.Ordinal
+            )
+            && string.Equals(
+                settings.GetValue(OpenIdSettingKeys.TokenEndpointAuthMethod),
+                OpenIdConstants.ClientAuthenticationMethods.None,
+                StringComparison.Ordinal
+            );
     }
 }

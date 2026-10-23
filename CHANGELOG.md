@@ -10,6 +10,36 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **`token.refresh.retry` audits a rotated refresh token retried within its reuse interval.** When the retry is
+  answered with another refresh token of its rotation family, `RefreshTokenRetryAuditEvent` is published with outcome
+  `success`, so an operator can tell a client's retry from a rotation and from a reuse (`token.refresh.replay`); a
+  refused retry publishes none. **Breaking:** `IAuditEventRecorder.RecordRefreshTokenRetryAsync` is a member a custom
+  recorder implements
+  ([ADR-0217](docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), backlog `R84`).
+
+- **The grant retention and the usage ledger are configured through `OpenId:GrantRetention` and
+  `OpenId:TenantUsage`.** `AddConfiguration` binds `GrantRetentionOptions` (`Retention`, `PruneInterval`) and
+  `TenantUsageOptions` (`FlushInterval`, `Retention`) strictly and validates them when the host starts;
+  `GrantRetentionOptions.SectionName` and `TenantUsageOptions.SectionName` name the subsections
+  ([ADR-0221](docs/adr/0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md),
+  backlog `R83`).
+
+- **The host refuses to start with an interval or a lifetime that a timer cannot run.** The server's and the tenants'
+  settings and secrets refresh intervals, `OpenId:Server:ReconciliationLeaseDuration`,
+  `OpenId:Tenant:TenantCacheLifetime`, `GrantRetentionOptions.PruneInterval` and `TenantUsageOptions.FlushInterval`
+  must be between one millisecond and 4,294,967,294 milliseconds (about 49.7 days), and a retention must not be
+  negative; the error names the option and its configuration key. `NCode.Time.TimerPeriod` states the range
+  ([ADR-0221](docs/adr/0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md),
+  backlog `R86`).
+
+- **A client whose refresh tokens rotate under the FAPI 2.0 profile must be able to retry a rotation.** The client
+  setting `refresh_token_rotation_retry_required` (`false` by default; a child scope cannot un-require it) is required
+  by the FAPI 2.0 security profile, and the coherence rule `RefreshTokenRotationRetryCoherenceRule` refuses a client
+  that requires it while its refresh tokens rotate (`refresh_token_rotation_policy` `always`, or `unbound` for a public
+  client) and its `refresh_token_reuse_interval` is zero (FAPI 2.0 §5.3.2.1)
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md),
+  [ADR-0217](docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), backlog `R81`).
+
 - **A server settings write takes effect at once on every replica.** After the server settings PATCH commits, the
   replica that handled it reads the committed document again before it answers and announces the change on the
   `server-settings-changed` replica broadcast channel, so every replica that receives the announcement reads it again.
@@ -607,6 +637,14 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **Breaking: a session's lifetimes are required, and a listed session always reports when it ends.**
+  `CreateSessionRequest.AbsoluteLifetime` and `CreateSessionRequest.IdleTimeout` are required positive `TimeSpan`s and
+  `CreateSessionRequest.Lifetime` is removed; `SessionGrant.AbsoluteExpiresWhen` records the absolute end;
+  `IPersistedGrantService.UpdatePayloadAndExpirationAsync` is a member a custom implementation implements; and
+  `SessionInfo.ExpiresWhen`, `SessionResource.ExpiresWhen` and `expiresWhen` of `/account/sessions/list` are the time
+  the session ends unless it is used again, never `null`
+  ([ADR-0220](docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), backlog `R80`).
 
 - **Breaking: a cached tenant expires 15 minutes after it is materialized, however often it is used.**
   `OpenIdTenantOptions.TenantCacheLifetime` (`OpenId:Tenant:TenantCacheLifetime`) is an absolute lifetime that
@@ -1504,6 +1542,15 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **Every end-user session ends.** `session_absolute_lifetime` defaults to 30 days and accepts one second to 365 days,
+  and `session_idle_timeout` defaults to 3 days and accepts one second to 100 days; a zero value is refused. A session's
+  grant expires at the end of its idle window or, if earlier, at its absolute end, and each renewal of the window moves
+  the expiry, so the grant prune removes an abandoned session after the retention. An authorize request that finds an
+  ended session terminates it with `absolute_expiry` or `idle_timeout`, which revokes the grants issued under it and
+  notifies its relying parties. The `BoundEndUserSessions` migration removes the stored values of both settings that the
+  domains refuse and gives every unrevoked session grant without an expiry one 30 days after it was created
+  ([ADR-0220](docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), backlog `R80`).
+
 - **A public client's refresh token is rotated unless it is sender-constrained.** `refresh_token_rotation_policy`
   (`unbound`, the default, or `always`) replaces `refresh_token_rotation_enabled`. `unbound` rotates a refresh token
   that is bound neither to a proof-of-possession key nor to client authentication, and `always` rotates every refresh
@@ -1723,6 +1770,17 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **Listing a subject's sessions failed for every stored session.** The listing deserialized the versioned payload
+  envelope of a stored session as the payload, so the active-sessions page, the management sessions API, sign-out
+  everywhere and the concurrent-session limit failed for any subject with a session. The payload is read through
+  `IPersistedPayloadSerializer`
+  ([ADR-0220](docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), backlog `R80`).
+
+- **Deleting a local account left its principal's role assignments, ownership included.** Removing a federated
+  principal removes every role assignment it holds, in every tenant, in the same unit of work, and deleting a tenant
+  removes the assignments its principals hold in other tenants
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R82`).
 
 - **A revocation wins a concurrency race.** The revocation endpoint, the device user code, logout and session eviction,
   the replay of an authorization code, and the management revocations read the grants again in a new unit of work and

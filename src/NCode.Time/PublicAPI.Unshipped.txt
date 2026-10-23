@@ -9,3 +9,7 @@ NCode.Time.TimeProviderExtensions
 NCode.Time.TimeProviderExtensions.extension(System.TimeProvider!)
 NCode.Time.TimeProviderExtensions.extension(System.TimeProvider!).GetTimestampWithPrecisionInSeconds() -> long
 NCode.Time.TimeProviderExtensions.extension(System.TimeProvider!).GetUtcNowWithPrecisionInSeconds() -> System.DateTimeOffset
+NCode.Time.TimerPeriod
+static NCode.Time.TimerPeriod.IsValid(System.TimeSpan period) -> bool
+static NCode.Time.TimerPeriod.MaxValue.get -> System.TimeSpan
+static NCode.Time.TimerPeriod.MinValue.get -> System.TimeSpan

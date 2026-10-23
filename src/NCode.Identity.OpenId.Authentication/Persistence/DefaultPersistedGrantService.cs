@@ -646,4 +646,55 @@ internal class DefaultPersistedGrantService(
 
         return true;
     }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> UpdatePayloadAndExpirationAsync<TPayload>(
+        OpenIdContext openIdContext,
+        PersistedGrantId grantId,
+        TPayload payload,
+        DateTimeOffset expiresWhen,
+        CancellationToken cancellationToken
+    )
+    {
+        var utcNow = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+
+        var grantType = grantId.GrantType;
+        var hashedKey = GetHashedKey(grantId);
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IGrantStore>();
+
+        var envelope = await store.GetOrDefaultAsync(grantType, hashedKey, cancellationToken);
+        if (envelope is null)
+            return false;
+
+        if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
+            return false;
+
+        if (GetStatus(utcNow, envelope) != PersistedGrantStatus.Active)
+            return false;
+
+        var openIdEnvironment = openIdContext.Environment;
+
+        envelope.PayloadJson = PayloadSerializer.Serialize(
+            payload,
+            openIdEnvironment.JsonSerializerOptions
+        );
+        envelope.ExpiresWhen = expiresWhen;
+
+        try
+        {
+            await store.UpdateAsync(envelope, cancellationToken);
+
+            await storeManager.SaveChangesAsync(cancellationToken);
+        }
+        catch (StoreConcurrencyException)
+        {
+            // Another request changed the grant after it was read, such as a concurrent touch of the session, and its
+            // change stands. See ADR-0220.
+            return false;
+        }
+
+        return true;
+    }
 }

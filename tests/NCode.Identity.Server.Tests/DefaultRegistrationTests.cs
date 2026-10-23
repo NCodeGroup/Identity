@@ -117,6 +117,7 @@ public sealed class DefaultRegistrationTests
     [InlineData("tenant_issuer", "https://op.example")]
     [InlineData("session_management_supported", "yes")]
     [InlineData("grant_types_supported", "authorization_code")]
+    [InlineData("session_idle_timeout", "00:00:00")]
     public async Task AddIdentityServer_WhenServerSettingCannotBeHonored_FailsToStart(
         string name,
         string value
@@ -373,6 +374,7 @@ public sealed class DefaultRegistrationTests
         Assert.Contains(OpenIdSettingNames.IdTokenEncryptionRequired, settingNames);
         Assert.Contains(OpenIdSettingNames.RequireDPoPBoundAccessTokens, settingNames);
         Assert.Contains(OpenIdSettingNames.ClientNotificationEndpoint, settingNames);
+        Assert.Contains(OpenIdSettingNames.RefreshTokenRotationRetryRequired, settingNames);
         Assert.NotNull(host.Services.GetRequiredService<IClientCoherenceValidator>());
     }
 
@@ -819,6 +821,35 @@ public sealed class DefaultRegistrationTests
         );
 
         Assert.Contains("GrantRetentionOptions", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(
+        "OpenId:Server:SettingsPeriodicRefreshInterval",
+        "00:00:00",
+        "Server:SettingsPeriodicRefreshInterval"
+    )]
+    [InlineData(
+        "OpenId:Server:ReconciliationLeaseDuration",
+        "-00:01:00",
+        "Server:ReconciliationLeaseDuration"
+    )]
+    [InlineData("OpenId:Tenant:TenantCacheLifetime", "50.00:00:00", "Tenant:TenantCacheLifetime")]
+    [InlineData("OpenId:GrantRetention:PruneInterval", "00:00:00", "GrantRetention:PruneInterval")]
+    [InlineData("OpenId:TenantUsage:FlushInterval", "00:00:00", "TenantUsage:FlushInterval")]
+    public async Task AddIdentityServer_WhenAnIntervalIsOutsideWhatATimerAccepts_FailsToStart(
+        string key,
+        string value,
+        string expectedKey
+    )
+    {
+        using var host = BuildHost(new Dictionary<string, string?> { [key] = value });
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains($"'{expectedKey}'", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

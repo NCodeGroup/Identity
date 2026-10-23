@@ -60,16 +60,15 @@ public readonly record struct CreateSessionRequest
     public string? IdentityProvider { get; init; }
 
     /// <summary>
-    /// Gets the optional lifetime of the session. When <c>null</c>, the session does not expire on its own.
+    /// Gets how long the session lasts however it is used. It is positive.
     /// </summary>
-    public TimeSpan? Lifetime { get; init; }
+    public required TimeSpan AbsoluteLifetime { get; init; }
 
     /// <summary>
-    /// Gets the optional sliding inactivity window after which the session expires if it is not used. When <c>null</c>,
-    /// no idle timeout applies and the session is bounded only by <see cref="Lifetime"/> (if any). The value is stamped
-    /// onto the session so the idle policy is later enforced without re-reading host configuration.
+    /// Gets the sliding inactivity window after which the session ends if it is not used. It is positive and is
+    /// stamped onto the session so the idle policy is later enforced without re-reading host configuration.
     /// </summary>
-    public TimeSpan? IdleTimeout { get; init; }
+    public required TimeSpan IdleTimeout { get; init; }
 
     /// <summary>
     /// Gets the optional cap on the number of simultaneous sessions the subject may hold. When the subject is at or

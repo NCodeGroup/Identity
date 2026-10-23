@@ -1,6 +1,6 @@
 # 217. A rotated refresh token may be retried within a reuse interval
 
-- **Status:** Accepted
+- **Status:** Accepted (amended in place: a retry is audited, and a client that must allow a retry has an interval)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -60,6 +60,18 @@ a reuse.**
    branch.
 9. **The interval is capped at 60 seconds and is not on by default.** A longer window weakens reuse detection, and Okta
    caps its grace period at 60 seconds. RFC 9700 makes no exception for a retry, and Auth0 and Okta make it opt-in.
+10. **A retry is audited.** When a retry is answered with another refresh token, the refresh-token grant records a
+    `RefreshTokenRetryAuditEvent` (action `token.refresh.retry`, outcome `success`) through
+    `IAuditEventRecorder.RecordRefreshTokenRetryAsync`, so an operator can tell a client's retry from a rotation and
+    from a reuse (`token.refresh.replay`). A retry that decision 4 refuses records nothing. Both retry paths, a
+    presented grant that is within the interval and a rotation that lost to a concurrent rotation, are answered and
+    audited through one method.
+11. **A client that must allow a retry has an interval.** The client setting `refresh_token_rotation_retry_required` is
+    a `bool` that applies to clients, merges with `Or`, defaults to `false`, and is not discoverable, and the FAPI 2.0
+    security profile sets it through its ceiling. The coherence rule `RefreshTokenRotationRetryCoherenceRule` refuses a
+    client whose effective setting is `true`, whose refresh tokens can rotate, and whose effective
+    `refresh_token_reuse_interval` is not positive
+    ([ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)).
 
 ## Options considered
 
@@ -77,14 +89,15 @@ a reuse.**
   both keep their session, when the client opts in.
 - A stolen rotated token that is used within the interval receives a branch. Reuse detection still revokes the whole
   lineage when a spent token is presented outside the interval, and revoking any token of the family ends every branch.
-- A retry within the interval is audited as the token it issues. It has no event of its own (backlog `R84`).
-- A FAPI 2.0 client whose refresh tokens always rotate is not required to set an interval; a coherence rule
-  ([ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)) that requires one is backlog
-  `R81`.
+- A retry that is answered is audited as a retry (`token.refresh.retry`, backlog `R84`), and a retry that is refused
+  records no event.
+- A client that requires a retry, as the FAPI 2.0 security profile does, and whose refresh tokens rotate has a reuse
+  interval, because the coherence rule of decision 11 refuses a client without one
+  ([ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R81`).
 - **Breaking:** `IPersistedGrantService` declares `AddToRefreshTokenLineageOrDefault`, `ITokenService` declares
-  `ReissueRefreshTokenAsync`, and `IGrantStore` declares `GetActiveByRefreshTokenLineageAsync`, so every implementation
-  of one of them implements the member.
-- This implements backlog `R79`.
+  `ReissueRefreshTokenAsync`, `IGrantStore` declares `GetActiveByRefreshTokenLineageAsync`, and `IAuditEventRecorder`
+  declares `RecordRefreshTokenRetryAsync`, so every implementation of one of them implements the member.
+- This implements backlog `R79`, `R81` and `R84`.
 
 ## References
 

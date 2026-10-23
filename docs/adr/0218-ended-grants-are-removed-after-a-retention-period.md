@@ -1,6 +1,9 @@
 # 218. Ended grants are removed after a retention period
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0220](0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md): every session grant ends;
+  [ADR-0221](0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md): the options are
+  configured and validated when the host starts)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -37,8 +40,8 @@ supports.**
    prune runs again at the next tick. Every replica runs the service, and concurrent prunes waste at most one batch.
 4. **`GrantRetentionOptions` configures it.** The options type is `public sealed` with `Retention`, which defaults to 14
    days, and `PruneInterval`, which defaults to one hour. They are validated when the host starts: `Retention` is not
-   negative, and `PruneInterval` is positive. The options are set in code, as `TenantUsageOptions` is; binding them to
-   configuration is backlog `R83`.
+   negative, and `PruneInterval` is a period that a timer accepts. They are bound from `OpenId:GrantRetention`
+   ([ADR-0221](0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)).
 5. **The retention is 14 days.** A rotated refresh token that is presented again within 14 days after it ended is
    recognized as a reuse
    ([ADR-0087](0087-refresh-token-reuse-detection-and-family-revocation.md)), and a replayed authorization code still
@@ -64,9 +67,10 @@ supports.**
   ([ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md)), and the prune bounds that work the same way.
 - A refresh token or an authorization code that is presented after its grant was removed is unknown, so it is answered
   as an unknown token, not as a reuse.
-- A grant that never ends, such as a session without a lifetime that its user never signs out of, is kept (backlog
-  `R80`).
-- The options are set in code, not in configuration (backlog `R83`).
+- Every session grant ends ([ADR-0220](0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md)), so
+  an abandoned session is removed after the retention.
+- An operator sets the retention and the interval through configuration
+  ([ADR-0221](0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)).
 - A long backlog of ended grants is removed in many small units of work, on every provider.
 - **Breaking:** `IGrantStore.RemoveEndedBeforeAsync` is added, so every implementation of the store implements it.
 - This implements backlog `R76`.

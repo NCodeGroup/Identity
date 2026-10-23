@@ -22,6 +22,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
+using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.Frontend;
 using Xunit;
@@ -178,6 +180,55 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
             .Value;
 
         Assert.Equal("X-Client-Cert", options.CertificateHeaderName);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenGrantRetentionConfigured_BindsIt()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:GrantRetention:Retention"] = "7.00:00:00",
+                ["OpenId:GrantRetention:PruneInterval"] = "00:30:00",
+            }
+        );
+
+        var options = serviceProvider.GetRequiredService<IOptions<GrantRetentionOptions>>().Value;
+
+        Assert.Equal(TimeSpan.FromDays(7), options.Retention);
+        Assert.Equal(TimeSpan.FromMinutes(30), options.PruneInterval);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenGrantRetentionHasUnknownKey_Throws()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?> { ["OpenId:GrantRetention:Interval"] = "00:30:00" }
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            serviceProvider.GetRequiredService<IOptions<GrantRetentionOptions>>().Value
+        );
+
+        Assert.Contains("'OpenId:GrantRetention'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("'Interval'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenTenantUsageConfigured_BindsIt()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:TenantUsage:FlushInterval"] = "00:00:30",
+                ["OpenId:TenantUsage:Retention"] = "30.00:00:00",
+            }
+        );
+
+        var options = serviceProvider.GetRequiredService<IOptions<TenantUsageOptions>>().Value;
+
+        Assert.Equal(TimeSpan.FromSeconds(30), options.FlushInterval);
+        Assert.Equal(TimeSpan.FromDays(30), options.Retention);
     }
 
     [Fact]

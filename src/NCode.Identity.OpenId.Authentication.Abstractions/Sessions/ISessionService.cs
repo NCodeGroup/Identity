@@ -77,10 +77,10 @@ public interface ISessionService
     );
 
     /// <summary>
-    /// Validates that the session identified by <paramref name="sessionId"/> is still active and, when a sliding idle
-    /// (inactivity) timeout applies, that it has not been idle for longer than its window. When the session is still
-    /// valid its last-activity marker is advanced (the sliding window is renewed); when it has lapsed it is revoked.
-    /// This is the server-authoritative session check performed when an authenticated request resolves a session.
+    /// Validates that the session identified by <paramref name="sessionId"/> is still active and has not ended. When the
+    /// session is still valid its last-activity marker is advanced and its expiry slides; when it has ended, at its
+    /// absolute end or at the end of its idle window, it is terminated. This is the server-authoritative session check
+    /// performed when an authenticated request resolves a session.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="sessionId">The opaque session identifier (<c>sid</c>).</param>

@@ -348,7 +348,8 @@ internal class DefaultRefreshTokenGrantHandler(
     }
 
     // A retry is answered only when it can issue another refresh token in a lineage that is still active. Otherwise it
-    // is refused (null) without a replay audit and without revoking the lineage. See ADR-0217.
+    // is refused (null) without a replay audit and without revoking the lineage. A retry that is answered is audited as
+    // a retry; a refused one is not. See ADR-0217.
     private async ValueTask<string?> ReissueRefreshTokenForRetryAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
@@ -368,7 +369,17 @@ internal class DefaultRefreshTokenGrantHandler(
             cancellationToken
         );
 
-        return reissued?.TokenValue;
+        if (reissued is not { } successor)
+            return null;
+
+        await AuditEventRecorder.RecordRefreshTokenRetryAsync(
+            openIdContext,
+            openIdClient,
+            persistedGrant.Payload.SubjectAuthentication?.PrincipalId,
+            cancellationToken
+        );
+
+        return successor.TokenValue;
     }
 
     // A rotation that lost its spend was won by a concurrent rotation when the grant, read again, is a rotated grant

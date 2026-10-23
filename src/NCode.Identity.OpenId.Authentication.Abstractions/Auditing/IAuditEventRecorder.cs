@@ -199,6 +199,27 @@ public interface IAuditEventRecorder
     );
 
     /// <summary>
+    /// Records that a refresh token that a rotation spent was presented again within the client's reuse
+    /// interval and was answered with another refresh token of its rotation family (a retry), distinct from a
+    /// rotation and from a reuse.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> that presented the refresh token.</param>
+    /// <param name="subjectId">The identifier of the subject the refresh token was issued for, if known.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordRefreshTokenRetryAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        string? subjectId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Records that a protocol endpoint returned an <c>OAuth</c> or <c>OpenID Connect</c> error response.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>

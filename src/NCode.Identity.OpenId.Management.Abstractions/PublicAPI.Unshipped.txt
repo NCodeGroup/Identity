@@ -262,7 +262,7 @@ NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.CreatedWhen.
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.CreatedWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.LastActivityWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.LastActivityWhen.init -> void
-NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.ExpiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.ExpiresWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.AuthTime.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.AuthTime.init -> void

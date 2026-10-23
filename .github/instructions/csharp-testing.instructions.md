@@ -201,6 +201,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **A lost race through the store manager is `StoreConcurrencyException`;** only a test that calls
   `DbContext.SaveChangesAsync` directly sees EF's `DbUpdateConcurrencyException`. See
   [ADR-0208](../../docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).
+- 👁 **Build a stored grant's `PayloadJson` with the real `DefaultPersistedPayloadSerializer`**
+  (`new DefaultPersistedPayloadSerializer([])`), never `JsonSerializer.SerializeToElement(payload)`. The server stores a
+  versioned envelope, so a test that hands the code the bare payload passes while the code fails on every stored row
+  (`DefaultSessionServiceTests`).
 - 👁 **A strict-mock test of a read-and-retry loop returns a new object for each read**
   (`SetupSequence(...).ReturnsAsync(first).ReturnsAsync(second)`): the code under test changes the object it read, so
   one shared instance makes the second read see the first attempt's own write.

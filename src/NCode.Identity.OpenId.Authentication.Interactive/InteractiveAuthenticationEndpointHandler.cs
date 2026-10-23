@@ -409,7 +409,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             .ToList();
 
         // Session lifecycle policy is tenant-scoped data (a session spans every client the subject signs into), read
-        // from the tenant's effective settings. The Zero/0 sentinels mean "disabled" and map to the request's null.
+        // from the tenant's effective settings. Both session bounds always apply; a zero max_concurrent_sessions
+        // disables the cap.
         var settings = openIdContext.Tenant.SettingsProvider.Collection;
         var absoluteLifetime = settings.GetValue(OpenIdSettingKeys.SessionAbsoluteLifetime);
         var idleTimeout = settings.GetValue(OpenIdSettingKeys.SessionIdleTimeout);
@@ -429,8 +430,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
                 .FindFirst(JoseClaimNames.Payload.Acr)
                 ?.Value,
             IdentityProvider = principal.FindFirst(JoseClaimNames.Payload.Idp)?.Value,
-            Lifetime = absoluteLifetime > TimeSpan.Zero ? absoluteLifetime : null,
-            IdleTimeout = idleTimeout > TimeSpan.Zero ? idleTimeout : null,
+            AbsoluteLifetime = absoluteLifetime,
+            IdleTimeout = idleTimeout,
             MaxConcurrentSessions = maxConcurrentSessions > 0 ? maxConcurrentSessions : null,
             UserAgent = string.IsNullOrEmpty(userAgent) ? null : userAgent,
             RemoteIpAddress = remoteIpAddress,
@@ -791,7 +792,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             string.Equals(session.SessionId, currentSessionId, StringComparison.Ordinal),
             session.CreatedWhen.ToUnixTimeSeconds(),
             grant.LastActivityWhen.ToUnixTimeSeconds(),
-            session.ExpiresWhen?.ToUnixTimeSeconds(),
+            session.ExpiresWhen.ToUnixTimeSeconds(),
             grant.AuthenticationMethods ?? [],
             grant.IdentityProvider,
             grant.UserAgent,

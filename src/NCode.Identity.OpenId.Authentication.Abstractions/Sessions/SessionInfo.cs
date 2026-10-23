@@ -28,13 +28,14 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 /// <param name="SessionId">The opaque session identifier (<c>sid</c>).</param>
 /// <param name="SubjectId">The stable, server-owned principal identifier the session belongs to.</param>
 /// <param name="CreatedWhen">The time the session was established.</param>
-/// <param name="ExpiresWhen">The absolute expiration time of the session, or <c>null</c> when it has no absolute lifetime.</param>
+/// <param name="ExpiresWhen">The time the session ends unless it is used again: the end of its idle window or, if
+/// earlier, its absolute end.</param>
 /// <param name="Grant">The authentication context and relying-party list captured for the session.</param>
 [PublicAPI]
 public readonly record struct SessionInfo(
     string SessionId,
     string? SubjectId,
     DateTimeOffset CreatedWhen,
-    DateTimeOffset? ExpiresWhen,
+    DateTimeOffset ExpiresWhen,
     SessionGrant Grant
 );

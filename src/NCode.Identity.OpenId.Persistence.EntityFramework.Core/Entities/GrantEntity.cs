@@ -39,6 +39,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 [Index(nameof(TenantId), nameof(RefreshTokenLineageId), IsUnique = false)]
 [Index(nameof(ExpiresWhen), IsUnique = false)]
 [Index(nameof(RevokedWhen), IsUnique = false)]
+[Index(nameof(GrantType), nameof(RevokedWhen), nameof(ExpiresWhen), IsUnique = false)]
 public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
     /// <summary>

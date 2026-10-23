@@ -1,6 +1,7 @@
 # 221. Intervals and retentions are configured and validated when the host starts
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): `OpenId:EndedSessionTermination`)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -26,25 +27,29 @@ the retention options bind from configuration.**
 1. **A timer period is between 1 millisecond and 4,294,967,294 milliseconds.** One millisecond is the shortest period a
    `PeriodicTimer` accepts, and 4,294,967,294 milliseconds, about 49.7 days, is the longest that any .NET timer or
    `CancellationTokenSource` delay accepts. `NCode.Time.TimerPeriod` states the range as `MinValue`, `MaxValue`, and
-   `IsValid`. The six `OpenIdOptions` values above, `GrantRetentionOptions.PruneInterval`, and
-   `TenantUsageOptions.FlushInterval` must be valid periods. The tenant cache lifetime is held to the same range, so
-   one rule covers every one of them.
+   `IsValid`. The six `OpenIdOptions` values above, `GrantRetentionOptions.PruneInterval`,
+   `TenantUsageOptions.FlushInterval`, and `EndedSessionTerminationOptions.Interval`
+   ([ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)) must be valid periods. The
+   tenant cache lifetime is held to the same range, so one rule covers every one of them.
 2. **A retention is not negative.** `GrantRetentionOptions.Retention` and `TenantUsageOptions.Retention` accept zero,
    which removes a row as soon as it has ended, and refuse a negative value.
-3. **One validator checks each options type.** `OpenIdIntervalsOptionsValidator`, `GrantRetentionOptionsValidator`, and
-   `TenantUsageOptionsValidator` implement `IValidateOptions<T>`. Each is registered with `ValidateOnStart` beside the
-   services that read the options, and has no constructor dependencies, because a validator that reads options
-   deadlocks the host as it starts. A failure names the option and its configuration key, relative to the OpenID
-   section, and lists every failing option. For example, a negative grant retention fails with:
+3. **One validator checks each options type.** `OpenIdIntervalsOptionsValidator`, `GrantRetentionOptionsValidator`,
+   `TenantUsageOptionsValidator`, and `EndedSessionTerminationOptionsValidator` implement `IValidateOptions<T>`. Each
+   is registered with `ValidateOnStart` beside the services that read the options, and has no constructor
+   dependencies, because a validator that reads options deadlocks the host as it starts. A failure names the option
+   and its configuration key, relative to the OpenID section, and lists every failing option. For example, a negative
+   grant retention fails with:
 
    ```text
    GrantRetentionOptions.Retention ('GrantRetention:Retention') must not be negative; it is -1.00:00:00.
    ```
 4. **`AddConfiguration` binds the retention options.** `OpenId:GrantRetention` binds `GrantRetentionOptions` and
    `OpenId:TenantUsage` binds `TenantUsageOptions`, each with `BindStrictly` and `ValidateOnStart`
-   ([ADR-0137](0137-configuration-binds-strictly-and-is-validated-at-startup.md)). Each options type has a
-   `SectionName` constant, and the OpenID section recognizes six subsections: `Server`, `Tenant`, `TenantResolution`,
-   `MutualTls`, `GrantRetention`, and `TenantUsage`.
+   ([ADR-0137](0137-configuration-binds-strictly-and-is-validated-at-startup.md)). `OpenId:EndedSessionTermination`
+   binds `EndedSessionTerminationOptions` the same way
+   ([ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)). Each options type has a
+   `SectionName` constant, and the OpenID section recognizes seven subsections: `Server`, `Tenant`,
+   `TenantResolution`, `MutualTls`, `GrantRetention`, `TenantUsage`, and `EndedSessionTermination`.
 
 ## Options considered
 

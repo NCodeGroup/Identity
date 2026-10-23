@@ -153,6 +153,33 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             .Verifiable();
     }
 
+    private Func<PersistedGrantUpdate<CibaGrant>?> SetupPollUpdate(PersistedGrant<CibaGrant> stored)
+    {
+        Func<PersistedGrant<CibaGrant>, PersistedGrantUpdate<CibaGrant>?>? captured = null;
+
+        MockPersistedGrantService
+            .Setup(x =>
+                x.UpdatePayloadAsync<CibaGrant>(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<PersistedGrantId>(),
+                    It.IsAny<Func<PersistedGrant<CibaGrant>, PersistedGrantUpdate<CibaGrant>?>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (
+                    OpenIdContext _,
+                    PersistedGrantId _,
+                    Func<PersistedGrant<CibaGrant>, PersistedGrantUpdate<CibaGrant>?> update,
+                    CancellationToken _
+                ) => captured = update
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        return () => captured?.Invoke(stored);
+    }
+
     #endregion
 
     #region GrantTypes
@@ -233,17 +260,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             .Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
-        MockPersistedGrantService
-            .Setup(x =>
-                x.UpdatePayloadAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<PersistedGrantId>(),
-                    It.IsAny<CibaGrant>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(new ValueTask<bool>(true))
-            .Verifiable();
+        var update = SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Pending));
 
         var result = await Handler.HandleAsync(
             mockContext.Object,
@@ -255,6 +272,34 @@ public class DefaultCibaGrantHandlerTests : BaseTests
 
         Assert.Same(mockError.Object, result);
         Assert.Equal(OpenIdConstants.ErrorCodes.AuthorizationPending, CapturedErrorCode);
+        Assert.Equal(UtcNow, update()?.Payload.LastPolledWhen);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheRequestIsApprovedBeforeThePollIsRecorded_KeepsTheApproval()
+    {
+        var (mockContext, mockClient, mockSettings, mockTokenRequest, mockError) = CreateScaffold();
+        SetupLookup(CreateGrant(DeviceAuthorizationStatus.Pending));
+
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.CibaPollingInterval))
+            .Returns(TimeSpan.FromSeconds(5))
+            .Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+
+        var update = SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Approved));
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+        Assert.Equal(OpenIdConstants.ErrorCodes.AuthorizationPending, CapturedErrorCode);
+        Assert.Null(update());
     }
 
     [Fact]
@@ -269,17 +314,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             .Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
-        MockPersistedGrantService
-            .Setup(x =>
-                x.UpdatePayloadAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<PersistedGrantId>(),
-                    It.IsAny<CibaGrant>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(new ValueTask<bool>(true))
-            .Verifiable();
+        SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Pending));
 
         var result = await Handler.HandleAsync(
             mockContext.Object,

@@ -38,7 +38,8 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// Provides a default implementation of a handler for the <see cref="ValidateSubjectAuthenticationCommand"/> message.
 /// </summary>
 /// <remarks>
-/// The application should also register an additional handler to validate the subject's active status.
+/// A capability that knows the subject's account registers another handler that refuses an inactive account, as the
+/// local-account capability does.
 /// </remarks>
 internal class DefaultValidateSubjectAuthenticationHandler(
     TimeProvider timeProvider,

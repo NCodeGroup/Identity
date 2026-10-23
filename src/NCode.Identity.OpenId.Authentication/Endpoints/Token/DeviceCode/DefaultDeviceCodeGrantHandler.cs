@@ -154,13 +154,10 @@ internal class DefaultDeviceCodeGrantHandler(
         var tooFast =
             payload.LastPolledWhen is { } lastPolledWhen && utcNow - lastPolledWhen < interval;
 
-        await PersistedGrantService.UpdatePayloadAsync(
+        await PersistedGrantService.UpdatePayloadAsync<DeviceCodeGrant>(
             openIdContext,
             deviceCodeGrantId,
-            payload with
-            {
-                LastPolledWhen = utcNow,
-            },
+            stored => RecordPoll(stored, utcNow),
             cancellationToken
         );
 
@@ -175,6 +172,21 @@ internal class DefaultDeviceCodeGrantHandler(
                 OpenIdConstants.ErrorCodes.AuthorizationPending,
                 "The end user has not yet completed the device authorization request."
             );
+    }
+
+    private static PersistedGrantUpdate<DeviceCodeGrant>? RecordPoll(
+        PersistedGrant<DeviceCodeGrant> stored,
+        DateTimeOffset utcNow
+    )
+    {
+        // An approval that lands between this poll's read and its write stands. See ADR-0222.
+        if (stored.Payload.Status != DeviceAuthorizationStatus.Pending)
+            return null;
+
+        return new PersistedGrantUpdate<DeviceCodeGrant>
+        {
+            Payload = stored.Payload with { LastPolledWhen = utcNow },
+        };
     }
 
     private async ValueTask<IOpenIdResponse> HandleApprovedAsync(

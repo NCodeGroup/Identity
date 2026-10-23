@@ -264,6 +264,32 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public void AddIdentityServer_RegistersTheEndedSessionTerminationService()
+    {
+        // Without this service a session that ends while no request uses it stays unrevoked, with its refresh tokens
+        // and its relying parties unnotified, until a request finds it.
+        using var host = BuildHost([]);
+
+        Assert.Contains(
+            host.Services.GetServices<IHostedService>(),
+            service => service.GetType().Name == "EndedSessionTerminationService"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_ResolvesTheMaterializedServerAccessorToTheRegistry()
+    {
+        // Background work in another package waits for the replica's server through the public accessor, which is
+        // the registry that the first request completes.
+        using var host = BuildHost([]);
+
+        Assert.Equal(
+            "DefaultMaterializedServerRegistry",
+            host.Services.GetRequiredService<IMaterializedServerAccessor>().GetType().Name
+        );
+    }
+
+    [Fact]
     public void AddIdentityServer_RegistersTheTenantKeyReconciliationHandler()
     {
         // Without this handler a key that the server's settings permit is provisioned only when a tenant is next
@@ -837,6 +863,11 @@ public sealed class DefaultRegistrationTests
     [InlineData("OpenId:Tenant:TenantCacheLifetime", "50.00:00:00", "Tenant:TenantCacheLifetime")]
     [InlineData("OpenId:GrantRetention:PruneInterval", "00:00:00", "GrantRetention:PruneInterval")]
     [InlineData("OpenId:TenantUsage:FlushInterval", "00:00:00", "TenantUsage:FlushInterval")]
+    [InlineData(
+        "OpenId:EndedSessionTermination:Interval",
+        "00:00:00",
+        "EndedSessionTermination:Interval"
+    )]
     public async Task AddIdentityServer_WhenAnIntervalIsOutsideWhatATimerAccepts_FailsToStart(
         string key,
         string value,

@@ -313,6 +313,11 @@ NCode.Identity.OpenId.Authentication.Persistence.GrantRetentionOptions.PruneInte
 NCode.Identity.OpenId.Authentication.Persistence.GrantRetentionOptions.PruneInterval.set -> void
 NCode.Identity.OpenId.Authentication.Persistence.GrantRetentionOptions.Retention.get -> System.TimeSpan
 NCode.Identity.OpenId.Authentication.Persistence.GrantRetentionOptions.Retention.set -> void
+const NCode.Identity.OpenId.Authentication.Sessions.EndedSessionTerminationOptions.SectionName = "EndedSessionTermination" -> string!
+NCode.Identity.OpenId.Authentication.Sessions.EndedSessionTerminationOptions
+NCode.Identity.OpenId.Authentication.Sessions.EndedSessionTerminationOptions.EndedSessionTerminationOptions() -> void
+NCode.Identity.OpenId.Authentication.Sessions.EndedSessionTerminationOptions.Interval.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.Sessions.EndedSessionTerminationOptions.Interval.set -> void
 const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.Requests = "requests" -> string!
 const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.TokenRequests = "token_requests" -> string!
 const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.RequestsOverage = "requests_overage" -> string!

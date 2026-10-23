@@ -1542,6 +1542,32 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **Deleting or disabling a local account ends its sessions, and every token request checks the account.** Disabling an
+  account terminates its principal's sessions with `account_disabled`, and deleting it terminates them with
+  `account_deleted` before it removes anything: every grant of the principal is revoked, its relying parties receive
+  back-channel logout, and each termination is audited. A deleted principal is erased with its consents and grants, and
+  a disabled account keeps its consents. The local-account capability refuses a subject whose account is disabled or
+  gone with `access_denied` at the authorization request and at the authorization-code, refresh-token and password
+  grants, whichever connection the subject signed in through. **Breaking:**
+  `SessionTerminationReasons.AccountDeleted` and `AccountDisabled` are added, `IFederatedPrincipalStore.RemoveAsync`
+  erases the principal's consents and grants, and `NCode.Identity.OpenId.Accounts.Management` references
+  `NCode.Identity.OpenId.Authentication.Abstractions`
+  ([ADR-0224](docs/adr/0224-deleting-or-disabling-an-account-ends-its-sessions.md), backlog `R89`).
+
+- **A session that ends while no request uses it is terminated within a minute.** One replica in each
+  `OpenId:EndedSessionTermination:Interval` (one minute by default) revokes the grants issued under each session that
+  ended unused, sends back-channel logout to its relying parties (`idle_timeout` or `absolute_expiry`), and audits the
+  termination, once: a request and the pass that find the same ended session terminate it once. The claim revokes the
+  grants issued under the session in one unit of work, so a failure after it leaves no token of the session active. A
+  session that the release before the session bounds stored without an expiry is terminated too. The grant prune keeps
+  a session until it is terminated and removes it one retention after. **Breaking:**
+  `IPersistedGrantService.SetRevokedOnceAsync` returns `bool`, `IGrantStore.RemoveEndedBeforeAsync` takes the grant
+  types that end by revocation, `IGrantStore.GetUnrevokedExpiredPageAsync`,
+  `IPersistedGrantService.RevokeSessionOnceAsync`, `ISessionService.TerminateIfEndedAsync`,
+  `IOpenIdContextFactory.CreateForBackgroundAsync` and `IMaterializedServerAccessor` are added, and the
+  `AddGrantTypeRevokedWhenExpiresWhenIndex` migration adds an index to the grants table
+  ([ADR-0223](docs/adr/0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md), backlog `R90`).
+
 - **Every end-user session ends.** `session_absolute_lifetime` defaults to 30 days and accepts one second to 365 days,
   and `session_idle_timeout` defaults to 3 days and accepts one second to 100 days; a zero value is refused. A session's
   grant expires at the end of its idle window or, if earlier, at its absolute end, and each renewal of the window moves
@@ -1770,6 +1796,15 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A change to a grant's payload loses no concurrent write.** The touch of a session, the addition of a client to it,
+  and the polls and decisions of the device-code and CIBA grants apply their change to the grant as stored and read
+  again when another write lands first, so a client that a concurrent request added to a session stays, a poll leaves an
+  approval that landed before its write, and only the CIBA approval that decided the request delivers. **Breaking:**
+  `IPersistedGrantService.UpdatePayloadAndExpirationAsync` and the overload of `UpdatePayloadAsync` that takes a payload
+  are removed, `UpdatePayloadAsync` takes the function that computes the change, `PersistedGrantUpdate<TPayload>` is
+  added, and `ISessionService.AddClientAsync` reports whether this call added the client
+  ([ADR-0222](docs/adr/0222-a-grants-payload-is-changed-by-a-read-modify-write.md), backlog `R91`).
 
 - **Listing a subject's sessions failed for every stored session.** The listing deserialized the versioned payload
   envelope of a stored session as the payload, so the active-sessions page, the management sessions API, sign-out

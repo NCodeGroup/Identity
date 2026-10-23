@@ -2,7 +2,11 @@
 
 - **Status:** Accepted (amended by
   [ADR-0220](0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md): a request that finds an
-  ended session terminates it with `absolute_expiry` or `idle_timeout`)
+  ended session terminates it with `absolute_expiry` or `idle_timeout`;
+  [ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): an ended session is terminated
+  once, by a request or the background pass;
+  [ADR-0224](0224-deleting-or-disabling-an-account-ends-its-sessions.md): deleting or disabling an account terminates
+  its principal's sessions)
 - **Date:** 2026-10-14
 - **Deciders:** NCode Group
 
@@ -40,14 +44,17 @@ seam (as `DefaultTokenService` drives the claims seam).
     - `DefaultAuditSessionTerminatedHandler` — records the `session.terminated` audit event.
 - **The reason is an open vocabulary** ([ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md)).
   `SessionTerminationReasons` names the well-known reasons: `logout`, `idle_timeout`, `absolute_expiry`,
-  `concurrent_session_limit`, `administrative_revocation`, `global_sign_out`, and `user_initiated`. An extension
-  that ends a session for its own cause, such as a risk signal, a password change, or a disabled account, passes its
-  own name, and the handlers and the audit event carry it unchanged. Names are compared ordinally.
+  `account_deleted`, `account_disabled`, `concurrent_session_limit`, `administrative_revocation`, `global_sign_out`,
+  and `user_initiated`. An extension that ends a session for its own cause, such as a risk signal or a password change,
+  passes its own name, and the handlers and the audit event carry it unchanged. Names are compared ordinally.
 
     Every termination path dispatches it: the `end_session_endpoint` (reason `Logout`), idle and absolute expiry found
-    on an authorize request, concurrent eviction inside `DefaultSessionService`, and the `ISessionService.RevokeAsync`
-    / `RevokeAllAsync` administrative and global-sign-out paths. `DefaultSessionService` drives the seam through
-    `openIdContext.Mediator`.
+    on an authorize request or by the background pass
+    ([ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)), concurrent eviction inside
+    `DefaultSessionService`, the `ISessionService.RevokeAsync` / `RevokeAllAsync` administrative and global-sign-out
+    paths, and the deletion and the disabling of a local account
+    ([ADR-0224](0224-deleting-or-disabling-an-account-ends-its-sessions.md)). `DefaultSessionService` drives the seam
+    through `openIdContext.Mediator`.
 
 - **Creation → inline.** A session is established by exactly one owner (interactive sign-in); it is not a fan-out
   concern, so per [ADR-0001](0001-mediator-vs-dependency-injection-logic-classes.md) ("the mediator must be earned") it

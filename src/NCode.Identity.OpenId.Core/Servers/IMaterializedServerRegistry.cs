@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// a cycle through the services that need the server.
 /// </remarks>
 // See ADR-0219.
-internal interface IMaterializedServerRegistry
+internal interface IMaterializedServerRegistry : IMaterializedServerAccessor
 {
     /// <summary>
     /// Registers the server that this replica materialized. A replica materializes its server once, so a registration
@@ -35,13 +35,6 @@ internal interface IMaterializedServerRegistry
     /// </summary>
     /// <param name="server">The <see cref="OpenIdServer"/> to register.</param>
     void Register(OpenIdServer server);
-
-    /// <summary>
-    /// Gets the registered server, waiting until a server is registered.
-    /// </summary>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to stop waiting.</param>
-    /// <returns>A <see cref="ValueTask{TResult}"/> that represents the registered <see cref="OpenIdServer"/>.</returns>
-    ValueTask<OpenIdServer> GetServerAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Reads the settings of the registered server again when its <see cref="OpenIdServer.ServerId"/> equals

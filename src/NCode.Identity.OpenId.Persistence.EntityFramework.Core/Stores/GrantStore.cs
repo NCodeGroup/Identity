@@ -178,6 +178,44 @@ internal class GrantStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedGrant>> GetUnrevokedExpiredPageAsync(
+        string grantType,
+        DateTimeOffset expiredAt,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var afterId = DecodeCursor(page.Cursor);
+
+        var query = DbContext
+            .Grants.Include(entity => entity.Tenant)
+            .Include(entity => entity.Client)
+            .AsQueryable();
+
+        if (afterId is { } id)
+        {
+            query = query.Where(entity => entity.Id > id);
+        }
+
+        // The sessions that ended while no request used them. See ADR-0223.
+        var cutoff = expiredAt.ToUniversalTime();
+        query = query.Where(entity =>
+            entity.GrantType == grantType
+            && entity.RevokedWhen == null
+            && (entity.ExpiresWhen == null || entity.ExpiresWhen <= cutoff)
+            && !entity.Tenant.IsDisabled
+        );
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var entities = await query
+            .OrderBy(entity => entity.Id)
+            .Take(page.Limit + 1)
+            .ToListAsync(cancellationToken);
+
+        return await BuildPageAsync(entities, page.Limit, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async ValueTask<long> RevokeWhereAsync(
         GrantFilter filter,
         DateTimeOffset revokedWhen,
@@ -256,15 +294,23 @@ internal class GrantStore(
     // See ADR-0218.
     public async ValueTask<int> RemoveEndedBeforeAsync(
         DateTimeOffset endedBefore,
+        IReadOnlyCollection<string> grantTypesEndedByRevocation,
         int limit,
         CancellationToken cancellationToken
     )
     {
+        ArgumentNullException.ThrowIfNull(grantTypesEndedByRevocation);
         ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
 
         var cutoff = endedBefore.ToUniversalTime();
+        var endedByRevocation = grantTypesEndedByRevocation.ToList();
+
+        // The prune never removes a session that was not terminated. See ADR-0223.
         var entities = await DbContext
-            .Grants.Where(entity => entity.ExpiresWhen < cutoff || entity.RevokedWhen < cutoff)
+            .Grants.Where(entity =>
+                entity.RevokedWhen < cutoff
+                || (entity.ExpiresWhen < cutoff && !endedByRevocation.Contains(entity.GrantType))
+            )
             .OrderBy(entity => entity.Id)
             .Take(limit)
             .ToListAsync(cancellationToken);

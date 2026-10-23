@@ -24,6 +24,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.Frontend;
@@ -51,7 +52,8 @@ public static class IdentityServerBuilderExtensions
             TenantResolutionSubsection,
             MutualTlsSubsection,
             GrantRetentionOptions.SectionName,
-            TenantUsageOptions.SectionName
+            TenantUsageOptions.SectionName,
+            EndedSessionTerminationOptions.SectionName
         );
 
     /// <param name="builder">The <see cref="IIdentityServerBuilder"/> to configure.</param>
@@ -60,7 +62,7 @@ public static class IdentityServerBuilderExtensions
         /// <summary>
         /// Binds the server's options from configuration, so a host does not have to repeat the binding boilerplate.
         /// The OpenID configuration section (<see cref="OpenIdOptions.DefaultSectionName"/> unless
-        /// <paramref name="sectionName"/> names another) holds six subsections, each bound to one options type:
+        /// <paramref name="sectionName"/> names another) holds seven subsections, each bound to one options type:
         /// <list type="bullet">
         /// <item><description><c>Server</c> — <see cref="OpenIdServerOptions"/>, including the server's
         /// <c>Settings</c>.</description></item>
@@ -74,6 +76,8 @@ public static class IdentityServerBuilderExtensions
         /// kept and how often they are removed.</description></item>
         /// <item><description><c>TenantUsage</c> — <see cref="TenantUsageOptions"/>: how often each replica adds its
         /// usage to the ledger and how long the ledger keeps it.</description></item>
+        /// <item><description><c>EndedSessionTermination</c> — <see cref="EndedSessionTerminationOptions"/>: how often
+        /// the sessions that ended while unused are terminated.</description></item>
         /// </list>
         /// The top-level <c>BootstrapAdmin</c> section binds <see cref="BootstrapAdminOptions"/>, and the
         /// <c>DataProtection:KeyProtection</c> section binds <see cref="KeyRingProtectionOptions"/>: when it names a
@@ -113,6 +117,9 @@ public static class IdentityServerBuilderExtensions
             var mutualTlsSection = openIdSection.GetSection(MutualTlsSubsection);
             var grantRetentionSection = openIdSection.GetSection(GrantRetentionOptions.SectionName);
             var tenantUsageSection = openIdSection.GetSection(TenantUsageOptions.SectionName);
+            var endedSessionTerminationSection = openIdSection.GetSection(
+                EndedSessionTerminationOptions.SectionName
+            );
             // The bootstrap administrator credential is sourced from its own top-level section so it can be supplied
             // out of band (for example, environment variables); absent it, the feature stays inert (ADR-0044).
             var bootstrapAdminSection = configuration.GetSection(
@@ -155,6 +162,11 @@ public static class IdentityServerBuilderExtensions
             serviceCollection
                 .AddOptions<TenantUsageOptions>()
                 .Configure(options => tenantUsageSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            serviceCollection
+                .AddOptions<EndedSessionTerminationOptions>()
+                .Configure(options => endedSessionTerminationSection.BindStrictly(options))
                 .ValidateOnStart();
 
             serviceCollection

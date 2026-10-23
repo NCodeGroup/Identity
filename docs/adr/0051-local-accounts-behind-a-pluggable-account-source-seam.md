@@ -1,6 +1,9 @@
 # 51. Local accounts behind a pluggable account-source seam
 
-- **Status:** Accepted (the source/provisioner/store split and `PasswordHash` field amended by [ADR-0060](0060-local-account-one-store-seam-and-dependency-inverted-authentication.md))
+- **Status:** Accepted (the source/provisioner/store split and `PasswordHash` field amended by
+  [ADR-0060](0060-local-account-one-store-seam-and-dependency-inverted-authentication.md); amended by
+  [ADR-0224](0224-deleting-or-disabling-an-account-ends-its-sessions.md): the local-account capability refuses a
+  subject whose account is disabled or gone)
 - **Date:** 2026-10-07
 - **Deciders:** NCode Group
 
@@ -194,6 +197,9 @@ Any other store (LDAP, a bespoke table, an external API) is a third implementati
   `Microsoft.AspNetCore.Identity.EntityFrameworkCore`.
 - Lockout, two-factor, and password-reset are pre-shaped as optional capability interfaces but not shipped; adding them
   later extends the surface additively without touching the core seam.
+- The subject-validation handler of the local-account capability is `DefaultValidateLocalAccountSubjectHandler`, which
+  enforces active status: it refuses a subject whose local account is disabled or gone
+  ([ADR-0224](0224-deleting-or-disabling-an-account-ends-its-sessions.md)).
 - Known follow-ups deferred to [`BACKLOG.md`](../../BACKLOG.md): lockout/throttling policy, password-reset and
   verification flows, and whether the no-op default or the EF reference becomes the host's wired default.
 

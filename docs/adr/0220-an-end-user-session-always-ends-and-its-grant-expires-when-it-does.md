@@ -1,6 +1,9 @@
 # 220. An end-user session always ends, and its grant expires when it does
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0222](0222-a-grants-payload-is-changed-by-a-read-modify-write.md): a touch is applied to the session as stored;
+  [ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): a session that ends unused is
+  terminated in the background, once, and the prune keeps it until it is terminated)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -41,11 +44,10 @@ request that finds an ended session terminates it.**
    `ArgumentOutOfRangeException` for a value that is not positive. It stamps `SessionGrant.AbsoluteExpiresWhen`, the
    creation time plus the absolute lifetime, and `SessionGrant.IdleTimeout` into the payload, and it adds the grant
    with the shorter of the two lifetimes. A request that resolves the session advances `LastActivityWhen` at most once
-   a minute and slides the expiry with it, through `IPersistedGrantService.UpdatePayloadAndExpirationAsync`, which
-   replaces the payload and the expiration of an active grant in one unit of work. The call returns `false` and drops
-   the touch when the grant changed between the service's read of it and its save, because that change stands. The
-   payload that a touch writes is the one that the session service read before, so a write that landed between the two
-   reads, such as a client that a concurrent authorize request added to the session, is overwritten (backlog `R91`).
+   a minute and slides the expiry with it. The touch is applied to the session as stored, through the read-modify-write
+   of [ADR-0222](0222-a-grants-payload-is-changed-by-a-read-modify-write.md), which changes the payload and the
+   expiration of an active grant in one unit of work, so a client that a concurrent request added to the session stays,
+   and a touch that loses every attempt is dropped.
    `SessionGrant.AbsoluteExpiresWhen` and `SessionGrant.IdleTimeout` are nullable, because a session can be stored
    without them: such a session takes the expiry of its grant as its absolute end, and its first touch stamps it.
 3. **A request that finds an ended session terminates it.** A session ends at its absolute end, which is
@@ -53,13 +55,17 @@ request that finds an ended session terminates it.**
    or its idle window has lapsed. A session with neither an absolute end nor an expiry has ended.
    `ISessionService.ValidateAndTouchAsync` dispatches `OnSessionTerminatedCommand`
    ([ADR-0098](0098-session-lifecycle-termination-seam.md)) with the reason `absolute_expiry`, which it checks first,
-   or `idle_timeout`, and returns `false`. Both reasons therefore revoke the grants issued under the session, notify its
-   relying parties, and are audited. The service logs `SessionAbsoluteExpired` (event 2056) or `SessionIdleExpired`
-   (event 2028).
-4. **The prune removes every ended session after the retention.** An ended session is a grant whose expiry has passed,
-   so `GrantPruneService` removes it after the retention period of
-   [ADR-0218](0218-ended-grants-are-removed-after-a-retention-period.md), whether a request terminated it or not. The
-   prune and the grant store read only the expiry of a grant, so they need nothing that is specific to sessions.
+   or `idle_timeout`, and returns `false`. It dispatches the command only when it revokes the grant of the session, so
+   a request and the background pass that find the same session terminate it once
+   ([ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)). Both reasons therefore revoke
+   the grants issued under the session, notify its relying parties, and are audited. The service logs
+   `SessionAbsoluteExpired` (event 2056) or `SessionIdleExpired` (event 2028).
+4. **The prune removes a session one retention after its termination.** A session grant ends when it is revoked, so
+   `GrantPruneService` removes it after the retention period of
+   [ADR-0218](0218-ended-grants-are-removed-after-a-retention-period.md) counted from its termination, whether a request
+   or the background pass terminated it, and keeps a session that was not terminated
+   ([ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)). The grant store reads only
+   the type, the expiry, and the revocation time of a grant, so it needs nothing that is specific to sessions.
 5. **A listed session reports when it ends.** `ISessionService.GetSessionsAsync` reads each stored payload through
    `IPersistedPayloadSerializer`, skips revoked sessions and sessions that have ended by the rule of decision 3, and
    reports the time the session ends unless it is used again: the end of its idle window or, if earlier, its absolute
@@ -79,7 +85,9 @@ request that finds an ended session terminates it.**
   session that never ends is the finding of backlog `R80`.
 - **Keep the grant's expiry at the absolute end and prune idle sessions from their payload.** Rejected: the grant store
   does not read payloads, and every reader of a session would compute the idle end again.
-- **Terminate ended sessions in a background pass.** Deferred: it is backlog `R90`.
+- **Terminate ended sessions in a background pass.** Adopted by
+  [ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): one replica terminates the
+  sessions that ended unused in each interval.
 - **A `Min` merge of the session settings.** Rejected: a tenant owns its users' session policy, and the domain caps it.
 - **Translate a stored zero into the maximum.** Rejected: nothing expresses "no bound", and removing the value applies
   the default.
@@ -88,15 +96,12 @@ request that finds an ended session terminates it.**
 
 - A user signs in again at most 30 days after signing in, and after 3 days without an authorize request, unless the
   tenant configures otherwise.
-- A session that ends while no request uses it is not terminated: its grants are not revoked, its relying parties
-  receive no back-channel logout, and the check-session iframe reports no change until the next authorization request.
-  The prune removes it after the retention (backlog `R90`).
-- A touch can overwrite a concurrent change to the payload of the session, and so can the addition of a client to the
-  session. A client that an overwritten addition names receives no back-channel logout when the session is terminated
-  (backlog `R91`).
-- A session that the previous release stores without an expiry during the rollout is terminated when a request finds
-  it and is otherwise kept (backlog `R90`), because the previous release keeps serving while a migration is applied
-  ([ADR-0180](0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)).
+- A session that ends while no request uses it is terminated in the background, and so is a session that the previous
+  release stores without an expiry during the rollout, because the previous release keeps serving while a migration is
+  applied ([ADR-0180](0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
+  [ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)).
+- No touch of a session and no addition of a client to it loses a concurrent write
+  ([ADR-0222](0222-a-grants-payload-is-changed-by-a-read-modify-write.md)).
 - A value outside a domain that the previous release stores during the rollout fails closed
   ([ADR-0140](0140-setting-values-are-validated-against-their-domain.md)) until it is corrected.
 - **Breaking:** `CreateSessionRequest.Lifetime` is replaced by the required `CreateSessionRequest.AbsoluteLifetime`, and

@@ -182,6 +182,25 @@ internal class FederatedPrincipalStore(
                 .ToListAsync(cancellationToken)
         );
 
+        // A principal's consents and grants are personal data of its end user and are erased with it. See ADR-0224.
+        var tenantKey = entity.TenantId;
+        DbContext.Consents.RemoveRange(
+            await DbContext
+                .Consents.Where(consent =>
+                    consent.TenantId == tenantKey
+                    && consent.NormalizedSubjectId == normalizedPrincipalId
+                )
+                .ToListAsync(cancellationToken)
+        );
+        DbContext.Grants.RemoveRange(
+            await DbContext
+                .Grants.Where(grant =>
+                    grant.TenantId == tenantKey
+                    && grant.NormalizedSubjectId == normalizedPrincipalId
+                )
+                .ToListAsync(cancellationToken)
+        );
+
         DbContext.FederatedPrincipals.Remove(entity);
     }
 }

@@ -3209,3 +3209,46 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: the server's and tenants' intervals and lifetimes (settings refresh and reconciliation lease, tenant cache
   lifetime and the other polls) are validated when the host starts against the periods a .NET timer accepts
   (`NCode.Time.TimerPeriod`), so a misconfiguration fails the start instead of faulting a hosted service. ADR-0221._
+- **`R89` — End a deleted or disabled account's sessions and grants.** Deleting a local account removes the federated
+  principal with its last identity, and the principal's role assignments with it (ADR-0212), but the subject's
+  sessions, refresh tokens and consents remain, and disabling an account keeps them as well.
+  `DefaultValidateSubjectAuthenticationHandler` does not check that a subject still exists or is enabled, so a refresh
+  token of a deleted or disabled account is redeemed until it expires. Terminate the subject's sessions through
+  `ISessionService.RevokeAllAsync` (back-channel logout included), revoke its grants and consents when its account is
+  deleted or disabled, and refuse a token request for a subject that is gone or disabled. Touch points:
+  `LocalAccountApiEndpointHandler` (`DeleteLocalAccountAsync`, `SetEnabledAsync`), `ISessionService`,
+  `ValidateSubjectAuthenticationCommand`.
+  _Closed: disabling a local account terminates every session of its principal (reason `account_disabled`) after the
+  change commits, deleting one terminates them (`account_deleted`) before the deletion and erases the principal's
+  consents and grants, and `DefaultValidateLocalAccountSubjectHandler` refuses a token or authorization request for a
+  subject whose local account is disabled or gone with `access_denied`. ADR-0224 and ADR-0212; the remaining grants are
+  `R92`, blocking any end user `R93`, a password reset `R94`._
+- **`R90` — Terminate an end-user session that ends while no request uses it.** A session's grant expires at the end
+  of its idle window or its absolute lifetime (ADR-0220), and a request that finds an ended session terminates it
+  through `OnSessionTerminatedCommand`. A session that ends with no request is only pruned: the grants issued under it
+  are not revoked, its relying parties receive no back-channel logout (Auth0's `session-expired` initiator), and the
+  check-session iframe reports no change. A session that the previous release stored without an expiry during a
+  rollout is kept until a request finds it. Terminate ended, unrevoked sessions in a background pass that runs on one
+  replica at a time; it needs an `OpenIdContext` per tenant, which `IOpenIdContextFactory.CreateForTenantAsync` builds
+  only from an `HttpContext`. Touch points: `DefaultSessionService`, `GrantPruneService`, `OnSessionTerminatedCommand`,
+  `IGrantStore`.
+  _Closed: `EndedSessionTerminationService` terminates a session that ends while unused: one replica per pass under a
+  lease, paging the ended, unrevoked sessions of enabled tenants, each tenant in its own scope with a context from
+  `IOpenIdContextFactory.CreateForBackgroundAsync`; the prune keeps a session until it is terminated. A caller claims an
+  ended session through `IPersistedGrantService.RevokeSessionOnceAsync`, which revokes the session grant and every grant
+  of the session in one unit of work, and only the claiming caller sends the termination. ADR-0223; the other
+  termination paths are `R95`._
+- **`R91` — Make the session touch and the addition of a client lose no concurrent write.**
+  `DefaultSessionService.ValidateAndTouchAsync` and `AddClientAsync` compute a payload from the grant they read.
+  `IPersistedGrantService.UpdatePayloadAsync` and `UpdatePayloadAndExpirationAsync` then read the grant again and
+  replace its payload, so the concurrency token only guards the time between that second read and the save. A write that
+  lands between the two reads is overwritten: the touch, which the authorize request that resolves a session performs at
+  most once a minute (ADR-0220), removes a client that a concurrent authorize request added to the session, and two
+  concurrent additions lose one. A client that is missing from the session receives no back-channel logout when the
+  session is terminated. Apply the change to the payload that the service read (a read-modify-write inside the service,
+  retried on `StoreConcurrencyException`), or pass the concurrency token that the caller read. Touch points:
+  `DefaultSessionService`, `IPersistedGrantService`, `DefaultPersistedGrantService`.
+  _Closed: `IPersistedGrantService.UpdatePayloadAsync` applies a payload change to the grant as stored and retries it
+  after a lost race (`PersistedGrantUpdate<TPayload>`); the session touch and client addition, device verification, the
+  device-code and CIBA polls and the CIBA decision all use it, so no concurrent write is overwritten and two concurrent
+  CIBA approvals deliver once. The payload-replacing methods are removed. ADR-0222._

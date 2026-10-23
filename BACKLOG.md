@@ -421,21 +421,6 @@ _None remaining._
 - **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
   replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
   `src/frontend/apps/auth/src/main.tsx:12-21`.
-- **`R59` — Let a tenant or client with end-user data be deleted.** Every foreign key is `Restrict`
-  (`OpenIdDbContext.OnModelCreating`), but the stores check only some dependents. `ClientStore.RemoveAsync` checks only
-  the client's secrets, so a client with grants or consents fails `SaveChanges` with a foreign-key violation (a `500` on
-  PostgreSQL). A tenant whose clients are gone but which holds local accounts, federated principals or identities, or
-  grants fails the same way, because `TenantStore.HasDependentsAsync` checks only clients and resource servers (`R51`).
-  EF InMemory does not enforce foreign keys, so no test sees it. Decide per entity whether end-user data is deleted with
-  its owner or reported as a dependent (409), and test the deletion against a relational provider. Touch points:
-  `ClientStore.RemoveAsync`, `TenantStore.HasDependentsAsync`, `GrantEntity`, `ConsentEntity`, `LocalAccountEntity`.
-- **`R69` — Spend a rotated refresh token atomically.** `DefaultRefreshTokenGrantHandler` reads the grant with
-  `GetOrDefaultAsync` and revokes it with `SetRevokedOnceAsync` after its checks. `SetRevokedOnceAsync` does nothing
-  when another request revoked the grant first, so two concurrent refreshes with one token can both receive new tokens
-  and the reuse that should revoke the lineage (RFC 9700 §4.14.2) goes undetected; when both pass the check, the
-  loser's write raises `StoreConcurrencyException` and the client sees a `500`. Spend the token through a conditional
-  consume, as `ConsumeOnceOrDefault` does (ADR-0208), and answer the loser as a reused token. Touch points:
-  `DefaultRefreshTokenGrantHandler`, `DefaultPersistedGrantService.SetRevokedOnceAsync`.
 - **`R77` — Rotate or sender-constrain a public client's refresh tokens.** OAuth 2.1 §4.3.1 and RFC 9700 §4.14.2
   require one or the other for a public client. `refresh_token_rotation_enabled` defaults to `false` and nothing
   requires either for a client that is not confidential, so a public client without DPoP receives a reusable bearer
@@ -498,9 +483,6 @@ _None remaining._
 - **`R67` — Run the conformance pre-flight in the FAPI 1.0 Advanced run.** Advertised certificate binding does not
   force every client to present a certificate (`R42`), so `-Fapi1Advanced` has no reason to skip the pre-flight; update
   `build/conformance/README.md` with it. Touch points: `build/conformance/run-conformance.ps1` (`Initialize-Fapi1Run`).
-- **`R70` — Answer a management write that loses a concurrency race with `412`.** A store reports a lost race as
-  `StoreConcurrencyException` (ADR-0208), and the management endpoints let it reach the client as a `500`. Map it in one
-  place to `412 Precondition Failed`. Touch points: `ManagementApiEndpointHandler`, the management endpoint group.
 - **`R71` — Report a client value that a `Min` or `Max` ceiling overrides.** `RegisteredValueCoherenceRule` reports a
   listed value an `Intersect` ceiling drops and a `true` an `And` ceiling turns off, but a client's own lifetime above
   its tenant's `Min` ceiling is clamped silently. It needs the merge kind of a descriptor, which `SettingDescriptor`
@@ -511,13 +493,6 @@ _None remaining._
   existing bootstrap administrator client is not re-checked either. Check them in a background pass after a
   configuration change and report them. Touch points: `RootSettingsCollectionDataSource.HandleChange`,
   `ITenantClientCoherenceChecker`, `BootstrapAdminSeedHandler`.
-- **`R73` — Prune the usage ledger on a provider without set-based deletes.** `TenantUsageStore.RemoveBeforeAsync`
-  removes expired days and replica checkpoints with `ExecuteDeleteAsync`, which EF InMemory does not support. In the
-  integration suite every prune therefore fails, and `TenantUsageFlushService` retries it at every flush — every 50 ms
-  in `TenantUsageTests` — logging `TenantUsagePruneFailed` each time. ADR-0199 rejected bulk updates because not every
-  provider supports them, so the prune should follow the same rule, or a failed prune should wait for its next day.
-  Touch points: `TenantUsageStore.RemoveBeforeAsync`, `TenantUsageFlushService.PruneAsync`,
-  `TenantUsageTests.CreateFactory`.
 - **`R74` — Write one-line JSON console logs in container deployments.** The reference hosts log only to standard
   output (ADR-0210), in the console provider's default `simple` format. That format spreads one entry, and the stack
   trace of its exception, over several lines, so a container log collector splits it into separate records. Select the

@@ -155,7 +155,7 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
                     It.IsAny<OpenIdContext>(),
                     PrincipalId,
                     SessionTerminationReasons.UserBlocked,
-                    It.IsAny<CancellationToken>()
+                    It.Is<CancellationToken>(token => !token.CanBeCanceled)
                 )
             )
             .ReturnsAsync(count)
@@ -292,12 +292,13 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
         SetupSessionsRevoked(count: 1);
         SetupAudit();
         var httpContext = CreateHttpContext(authenticated: true);
+        using var cancellationTokenSource = new CancellationTokenSource();
 
         var result = await Handler.BlockPrincipalAsync(
             httpContext,
             TenantId,
             PrincipalId,
-            CancellationToken.None
+            cancellationTokenSource.Token
         );
 
         Assert.IsType<NoContent>(result);
@@ -312,13 +313,14 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
         SetupSessionsRevoked(count: 0);
         SetupAudit();
         var httpContext = CreateHttpContext(authenticated: true);
+        using var cancellationTokenSource = new CancellationTokenSource();
 
         // No UpdateAsync/SaveChangesAsync scaffold: a strict-mock failure would mean an unchanged block state was written.
         var result = await Handler.BlockPrincipalAsync(
             httpContext,
             TenantId,
             PrincipalId,
-            CancellationToken.None
+            cancellationTokenSource.Token
         );
 
         Assert.IsType<NoContent>(result);

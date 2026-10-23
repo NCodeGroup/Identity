@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-0227](0227-a-session-is-terminated-at-most-once-on-every-path.md): every other path that terminates a session
-  claims it the same way)
+  claims it the same way;
+  [ADR-0228](0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md):
+  a claim returns the session as it was revoked)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

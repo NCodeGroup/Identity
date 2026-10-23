@@ -24,10 +24,11 @@ using NCode.Identity.Dispatch;
 namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Delivery;
 
 /// <summary>
-/// Executes a <see cref="CibaDeliveryJob"/> by <c>POST</c>ing the CIBA client notification (the completion ping or the
-/// issued tokens) to the client's <c>client_notification_endpoint</c>, authenticated with the client notification
-/// token. A delivery failure throws so the <see cref="IJobDispatcher"/> retries the job (up to its attempt limit),
-/// giving CIBA push and ping delivery at-least-once semantics rather than the former best-effort single attempt.
+/// Executes a <see cref="CibaDeliveryJob"/> by <c>POST</c>ing the CIBA client notification (the completion ping, the
+/// issued tokens, or the error payload of a denied push request per CIBA Core §12) to the client's
+/// <c>client_notification_endpoint</c>, authenticated with the client notification token. A delivery failure throws so
+/// the <see cref="IJobDispatcher"/> retries the job (up to its attempt limit), giving CIBA push and ping delivery
+/// at-least-once semantics rather than the former best-effort single attempt.
 /// </summary>
 internal sealed class CibaDeliveryJobHandler(IHttpClientFactory httpClientFactory)
     : IDispatchJobHandler<CibaDeliveryJob>
@@ -51,6 +52,9 @@ internal sealed class CibaDeliveryJobHandler(IHttpClientFactory httpClientFactor
         {
             [OpenIdConstants.Parameters.AuthReqId] = job.AuthReqId,
         };
+
+        if (!string.IsNullOrEmpty(job.Error))
+            body[OpenIdConstants.Parameters.ErrorCode] = job.Error;
 
         if (!string.IsNullOrEmpty(job.AccessToken))
             body[OpenIdConstants.Parameters.AccessToken] = job.AccessToken;

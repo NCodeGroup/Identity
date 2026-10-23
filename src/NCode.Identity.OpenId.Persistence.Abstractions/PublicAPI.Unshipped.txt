@@ -314,6 +314,8 @@ NCode.Identity.OpenId.Persistence.Stores.GrantFilter.SessionId.get -> string?
 NCode.Identity.OpenId.Persistence.Stores.GrantFilter.SessionId.init -> void
 NCode.Identity.OpenId.Persistence.Stores.GrantFilter.SubjectId.get -> string?
 NCode.Identity.OpenId.Persistence.Stores.GrantFilter.SubjectId.init -> void
+NCode.Identity.OpenId.Persistence.Stores.GrantFilter.WithoutSession.get -> bool
+NCode.Identity.OpenId.Persistence.Stores.GrantFilter.WithoutSession.init -> void
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetOrDefaultAsync(string! grantType, string! hashedKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant?>
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetOrDefaultAsync(string! grantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant?>

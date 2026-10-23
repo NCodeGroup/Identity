@@ -435,6 +435,43 @@ public class DefaultCibaRequestServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task ApproveAsync_WhenTheApprovingSubjectIsRefused_NotifiesAPingClientOfTheDenial()
+    {
+        var (mockContext, mockClient) = CreateScaffold();
+        SetupSubjectValidation(mockContext, refused: true);
+        SetupClientEndpoint(mockClient, Endpoint);
+        SetupLookup(
+            CreateGrant(
+                DeviceAuthorizationStatus.Pending,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+            )
+        );
+
+        SetupDecision(
+            CreateGrant(
+                DeviceAuthorizationStatus.Pending,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+            )
+        );
+
+        SetupDispatch();
+
+        var result = await Service.ApproveAsync(
+            mockContext.Object,
+            mockClient.Object,
+            AuthReqId,
+            CreateSubject(),
+            CancellationToken.None
+        );
+
+        Assert.False(result);
+        MockJobDispatcher.Verify();
+        Assert.Equal(OpenIdConstants.BackchannelTokenDeliveryModes.Ping, CapturedJob?.DeliveryMode);
+        Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
+        Assert.Null(CapturedJob?.Error);
+    }
+
+    [Fact]
     public async Task ApproveAsync_WhenNotFound_ReturnsFalse()
     {
         var (mockContext, mockClient) = CreateScaffold();
@@ -478,5 +515,107 @@ public class DefaultCibaRequestServiceTests : BaseTests
 
         Assert.True(result);
         Assert.Equal(DeviceAuthorizationStatus.Denied, update()?.Payload.Status);
+    }
+
+    [Fact]
+    public async Task DenyAsync_WhenPendingPing_NotifiesTheClient()
+    {
+        var (mockContext, mockClient) = CreateScaffold();
+        SetupClientEndpoint(mockClient, Endpoint);
+        SetupLookup(
+            CreateGrant(
+                DeviceAuthorizationStatus.Pending,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+            )
+        );
+
+        SetupDecision(
+            CreateGrant(
+                DeviceAuthorizationStatus.Pending,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+            )
+        );
+
+        SetupDispatch();
+
+        var result = await Service.DenyAsync(
+            mockContext.Object,
+            mockClient.Object,
+            AuthReqId,
+            CancellationToken.None
+        );
+
+        Assert.True(result);
+        MockJobDispatcher.Verify();
+        Assert.Equal(OpenIdConstants.BackchannelTokenDeliveryModes.Ping, CapturedJob?.DeliveryMode);
+        Assert.Equal(Endpoint, CapturedJob?.EndpointUrl);
+        Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
+        Assert.Null(CapturedJob?.Error);
+        Assert.Null(CapturedJob?.AccessToken);
+    }
+
+    [Fact]
+    public async Task DenyAsync_WhenPendingPush_DeliversTheAccessDeniedErrorPayload()
+    {
+        var (mockContext, mockClient) = CreateScaffold();
+        SetupClientEndpoint(mockClient, Endpoint);
+        SetupLookup(
+            CreateGrant(
+                DeviceAuthorizationStatus.Pending,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Push
+            )
+        );
+
+        SetupDecision(
+            CreateGrant(
+                DeviceAuthorizationStatus.Pending,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Push
+            )
+        );
+
+        SetupDispatch();
+
+        var result = await Service.DenyAsync(
+            mockContext.Object,
+            mockClient.Object,
+            AuthReqId,
+            CancellationToken.None
+        );
+
+        Assert.True(result);
+        MockJobDispatcher.Verify();
+        Assert.Equal(OpenIdConstants.BackchannelTokenDeliveryModes.Push, CapturedJob?.DeliveryMode);
+        Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
+        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, CapturedJob?.Error);
+        Assert.Null(CapturedJob?.AccessToken);
+    }
+
+    [Fact]
+    public async Task DenyAsync_WhenAnotherRequestDecidedFirst_NotifiesNoClient()
+    {
+        var (mockContext, mockClient) = CreateScaffold();
+        SetupLookup(
+            CreateGrant(
+                DeviceAuthorizationStatus.Pending,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+            )
+        );
+
+        SetupDecision(
+            CreateGrant(
+                DeviceAuthorizationStatus.Denied,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Ping
+            ),
+            decided: false
+        );
+
+        var result = await Service.DenyAsync(
+            mockContext.Object,
+            mockClient.Object,
+            AuthReqId,
+            CancellationToken.None
+        );
+
+        Assert.False(result);
     }
 }

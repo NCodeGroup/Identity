@@ -57,7 +57,10 @@ internal sealed class LocalAccountInteractiveCredentialVerifier(
     )
     {
         var account = await VerifyCredentialsAsync(username, password, cancellationToken);
-        if (account is null || !account.IsEnabled)
+
+        // A disabled account goes on to the sign-in's standing check, which refuses it with its reason.
+        // See ADR-0229.
+        if (account is null)
         {
             return null;
         }

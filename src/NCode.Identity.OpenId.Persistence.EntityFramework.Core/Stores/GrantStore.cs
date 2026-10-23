@@ -344,6 +344,12 @@ internal class GrantStore(
             query = query.Where(entity => entity.SessionId == filter.SessionId);
         }
 
+        // A grant issued under no session has no sid.
+        if (filter.WithoutSession)
+        {
+            query = query.Where(entity => entity.SessionId == null);
+        }
+
         // The grant id is the opaque public identifier, which the store matches by its normalized form.
         if (!string.IsNullOrEmpty(filter.GrantId))
         {

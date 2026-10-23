@@ -1,0 +1,44 @@
+#region Copyright Preamble
+
+// Copyright @ 2026 NCode Group
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
+
+#endregion
+
+using JetBrains.Annotations;
+
+namespace NCode.Identity.OpenId.Authentication.Interactive;
+
+/// <summary>
+/// The outcome of an attempt to change the password of the end user who is signed in to the interactive surface. The
+/// outcomes are the closed set of one operation.
+/// </summary>
+[PublicAPI]
+public enum InteractivePasswordChangeResult
+{
+    /// <summary>
+    /// The backend has no password to change for the end user.
+    /// </summary>
+    NotSupported = 0,
+
+    /// <summary>
+    /// The current password the end user supplied is not valid, so nothing was changed.
+    /// </summary>
+    CurrentPasswordInvalid = 1,
+
+    /// <summary>
+    /// The password was changed.
+    /// </summary>
+    Changed = 2,
+}

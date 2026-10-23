@@ -31,25 +31,25 @@ using NCode.Registration.AspNetCore;
 namespace NCode.Identity.OpenId.Accounts.Authentication;
 
 /// <summary>
-/// Provides a <see cref="ValidateSubjectAuthenticationCommand"/> handler that refuses a subject whose local account is
-/// disabled or no longer exists, so a session, an authorization code or a refresh token of such an account issues no
-/// token. A disabled local account refuses its principal whatever connection it signed in through. A subject the local
+/// Provides a <see cref="ValidateSubjectStandingCommand"/> handler that refuses an end user whose local account is
+/// disabled or no longer exists, so no session, authorization code or refresh token of such an account issues a token.
+/// A disabled local account refuses its principal whatever connection it signed in through. A subject the local
 /// accounts cannot judge, because it has no local account and was not authenticated by one, is left to the other
 /// handlers.
 /// </summary>
-// See ADR-0224.
+// See ADR-0224 and ADR-0229.
 internal class DefaultValidateLocalAccountSubjectHandler(IStoreManagerFactory storeManagerFactory)
-    : ICommandHandler<ValidateSubjectAuthenticationCommand>
+    : ICommandHandler<ValidateSubjectStandingCommand>
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(
-        ValidateSubjectAuthenticationCommand command,
+        ValidateSubjectStandingCommand command,
         CancellationToken cancellationToken
     )
     {
-        var (openIdContext, _, _, subjectAuthentication, operationDisposition, _) = command;
+        var (openIdContext, subjectAuthentication, operationDisposition) = command;
 
         // short-circuit if we already have an error
         if (operationDisposition.HasError)

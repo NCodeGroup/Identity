@@ -1,6 +1,8 @@
 # 70. Interactive login/consent is a leaf capability package with a pluggable credential verifier
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0230](0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md): the surface offers a
+  password change through an optional changer seam)
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
 

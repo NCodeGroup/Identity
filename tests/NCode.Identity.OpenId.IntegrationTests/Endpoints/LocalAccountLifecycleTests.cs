@@ -41,6 +41,7 @@ public class LocalAccountLifecycleTests
 {
     private const string UserName = "lifecycle-user";
     private const string Password = "lifecycle-password";
+    private const string NewPassword = "lifecycle-password-changed";
     private const string RedirectUri = "https://client.example/callback";
     private const string BootstrapClientId = "it-bootstrap-admin";
     private const string BootstrapClientSecret = "bootstrap-secret-value";
@@ -123,6 +124,46 @@ public class LocalAccountLifecycleTests
         var code = parameters["code"];
         Assert.True(!string.IsNullOrEmpty(code), $"error='{parameters["error"]}'");
         return code;
+    }
+
+    private static async Task BlockInStoreAsync(HostApplicationFactory factory, string principalId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var store = storeManager.GetStore<IFederatedPrincipalStore>();
+        var principal = await store.GetOrDefaultAsync(principalId, CancellationToken.None);
+        Assert.NotNull(principal);
+        principal.IsBlocked = true;
+        await store.UpdateAsync(principal, CancellationToken.None);
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
+    // Sends an interactive authorization request, with the session cookie when one is given.
+    private static async Task<HttpResponseMessage> SendAuthorizeAsync(
+        HttpClient client,
+        string? sessionCookie,
+        string clientId
+    )
+    {
+        var query =
+            $"?client_id={Uri.EscapeDataString(clientId)}"
+            + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
+            + "&response_type=code"
+            + "&scope="
+            + Uri.EscapeDataString("openid offline_access")
+            + "&state=abc123"
+            + TestPkce.QueryParameters;
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/oauth2/authorize" + query);
+        if (sessionCookie is not null)
+        {
+            request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
+        }
+
+        return await client.SendAsync(request);
     }
 
     private static async Task<(HttpStatusCode StatusCode, JsonElement Body)> PostTokenAsync(
@@ -527,23 +568,300 @@ public class LocalAccountLifecycleTests
         var principalId = await GetPrincipalIdAsync(factory, localAccountId);
 
         // The principal is blocked behind the server's back, so its sessions and grants are still live.
-        using (var scope = factory.Services.CreateScope())
-        {
-            var storeManagerFactory =
-                scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
-            await using var storeManager = await storeManagerFactory.CreateAsync(
-                CancellationToken.None
-            );
-            var store = storeManager.GetStore<IFederatedPrincipalStore>();
-            var principal = await store.GetOrDefaultAsync(principalId, CancellationToken.None);
-            Assert.NotNull(principal);
-            principal.IsBlocked = true;
-            await store.UpdateAsync(principal, CancellationToken.None);
-            await storeManager.SaveChangesAsync(CancellationToken.None);
-        }
+        await BlockInStoreAsync(factory, principalId);
 
         var (statusCode, body) = await RefreshAsync(client, clientId, refreshToken);
         AssertRefused(statusCode, body, "access_denied");
+    }
+
+    #endregion
+
+    #region Interactive Surface Tests
+
+    [Fact]
+    public async Task AccountMe_WhenThePrincipalWasBlocked_ReturnsUnauthorized()
+    {
+        using var factory = new BootstrapAdminHostApplicationFactory();
+        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var principalId = await GetPrincipalIdAsync(factory, localAccountId);
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var blockResponse = await administrator.PostAsync(
+            $"{TenantApiPath}/principals/{principalId}/block",
+            content: null
+        );
+        var blockBody = await blockResponse.Content.ReadAsStringAsync();
+        Assert.True(blockResponse.StatusCode == HttpStatusCode.NoContent, blockBody);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/account/me");
+        request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SignIn_WhenThePrincipalIsBlocked_ShowsTheRefusalOnTheLoginPage()
+    {
+        using var factory = new HostApplicationFactory();
+        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var principalId = await GetPrincipalIdAsync(factory, localAccountId);
+        await BlockInStoreAsync(factory, principalId);
+
+        using var response = await InteractiveLogin.SubmitLoginAsync(
+            client,
+            UserName,
+            Password,
+            "/foo"
+        );
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.Contains("error=access_denied", location.OriginalString);
+        Assert.Null(InteractiveLogin.ReadSessionCookie(response));
+    }
+
+    [Fact]
+    public async Task SignIn_WhenThePrincipalIsBlockedDuringAnAuthorizationRequest_AnswersTheClientWithAccessDenied()
+    {
+        const string clientId = "it-lifecycle-signin-blocked";
+        using var factory = new HostApplicationFactory();
+        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var client = CreateClient(factory);
+        await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var principalId = await GetPrincipalIdAsync(factory, localAccountId);
+        await BlockInStoreAsync(factory, principalId);
+
+        using var authorizeResponse = await SendAuthorizeAsync(client, null, clientId);
+        Assert.Equal(HttpStatusCode.Found, authorizeResponse.StatusCode);
+        var loginLocation = authorizeResponse.Headers.Location;
+        Assert.NotNull(loginLocation);
+        var returnUrl = HttpUtility.ParseQueryString(loginLocation.Query)["ReturnUrl"];
+        Assert.False(string.IsNullOrEmpty(returnUrl), loginLocation.OriginalString);
+
+        using var response = await InteractiveLogin.SubmitLoginAsync(
+            client,
+            UserName,
+            Password,
+            returnUrl
+        );
+
+        Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.StartsWith(RedirectUri, location.OriginalString);
+        var parameters = HttpUtility.ParseQueryString(location.Query);
+        Assert.Equal("access_denied", parameters["error"]);
+        Assert.Equal("abc123", parameters["state"]);
+    }
+
+    [Fact]
+    public async Task SignIn_WhenTheAccountIsDisabled_ShowsTheRefusalOnTheLoginPage()
+    {
+        using var factory = new HostApplicationFactory();
+        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        await InteractiveLogin.SignInAsync(client, UserName, Password);
+        await DisableInStoreAsync(factory, localAccountId);
+
+        using var response = await InteractiveLogin.SubmitLoginAsync(
+            client,
+            UserName,
+            Password,
+            "/foo"
+        );
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.Contains("error=access_denied", location.OriginalString);
+        Assert.Null(InteractiveLogin.ReadSessionCookie(response));
+    }
+
+    [Fact]
+    public async Task Authorize_WhenTheSignedInPrincipalIsBlocked_AnswersTheClientWithAccessDenied()
+    {
+        const string clientId = "it-lifecycle-authorize-blocked";
+        using var factory = new HostApplicationFactory();
+        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var client = CreateClient(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+        var principalId = await GetPrincipalIdAsync(factory, localAccountId);
+
+        // The principal is blocked behind the server's back, so its session is still active.
+        await BlockInStoreAsync(factory, principalId);
+
+        using var response = await SendAuthorizeAsync(client, sessionCookie, clientId);
+
+        Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
+        var location = response.Headers.Location;
+        Assert.NotNull(location);
+        Assert.StartsWith(RedirectUri, location.OriginalString);
+        var parameters = HttpUtility.ParseQueryString(location.Query);
+        Assert.Equal("access_denied", parameters["error"]);
+        Assert.Equal("abc123", parameters["state"]);
+    }
+
+    [Fact]
+    public async Task ChangePassword_KeepsTheCurrentSessionAndEndsTheOthers()
+    {
+        const string clientId = "it-lifecycle-change-password";
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedPublicClientAsync(clientId, RedirectUri);
+        var client = CreateClient(factory);
+        var otherRefreshToken = await IssueRefreshTokenAsync(client, clientId);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+
+        using var changeResponse = await InteractiveLogin.PostFormAsync(
+            client,
+            "/account/password",
+            "/account/password",
+            sessionCookie,
+            new Dictionary<string, string>
+            {
+                ["current_password"] = Password,
+                ["new_password"] = NewPassword,
+                ["confirm_password"] = NewPassword,
+            }
+        );
+
+        Assert.Equal(HttpStatusCode.Found, changeResponse.StatusCode);
+        var location = changeResponse.Headers.Location;
+        Assert.NotNull(location);
+        Assert.EndsWith("status=changed", location.OriginalString);
+
+        var (statusCode, body) = await RefreshAsync(client, clientId, otherRefreshToken);
+        AssertRefused(statusCode, body, "invalid_grant");
+
+        using var meRequest = new HttpRequestMessage(HttpMethod.Get, "/account/me");
+        meRequest.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
+        using var meResponse = await client.SendAsync(meRequest);
+        Assert.Equal(HttpStatusCode.OK, meResponse.StatusCode);
+
+        Assert.NotNull(await InteractiveLogin.SignInAsync(client, UserName, NewPassword));
+    }
+
+    [Fact]
+    public async Task ChangePassword_WhenTheCurrentPasswordIsWrong_ChangesNothing()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+
+        using var changeResponse = await InteractiveLogin.PostFormAsync(
+            client,
+            "/account/password",
+            "/account/password",
+            sessionCookie,
+            new Dictionary<string, string>
+            {
+                ["current_password"] = "wrong",
+                ["new_password"] = NewPassword,
+                ["confirm_password"] = NewPassword,
+            }
+        );
+
+        Assert.Equal(HttpStatusCode.Found, changeResponse.StatusCode);
+        var location = changeResponse.Headers.Location;
+        Assert.NotNull(location);
+        Assert.Contains("error=invalid_current_password", location.OriginalString);
+
+        Assert.NotNull(await InteractiveLogin.SignInAsync(client, UserName, Password));
+    }
+
+    [Fact]
+    public async Task ChangePassword_RevokesTheGrantsIssuedUnderNoSession()
+    {
+        const string passwordClientId = "it-lifecycle-change-password-ropc";
+        const string passwordClientSecret = "lifecycle-password-client-secret";
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedConfidentialClientAsync(
+            passwordClientId,
+            passwordClientSecret,
+            OpenIdConstants.GrantTypes.Password,
+            OpenIdConstants.GrantTypes.RefreshToken
+        );
+        var client = CreateClient(factory);
+        var (issueStatusCode, issueBody) = await PostTokenAsync(
+            client,
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdConstants.GrantTypes.Password,
+                ["client_id"] = passwordClientId,
+                ["client_secret"] = passwordClientSecret,
+                ["username"] = UserName,
+                ["password"] = Password,
+                ["scope"] = "openid offline_access",
+            }
+        );
+        Assert.True(issueStatusCode == HttpStatusCode.OK, issueBody.ToString());
+        var refreshToken = issueBody.GetProperty("refresh_token").GetString();
+        Assert.False(string.IsNullOrEmpty(refreshToken), issueBody.ToString());
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+
+        using var changeResponse = await InteractiveLogin.PostFormAsync(
+            client,
+            "/account/password",
+            "/account/password",
+            sessionCookie,
+            new Dictionary<string, string>
+            {
+                ["current_password"] = Password,
+                ["new_password"] = NewPassword,
+                ["confirm_password"] = NewPassword,
+            }
+        );
+
+        Assert.Equal(HttpStatusCode.Found, changeResponse.StatusCode);
+        var location = changeResponse.Headers.Location;
+        Assert.NotNull(location);
+        Assert.EndsWith("status=changed", location.OriginalString);
+
+        var (statusCode, body) = await PostTokenAsync(
+            client,
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = OpenIdConstants.GrantTypes.RefreshToken,
+                ["client_id"] = passwordClientId,
+                ["client_secret"] = passwordClientSecret,
+                ["refresh_token"] = refreshToken,
+            }
+        );
+        AssertRefused(statusCode, body, "invalid_grant");
+    }
+
+    [Fact]
+    public async Task ChangePassword_WithoutTheAntiforgeryToken_ChangesNothing()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/account/password");
+        request.Headers.Add("Cookie", $"{InteractiveLogin.SessionCookieName}={sessionCookie}");
+        request.Content = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["current_password"] = Password,
+                ["new_password"] = NewPassword,
+                ["confirm_password"] = NewPassword,
+            }
+        );
+        using var response = await client.SendAsync(request);
+
+        Assert.InRange((int)response.StatusCode, 400, 499);
+        Assert.NotNull(await InteractiveLogin.SignInAsync(client, UserName, Password));
     }
 
     #endregion

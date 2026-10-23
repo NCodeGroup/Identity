@@ -129,6 +129,26 @@ public class DefaultAuthorizeHandlerTests : BaseTests
             .Verifiable();
     }
 
+    private static void SetupValidateStanding(
+        Mock<IMediator> mockMediator,
+        IOpenIdError? standingError
+    )
+    {
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.IsAny<ValidateSubjectStandingCommand>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (ValidateSubjectStandingCommand cmd, CancellationToken _) =>
+                    cmd.OperationDisposition.Error = standingError
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+    }
+
     #endregion
 
     #region HandleAsync Tests
@@ -242,6 +262,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         var (command, mockContext, _, _, _, mockMediator, mockError) = CreateScaffold([]);
 
         SetupValidateSubject(mockContext, mockMediator, mockError.Object);
+        SetupValidateStanding(mockMediator, standingError: null);
 
         var result = await Handler.HandleAsync(command, CancellationToken.None);
 
@@ -257,6 +278,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         ]);
 
         SetupValidateSubject(mockContext, mockMediator, mockError.Object);
+        SetupValidateStanding(mockMediator, standingError: null);
         MockAuditEventRecorder
             .Setup(x =>
                 x.RecordAuthorizationDeniedAsync(
@@ -274,6 +296,74 @@ public class DefaultAuthorizeHandlerTests : BaseTests
 
         Assert.False(result.ChallengeRequired);
         Assert.True(result.HasError);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheSubjectsStandingIsRefused_ReturnsTheRefusal()
+    {
+        var (command, mockContext, _, _, _, mockMediator, mockError) = CreateScaffold([]);
+
+        var standingError = CreateLooseMock<IOpenIdError>();
+        standingError
+            .SetupGet(x => x.Code)
+            .Returns(OpenIdConstants.ErrorCodes.AccessDenied)
+            .Verifiable();
+
+        SetupValidateSubject(mockContext, mockMediator, mockError.Object);
+        SetupValidateStanding(mockMediator, standingError.Object);
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordAuthorizationDeniedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>(),
+                    OpenIdConstants.ErrorCodes.AccessDenied,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.HasError);
+        Assert.Same(standingError.Object, result.Error);
+        Assert.False(result.ChallengeRequired);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheSubjectsStandingIsRefusedWithNonePrompt_ReturnsTheRefusal()
+    {
+        var (command, mockContext, _, _, _, mockMediator, mockError) = CreateScaffold([
+            OpenIdConstants.PromptTypes.None,
+        ]);
+
+        var standingError = CreateLooseMock<IOpenIdError>();
+        standingError
+            .SetupGet(x => x.Code)
+            .Returns(OpenIdConstants.ErrorCodes.AccessDenied)
+            .Verifiable();
+
+        SetupValidateSubject(mockContext, mockMediator, mockError.Object);
+        SetupValidateStanding(mockMediator, standingError.Object);
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordAuthorizationDeniedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>(),
+                    OpenIdConstants.ErrorCodes.AccessDenied,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.HasError);
+        Assert.Same(standingError.Object, result.Error);
+        Assert.False(result.ChallengeRequired);
     }
 
     [Fact]

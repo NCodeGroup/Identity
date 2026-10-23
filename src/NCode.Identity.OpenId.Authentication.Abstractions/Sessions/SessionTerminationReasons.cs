@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 /// </summary>
 /// <remarks>
 /// The reasons are an open vocabulary (ADR-0150): a consumer or an extension that ends a session for its own cause, such
-/// as a risk signal or a password change, passes its own name. Names are compared ordinally.
+/// as a risk signal, passes its own name. Names are compared ordinally.
 /// </remarks>
 [PublicAPI]
 public static class SessionTerminationReasons
@@ -87,4 +87,15 @@ public static class SessionTerminationReasons
     /// An administrator blocked the end-user, so every session of its principal was terminated.
     /// </summary>
     public const string UserBlocked = "user_blocked";
+
+    /// <summary>
+    /// An authorization code was presented again after it was redeemed, so the session it was issued under was
+    /// terminated.
+    /// </summary>
+    public const string AuthorizationCodeReplay = "authorization_code_replay";
+
+    /// <summary>
+    /// The end-user changed their password, so every other session of its principal was terminated.
+    /// </summary>
+    public const string PasswordChanged = "password_changed";
 }

@@ -9,7 +9,11 @@
   its principal's sessions;
   [ADR-0226](0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md): blocking
   an end user or resetting its password terminates its principal's sessions;
-  [ADR-0227](0227-a-session-is-terminated-at-most-once-on-every-path.md): every path terminates a session at most once)
+  [ADR-0227](0227-a-session-is-terminated-at-most-once-on-every-path.md): every path terminates a session at most once;
+  [ADR-0228](0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md):
+  a replayed authorization code terminates its session with `authorization_code_replay`;
+  [ADR-0230](0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md): a self-service password
+  change terminates every other session with `password_changed`)
 - **Date:** 2026-10-14
 - **Deciders:** NCode Group
 
@@ -48,18 +52,22 @@ seam (as `DefaultTokenService` drives the claims seam).
 - **The reason is an open vocabulary** ([ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md)).
   `SessionTerminationReasons` names the well-known reasons: `logout`, `idle_timeout`, `absolute_expiry`,
   `account_deleted`, `account_disabled`, `concurrent_session_limit`, `administrative_revocation`, `global_sign_out`,
-  `user_initiated`, `password_reset`, and `user_blocked`. An extension that ends a session for its own cause, such as a
-  risk signal or a password change, passes its own name, and the handlers and the audit event carry it unchanged. Names
-  are compared ordinally.
+  `user_initiated`, `password_reset`, `user_blocked`, `authorization_code_replay`, and `password_changed`. An extension
+  that ends a session for its own cause, such as a risk signal, passes its own name, and the handlers and the audit
+  event carry it unchanged. Names are compared ordinally.
 
     Every termination path dispatches it: the `end_session_endpoint` (reason `Logout`), which terminates a named session
     through `ISessionService.RevokeAsync`, idle and absolute expiry found on an authorize request or by the background
     pass ([ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)), concurrent eviction
     inside `DefaultSessionService`, the `ISessionService.RevokeAsync` / `RevokeAllAsync` administrative and
     global-sign-out paths, the deletion and the disabling of a local account
-    ([ADR-0224](0224-deleting-or-disabling-an-account-ends-its-sessions.md)), and the blocking of an end user and an
+    ([ADR-0224](0224-deleting-or-disabling-an-account-ends-its-sessions.md)), the blocking of an end user and an
     administrator's password reset
-    ([ADR-0226](0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md)).
+    ([ADR-0226](0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md)), the
+    replay of an authorization code
+    ([ADR-0228](0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md)),
+    and a self-service password change
+    ([ADR-0230](0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)).
     `DefaultSessionService` drives the seam through `openIdContext.Mediator`. Every path that terminates a named session
     claims it first, so a session is terminated once however many paths end it at the same time
     ([ADR-0227](0227-a-session-is-terminated-at-most-once-on-every-path.md)).

@@ -442,15 +442,17 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Once());
+        SetupDeserialize();
 
-        var result = await Service.RevokeSessionOnceAsync(
+        var result = await Service.RevokeSessionOnceAsync<string>(
             OpenIdContext,
             CreateGrantId(),
             revokedWhen,
             CancellationToken.None
         );
 
-        Assert.True(result);
+        Assert.Equal(PersistedGrantStatus.Revoked, result?.Status);
+        Assert.Equal("payload", result?.Payload);
         Assert.Equal(revokedWhen, envelope.RevokedWhen);
     }
 
@@ -462,38 +464,40 @@ public class DefaultPersistedGrantServiceTests : BaseTests
         SetupLookup(envelope);
         SetupUpdate(envelope, ValueTask.CompletedTask);
         SetupSaveChanges(ValueTask.CompletedTask);
+        SetupDeserialize();
 
-        var result = await Service.RevokeSessionOnceAsync(
+        var result = await Service.RevokeSessionOnceAsync<string>(
             OpenIdContext,
             CreateGrantId(),
             revokedWhen,
             CancellationToken.None
         );
 
-        Assert.True(result);
+        Assert.Equal(PersistedGrantStatus.Revoked, result?.Status);
+        Assert.Equal("payload", result?.Payload);
         Assert.Equal(revokedWhen, envelope.RevokedWhen);
     }
 
     [Fact]
-    public async Task RevokeSessionOnceAsync_WhenAlreadyRevoked_ReturnsFalseWithoutSaving()
+    public async Task RevokeSessionOnceAsync_WhenAlreadyRevoked_ReturnsNullWithoutSaving()
     {
         var revokedWhen = DateTimeOffset.UtcNow.AddMinutes(-1);
         var envelope = CreateEnvelope(revokedWhen: revokedWhen, sessionId: "sid-1");
         SetupLookup(envelope);
 
-        var result = await Service.RevokeSessionOnceAsync(
+        var result = await Service.RevokeSessionOnceAsync<string>(
             OpenIdContext,
             CreateGrantId(),
             DateTimeOffset.UtcNow,
             CancellationToken.None
         );
 
-        Assert.False(result);
+        Assert.Null(result);
         Assert.Equal(revokedWhen, envelope.RevokedWhen);
     }
 
     [Fact]
-    public async Task RevokeSessionOnceAsync_WhenTheGrantIsUnknown_ReturnsFalse()
+    public async Task RevokeSessionOnceAsync_WhenTheGrantIsUnknown_ReturnsNull()
     {
         SetupHashValue();
         SetupStoreManager();
@@ -502,30 +506,30 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             .ReturnsAsync((PersistedGrant?)null)
             .Verifiable();
 
-        var result = await Service.RevokeSessionOnceAsync(
+        var result = await Service.RevokeSessionOnceAsync<string>(
             OpenIdContext,
             CreateGrantId(),
             DateTimeOffset.UtcNow,
             CancellationToken.None
         );
 
-        Assert.False(result);
+        Assert.Null(result);
     }
 
     [Fact]
-    public async Task RevokeSessionOnceAsync_WhenTheGrantBelongsToAnotherTenant_ReturnsFalse()
+    public async Task RevokeSessionOnceAsync_WhenTheGrantBelongsToAnotherTenant_ReturnsNull()
     {
         var envelope = CreateEnvelope(sessionId: "sid-1");
         SetupLookup(envelope);
 
-        var result = await Service.RevokeSessionOnceAsync(
+        var result = await Service.RevokeSessionOnceAsync<string>(
             OpenIdContext,
             Service.CreateGrantId("tenant-2", GrantType, GrantKey),
             DateTimeOffset.UtcNow,
             CancellationToken.None
         );
 
-        Assert.False(result);
+        Assert.Null(result);
         Assert.Null(envelope.RevokedWhen);
     }
 
@@ -545,16 +549,57 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             .SetupSequence(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new StoreConcurrencyException("conflict"))
             .Returns(ValueTask.CompletedTask);
+        SetupDeserialize();
 
-        var result = await Service.RevokeSessionOnceAsync(
+        var result = await Service.RevokeSessionOnceAsync<string>(
             OpenIdContext,
             CreateGrantId(),
             revokedWhen,
             CancellationToken.None
         );
 
-        Assert.True(result);
+        Assert.Equal(PersistedGrantStatus.Revoked, result?.Status);
+        Assert.Equal("payload", result?.Payload);
         Assert.Equal(revokedWhen, second.RevokedWhen);
+    }
+
+    [Fact]
+    public async Task RevokeSessionOnceAsync_WhenTheFirstSaveLosesARace_ReturnsTheSessionAsTheCommittingAttemptReadIt()
+    {
+        var first = CreateEnvelope(sessionId: "sid-1");
+        var second = CreateEnvelope(sessionId: "sid-1");
+        second.PayloadJson = JsonElement.Parse("\"second\"");
+        var revokedWhen = DateTimeOffset.UtcNow;
+        SetupLookupSequence(first, second);
+        MockGrantStore
+            .Setup(x => x.UpdateAsync(It.IsAny<PersistedGrant>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Exactly(2));
+        SetupRevokeSessionGrants("sid-1", revokedWhen, Times.Exactly(2));
+        MockStoreManager
+            .SetupSequence(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new StoreConcurrencyException("conflict"))
+            .Returns(ValueTask.CompletedTask);
+        SetupEnvironment();
+        MockEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(JsonOptions).Verifiable();
+        MockPayloadSerializer
+            .Setup(x =>
+                x.Deserialize<string>(
+                    It.Is<JsonElement>(e => e.GetString() == "second"),
+                    JsonOptions
+                )
+            )
+            .Returns("second")
+            .Verifiable();
+
+        var result = await Service.RevokeSessionOnceAsync<string>(
+            OpenIdContext,
+            CreateGrantId(),
+            revokedWhen,
+            CancellationToken.None
+        );
+
+        Assert.Equal("second", result?.Payload);
     }
 
     [Fact]
@@ -574,7 +619,7 @@ public class DefaultPersistedGrantServiceTests : BaseTests
         SetupSaveChanges(ValueTask.FromException(new StoreConcurrencyException("conflict")));
 
         await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
-            await Service.RevokeSessionOnceAsync(
+            await Service.RevokeSessionOnceAsync<string>(
                 OpenIdContext,
                 CreateGrantId(),
                 revokedWhen,

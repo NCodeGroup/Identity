@@ -26,26 +26,26 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
-/// Provides a <see cref="ValidateSubjectAuthenticationCommand"/> handler that refuses a subject whose principal an
-/// administrator blocked, whatever connection it signed in through, so a session, an authorization code or a grant of
-/// such a principal issues no token. A subject without a principal is left to the other handlers.
+/// Provides a <see cref="ValidateSubjectStandingCommand"/> handler that refuses an end user whose principal an
+/// administrator blocked, whatever connection it signed in through, so no session, authorization code or grant of such
+/// a principal issues a token. A subject without a principal is left to the other handlers.
 /// </summary>
-// See ADR-0226.
+// See ADR-0226 and ADR-0229.
 internal class DefaultValidateBlockedSubjectHandler(
     IStoreManagerFactory storeManagerFactory,
     ILogger<DefaultValidateBlockedSubjectHandler> logger
-) : ICommandHandler<ValidateSubjectAuthenticationCommand>
+) : ICommandHandler<ValidateSubjectStandingCommand>
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ILogger<DefaultValidateBlockedSubjectHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(
-        ValidateSubjectAuthenticationCommand command,
+        ValidateSubjectStandingCommand command,
         CancellationToken cancellationToken
     )
     {
-        var (openIdContext, _, _, subjectAuthentication, operationDisposition, _) = command;
+        var (openIdContext, subjectAuthentication, operationDisposition) = command;
 
         // short-circuit if we already have an error
         if (operationDisposition.HasError)

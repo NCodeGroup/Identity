@@ -174,7 +174,9 @@ internal sealed class LocalAccountStore(
             candidate => candidate.NormalizedUserName == normalizedUserName,
             cancellationToken
         );
-        if (entity is null || !entity.IsEnabled || string.IsNullOrEmpty(entity.PasswordHash))
+        // A disabled account's credential is verified too, so the sign-in can tell the end user why it is refused.
+        // See ADR-0229.
+        if (entity is null || string.IsNullOrEmpty(entity.PasswordHash))
         {
             return null;
         }

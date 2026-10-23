@@ -110,18 +110,20 @@ public interface IPersistedGrantService
 
     /// <summary>
     /// Revokes a session grant, together with every other grant issued under its session identifier, in one unit of
-    /// work unless the session grant is already revoked, whether or not it expired, and reports whether this call
-    /// revoked it. A revocation that loses a concurrency race reads the grants again and retries a few times; it fails
-    /// when every attempt loses.
+    /// work unless the session grant is already revoked, whether or not it expired, and returns the session grant when
+    /// this call revoked it. A revocation that loses a concurrency race reads the grants again and retries a few times;
+    /// it fails when every attempt loses.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="grantId">Contains the identifiers of the persisted session grant.</param>
     /// <param name="revokedWhen">The <see cref="DateTimeOffset"/> to set the revoked time to.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when
-    /// this call revoked the session grant and the grants issued under it. The result is <c>false</c> when the grant
-    /// does not exist, belongs to another tenant, or is already revoked, including by a concurrent request.</returns>
-    ValueTask<bool> RevokeSessionOnceAsync(
+    /// <typeparam name="TPayload">The type of the payload for the session grant.</typeparam>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the session grant
+    /// as this call revoked it, with the status <see cref="PersistedGrantStatus.Revoked"/> and the payload stored when
+    /// it was revoked. The result is <c>null</c> when the grant does not exist, belongs to another tenant, or is
+    /// already revoked, including by a concurrent request.</returns>
+    ValueTask<PersistedGrant<TPayload>?> RevokeSessionOnceAsync<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         DateTimeOffset revokedWhen,

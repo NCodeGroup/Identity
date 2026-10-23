@@ -86,4 +86,10 @@ internal sealed record CibaDeliveryJob : IDispatchJob
     /// Gets the space-delimited granted scopes for push delivery, or <c>null</c> when not applicable.
     /// </summary>
     public string? Scope { get; init; }
+
+    /// <summary>
+    /// Gets the error code of the push error payload delivered for a request that was not approved, such as
+    /// <c>access_denied</c>, or <c>null</c> for a ping or a token delivery.
+    /// </summary>
+    public string? Error { get; init; }
 }

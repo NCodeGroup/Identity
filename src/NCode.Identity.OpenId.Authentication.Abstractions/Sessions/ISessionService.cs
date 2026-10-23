@@ -146,9 +146,10 @@ public interface ISessionService
     );
 
     /// <summary>
-    /// Terminates every session the specified subject holds ("sign out everywhere") and revokes every grant the subject
-    /// holds, dispatching the session-termination side effects through the <see cref="OnSessionTerminatedCommand"/>
-    /// seam as a single subject-wide termination.
+    /// Terminates every session the specified subject holds that no caller has terminated, a session that has ended
+    /// included ("sign out everywhere"), and revokes every grant the subject holds, dispatching the
+    /// session-termination side effects through the <see cref="OnSessionTerminatedCommand"/> seam as a single
+    /// subject-wide termination.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="subjectId">The stable, server-owned principal identifier whose sessions are terminated.</param>
@@ -168,8 +169,9 @@ public interface ISessionService
     /// <summary>
     /// Terminates every session the specified subject holds <em>except</em> the one identified by
     /// <paramref name="exceptSessionId"/> ("sign out everywhere else"), terminating each remaining session individually
-    /// through the <see cref="OnSessionTerminatedCommand"/> seam so the retained session and the grants issued under it
-    /// stay intact.
+    /// through the <see cref="OnSessionTerminatedCommand"/> seam. A session no caller terminated is terminated, an
+    /// ended one included, and every grant the subject holds under no session is revoked; the retained session and the
+    /// grants issued under it stay intact.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="subjectId">The stable, server-owned principal identifier whose sessions are terminated.</param>
@@ -179,7 +181,8 @@ public interface ISessionService
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of sessions
     /// this call terminated; a session a concurrent caller terminated first is not counted.</returns>
-    /// <exception cref="ArgumentException">The <paramref name="subjectId"/> is null or empty.</exception>
+    /// <exception cref="ArgumentException">The <paramref name="subjectId"/> or <paramref name="exceptSessionId"/> is
+    /// null or empty.</exception>
     ValueTask<int> RevokeAllExceptAsync(
         OpenIdContext openIdContext,
         string subjectId,

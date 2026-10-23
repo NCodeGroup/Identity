@@ -23,12 +23,12 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
-using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode;
@@ -39,12 +39,14 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.AuthorizationCode
 internal class DefaultAuthorizationCodeGrantHandler(
     TimeProvider timeProvider,
     IPersistedGrantService persistedGrantService,
-    ITokenService tokenService
+    ITokenService tokenService,
+    ISessionService sessionService
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
     private ITokenService TokenService { get; } = tokenService;
+    private ISessionService SessionService { get; } = sessionService;
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
@@ -87,9 +89,10 @@ internal class DefaultAuthorizationCodeGrantHandler(
 
         if (!persistedGrantOrNull.HasValue)
         {
-            // A second redemption of an already-consumed authorization code is a replay/compromise signal: revoke the
-            // end-user session's grants — the access and refresh tokens previously issued from this code (RFC 6749
-            // §4.1.2, ADR-0112). The grant row survives consumption, so its payload still yields the session to revoke.
+            // A second redemption of an already-consumed authorization code is a replay/compromise signal: terminate
+            // the end-user session the code was issued under, which revokes the access and refresh tokens previously
+            // issued from this code (RFC 6749 §4.1.2, ADR-0112). The grant row survives consumption, so it still names
+            // the session to terminate.
             await RevokeSessionOnReplayAsync(openIdContext, persistedGrantId, cancellationToken);
 
             return errorFactory
@@ -151,23 +154,25 @@ internal class DefaultAuthorizationCodeGrantHandler(
     )
     {
         // GetOrDefaultAsync returns the grant regardless of its consumed marker (status is computed from
-        // revoked/expired only), so a replayed — hence already-consumed — code still yields the original payload and
-        // the session behind it; an unknown code yields null and revokes nothing.
+        // revoked/expired only), so a replayed — hence already-consumed — code still yields the session behind it; an
+        // unknown code yields null and terminates nothing.
         var consumedGrant = await PersistedGrantService.GetOrDefaultAsync<AuthorizationGrant>(
             openIdContext,
             persistedGrantId,
             cancellationToken
         );
 
-        var sessionId = consumedGrant?.Payload.SubjectAuthentication.SessionId;
-        if (string.IsNullOrEmpty(sessionId))
+        // Only a code that was redeemed is a replay: a code that expired unused or was revoked with its session
+        // terminates nothing, as that is not a compromise signal.
+        if (consumedGrant is not { ConsumedWhen: not null, SessionId: { Length: > 0 } sessionId })
             return;
 
-        var revokedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
-        await PersistedGrantService.RevokeWhereAsync(
+        // The replay terminates the session through the termination seam so its relying parties receive back-channel
+        // logout and the termination is audited. See ADR-0112 and ADR-0228.
+        await SessionService.RevokeAsync(
             openIdContext,
-            new GrantFilter { SessionId = sessionId },
-            revokedWhen,
+            sessionId,
+            SessionTerminationReasons.AuthorizationCodeReplay,
             cancellationToken
         );
     }

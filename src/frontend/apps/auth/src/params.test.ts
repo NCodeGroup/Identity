@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   describeLoginError,
+  describePasswordError,
   getQueryParam,
   isAccountPath,
   isApplicationsPath,
   isConsentPath,
+  isPasswordPath,
   isSessionsPath,
   readCookie,
   resolveSurfacePath,
@@ -97,11 +99,43 @@ describe('isApplicationsPath', () => {
   });
 });
 
+describe('isPasswordPath', () => {
+  it('matches the password path with trailing slashes', () => {
+    expect(isPasswordPath('/account/password')).toBe(true);
+    expect(isPasswordPath('/account/password/')).toBe(true);
+  });
+
+  it('does not match the account root or other paths', () => {
+    expect(isPasswordPath('/account')).toBe(false);
+    expect(isPasswordPath('/account/sessions')).toBe(false);
+  });
+});
+
 describe('describeLoginError', () => {
   it('maps known codes and defaults unknown ones', () => {
     expect(describeLoginError(null)).toBeNull();
     expect(describeLoginError('invalid_credentials')).toMatch(/incorrect/i);
     expect(describeLoginError('invalid_request')).toMatch(/username and a password/i);
+    expect(describeLoginError('access_denied')).toMatch(/cannot sign in/i);
     expect(describeLoginError('boom')).toMatch(/failed/i);
+  });
+});
+
+describe('describePasswordError', () => {
+  it('maps known codes and defaults unknown ones', () => {
+    expect(describePasswordError(null)).toBeNull();
+    expect(describePasswordError('invalid_request')).toBe(
+      'Enter your current password and a new password.',
+    );
+    expect(describePasswordError('password_mismatch')).toBe('The new passwords do not match.');
+    expect(describePasswordError('invalid_current_password')).toBe(
+      'The current password is incorrect.',
+    );
+    expect(describePasswordError('not_supported')).toBe(
+      'Your account has no password to change here.',
+    );
+    expect(describePasswordError('boom')).toBe(
+      'The password could not be changed. Please try again.',
+    );
   });
 });

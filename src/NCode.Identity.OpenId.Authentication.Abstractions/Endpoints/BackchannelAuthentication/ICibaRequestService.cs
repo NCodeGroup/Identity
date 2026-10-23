@@ -51,7 +51,10 @@ public interface ICibaRequestService
     );
 
     /// <summary>
-    /// Denies a pending CIBA request.
+    /// Denies a pending CIBA request. The denial is delivered to a ping or push client's
+    /// <c>client_notification_endpoint</c>: a ping notifies the client, which polls the token endpoint and receives
+    /// <c>access_denied</c>, and a push carries the <c>access_denied</c> error payload. Only the call that decides the
+    /// request delivers.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> that initiated the request.</param>

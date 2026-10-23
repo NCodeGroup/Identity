@@ -12,6 +12,7 @@ import {
   LOGIN_ACTION,
   LOGOUT_ACTION,
   ME_ENDPOINT,
+  PASSWORD_PATH,
   SESSIONS_PATH,
   resolveSurfacePath,
 } from './params.js';
@@ -157,6 +158,10 @@ export function AccountPage({
 
             <Button href={resolveSurfacePath(SESSIONS_PATH)} variant="text">
               Manage active sessions
+            </Button>
+
+            <Button href={resolveSurfacePath(PASSWORD_PATH)} variant="text">
+              Change password
             </Button>
           </Stack>
         </CardContent>

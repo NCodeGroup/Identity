@@ -76,16 +76,18 @@ public interface ILocalAccountStore : IStore
     );
 
     /// <summary>
-    /// Verifies a username and password credential, returning the account when the credential is valid and the account
-    /// is enabled. The store performs the hash comparison (and may transparently upgrade a stored hash to current
-    /// parameters on success).
+    /// Verifies a username and password credential, returning the account when the credential is valid, whether or not
+    /// the account is enabled, so its caller can tell the end user why it cannot sign in. A store whose disabled state
+    /// is a lockout against guessing refuses such an account without verifying its password. The store performs the
+    /// hash comparison (and may transparently upgrade a stored hash to current parameters on success).
     /// </summary>
     /// <param name="userName">The username (login handle) presented by the end-user.</param>
     /// <param name="password">The UTF-8 bytes of the password presented by the end-user, carried in a caller-owned
     /// buffer so the sensitive material can be zeroed after use.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the authenticated
-    /// <see cref="PersistedLocalAccount"/> when the credential is valid; otherwise <c>null</c>.</returns>
+    /// <see cref="PersistedLocalAccount"/> when the credential is valid, whether or not it is enabled; otherwise
+    /// <c>null</c>.</returns>
     ValueTask<PersistedLocalAccount?> VerifyCredentialAsync(
         string userName,
         ReadOnlyMemory<byte> password,

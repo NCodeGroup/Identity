@@ -116,6 +116,25 @@ public class DefaultSessionServiceTests : BaseTests
             },
         };
 
+    private static PersistedGrant<SessionGrant> CreateClaimedSession(
+        string sessionId,
+        params string[] clientIds
+    ) =>
+        new()
+        {
+            Status = PersistedGrantStatus.Revoked,
+            TenantId = TenantId,
+            ClientId = null,
+            SubjectId = SubjectId,
+            SessionId = sessionId,
+            Payload = new SessionGrant
+            {
+                AuthTime = UtcNow,
+                ClientIds = clientIds,
+                LastActivityWhen = UtcNow,
+            },
+        };
+
     private async Task<(
         string Result,
         PersistedGrant<SessionGrant> Grant,
@@ -289,7 +308,8 @@ public class DefaultSessionServiceTests : BaseTests
                     .Setup(x => x.SelectSessionsToEvict(It.IsAny<IReadOnlyList<SessionInfo>>(), 1))
                     .Returns((IReadOnlyList<SessionInfo> sessions, int _) => sessions)
                     .Verifiable();
-                SetupSessionClaims(mockContext, ("old", true));
+                SetupSessionGrantIds();
+                SetupSessionClaim(mockContext, "old", "c1");
 
                 var mockMediator = CreateStrictMock<IMediator>();
                 mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
@@ -337,7 +357,8 @@ public class DefaultSessionServiceTests : BaseTests
                     .Setup(x => x.SelectSessionsToEvict(It.IsAny<IReadOnlyList<SessionInfo>>(), 1))
                     .Returns((IReadOnlyList<SessionInfo> sessions, int _) => sessions)
                     .Verifiable();
-                SetupSessionClaims(mockContext, ("old", false));
+                SetupSessionGrantIds();
+                SetupLostSessionClaim(mockContext, "old");
             }
         );
 
@@ -545,10 +566,7 @@ public class DefaultSessionServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-    private PersistedGrantId SetupGetSession(
-        Mock<OpenIdContext> mockContext,
-        PersistedGrant<SessionGrant>? session
-    )
+    private PersistedGrantId SetupGrantId()
     {
         var grantId = CreateGrantId();
         MockPersistedGrantService
@@ -557,6 +575,15 @@ public class DefaultSessionServiceTests : BaseTests
             )
             .Returns(grantId)
             .Verifiable();
+        return grantId;
+    }
+
+    private PersistedGrantId SetupGetSession(
+        Mock<OpenIdContext> mockContext,
+        PersistedGrant<SessionGrant>? session
+    )
+    {
+        var grantId = SetupGrantId();
         MockPersistedGrantService
             .Setup(x =>
                 x.GetOrDefaultAsync<SessionGrant>(
@@ -573,19 +600,41 @@ public class DefaultSessionServiceTests : BaseTests
     private void SetupClaim(
         Mock<OpenIdContext> mockContext,
         PersistedGrantId grantId,
-        bool claimed
+        PersistedGrant<SessionGrant> claimed
     ) =>
         MockPersistedGrantService
             .Setup(x =>
-                x.RevokeSessionOnceAsync(
+                x.RevokeSessionOnceAsync<SessionGrant>(
                     mockContext.Object,
                     grantId,
                     UtcNow,
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(claimed)
+            .Returns(new ValueTask<PersistedGrant<SessionGrant>?>(claimed))
             .Verifiable();
+
+    private void SetupClaim(Mock<OpenIdContext> mockContext, PersistedGrantId grantId, bool claimed)
+    {
+        PersistedGrant<SessionGrant>? claimedSession = claimed
+            ? CreateIdleSession(idleTimeout: null, UtcNow) with
+            {
+                Status = PersistedGrantStatus.Revoked,
+            }
+            : null;
+
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeSessionOnceAsync<SessionGrant>(
+                    mockContext.Object,
+                    grantId,
+                    UtcNow,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<PersistedGrant<SessionGrant>?>(claimedSession))
+            .Verifiable();
+    }
 
     private void SetupTouch(
         Mock<OpenIdContext> mockContext,
@@ -992,7 +1041,7 @@ public class DefaultSessionServiceTests : BaseTests
     public async Task RevokeAsync_WhenThisCallClaimsTheSession_DispatchesItsTerminationAndReturnsTrue()
     {
         var mockContext = CreateContextWithMediator(out var mockMediator);
-        var grantId = SetupGetSession(mockContext, CreateIdleSession(idleTimeout: null, UtcNow));
+        var grantId = SetupGrantId();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: true);
         mockMediator
@@ -1024,7 +1073,7 @@ public class DefaultSessionServiceTests : BaseTests
     public async Task RevokeAsync_WhenAnotherCallerTerminatedTheSessionFirst_ReturnsFalseWithoutDispatching()
     {
         var mockContext = CreateContext();
-        var grantId = SetupGetSession(mockContext, CreateIdleSession(idleTimeout: null, UtcNow));
+        var grantId = SetupGrantId();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: false);
 
@@ -1042,7 +1091,9 @@ public class DefaultSessionServiceTests : BaseTests
     public async Task RevokeAsync_WhenTheSessionIsMissing_ReturnsFalse()
     {
         var mockContext = CreateContext();
-        SetupGetSession(mockContext, null);
+        var grantId = SetupGrantId();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupClaim(mockContext, grantId, claimed: false);
 
         var result = await Service.RevokeAsync(
             mockContext.Object,
@@ -1069,6 +1120,45 @@ public class DefaultSessionServiceTests : BaseTests
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         SetupClaim(mockContext, grantId, claimed: true);
         SetupTermination(mockMediator, SessionTerminationReasons.IdleTimeout);
+
+        var result = await Service.TerminateIfEndedAsync(
+            mockContext.Object,
+            SessionId,
+            CancellationToken.None
+        );
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task TerminateIfEndedAsync_WhenAClientJoinedTheSessionBeforeTheClaim_NotifiesIt()
+    {
+        var mockContext = CreateContextWithMediator(out var mockMediator);
+        var session = CreateIdleSession(TimeSpan.FromMinutes(30), UtcNow.AddHours(-1));
+        var grantId = SetupGetSession(mockContext, session);
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupClaim(
+            mockContext,
+            grantId,
+            session with
+            {
+                Status = PersistedGrantStatus.Revoked,
+                Payload = session.Payload with { ClientIds = ["client-a", "client-b"] },
+            }
+        );
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c =>
+                        c.Termination.Reason == SessionTerminationReasons.IdleTimeout
+                        && c.Termination.SessionId == SessionId
+                        && c.Termination.ParticipatingClientIds.Contains("client-b")
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         var result = await Service.TerminateIfEndedAsync(
             mockContext.Object,
@@ -1208,6 +1298,11 @@ public class DefaultSessionServiceTests : BaseTests
         mockEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(JsonOptions).Verifiable();
         mockContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object).Verifiable();
 
+        return SetupSessionIdEnumeration(envelopes);
+    }
+
+    private Mock<IGrantStore> SetupSessionIdEnumeration(params PersistedGrant[] envelopes)
+    {
         var mockStoreManager = CreateStrictMock<IStoreManager>();
         var mockGrantStore = CreateStrictMock<IGrantStore>();
         MockStoreManagerFactory
@@ -1232,11 +1327,7 @@ public class DefaultSessionServiceTests : BaseTests
         return mockGrantStore;
     }
 
-    private void SetupSessionClaims(
-        Mock<OpenIdContext> mockContext,
-        params (string SessionId, bool Claimed)[] claims
-    )
-    {
+    private void SetupSessionGrantIds() =>
         MockPersistedGrantService
             .Setup(x =>
                 x.CreateGrantId(
@@ -1256,20 +1347,42 @@ public class DefaultSessionServiceTests : BaseTests
             )
             .Verifiable();
 
-        foreach (var (sessionId, claimed) in claims)
-        {
-            MockPersistedGrantService
-                .Setup(x =>
-                    x.RevokeSessionOnceAsync(
-                        mockContext.Object,
-                        It.Is<PersistedGrantId>(id => id.GrantKey == sessionId),
-                        UtcNow,
-                        It.IsAny<CancellationToken>()
-                    )
+    private void SetupSessionClaim(
+        Mock<OpenIdContext> mockContext,
+        string sessionId,
+        params string[] clientIds
+    ) =>
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeSessionOnceAsync<SessionGrant>(
+                    mockContext.Object,
+                    It.Is<PersistedGrantId>(id => id.GrantKey == sessionId),
+                    UtcNow,
+                    It.IsAny<CancellationToken>()
                 )
-                .ReturnsAsync(claimed)
-                .Verifiable();
-        }
+            )
+            .Returns(
+                new ValueTask<PersistedGrant<SessionGrant>?>(
+                    CreateClaimedSession(sessionId, clientIds)
+                )
+            )
+            .Verifiable();
+
+    private void SetupLostSessionClaim(Mock<OpenIdContext> mockContext, string sessionId)
+    {
+        PersistedGrant<SessionGrant>? lost = null;
+
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeSessionOnceAsync<SessionGrant>(
+                    mockContext.Object,
+                    It.Is<PersistedGrantId>(id => id.GrantKey == sessionId),
+                    UtcNow,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<PersistedGrant<SessionGrant>?>(lost))
+            .Verifiable();
     }
 
     private void SetupSubjectRevocation() =>
@@ -1277,7 +1390,24 @@ public class DefaultSessionServiceTests : BaseTests
             .Setup(x =>
                 x.RevokeWhereAsync(
                     It.IsAny<OpenIdContext>(),
-                    It.Is<GrantFilter>(f => f.SubjectId == SubjectId && f.SessionId == null),
+                    It.Is<GrantFilter>(f =>
+                        f.SubjectId == SubjectId && f.SessionId == null && !f.WithoutSession
+                    ),
+                    UtcNow,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(0L)
+            .Verifiable();
+
+    private void SetupSessionlessRevocation() =>
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeWhereAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.Is<GrantFilter>(f =>
+                        f.SubjectId == SubjectId && f.SessionId == null && f.WithoutSession
+                    ),
                     UtcNow,
                     It.IsAny<CancellationToken>()
                 )
@@ -1455,12 +1585,13 @@ public class DefaultSessionServiceTests : BaseTests
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
-        SetupSessionEnumeration(
-            mockContext,
+        SetupSessionIdEnumeration(
             CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1", "c2"]),
             CreateEnvelope("s2", UtcNow.AddMinutes(-5), clientIds: ["c2", "c3"])
         );
-        SetupSessionClaims(mockContext, ("s1", true), ("s2", true));
+        SetupSessionGrantIds();
+        SetupSessionClaim(mockContext, "s1", "c1", "c2");
+        SetupSessionClaim(mockContext, "s2", "c2", "c3");
         SetupSubjectRevocation();
 
         mockMediator
@@ -1491,18 +1622,101 @@ public class DefaultSessionServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task RevokeAllAsync_WhenAClientJoinedASessionAfterItWasListed_NotifiesTheClient()
+    {
+        var mockContext = CreateContext();
+        var mockMediator = CreateStrictMock<IMediator>();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupSessionIdEnumeration(CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1"]));
+        SetupSessionGrantIds();
+        SetupSessionClaim(mockContext, "s1", "c1", "c9");
+        SetupSubjectRevocation();
+
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c =>
+                        c.Termination.Reason == SessionTerminationReasons.GlobalSignOut
+                        && c.Termination.SessionId == null
+                        && c.Termination.SubjectId == SubjectId
+                        && c.Termination.ParticipatingClientIds.Contains("c9")
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.RevokeAllAsync(
+            mockContext.Object,
+            SubjectId,
+            SessionTerminationReasons.GlobalSignOut,
+            CancellationToken.None
+        );
+
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
+    public async Task RevokeAllAsync_WhenASessionHasEndedButIsNotTerminated_ClaimsIt()
+    {
+        var mockContext = CreateContext();
+        var mockMediator = CreateStrictMock<IMediator>();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupSessionIdEnumeration(
+            CreateEnvelope(
+                "s1",
+                UtcNow.AddDays(-40),
+                clientIds: ["c1"],
+                absoluteExpiresWhen: UtcNow.AddDays(-10)
+            )
+        );
+        SetupSessionGrantIds();
+        SetupSessionClaim(mockContext, "s1", "c1");
+        SetupSubjectRevocation();
+
+        // The session ended but no caller terminated it, so this call claims it and notifies its relying parties.
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c =>
+                        c.Termination.Reason == SessionTerminationReasons.GlobalSignOut
+                        && c.Termination.SessionId == null
+                        && c.Termination.SubjectId == SubjectId
+                        && c.Termination.ParticipatingClientIds.Contains("c1")
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.RevokeAllAsync(
+            mockContext.Object,
+            SubjectId,
+            SessionTerminationReasons.GlobalSignOut,
+            CancellationToken.None
+        );
+
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
     public async Task RevokeAllAsync_WhenAnotherCallerTerminatedASession_NotifiesOnlyTheRelyingPartiesOfTheSessionsItClaimed()
     {
         var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
-        SetupSessionEnumeration(
-            mockContext,
+        SetupSessionIdEnumeration(
             CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1", "c2"]),
             CreateEnvelope("s2", UtcNow.AddMinutes(-5), clientIds: ["c2", "c3"])
         );
-        SetupSessionClaims(mockContext, ("s1", true), ("s2", false));
+        SetupSessionGrantIds();
+        SetupSessionClaim(mockContext, "s1", "c1", "c2");
+        SetupLostSessionClaim(mockContext, "s2");
         SetupSubjectRevocation();
 
         mockMediator
@@ -1539,11 +1753,9 @@ public class DefaultSessionServiceTests : BaseTests
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
-        SetupSessionEnumeration(
-            mockContext,
-            CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1"])
-        );
-        SetupSessionClaims(mockContext, ("s1", true));
+        SetupSessionIdEnumeration(CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1"]));
+        SetupSessionGrantIds();
+        SetupSessionClaim(mockContext, "s1", "c1");
 
         // The subject's grants are revoked before the dispatch, so the failure leaves none of them active.
         SetupSubjectRevocation();
@@ -1571,11 +1783,9 @@ public class DefaultSessionServiceTests : BaseTests
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
-        SetupSessionEnumeration(
-            mockContext,
-            CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1"])
-        );
-        SetupSessionClaims(mockContext, ("s1", false));
+        SetupSessionIdEnumeration(CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1"]));
+        SetupSessionGrantIds();
+        SetupLostSessionClaim(mockContext, "s1");
         SetupSubjectRevocation();
 
         // The subject-wide termination is dispatched even though this call claimed no session, so the grants the
@@ -1613,7 +1823,7 @@ public class DefaultSessionServiceTests : BaseTests
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
-        SetupSessionEnumeration(mockContext);
+        SetupSessionIdEnumeration();
         SetupSubjectRevocation();
 
         // A password-grant or device-flow token has no listed session; the subject-wide termination still revokes it.
@@ -1664,13 +1874,15 @@ public class DefaultSessionServiceTests : BaseTests
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
-        SetupSessionEnumeration(
-            mockContext,
+        SetupSessionIdEnumeration(
             CreateEnvelope("s1", UtcNow.AddMinutes(-10)),
             CreateEnvelope("s2", UtcNow.AddMinutes(-5)),
             CreateEnvelope("s3", UtcNow.AddMinutes(-1))
         );
-        SetupSessionClaims(mockContext, ("s1", true), ("s3", true));
+        SetupSessionGrantIds();
+        SetupSessionClaim(mockContext, "s1");
+        SetupSessionClaim(mockContext, "s3");
+        SetupSessionlessRevocation();
 
         // Each retained-exclusive session is terminated on its own (SessionId set, not a subject-wide null), with the
         // self-service reason.
@@ -1730,13 +1942,15 @@ public class DefaultSessionServiceTests : BaseTests
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
-        SetupSessionEnumeration(
-            mockContext,
+        SetupSessionIdEnumeration(
             CreateEnvelope("s1", UtcNow.AddMinutes(-10)),
             CreateEnvelope("s2", UtcNow.AddMinutes(-5)),
             CreateEnvelope("s3", UtcNow.AddMinutes(-1))
         );
-        SetupSessionClaims(mockContext, ("s1", true), ("s3", false));
+        SetupSessionGrantIds();
+        SetupSessionClaim(mockContext, "s1");
+        SetupLostSessionClaim(mockContext, "s3");
+        SetupSessionlessRevocation();
 
         mockMediator
             .Setup(x =>
@@ -1763,6 +1977,88 @@ public class DefaultSessionServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task RevokeAllExceptAsync_WhenTheDispatchFails_HasRevokedTheGrantsIssuedUnderNoSession()
+    {
+        var mockContext = CreateContext();
+        var mockMediator = CreateStrictMock<IMediator>();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupSessionIdEnumeration(
+            CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1"]),
+            CreateEnvelope("s2", UtcNow.AddMinutes(-5))
+        );
+        SetupSessionGrantIds();
+        SetupSessionClaim(mockContext, "s1", "c1");
+
+        // The grants issued under no session are revoked before the dispatch, so the failure leaves only the retained
+        // session's grants active.
+        SetupSessionlessRevocation();
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(It.IsAny<OnSessionTerminatedCommand>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.FromException(new InvalidOperationException("dispatch")))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Service.RevokeAllExceptAsync(
+                mockContext.Object,
+                SubjectId,
+                exceptSessionId: "s2",
+                SessionTerminationReasons.PasswordChanged,
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task RevokeAllExceptAsync_WhenASessionHasEndedButIsNotTerminated_ClaimsIt()
+    {
+        var mockContext = CreateContext();
+        var mockMediator = CreateStrictMock<IMediator>();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupSessionIdEnumeration(
+            CreateEnvelope(
+                "s1",
+                UtcNow.AddDays(-40),
+                clientIds: ["c1"],
+                absoluteExpiresWhen: UtcNow.AddDays(-10)
+            ),
+            CreateEnvelope("s2", UtcNow.AddMinutes(-5))
+        );
+        SetupSessionGrantIds();
+        SetupSessionClaim(mockContext, "s1", "c1");
+        SetupSessionlessRevocation();
+
+        // The session ended but no caller terminated it, so this call claims it and notifies its relying parties.
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c =>
+                        c.Termination.Reason == SessionTerminationReasons.PasswordChanged
+                        && c.Termination.SessionId == "s1"
+                        && c.Termination.SubjectId == SubjectId
+                        && c.Termination.ParticipatingClientIds.Contains("c1")
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.RevokeAllExceptAsync(
+            mockContext.Object,
+            SubjectId,
+            exceptSessionId: "s2",
+            SessionTerminationReasons.PasswordChanged,
+            CancellationToken.None
+        );
+
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
     public async Task RevokeAllExceptAsync_WhenTheSubjectIsEmpty_Throws()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
@@ -1772,6 +2068,22 @@ public class DefaultSessionServiceTests : BaseTests
                 mockContext.Object,
                 subjectId: string.Empty,
                 exceptSessionId: "s2",
+                SessionTerminationReasons.UserInitiated,
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task RevokeAllExceptAsync_WhenTheRetainedSessionIsEmpty_Throws()
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Service.RevokeAllExceptAsync(
+                mockContext.Object,
+                SubjectId,
+                exceptSessionId: string.Empty,
                 SessionTerminationReasons.UserInitiated,
                 CancellationToken.None
             )

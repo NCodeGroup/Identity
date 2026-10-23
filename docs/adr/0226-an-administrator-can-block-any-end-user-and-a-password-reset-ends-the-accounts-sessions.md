@@ -1,6 +1,10 @@
 # 226. An administrator can block any end user, and a password reset ends the account's sessions
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0229](0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md): the interactive
+  sign-in refuses a blocked principal, and the authorization request answers it with `access_denied`;
+  [ADR-0230](0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md): a self-service password
+  change keeps the current session)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -59,8 +63,14 @@ request for it, and an administrator's password reset ends the account's session
    is not consulted.
 7. **A self-service password change keeps the current session.** When the server offers one, a change terminates every
    other session of the principal with `password_changed`, revokes every grant that was not issued under the current
-   session, and keeps the current session, as OWASP ASVS V3.3.3 and NIST SP 800-63B ask. The server offers no change
-   yet (backlog `R99`), so no constant for the reason is added until a caller exists.
+   session, and keeps the current session, as OWASP ASVS V3.3.3 and NIST SP 800-63B ask.
+   [ADR-0230](0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md) offers the change, with
+   the reason `SessionTerminationReasons.PasswordChanged`, `"password_changed"`.
+8. **A termination that follows a committed change runs to completion.** The session termination after a password reset,
+   an account disable, a principal block and a self-service password change is passed `CancellationToken.None`, because
+   the change is already saved and a client disconnect would otherwise leave the other sessions and their tokens active.
+   The termination before an account deletion keeps the request's token, since it precedes the commit and a cancellation
+   there cancels the deletion too.
 
 ## Options considered
 
@@ -76,11 +86,12 @@ request for it, and an administrator's password reset ends the account's session
 ## Consequences
 
 - Every subject validation reads the principal once more.
-- A blocked end user can still sign in at the login page and receives no token: every grant answers `access_denied`,
-  and the authorization request validates the subject as the grants do but answers a refused subject with a login
-  challenge (`login_required` for `prompt=none`), so the end user is sent back to the login page (backlog `R98`).
+- A blocked end user cannot sign in, and the authorization request answers it with `access_denied`
+  ([ADR-0229](0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)).
 - Unblocking restores no revoked grant: the end user signs in again.
-- A self-service password change is not offered (backlog `R99`).
+- A self-service password change keeps the current session and ends the others
+  ([ADR-0230](0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)).
+- A client that disconnects after a committed change does not keep the other sessions active.
 - **Breaking:** `PersistedFederatedPrincipal.IsBlocked`, `FederatedPrincipalEntity.IsBlocked`,
   `SessionTerminationReasons.UserBlocked`, `SessionTerminationReasons.PasswordReset`,
   `OpenIdConstants.EndpointTags.Principals`, `ManagementResourceTypes.Principal`, `PrincipalChangedAuditEvent` and

@@ -42,6 +42,10 @@ internal static class DefaultRegistration
                 IContinueProviderSelector,
                 DefaultContinueProviderSelector
             >();
+            serviceCollection.TryAddSingleton<
+                IContinueRefusalService,
+                DefaultContinueRefusalService
+            >();
         }
     }
 }

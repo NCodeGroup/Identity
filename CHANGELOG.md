@@ -10,14 +10,22 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **An end user can change their password.** The self-service page `account/password` takes the current password and
+  a new one; a change ends every other session of the principal with `password_changed`, which sends back-channel
+  logout, revokes every grant issued under no session, and keeps the current session and the consents. "Sign out
+  everywhere else" also revokes the grants issued under no session. A credential backend offers the change by
+  registering `IInteractivePasswordChanger`, as the local accounts do. **Breaking:** `IInteractivePasswordChanger`,
+  `InteractivePasswordChangeResult`, `InteractiveAuthenticationDefaults.PasswordPath`,
+  `SessionTerminationReasons.PasswordChanged` and `GrantFilter.WithoutSession` are added
+  ([ADR-0230](docs/adr/0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md), backlog `R99`).
+
 - **An administrator can block any end user.** `POST api/tenants/{tenantId}/principals/{principalId}/block` blocks a
   principal whatever its connections, `POST api/tenants/{tenantId}/principals/{principalId}/unblock` lifts the block,
   and `GET api/tenants/{tenantId}/principals/{principalId}` reports it. Blocking terminates every session of the
   principal with `user_blocked`, which revokes its grants and sends back-channel logout, and keeps its consents; every
-  grant refuses a blocked principal with `access_denied`, and the authorization request issues it no code or token: it
-  challenges the end user to sign in again, or answers `login_required` for `prompt=none`, and a blocked end user can
-  still sign in until backlog `R98`. The change is audited as `PrincipalChangedAuditEvent` (resource type `principal`).
-  **Breaking:** `PersistedFederatedPrincipal.IsBlocked`, `FederatedPrincipalEntity.IsBlocked`,
+  grant refuses a blocked principal with `access_denied`, and the authorization request and the interactive sign-in
+  refuse it with `access_denied` (backlog `R98`). The change is audited as `PrincipalChangedAuditEvent` (resource type
+  `principal`). **Breaking:** `PersistedFederatedPrincipal.IsBlocked`, `FederatedPrincipalEntity.IsBlocked`,
   `SessionTerminationReasons.UserBlocked`, `OpenIdConstants.EndpointTags.Principals` and
   `ManagementResourceTypes.Principal` are added, and the `AddFederatedPrincipalIsBlocked` migration adds a column to the
   federated principals table
@@ -1556,6 +1564,19 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **A blocked or disabled end user cannot sign in, and the client is answered `access_denied`.** The interactive
+  sign-in validates the end user's standing before it creates a session, so a blocked principal or a disabled local
+  account gets neither a session nor a cookie: a sign-in that resumes an authorization request answers it with
+  `access_denied` at the client's redirect URI, and any other sign-in shows the refusal on the login page. The
+  authorization request answers a signed-in end user whose standing is refused with `access_denied` for every
+  `prompt`, a consent denial answers the request with `access_denied`, and the self-service pages serve a cookie
+  only while the session it names is active. **Breaking:** `ValidateSubjectStandingCommand` is added and the
+  blocked-principal and local-account checks handle it (every subject validation still applies them),
+  `IContinueProvider.RefuseAsync` and `IContinueRefusalService` are added, and
+  `ILocalAccountStore.VerifyCredentialAsync` returns the disabled account of a valid credential
+  ([ADR-0229](docs/adr/0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md), backlog
+  `R98`).
+
 - **Every grant that issues tokens for a subject validates it.** The device-code grant, the CIBA grant (at the token
   endpoint, and at the approval for every delivery mode) and the token-exchange grant send
   `ValidateSubjectAuthenticationCommand`, the device-code and CIBA grants before they spend their credential, so a
@@ -1828,6 +1849,26 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A replayed authorization code terminates its session through the termination seam.** A second redemption of a
+  redeemed code terminates the code's session with `authorization_code_replay`, so its grants are revoked, its relying
+  parties receive back-channel logout and the termination is audited; a code that expired unused terminates nothing.
+  **Breaking:** `SessionTerminationReasons.AuthorizationCodeReplay` is added
+  ([ADR-0228](docs/adr/0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md),
+  backlog `R96`).
+
+- **A terminated session notifies every client it lists when it is claimed.**
+  `IPersistedGrantService.RevokeSessionOnceAsync` returns the session grant as the call revoked it, and every
+  termination notifies the clients that grant lists, so a client that an ID token issued under the session added after
+  an earlier read receives back-channel logout. A subject-wide termination also claims a session that ended and awaits
+  the background termination. **Breaking:** `RevokeSessionOnceAsync<TPayload>` returns `PersistedGrant<TPayload>?`
+  ([ADR-0228](docs/adr/0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md),
+  backlog `R97`).
+
+- **A ping or push client is told that its CIBA request was denied.** A denial, also of an approval whose subject is
+  refused, sends the ping notification, after which the token endpoint answers `access_denied`, or the push error
+  payload with `error=access_denied`; only the call that decided the request notifies the client
+  ([ADR-0231](docs/adr/0231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md), backlog `R100`).
 
 - **A session is terminated at most once on every path.** `ISessionService.RevokeAsync`, `RevokeAllAsync` and
   `RevokeAllExceptAsync`, the eviction at the concurrent-session limit and RP-initiated logout claim each session with

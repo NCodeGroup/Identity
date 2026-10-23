@@ -21,6 +21,10 @@ change to the public API is a **major** version bump.
   with `GetProtectedLength` for sizing, and a `ProtectToString` helper for text columns), so applications protect any
   sensitive value under a tenant's or the server's master key with a namespaced purpose.
 
+- `ManagementApiEndpointHandler.ProcessGetAsync` has an overload whose asynchronous mapper runs only after authorization
+  succeeds; the secret public-key endpoints use it, so a caller who may not read a secret never loads its owner's master
+  keys.
+
 - **`NCode.Identity.Secrets.Persistence.AwsKms`** — an AWS KMS root key provider (`AddAwsKmsRootKeyProvider`,
   section `SecretProtection:RootKeyProviders:AwsKms`, key or alias ARN) that binds each wrap to its owner through the
   KMS encryption context and takes credentials from the AWS SDK's default chain; wired into the reference host and

@@ -143,7 +143,7 @@ that change remains:
      replaced.
 - Done when: `$t = Get-Content -Raw src/NCode.Identity.OpenId.LocalDev/Program.cs; if (-not ($t.Contains('File.Move(') -and $t.Contains('overwrite: false') -and $t.Contains('flushToDisk: true') -and $t.Contains('.Length == 0'))) { exit 1 }; dotnet csharpier check src/NCode.Identity.OpenId.LocalDev/Program.cs; if ($LASTEXITCODE) { exit 1 }; dotnet build src/NCode.Identity.OpenId.LocalDev/NCode.Identity.OpenId.LocalDev.csproj --nologo`
 
-### [ ] 6. Record the asynchronous-mapper overload in the changelog
+### [x] 6. Record the asynchronous-mapper overload in the changelog
 - Files: `CHANGELOG.md`
 - Change: in `[Unreleased]`, directly after the bullet that starts `- **Protect your own data.**`, add a blank line and
   `- \`ManagementApiEndpointHandler.ProcessGetAsync\` has an overload whose asynchronous mapper runs only after

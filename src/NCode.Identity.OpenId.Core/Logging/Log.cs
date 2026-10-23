@@ -94,4 +94,69 @@ internal static partial class Log
         string tenantId,
         Exception exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.ServerSettingsRefreshFailed,
+        Level = LogLevel.Warning,
+        Message = "Refreshing the server's persisted settings failed; the previous settings remain in force until the next refresh"
+    )]
+    internal static partial void ServerSettingsRefreshFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ServerSettingsChangeRefreshFailed,
+        Level = LogLevel.Warning,
+        Message = "Reading the settings of the server '{ServerId}' again after a change failed; this replica applies the change at its next poll"
+    )]
+    internal static partial void ServerSettingsChangeRefreshFailed(
+        this ILogger logger,
+        string serverId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ServerSettingsChangeBroadcastFailed,
+        Level = LogLevel.Warning,
+        Message = "Announcing the change to the settings of the server '{ServerId}' to the other replicas failed; they apply it at their next poll"
+    )]
+    internal static partial void ServerSettingsChangeBroadcastFailed(
+        this ILogger logger,
+        string serverId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ServerSettingsReconciliationStarted,
+        Level = LogLevel.Information,
+        Message = "Reconciling every tenant and client with the settings '{Fingerprint}' of the server '{ServerId}'"
+    )]
+    internal static partial void ServerSettingsReconciliationStarted(
+        this ILogger logger,
+        string serverId,
+        string fingerprint
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ServerSettingsReconciled,
+        Level = LogLevel.Information,
+        Message = "Reconciled every tenant and client with the settings '{Fingerprint}' of the server '{ServerId}'"
+    )]
+    internal static partial void ServerSettingsReconciled(
+        this ILogger logger,
+        string serverId,
+        string fingerprint
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ServerSettingsReconciliationFailed,
+        Level = LogLevel.Warning,
+        Message = "Reconciling the settings of the server '{ServerId}' failed; it is attempted again when the reconciliation lease expires"
+    )]
+    internal static partial void ServerSettingsReconciliationFailed(
+        this ILogger logger,
+        string serverId,
+        Exception exception
+    );
 }

@@ -26,6 +26,7 @@ namespace NCode.Identity.SharedState;
 /// vocabulary: a feature names its own channel and registers a handler for it, and the broadcaster needs no knowledge
 /// of either. Delivery is best effort, at most once, and unordered, so a handler must be idempotent and tolerate a lost
 /// message.
+/// When a message may have been lost, the adapter calls <see cref="HandleMissedMessagesAsync"/>.
 /// </summary>
 // See ADR-0205.
 [PublicAPI]
@@ -43,4 +44,14 @@ public interface IReplicaBroadcastHandler
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask HandleAsync(string message, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Handles the possibility that messages published on <see cref="Channel"/> did not reach this replica, for example
+    /// before its subscription took effect or while its connection was interrupted. The handler drops or reads again
+    /// everything a lost message on its channel could have made stale. An adapter that delivers every message never
+    /// calls it.
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    ValueTask HandleMissedMessagesAsync(CancellationToken cancellationToken);
 }

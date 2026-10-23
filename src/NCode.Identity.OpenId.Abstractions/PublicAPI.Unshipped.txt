@@ -22,6 +22,7 @@ abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.PropertyBag.get ->
 abstract NCode.Identity.OpenId.Messages.Parameters.KnownParameter.ValueType.get -> System.Type!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.ConfiguredSettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+abstract NCode.Identity.OpenId.Servers.OpenIdServer.RefreshSettingsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.SecretsProvider.get -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.ServerId.get -> string!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
@@ -762,6 +763,13 @@ NCode.Identity.OpenId.Servers.IOpenIdServerProvider
 NCode.Identity.OpenId.Servers.IOpenIdServerProvider.GetAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Servers.OpenIdServer!>
 NCode.Identity.OpenId.Servers.OpenIdServer
 NCode.Identity.OpenId.Servers.OpenIdServer.OpenIdServer() -> void
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ReconcileServerSettingsCommand() -> void
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ReconcileServerSettingsCommand(string! ServerId, NCode.Identity.Settings.IReadOnlySettingCollection! Settings) -> void
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ServerId.get -> string!
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ServerId.init -> void
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.Settings.get -> NCode.Identity.Settings.IReadOnlySettingCollection!
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.Settings.init -> void
 NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand
 NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.PreviousSettings.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.PreviousSettings.init -> void
@@ -793,6 +801,7 @@ NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantIdRouteParameterN
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantPath.get -> Microsoft.AspNetCore.Http.PathString
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantPath.set -> void
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache
+NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.ClearAsync(NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.RemoveAsync(string! tenantId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.SetAsync(string! tenantId, NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!> tenant, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.TryGetAsync(string! tenantId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>

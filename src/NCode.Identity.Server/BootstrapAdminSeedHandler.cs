@@ -42,9 +42,11 @@ namespace NCode.Identity.Server;
 /// The handler is idempotent and inert unless a bootstrap client id and secret are configured, and it seeds exactly the
 /// one tenant <see cref="BootstrapAdminOptions.TenantId"/> names — never every tenant, which would hand a GlobalAdmin
 /// credential to each tenant created at runtime. The client is checked before it is stored, so a ceiling that excludes
-/// <c>client_secret_basic</c> stops the seed.
+/// <c>client_secret_basic</c> stops the seed. An existing client is left as it is; the reconciliation of the server's
+/// settings reports it, as it reports every stored client, when the settings make it incoherent.
 /// </summary>
-// See ADR-0044 (the bootstrap administrator) and ADR-0166 (a seeder that names a tenant seeds exactly that tenant).
+// See ADR-0044 (the bootstrap administrator), ADR-0166 (a seeder that names a tenant seeds exactly that tenant), and
+// ADR-0219 (an existing client is reported by the reconciliation).
 internal sealed class BootstrapAdminSeedHandler(
     IOptions<BootstrapAdminOptions> bootstrapOptionsAccessor,
     ISecretGenerator secretGenerator,

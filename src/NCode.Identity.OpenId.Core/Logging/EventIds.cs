@@ -40,4 +40,16 @@ internal static class EventIds
     public const int TenantKeyReseedFailed = Base + 5;
 
     public const int TenantChangeBroadcastFailed = Base + 6;
+
+    public const int ServerSettingsRefreshFailed = Base + 7;
+
+    public const int ServerSettingsChangeRefreshFailed = Base + 8;
+
+    public const int ServerSettingsChangeBroadcastFailed = Base + 9;
+
+    public const int ServerSettingsReconciliationStarted = Base + 10;
+
+    public const int ServerSettingsReconciled = Base + 11;
+
+    public const int ServerSettingsReconciliationFailed = Base + 12;
 }

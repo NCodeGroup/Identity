@@ -160,6 +160,12 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **Match a `JsonElement` argument by content.** `JsonElement` compares document references, and a Moq matcher is an
   expression tree that cannot contain `out _`, so call a static helper
   (`It.Is<JsonElement>(e => HasProperty(e, "foo"))`).
+- 👁 **Capture an event handler a strict mock receives and invoke it directly.**
+  `SetupAdd(x => x.Event += It.IsAny<EventHandler<TArgs>>()).Callback<EventHandler<TArgs>>(h => captured = h)`, plus a
+  `SetupRemove` when the unit detaches when it stops (`ValkeyReplicaBroadcastSubscriberTests`).
+- 👁 **A change-token producer in a test returns a fresh token after each change.** `ChangeToken.OnChange` asks the
+  producer for a new token after its callback; a producer that returns the cancelled token again fires forever. Swap in
+  a new `CancellationTokenSource` before cancelling the old one (`ServerSettingsReconciliationServiceTests`).
 
 ## Persistence & integration tests
 
@@ -309,3 +315,7 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   payload with `IJoseSerializer.CreateEncoder(new JoseSigningOptions(credentials)).Encode(payload)`.
 - 👁 **Assert a background job's effect by polling with a deadline** (a `Stopwatch`, 100 ms steps, about 15 s), never
   with a fixed delay (`TenantKeyProvisioningTests.WaitForSecretIdsAsync`).
+- 👁 **Change configuration at runtime through the host's `IConfigurationRoot`.** Set the key on
+  `factory.Services.GetRequiredService<IConfiguration>()` cast to `IConfigurationRoot` and call `Reload()`: the test's
+  in-memory overlay is the last provider and keeps the value through the reload, and every reload token fires
+  (`TenantKeyProvisioningTests`).

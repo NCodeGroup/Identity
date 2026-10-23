@@ -51,6 +51,16 @@ public class TenantKeyProvisioningTests
     private static string BootstrapClientSecretConfig { get; } =
         Base64Url.EncodeToString(Encoding.UTF8.GetBytes(BootstrapClientSecret));
 
+    // The signing lists of the server's settings, each of which names the algorithms a tenant uses.
+    private static string[] SigningListNames { get; } =
+    [
+        OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
+        OpenIdSettingNames.UserInfoSigningAlgValuesSupported,
+        OpenIdSettingNames.IntrospectionSigningAlgValuesSupported,
+        OpenIdSettingNames.AuthorizationSigningAlgValuesSupported,
+        OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
+    ];
+
     // Each test owns its factory: the keys are protected by the host's data-protection key ring.
     private static ProductionKeysApplicationFactory CreateStaticFactory() =>
         new(
@@ -63,19 +73,31 @@ public class TenantKeyProvisioningTests
         );
 
     private static ProductionKeysApplicationFactory CreateDynamicFactory() =>
-        new(
-            new Dictionary<string, string?>
-            {
-                ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
-                    .TenantStrategyCodes
-                    .DynamicByHost,
-                ["OpenId:TenantResolution:Root:Issuer"] = RootIssuer,
-                ["OpenId:TenantResolution:DynamicByHost:IssuerTemplate"] = IssuerTemplate,
-                ["BootstrapAdmin:ClientId"] = BootstrapClientId,
-                ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
-                ["BootstrapAdmin:TenantId"] = "root",
-            }
-        );
+        CreateDynamicFactory(new Dictionary<string, string?>());
+
+    // The server settings are configuration keys beneath OpenId:Server:Settings, merged into the dynamic configuration.
+    private static ProductionKeysApplicationFactory CreateDynamicFactory(
+        IReadOnlyDictionary<string, string?> serverSettings
+    )
+    {
+        var configuration = new Dictionary<string, string?>
+        {
+            ["OpenId:TenantResolution:StrategyCode"] = OpenIdConstants
+                .TenantStrategyCodes
+                .DynamicByHost,
+            ["OpenId:TenantResolution:Root:Issuer"] = RootIssuer,
+            ["OpenId:TenantResolution:DynamicByHost:IssuerTemplate"] = IssuerTemplate,
+            ["BootstrapAdmin:ClientId"] = BootstrapClientId,
+            ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
+            ["BootstrapAdmin:TenantId"] = "root",
+        };
+        foreach (var (key, value) in serverSettings)
+        {
+            configuration[key] = value;
+        }
+
+        return new ProductionKeysApplicationFactory(configuration);
+    }
 
     [Fact]
     public async Task GetJwks_WithoutDeveloperKeys_PublishesAKeyForEachDefaultAlgorithm()
@@ -253,9 +275,58 @@ public class TenantKeyProvisioningTests
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
         Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
 
-        // Restoring the default lists permits ES256 again; a background job seeds it for the tenant (ADR-0169
-        // decision 10), so the key arrives after the PATCH returns.
+        // Restoring the default lists permits ES256 again; the reconciliation of the server's settings seeds it for the
+        // tenant (ADR-0219), so the key arrives after the PATCH returns.
         await PatchServerSettingsAsync(client, operation: "remove", value: null);
+
+        var secretIds = await WaitForSecretIdsAsync(factory, "acme", count: 3);
+        Assert.Equal(3, secretIds.Count);
+    }
+
+    [Fact]
+    public async Task ReloadServerConfiguration_WhenItPermitsAConfiguredAlgorithm_ProvisionsItsKeyForEveryTenant()
+    {
+        // The server's configuration lists RS256 and PS256 only, so a tenant created now is provisioned without ES256.
+        var serverSettings = new Dictionary<string, string?>();
+        foreach (var name in SigningListNames)
+        {
+            serverSettings[$"OpenId:Server:Settings:{name}:0"] = "RS256";
+            serverSettings[$"OpenId:Server:Settings:{name}:1"] = "PS256";
+        }
+
+        using var factory = CreateDynamicFactory(serverSettings);
+        using var client = factory.CreateClient();
+
+        var accessToken = await GetBootstrapTokenAsync(client);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            accessToken
+        );
+
+        using var createResponse = await client.PostAsJsonAsync(
+            "/api/tenants",
+            new
+            {
+                tenantId = "acme",
+                displayName = "Acme",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
+        Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
+
+        // A configuration reload that adds ES256 to every list permits it; the reconciliation of the server's settings
+        // seeds the key for the tenant (ADR-0219), though nothing was written through the management API.
+        var configuration = (IConfigurationRoot)
+            factory.Services.GetRequiredService<IConfiguration>();
+        foreach (var name in SigningListNames)
+        {
+            configuration[$"OpenId:Server:Settings:{name}:2"] = "ES256";
+        }
+
+        configuration.Reload();
 
         var secretIds = await WaitForSecretIdsAsync(factory, "acme", count: 3);
         Assert.Equal(3, secretIds.Count);
@@ -364,16 +435,7 @@ public class TenantKeyProvisioningTests
         string[]? value
     )
     {
-        string[] names =
-        [
-            OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
-            OpenIdSettingNames.UserInfoSigningAlgValuesSupported,
-            OpenIdSettingNames.IntrospectionSigningAlgValuesSupported,
-            OpenIdSettingNames.AuthorizationSigningAlgValuesSupported,
-            OpenIdSettingNames.AccessTokenSigningAlgValuesSupported,
-        ];
-
-        var operations = names.Select(name =>
+        var operations = SigningListNames.Select(name =>
             value is null
                 ? (object)new { op = operation, path = $"/{name}" }
                 : new
@@ -401,7 +463,8 @@ public class TenantKeyProvisioningTests
         Assert.True(response.StatusCode == HttpStatusCode.NoContent, body);
     }
 
-    // The re-seed runs on a background job, so the keys of the other tenants arrive after the PATCH returns.
+    // The reconciliation of the server's settings runs in the background, so the keys of the other tenants arrive after
+    // the change that permits them returns.
     private static async Task<List<string>> WaitForSecretIdsAsync(
         HostApplicationFactory factory,
         string tenantId,

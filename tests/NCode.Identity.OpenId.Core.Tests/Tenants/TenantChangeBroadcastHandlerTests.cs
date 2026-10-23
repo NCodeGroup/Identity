@@ -69,4 +69,19 @@ public sealed class TenantChangeBroadcastHandlerTests : IDisposable
     }
 
     #endregion
+
+    #region HandleMissedMessagesAsync Tests
+
+    [Fact]
+    public async Task HandleMissedMessagesAsync_EvictsEveryCachedTenant()
+    {
+        MockTenantCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Handler.HandleMissedMessagesAsync(CancellationToken.None);
+    }
+
+    #endregion
 }

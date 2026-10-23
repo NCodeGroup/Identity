@@ -81,4 +81,7 @@ internal static class EventIds
     public const int CertificateRevocationListUnavailable = Base + 50;
     public const int TenantUsageDiscardedOnStop = Base + 51;
     public const int GrantPruneFailed = Base + 52;
+    public const int IncoherentClientReported = Base + 53;
+    public const int ClientCoherenceCheckFailed = Base + 54;
+    public const int ClientCoherenceChecked = Base + 55;
 }

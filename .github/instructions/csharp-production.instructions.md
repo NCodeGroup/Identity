@@ -381,10 +381,22 @@ rationale.
   materialized object is invalidated on every replica through `IReplicaBroadcaster`, with a registered
   `IReplicaBroadcastHandler` per channel. Apply the change locally first, publish after, and log rather than throw a
   failed publish once the write has committed
-  ([ADR-0205](../../docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md)).
+  ([ADR-0205](../../docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md)). A handler also implements
+  `HandleMissedMessagesAsync`, which the Valkey subscriber calls once it subscribes and whenever its connection is
+  restored: drop or read again everything a lost message on the channel could have made stale.
 - 👁 **Work proportional to the deployment never runs inside a request.** A pass over every tenant or every client
-  reads a settings projection (`GetSettingsPageAsync`, untracked, no secrets), skips when the change cannot affect it,
-  and when it must act on each tenant it runs as an `IJobDispatcher` job (R21, R50).
+  reads a settings projection (`GetSettingsPageAsync`, untracked, no secrets) and skips when the change cannot affect
+  it. A pass that brings tenants or clients in line with the server's settings is a handler of
+  `ReconcileServerSettingsCommand`, which one replica runs in the background whenever the server's effective settings
+  change ([ADR-0219](../../docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md));
+  never put such a pass on the in-process job dispatcher, whose single worker it would hold.
+- 👁 **State derived from settings converges by reconciliation, not by replaying an event.** A background pass reads the
+  current state and repairs what differs, so a pass that a restart interrupted is run again and nothing depends on a
+  queued job that a restart loses. Record durably what the pass reconciled against
+  (`PersistedServer.ReconciledSettingsFingerprint`), clear the record in the unit of work that changes its input, write
+  the record alone so it never overwrites a concurrent write, and take an `IExpiringKeySet` lease keyed by the input's
+  version so one replica runs each pass
+  ([ADR-0219](../../docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
 - 👁 **Build a protocol endpoint to the canonical shape** per [ADR-0086](../../docs/adr/0086-canonical-openid-endpoint-shape.md):
   a **thin** `IEndpointProvider` whose `HandleRouteAsync` only orchestrates — verb/content-type guard →
   `IClientAuthenticationService.AuthenticateClientAsync` → load a **strongly-typed** `OpenIdMessage<T>` request
@@ -600,6 +612,11 @@ rationale.
   the service provider under the other's work. Memoize the stop task under a `Lock`, serialize it with the
   service's periodic work, and log what it could not finish (`TenantUsageFlushService.StopAsync`,
   [ADR-0209](../../docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
+- 👁 **A hosted service that reads the store waits for the server to be materialized.** It starts from
+  `IMaterializedServerRegistry.GetServerAsync`, which completes at the replica's first request, never at host start: a
+  host starts while its database may still be migrating, and the integration factory seeds the server's settings before
+  the first request (`HostApplicationFactory.SeedServerSettingsAsync`)
+  ([ADR-0219](../../docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
 - 👁 **A single-use or freshness check records into `IExpiringKeySet`, never a get-then-set.** A replay guard (a
   `jti`), a server-issued nonce, or any "accept once" record is an atomic add-if-absent on the shared-state port
   (`NCode.Identity.SharedState.Abstractions`), whose adapter the composition root chooses — in-process for one replica,

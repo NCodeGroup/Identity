@@ -136,15 +136,17 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
             new Dictionary<string, string?>
             {
                 ["OpenId:Server:ServerId"] = "primary",
+                ["OpenId:Server:ReconciliationLeaseDuration"] = "00:20:00",
                 ["OpenId:Server:Settings:grant_types_supported:0"] = "authorization_code",
-                ["OpenId:Tenant:TenantCacheExpiration"] = "00:30:00",
+                ["OpenId:Tenant:TenantCacheLifetime"] = "00:30:00",
             }
         );
 
         var options = serviceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
         Assert.Equal("primary", options.Server.ServerId);
-        Assert.Equal(TimeSpan.FromMinutes(30), options.Tenant.TenantCacheExpiration);
+        Assert.Equal(TimeSpan.FromMinutes(20), options.Server.ReconciliationLeaseDuration);
+        Assert.Equal(TimeSpan.FromMinutes(30), options.Tenant.TenantCacheLifetime);
         Assert.NotNull(options.Server.Settings);
         Assert.Equal("OpenId:Server:Settings", options.Server.Settings.Path);
         Assert.Equal("authorization_code", options.Server.Settings["grant_types_supported:0"]);

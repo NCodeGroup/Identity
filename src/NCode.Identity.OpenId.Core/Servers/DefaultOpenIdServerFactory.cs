@@ -108,14 +108,32 @@ internal class DefaultOpenIdServerFactory(
                 cancellationToken
             );
 
-            // The merged provider owns the root data source; the configured provider shares it.
-            var settingsProvider = await CreateSettingsProviderAsync(
-                openIdEnvironment,
-                persistedServer,
-                rootSettingsDataSource,
-                propertyBag,
-                cancellationToken
-            );
+            // Until the merged provider owns them, a failure disposes the data sources that exist.
+            var dataSources = new List<object>(2) { rootSettingsDataSource };
+            RefreshableSettingsCollectionDataSource serverSettingsDataSource;
+            IReadOnlySettingCollectionProvider settingsProvider;
+            try
+            {
+                serverSettingsDataSource = await CreateServerSettingsDataSourceAsync(
+                    openIdEnvironment,
+                    persistedServer,
+                    propertyBag,
+                    cancellationToken
+                );
+                dataSources.Add(serverSettingsDataSource);
+
+                // The merged provider owns both data sources; the configured provider shares the root.
+                settingsProvider = SettingCollectionProviderFactory.Create(
+                    [rootSettingsDataSource, serverSettingsDataSource],
+                    owns: true
+                );
+            }
+            catch
+            {
+                await dataSources.DisposeAllAsync();
+                throw;
+            }
+
             disposables.Add(settingsProvider);
 
             var configuredSettingsProvider = SettingCollectionProviderFactory.Create(
@@ -136,6 +154,7 @@ internal class DefaultOpenIdServerFactory(
                 configuredSettingsProvider,
                 settingsProvider,
                 secretsProvider,
+                serverSettingsDataSource.RefreshAsync,
                 propertyBag
             );
         }
@@ -154,6 +173,7 @@ internal class DefaultOpenIdServerFactory(
         IReadOnlySettingCollectionProvider configuredSettingsProvider,
         IReadOnlySettingCollectionProvider settingsProvider,
         ISecretKeyCollectionProvider secretsProvider,
+        Func<CancellationToken, ValueTask> refreshSettingsAsync,
         IPropertyBag propertyBag
     ) =>
         new DefaultOpenIdServer(
@@ -161,6 +181,7 @@ internal class DefaultOpenIdServerFactory(
             configuredSettingsProvider,
             settingsProvider,
             secretsProvider,
+            refreshSettingsAsync,
             propertyBag
         );
 
@@ -219,38 +240,6 @@ internal class DefaultOpenIdServerFactory(
     }
 
     /// <summary>
-    /// Used to create the <see cref="IReadOnlySettingCollectionProvider"/> for the OpenID server, which merges the
-    /// server's persisted settings onto the <paramref name="rootSettingsDataSource"/> and takes ownership of it.
-    /// </summary>
-    protected internal virtual async ValueTask<IReadOnlySettingCollectionProvider> CreateSettingsProviderAsync(
-        OpenIdEnvironment openIdEnvironment,
-        PersistedServer persistedServer,
-        ICollectionDataSource<Setting> rootSettingsDataSource,
-        IPropertyBag propertyBag,
-        CancellationToken cancellationToken
-    )
-    {
-        var dataSources = new List<ICollectionDataSource<Setting>>(2) { rootSettingsDataSource };
-        try
-        {
-            dataSources.Add(
-                await CreateServerSettingsDataSourceAsync(
-                    openIdEnvironment,
-                    persistedServer,
-                    propertyBag,
-                    cancellationToken
-                )
-            );
-            return SettingCollectionProviderFactory.Create(dataSources, owns: true);
-        }
-        catch
-        {
-            await dataSources.DisposeAllAsync();
-            throw;
-        }
-    }
-
-    /// <summary>
     /// Used to create a data source for the server's settings that are derived from the configurable options.
     /// </summary>
     protected internal virtual ValueTask<
@@ -272,9 +261,7 @@ internal class DefaultOpenIdServerFactory(
     /// <summary>
     /// Used to create a data source for the server's settings that are persisted in a store.
     /// </summary>
-    protected internal virtual ValueTask<
-        IAsyncDisposableCollectionDataSource<Setting>
-    > CreateServerSettingsDataSourceAsync(
+    protected internal virtual ValueTask<RefreshableSettingsCollectionDataSource> CreateServerSettingsDataSourceAsync(
         OpenIdEnvironment openIdEnvironment,
         PersistedServer persistedServer,
         IPropertyBag propertyBag,
@@ -290,28 +277,26 @@ internal class DefaultOpenIdServerFactory(
             jsonOptions
         );
 
-        var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
-            new RefreshSettingsState(openIdEnvironment, persistedServer),
+        Func<CancellationToken, ValueTask<IReadOnlyCollection<Setting>?>> loadChangedSettingsAsync =
+            ct => LoadChangedSettingsAsync(openIdEnvironment, persistedServer, ct);
+
+        // A committed change is read at once through OpenIdServer.RefreshSettingsAsync; the interval is the fallback (ADR-0219).
+        var dataSource = ActivatorUtilities.CreateInstance<RefreshableSettingsCollectionDataSource>(
+            ServiceProvider,
             initialSettings,
-            Options.Server.SettingsPeriodicRefreshInterval,
-            RefreshSettingsAsync
+            loadChangedSettingsAsync,
+            Options.Server.SettingsPeriodicRefreshInterval
         );
 
         return ValueTask.FromResult(dataSource);
     }
 
-    private readonly record struct RefreshSettingsState(
-        OpenIdEnvironment OpenIdEnvironment,
-        PersistedServer PersistedServer
-    );
-
-    private async ValueTask<RefreshCollectionResult<Setting>> RefreshSettingsAsync(
-        RefreshSettingsState state,
-        IReadOnlyCollection<Setting> current,
+    private async ValueTask<IReadOnlyCollection<Setting>?> LoadChangedSettingsAsync(
+        OpenIdEnvironment openIdEnvironment,
+        PersistedServer persistedServer,
         CancellationToken cancellationToken
     )
     {
-        var (openIdEnvironment, persistedServer) = state;
         var serverId = persistedServer.ServerId;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -319,14 +304,14 @@ internal class DefaultOpenIdServerFactory(
 
         var newSettings = await store.GetSettingsOrDefaultAsync(serverId, cancellationToken);
         if (newSettings is null)
-            return RefreshCollectionResultFactory.Unchanged<Setting>();
+            return null;
 
         var prevSettings = persistedServer.Settings;
         var prevConcurrencyToken = prevSettings.ConcurrencyToken;
         var newConcurrencyToken = newSettings.ConcurrencyToken;
 
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
-            return RefreshCollectionResultFactory.Unchanged<Setting>();
+            return null;
 
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
         var settings = SecurityProfileCatalog.Expand(
@@ -338,7 +323,7 @@ internal class DefaultOpenIdServerFactory(
         // update the state after successfully deserializing the settings
         persistedServer.Settings = newSettings;
 
-        return RefreshCollectionResultFactory.Changed(settings);
+        return settings;
     }
 
     /// <summary>

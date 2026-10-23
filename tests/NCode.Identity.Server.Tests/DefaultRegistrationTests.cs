@@ -224,12 +224,57 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
-    public void AddIdentityServer_RegistersTheServerSettingsChangedHandler()
+    public void AddIdentityServer_RegistersTheServerSettingsChangeBroadcastHandler()
     {
-        // Without this handler a server settings change never re-seeds the tenants it affects.
+        // Without this handler a server settings change reaches only the replica that handled it.
         using var host = BuildHost([]);
 
-        Assert.NotEmpty(host.Services.GetServices<ICommandHandler<ServerSettingsChangedCommand>>());
+        Assert.Single(
+            host.Services.GetServices<IReplicaBroadcastHandler>().Select(x => x.Channel),
+            "server-settings-changed"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheServerSettingsChangedHandler()
+    {
+        // Without this handler a server settings change reaches the replicas only at their next poll.
+        using var host = BuildHost([]);
+
+        var handlers = host.Services.GetServices<ICommandHandler<ServerSettingsChangedCommand>>();
+
+        Assert.Contains(
+            handlers,
+            handler => handler.GetType().Name == "ServerSettingsChangedHandler"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheServerSettingsReconciliationService()
+    {
+        // Without this service a configuration reload or a deployment that changes the server's settings reaches the
+        // tenants only when each is next materialized.
+        using var host = BuildHost([]);
+
+        Assert.Contains(
+            host.Services.GetServices<IHostedService>(),
+            service => service.GetType().Name == "ServerSettingsReconciliationService"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheTenantKeyReconciliationHandler()
+    {
+        // Without this handler a key that the server's settings permit is provisioned only when a tenant is next
+        // materialized.
+        using var host = BuildHost([]);
+
+        var handlers = host.Services.GetServices<ICommandHandler<ReconcileServerSettingsCommand>>();
+
+        Assert.Contains(
+            handlers,
+            handler => handler.GetType().Name == "TenantKeyReconciliationHandler"
+        );
     }
 
     [Fact]
@@ -329,6 +374,21 @@ public sealed class DefaultRegistrationTests
         Assert.Contains(OpenIdSettingNames.RequireDPoPBoundAccessTokens, settingNames);
         Assert.Contains(OpenIdSettingNames.ClientNotificationEndpoint, settingNames);
         Assert.NotNull(host.Services.GetRequiredService<IClientCoherenceValidator>());
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheClientCoherenceReportHandler()
+    {
+        // Without this handler a change to the server's settings that is not a write leaves the stored clients that it
+        // makes incoherent unreported until they fail at their next request (ADR-0219).
+        using var host = BuildHost([]);
+
+        var handlers = host.Services.GetServices<ICommandHandler<ReconcileServerSettingsCommand>>();
+
+        Assert.Contains(
+            handlers,
+            handler => handler.GetType().Name == "ClientCoherenceReportHandler"
+        );
     }
 
     [Fact]

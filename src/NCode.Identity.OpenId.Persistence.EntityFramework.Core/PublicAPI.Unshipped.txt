@@ -362,6 +362,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.Id.
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.Id.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.NormalizedServerId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.NormalizedServerId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.ReconciledSettingsFingerprint.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.ReconciledSettingsFingerprint.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.Secrets.get -> System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerSecretEntity!>!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.Secrets.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity.SecretsConcurrencyToken.get -> string!

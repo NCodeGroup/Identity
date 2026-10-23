@@ -100,6 +100,7 @@ internal class ServerStore(
             DisplayName = entity.DisplayName,
             Settings = await MapSettingsAsync(entity, cancellationToken),
             Secrets = await MapSecretsAsync(entity, cancellationToken),
+            ReconciledSettingsFingerprint = entity.ReconciledSettingsFingerprint,
         };
     }
 
@@ -206,6 +207,7 @@ internal class ServerStore(
             SecretsConcurrencyToken = persistedServer.Secrets.ConcurrencyToken,
             DisplayName = persistedServer.DisplayName,
             SettingsJson = persistedServer.Settings.Value,
+            ReconciledSettingsFingerprint = persistedServer.ReconciledSettingsFingerprint,
             Secrets = secrets,
         };
 
@@ -288,10 +290,38 @@ internal class ServerStore(
 
         serverEntity.SettingsConcurrencyToken = nextConcurrencyToken;
         serverEntity.SettingsJson = persistedServerSettings.Value;
+        serverEntity.ReconciledSettingsFingerprint = null;
 
         DbContext.Servers.Update(serverEntity);
 
         persistedServerSettings.ConcurrencyToken = nextConcurrencyToken;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask UpdateReconciledSettingsFingerprintAsync(
+        PersistedServer persistedServer,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverId = persistedServer.ServerId;
+        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+
+        if (
+            !string.Equals(
+                persistedServer.ConcurrencyToken,
+                serverEntity.ConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            throw new StoreConcurrencyException(
+                $"The OpenId Server with ServerId='{serverId}' has been modified by another process. Please reload and try again."
+            );
+        }
+
+        // Set only this column and do not call Update, so that only it is written. The interceptor regenerates
+        // the row ConcurrencyToken on save (ADR-0012).
+        serverEntity.ReconciledSettingsFingerprint = persistedServer.ReconciledSettingsFingerprint;
     }
 
     /// <inheritdoc />

@@ -32,7 +32,9 @@ namespace NCode.Identity.SharedState.Valkey;
 /// every <see cref="RetryDelay"/> while the server is unreachable, and the connection restores it after a reconnect.
 /// A message is delivered on a thread-pool thread so a slow handler never blocks the connection's receive loop, and a
 /// handler failure is logged and never reaches the publisher. The access-control user of the connection needs the
-/// <c>SUBSCRIBE</c> command.
+/// <c>SUBSCRIBE</c> command. Once a channel is subscribed, its handlers are told they may have missed messages, because a
+/// message published before the subscription took effect never reached this replica. Every handler is told again when
+/// the connection is restored, because a message published while it was down is lost.
 /// </summary>
 // See ADR-0205.
 internal sealed class ValkeyReplicaBroadcastSubscriber(
@@ -49,6 +51,8 @@ internal sealed class ValkeyReplicaBroadcastSubscriber(
     private IReadOnlyList<IReplicaBroadcastHandler> Handlers { get; } = [.. handlers];
 
     private ILogger<ValkeyReplicaBroadcastSubscriber> Logger { get; } = logger;
+
+    private IConnectionMultiplexer? WatchedMultiplexer { get; set; }
 
     /// <summary>
     /// Gets the delay before the subscription is retried after the server could not be reached.
@@ -67,6 +71,7 @@ internal sealed class ValkeyReplicaBroadcastSubscriber(
             try
             {
                 var subscriber = await Connection.GetSubscriberAsync(stoppingToken);
+                WatchConnection(subscriber.Multiplexer);
                 while (pending.TryPeek(out var channel))
                 {
                     var redisChannel = RedisChannel.Literal(KeyPrefix + channel);
@@ -88,6 +93,9 @@ internal sealed class ValkeyReplicaBroadcastSubscriber(
                     }
 
                     pending.Dequeue();
+
+                    // A message published before the subscription took effect never reached this replica.
+                    await HandleMissedMessagesAsync(channel);
                 }
             }
             catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
@@ -96,6 +104,33 @@ internal sealed class ValkeyReplicaBroadcastSubscriber(
                 await Task.Delay(RetryDelay, stoppingToken);
             }
         }
+    }
+
+    private void WatchConnection(IConnectionMultiplexer multiplexer)
+    {
+        if (WatchedMultiplexer is not null)
+            return;
+
+        multiplexer.ConnectionRestored += OnConnectionRestored;
+        WatchedMultiplexer = multiplexer;
+    }
+
+    // The connection restores every subscription, but a message published while it was down is lost. Any connection type
+    // counts, because RESP3 carries pub/sub on the interactive connection.
+    private void OnConnectionRestored(object? sender, ConnectionFailedEventArgs args) =>
+        _ = Task.Run(() => InvokeMissedMessagesAsync(Handlers));
+
+    /// <inheritdoc />
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        // Detaching is idempotent and cannot throw, so a second, concurrent stop is harmless.
+        if (WatchedMultiplexer is { } multiplexer)
+        {
+            multiplexer.ConnectionRestored -= OnConnectionRestored;
+            WatchedMultiplexer = null;
+        }
+
+        await base.StopAsync(cancellationToken);
     }
 
     private void OnMessage(string channel, RedisValue value)
@@ -124,6 +159,34 @@ internal sealed class ValkeyReplicaBroadcastSubscriber(
             catch (Exception exception)
             {
                 Logger.ReplicaBroadcastHandlerFailed(channel, exception);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Tells every handler of the channel that it may have missed messages. A handler that throws is logged, and the
+    /// remaining handlers are still told.
+    /// </summary>
+    /// <param name="channel">The channel that was subscribed, without the key prefix.</param>
+    /// <returns>A <see cref="Task"/> that completes once every handler of the channel has run.</returns>
+    internal Task HandleMissedMessagesAsync(string channel) =>
+        InvokeMissedMessagesAsync(
+            Handlers.Where(handler =>
+                string.Equals(handler.Channel, channel, StringComparison.Ordinal)
+            )
+        );
+
+    private async Task InvokeMissedMessagesAsync(IEnumerable<IReplicaBroadcastHandler> handlers)
+    {
+        foreach (var handler in handlers)
+        {
+            try
+            {
+                await handler.HandleMissedMessagesAsync(CancellationToken.None);
+            }
+            catch (Exception exception)
+            {
+                Logger.ReplicaBroadcastHandlerFailed(handler.Channel, exception);
             }
         }
     }

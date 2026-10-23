@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended in place: a rule reads the client's registered and effective settings, a violation
   describes itself, every configuration seeder runs the validator, and dynamic registration keeps no relation check of
-  its own)
+  its own, and by
+  [ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a change of the server's
+  settings that is not a write is reported)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -123,6 +125,12 @@ authorization.
      setting that a rule reads. A server write first checks the server's effective settings the same way, and then each
      tenant. The walk pages through the clients as an untracked projection that carries no secrets, under an explicit
      tenant scope, because the control-plane endpoints are not scoped to the tenant they address.
+   - **A configuration change** — a deployment or a reload of `OpenId:Server:Settings` — cannot be refused, so the
+     reconciliation of the server's settings reports it
+     ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)):
+     `ClientCoherenceReportHandler` checks every stored client of every tenant against the server's effective settings
+     and logs each incoherent client with the description of every violation. The bootstrap administrator is checked
+     there as every stored client is; its seeder leaves an existing client as it is.
 
    A validation problem lists at most ten errors per setting: the first ten in order, and then one error for each
    setting over the limit that counts the rest. A walk over many clients can report one error per client, and it still
@@ -175,4 +183,6 @@ authorization.
 - A tenant or server change that narrows any list or flag a client registers is refused while it would drop that value.
 - A seeder refuses a client that its tenant's settings contradict, so the host does not start with a client that the
   server cannot honor.
-- This implements backlog `R40`, `R55`, `R62` and `R63`.
+- A deployment or a reload that makes a stored client incoherent is logged, client by client, once per change of the
+  server's effective settings.
+- This implements backlog `R40`, `R55`, `R62`, `R63` and `R72`.

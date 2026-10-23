@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S13`     | `S12`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R85`     | `R84`      |
+| `R` — Review findings                 | `R89`     | `R88`      |
 
 ---
 
@@ -504,6 +504,26 @@ _None remaining._
 - **`R84` — Audit a refresh token presented again within its reuse interval.** An operator cannot tell a client's
   retry from a stolen token that is used within the window. Record an audit event for the retry. Touch points:
   `IAuditEventRecorder`, `DefaultRefreshTokenGrantHandler`.
+- **`R85` — Run the in-process dispatcher's jobs with bounded concurrency.** `JobDispatchWorker` runs one job at a
+  time, so a delivery that waits on an unreachable endpoint (a CIBA notification or a back-channel logout) delays every
+  job queued behind it. Run jobs in parallel up to a limit from `InProcessJobDispatcherOptions`. Touch points:
+  `JobDispatchWorker`, `InProcessJobQueue`, `InProcessJobDispatcherOptions`.
+- **`R86` — Validate the server's and the tenant's intervals and lifetimes when the host starts.**
+  `OpenIdServerOptions` (`SettingsPeriodicRefreshInterval`, `SecretsPeriodicRefreshInterval`,
+  `ReconciliationLeaseDuration`) and `OpenIdTenantOptions` (`SettingsPeriodicRefreshInterval`,
+  `SecretsPeriodicRefreshInterval`, `TenantCacheLifetime`) accept zero and negative values, which stop a poll, keep the
+  reconciliation from ever taking its lease, or fail the first tenant cache write. Touch points: an
+  `IValidateOptions<OpenIdOptions>` beside `ServerSettingsOptionsValidator`.
+- **`R87` — List the incoherent clients in the management API.** The reconciliation of the server's settings logs each
+  stored client that the settings make incoherent (ADR-0219), so an operator without the logs cannot find them. Add a
+  read-only report per tenant. Touch points: `ClientApiEndpointHandler`, `IClientCoherenceValidator`,
+  `ClientCoherenceReportHandler`.
+- **`R88` — Reconcile only the tenants and clients a server settings change affects.** The reconciliation reads the
+  keys of every tenant that uses a configured algorithm and checks every client on each change, because only a
+  fingerprint of the settings it last reconciled is stored. Storing those settings would let it skip a tenant whose
+  effective settings did not change in a setting it reads (`TenantKeyUsage`,
+  `IClientCoherenceValidator.ReadsChangedSetting`). Touch points: `PersistedServer.ReconciledSettingsFingerprint`,
+  `TenantKeyReconciliationHandler`, `ClientCoherenceReportHandler`.
 
 ### Refactor
 

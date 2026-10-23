@@ -1,7 +1,9 @@
 # 169. Every tenant is provisioned with persisted keys
 
 - **Status:** Accepted (amended by [ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md): deleting a tenant also
-  removes the data of its end users)
+  removes the data of its end users; by
+  [ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md): the re-seed after a change
+  of the server's settings is part of one reconciliation)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -97,11 +99,10 @@ key for. The server generates keys only to fill those gaps; it never removes, re
    - A held key the tenant's settings no longer use is kept: provisioning never removes a key, and retiring one is key
      lifecycle (backlog `S8`).
 10. **A committed tenant change re-seeds the tenant at once.** A tenant is seeded when it is materialized, and the
-    tenant cache keeps a busy tenant materialized indefinitely (a 4-hour sliding expiration), so a tenant whose settings
-    later permit a configured algorithm would advertise it without a key until every replica restarted. Every
-    management write to a tenant — its record, its settings, a secret, or its deletion — therefore sends one
-    `TenantChangedCommand` after it commits. The mediator fans it out to every registered handler, so other packages
-    can react to a tenant change too.
+    tenant cache keeps a materialized tenant until its absolute lifetime ends, so a tenant whose settings later permit a
+    configured algorithm would advertise it without a key until then. Every management write to a tenant — its record,
+    its settings, a secret, or its deletion — therefore sends one `TenantChangedCommand` after it commits. The mediator
+    fans it out to every registered handler, so other packages can react to a tenant change too.
     - The default handler evicts the tenant from this replica's `IOpenIdTenantCache` (`RemoveAsync`), so the change
       takes effect on this replica at once. When the tenant's settings changed (`SettingsChanged`), it also seeds the
       tenant through `ITenantProvisioner`. It evicts first: a request that misses the cache afterwards materializes
@@ -119,18 +120,14 @@ key for. The server generates keys only to fill those gaps; it never removes, re
       never fails the committed write. A replica that missed it keeps its cached tenant and picks the change up through
       its polls: the tenant's settings every 5 minutes and its secrets, including the key this replica provisioned,
       every 15.
-    - A server settings change also reaches every tenant's effective lists. After it commits, the server PATCH sends a
-      `ServerSettingsChangedCommand` that carries the previous and the new settings document. Its handler compares the
-      server's effective settings list by list and, when some algorithm list gained a configured algorithm, dispatches
-      a `TenantKeyReseedJob` through `IJobDispatcher`. The job runs outside the request. It pages the tenants and, for
-      each one whose effective lists newly name one of those algorithms, sends a `TenantChangedCommand` with
-      `SettingsChanged`, which evicts, seeds, and announces the tenant. A failure for one tenant is logged and the job
-      continues, so nothing proportional to the number of tenants runs in the request. A server list that is lifted,
-      set in the previous document and unset in the one that follows, counts as gaining every configured algorithm the
-      previous list did not name, because an unset list is unrestricted for a tenant's own list; the job still decides
-      tenant by tenant. The job runs on the in-process dispatcher of the replica that handled the PATCH, so it
-      does not survive a restart or a shutdown, and a tenant it had not reached is seeded the next time it is
-      materialized; a replica that keeps that tenant cached waits for that (backlog `R61`).
+    - A change of the server's effective settings also reaches every tenant's effective lists, whether it is a
+      management write, a configuration reload, or a deployment. The reconciliation of the server's settings
+      ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)) runs
+      `TenantKeyReconciliationHandler`, which reads the keys of every tenant whose effective lists name a configured
+      algorithm and sends a `TenantChangedCommand` with `SettingsChanged` for each seeded one that lacks a key, which
+      evicts, seeds, and announces it. A tenant that holds no key is left to its first materialization. A failure for
+      one tenant is logged and the pass continues. The pass runs in the background on one replica, outside every
+      request and outside the job dispatcher, and a pass that a restart interrupted runs again.
 11. **A tenant's keys are part of the tenant.** Provisioning gives every tenant keys, and those keys serve only that
     tenant, so they must not make the tenant impossible to delete. Deleting a tenant therefore removes its secrets, its
     system resource servers with their scopes and secrets, the role assignments recorded in it, and the data of its end
@@ -160,7 +157,9 @@ key for. The server generates keys only to fill those gaps; it never removes, re
 - **2048-bit RSA keys.** Rejected for the NIST horizon above, since provisioned keys do not rotate yet.
 - **Re-seed when a replica's settings poll sees a change.** Rejected: the poll runs outside a request on every replica,
   so each would race to seed the same tenant, and the new key would still wait for the secrets poll. The replica that
-  makes the change seeds once, at the moment it commits.
+  makes the change seeds once, at the moment it commits. The reconciliation reacts to a replica's poll too, but one
+  lease per change lets only one replica run it
+  ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
 - **Skip seeding a tenant being deleted.** Rejected: it needs a tombstone state that every seed path checks, and the
   system resource server and ownership rows would still block the delete.
 
@@ -185,7 +184,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
   - `OpenIdTenantOptions` gains `KeyProvisioning`.
   - `TenantKeySeedHandler` reads `IEffectiveSettingsResolver` to compute the tenant's settings.
   - `TenantChangedHandler` needs an `IReplicaBroadcaster` to announce the change.
-  - `NCode.Identity.OpenId.Core` references the Dispatch and SharedState abstractions.
+  - `NCode.Identity.OpenId.Core` references the SharedState abstractions.
   - `IOpenIdTenantCache` gains `RemoveAsync`, so a custom cache must implement eviction.
 
 ## References

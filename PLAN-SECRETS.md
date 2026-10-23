@@ -51,7 +51,7 @@ that change remains:
 - Builds treat warnings as errors. Never run two `dotnet build`/`dotnet test` at the same time.
 - A strict mock with no setup for a member throws when that member is called — that is how a test proves a call does
   **not** happen.
-- Do not edit `PLAN.md` beyond marking your own step; do not commit.
+- Do not edit `PLAN-SECRETS.md` beyond marking your own step; do not commit.
 
 ## Steps
 
@@ -163,8 +163,8 @@ that change remains:
 - Done when: `exit 1`
 
 ### [ ] 9. Retire the plan
-- Files: `PLAN.md` (delete); history (coordinator)
+- Files: `PLAN-SECRETS.md` (delete); history (coordinator)
 - Change: placeholder — promote any decision not already carried by the code, the ADR or the changelog; delete
-  `PLAN.md`; fold every commit since `70f5ec26` into the single feature commit (`git reset --soft` onto the parent's
+  `PLAN-SECRETS.md`; fold every commit since `70f5ec26` into the single feature commit (`git reset --soft` onto the parent's
   tip and recommit with the feature commit's message); run `./build/dod.ps1`; force-push with a lease.
 - Done when: `exit 1`

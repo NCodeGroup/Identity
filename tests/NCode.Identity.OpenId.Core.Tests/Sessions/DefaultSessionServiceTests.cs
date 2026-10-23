@@ -121,9 +121,13 @@ public class DefaultSessionServiceTests : BaseTests
         PersistedGrant<SessionGrant> Grant,
         DateTimeOffset CreatedWhen,
         TimeSpan? Lifetime
-    )> CreateSessionAsync(CreateSessionRequest request)
+    )> CreateSessionAsync(
+        CreateSessionRequest request,
+        Action<Mock<OpenIdContext>>? arrangeContext = null
+    )
     {
         var mockContext = CreateContext();
+        arrangeContext?.Invoke(mockContext);
         var grantId = CreateGrantId();
 
         MockCryptoService
@@ -259,6 +263,85 @@ public class DefaultSessionServiceTests : BaseTests
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
             await Service.CreateAsync(mockContext.Object, request, CancellationToken.None)
         );
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTheSubjectIsAtItsSessionLimit_TerminatesTheEvictedSessionOnce()
+    {
+        var request = new CreateSessionRequest
+        {
+            SubjectId = SubjectId,
+            AuthTime = UtcNow,
+            AbsoluteLifetime = TimeSpan.FromHours(8),
+            IdleTimeout = TimeSpan.FromHours(1),
+            MaxConcurrentSessions = 1,
+        };
+
+        var (result, _, _, _) = await CreateSessionAsync(
+            request,
+            mockContext =>
+            {
+                SetupSessionEnumeration(
+                    mockContext,
+                    CreateEnvelope("old", UtcNow.AddMinutes(-10), clientIds: ["c1"])
+                );
+                MockEvictionPolicy
+                    .Setup(x => x.SelectSessionsToEvict(It.IsAny<IReadOnlyList<SessionInfo>>(), 1))
+                    .Returns((IReadOnlyList<SessionInfo> sessions, int _) => sessions)
+                    .Verifiable();
+                SetupSessionClaims(mockContext, ("old", true));
+
+                var mockMediator = CreateStrictMock<IMediator>();
+                mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+                mockMediator
+                    .Setup(x =>
+                        x.SendAsync(
+                            It.Is<OnSessionTerminatedCommand>(c =>
+                                c.Termination.Reason
+                                    == SessionTerminationReasons.ConcurrentSessionLimit
+                                && c.Termination.SessionId == "old"
+                            ),
+                            It.IsAny<CancellationToken>()
+                        )
+                    )
+                    .Returns(ValueTask.CompletedTask)
+                    .Verifiable();
+            }
+        );
+
+        Assert.Equal(SessionId, result);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenAnotherCallerTerminatedTheEvictedSessionFirst_DoesNotDispatch()
+    {
+        var request = new CreateSessionRequest
+        {
+            SubjectId = SubjectId,
+            AuthTime = UtcNow,
+            AbsoluteLifetime = TimeSpan.FromHours(8),
+            IdleTimeout = TimeSpan.FromHours(1),
+            MaxConcurrentSessions = 1,
+        };
+
+        // No mediator is arranged; a strict mock would throw if the session were dispatched.
+        var (result, _, _, _) = await CreateSessionAsync(
+            request,
+            mockContext =>
+            {
+                SetupSessionEnumeration(
+                    mockContext,
+                    CreateEnvelope("old", UtcNow.AddMinutes(-10), clientIds: ["c1"])
+                );
+                MockEvictionPolicy
+                    .Setup(x => x.SelectSessionsToEvict(It.IsAny<IReadOnlyList<SessionInfo>>(), 1))
+                    .Returns((IReadOnlyList<SessionInfo> sessions, int _) => sessions)
+                    .Verifiable();
+                SetupSessionClaims(mockContext, ("old", false));
+            }
+        );
+
+        Assert.Equal(SessionId, result);
     }
 
     #endregion
@@ -906,10 +989,12 @@ public class DefaultSessionServiceTests : BaseTests
     }
 
     [Fact]
-    public async Task RevokeAsync_DispatchesTerminationWithSessionParticipants()
+    public async Task RevokeAsync_WhenThisCallClaimsTheSession_DispatchesItsTerminationAndReturnsTrue()
     {
         var mockContext = CreateContextWithMediator(out var mockMediator);
-        SetupGetSession(mockContext, CreateIdleSession(idleTimeout: null, UtcNow));
+        var grantId = SetupGetSession(mockContext, CreateIdleSession(idleTimeout: null, UtcNow));
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupClaim(mockContext, grantId, claimed: true);
         mockMediator
             .Setup(x =>
                 x.SendAsync(
@@ -925,12 +1010,48 @@ public class DefaultSessionServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await Service.RevokeAsync(
+        var result = await Service.RevokeAsync(
             mockContext.Object,
             SessionId,
             SessionTerminationReasons.AdministrativeRevocation,
             CancellationToken.None
         );
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task RevokeAsync_WhenAnotherCallerTerminatedTheSessionFirst_ReturnsFalseWithoutDispatching()
+    {
+        var mockContext = CreateContext();
+        var grantId = SetupGetSession(mockContext, CreateIdleSession(idleTimeout: null, UtcNow));
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupClaim(mockContext, grantId, claimed: false);
+
+        var result = await Service.RevokeAsync(
+            mockContext.Object,
+            SessionId,
+            SessionTerminationReasons.AdministrativeRevocation,
+            CancellationToken.None
+        );
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task RevokeAsync_WhenTheSessionIsMissing_ReturnsFalse()
+    {
+        var mockContext = CreateContext();
+        SetupGetSession(mockContext, null);
+
+        var result = await Service.RevokeAsync(
+            mockContext.Object,
+            SessionId,
+            SessionTerminationReasons.AdministrativeRevocation,
+            CancellationToken.None
+        );
+
+        Assert.False(result);
     }
 
     #endregion
@@ -1111,6 +1232,59 @@ public class DefaultSessionServiceTests : BaseTests
         return mockGrantStore;
     }
 
+    private void SetupSessionClaims(
+        Mock<OpenIdContext> mockContext,
+        params (string SessionId, bool Claimed)[] claims
+    )
+    {
+        MockPersistedGrantService
+            .Setup(x =>
+                x.CreateGrantId(
+                    TenantId,
+                    OpenIdConstants.PersistedGrantTypes.Session,
+                    It.IsAny<string>()
+                )
+            )
+            .Returns(
+                (string tenantId, string grantType, string grantKey) =>
+                    new PersistedGrantId
+                    {
+                        TenantId = tenantId,
+                        GrantType = grantType,
+                        GrantKey = grantKey,
+                    }
+            )
+            .Verifiable();
+
+        foreach (var (sessionId, claimed) in claims)
+        {
+            MockPersistedGrantService
+                .Setup(x =>
+                    x.RevokeSessionOnceAsync(
+                        mockContext.Object,
+                        It.Is<PersistedGrantId>(id => id.GrantKey == sessionId),
+                        UtcNow,
+                        It.IsAny<CancellationToken>()
+                    )
+                )
+                .ReturnsAsync(claimed)
+                .Verifiable();
+        }
+    }
+
+    private void SetupSubjectRevocation() =>
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeWhereAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.Is<GrantFilter>(f => f.SubjectId == SubjectId && f.SessionId == null),
+                    UtcNow,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(0L)
+            .Verifiable();
+
     private static PersistedGrant CreateEnvelope(
         string sessionId,
         DateTimeOffset createdWhen,
@@ -1277,7 +1451,7 @@ public class DefaultSessionServiceTests : BaseTests
     [Fact]
     public async Task RevokeAllAsync_DispatchesGlobalSignOutWithUnionedParticipants()
     {
-        var mockContext = CreateStrictMock<OpenIdContext>();
+        var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
@@ -1286,6 +1460,8 @@ public class DefaultSessionServiceTests : BaseTests
             CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1", "c2"]),
             CreateEnvelope("s2", UtcNow.AddMinutes(-5), clientIds: ["c2", "c3"])
         );
+        SetupSessionClaims(mockContext, ("s1", true), ("s2", true));
+        SetupSubjectRevocation();
 
         mockMediator
             .Setup(x =>
@@ -1304,18 +1480,187 @@ public class DefaultSessionServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await Service.RevokeAllAsync(
+        var result = await Service.RevokeAllAsync(
             mockContext.Object,
             SubjectId,
             SessionTerminationReasons.GlobalSignOut,
             CancellationToken.None
+        );
+
+        Assert.Equal(2, result);
+    }
+
+    [Fact]
+    public async Task RevokeAllAsync_WhenAnotherCallerTerminatedASession_NotifiesOnlyTheRelyingPartiesOfTheSessionsItClaimed()
+    {
+        var mockContext = CreateContext();
+        var mockMediator = CreateStrictMock<IMediator>();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupSessionEnumeration(
+            mockContext,
+            CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1", "c2"]),
+            CreateEnvelope("s2", UtcNow.AddMinutes(-5), clientIds: ["c2", "c3"])
+        );
+        SetupSessionClaims(mockContext, ("s1", true), ("s2", false));
+        SetupSubjectRevocation();
+
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c =>
+                        c.Termination.Reason == SessionTerminationReasons.GlobalSignOut
+                        && c.Termination.SessionId == null
+                        && c.Termination.SubjectId == SubjectId
+                        && c.Termination.ParticipatingClientIds.Contains("c1")
+                        && c.Termination.ParticipatingClientIds.Contains("c2")
+                        && !c.Termination.ParticipatingClientIds.Contains("c3")
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.RevokeAllAsync(
+            mockContext.Object,
+            SubjectId,
+            SessionTerminationReasons.GlobalSignOut,
+            CancellationToken.None
+        );
+
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
+    public async Task RevokeAllAsync_WhenTheDispatchFails_HasRevokedTheSubjectsGrants()
+    {
+        var mockContext = CreateContext();
+        var mockMediator = CreateStrictMock<IMediator>();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupSessionEnumeration(
+            mockContext,
+            CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1"])
+        );
+        SetupSessionClaims(mockContext, ("s1", true));
+
+        // The subject's grants are revoked before the dispatch, so the failure leaves none of them active.
+        SetupSubjectRevocation();
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(It.IsAny<OnSessionTerminatedCommand>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.FromException(new InvalidOperationException("dispatch")))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Service.RevokeAllAsync(
+                mockContext.Object,
+                SubjectId,
+                SessionTerminationReasons.GlobalSignOut,
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task RevokeAllAsync_WhenAnotherCallerTerminatedEverySession_StillRevokesTheSubjectsGrantsAndDispatches()
+    {
+        var mockContext = CreateContext();
+        var mockMediator = CreateStrictMock<IMediator>();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupSessionEnumeration(
+            mockContext,
+            CreateEnvelope("s1", UtcNow.AddMinutes(-10), clientIds: ["c1"])
+        );
+        SetupSessionClaims(mockContext, ("s1", false));
+        SetupSubjectRevocation();
+
+        // The subject-wide termination is dispatched even though this call claimed no session, so the grants the
+        // subject holds outside a listed session are still revoked and every subject-wide termination is observed.
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c =>
+                        c.Termination.Reason == SessionTerminationReasons.GlobalSignOut
+                        && c.Termination.SessionId == null
+                        && c.Termination.SubjectId == SubjectId
+                        && c.Termination.ParticipatingClientIds.Count == 0
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.RevokeAllAsync(
+            mockContext.Object,
+            SubjectId,
+            SessionTerminationReasons.GlobalSignOut,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public async Task RevokeAllAsync_WhenTheSubjectHasNoSession_StillRevokesTheSubjectsGrantsAndDispatches()
+    {
+        // No session is listed, so the tenant of the context is never read.
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        var mockMediator = CreateStrictMock<IMediator>();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupSessionEnumeration(mockContext);
+        SetupSubjectRevocation();
+
+        // A password-grant or device-flow token has no listed session; the subject-wide termination still revokes it.
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c =>
+                        c.Termination.Reason == SessionTerminationReasons.GlobalSignOut
+                        && c.Termination.SessionId == null
+                        && c.Termination.SubjectId == SubjectId
+                        && c.Termination.ParticipatingClientIds.Count == 0
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.RevokeAllAsync(
+            mockContext.Object,
+            SubjectId,
+            SessionTerminationReasons.GlobalSignOut,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public async Task RevokeAllAsync_WhenTheSubjectIsEmpty_Throws()
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Service.RevokeAllAsync(
+                mockContext.Object,
+                subjectId: string.Empty,
+                SessionTerminationReasons.GlobalSignOut,
+                CancellationToken.None
+            )
         );
     }
 
     [Fact]
     public async Task RevokeAllExceptAsync_TerminatesEachOtherSessionIndividually_RetainingCurrent()
     {
-        var mockContext = CreateStrictMock<OpenIdContext>();
+        var mockContext = CreateContext();
         var mockMediator = CreateStrictMock<IMediator>();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
@@ -1325,6 +1670,7 @@ public class DefaultSessionServiceTests : BaseTests
             CreateEnvelope("s2", UtcNow.AddMinutes(-5)),
             CreateEnvelope("s3", UtcNow.AddMinutes(-1))
         );
+        SetupSessionClaims(mockContext, ("s1", true), ("s3", true));
 
         // Each retained-exclusive session is terminated on its own (SessionId set, not a subject-wide null), with the
         // self-service reason.
@@ -1341,13 +1687,15 @@ public class DefaultSessionServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await Service.RevokeAllExceptAsync(
+        var result = await Service.RevokeAllExceptAsync(
             mockContext.Object,
             SubjectId,
             exceptSessionId: "s2",
             SessionTerminationReasons.UserInitiated,
             CancellationToken.None
         );
+
+        Assert.Equal(2, result);
 
         mockMediator.Verify(
             x =>
@@ -1372,6 +1720,61 @@ public class DefaultSessionServiceTests : BaseTests
                     It.IsAny<CancellationToken>()
                 ),
             Times.Never
+        );
+    }
+
+    [Fact]
+    public async Task RevokeAllExceptAsync_WhenAnotherCallerTerminatedASession_DispatchesOnlyTheSessionsItClaimed()
+    {
+        var mockContext = CreateContext();
+        var mockMediator = CreateStrictMock<IMediator>();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        SetupSessionEnumeration(
+            mockContext,
+            CreateEnvelope("s1", UtcNow.AddMinutes(-10)),
+            CreateEnvelope("s2", UtcNow.AddMinutes(-5)),
+            CreateEnvelope("s3", UtcNow.AddMinutes(-1))
+        );
+        SetupSessionClaims(mockContext, ("s1", true), ("s3", false));
+
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<OnSessionTerminatedCommand>(c =>
+                        c.Termination.Reason == SessionTerminationReasons.UserInitiated
+                        && c.Termination.SessionId == "s1"
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Service.RevokeAllExceptAsync(
+            mockContext.Object,
+            SubjectId,
+            exceptSessionId: "s2",
+            SessionTerminationReasons.UserInitiated,
+            CancellationToken.None
+        );
+
+        Assert.Equal(1, result);
+    }
+
+    [Fact]
+    public async Task RevokeAllExceptAsync_WhenTheSubjectIsEmpty_Throws()
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Service.RevokeAllExceptAsync(
+                mockContext.Object,
+                subjectId: string.Empty,
+                exceptSessionId: "s2",
+                SessionTerminationReasons.UserInitiated,
+                CancellationToken.None
+            )
         );
     }
 

@@ -22,8 +22,8 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Accounts.Management.Contracts;
 
 /// <summary>
-/// Represents the request body to reset a local account's credential. Resetting the credential rotates the account's
-/// security stamp, invalidating its outstanding sessions and tokens.
+/// Represents the request body to reset a local account's credential. Resetting the credential ends every session of
+/// the account's end user and revokes the tokens issued to them.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]

@@ -33,14 +33,15 @@ public interface ICibaRequestService
 {
     /// <summary>
     /// Approves a pending CIBA request, recording the approving subject. For ping delivery, notifies the client's
-    /// <c>client_notification_endpoint</c>.
+    /// <c>client_notification_endpoint</c>. The approving subject must pass the subject validation a token request
+    /// applies; a refused subject denies the request.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> that initiated the request.</param>
     /// <param name="authReqId">The identifier of the pending request.</param>
     /// <param name="subjectAuthentication">The authenticated subject approving the request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> containing <c>true</c> if a pending request was found and approved; otherwise, <c>false</c>.</returns>
+    /// <returns>The <see cref="ValueTask"/> containing <c>true</c> if a pending request was found and approved; otherwise, <c>false</c>, including when the approving subject is refused.</returns>
     ValueTask<bool> ApproveAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,

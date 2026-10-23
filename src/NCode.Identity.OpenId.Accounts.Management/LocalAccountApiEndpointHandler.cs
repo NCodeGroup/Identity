@@ -67,8 +67,8 @@ PATCH  api/tenants/{tenantId}/local-accounts/{localAccountId}/metadata
 /// Provides the management endpoints for local accounts. Local accounts are end-user subjects, not ownable resources,
 /// so every operation authorizes against the owning tenant scope (there is no per-account owner model). The host must
 /// register an <see cref="ILocalAccountStore"/> implementation (the Entity Framework reference or the ASP.NET Core
-/// Identity adapter) that these endpoints operate over. Deleting or disabling an account ends every session of its
-/// principal.
+/// Identity adapter) that these endpoints operate over. Deleting or disabling an account, or resetting its password,
+/// ends every session of its principal.
 /// </summary>
 internal class LocalAccountApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
@@ -479,24 +479,15 @@ internal class LocalAccountApiEndpointHandler(
 
         if (!isEnabled)
         {
-            var identity = await storeManager
-                .GetStore<IFederatedIdentityStore>()
-                .GetByIssuerSubjectAsync(
-                    AccountConstants.SelfIssuer,
-                    localAccountId,
-                    cancellationToken
-                );
-            if (identity is not null)
-            {
-                // A disabled account's sessions end, which revokes every grant of its principal and notifies its relying parties. See ADR-0224.
-                await TerminateSessionsAsync(
-                    httpContext,
-                    tenantId,
-                    identity.PrincipalId,
-                    SessionTerminationReasons.AccountDisabled,
-                    cancellationToken
-                );
-            }
+            // A disabled account's sessions end, which revokes every grant of its principal and notifies its relying parties. See ADR-0224.
+            await TerminateAccountSessionsAsync(
+                httpContext,
+                tenantId,
+                storeManager,
+                localAccountId,
+                SessionTerminationReasons.AccountDisabled,
+                cancellationToken
+            );
         }
 
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(
@@ -540,6 +531,16 @@ internal class LocalAccountApiEndpointHandler(
             cancellationToken
         );
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        // A reset password ends the sessions of the account's principal and revokes its grants, so the tokens of a compromised account stop at once. See ADR-0226.
+        await TerminateAccountSessionsAsync(
+            httpContext,
+            tenantId,
+            storeManager,
+            localAccountId,
+            SessionTerminationReasons.PasswordReset,
+            cancellationToken
+        );
 
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(
             httpContext,
@@ -769,6 +770,37 @@ internal class LocalAccountApiEndpointHandler(
         );
 
         await SessionService.RevokeAllAsync(tenantContext, principalId, reason, cancellationToken);
+    }
+
+    // Terminates every session of the principal behind the account's self-issued identity, if the account has one.
+    private async ValueTask TerminateAccountSessionsAsync(
+        HttpContext httpContext,
+        string tenantId,
+        IStoreManager storeManager,
+        string localAccountId,
+        string reason,
+        CancellationToken cancellationToken
+    )
+    {
+        var identity = await storeManager
+            .GetStore<IFederatedIdentityStore>()
+            .GetByIssuerSubjectAsync(
+                AccountConstants.SelfIssuer,
+                localAccountId,
+                cancellationToken
+            );
+        if (identity is null)
+        {
+            return;
+        }
+
+        await TerminateSessionsAsync(
+            httpContext,
+            tenantId,
+            identity.PrincipalId,
+            reason,
+            cancellationToken
+        );
     }
 
     private async ValueTask<bool> AuthorizeTenantAsync(

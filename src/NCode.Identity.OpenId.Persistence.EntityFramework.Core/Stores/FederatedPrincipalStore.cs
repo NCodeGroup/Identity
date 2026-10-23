@@ -59,6 +59,7 @@ internal class FederatedPrincipalStore(
                 PrincipalId = entity.PrincipalId,
                 ProfileMetadata = entity.ProfileMetadataJson,
                 SystemMetadata = entity.SystemMetadataJson,
+                IsBlocked = entity.IsBlocked,
                 ConcurrencyToken = entity.ConcurrencyToken,
             }
         );
@@ -116,6 +117,7 @@ internal class FederatedPrincipalStore(
             NormalizedPrincipalId = Normalize(principal.PrincipalId),
             ProfileMetadataJson = principal.ProfileMetadata.OrEmptyObject(),
             SystemMetadataJson = principal.SystemMetadata.OrEmptyObject(),
+            IsBlocked = principal.IsBlocked,
             ConcurrencyToken = principal.ConcurrencyToken,
             Tenant = tenantEntity,
         };
@@ -155,6 +157,7 @@ internal class FederatedPrincipalStore(
 
         entity.ProfileMetadataJson = principal.ProfileMetadata.OrEmptyObject();
         entity.SystemMetadataJson = principal.SystemMetadata.OrEmptyObject();
+        entity.IsBlocked = principal.IsBlocked;
 
         // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-0012).
         DbContext.FederatedPrincipals.Update(entity);

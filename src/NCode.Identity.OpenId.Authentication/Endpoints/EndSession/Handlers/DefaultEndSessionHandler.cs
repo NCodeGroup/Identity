@@ -32,9 +32,11 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 /// <summary>
 /// Provides a default implementation of the <see cref="EndSessionCommand"/> handler that orchestrates OpenID Connect
 /// RP-Initiated Logout: it resolves the subject/session (<see cref="ResolveEndSessionSubjectCommand"/>), clears the OP
-/// login, dispatches <see cref="NCode.Identity.OpenId.Authentication.Sessions.OnSessionTerminatedCommand"/> to run the
-/// logout side effects (revocation, back-channel
-/// notification, and any application extensions), and resolves the validated <c>post_logout_redirect_uri</c>: the
+/// login, terminates the session the logout names through <see cref="ISessionService"/> so the logout side effects
+/// (revocation, back-channel notification, and any application extensions) run once however many paths end the session
+/// at the same time, or, when the logout names no session, dispatches
+/// <see cref="NCode.Identity.OpenId.Authentication.Sessions.OnSessionTerminatedCommand"/> for the subject, and
+/// resolves the validated <c>post_logout_redirect_uri</c>: the
 /// client must have registered it and its kind must be permitted by the client's
 /// <c>redirect_uri_kinds_supported</c>. When front-channel logout or session management are enabled, it also collects
 /// the front-channel logout iframe URIs and clears the OP browser-state cookie.
@@ -44,6 +46,7 @@ internal class DefaultEndSessionHandler(
     IRedirectUriKindCatalog redirectUriKindCatalog,
     IFrontChannelLogoutService frontChannelLogoutService,
     ISessionStateService sessionStateService,
+    ISessionService sessionService,
     ILogger<DefaultEndSessionHandler> logger
 ) : ICommandResponseHandler<EndSessionCommand, EndSessionDisposition>
 {
@@ -52,6 +55,7 @@ internal class DefaultEndSessionHandler(
     private IFrontChannelLogoutService FrontChannelLogoutService { get; } =
         frontChannelLogoutService;
     private ISessionStateService SessionStateService { get; } = sessionStateService;
+    private ISessionService SessionService { get; } = sessionService;
     private ILogger<DefaultEndSessionHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -79,19 +83,33 @@ internal class DefaultEndSessionHandler(
             SessionStateService.ClearBrowserState(openIdContext);
         }
 
-        // Run the logout side effects (revocation, back-channel notification, and any application extensions).
-        await mediator.SendAsync(
-            new OnSessionTerminatedCommand(
+        // A logout that names a session terminates it through the session service, whose claim terminates a session
+        // once however many paths end it at the same time. See ADR-0227.
+        if (subject.SessionId is { Length: > 0 } sessionId)
+        {
+            await SessionService.RevokeAsync(
                 openIdContext,
-                new SessionTermination(
-                    SessionTerminationReasons.Logout,
-                    subject.SubjectId,
-                    subject.SessionId,
-                    subject.ParticipatingClientIds
-                )
-            ),
-            cancellationToken
-        );
+                sessionId,
+                SessionTerminationReasons.Logout,
+                cancellationToken
+            );
+        }
+        else
+        {
+            // Run the logout side effects (revocation, back-channel notification, and any application extensions).
+            await mediator.SendAsync(
+                new OnSessionTerminatedCommand(
+                    openIdContext,
+                    new SessionTermination(
+                        SessionTerminationReasons.Logout,
+                        subject.SubjectId,
+                        subject.SessionId,
+                        subject.ParticipatingClientIds
+                    )
+                ),
+                cancellationToken
+            );
+        }
 
         var frontChannelLogoutUris = settings.GetValue(
             OpenIdSettingKeys.FrontChannelLogoutSupported

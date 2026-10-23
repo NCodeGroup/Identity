@@ -1,6 +1,10 @@
 # 224. Deleting or disabling an account ends its sessions, and every token request checks the account
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0225](0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md): every grant that issues tokens checks
+  the account;
+  [ADR-0226](0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md): an
+  administrator can block any end user, and a password reset ends the account's sessions)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -53,8 +57,9 @@ disabled or gone.**
 
    A refusal sets `access_denied` through `ErrorFactory.AccessDenied`. `AddLocalAccountAuthentication` and
    `AddLocalAccountInteractiveAuthentication` register the handler. The command is sent by the authorization request
-   and by the authorization-code, refresh-token and password grants, so the handler runs at each of them. It logs
-   nothing, because the accounts packages have no band of event identifiers.
+   and by every grant that issues tokens for a subject
+   ([ADR-0225](0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md)), so the handler runs at each of them.
+   It logs nothing, because the accounts packages have no band of event identifiers.
 5. **A disabled account blocks its principal through every connection.** The local account is the server's record of
    the end user, and Auth0 blocks a user, not a connection. A subject that the local accounts cannot judge, which has no
    identity and no self-issuer claim or only external identities, is not refused.
@@ -76,10 +81,10 @@ disabled or gone.**
 - The refresh tokens of a disabled or deleted account stop at once, and so do its sessions. The JWT access tokens that
   were issued run to their expiry.
 - A deleted principal leaves no consent or grant, and a deleted account leaves its sessions ended.
-- The device-code, CIBA and token-exchange grants do not send `ValidateSubjectAuthenticationCommand`, so a disabled
-  account is not refused there yet (backlog `R92`).
-- A principal without a local account cannot be blocked (backlog `R93`).
-- An administrator's reset of a password does not end the sessions of the account (backlog `R94`).
+- Every grant that issues tokens for a subject checks the account
+  ([ADR-0225](0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md)).
+- An administrator can block a principal whatever its connections, and a password reset ends the account's sessions
+  ([ADR-0226](0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md)).
 - The handler reads the identities of the principal and, for each self-issued identity, its account, in one unit of
   work each time it runs.
 - **Breaking:** `SessionTerminationReasons.AccountDeleted` and `SessionTerminationReasons.AccountDisabled` are added,

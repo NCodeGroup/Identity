@@ -10,6 +10,20 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **An administrator can block any end user.** `POST api/tenants/{tenantId}/principals/{principalId}/block` blocks a
+  principal whatever its connections, `POST api/tenants/{tenantId}/principals/{principalId}/unblock` lifts the block,
+  and `GET api/tenants/{tenantId}/principals/{principalId}` reports it. Blocking terminates every session of the
+  principal with `user_blocked`, which revokes its grants and sends back-channel logout, and keeps its consents; every
+  grant refuses a blocked principal with `access_denied`, and the authorization request issues it no code or token: it
+  challenges the end user to sign in again, or answers `login_required` for `prompt=none`, and a blocked end user can
+  still sign in until backlog `R98`. The change is audited as `PrincipalChangedAuditEvent` (resource type `principal`).
+  **Breaking:** `PersistedFederatedPrincipal.IsBlocked`, `FederatedPrincipalEntity.IsBlocked`,
+  `SessionTerminationReasons.UserBlocked`, `OpenIdConstants.EndpointTags.Principals` and
+  `ManagementResourceTypes.Principal` are added, and the `AddFederatedPrincipalIsBlocked` migration adds a column to the
+  federated principals table
+  ([ADR-0226](docs/adr/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  backlog `R93`).
+
 - **`token.refresh.retry` audits a rotated refresh token retried within its reuse interval.** When the retry is
   answered with another refresh token of its rotation family, `RefreshTokenRetryAuditEvent` is published with outcome
   `success`, so an operator can tell a client's retry from a rotation and from a reuse (`token.refresh.replay`); a
@@ -1542,6 +1556,24 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **Every grant that issues tokens for a subject validates it.** The device-code grant, the CIBA grant (at the token
+  endpoint, and at the approval for every delivery mode) and the token-exchange grant send
+  `ValidateSubjectAuthenticationCommand`, the device-code and CIBA grants before they spend their credential, so a
+  disabled, deleted or blocked end user is refused with `access_denied`, and a refused CIBA approval denies the request.
+  A device code and an `auth_req_id` are redeemed only by the client they were issued to (`invalid_grant`). The device
+  verification endpoint checks the server-side session of its cookie and asks for a new login when it has ended.
+  **Breaking:** `ValidateSubjectAuthenticationCommand.OpenIdRequest` is nullable (`null` outside a protocol request
+  skips the request's `max_age`, `acr_values` and `claims` checks), and `ICibaRequestService.ApproveAsync` returns
+  `false` for a refused approving subject
+  ([ADR-0225](docs/adr/0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md), backlog `R92`).
+
+- **An administrator's password reset ends the account's sessions.** After the reset commits, every session of the
+  account's principal is terminated with `password_reset`: its grants and refresh tokens are revoked, its relying
+  parties receive back-channel logout, and its consents are kept. **Breaking:**
+  `SessionTerminationReasons.PasswordReset` is added
+  ([ADR-0226](docs/adr/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  backlog `R94`).
+
 - **Deleting or disabling a local account ends its sessions, and every token request checks the account.** Disabling an
   account terminates its principal's sessions with `account_disabled`, and deleting it terminates them with
   `account_deleted` before it removes anything: every grant of the principal is revoked, its relying parties receive
@@ -1796,6 +1828,15 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A session is terminated at most once on every path.** `ISessionService.RevokeAsync`, `RevokeAllAsync` and
+  `RevokeAllExceptAsync`, the eviction at the concurrent-session limit and RP-initiated logout claim each session with
+  `IPersistedGrantService.RevokeSessionOnceAsync` before they dispatch its termination, so a session that two paths end
+  at once notifies its relying parties and is audited once, and the claim revokes the grants issued under it in one unit
+  of work. `RevokeAllAsync` revokes every grant of the subject before it dispatches, and the sessions management API
+  reports the sessions the request terminated. **Breaking:** `ISessionService.RevokeAsync` returns `bool`, and
+  `RevokeAllAsync` and `RevokeAllExceptAsync` return the number of sessions the call terminated
+  ([ADR-0227](docs/adr/0227-a-session-is-terminated-at-most-once-on-every-path.md), backlog `R95`).
 
 - **A change to a grant's payload loses no concurrent write.** The touch of a session, the addition of a client to it,
   and the polls and decisions of the device-code and CIBA grants apply their change to the grant as stored and read

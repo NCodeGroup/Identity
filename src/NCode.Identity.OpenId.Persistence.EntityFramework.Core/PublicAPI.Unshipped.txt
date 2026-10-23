@@ -138,6 +138,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincip
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.FederatedPrincipalEntity() -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.Id.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.Id.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.IsBlocked.get -> bool
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.IsBlocked.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.NormalizedPrincipalId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.NormalizedPrincipalId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.FederatedPrincipalEntity.NormalizedTenantId.get -> string!

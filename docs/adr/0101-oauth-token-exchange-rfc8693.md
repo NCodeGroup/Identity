@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-0167](0167-the-server-validates-the-tokens-it-issued-under-one-policy.md): a subject token is validated under the
-  policy its type names, and a `jwt` subject token must be an access token or an ID token)
+  policy its type names, and a `jwt` subject token must be an access token or an ID token;
+  [ADR-0225](0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md): the subject of an exchange passes
+  subject validation)
 - **Date:** 2026-10-14
 - **Deciders:** NCode Group
 

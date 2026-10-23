@@ -109,6 +109,8 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedIdentity.Tenan
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.IsBlocked.get -> bool
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.IsBlocked.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.PersistedFederatedPrincipal() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.PrincipalId.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedFederatedPrincipal.PrincipalId.init -> void

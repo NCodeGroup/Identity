@@ -18,6 +18,7 @@
 
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Persistence;
@@ -88,6 +89,18 @@ internal class DefaultCibaGrantHandler(
 
         var persistedGrant = persistedGrantOrNull.Value;
 
+        // An auth_req_id is redeemed only by the client it was issued to (CIBA Core §11). See ADR-0225.
+        if (
+            !string.Equals(
+                persistedGrant.Payload.ClientId,
+                openIdClient.ClientId,
+                StringComparison.Ordinal
+            )
+        )
+            return errorFactory
+                .InvalidGrant("The provided auth_req_id was issued to a different client.")
+                .WithStatusCode(StatusCodes.Status400BadRequest);
+
         if (persistedGrant.Status == PersistedGrantStatus.Expired)
             return Error(
                 errorFactory,
@@ -142,7 +155,9 @@ internal class DefaultCibaGrantHandler(
                     openIdContext,
                     openIdClient,
                     errorFactory,
+                    tokenRequest,
                     grantId,
+                    payload,
                     proofOfPossessionBinding,
                     cancellationToken
                 );
@@ -208,11 +223,23 @@ internal class DefaultCibaGrantHandler(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IOpenIdErrorFactory errorFactory,
+        ITokenRequest tokenRequest,
         PersistedGrantId grantId,
+        CibaGrant payload,
         ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
+        // The subject that approved the request is validated before the auth_req_id is spent, so a refused subject
+        // leaves it unspent. See ADR-0225.
+        var validateCommand = new ValidateTokenGrantCommand<CibaGrant>(
+            openIdContext,
+            openIdClient,
+            tokenRequest,
+            payload
+        );
+        await openIdContext.Mediator.SendAsync(validateCommand, cancellationToken);
+
         // Claim the approved request exactly once so an auth_req_id is redeemed for tokens a single time.
         var consumedOrNull = await PersistedGrantService.ConsumeOnceOrDefault<CibaGrant>(
             openIdContext,
@@ -225,12 +252,12 @@ internal class DefaultCibaGrantHandler(
                 .InvalidGrant("The provided auth_req_id has already been redeemed.")
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 
-        var payload = consumedOrNull.Value.Payload;
+        var consumedPayload = consumedOrNull.Value.Payload;
 
         return await TokenResponseService.CreateTokenResponseAsync(
             openIdContext,
             openIdClient,
-            payload,
+            consumedPayload,
             proofOfPossessionBinding,
             cancellationToken
         );

@@ -16,10 +16,13 @@
 
 #endregion
 
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
@@ -220,6 +223,55 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
         Assert.Contains(NormalValue, html, StringComparison.Ordinal);
         Assert.DoesNotContain("created_when", html, StringComparison.Ordinal);
         Assert.DoesNotContain(InternalValue, html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenResponseModeFormPost_AllowsOnlyTheFormsScriptAndItsClientsFrame()
+    {
+        var result = CreateResult(new FormPostAuthorizationResponseModeHandler());
+        var httpContext = new DefaultHttpContext();
+        var body = new MemoryStream();
+        httpContext.Response.Body = body;
+
+        await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        body.Position = 0;
+        var html = await new StreamReader(body).ReadToEndAsync();
+
+        const string scriptStart = "<script>";
+        var start = html.IndexOf(scriptStart, StringComparison.Ordinal) + scriptStart.Length;
+        var end = html.IndexOf("</script>", start, StringComparison.Ordinal);
+        var script = html[start..end];
+        var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(script)));
+
+        var headers = httpContext.Response.Headers;
+        Assert.Equal(
+            $"default-src 'none'; script-src 'sha256-{hash}'; base-uri 'none'; frame-ancestors https://client.example",
+            headers.ContentSecurityPolicy.ToString()
+        );
+        Assert.False(headers.ContainsKey(HeaderNames.XFrameOptions));
+        Assert.Equal("no-store, no-cache, max-age=0", headers.CacheControl.ToString());
+    }
+
+    [Theory]
+    [InlineData("com.example.app:/callback")]
+    [InlineData("https://[::1]:8443/callback")]
+    public async Task ExecuteAsync_WhenTheFormPostRedirectUriHasNoHostOrigin_ForbidsFraming(
+        string redirectUri
+    )
+    {
+        var result = CreateResult(
+            new FormPostAuthorizationResponseModeHandler(),
+            redirectUri: redirectUri
+        );
+        var httpContext = new DefaultHttpContext();
+        httpContext.Response.Body = new MemoryStream();
+
+        await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        var headers = httpContext.Response.Headers;
+        Assert.EndsWith("; frame-ancestors 'none'", headers.ContentSecurityPolicy.ToString());
+        Assert.Equal("DENY", headers.XFrameOptions.ToString());
     }
 
     [Fact]

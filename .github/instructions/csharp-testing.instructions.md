@@ -343,6 +343,11 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   posts the fields with them and the session cookie; a bundle page answers `503` in the integration host but still
   issues the tokens. Assert a refused sign-in with `SubmitLoginAsync`, which returns the response, and
   `ReadSessionCookie`.
+- 👁 **Prove a page's security headers over HTTP, for a returning browser too.** Read `Content-Security-Policy` and
+  `X-Frame-Options` from `HttpResponseMessage.Headers`, not `Content.Headers`; find the policy's nonce in the page and
+  prove a `'sha256-…'` source by hashing the page's own `<script>` text; send the antiforgery cookie the first response
+  set back with a second request, because antiforgery adds `X-Frame-Options` only when it stores an antiforgery cookie,
+  so a test of a first response alone passes without the page's own headers (`HtmlPageSecurityTests`).
 - 👁 **A password a test sets through an entry point meets the password policy.** The management API, the
   change-password page and the seeders refuse a password shorter than 15 characters or on the common-password list
   (`passwordpassword` is), so such a test uses a long, unlisted passphrase; `SeedLocalAccountAsync` writes to the store

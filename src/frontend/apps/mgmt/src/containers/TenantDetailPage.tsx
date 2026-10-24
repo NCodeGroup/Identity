@@ -2,22 +2,12 @@ import { useState } from 'react';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import {
-  apiErrorMessage,
-  type ApiError,
-  useCreateTenantSecretMutation,
-  useDeleteTenantSecretMutation,
-  useGetTenantEffectiveSettingsQuery,
-  useGetTenantSettingsQuery,
-  useGetTenantUsageQuery,
-  useLazyGetTenantSecretPublicKeyQuery,
-  useListTenantSecretsQuery,
-  useUpdateTenantSettingsMutation,
-} from '@ncode/store';
+import type { ManagementOwner } from '@ncode/api';
+import { apiErrorMessage, type ApiError, useGetTenantUsageQuery } from '@ncode/store';
 import { DataStateBoundary, TenantUsageTable } from '@ncode/ui';
 import type { TenantOwnSurface } from '../routes.js';
-import { SecretsManager } from './SecretsManager.js';
-import { SettingsManager } from './SettingsManager.js';
+import { OwnerSecretsTab } from './OwnerSecretsTab.js';
+import { OwnerSettingsTab } from './OwnerSettingsTab.js';
 
 export type TenantDetailPageProps = {
   readonly tenantId: string;
@@ -31,13 +21,14 @@ type TenantTabProps = {
 
 /**
  * Container: the current tenant's own secrets, settings, or usage surface (as opposed to its clients'), as the
- * `surface` prop names. The address bar selects the surface (ADR-0255), so this page holds no tab state. Mirrors the
- * client Secrets/Settings pattern on the tenant-level nested endpoints, wiring the shared
- * {@link SecretsManager}/{@link SettingsManager}, and shows the tenant's usage ledger (ADR-0199) through
- * {@link TenantUsageTable}. The tenant id comes from the active scope, so the boundary stays structural (a tenant
- * administrator can never address another tenant).
+ * `surface` prop names. The address bar selects the surface (ADR-0255), so this page holds no tab state. Wires the
+ * owner-generic {@link OwnerSecretsTab}/{@link OwnerSettingsTab} to the tenant, and shows the tenant's usage ledger
+ * (ADR-0199) through {@link TenantUsageTable}. The tenant id comes from the active scope, so the boundary stays
+ * structural (a tenant administrator can never address another tenant).
  */
 export function TenantDetailPage({ tenantId, surface }: TenantDetailPageProps) {
+  const owner: ManagementOwner = { kind: 'tenant', tenantId };
+
   return (
     <>
       <Stack sx={{ mb: 2 }}>
@@ -48,50 +39,10 @@ export function TenantDetailPage({ tenantId, surface }: TenantDetailPageProps) {
           {tenantId}
         </Typography>
       </Stack>
-      {surface === 'secrets' && <TenantSecretsTab tenantId={tenantId} />}
-      {surface === 'settings' && <TenantSettingsTab tenantId={tenantId} />}
+      {surface === 'secrets' && <OwnerSecretsTab owner={owner} ownerLabel="tenant" />}
+      {surface === 'settings' && <OwnerSettingsTab owner={owner} />}
       {surface === 'usage' && <TenantUsageTab tenantId={tenantId} />}
     </>
-  );
-}
-
-function TenantSecretsTab({ tenantId }: TenantTabProps) {
-  const { data, isLoading, error } = useListTenantSecretsQuery({ tenantId });
-  const [createSecret, { isLoading: isCreating }] = useCreateTenantSecretMutation();
-  const [deleteSecret, { isLoading: isDeleting }] = useDeleteTenantSecretMutation();
-  const [getPublicKey] = useLazyGetTenantSecretPublicKeyQuery();
-
-  return (
-    <SecretsManager
-      ownerLabel="tenant"
-      secrets={data?.secrets ?? []}
-      isLoading={isLoading}
-      loadError={Boolean(error)}
-      isCreating={isCreating}
-      isDeleting={isDeleting}
-      onCreate={(body) => createSecret({ tenantId, body }).unwrap()}
-      onDelete={(secretId) => deleteSecret({ tenantId, secretId }).unwrap()}
-      onExportPublicKey={(secretId) => getPublicKey({ tenantId, secretId }).unwrap()}
-    />
-  );
-}
-
-function TenantSettingsTab({ tenantId }: TenantTabProps) {
-  const { data: settings, isLoading, error } = useGetTenantSettingsQuery({ tenantId });
-  const { data: effective } = useGetTenantEffectiveSettingsQuery({ tenantId });
-  const [updateSettings, { isLoading: isSaving }] = useUpdateTenantSettingsMutation();
-
-  return (
-    <SettingsManager
-      settings={settings}
-      effective={effective}
-      isLoading={isLoading}
-      loadError={Boolean(error)}
-      isSaving={isSaving}
-      onSave={({ concurrencyToken, original, desired }) =>
-        updateSettings({ tenantId, concurrencyToken, original, desired }).unwrap()
-      }
-    />
   );
 }
 

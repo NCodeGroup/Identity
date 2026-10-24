@@ -3,9 +3,14 @@ import {
   diffPatch,
   GLOBAL_SCOPE,
   LIST_TAG,
+  ownerApiPath,
+  ownerEffectiveTagId,
+  ownerScope,
+  ownerTagId,
   replacePatch,
   scopeApiPrefix,
   scopeTagId,
+  type ClientOwner,
   type ClientResource,
   type CollectionResource,
   type CreatedInitialAccessTokenResource,
@@ -21,6 +26,7 @@ import {
   type GrantResource,
   type GrantRevocationResult,
   type ManagementCapabilitiesResource,
+  type ManagementOwner,
   type ManagementScope,
   type PublicKeyResource,
   type ResourceServerResource,
@@ -393,163 +399,6 @@ export const managementApi = createApi({
         { type: 'Grant', id: tenantTag(tenantId, LIST_TAG) },
       ],
     }),
-    listClientSecrets: build.query<SecretsResource, { scope: ManagementScope; clientId: string }>({
-      query: ({ scope, clientId }) =>
-        `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/secrets`,
-      providesTags: (result, _error, { scope, clientId }) => [
-        { type: 'Secret' as const, id: scopeTagId(scope, `client:${clientId}`) },
-        ...(result?.secrets ?? []).map((s) => ({
-          type: 'Secret' as const,
-          id: scopeTagId(scope, s.secretId),
-        })),
-      ],
-    }),
-    createClientSecret: build.mutation<
-      CreatedSecretResource,
-      { scope: ManagementScope; clientId: string; body: CreateSecretRequest }
-    >({
-      query: ({ scope, clientId, body }) => ({
-        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/secrets`,
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: (_result, _error, { scope, clientId }) => [
-        { type: 'Secret', id: scopeTagId(scope, `client:${clientId}`) },
-      ],
-    }),
-    deleteClientSecret: build.mutation<
-      void,
-      { scope: ManagementScope; clientId: string; secretId: string }
-    >({
-      query: ({ scope, clientId, secretId }) => ({
-        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(
-          clientId,
-        )}/secrets/${encodeURIComponent(secretId)}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: (_result, _error, { scope, clientId, secretId }) => [
-        { type: 'Secret', id: scopeTagId(scope, `client:${clientId}`) },
-        { type: 'Secret', id: scopeTagId(scope, secretId) },
-      ],
-    }),
-    rotateClientSecret: build.mutation<
-      CreatedSecretResource,
-      { scope: ManagementScope; clientId: string; secretId: string; body: RotateSecretRequest }
-    >({
-      query: ({ scope, clientId, secretId, body }) => ({
-        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(
-          clientId,
-        )}/secrets/${encodeURIComponent(secretId)}/rotate`,
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: (_result, _error, { scope, clientId, secretId }) => [
-        { type: 'Secret', id: scopeTagId(scope, `client:${clientId}`) },
-        { type: 'Secret', id: scopeTagId(scope, secretId) },
-      ],
-    }),
-    getClientSecretPublicKey: build.query<
-      PublicKeyResource,
-      { scope: ManagementScope; clientId: string; secretId: string }
-    >({
-      query: ({ scope, clientId, secretId }) =>
-        `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(
-          clientId,
-        )}/secrets/${encodeURIComponent(secretId)}/public-key`,
-    }),
-    getClientSettings: build.query<SettingsResource, { scope: ManagementScope; clientId: string }>({
-      query: ({ scope, clientId }) =>
-        `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/settings`,
-      providesTags: (_result, _error, { scope, clientId }) => [
-        { type: 'Settings', id: scopeTagId(scope, `client:${clientId}`) },
-      ],
-    }),
-    getClientEffectiveSettings: build.query<
-      EffectiveSettingsResource,
-      { scope: ManagementScope; clientId: string }
-    >({
-      query: ({ scope, clientId }) =>
-        `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/effective-settings`,
-      providesTags: (_result, _error, { scope, clientId }) => [
-        { type: 'Settings', id: scopeTagId(scope, `client-effective:${clientId}`) },
-      ],
-    }),
-    // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
-    updateClientSettings: build.mutation<
-      void,
-      {
-        scope: ManagementScope;
-        clientId: string;
-        concurrencyToken: string;
-        original: Readonly<Record<string, unknown>>;
-        desired: Readonly<Record<string, unknown>>;
-      }
-    >({
-      query: ({ scope, clientId, concurrencyToken, original, desired }) => ({
-        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/settings`,
-        method: 'PATCH',
-        body: diffPatch(original, desired),
-        headers: { 'If-Match': concurrencyToken },
-      }),
-      invalidatesTags: (_result, _error, { scope, clientId }) => [
-        { type: 'Settings', id: scopeTagId(scope, `client:${clientId}`) },
-        { type: 'Settings', id: scopeTagId(scope, `client-effective:${clientId}`) },
-      ],
-    }),
-    listTenantSecrets: build.query<SecretsResource, { tenantId: string }>({
-      query: ({ tenantId }) => `api/tenants/${encodeURIComponent(tenantId)}/secrets`,
-      providesTags: (result, _error, { tenantId }) => [
-        { type: 'Secret' as const, id: tenantTag(tenantId, 'tenant') },
-        ...(result?.secrets ?? []).map((s) => ({
-          type: 'Secret' as const,
-          id: tenantTag(tenantId, s.secretId),
-        })),
-      ],
-    }),
-    createTenantSecret: build.mutation<
-      CreatedSecretResource,
-      { tenantId: string; body: CreateSecretRequest }
-    >({
-      query: ({ tenantId, body }) => ({
-        url: `api/tenants/${encodeURIComponent(tenantId)}/secrets`,
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: (_result, _error, { tenantId }) => [
-        { type: 'Secret', id: tenantTag(tenantId, 'tenant') },
-      ],
-    }),
-    deleteTenantSecret: build.mutation<void, { tenantId: string; secretId: string }>({
-      query: ({ tenantId, secretId }) => ({
-        url: `api/tenants/${encodeURIComponent(tenantId)}/secrets/${encodeURIComponent(secretId)}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: (_result, _error, { tenantId, secretId }) => [
-        { type: 'Secret', id: tenantTag(tenantId, 'tenant') },
-        { type: 'Secret', id: tenantTag(tenantId, secretId) },
-      ],
-    }),
-    getTenantSecretPublicKey: build.query<
-      PublicKeyResource,
-      { tenantId: string; secretId: string }
-    >({
-      query: ({ tenantId, secretId }) =>
-        `api/tenants/${encodeURIComponent(tenantId)}/secrets/${encodeURIComponent(
-          secretId,
-        )}/public-key`,
-    }),
-    getTenantSettings: build.query<SettingsResource, { tenantId: string }>({
-      query: ({ tenantId }) => `api/tenants/${encodeURIComponent(tenantId)}/settings`,
-      providesTags: (_result, _error, { tenantId }) => [
-        { type: 'Settings', id: tenantTag(tenantId, 'tenant') },
-      ],
-    }),
-    getTenantEffectiveSettings: build.query<EffectiveSettingsResource, { tenantId: string }>({
-      query: ({ tenantId }) => `api/tenants/${encodeURIComponent(tenantId)}/effective-settings`,
-      providesTags: (_result, _error, { tenantId }) => [
-        { type: 'Settings', id: tenantTag(tenantId, 'tenant-effective') },
-      ],
-    }),
     // The usage ledger grows with every flush of the server (ADR-0199), so nothing is cached once unused: every mount
     // reads the current ledger.
     getTenantUsage: build.query<
@@ -565,207 +414,90 @@ export const managementApi = createApi({
       },
       keepUnusedDataFor: 0,
     }),
-    // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
-    updateTenantSettings: build.mutation<
-      void,
-      {
-        tenantId: string;
-        concurrencyToken: string;
-        original: Readonly<Record<string, unknown>>;
-        desired: Readonly<Record<string, unknown>>;
-      }
-    >({
-      query: ({ tenantId, concurrencyToken, original, desired }) => ({
-        url: `api/tenants/${encodeURIComponent(tenantId)}/settings`,
-        method: 'PATCH',
-        body: diffPatch(original, desired),
-        headers: { 'If-Match': concurrencyToken },
-      }),
-      invalidatesTags: (_result, _error, { tenantId }) => [
-        { type: 'Settings', id: tenantTag(tenantId, 'tenant') },
-        { type: 'Settings', id: tenantTag(tenantId, 'tenant-effective') },
-      ],
-    }),
-    listServerSecrets: build.query<SecretsResource, { serverId: string }>({
-      query: ({ serverId }) => `api/servers/${encodeURIComponent(serverId)}/secrets`,
-      providesTags: (result, _error, { serverId }) => [
-        { type: 'Secret' as const, id: globalTag(`server:${serverId}`) },
+    // The secrets and settings of any owner: a server, a tenant, or a client or resource server in a scope
+    // (docs/adr/0257). Every tag is scoped by the owner's scope, so one owner's caches never invalidate another's.
+    listSecrets: build.query<SecretsResource, ManagementOwner>({
+      query: (owner) => `${ownerApiPath(owner)}/secrets`,
+      providesTags: (result, _error, owner) => [
+        { type: 'Secret' as const, id: ownerTagId(owner) },
         ...(result?.secrets ?? []).map((s) => ({
           type: 'Secret' as const,
-          id: globalTag(s.secretId),
+          id: scopeTagId(ownerScope(owner), s.secretId),
         })),
       ],
     }),
-    createServerSecret: build.mutation<
+    createSecret: build.mutation<
       CreatedSecretResource,
-      { serverId: string; body: CreateSecretRequest }
+      { owner: ManagementOwner; body: CreateSecretRequest }
     >({
-      query: ({ serverId, body }) => ({
-        url: `api/servers/${encodeURIComponent(serverId)}/secrets`,
+      query: ({ owner, body }) => ({
+        url: `${ownerApiPath(owner)}/secrets`,
         method: 'POST',
         body,
       }),
-      invalidatesTags: (_result, _error, { serverId }) => [
-        { type: 'Secret', id: globalTag(`server:${serverId}`) },
-      ],
+      invalidatesTags: (_result, _error, { owner }) => [{ type: 'Secret', id: ownerTagId(owner) }],
     }),
-    deleteServerSecret: build.mutation<void, { serverId: string; secretId: string }>({
-      query: ({ serverId, secretId }) => ({
-        url: `api/servers/${encodeURIComponent(serverId)}/secrets/${encodeURIComponent(secretId)}`,
+    deleteSecret: build.mutation<void, { owner: ManagementOwner; secretId: string }>({
+      query: ({ owner, secretId }) => ({
+        url: `${ownerApiPath(owner)}/secrets/${encodeURIComponent(secretId)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { serverId, secretId }) => [
-        { type: 'Secret', id: globalTag(`server:${serverId}`) },
-        { type: 'Secret', id: globalTag(secretId) },
+      invalidatesTags: (_result, _error, { owner, secretId }) => [
+        { type: 'Secret', id: ownerTagId(owner) },
+        { type: 'Secret', id: scopeTagId(ownerScope(owner), secretId) },
       ],
     }),
-    getServerSecretPublicKey: build.query<
-      PublicKeyResource,
-      { serverId: string; secretId: string }
+    // Only a client's secrets rotate in one call, so the owner is a client by type.
+    rotateSecret: build.mutation<
+      CreatedSecretResource,
+      { owner: ClientOwner; secretId: string; body: RotateSecretRequest }
     >({
-      query: ({ serverId, secretId }) =>
-        `api/servers/${encodeURIComponent(serverId)}/secrets/${encodeURIComponent(
-          secretId,
-        )}/public-key`,
-    }),
-    getServerSettings: build.query<SettingsResource, { serverId: string }>({
-      query: ({ serverId }) => `api/servers/${encodeURIComponent(serverId)}/settings`,
-      providesTags: (_result, _error, { serverId }) => [
-        { type: 'Settings', id: globalTag(`server:${serverId}`) },
+      query: ({ owner, secretId, body }) => ({
+        url: `${ownerApiPath(owner)}/secrets/${encodeURIComponent(secretId)}/rotate`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { owner, secretId }) => [
+        { type: 'Secret', id: ownerTagId(owner) },
+        { type: 'Secret', id: scopeTagId(ownerScope(owner), secretId) },
       ],
     }),
-    getServerEffectiveSettings: build.query<EffectiveSettingsResource, { serverId: string }>({
-      query: ({ serverId }) => `api/servers/${encodeURIComponent(serverId)}/effective-settings`,
-      providesTags: (_result, _error, { serverId }) => [
-        { type: 'Settings', id: globalTag(`server-effective:${serverId}`) },
+    getSecretPublicKey: build.query<
+      PublicKeyResource,
+      { owner: ManagementOwner; secretId: string }
+    >({
+      query: ({ owner, secretId }) =>
+        `${ownerApiPath(owner)}/secrets/${encodeURIComponent(secretId)}/public-key`,
+    }),
+    getSettings: build.query<SettingsResource, ManagementOwner>({
+      query: (owner) => `${ownerApiPath(owner)}/settings`,
+      providesTags: (_result, _error, owner) => [{ type: 'Settings', id: ownerTagId(owner) }],
+    }),
+    getEffectiveSettings: build.query<EffectiveSettingsResource, ManagementOwner>({
+      query: (owner) => `${ownerApiPath(owner)}/effective-settings`,
+      providesTags: (_result, _error, owner) => [
+        { type: 'Settings', id: ownerEffectiveTagId(owner) },
       ],
     }),
     // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
-    updateServerSettings: build.mutation<
+    updateSettings: build.mutation<
       void,
       {
-        serverId: string;
+        owner: ManagementOwner;
         concurrencyToken: string;
         original: Readonly<Record<string, unknown>>;
         desired: Readonly<Record<string, unknown>>;
       }
     >({
-      query: ({ serverId, concurrencyToken, original, desired }) => ({
-        url: `api/servers/${encodeURIComponent(serverId)}/settings`,
+      query: ({ owner, concurrencyToken, original, desired }) => ({
+        url: `${ownerApiPath(owner)}/settings`,
         method: 'PATCH',
         body: diffPatch(original, desired),
         headers: { 'If-Match': concurrencyToken },
       }),
-      invalidatesTags: (_result, _error, { serverId }) => [
-        { type: 'Settings', id: globalTag(`server:${serverId}`) },
-        { type: 'Settings', id: globalTag(`server-effective:${serverId}`) },
-      ],
-    }),
-    listResourceServerSecrets: build.query<
-      SecretsResource,
-      { scope: ManagementScope; resourceServerId: string }
-    >({
-      query: ({ scope, resourceServerId }) =>
-        `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(resourceServerId)}/secrets`,
-      providesTags: (result, _error, { scope, resourceServerId }) => [
-        { type: 'Secret' as const, id: scopeTagId(scope, `resource-server:${resourceServerId}`) },
-        ...(result?.secrets ?? []).map((s) => ({
-          type: 'Secret' as const,
-          id: scopeTagId(scope, s.secretId),
-        })),
-      ],
-    }),
-    createResourceServerSecret: build.mutation<
-      CreatedSecretResource,
-      { scope: ManagementScope; resourceServerId: string; body: CreateSecretRequest }
-    >({
-      query: ({ scope, resourceServerId, body }) => ({
-        url: `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
-          resourceServerId,
-        )}/secrets`,
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
-        { type: 'Secret', id: scopeTagId(scope, `resource-server:${resourceServerId}`) },
-      ],
-    }),
-    deleteResourceServerSecret: build.mutation<
-      void,
-      { scope: ManagementScope; resourceServerId: string; secretId: string }
-    >({
-      query: ({ scope, resourceServerId, secretId }) => ({
-        url: `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
-          resourceServerId,
-        )}/secrets/${encodeURIComponent(secretId)}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: (_result, _error, { scope, resourceServerId, secretId }) => [
-        { type: 'Secret', id: scopeTagId(scope, `resource-server:${resourceServerId}`) },
-        { type: 'Secret', id: scopeTagId(scope, secretId) },
-      ],
-    }),
-    getResourceServerSecretPublicKey: build.query<
-      PublicKeyResource,
-      { scope: ManagementScope; resourceServerId: string; secretId: string }
-    >({
-      query: ({ scope, resourceServerId, secretId }) =>
-        `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
-          resourceServerId,
-        )}/secrets/${encodeURIComponent(secretId)}/public-key`,
-    }),
-    getResourceServerSettings: build.query<
-      SettingsResource,
-      { scope: ManagementScope; resourceServerId: string }
-    >({
-      query: ({ scope, resourceServerId }) =>
-        `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
-          resourceServerId,
-        )}/settings`,
-      providesTags: (_result, _error, { scope, resourceServerId }) => [
-        { type: 'Settings', id: scopeTagId(scope, `resource-server:${resourceServerId}`) },
-      ],
-    }),
-    getResourceServerEffectiveSettings: build.query<
-      EffectiveSettingsResource,
-      { scope: ManagementScope; resourceServerId: string }
-    >({
-      query: ({ scope, resourceServerId }) =>
-        `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
-          resourceServerId,
-        )}/effective-settings`,
-      providesTags: (_result, _error, { scope, resourceServerId }) => [
-        {
-          type: 'Settings',
-          id: scopeTagId(scope, `resource-server-effective:${resourceServerId}`),
-        },
-      ],
-    }),
-    // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
-    updateResourceServerSettings: build.mutation<
-      void,
-      {
-        scope: ManagementScope;
-        resourceServerId: string;
-        concurrencyToken: string;
-        original: Readonly<Record<string, unknown>>;
-        desired: Readonly<Record<string, unknown>>;
-      }
-    >({
-      query: ({ scope, resourceServerId, concurrencyToken, original, desired }) => ({
-        url: `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
-          resourceServerId,
-        )}/settings`,
-        method: 'PATCH',
-        body: diffPatch(original, desired),
-        headers: { 'If-Match': concurrencyToken },
-      }),
-      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
-        { type: 'Settings', id: scopeTagId(scope, `resource-server:${resourceServerId}`) },
-        {
-          type: 'Settings',
-          id: scopeTagId(scope, `resource-server-effective:${resourceServerId}`),
-        },
+      invalidatesTags: (_result, _error, { owner }) => [
+        { type: 'Settings', id: ownerTagId(owner) },
+        { type: 'Settings', id: ownerEffectiveTagId(owner) },
       ],
     }),
   }),
@@ -798,34 +530,13 @@ export const {
   useRevokeGrantMutation,
   useRevokeGrantsMutation,
   useCreateInitialAccessTokenMutation,
-  useListClientSecretsQuery,
-  useCreateClientSecretMutation,
-  useDeleteClientSecretMutation,
-  useRotateClientSecretMutation,
-  useLazyGetClientSecretPublicKeyQuery,
-  useGetClientSettingsQuery,
-  useGetClientEffectiveSettingsQuery,
-  useUpdateClientSettingsMutation,
-  useListTenantSecretsQuery,
-  useCreateTenantSecretMutation,
-  useDeleteTenantSecretMutation,
-  useLazyGetTenantSecretPublicKeyQuery,
-  useGetTenantSettingsQuery,
-  useGetTenantEffectiveSettingsQuery,
   useGetTenantUsageQuery,
-  useUpdateTenantSettingsMutation,
-  useListServerSecretsQuery,
-  useCreateServerSecretMutation,
-  useDeleteServerSecretMutation,
-  useLazyGetServerSecretPublicKeyQuery,
-  useGetServerSettingsQuery,
-  useGetServerEffectiveSettingsQuery,
-  useUpdateServerSettingsMutation,
-  useListResourceServerSecretsQuery,
-  useCreateResourceServerSecretMutation,
-  useDeleteResourceServerSecretMutation,
-  useLazyGetResourceServerSecretPublicKeyQuery,
-  useGetResourceServerSettingsQuery,
-  useGetResourceServerEffectiveSettingsQuery,
-  useUpdateResourceServerSettingsMutation,
+  useListSecretsQuery,
+  useCreateSecretMutation,
+  useDeleteSecretMutation,
+  useRotateSecretMutation,
+  useLazyGetSecretPublicKeyQuery,
+  useGetSettingsQuery,
+  useGetEffectiveSettingsQuery,
+  useUpdateSettingsMutation,
 } = managementApi;

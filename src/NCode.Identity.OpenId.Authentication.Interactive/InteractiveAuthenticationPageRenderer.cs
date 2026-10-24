@@ -59,6 +59,8 @@ internal static class InteractiveAuthenticationPageRenderer
     /// <param name="shell">The bundle's split <c>index.html</c>, or <see langword="null"/> for a standalone page.</param>
     /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
     /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
+    /// <param name="nonce">The nonce of the page's Content-Security-Policy, written in place of the bundle's nonce
+    /// placeholder.</param>
     /// <param name="returnUrl">The URL the form carries so the end-user returns to it once signed in.</param>
     /// <param name="antiforgeryFieldName">The name of the form field that carries the antiforgery token.</param>
     /// <param name="antiforgeryToken">The antiforgery token the form carries.</param>
@@ -68,13 +70,14 @@ internal static class InteractiveAuthenticationPageRenderer
         InteractiveBundleShell? shell,
         string surfaceBase,
         InteractiveBranding? branding,
+        string nonce,
         string returnUrl,
         string antiforgeryFieldName,
         string antiforgeryToken,
         string? errorMessage
     )
     {
-        WriteHead(writer, shell, surfaceBase, branding, "Sign in");
+        WriteHead(writer, shell, surfaceBase, branding, nonce, "Sign in");
         Write(
             writer,
             // The action is relative to the page, so the form posts to the login endpoint of the tenant that served it.
@@ -96,7 +99,7 @@ internal static class InteractiveAuthenticationPageRenderer
                 + "<button id=\"login\" name=\"login\" value=\"login\" type=\"submit\">Sign in</button>"
                 + "</form></main>"
         );
-        WriteTail(writer, shell);
+        WriteTail(writer, shell, nonce);
     }
 
     /// <summary>
@@ -107,6 +110,8 @@ internal static class InteractiveAuthenticationPageRenderer
     /// <param name="shell">The bundle's split <c>index.html</c>, or <see langword="null"/> for a standalone page.</param>
     /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
     /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
+    /// <param name="nonce">The nonce of the page's Content-Security-Policy, written in place of the bundle's nonce
+    /// placeholder.</param>
     /// <param name="returnUrl">The URL the form carries so the request resumes once consent is given.</param>
     /// <param name="antiforgeryFieldName">The name of the form field that carries the antiforgery token.</param>
     /// <param name="antiforgeryToken">The antiforgery token the form carries.</param>
@@ -117,6 +122,7 @@ internal static class InteractiveAuthenticationPageRenderer
         InteractiveBundleShell? shell,
         string surfaceBase,
         InteractiveBranding? branding,
+        string nonce,
         string returnUrl,
         string antiforgeryFieldName,
         string antiforgeryToken,
@@ -124,7 +130,7 @@ internal static class InteractiveAuthenticationPageRenderer
         IReadOnlyList<ScopeView> scopes
     )
     {
-        WriteHead(writer, shell, surfaceBase, branding, "Authorize access");
+        WriteHead(writer, shell, surfaceBase, branding, nonce, "Authorize access");
         Write(
             writer,
             "<main class=\"auth-card\"><form method=\"post\" action=\"consent\"><h1>Authorize access</h1><p>"
@@ -147,7 +153,7 @@ internal static class InteractiveAuthenticationPageRenderer
                 + "<button id=\"consent-allow\" name=\"action\" value=\"allow\" type=\"submit\">Allow</button>"
                 + "</form></main>"
         );
-        WriteTail(writer, shell);
+        WriteTail(writer, shell, nonce);
     }
 
     /// <summary>
@@ -161,6 +167,8 @@ internal static class InteractiveAuthenticationPageRenderer
     /// <param name="shell">The bundle's split <c>index.html</c>, or <see langword="null"/> for a standalone page.</param>
     /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
     /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
+    /// <param name="nonce">The nonce of the page's Content-Security-Policy, written in place of the bundle's nonce
+    /// placeholder.</param>
     /// <param name="errorCode">The error code, such as <c>invalid_client</c>.</param>
     /// <param name="errorDescription">The human-readable error description, or <see langword="null"/> for none.</param>
     public static void RenderErrorPage(
@@ -168,11 +176,12 @@ internal static class InteractiveAuthenticationPageRenderer
         InteractiveBundleShell? shell,
         string surfaceBase,
         InteractiveBranding? branding,
+        string nonce,
         string errorCode,
         string? errorDescription
     )
     {
-        WriteHead(writer, shell, surfaceBase, branding, "Authorization error");
+        WriteHead(writer, shell, surfaceBase, branding, nonce, "Authorization error");
         Write(
             writer,
             "<main class=\"auth-card\"><h1>Authorization error</h1>"
@@ -192,7 +201,7 @@ internal static class InteractiveAuthenticationPageRenderer
             Write(writer, "</p>");
         }
         Write(writer, "</main>");
-        WriteTail(writer, shell);
+        WriteTail(writer, shell, nonce);
     }
 
     private static void WriteHiddenFields(
@@ -219,40 +228,45 @@ internal static class InteractiveAuthenticationPageRenderer
     /// <param name="shell">The bundle's split <c>index.html</c>.</param>
     /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
     /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
+    /// <param name="nonce">The nonce of the page's Content-Security-Policy, written in place of the bundle's nonce
+    /// placeholder.</param>
     public static void RenderBundlePage(
         IBufferWriter<char> writer,
         InteractiveBundleShell shell,
         string surfaceBase,
-        InteractiveBranding? branding
+        InteractiveBranding? branding,
+        string nonce
     )
     {
-        WriteHead(writer, shell, surfaceBase, branding, title: string.Empty);
-        WriteTail(writer, shell);
+        WriteHead(writer, shell, surfaceBase, branding, nonce, title: string.Empty);
+        WriteTail(writer, shell, nonce);
     }
 
     // Writes the bundle's head, which ends inside its #root, so the SPA enhances the form on mount; without the bundle,
     // a minimal standalone document keeps the form working. Either way the document's base is the surface beneath the
     // request's tenant, so the bundle's relative asset URLs, its API calls, and the forms' relative actions resolve
     // there whatever path the page itself was served at (ADR-0193). The tenant's branding follows the base, so the
-    // bundle finds it in the page it mounts over.
+    // bundle finds it in the page it mounts over. The bundle's own markup carries the nonce in place of its placeholder;
+    // no rendered value does. See ADR-0256.
     private static void WriteHead(
         IBufferWriter<char> writer,
         InteractiveBundleShell? shell,
         string surfaceBase,
         InteractiveBranding? branding,
+        string nonce,
         string title
     )
     {
         if (shell is not null)
         {
-            Write(writer, shell.Prelude.Span);
+            WriteShellSegment(writer, shell.Prelude.Span, nonce);
             WriteBase(writer, surfaceBase);
             if (branding is not null)
             {
                 WriteBranding(writer, branding);
             }
 
-            Write(writer, shell.Head.Span);
+            WriteShellSegment(writer, shell.Head.Span, nonce);
             return;
         }
 
@@ -279,8 +293,45 @@ internal static class InteractiveAuthenticationPageRenderer
         Write(writer, BrandingEnd);
     }
 
-    private static void WriteTail(IBufferWriter<char> writer, InteractiveBundleShell? shell) =>
-        Write(writer, shell is not null ? shell.Tail.Span : StandaloneTail);
+    private static void WriteTail(
+        IBufferWriter<char> writer,
+        InteractiveBundleShell? shell,
+        string nonce
+    )
+    {
+        if (shell is not null)
+        {
+            WriteShellSegment(writer, shell.Tail.Span, nonce);
+            return;
+        }
+
+        Write(writer, StandaloneTail);
+    }
+
+    // Writes a segment of the bundle's own document with the response's nonce in place of every nonce placeholder.
+    private static void WriteShellSegment(
+        IBufferWriter<char> writer,
+        ReadOnlySpan<char> segment,
+        string nonce
+    )
+    {
+        while (true)
+        {
+            var index = segment.IndexOf(
+                InteractiveBundleShell.NoncePlaceholder,
+                StringComparison.Ordinal
+            );
+            if (index < 0)
+            {
+                Write(writer, segment);
+                return;
+            }
+
+            Write(writer, segment[..index]);
+            Write(writer, nonce);
+            segment = segment[(index + InteractiveBundleShell.NoncePlaceholder.Length)..];
+        }
+    }
 
     private static void Write(IBufferWriter<char> writer, ReadOnlySpan<char> value) =>
         writer.Write(value);

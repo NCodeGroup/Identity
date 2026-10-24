@@ -18,7 +18,7 @@
 #endregion
 
 using System.Buffers;
-using System.Security.Cryptography;
+using System.Collections.Immutable;
 using System.Text;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Http;
@@ -192,8 +192,28 @@ internal static class AuthorizationResponseWriter
     private const string FormPostHtmlEnd =
         $"<noscript><p>Script is disabled. Click Submit to continue.</p><input type='submit' value='Submit'/></noscript></form><script>{FormPostJavascript}</script></body></html>";
 
-    private static readonly string FormPostContentSecurityPolicy =
-        $"default-src 'none'; script-src 'sha256-{Convert.ToBase64String(SHA256.HashData(Encoding.ASCII.GetBytes(FormPostJavascript)))}'";
+    private static string FormPostScriptSource { get; } =
+        ContentSecurityPolicySources.Sha256(FormPostJavascript);
+
+    // The form posts to the client, which may redirect anywhere, so form-action stays open. A relying party may
+    // re-authenticate with prompt=none in an iframe (Session Management 1.0), so the redirect URI's origin, and no
+    // other, may frame the response. See ADR-0256.
+    private static HtmlPageSecurityPolicy CreateFormPostPolicy(string redirectUri)
+    {
+        ImmutableArray<string> frameAncestors =
+            Uri.TryCreate(redirectUri, UriKind.Absolute, out var uri)
+            && uri.Scheme is "http" or "https"
+            && uri.HostNameType is UriHostNameType.Dns or UriHostNameType.IPv4
+                ? [ContentSecurityPolicySources.Origin(uri)]
+                : [];
+
+        return new HtmlPageSecurityPolicy
+        {
+            Directives = [new(ContentSecurityPolicyDirectives.ScriptSrc, FormPostScriptSource)],
+            AllowsAnyFormAction = true,
+            FrameAncestors = frameAncestors,
+        };
+    }
 
     /// <summary>
     /// Answers with an auto-submitting HTML form that posts the parameters to the redirect URI.
@@ -205,9 +225,7 @@ internal static class AuthorizationResponseWriter
         CancellationToken cancellationToken
     )
     {
-        httpResponse.SetNoStore();
-        httpResponse.Headers["Referrer-Policy"] = "no-referrer";
-        httpResponse.Headers.ContentSecurityPolicy = FormPostContentSecurityPolicy;
+        httpResponse.SetHtmlPageSecurity(CreateFormPostPolicy(redirectUri));
 
         // The page is rendered into a pooled buffer and transcoded straight into the response pipe, so no per-request
         // document string is built.

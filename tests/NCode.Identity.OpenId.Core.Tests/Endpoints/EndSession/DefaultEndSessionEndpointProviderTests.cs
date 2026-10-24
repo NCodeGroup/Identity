@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -97,7 +99,7 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
         Assert.Equal("text/html; charset=utf-8", content.ContentType);
         Assert.NotNull(content.ResponseContent);
         Assert.Contains(
-            $"<iframe style=\"display:none\" src=\"{HtmlEncoder.Default.Encode(FrontChannelLogoutUri)}\"></iframe>",
+            $"<iframe hidden src=\"{HtmlEncoder.Default.Encode(FrontChannelLogoutUri)}\"></iframe>",
             content.ResponseContent
         );
         Assert.Contains(
@@ -106,6 +108,22 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
         );
         Assert.DoesNotContain(RedirectUri, content.ResponseContent);
         Assert.DoesNotContain("You have been logged out.", content.ResponseContent);
+        Assert.DoesNotContain("style=", content.ResponseContent);
+
+        const string scriptStart = "<script>";
+        var start =
+            content.ResponseContent.IndexOf(scriptStart, StringComparison.Ordinal)
+            + scriptStart.Length;
+        var end = content.ResponseContent.IndexOf("</script>", start, StringComparison.Ordinal);
+        var script = content.ResponseContent[start..end];
+        var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(script)));
+
+        var headers = HttpContext.Response.Headers;
+        Assert.Equal(
+            $"default-src 'none'; frame-src https://rp.example; script-src 'sha256-{hash}'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+            headers.ContentSecurityPolicy.ToString()
+        );
+        Assert.Equal("DENY", headers.XFrameOptions.ToString());
     }
 
     [Fact]
@@ -119,12 +137,34 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
         Assert.Equal("text/html; charset=utf-8", content.ContentType);
         Assert.NotNull(content.ResponseContent);
         Assert.Contains(
-            $"<iframe style=\"display:none\" src=\"{HtmlEncoder.Default.Encode(FrontChannelLogoutUri)}\"></iframe>",
+            $"<iframe hidden src=\"{HtmlEncoder.Default.Encode(FrontChannelLogoutUri)}\"></iframe>",
             content.ResponseContent
         );
         Assert.Contains("<p>You have been logged out.</p>", content.ResponseContent);
         Assert.DoesNotContain("data-url", content.ResponseContent);
         Assert.DoesNotContain("<script>", content.ResponseContent);
+        Assert.Equal(
+            "default-src 'none'; frame-src https://rp.example; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+            HttpContext.Response.Headers.ContentSecurityPolicy.ToString()
+        );
+    }
+
+    [Fact]
+    public async Task HandleRouteAsync_WhenSeveralLogoutUrisShareAnOrigin_FramesEachOriginOnce()
+    {
+        SetupMediator(
+            new EndSessionDisposition(
+                null,
+                ["https://rp.example/a", "https://rp.example/b?x=1", "https://other.example:8443/c"]
+            )
+        );
+
+        await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
+
+        Assert.Equal(
+            "default-src 'none'; frame-src https://rp.example https://other.example:8443; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+            HttpContext.Response.Headers.ContentSecurityPolicy.ToString()
+        );
     }
 
     #endregion

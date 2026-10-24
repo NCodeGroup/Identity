@@ -19,6 +19,11 @@ describe('mountSurface', () => {
     root = undefined;
     container.remove();
     document.getElementById('branding')?.remove();
+    document.head
+      .querySelectorAll('meta[property="csp-nonce"], style[data-emotion]')
+      .forEach((element) => {
+        element.remove();
+      });
   });
 
   function mount(): void {
@@ -72,5 +77,19 @@ describe('mountSurface', () => {
       'invalid_client',
     );
     expect(container.querySelector('#username')).toBeNull();
+  });
+
+  it('gives the styles it inserts the nonce the host wrote into the page', () => {
+    const meta = document.createElement('meta');
+    meta.setAttribute('property', 'csp-nonce');
+    // jsdom has no nonce property; a browser exposes the host's nonce through it.
+    meta.nonce = 'n0nce';
+    document.head.append(meta);
+
+    mount();
+
+    const styles = Array.from(document.head.querySelectorAll('style[data-emotion]'));
+    expect(styles.length).toBeGreaterThan(0);
+    expect(styles.map((s) => s.getAttribute('nonce'))).toEqual(styles.map(() => 'n0nce'));
   });
 });

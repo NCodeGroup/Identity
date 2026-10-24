@@ -252,16 +252,26 @@ export function defineStandaloneSurfaceConfig({
 }
 
 /**
+ * The value Vite writes into the `nonce` attribute of every script, modulepreload link and the
+ * `<meta property="csp-nonce">` of a backend-served bundle. The host writes each response's nonce in its place, so
+ * `InteractiveBundleShell.NoncePlaceholder` in the .NET host must stay equal (ADR-0256).
+ */
+export const CSP_NONCE_PLACEHOLDER = '__NCODE_CSP_NONCE__';
+
+/**
  * The configuration of a backend-served surface: a bundle the OpenID Provider host serves from its `dist` folder. It has
  * no dev server; its `dev` script rebuilds `dist` on change instead. The bundle is built with a relative base, so it
  * does not assume where it is mounted: the host serves it beneath each tenant's route and sets the document's
- * `<base href>` to that location, which the bundle's asset URLs resolve against (ADR-0193).
+ * `<base href>` to that location, which the bundle's asset URLs resolve against (ADR-0193). The bundle runs under the
+ * page's Content-Security-Policy nonce, so the build marks its scripts with the placeholder the host replaces
+ * (ADR-0256).
  */
 export function defineBackendServedSurfaceConfig({
   coverage,
 }: BackendServedSurfaceConfigOptions): ViteUserConfig {
   return {
     base: './',
+    html: { cspNonce: CSP_NONCE_PLACEHOLDER },
     plugins: [react(), failOnOversizedChunks()],
     build: buildOptions(),
     test: testGates({ environment: 'jsdom', coverage }),

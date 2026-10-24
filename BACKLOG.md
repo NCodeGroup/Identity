@@ -539,15 +539,6 @@ _None remaining._
 
 ### P2
 
-- **`R112` — Forbid framing of every interactive page.** RFC 9700 §4.16 requires an authorization server to prevent
-  clickjacking, and the interactive surface relies on ASP.NET Core antiforgery, which sends
-  `X-Frame-Options: SAMEORIGIN` only with a response that stores a new antiforgery cookie: a login, consent, or
-  account page served to a browser that already holds the cookie, and the authorization error page, carry no
-  framing policy, so a same-site page can frame the consent page. Send
-  `Content-Security-Policy: frame-ancestors 'none'` (with `X-Frame-Options: DENY` for older browsers) on every
-  page the surface writes, and decide the rest of the surface's Content-Security-Policy (the bundle's module
-  scripts and emotion's styles) with it. Touch points: `InteractiveHtmlResult.WriteAsync`,
-  `InteractiveOpenIdErrorResponseFormatter`.
 - **`R113` — Send `Strict-Transport-Security` from the reference host.** The host redirects plain HTTP to HTTPS
   (`UseHttpsRedirection`) but sends no HSTS header, so when it terminates TLS itself, as mutual TLS requires, a
   browser's later plain-HTTP request to the issuer can be intercepted before the redirect (RFC 6797, OWASP Secure
@@ -573,8 +564,3 @@ _None remaining._
 - **`R44` — Key the conformance seed by `client_id`.** Stop passing keys by array position
   (`run-conformance.ps1:318-321`), generate both FAPI templates from one source, and derive `discoveryUrl` from
   `$IssuerUrl`.
-- **`R45` — Build the console's secrets and settings endpoints from one owner-generic builder.** `managementApi.ts`
-  defines the secrets and settings endpoints once per owner type (server, tenant, client, resource server), about 28 near-
-  copies. One builder parameterized by the owner's path and cache tags should produce them all. The account pages'
-  `fetchSurfaceJson` helper and the tenant tabs with their own addresses are done (ADR-0255). Touch points:
-  `src/frontend/packages/store/src/managementApi.ts` and its tests.

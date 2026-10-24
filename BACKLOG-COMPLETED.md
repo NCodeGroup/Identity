@@ -3534,3 +3534,25 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: every browser-simulating frontend package waits up to 10 seconds for an element and allows 30 seconds a test;
   the three timing-sensitive tests load lazily loaded surfaces first and the tenant address preview's debounce is a prop
   its tests set to 0, so they wait for an outcome rather than the runner._
+- **`R45` — Build the console's secrets and settings endpoints from one owner-generic builder.** `managementApi.ts`
+  defines the secrets and settings endpoints once per owner type (server, tenant, client, resource server), about 28 near-
+  copies. One builder parameterized by the owner's path and cache tags should produce them all. The account pages'
+  `fetchSurfaceJson` helper and the tenant tabs with their own addresses are done (ADR-0255). Touch points:
+  `src/frontend/packages/store/src/managementApi.ts` and its tests.
+  _Closed: the store reaches every owner's secrets and settings through eight endpoints that take a `ManagementOwner`,
+  replacing 29 per-owner endpoints, and `OwnerSecretsTab` and `OwnerSettingsTab` serve every detail page
+  ([ADR-0257](docs/adr/0257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md))._
+- **`R112` — Forbid framing of every interactive page.** RFC 9700 §4.16 requires an authorization server to prevent
+  clickjacking, and the interactive surface relies on ASP.NET Core antiforgery, which sends
+  `X-Frame-Options: SAMEORIGIN` only with a response that stores a new antiforgery cookie: a login, consent, or
+  account page served to a browser that already holds the cookie, and the authorization error page, carry no
+  framing policy, so a same-site page can frame the consent page. Send
+  `Content-Security-Policy: frame-ancestors 'none'` (with `X-Frame-Options: DENY` for older browsers) on every
+  page the surface writes, and decide the rest of the surface's Content-Security-Policy (the bundle's module
+  scripts and emotion's styles) with it. Touch points: `InteractiveHtmlResult.WriteAsync`,
+  `InteractiveOpenIdErrorResponseFormatter`.
+  _Closed: `HttpResponse.SetHtmlPageSecurity` writes every HTML page's strict Content-Security-Policy,
+  `X-Frame-Options`, `nosniff`, `Referrer-Policy` and `no-store` in one place; the interactive pages run only
+  nonce-bearing scripts and styles, the `form_post` response may be framed only by its redirect URI's origin, the
+  front-channel logout page frames only the clients' logout origins and the `check_session_iframe` stays embeddable
+  ([ADR-0256](docs/adr/0256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md))._

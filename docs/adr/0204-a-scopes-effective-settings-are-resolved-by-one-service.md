@@ -1,6 +1,8 @@
 # 204. A scope's effective settings are resolved by one service
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0245](0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md): ResolveStored
+  names a stored document that cannot be honored)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -36,14 +38,18 @@ that check reads.
 ## Decision
 
 1. **One service resolves a scope's effective settings.** `IEffectiveSettingsResolver`
-   (`NCode.Identity.OpenId.Abstractions`, namespace `NCode.Identity.OpenId.Settings`) has four members:
+   (`NCode.Identity.OpenId.Abstractions`, namespace `NCode.Identity.OpenId.Settings`) has five members:
    - `ReadScopeSettings(scopeName, document)` deserializes a scope's persisted document with the environment's JSON
      options and expands the security profiles it selects. The scope name lets a setting that does not apply within the
      scope fail the read ([ADR-0149](0149-settings-declare-the-scopes-they-apply-to.md)).
    - `Resolve(parent, scopeName, document)` merges that onto the parent's effective settings.
+   - `ResolveStored(parent, scopeName, ownerId, document)` merges a document that a store holds, and throws
+     `UnreadableSettingsException`, a `JsonException` that names the scope and the owner, when it cannot be honored
+     ([ADR-0245](0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)).
    - `ResolveServerAsync(document, cancellationToken)` resolves a proposed server document onto the server's configured
      settings.
-   - `ResolveServerAsync(cancellationToken)` does the same for the server's committed document.
+   - `ResolveServerAsync(cancellationToken)` does the same for the server's committed document, and names the server's
+     document as `ResolveStored` does.
 
    A document that selects a security profile that is not registered fails with a `JsonException`.
 2. **The server's committed document is read when it is asked for.** `ResolveServerAsync(cancellationToken)` reads the

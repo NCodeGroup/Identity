@@ -793,8 +793,14 @@ NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ReadScopeSettings(stri
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.Resolve(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, System.Text.Json.JsonElement settings) -> NCode.Identity.Settings.IReadOnlySettingCollection!
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveServerAsync(System.Text.Json.JsonElement settings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveServerAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveStored(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, string! ownerId, System.Text.Json.JsonElement settings) -> NCode.Identity.Settings.IReadOnlySettingCollection!
 NCode.Identity.OpenId.Settings.OpenIdSettingKeys
 NCode.Identity.OpenId.Settings.OpenIdSettingNames
+NCode.Identity.OpenId.Settings.UnreadableSettingsException
+NCode.Identity.OpenId.Settings.UnreadableSettingsException.DocumentError.get -> string!
+NCode.Identity.OpenId.Settings.UnreadableSettingsException.OwnerId.get -> string!
+NCode.Identity.OpenId.Settings.UnreadableSettingsException.ScopeName.get -> string!
+NCode.Identity.OpenId.Settings.UnreadableSettingsException.UnreadableSettingsException(string! scopeName, string! ownerId, System.Text.Json.JsonException! innerException) -> void
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.DynamicByHostTenantOptions() -> void
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.RegexPattern.get -> string!

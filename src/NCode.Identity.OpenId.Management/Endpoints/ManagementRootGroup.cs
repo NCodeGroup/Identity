@@ -50,7 +50,8 @@ internal sealed class ManagementRootGroup : IEndpointGroup
         group
             .AddEndpointFilter<RouteGroupBuilder, ManagementEnvironmentEndpointFilter>()
             .AddEndpointFilter<RouteGroupBuilder, ManagementAuthenticationEndpointFilter>()
-            .AddEndpointFilter<RouteGroupBuilder, StoreConcurrencyEndpointFilter>();
+            .AddEndpointFilter<RouteGroupBuilder, StoreConcurrencyEndpointFilter>()
+            .AddEndpointFilter<RouteGroupBuilder, UnreadableSettingsEndpointFilter>();
 
     /// <inheritdoc />
     public void ConfigureServices(IEndpointGroupBuilder builder)

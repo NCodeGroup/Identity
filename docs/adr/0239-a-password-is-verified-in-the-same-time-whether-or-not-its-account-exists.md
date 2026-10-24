@@ -1,6 +1,9 @@
 # 239. A password is verified in the same time whether or not its account exists
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0244](0244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md): a password refused at the
+  attempt limit is verified against the dummy hash and counted, and the verification's own lookup names the counted
+  user name)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -47,18 +50,8 @@ the result.**
 5. **The dummy takes the steps of a stored hash.** A password that is not in NFC is verified in its NFC form and then as
    submitted ([ADR-0238](0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)), against the dummy as
    against a stored hash, so a wrong password costs the same number of hash verifications on every path.
-6. **Some differences stay.**
-   - The refusal of an account that reached its limit takes no verification, for a name that an account has and for one
-     that none has alike. For a name spelled alike, it reveals that the limit is reached, not that the account exists,
-     and [ADR-0237](0237-failed-password-attempts-are-limited-per-account.md) keeps the password away from the store.
-   - The lookup that resolves the user name the limit counts reads the account's claims only when an account has the
-     name, so the ASP.NET Core Identity adapter runs one more database query on that path, before a verification and
-     before a refusal of the limit, where no hash hides it (backlog `R109`).
-   - A database collation that matches spellings that the folding of
-     [ADR-0237](0237-failed-password-attempts-are-limited-per-account.md) keeps apart, such as a trailing space under a
-     padding collation, gives those spellings one count when an account has the name and separate counts when none has,
-     so reaching the limit under one spelling and trying another tells by the time of the answer whether an account has
-     the name (backlog `R109`).
+6. **Some differences stay.** A password refused at the limit of failed attempts takes the work of a wrong one
+   ([ADR-0244](0244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md)), and these remain:
    - A stored hash with weaker parameters than the current ones costs less to verify until its next successful
      verification replaces it.
    - The adapter verifies a stored hash with the host's ASP.NET Core Identity hasher, which refuses a non-empty hash
@@ -73,9 +66,9 @@ the result.**
   latency to every failure.
 - **Hashing the submitted password instead of verifying a dummy.** Rejected: it is a different path, and the second
   verification that the hasher makes of a password that is not in NFC would not be mirrored.
-- **Verifying the password of an account that reached its limit.** Rejected:
-  [ADR-0237](0237-failed-password-attempts-are-limited-per-account.md) keeps the password away from the store, and the
-  refusal is the same for every name.
+- **Verifying the password of an account that reached its limit against its stored hash.** Rejected: a right password
+  would take another number of verifications or a rehash, so the refusal would tell it; a refused password is verified
+  against the dummy hash ([ADR-0244](0244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md)).
 
 ## Consequences
 

@@ -165,6 +165,11 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   content of a command the unit sends before more work (the subject a token exchange validates), capture the command in
   the setup's callback and return `ValueTask.FromException(...)`, so the unit stops there and the test mocks nothing
   after it (`DefaultTokenExchangeGrantHandlerTests`).
+- 👁 **Run a function argument through a strict setup.** When the unit passes a function that the collaborator calls
+  midway (the `isRefusedAsync` of `ILocalAccountStore.VerifyCredentialAsync`), set up
+  `.Returns((T1 _, T2 _, Func<…> callback, CancellationToken cancellationToken) => HelperAsync(callback, …,
+  cancellationToken))` with a static `async` helper rather than an `async` lambda, so the delegate returns the member's
+  own `ValueTask<T>` (`LocalAccountStoreSetup.SetupVerification`).
 - 👁 **Match a `JsonElement` argument by content.** `JsonElement` compares document references, and a Moq matcher is an
   expression tree that cannot contain `out _`, so call a static helper
   (`It.Is<JsonElement>(e => HasProperty(e, "foo"))`).
@@ -221,6 +226,11 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   management API refuses such a document, so `SeedPublicClientWithSettingsAsync` writes it with an unregistered
   setting name; assert that the incoherent-client report lists it with a `documentError` before the behavior under
   test, so the test cannot pass on a document the server reads (`UnreadableSettingsDocumentTests`).
+- 👁 **Make a served tenant's own settings document unreadable after the management client authenticates.**
+  `HostApplicationFactory.ReplaceTenantSettingsAsync` writes the document through the store and leaves the materialized
+  tenant cached, so the token still validates and the management request reads the document
+  (`UnreadableSettingsDocumentTests`). A handler test that a read authorizes before it resolves gives the strict
+  resolver no setup (`GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbidWithoutResolvingTheSettings`).
 - 👁 **A strict-mock test of a read-and-retry loop returns a new object for each read**
   (`SetupSequence(...).ReturnsAsync(first).ReturnsAsync(second)`): the code under test changes the object it read, so
   one shared instance makes the second read see the first attempt's own write.
@@ -328,14 +338,17 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   flaky in the parallel gate. Assert that the path without a stored hash verifies the dummy hash: a strict
   `IPasswordHasher<TUser>` setup for the ASP.NET Core Identity adapter, a recording `IPasswordHasher` fake for the
   Entity Framework store (Moq cannot match its span arguments), and a recording decorator that a derived
-  `HostApplicationFactory` registers end to end (`PasswordVerificationTimingTests`).
+  `HostApplicationFactory` registers end to end (`PasswordVerificationTimingTests`). A refusal at the attempt limit is
+  proven the same way (`SignIn_WhenTheLimitIsReached_VerifiesAgainstTheDummyHash`).
 - 👁 **Test the ASP.NET Core Identity adapter against a real `UserManager<TUser>` as well as a mocked one.** A mocked
   `UserManager` hides what its own methods do: `CreateAsync(user, password)` runs the password validators, and
   `CheckPasswordAsync` rehashes and rotates the security stamp.
   `AspNetIdentityLocalAccountStoreEntityFrameworkTests` composes
   `AddIdentityCore<IdentityUser>().AddEntityFrameworkStores<IdentityDbContext>()` over EF InMemory with the adapter's
   own registration. Write a password that is not in NFC with escapes (`"cafe\u0301"`), never as a pasted character an
-  editor may normalize.
+  editor may normalize. The user manager's hasher is the adapter's `NormalizingPasswordHasher<TUser>`, so a hash of a
+  password as typed comes from a raw `PasswordHasher<TUser>` (`SetStoredPasswordHashAsync`), and a mocked
+  `UserManager<TUser>` is built with a hasher wrapped in it.
 - 👁 **Assert a URI the server must deliver as written on `Headers.Location.OriginalString`.** `HttpClient` parses
   the header into a `Uri`, whose `AbsoluteUri` and `ToString()` normalize it, so such an assertion passes while the
   server sends `myapp://callback/` for `myapp://callback`.

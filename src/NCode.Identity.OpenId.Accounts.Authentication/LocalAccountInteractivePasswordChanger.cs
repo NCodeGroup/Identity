@@ -111,18 +111,6 @@ internal sealed class LocalAccountInteractivePasswordChanger(
             return InteractivePasswordChangeResult.Refused(policyResult.Error);
         }
 
-        // A reached limit is answered as a wrong password, without verifying it. See ADR-0237.
-        if (
-            await PasswordAttemptLimiter.IsLimitReachedAsync(
-                openIdContext,
-                account.UserName,
-                cancellationToken
-            )
-        )
-        {
-            return InteractivePasswordChangeResult.CurrentPasswordInvalid;
-        }
-
         // Encode each password into its own pinned, zeroed-on-return buffer so the credentials never linger on the GC
         // heap.
         var currentByteCount = SecureEncoding.UTF8.GetByteCount(currentPassword);
@@ -132,15 +120,22 @@ internal sealed class LocalAccountInteractivePasswordChanger(
             currentOwner.Memory.Span
         );
 
-        var verified = await accountStore.VerifyCredentialAsync(
+        // The store asks the gate once, with the user name it holds, between its lookup and its verification, and a
+        // password refused at the limit is verified against its dummy hash and counts as a failure, as a wrong one
+        // does. The gate refuses a result that a store verified after a refusal and fails a store that never asked, so
+        // no store lifts the limit. See ADR-0237 and ADR-0244.
+        var gate = new PasswordAttemptGate(PasswordAttemptLimiter, openIdContext);
+        var storedResult = await accountStore.VerifyCredentialAsync(
             account.UserName,
             currentOwner.Memory[..currentWritten],
+            gate.IsRefusedAsync,
             cancellationToken
         );
+        var result = gate.Enforce(storedResult);
         if (
-            verified is null
+            !result.IsVerified
             || !string.Equals(
-                verified.LocalAccountId,
+                result.Account.LocalAccountId,
                 account.LocalAccountId,
                 StringComparison.Ordinal
             )
@@ -149,7 +144,7 @@ internal sealed class LocalAccountInteractivePasswordChanger(
             // A failure is recorded even when the client disconnects.
             await PasswordAttemptLimiter.RecordFailureAsync(
                 openIdContext,
-                account.UserName,
+                result.UserName,
                 CancellationToken.None
             );
             return InteractivePasswordChangeResult.CurrentPasswordInvalid;
@@ -157,7 +152,7 @@ internal sealed class LocalAccountInteractivePasswordChanger(
 
         await PasswordAttemptLimiter.ResetAsync(
             openIdContext.Tenant.TenantId,
-            account.UserName,
+            result.UserName,
             cancellationToken
         );
 

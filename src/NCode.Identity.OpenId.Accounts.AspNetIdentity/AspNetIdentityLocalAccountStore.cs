@@ -17,7 +17,6 @@
 #endregion
 
 using System.Security.Claims;
-using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Buffers;
@@ -31,11 +30,12 @@ namespace NCode.Identity.OpenId.Accounts.AspNetIdentity;
 /// Adapts an ASP.NET Core Identity <see cref="UserManager{TUser}"/> to the backing-store-agnostic
 /// <see cref="ILocalAccountStore"/> seam, so a host already running ASP.NET Core Identity exposes its users as local
 /// accounts (enabling the resource-owner password grant and the local-account management endpoints) with no change to
-/// the OpenID runtime. It hashes a password with the user manager's password hasher and stores the hash through the
-/// user store, so no password validator of ASP.NET Core Identity judges a password the password policy accepted;
-/// security stamps and concurrency are owned by the <see cref="UserManager{TUser}"/>. It verifies the NFC form of a
-/// submitted password, then the password as submitted, and verifies a password against a dummy hash when it holds no
-/// hash it may verify, so a failed verification takes as long whether or not the user exists.
+/// the OpenID runtime. It hashes and verifies a password only through the user manager's
+/// <see cref="NormalizingPasswordHasher{TUser}"/>, so it and the host's own ASP.NET Core Identity pages hash and verify
+/// a password's NFC form, and stores the hash through the user store, so no password validator of ASP.NET Core Identity
+/// judges a password the password policy accepted; security stamps and concurrency are owned by the
+/// <see cref="UserManager{TUser}"/>. It verifies a password against a dummy hash when it holds no hash it may verify,
+/// so a failed verification takes as long whether or not the user exists.
 /// </summary>
 /// <remarks>
 /// ASP.NET Core Identity users are global (tenant-independent), so <see cref="PersistedLocalAccount.TenantId"/> is mapped
@@ -85,13 +85,13 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         if (password is { } value)
         {
             var passwordStore = GetPasswordStore(scope.ServiceProvider);
+            var passwordHasher = GetPasswordHasher(userManager);
             var submitted = DecodePassword(value);
-            var normalized = NormalizePassword(submitted);
             await SetPasswordHashAsync(
-                userManager,
+                passwordHasher,
                 passwordStore,
                 user,
-                normalized,
+                submitted,
                 cancellationToken
             );
         }
@@ -154,12 +154,18 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         await using var scope = ServiceScopeFactory.CreateAsyncScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<TUser>>();
         var passwordStore = GetPasswordStore(scope.ServiceProvider);
+        var passwordHasher = GetPasswordHasher(userManager);
 
         var user = await GetRequiredUserAsync(userManager, localAccountId);
 
         var submitted = DecodePassword(password);
-        var normalized = NormalizePassword(submitted);
-        await SetPasswordHashAsync(userManager, passwordStore, user, normalized, cancellationToken);
+        await SetPasswordHashAsync(
+            passwordHasher,
+            passwordStore,
+            user,
+            submitted,
+            cancellationToken
+        );
 
         // Rotating the security stamp, which also saves the user, invalidates the sessions and tokens issued before the
         // reset.
@@ -170,9 +176,10 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedLocalAccount?> VerifyCredentialAsync(
+    public async ValueTask<LocalAccountVerificationResult> VerifyCredentialAsync(
         string userName,
         ReadOnlyMemory<byte> password,
+        Func<string, CancellationToken, ValueTask<bool>> isRefusedAsync,
         CancellationToken cancellationToken
     )
     {
@@ -180,16 +187,15 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         var serviceProvider = scope.ServiceProvider;
         var userManager = serviceProvider.GetRequiredService<UserManager<TUser>>();
         var passwordStore = GetPasswordStore(serviceProvider);
-        var passwordHasher = userManager.PasswordHasher;
+        var passwordHasher = GetPasswordHasher(userManager);
 
         // Made before the user is looked up, so the first verification costs the same whichever user name it names.
         var dummyPasswordHash = DummyPasswordHash.GetOrCreate(passwordHasher);
 
         var submitted = DecodePassword(password);
-        var normalized = NormalizePassword(submitted);
 
         var user = await userManager.FindByNameAsync(userName);
-        var passwordHash = user is null
+        var storedHash = user is null
             ? null
             : await GetVerifiablePasswordHashAsync(
                 userManager,
@@ -198,29 +204,33 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
                 cancellationToken
             );
 
+        // The limit counts the user name the user holds, and a refused password is verified against the dummy hash, so
+        // a refusal costs what a wrong password costs. See ADR-0244.
+        var countedUserName = user?.UserName ?? userName;
+        var isRefused = await isRefusedAsync(countedUserName, cancellationToken);
+        var passwordHash = isRefused ? null : storedHash;
+
         // An unknown user name, a locked-out user and a user without a password are verified against the dummy hash, so
         // a wrong password takes as long for them as for a user whose hash is verified. See ADR-0239.
         var verifiedUser = user ?? new TUser();
         var verifiedHash = passwordHash ?? dummyPasswordHash;
-        var result = VerifyPassword(
-            passwordHasher,
-            verifiedUser,
-            verifiedHash,
-            normalized,
-            submitted
-        );
+        var result = passwordHasher.VerifyHashedPassword(verifiedUser, verifiedHash, submitted);
         if (user is null || passwordHash is null || result == PasswordVerificationResult.Failed)
         {
-            return null;
+            return new LocalAccountVerificationResult
+            {
+                UserName = countedUserName,
+                IsRefused = isRefused,
+            };
         }
 
         if (result == PasswordVerificationResult.SuccessRehashNeeded)
         {
             await SetPasswordHashAsync(
-                userManager,
+                passwordHasher,
                 passwordStore,
                 user,
-                normalized,
+                submitted,
                 cancellationToken
             );
 
@@ -229,7 +239,8 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
             _ = await userManager.UpdateAsync(user);
         }
 
-        return await MapAsync(userManager, user);
+        var account = await MapAsync(userManager, user);
+        return new LocalAccountVerificationResult { UserName = countedUserName, Account = account };
     }
 
     /// <inheritdoc />
@@ -424,17 +435,25 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
             "The configured ASP.NET Core Identity store does not store passwords, which a local account's password requires."
         );
 
+    private static NormalizingPasswordHasher<TUser> GetPasswordHasher(
+        UserManager<TUser> userManager
+    ) =>
+        userManager.PasswordHasher as NormalizingPasswordHasher<TUser>
+        ?? throw new InvalidOperationException(
+            $"The password hasher of UserManager<{typeof(TUser).Name}> is not a NormalizingPasswordHasher, so it would not hash and verify the NFC form of a password. Register the host's IPasswordHasher<TUser> before AddAspNetIdentityLocalAccountStore, or wrap it in NormalizingPasswordHasher<TUser>."
+        );
+
     private static async ValueTask SetPasswordHashAsync(
-        UserManager<TUser> userManager,
+        NormalizingPasswordHasher<TUser> passwordHasher,
         IUserPasswordStore<TUser> passwordStore,
         TUser user,
         string password,
         CancellationToken cancellationToken
     )
     {
-        // The hash is made with the user manager's hasher and stored through the user store, so no password validator
-        // of ASP.NET Core Identity judges a password the password policy accepted. See ADR-0238.
-        var passwordHash = userManager.PasswordHasher.HashPassword(user, password);
+        // The hash is made with the user manager's normalizing hasher and stored through the user store, so no password
+        // validator of ASP.NET Core Identity judges a password the password policy accepted. See ADR-0238 and ADR-0243.
+        var passwordHash = passwordHasher.HashPassword(user, password);
         await passwordStore.SetPasswordHashAsync(user, passwordHash, cancellationToken);
     }
 
@@ -458,37 +477,9 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         return string.IsNullOrEmpty(passwordHash) ? null : passwordHash;
     }
 
-    private static PasswordVerificationResult VerifyPassword(
-        IPasswordHasher<TUser> passwordHasher,
-        TUser user,
-        string passwordHash,
-        string normalized,
-        string submitted
-    )
-    {
-        var result = passwordHasher.VerifyHashedPassword(user, passwordHash, normalized);
-        if (
-            result != PasswordVerificationResult.Failed
-            || string.Equals(normalized, submitted, StringComparison.Ordinal)
-        )
-        {
-            return result;
-        }
-
-        // A stored hash of the password as submitted still verifies and is replaced by a hash of the NFC form. See ADR-0238.
-        var submittedResult = passwordHasher.VerifyHashedPassword(user, passwordHash, submitted);
-        return submittedResult == PasswordVerificationResult.Failed
-            ? PasswordVerificationResult.Failed
-            : PasswordVerificationResult.SuccessRehashNeeded;
-    }
-
     // ASP.NET Core Identity's credential API is string-based, so the credential is decoded to a string only here.
     private static string DecodePassword(ReadOnlyMemory<byte> password) =>
         SecureEncoding.UTF8.GetString(password.Span);
-
-    // A password is hashed and verified in its Unicode Normalization Form C (NFC). See ADR-0238.
-    private static string NormalizePassword(string password) =>
-        password.Normalize(NormalizationForm.FormC);
 
     private static void ThrowIfFailed(IdentityResult result, string action)
     {

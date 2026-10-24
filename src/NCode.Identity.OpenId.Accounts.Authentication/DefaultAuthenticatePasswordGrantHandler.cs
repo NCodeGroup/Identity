@@ -18,7 +18,6 @@
 
 using System.Security.Claims;
 using NCode.Buffers;
-using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
@@ -38,8 +37,8 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// local-account authentication capability, so its mere presence is what enables the grant; the default
 /// <c>NCode.Identity.OpenId.Authentication</c> handler reports the grant as unsupported when this capability is absent.
 /// A store that rejects the credentials yields a failed (not unsupported) result, so the two cases stay distinct. A
-/// password for an account that reached its limit of failed attempts is refused without being verified, as a wrong one
-/// is.
+/// password for an account that reached its limit of failed attempts is verified against the store's dummy hash and
+/// refused, as a wrong one is.
 /// </summary>
 internal class DefaultAuthenticatePasswordGrantHandler(
     IStoreManagerFactory storeManagerFactory,
@@ -78,16 +77,34 @@ internal class DefaultAuthenticatePasswordGrantHandler(
             return Failed();
         }
 
-        var limitedUserName = await ResolveLimitedUserNameAsync(username, cancellationToken);
+        var result = await VerifyCredentialsAsync(
+            openIdContext,
+            username,
+            password,
+            cancellationToken
+        );
 
-        // A reached limit is answered as a wrong password, without verifying it. See ADR-0237.
-        if (
-            await PasswordAttemptLimiter.IsLimitReachedAsync(
-                openIdContext,
-                limitedUserName,
+        // A password refused at the limit is verified against the store's dummy hash and counts as a failure, as a
+        // wrong one does, under the user name the store holds. See ADR-0237 and ADR-0244.
+        if (result.IsVerified)
+        {
+            await PasswordAttemptLimiter.ResetAsync(
+                openIdContext.Tenant.TenantId,
+                result.UserName,
                 cancellationToken
-            )
-        )
+            );
+        }
+        else
+        {
+            // A failure is recorded even when the client disconnects.
+            await PasswordAttemptLimiter.RecordFailureAsync(
+                openIdContext,
+                result.UserName,
+                CancellationToken.None
+            );
+        }
+
+        if (result.IsRefused)
         {
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
                 openIdContext,
@@ -98,25 +115,7 @@ internal class DefaultAuthenticatePasswordGrantHandler(
             return Failed();
         }
 
-        var account = await VerifyCredentialsAsync(username, password, cancellationToken);
-        if (account is null)
-        {
-            // A failure is recorded even when the client disconnects.
-            await PasswordAttemptLimiter.RecordFailureAsync(
-                openIdContext,
-                limitedUserName,
-                CancellationToken.None
-            );
-        }
-        else
-        {
-            await PasswordAttemptLimiter.ResetAsync(
-                openIdContext.Tenant.TenantId,
-                limitedUserName,
-                cancellationToken
-            );
-        }
-
+        var account = result.Account;
         if (account is not { IsEnabled: true })
         {
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
@@ -157,21 +156,8 @@ internal class DefaultAuthenticatePasswordGrantHandler(
         return Authenticated(ticket);
     }
 
-    // The limit counts the user name the store holds for the submitted one, so every spelling the store's database
-    // matches (a trailing space under a padding collation, an accent under an accent-insensitive one) shares one
-    // count; a name no account has is counted as submitted. See ADR-0237.
-    private async ValueTask<string> ResolveLimitedUserNameAsync(
-        string userName,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ILocalAccountStore>();
-        var account = await store.GetByUserNameOrDefaultAsync(userName, cancellationToken);
-        return account?.UserName ?? userName;
-    }
-
-    private async ValueTask<PersistedLocalAccount?> VerifyCredentialsAsync(
+    private async ValueTask<LocalAccountVerificationResult> VerifyCredentialsAsync(
+        OpenIdContext openIdContext,
         string userName,
         string password,
         CancellationToken cancellationToken
@@ -184,19 +170,26 @@ internal class DefaultAuthenticatePasswordGrantHandler(
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ILocalAccountStore>();
-        var account = await store.VerifyCredentialAsync(
+
+        // The store asks the gate once, with the user name it holds, between its lookup and its verification. The gate
+        // refuses a result that a store verified after a refusal and fails a store that never asked, so no store lifts
+        // the limit. See ADR-0237 and ADR-0244.
+        var gate = new PasswordAttemptGate(PasswordAttemptLimiter, openIdContext);
+        var storedResult = await store.VerifyCredentialAsync(
             userName,
             owner.Memory[..written],
+            gate.IsRefusedAsync,
             cancellationToken
         );
+        var result = gate.Enforce(storedResult);
 
         // Persist a transparent rehash-on-verify, when one occurred, within this unit of work.
-        if (account is not null)
+        if (result.IsVerified)
         {
             await storeManager.SaveChangesAsync(cancellationToken);
         }
 
-        return account;
+        return result;
     }
 
     private async ValueTask<string> ResolvePrincipalIdAsync(

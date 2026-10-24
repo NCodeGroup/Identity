@@ -536,6 +536,28 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         Assert.False(json.Value.Settings.TryGetProperty("require_pkce", out _));
     }
 
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbidWithoutResolvingTheSettings()
+    {
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetEffectiveSettingsAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        // No tenant store or resolver is set up, so a strict-mock failure would mean the settings were resolved before
+        // authorization.
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
     private void SetupSettingScopes(
         string scopeName,
         params (SettingDescriptor Descriptor, bool AppliesWithin)[] results
@@ -572,15 +594,21 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.Resolve(serverSettings, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>())
+                x.ResolveStored(
+                    serverSettings,
+                    OpenIdSettingScopes.Tenant,
+                    TenantId,
+                    It.IsAny<JsonElement>()
+                )
             )
             .Returns(tenantSettings)
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.Resolve(
+                x.ResolveStored(
                     tenantSettings,
                     OpenIdSettingScopes.ResourceServer,
+                    ResourceServerId,
                     It.IsAny<JsonElement>()
                 )
             )

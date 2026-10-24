@@ -1074,6 +1074,30 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.IsType<NotFound>(result);
     }
 
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbidWithoutResolvingTheSettings()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetEffectiveSettingsAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        // No tenant store or resolver is set up, so a strict-mock failure would mean the settings were resolved before
+        // authorization.
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
     private static ISettingCollection CreateSettingCollection(params Setting[] settings)
     {
         var list = settings.ToList();
@@ -1109,7 +1133,12 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.Resolve(tenantSettings, OpenIdSettingScopes.Client, It.IsAny<JsonElement>())
+                x.ResolveStored(
+                    tenantSettings,
+                    OpenIdSettingScopes.Client,
+                    ClientId,
+                    It.IsAny<JsonElement>()
+                )
             )
             .Returns(effectiveSettings)
             .Verifiable();
@@ -1126,7 +1155,12 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.Resolve(serverSettings, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>())
+                x.ResolveStored(
+                    serverSettings,
+                    OpenIdSettingScopes.Tenant,
+                    TenantId,
+                    It.IsAny<JsonElement>()
+                )
             )
             .Returns(tenantSettings)
             .Verifiable();

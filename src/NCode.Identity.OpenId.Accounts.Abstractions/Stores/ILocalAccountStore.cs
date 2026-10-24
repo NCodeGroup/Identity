@@ -78,24 +78,31 @@ public interface ILocalAccountStore : IStore
     );
 
     /// <summary>
-    /// Verifies a username and password credential, returning the account when the credential is valid, whether or not
-    /// the account is enabled, so its caller can tell the end user why it cannot sign in. The store verifies the NFC
-    /// form of the password, and the password as submitted when a stored hash was made from it, and may upgrade a
-    /// stored hash to the current parameters on success. When it holds no hash it may verify (no account has the
-    /// username, the account has no password, or its disabled state is a lockout against guessing, whose password is
-    /// not verified) it verifies the password against a dummy hash of the same cost and refuses it, so a failed
-    /// verification takes as long whether or not the account exists.
+    /// Verifies a username and password credential in one store call. The store finds the account that has the
+    /// username, calls <paramref name="isRefusedAsync"/> once with the username that account holds (or the submitted
+    /// username when none has it), then verifies once: against the stored hash, or against a dummy hash of the same
+    /// cost when <paramref name="isRefusedAsync"/> refuses the password or the store holds no hash it may verify (no
+    /// account, no password, a lockout against guessing). A refused or failed verification therefore costs the same
+    /// work whether or not an account has the username. The store verifies the NFC form of the password first, and
+    /// the password as submitted as a fallback, and may upgrade a stored hash to the current parameters on success. A
+    /// valid credential's account is returned whether or not it is enabled, so its caller can tell the end user why
+    /// it cannot sign in.
     /// </summary>
     /// <param name="userName">The username (login handle) presented by the end-user.</param>
     /// <param name="password">The UTF-8 bytes of the password as submitted by the end-user, carried in a caller-owned
     /// buffer so the sensitive material can be zeroed after use.</param>
+    /// <param name="isRefusedAsync">The function that the store calls once, after it looks up the account and before it
+    /// verifies the password, with the username that the account holds (or the submitted username when no account has
+    /// it); it returns <c>true</c> to refuse the password, such as when the account reached its limit of failed
+    /// attempts.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the authenticated
-    /// <see cref="PersistedLocalAccount"/> when the credential is valid, whether or not it is enabled; otherwise
-    /// <c>null</c>.</returns>
-    ValueTask<PersistedLocalAccount?> VerifyCredentialAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="LocalAccountVerificationResult"/>: the authenticated account when the credential is valid, whether or
+    /// not it is enabled, and the username to count a failed attempt under otherwise.</returns>
+    ValueTask<LocalAccountVerificationResult> VerifyCredentialAsync(
         string userName,
         ReadOnlyMemory<byte> password,
+        Func<string, CancellationToken, ValueTask<bool>> isRefusedAsync,
         CancellationToken cancellationToken
     );
 

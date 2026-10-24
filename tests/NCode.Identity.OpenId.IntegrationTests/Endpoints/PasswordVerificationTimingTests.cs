@@ -23,18 +23,22 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Accounts.Credentials;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
+using NCode.Identity.OpenId.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
-// A wrong password takes as long whether or not an account has the user name (ADR-0239).
+// A wrong password takes as long whether or not an account has the user name, and a password refused at the attempt
+// limit takes the work of a wrong one (ADR-0239, ADR-0244).
 public class PasswordVerificationTimingTests
 {
     private const string ClientId = "it-verification-timing-client";
     private const string ClientSecret = "verification-timing-client-secret";
     private const string UnknownUserName = "no-such-user";
     private const string PasswordlessUserName = "passwordless-user";
+    private const string LimitedUserName = "limited-user";
     private const string WrongPassword = "verification-timing-wrong-password";
+    private const string LimitedPassword = "verification-timing-right-password";
 
     #region Scaffolding
 
@@ -182,6 +186,32 @@ public class PasswordVerificationTimingTests
 
         await AssertSignInRefusedAsync(client, PasswordlessUserName);
 
+        Assert.Equal(1, GetHasher(factory).DummyVerificationCount);
+    }
+
+    [Fact]
+    public async Task SignIn_WhenTheLimitIsReached_VerifiesAgainstTheDummyHash()
+    {
+        using var factory = new RecordingPasswordHasherFactory();
+        await factory.SeedTenantSettingsAsync(
+            new Dictionary<string, object> { [OpenIdSettingNames.PasswordFailedAttemptsLimit] = 1 }
+        );
+        await factory.SeedLocalAccountAsync(LimitedUserName, LimitedPassword);
+        var client = CreateClient(factory);
+
+        await AssertSignInRefusedAsync(client, LimitedUserName);
+
+        Assert.Equal(0, GetHasher(factory).DummyVerificationCount);
+
+        using var response = await InteractiveLogin.SubmitLoginAsync(
+            client,
+            LimitedUserName,
+            LimitedPassword,
+            "/foo"
+        );
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.Null(InteractiveLogin.ReadSessionCookie(response));
         Assert.Equal(1, GetHasher(factory).DummyVerificationCount);
     }
 

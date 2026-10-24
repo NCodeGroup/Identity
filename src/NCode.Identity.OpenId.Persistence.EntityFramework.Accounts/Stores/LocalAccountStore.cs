@@ -165,9 +165,10 @@ internal sealed class LocalAccountStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedLocalAccount?> VerifyCredentialAsync(
+    public async ValueTask<LocalAccountVerificationResult> VerifyCredentialAsync(
         string userName,
         ReadOnlyMemory<byte> password,
+        Func<string, CancellationToken, ValueTask<bool>> isRefusedAsync,
         CancellationToken cancellationToken
     )
     {
@@ -176,16 +177,25 @@ internal sealed class LocalAccountStore(
             candidate => candidate.NormalizedUserName == normalizedUserName,
             cancellationToken
         );
+        // The limit counts the user name the account holds, and a refused password is verified against the dummy hash,
+        // so a refusal costs what a wrong password costs. See ADR-0244.
+        var countedUserName = entity?.UserName ?? userName;
+        var isRefused = await isRefusedAsync(countedUserName, cancellationToken);
         // A disabled account's credential is verified too, so the sign-in can tell the end user why it is refused.
         // See ADR-0229.
-        var passwordHash = entity?.PasswordHash is { Length: > 0 } storedHash ? storedHash : null;
+        var passwordHash =
+            !isRefused && entity?.PasswordHash is { Length: > 0 } storedHash ? storedHash : null;
         // An unknown user name and an account without a password are verified against the dummy hash, so a wrong
         // password takes as long whether or not an account has the user name. See ADR-0239.
         var verifiedHash = passwordHash ?? PasswordHasher.DummyPasswordHash;
         var result = PasswordHasher.VerifyHashedPassword(verifiedHash, password.Span);
         if (entity is null || passwordHash is null || result == PasswordVerificationResult.Failed)
         {
-            return null;
+            return new LocalAccountVerificationResult
+            {
+                UserName = countedUserName,
+                IsRefused = isRefused,
+            };
         }
 
         if (result == PasswordVerificationResult.SuccessRehashNeeded)
@@ -194,7 +204,11 @@ internal sealed class LocalAccountStore(
             entity.PasswordHash = PasswordHasher.HashPassword(password.Span);
         }
 
-        return MapFromEntity(entity);
+        return new LocalAccountVerificationResult
+        {
+            UserName = countedUserName,
+            Account = MapFromEntity(entity),
+        };
     }
 
     /// <inheritdoc />

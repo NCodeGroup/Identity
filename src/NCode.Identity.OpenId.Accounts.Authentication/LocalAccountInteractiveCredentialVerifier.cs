@@ -37,7 +37,8 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// verifies the submitted username/password and, on success, builds the cookie <see cref="ClaimsPrincipal"/> carrying
 /// the subject, issuer, tenant, and authentication-time claims the authorize flow reads. A host fronting a different
 /// backend (LDAP, an external identity provider, passwordless) registers its own implementation instead. A password for
-/// an account that reached its limit of failed attempts is refused without being verified, as a wrong one is.
+/// an account that reached its limit of failed attempts is verified against the store's dummy hash and refused, as a
+/// wrong one is.
 /// </summary>
 internal sealed class LocalAccountInteractiveCredentialVerifier(
     IStoreManagerFactory storeManagerFactory,
@@ -60,30 +61,22 @@ internal sealed class LocalAccountInteractiveCredentialVerifier(
         CancellationToken cancellationToken
     )
     {
-        var limitedUserName = await ResolveLimitedUserNameAsync(username, cancellationToken);
+        var result = await VerifyCredentialsAsync(
+            openIdContext,
+            username,
+            password,
+            cancellationToken
+        );
 
-        // A reached limit is answered as a wrong password, without verifying it. See ADR-0237.
-        if (
-            await PasswordAttemptLimiter.IsLimitReachedAsync(
-                openIdContext,
-                limitedUserName,
-                cancellationToken
-            )
-        )
-        {
-            return null;
-        }
-
-        var account = await VerifyCredentialsAsync(username, password, cancellationToken);
-
-        // A disabled account goes on to the sign-in's standing check, which refuses it with its reason.
-        // See ADR-0229.
-        if (account is null)
+        // A password refused at the limit is verified against the store's dummy hash and answered as a wrong one, and
+        // both count as a failure under the user name the store holds. A disabled account goes on to the sign-in's
+        // standing check, which refuses it with its reason. See ADR-0229, ADR-0237 and ADR-0244.
+        if (!result.IsVerified)
         {
             // A failure is recorded even when the client disconnects.
             await PasswordAttemptLimiter.RecordFailureAsync(
                 openIdContext,
-                limitedUserName,
+                result.UserName,
                 CancellationToken.None
             );
             return null;
@@ -91,28 +84,15 @@ internal sealed class LocalAccountInteractiveCredentialVerifier(
 
         await PasswordAttemptLimiter.ResetAsync(
             openIdContext.Tenant.TenantId,
-            limitedUserName,
+            result.UserName,
             cancellationToken
         );
 
-        return await BuildCookiePrincipalAsync(openIdContext, account, cancellationToken);
+        return await BuildCookiePrincipalAsync(openIdContext, result.Account, cancellationToken);
     }
 
-    // The limit counts the user name the store holds for the submitted one, so every spelling the store's database
-    // matches (a trailing space under a padding collation, an accent under an accent-insensitive one) shares one
-    // count; a name no account has is counted as submitted. See ADR-0237.
-    private async ValueTask<string> ResolveLimitedUserNameAsync(
-        string userName,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ILocalAccountStore>();
-        var account = await store.GetByUserNameOrDefaultAsync(userName, cancellationToken);
-        return account?.UserName ?? userName;
-    }
-
-    private async ValueTask<PersistedLocalAccount?> VerifyCredentialsAsync(
+    private async ValueTask<LocalAccountVerificationResult> VerifyCredentialsAsync(
+        OpenIdContext openIdContext,
         string username,
         string password,
         CancellationToken cancellationToken
@@ -125,19 +105,26 @@ internal sealed class LocalAccountInteractiveCredentialVerifier(
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ILocalAccountStore>();
-        var account = await store.VerifyCredentialAsync(
+
+        // The store asks the gate once, with the user name it holds, between its lookup and its verification. The gate
+        // refuses a result that a store verified after a refusal and fails a store that never asked, so no store lifts
+        // the limit. See ADR-0237 and ADR-0244.
+        var gate = new PasswordAttemptGate(PasswordAttemptLimiter, openIdContext);
+        var storedResult = await store.VerifyCredentialAsync(
             username,
             owner.Memory[..written],
+            gate.IsRefusedAsync,
             cancellationToken
         );
+        var result = gate.Enforce(storedResult);
 
         // Persist a transparent rehash-on-verify, when one occurred, within this unit of work.
-        if (account is not null)
+        if (result.IsVerified)
         {
             await storeManager.SaveChangesAsync(cancellationToken);
         }
 
-        return account;
+        return result;
     }
 
     private async ValueTask<ClaimsPrincipal> BuildCookiePrincipalAsync(

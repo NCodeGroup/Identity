@@ -148,18 +148,6 @@ public class LocalAccountInteractivePasswordChangerTests : BaseTests
             .Verifiable();
     }
 
-    private void SetupVerification(PersistedLocalAccount? verified) =>
-        MockLocalAccountStore
-            .Setup(x =>
-                x.VerifyCredentialAsync(
-                    UserName,
-                    It.IsAny<ReadOnlyMemory<byte>>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(verified)
-            .Verifiable();
-
     private void SetupPasswordChange()
     {
         MockLocalAccountStore
@@ -229,7 +217,12 @@ public class LocalAccountInteractivePasswordChangerTests : BaseTests
         var mockTenant = SetupPolicy(mockContext, PasswordPolicyResult.Accepted);
         mockTenant.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         SetupLimit(mockContext, isReached: false);
-        SetupVerification(Account(isEnabled: true));
+        LocalAccountStoreSetup.SetupVerification(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            Account(isEnabled: true)
+        );
         MockPasswordAttemptLimiter
             .Setup(x => x.ResetAsync(TenantId, UserName, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
@@ -257,7 +250,12 @@ public class LocalAccountInteractivePasswordChangerTests : BaseTests
         SetupAccount(Account(isEnabled: true));
         SetupPolicy(mockContext, PasswordPolicyResult.Accepted);
         SetupLimit(mockContext, isReached: false);
-        SetupVerification(verified: null);
+        LocalAccountStoreSetup.SetupVerification(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            verified: null
+        );
         MockPasswordAttemptLimiter
             .Setup(x => x.RecordFailureAsync(mockContext.Object, UserName, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
@@ -275,7 +273,7 @@ public class LocalAccountInteractivePasswordChangerTests : BaseTests
     }
 
     [Fact]
-    public async Task ChangePasswordAsync_WhenTheAttemptLimitIsReached_ReturnsCurrentPasswordInvalidWithoutVerifying()
+    public async Task ChangePasswordAsync_WhenTheAttemptLimitIsReached_ReturnsCurrentPasswordInvalidAndRecordsAFailure()
     {
         var mockContext = CreateContext();
         SetupStoreManager();
@@ -283,6 +281,47 @@ public class LocalAccountInteractivePasswordChangerTests : BaseTests
         SetupAccount(Account(isEnabled: true));
         SetupPolicy(mockContext, PasswordPolicyResult.Accepted);
         SetupLimit(mockContext, isReached: true);
+        LocalAccountStoreSetup.SetupVerification(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            Account(isEnabled: true)
+        );
+        MockPasswordAttemptLimiter
+            .Setup(x => x.RecordFailureAsync(mockContext.Object, UserName, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Changer.ChangePasswordAsync(
+            mockContext.Object,
+            Principal,
+            CurrentPassword,
+            NewPassword,
+            CancellationToken.None
+        );
+
+        Assert.Equal(InteractivePasswordChangeResult.CurrentPasswordInvalid, result);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_WhenTheStoreVerifiesARefusedPassword_ReturnsCurrentPasswordInvalidAndRecordsAFailure()
+    {
+        var mockContext = CreateContext();
+        SetupStoreManager();
+        SetupIdentities(SelfIssuedIdentity());
+        SetupAccount(Account(isEnabled: true));
+        SetupPolicy(mockContext, PasswordPolicyResult.Accepted);
+        SetupLimit(mockContext, isReached: true);
+        LocalAccountStoreSetup.SetupVerificationIgnoringARefusal(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            Account(isEnabled: true)
+        );
+        MockPasswordAttemptLimiter
+            .Setup(x => x.RecordFailureAsync(mockContext.Object, UserName, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         var result = await Changer.ChangePasswordAsync(
             mockContext.Object,

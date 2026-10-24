@@ -42,7 +42,10 @@ public static class DefaultRegistration
         /// <c>UserManager&lt;TUser&gt;</c> for the specified user type, together with the <see cref="LocalAccountLibrary"/>
         /// marker that the opt-in local-account capabilities require as a compile-time argument. The host is responsible
         /// for registering ASP.NET Core Identity (<c>AddIdentityCore&lt;TUser&gt;</c> or <c>AddIdentity</c>) and its
-        /// stores.
+        /// stores. It wraps the host's <c>IPasswordHasher&lt;TUser&gt;</c> registration, made before or after this call,
+        /// in <see cref="NormalizingPasswordHasher{TUser}"/>, so the adapter and the host's own ASP.NET Core Identity
+        /// pages hash and verify a password's NFC form; a hasher that the host registers after this call must be wrapped
+        /// by the host.
         /// </summary>
         /// <typeparam name="TUser">The ASP.NET Core Identity user type.</typeparam>
         /// <returns>The <see cref="IServiceBuilder{T}"/> proving a local-account store is registered.</returns>
@@ -55,6 +58,9 @@ public static class DefaultRegistration
 
             // See ADR-0239.
             serviceCollection.TryAddSingleton<AspNetIdentityDummyPasswordHash<TUser>>();
+
+            // See ADR-0243.
+            AddNormalizingPasswordHasher<TUser>(serviceCollection);
 
             // The store is backing-store-agnostic, so it registers the DbContext-less factory the store manager falls
             // back to; the scoped UserManager is resolved per operation from a fresh scope.
@@ -70,4 +76,75 @@ public static class DefaultRegistration
             return newBuilder;
         }
     }
+
+    // Replaces the last registration of the host's hasher in place with one that wraps it, so the order of this call
+    // and of ASP.NET Core Identity's registration, which keeps a registration that exists, does not matter. See
+    // ADR-0243.
+    private static void AddNormalizingPasswordHasher<TUser>(IServiceCollection serviceCollection)
+        where TUser : class
+    {
+        for (var index = serviceCollection.Count - 1; index >= 0; index--)
+        {
+            var descriptor = serviceCollection[index];
+            if (
+                descriptor.ServiceType != typeof(IPasswordHasher<TUser>)
+                || descriptor.IsKeyedService
+            )
+            {
+                continue;
+            }
+
+            serviceCollection[index] = ServiceDescriptor.Describe(
+                typeof(IPasswordHasher<TUser>),
+                serviceProvider =>
+                {
+                    var innerHasher = CreateInnerHasher<TUser>(serviceProvider, descriptor);
+                    return Wrap(innerHasher);
+                },
+                descriptor.Lifetime
+            );
+            return;
+        }
+
+        serviceCollection.AddScoped<IPasswordHasher<TUser>>(serviceProvider =>
+        {
+            var innerHasher = ActivatorUtilities.CreateInstance<PasswordHasher<TUser>>(
+                serviceProvider
+            );
+            return Wrap(innerHasher);
+        });
+    }
+
+    private static IPasswordHasher<TUser> CreateInnerHasher<TUser>(
+        IServiceProvider serviceProvider,
+        ServiceDescriptor descriptor
+    )
+        where TUser : class
+    {
+        if (descriptor.ImplementationInstance is { } implementationInstance)
+        {
+            return (IPasswordHasher<TUser>)implementationInstance;
+        }
+
+        if (descriptor.ImplementationFactory is { } implementationFactory)
+        {
+            var created = implementationFactory(serviceProvider);
+            return (IPasswordHasher<TUser>)created;
+        }
+
+        if (descriptor.ImplementationType is { } implementationType)
+        {
+            var instance = ActivatorUtilities.CreateInstance(serviceProvider, implementationType);
+            return (IPasswordHasher<TUser>)instance;
+        }
+
+        throw new InvalidOperationException(
+            $"The registration of IPasswordHasher<{typeof(TUser).Name}> has no instance, factory or implementation type."
+        );
+    }
+
+    private static NormalizingPasswordHasher<TUser> Wrap<TUser>(IPasswordHasher<TUser> innerHasher)
+        where TUser : class =>
+        innerHasher as NormalizingPasswordHasher<TUser>
+        ?? new NormalizingPasswordHasher<TUser>(innerHasher);
 }

@@ -18,6 +18,7 @@
 
 using System.Buffers.Text;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
@@ -27,7 +28,8 @@ using Xunit;
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 
 // A settings write does not fail on a stored client document the settings vocabulary cannot honor: the write skips the
-// document, because it is incoherent before and after the change. See ADR-0241.
+// document, because it is incoherent before and after the change. See ADR-0241. A request that needs a stored document
+// it cannot honor answers 409 with a problem that names the document. See ADR-0245.
 public class UnreadableSettingsDocumentTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";
@@ -36,7 +38,67 @@ public class UnreadableSettingsDocumentTests
     private const string UnreadableClientId = "it-unreadable-client";
     private const string RedirectUri = "http://client.example/callback";
 
+    #region GetTenantEffectiveSettings Tests
+
+    [Fact]
+    public async Task GetTenantEffectiveSettings_WhenTheTenantDocumentCannotBeHonored_ReturnsConflictNamingTheTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await factory.CreateManagementClientAsync(
+            BootstrapClientId,
+            BootstrapClientSecret
+        );
+        await MakeTenantDocumentUnreadableAsync(factory);
+
+        using var response = await administrator.GetAsync($"{TenantApiPath}/effective-settings");
+
+        await AssertConflictNamingTheTenantAsync(response);
+    }
+
+    #endregion
+
+    #region ListIncoherentClients Tests
+
+    [Fact]
+    public async Task ListIncoherentClients_WhenTheTenantDocumentCannotBeHonored_ReturnsConflictNamingTheTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await factory.CreateManagementClientAsync(
+            BootstrapClientId,
+            BootstrapClientSecret
+        );
+        await MakeTenantDocumentUnreadableAsync(factory);
+
+        using var response = await administrator.GetAsync($"{TenantApiPath}/incoherent-clients");
+
+        await AssertConflictNamingTheTenantAsync(response);
+    }
+
+    #endregion
+
     #region PatchTenantSettings Tests
+
+    [Fact]
+    public async Task PatchTenantSettings_WhenTheTenantDocumentCannotBeHonored_RepairsIt()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await factory.CreateManagementClientAsync(
+            BootstrapClientId,
+            BootstrapClientSecret
+        );
+        await MakeTenantDocumentUnreadableAsync(factory);
+
+        var (statusCode, body) = await RemoveSettingAsync(
+            administrator,
+            $"{TenantApiPath}/settings",
+            "it_retired_setting"
+        );
+
+        Assert.True(statusCode == HttpStatusCode.NoContent, body);
+        using var response = await administrator.GetAsync($"{TenantApiPath}/effective-settings");
+        var effectiveBody = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, effectiveBody);
+    }
 
     [Fact]
     public async Task PatchTenantSettings_WhenAStoredClientDocumentCannotBeHonored_ReturnsNoContent()
@@ -74,6 +136,32 @@ public class UnreadableSettingsDocumentTests
         );
 
         Assert.True(statusCode == HttpStatusCode.NoContent, body);
+    }
+
+    #endregion
+
+    #region ResetLocalAccountPassword Tests
+
+    [Fact]
+    public async Task ResetLocalAccountPassword_WhenTheTenantDocumentCannotBeHonored_ReturnsConflictNamingTheTenant()
+    {
+        using var factory = CreateFactory();
+        var localAccountId = await factory.SeedLocalAccountAsync(
+            "it-unreadable-user",
+            "unreadable-settings-password"
+        );
+        using var administrator = await factory.CreateManagementClientAsync(
+            BootstrapClientId,
+            BootstrapClientSecret
+        );
+        await MakeTenantDocumentUnreadableAsync(factory);
+
+        using var response = await administrator.PostAsync(
+            $"{TenantApiPath}/local-accounts/{localAccountId}/password",
+            JsonContent.Create(new { password = "unreadable-settings-password-reset" })
+        );
+
+        await AssertConflictNamingTheTenantAsync(response);
     }
 
     #endregion
@@ -121,6 +209,25 @@ public class UnreadableSettingsDocumentTests
         return administrator;
     }
 
+    private static Task MakeTenantDocumentUnreadableAsync(HostApplicationFactory factory) =>
+        // A direct store write of a setting no descriptor registers, after the management client has authenticated, so
+        // the tenant the host materialized stays cached and the management request reads the stored document.
+        factory.ReplaceTenantSettingsAsync(
+            new Dictionary<string, object> { ["it_retired_setting"] = true }
+        );
+
+    private static async Task AssertConflictNamingTheTenantAsync(HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        using var document = JsonDocument.Parse(body);
+        var problem = document.RootElement;
+        Assert.Equal(OpenIdSettingScopes.Tenant, problem.GetProperty("settingsScope").GetString());
+        Assert.Equal(HostApplicationFactory.TenantId, problem.GetProperty("ownerId").GetString());
+        Assert.Contains("it_retired_setting", problem.GetProperty("documentError").GetString());
+    }
+
     private static async Task<(HttpStatusCode StatusCode, string Body)> PatchSettingAsync(
         HttpClient administrator,
         string path,
@@ -137,6 +244,26 @@ public class UnreadableSettingsDocumentTests
                 value = value,
             },
         };
+        using var request = new HttpRequestMessage(HttpMethod.Patch, path)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(operations),
+                Encoding.UTF8,
+                "application/json-patch+json"
+            ),
+        };
+
+        using var response = await administrator.SendAsync(request);
+        return (response.StatusCode, await response.Content.ReadAsStringAsync());
+    }
+
+    private static async Task<(HttpStatusCode StatusCode, string Body)> RemoveSettingAsync(
+        HttpClient administrator,
+        string path,
+        string settingName
+    )
+    {
+        var operations = new[] { new { op = "remove", path = $"/{settingName}" } };
         using var request = new HttpRequestMessage(HttpMethod.Patch, path)
         {
             Content = new StringContent(

@@ -37,4 +37,5 @@ internal static class EventIds
     public const int ClientSettingsUnreadable = Base + 6;
     public const int TenantSettingsUnreadable = Base + 7;
     public const int ServerSettingsUnreadable = Base + 8;
+    public const int StoredSettingsUnreadable = Base + 9;
 }

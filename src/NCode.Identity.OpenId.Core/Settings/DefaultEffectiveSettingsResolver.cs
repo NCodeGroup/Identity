@@ -75,6 +75,27 @@ internal sealed class DefaultEffectiveSettingsResolver(
     }
 
     /// <inheritdoc />
+    // See ADR-0245.
+    public IReadOnlySettingCollection ResolveStored(
+        IReadOnlySettingCollection parentSettings,
+        string scopeName,
+        string ownerId,
+        JsonElement settings
+    )
+    {
+        ArgumentNullException.ThrowIfNull(ownerId);
+
+        try
+        {
+            return Resolve(parentSettings, scopeName, settings);
+        }
+        catch (JsonException exception)
+        {
+            throw new UnreadableSettingsException(scopeName, ownerId, exception);
+        }
+    }
+
+    /// <inheritdoc />
     public async ValueTask<IReadOnlySettingCollection> ResolveServerAsync(
         JsonElement settings,
         CancellationToken cancellationToken
@@ -93,6 +114,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
     }
 
     /// <inheritdoc />
+    // See ADR-0245.
     public async ValueTask<IReadOnlySettingCollection> ResolveServerAsync(
         CancellationToken cancellationToken
     )
@@ -115,6 +137,11 @@ internal sealed class DefaultEffectiveSettingsResolver(
             return configuredSettings;
         }
 
-        return Resolve(configuredSettings, OpenIdSettingScopes.Server, serverSettings.Value);
+        return ResolveStored(
+            configuredSettings,
+            OpenIdSettingScopes.Server,
+            server.ServerId,
+            serverSettings.Value
+        );
     }
 }

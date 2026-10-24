@@ -1684,6 +1684,16 @@ change to the public API is a **major** version bump.
   ([ADR-0239](docs/adr/0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md), backlog
   `R107`).
 
+- **A password refused at the attempt limit costs what a wrong one costs.** `ILocalAccountStore.VerifyCredentialAsync`
+  looks the account up once and asks its caller's `isRefusedAsync` about the user name the account holds; the sign-in,
+  the password grant and the self-service change ask `IPasswordAttemptLimiter.IsLimitReachedAsync` through a gate that
+  enforces its answer whatever the store returns, so a password refused at the limit is verified against the dummy hash
+  and counted as a failed attempt, and neither the answer nor the work tells whether an account has the user name under
+  any spelling a database collation matches. **Breaking:** `VerifyCredentialAsync` takes `isRefusedAsync` and returns
+  `LocalAccountVerificationResult` (`UserName`, `Account`, `IsRefused`, `IsVerified`), and a store that never calls
+  `isRefusedAsync` fails every verification
+  ([ADR-0244](docs/adr/0244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md), backlog `R109`).
+
 - **A blocked or disabled end user cannot sign in, and the client is answered `access_denied`.** The interactive
   sign-in validates the end user's standing before it creates a session, so a blocked principal or a disabled local
   account gets neither a session nor a cookie: a sign-in that resumes an authorization request answers it with
@@ -1974,6 +1984,26 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A host's own ASP.NET Core Identity pages verify the password the adapter stores.**
+  `AddAspNetIdentityLocalAccountStore<TUser>()` wraps the host's `IPasswordHasher<TUser>` registration, made before or
+  after the call, in the public `NormalizingPasswordHasher<TUser>`, which hashes and verifies a password's NFC form and
+  verifies the typed form as a fallback that asks for a rehash, so the adapter and the host's pages accept every
+  composition of a password. **Breaking:** a host that registers its `IPasswordHasher<TUser>` after the call, or
+  replaces `UserManager<TUser>.PasswordHasher`, wraps it in `NormalizingPasswordHasher<TUser>`, because the adapter
+  throws an `InvalidOperationException` instead of hashing or verifying through a hasher that does not normalize
+  ([ADR-0243](docs/adr/0243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md), backlog
+  `R108`).
+
+- **A management request answers `409` for a stored settings document it cannot honor.** The effective-settings reads,
+  a client's create and settings update, the incoherent-client report, a local account's create and password reset,
+  and a tenant settings write whose server document cannot be honored answer `409 Conflict` with a problem whose
+  `settingsScope`, `ownerId` and `documentError` name the document, only after authorization, and log
+  `StoredSettingsUnreadable` (event ID 3009); a settings write that replaces the document repairs it. **Breaking:**
+  `IEffectiveSettingsResolver` gains `ResolveStored`, and it and `ResolveServerAsync(CancellationToken)` throw
+  `UnreadableSettingsException`, a `JsonException` that names the document
+  ([ADR-0245](docs/adr/0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md),
+  backlog `R110`).
 
 - **A settings write passes a stored document that cannot be honored.** A server or tenant settings write does not
   fail with `500` when a stored client's or tenant's settings document names a setting, a value or a scope the settings

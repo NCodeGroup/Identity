@@ -1,6 +1,8 @@
 # 241. A settings write is not refused for a stored document it cannot read
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0245](0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md): a management
+  request that needs a stored document it cannot honor answers 409 with a problem that names it)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -67,9 +69,9 @@ change introduces.**
 - A repairing write checks no client, so the incoherent-client report, and for the server the report of the
   reconciliation ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)), finds the
   clients that the repaired settings make incoherent.
-- A management request that resolves a tenant document that cannot be honored answers `500`. While the server's own
-  document cannot be honored, every request that resolves the server's settings answers `500` too, a tenant settings
-  write included, until a server settings write repairs it. Backlog `R110` records both.
+- A management request that needs a stored server, tenant, client or resource-server document that cannot be honored
+  answers `409` with a problem that names the document, and a settings write that replaces it repairs it
+  ([ADR-0245](0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)).
 - This implements backlog `R104`.
 
 ## References

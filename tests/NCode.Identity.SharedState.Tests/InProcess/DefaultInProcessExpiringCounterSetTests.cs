@@ -34,6 +34,22 @@ public sealed class DefaultInProcessExpiringCounterSetTests : BaseTests
         return new DefaultInProcessExpiringCounterSet(mockTimeProvider.Object);
     }
 
+    private static ExpiringCounterIncrement CreateIncrement(
+        string key,
+        long limit,
+        DateTimeOffset? expiresWhen = null,
+        string? referenceKey = null,
+        double referenceWeight = 0
+    ) =>
+        new()
+        {
+            Key = key,
+            ExpiresWhen = expiresWhen ?? Start.AddMinutes(1),
+            Limit = limit,
+            ReferenceKey = referenceKey,
+            ReferenceWeight = referenceWeight,
+        };
+
     #region IncrementAsync Tests
 
     [Fact]
@@ -155,6 +171,114 @@ public sealed class DefaultInProcessExpiringCounterSetTests : BaseTests
 
         await counterSet.IncrementAsync("new", Now.AddMinutes(1), CancellationToken.None);
 
+        Assert.Equal(1, counterSet.Count);
+    }
+
+    #endregion
+
+    #region IncrementUntilExceededAsync Tests
+
+    [Fact]
+    public async Task IncrementUntilExceededAsync_WhenEveryCountIsWithinItsLimit_IncrementsEachInOrder()
+    {
+        var counterSet = CreateCounterSet();
+        ExpiringCounterIncrement[] increments =
+        [
+            CreateIncrement("a", limit: 5),
+            CreateIncrement("b", limit: 5),
+        ];
+        ExpiringCounterCount[] expected = [new(1, 0), new(1, 0)];
+
+        var counts = await counterSet.IncrementUntilExceededAsync(
+            increments,
+            CancellationToken.None
+        );
+
+        Assert.Equal(expected, counts);
+        Assert.Equal(1, await counterSet.GetAsync("a", CancellationToken.None));
+        Assert.Equal(1, await counterSet.GetAsync("b", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task IncrementUntilExceededAsync_WhenACountExceedsItsLimit_StopsAfterIt()
+    {
+        var counterSet = CreateCounterSet();
+        await counterSet.IncrementAsync("a", Start.AddMinutes(1), CancellationToken.None);
+        ExpiringCounterIncrement[] increments =
+        [
+            CreateIncrement("a", limit: 1),
+            CreateIncrement("b", limit: 5),
+        ];
+        ExpiringCounterCount[] expected = [new(2, 0)];
+
+        var counts = await counterSet.IncrementUntilExceededAsync(
+            increments,
+            CancellationToken.None
+        );
+
+        Assert.Equal(expected, counts);
+        Assert.Equal(0, await counterSet.GetAsync("b", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task IncrementUntilExceededAsync_WhenTheWeightedReferenceExceedsTheLimit_StopsAfterIt()
+    {
+        var counterSet = CreateCounterSet();
+        for (var i = 0; i < 4; ++i)
+            await counterSet.IncrementAsync("prev", Start.AddMinutes(1), CancellationToken.None);
+
+        ExpiringCounterIncrement[] increments =
+        [
+            CreateIncrement("cur", limit: 2, referenceKey: "prev", referenceWeight: 0.5),
+            CreateIncrement("next", limit: 2),
+        ];
+        ExpiringCounterCount[] expected = [new(1, 4)];
+
+        var counts = await counterSet.IncrementUntilExceededAsync(
+            increments,
+            CancellationToken.None
+        );
+
+        Assert.Equal(expected, counts);
+        Assert.Equal(0, await counterSet.GetAsync("next", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task IncrementUntilExceededAsync_WhenTheWeightIsZero_DoesNotReadTheReference()
+    {
+        var counterSet = CreateCounterSet();
+        await counterSet.IncrementAsync("prev", Start.AddMinutes(1), CancellationToken.None);
+        ExpiringCounterIncrement[] increments =
+        [
+            CreateIncrement("cur", limit: 5, referenceKey: "prev", referenceWeight: 0),
+        ];
+        ExpiringCounterCount[] expected = [new(1, 0)];
+
+        var counts = await counterSet.IncrementUntilExceededAsync(
+            increments,
+            CancellationToken.None
+        );
+
+        Assert.Equal(expected, counts);
+    }
+
+    [Fact]
+    public async Task IncrementUntilExceededAsync_WhenAnExpiryIsNotInTheFuture_CountsNothingForIt()
+    {
+        var counterSet = CreateCounterSet();
+        ExpiringCounterIncrement[] increments =
+        [
+            CreateIncrement("a", limit: 5, expiresWhen: Start),
+            CreateIncrement("b", limit: 5),
+        ];
+        ExpiringCounterCount[] expected = [new(0, 0), new(1, 0)];
+
+        var counts = await counterSet.IncrementUntilExceededAsync(
+            increments,
+            CancellationToken.None
+        );
+
+        Assert.Equal(expected, counts);
         Assert.Equal(1, counterSet.Count);
     }
 

@@ -5,7 +5,9 @@
   `.node-version`; [ADR-0147](0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md): the
   runtime is Node 26 and `engines.node` is its floor; amended by
   [ADR-0153](0153-one-release-age-window-gates-frontend-dependencies.md): pnpm also enforces Dependabot's three-day
-  release-age window)
+  release-age window; and by
+  [ADR-0249](0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md): the host image names
+  the Node major as a literal that the Host image workflow checks against .node-version)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -86,8 +88,10 @@ pin by pnpm's own tooling, not by Corepack.
 ## Consequences
 
 - The frontend runtime is supported until 2029-04-30.
-- Moving to the next Node major means changing `.node-version`, `engines.node`, and the two `@types/node` ranges, plus
-  whatever code the new types break. CI, the AppHost, the bootstrap script, and the documentation follow the file.
+- Moving to the next Node major means changing `.node-version`, `engines.node`, the two `@types/node` ranges, the Node
+  image of the host Dockerfile, whose major the `Host image` workflow checks
+  ([ADR-0249](0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)), plus whatever code
+  the new types break. CI, the AppHost, the bootstrap script, and the documentation follow the file.
 - Each developer re-runs `build/frontend-install.ps1` once. It adds Node 26 through NVS and installs pnpm 10. pnpm 10
   then replaces the `node_modules` that pnpm 9 built, without the interactive confirmation it would otherwise ask
   for. The AppHost's NVS lookup remains Windows-only, as before; any other version manager works when `node` on `PATH`

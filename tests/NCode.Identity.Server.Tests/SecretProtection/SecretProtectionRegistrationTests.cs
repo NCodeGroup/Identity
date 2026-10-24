@@ -62,6 +62,10 @@ public class SecretProtectionRegistrationTests : BaseTests
         descriptor.ServiceType == typeof(IHostedService)
         && descriptor.ImplementationType == typeof(ServerSecretProtectorWarmup);
 
+    private static bool IsKeyRingGate(ServiceDescriptor descriptor) =>
+        descriptor.ServiceType == typeof(IHostedService)
+        && descriptor.ImplementationType == typeof(DataProtectionKeyRingGate);
+
     #region AddSecretProtection Tests
 
     [Fact]
@@ -169,7 +173,46 @@ public class SecretProtectionRegistrationTests : BaseTests
     }
 
     [Fact]
-    public void AddSecretProtection_InsertsWarmupFirst()
+    public void AddSecretProtection_BindsTheRevokedKeyRingKeyIds()
+    {
+        var firstKeyId = Guid.Parse("6d1f7c0e-0c62-4d6e-9a71-1d6a2f3d9b11");
+        var secondKeyId = Guid.Parse("0b9c2b5e-3f4d-4f6a-8c7e-5a1d2e3f4a5b");
+        var serviceCollection = AddSecretProtection(
+            new Dictionary<string, string?>
+            {
+                ["DataProtectionKeyRing:RevokedKeyIds:0"] = firstKeyId.ToString(),
+                ["DataProtectionKeyRing:RevokedKeyIds:1"] = secondKeyId.ToString(),
+            }
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var options = serviceProvider
+            .GetRequiredService<IOptions<DataProtectionKeyRingOptions>>()
+            .Value;
+
+        Assert.Equal([firstKeyId, secondKeyId], options.RevokedKeyIds);
+    }
+
+    [Fact]
+    public void AddSecretProtection_WhenTheKeyRingSectionHasAnUnknownKey_Throws()
+    {
+        var serviceCollection = AddSecretProtection(
+            new Dictionary<string, string?>
+            {
+                ["DataProtectionKeyRing:RevokedKeys:0"] = "6d1f7c0e-0c62-4d6e-9a71-1d6a2f3d9b11",
+            }
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            serviceProvider.GetRequiredService<IOptions<DataProtectionKeyRingOptions>>().Value
+        );
+
+        Assert.Contains("'RevokedKeys'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddSecretProtection_InsertsTheWarmupThenTheKeyRingGateFirst()
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton<IHostedService, StubHostedService>();
@@ -177,7 +220,8 @@ public class SecretProtectionRegistrationTests : BaseTests
         AddSecretProtection([], serviceCollection);
 
         Assert.True(IsWarmup(serviceCollection[0]));
-        Assert.Equal(typeof(StubHostedService), serviceCollection[1].ImplementationType);
+        Assert.True(IsKeyRingGate(serviceCollection[1]));
+        Assert.Equal(typeof(StubHostedService), serviceCollection[2].ImplementationType);
     }
 
     [Fact]
@@ -187,6 +231,7 @@ public class SecretProtectionRegistrationTests : BaseTests
         AddSecretProtection([], serviceCollection);
 
         Assert.Single(serviceCollection, IsWarmup);
+        Assert.Single(serviceCollection, IsKeyRingGate);
         Assert.Single(
             serviceCollection,
             descriptor => descriptor.ServiceType == typeof(ServerSecretProtectorHolder)

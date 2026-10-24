@@ -264,6 +264,24 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public void AddIdentityServer_StartsTheKeyRingGateAfterTheWarmupAndBeforeDataProtection()
+    {
+        // Hosted services start in registration order. The gate needs the protector that the warmup loads, and it must
+        // refuse the host before Data Protection loads the key ring (ADR-0247).
+        using var host = BuildHost([]);
+
+        var names = host
+            .Services.GetServices<IHostedService>()
+            .Select(service => service.GetType().Name)
+            .ToList();
+        var dataProtectionIndex = names.IndexOf("DataProtectionHostedService");
+
+        Assert.Equal("ServerSecretProtectorWarmup", names[0]);
+        Assert.Equal("DataProtectionKeyRingGate", names[1]);
+        Assert.InRange(dataProtectionIndex, 2, names.Count - 1);
+    }
+
+    [Fact]
     public void AddIdentityServer_RegistersTheEndedSessionTerminationService()
     {
         // Without this service a session that ends while no request uses it stays unrevoked, with its refresh tokens

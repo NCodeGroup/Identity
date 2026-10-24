@@ -18,9 +18,18 @@
 
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Primitives;
+using NCode.Collections.Providers;
+using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
@@ -34,6 +43,9 @@ public class RateLimitTests
     private const string ClientId = "it-quota-client";
     private const string ClientSecret = "confidential-secret-value";
     private const string TokenPath = "/oauth2/token";
+    private const string DiscoveryPath = "/.well-known/openid-configuration";
+    private const string TestPartitionSettingName = "test_partition_per_minute";
+    private const string TestPartitionHeaderName = "X-Test-Partition";
 
     private static ConfiguredHostApplicationFactory CreateFactory(
         string settingName,
@@ -61,6 +73,18 @@ public class RateLimitTests
                 ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
             }
         );
+
+    private static async Task<HttpResponseMessage> GetDiscoveryAsync(
+        HttpClient client,
+        string? partition
+    )
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, DiscoveryPath);
+        if (partition is not null)
+            request.Headers.Add(TestPartitionHeaderName, partition);
+
+        return await client.SendAsync(request);
+    }
 
     private static async Task AssertTooManyRequestsAsync(
         HttpResponseMessage response,
@@ -195,4 +219,112 @@ public class RateLimitTests
     }
 
     #endregion
+
+    #region Registered Limit Tests
+
+    [Fact]
+    public async Task Discovery_WhenARegisteredLimitIsExceeded_RefusesOnlyItsPartition()
+    {
+        // The limit is registered beside the built-in ones, and a request with another partition value, or with none,
+        // does not count against the partition that is over its limit.
+        using var factory = new RegisteredLimitApplicationFactory();
+        var client = CreateClient(factory);
+
+        using var first = await GetDiscoveryAsync(client, "a");
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+
+        using var second = await GetDiscoveryAsync(client, "a");
+        await AssertTooManyRequestsAsync(second, TimeSpan.FromSeconds(120));
+
+        using var otherPartition = await GetDiscoveryAsync(client, "b");
+        Assert.Equal(HttpStatusCode.OK, otherPartition.StatusCode);
+
+        using var noPartition = await GetDiscoveryAsync(client, null);
+        Assert.Equal(HttpStatusCode.OK, noPartition.StatusCode);
+    }
+
+    #endregion
+
+    // A host with a rate limit of one request a minute per value of the X-Test-Partition request header, registered
+    // the way a package contributes its own limit: a setting descriptor and a rate-limit descriptor.
+    private sealed class RegisteredLimitApplicationFactory : HostApplicationFactory
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+
+            builder.ConfigureAppConfiguration(configurationBuilder =>
+                configurationBuilder.AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        [$"OpenId:Server:Settings:{TestPartitionSettingName}"] = "1",
+                    }
+                )
+            );
+
+            builder.ConfigureTestServices(serviceCollection =>
+            {
+                serviceCollection.TryAddEnumerable(
+                    ServiceDescriptor.Singleton<
+                        ICollectionDataSource<SettingDescriptor>,
+                        TestPartitionSettingDescriptorDataSource
+                    >()
+                );
+                serviceCollection.TryAddEnumerable(
+                    ServiceDescriptor.Singleton<
+                        ICollectionDataSource<RateLimitDescriptor>,
+                        TestPartitionRateLimitDescriptorDataSource
+                    >()
+                );
+            });
+        }
+    }
+
+    private sealed class TestPartitionSettingDescriptorDataSource
+        : ICollectionDataSource<SettingDescriptor>
+    {
+        public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
+
+        public IEnumerable<SettingDescriptor> Collection
+        {
+            get
+            {
+                yield return new SettingDescriptor<int>
+                {
+                    Name = TestPartitionSettingName,
+                    AppliesTo = [OpenIdSettingScopes.Tenant],
+                    Rule = SettingRules.AtLeast(1),
+                    OnMerge = SettingMerge.Min,
+                };
+            }
+        }
+    }
+
+    private sealed class TestPartitionRateLimitDescriptorDataSource
+        : ICollectionDataSource<RateLimitDescriptor>
+    {
+        public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
+
+        public IEnumerable<RateLimitDescriptor> Collection
+        {
+            get
+            {
+                yield return new RateLimitDescriptor
+                {
+                    Name = "test_partition",
+                    Stage = RateLimitStages.Request,
+                    Order = 150,
+                    Window = TimeSpan.FromMinutes(1),
+                    IsSliding = true,
+                    LimitKey = new SettingKey<int>(TestPartitionSettingName),
+                    PartitionValueSelector = static context =>
+                    {
+                        var headers = context.OpenIdContext.Http.Request.Headers;
+                        var value = headers[TestPartitionHeaderName].ToString();
+                        return string.IsNullOrEmpty(value) ? null : value;
+                    },
+                };
+            }
+        }
+    }
 }

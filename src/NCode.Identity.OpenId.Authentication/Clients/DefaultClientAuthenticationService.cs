@@ -32,13 +32,13 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// Provides a default implementation of the <see cref="IClientAuthenticationService"/> abstraction. Every registered
 /// <see cref="IClientAuthenticationHandler"/> examines the request; the service selects the client they authenticated
 /// and accepts it only when the method it authenticated with is the one it is registered to use and its ceiling permits
-/// that method, whichever handler produced it. An authenticated confidential client is then counted against its
-/// <c>rate_limit_client_per_minute</c> limit, once per request, and refused with <c>429 Too Many Requests</c> when it is
-/// over the limit. The constructor throws an <see cref="InvalidOperationException"/> unless every registered handler's
-/// method has a <see cref="ClientAuthenticationMethodDescriptor"/>, no two handlers authenticate one method, and every
-/// described method has a handler.
+/// that method, whichever handler produced it. An authenticated confidential client is then judged at the
+/// <c>client_authentication</c> rate-limit stage, once per request, and refused with <c>429 Too Many Requests</c> when
+/// it is over a limit. The constructor throws an <see cref="InvalidOperationException"/> unless every registered
+/// handler's method has a <see cref="ClientAuthenticationMethodDescriptor"/>, no two handlers authenticate one method,
+/// and every described method has a handler.
 /// </summary>
-// See ADR-0145, ADR-0196 and ADR-0207.
+// See ADR-0145, ADR-0196, ADR-0207 and ADR-0246.
 internal class DefaultClientAuthenticationService(
     IEnumerable<IClientAuthenticationHandler> handlers,
     IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
@@ -82,9 +82,14 @@ internal class DefaultClientAuthenticationService(
         // would let anyone spend its allowance and refuse its real users.
         if (authenticationResult.ConfidentialClient is { } client)
         {
-            var decision = await RateLimiter.AcquireForClientAsync(
-                openIdContext,
-                client,
+            var rateLimitContext = new RateLimitContext
+            {
+                OpenIdContext = openIdContext,
+                Client = client,
+            };
+            var decision = await RateLimiter.AcquireAsync(
+                RateLimitStages.ClientAuthentication,
+                rateLimitContext,
                 cancellationToken
             );
             if (decision.RetryAfter is { } retryAfter)

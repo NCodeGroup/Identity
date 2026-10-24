@@ -67,12 +67,41 @@ internal class DefaultInProcessExpiringCounterSet(TimeProvider timeProvider) : I
         ArgumentNullException.ThrowIfNull(key);
 
         var now = TimeProvider.GetUtcNow();
-        var count =
-            Entries.TryGetValue(key, out var counter) && counter.ExpiresWhen > now
-                ? counter.Read()
-                : 0L;
 
-        return ValueTask.FromResult(count);
+        return ValueTask.FromResult(Read(key, now));
+    }
+
+    /// <inheritdoc />
+    public ValueTask<IReadOnlyList<ExpiringCounterCount>> IncrementUntilExceededAsync(
+        IReadOnlyList<ExpiringCounterIncrement> increments,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(increments);
+
+        var now = TimeProvider.GetUtcNow();
+        SweepIfDue(now);
+
+        var counts = new List<ExpiringCounterCount>(increments.Count);
+        foreach (var increment in increments)
+        {
+            var count =
+                increment.ExpiresWhen > now
+                    ? Increment(increment.Key, increment.ExpiresWhen, now)
+                    : 0L;
+
+            var reference =
+                increment.ReferenceKey is { } referenceKey && increment.ReferenceWeight > 0
+                    ? Read(referenceKey, now)
+                    : 0L;
+
+            counts.Add(new ExpiringCounterCount(count, reference));
+
+            if (count + reference * increment.ReferenceWeight > increment.Limit)
+                break;
+        }
+
+        return ValueTask.FromResult<IReadOnlyList<ExpiringCounterCount>>(counts);
     }
 
     /// <inheritdoc />
@@ -84,6 +113,11 @@ internal class DefaultInProcessExpiringCounterSet(TimeProvider timeProvider) : I
 
         return ValueTask.CompletedTask;
     }
+
+    private long Read(string key, DateTimeOffset now) =>
+        Entries.TryGetValue(key, out var counter) && counter.ExpiresWhen > now
+            ? counter.Read()
+            : 0L;
 
     private long Increment(string key, DateTimeOffset expiresWhen, DateTimeOffset now)
     {

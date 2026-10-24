@@ -21,6 +21,7 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -34,6 +35,7 @@ using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Host;
+using NCode.Identity.OpenId.Host.Database;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -94,13 +96,15 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
     private string DatabaseName { get; } = $"it-{Guid.NewGuid():N}";
 
+    private string KeyRingDatabaseName { get; } = $"it-keys-{Guid.NewGuid():N}";
+
     // Shared across every host built from this factory instance (including WithWebHostBuilder-derived hosts) so data
     // seeded through one host is visible to another; a per-host root would give each its own empty database.
     private InMemoryDatabaseRoot DatabaseRoot { get; } = new();
 
     // Every host this factory builds, including WithWebHostBuilder derivatives that share its database, must unwrap the
-    // same master keys, so they share one root key. An inline key is allowed outside Production; this one is generated
-    // per run and never committed.
+    // same master keys, so they share one root key. The hosts also share the factory's key ring, which that root key
+    // protects. An inline key is allowed outside Production; this one is generated per run and never committed.
     private string RootKey { get; } = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
 
     /// <summary>
@@ -1229,6 +1233,16 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             serviceCollection.AddDbContextFactory<OpenIdDbContext>(options =>
                 options.UseInMemoryDatabase(DatabaseName, DatabaseRoot)
             );
+
+            // The key ring lives beside the master key that protects it, shared by every host of this factory, and no
+            // test reads or writes the machine's key directory.
+            serviceCollection.RemoveAll<DbContextOptions<DeveloperDataProtectionDbContext>>();
+            serviceCollection.AddDbContext<DeveloperDataProtectionDbContext>(options =>
+                options.UseInMemoryDatabase(KeyRingDatabaseName, DatabaseRoot)
+            );
+            serviceCollection
+                .AddDataProtection()
+                .PersistKeysToDbContext<DeveloperDataProtectionDbContext>();
 
             // Widen the server ceiling (registered after the library default, so it unions on top):
             // enables the client_credentials and resource-owner password grants plus a custom "api" scope for

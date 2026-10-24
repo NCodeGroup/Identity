@@ -1,6 +1,8 @@
 # 164. Replicas share single-use state through an atomic expiring key set, backed by Valkey
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0246](0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md): every key carries its
+  tenant as a hash tag)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -71,11 +73,14 @@ chooses: in-process for a single replica, Valkey for several.**
    `EXISTS`, and `PING`.
 
 4. **The consumers record tenant-scoped, unambiguous, bounded keys.** The DPoP nonce service, the DPoP proof replay
-   cache, and the client-assertion replay cache record into `IExpiringKeySet` under `{purpose}:{tenantId}:{digest}`,
-   where the digest is the base64url SHA-256 of the length-prefixed UTF-8 components (the proof's key thumbprint and
-   `jti`; the client identifier and `jti`; the nonce). `IDPoPProofReplayCache.TryRecordAsync` and
-   `IClientAssertionReplayCache.TryRecordAsync` take the request's `OpenIdContext`, as `IDPoPNonceService` does, to
-   scope the record by tenant. The library registers no `IDistributedCache`.
+   cache, and the client-assertion replay cache record into `IExpiringKeySet` under
+   `{purpose}:{tenant in braces}:{digest}`, where the digest is the base64url SHA-256 of the length-prefixed UTF-8
+   components (the proof's key thumbprint and `jti`; the client identifier and `jti`; the nonce). The braces make the
+   tenant the key's hash tag
+   ([ADR-0246](0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md)).
+   `IDPoPProofReplayCache.TryRecordAsync` and `IClientAssertionReplayCache.TryRecordAsync` take the request's
+   `OpenIdContext`, as `IDPoPNonceService` does, to scope the record by tenant. The library registers no
+   `IDistributedCache`.
 
 5. **The reference host and local development use the shared adapter.** The host calls
    `SharedStateLibraryBuilder.AddValkey(configuration)`; the Aspire AppHost

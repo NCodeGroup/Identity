@@ -188,9 +188,34 @@ mounts a projected service-account token (audience `secretProtection.awsKms.webI
 (the release's full name). It does this only for the `aws-kms` provider, so a pod that uses another provider never
 carries AWS credentials. The pod still does not mount the default service-account token.
 
+### A key the master key cannot decrypt
+
+The host refuses to start while the Data Protection key ring holds a live key, one that is not revoked and has not
+expired, that the server's master key cannot decrypt, and it names each such key in the error
+([ADR-0247](../../docs/adr/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)). It happens when the
+master key rows are lost or recreated while the key ring survives, such as after restoring part of a backup.
+
+Restore the master keys if you can. Otherwise list each ID in `extraEnv` as `DataProtectionKeyRing__RevokedKeyIds__0`,
+`DataProtectionKeyRing__RevokedKeyIds__1`, and so on, and upgrade the release:
+
+```yaml
+extraEnv:
+  - name: DataProtectionKeyRing__RevokedKeyIds__0
+    value: 5b0f5a54-2c1e-4a2f-9a3c-0d6f1c8e7b21
+```
+
+The host revokes the listed keys as it starts, and Data Protection creates a key in their place. The sign-in cookies and
+anti-forgery tokens that the revoked keys protected stop working. The revocation is stored in the key ring, so the
+entries may be removed afterwards.
+
 ## Other settings
 
 The chart models the settings it validates. Pass any other host setting as an environment variable through `extraEnv`
 or `extraEnvFrom`, for example `Logging__LogLevel__Default`. The migration Job receives `extraEnv`, `extraEnvFrom`,
 `extraVolumes`, and `extraVolumeMounts` as well, so a setting the database connection needs, such as a CA bundle for
 TLS to Postgres, reaches both the host and the migrations.
+
+The image writes one JSON object per line to standard output, with a UTC timestamp, so a log collector keeps an entry
+and its exception in one record
+([ADR-0248](../../docs/adr/0248-the-host-image-writes-one-line-json-logs.md)). Set
+`Logging__Console__FormatterName=simple` in `extraEnv` to write text instead.

@@ -72,7 +72,8 @@ internal static class EventIds
     public const int ClientCertificateUntrusted = Base + 41;
     public const int RateLimitExceeded = Base + 42;
     public const int RateLimitStoreUnavailable = Base + 43;
-    public const int QuotaExceeded = Base + 44;
+
+    // Base + 44 is retired and never reused.
     public const int TenantUsageFlushFailed = Base + 45;
     public const int TenantUsagePruneFailed = Base + 46;
     public const int RateLimitStoreRecovered = Base + 47;

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using Microsoft.Extensions.Options;
 using NCode.Identity.SharedState.Valkey.Facades;
 using NCode.Identity.SharedState.Valkey.Options;
@@ -29,9 +28,10 @@ namespace NCode.Identity.SharedState.Valkey;
 /// same server. An increment is one script that runs <c>INCR</c> and, when that starts the counter, <c>PEXPIRE</c>; the
 /// server runs a script atomically, so every concurrent increment across every replica is counted once and a counter
 /// never outlives its window. The time-to-live is computed from this replica's clock, so the expiry does not depend on
-/// the server's clock agreeing with it. A command against an unreachable server throws rather than reporting a count,
-/// so the caller decides how a limit behaves while the server is down. <c>RemoveAsync</c> runs <c>DEL</c> on the
-/// counter's key.
+/// the server's clock agreeing with it. A batch is one script that increments each counter in order and stops after the
+/// first counter that is over its limit, so one round trip serves every counter the batch names. A command against an
+/// unreachable server throws rather than reporting a count, so the caller decides how a limit behaves while the server
+/// is down. <c>RemoveAsync</c> runs <c>DEL</c> on the counter's key.
 /// </summary>
 internal class ValkeyExpiringCounterSet(
     IValkeyConnection connection,
@@ -50,6 +50,32 @@ internal class ValkeyExpiringCounterSet(
             redis.call('PEXPIRE', KEYS[1], ARGV[1])
         end
         return count
+        """;
+
+    /// <summary>
+    /// The script that increments a batch of counters in order and stops after the first one that is over its limit.
+    /// <c>KEYS</c> holds two keys per counter, the counter and its reference; <c>ARGV</c> holds three values per
+    /// counter, the time-to-live in milliseconds, the reference weight and the limit. It returns two values per counter
+    /// reached: the count and the reference count.
+    /// </summary>
+    internal const string IncrementUntilExceededScript = """
+        local results = {}
+        for i = 1, #KEYS / 2 do
+            local key = KEYS[2 * i - 1]
+            local ttl = tonumber(ARGV[3 * i - 2])
+            local weight = tonumber(ARGV[3 * i - 1])
+            local count = 0
+            if ttl > 0 then
+                count = redis.call('INCR', key)
+                if count == 1 then redis.call('PEXPIRE', key, ttl) end
+            end
+            local reference = 0
+            if weight > 0 then reference = tonumber(redis.call('GET', KEYS[2 * i]) or '0') end
+            results[2 * i - 1] = count
+            results[2 * i] = reference
+            if count + reference * weight > tonumber(ARGV[3 * i]) then break end
+        end
+        return results
         """;
 
     private IValkeyConnection Connection { get; } = connection;
@@ -76,30 +102,68 @@ internal class ValkeyExpiringCounterSet(
         // The server counts a time-to-live in whole milliseconds and rejects zero, so round up.
         var milliseconds = (long)Math.Ceiling(timeToLive.TotalMilliseconds);
 
-        var startTimestamp = Stopwatch.GetTimestamp();
-        try
-        {
-            var database = await Connection.GetDatabaseAsync(cancellationToken);
-            var result = await database
-                .ScriptEvaluateAsync(IncrementScript, [GetKey(key)], [milliseconds])
-                .WaitAsync(cancellationToken);
+        return await Metrics.MeasureAsync(
+            ValkeySharedStateMetrics.CounterIncrementOperation,
+            async () =>
+            {
+                var database = await Connection.GetDatabaseAsync(cancellationToken);
+                var result = await database
+                    .ScriptEvaluateAsync(IncrementScript, [GetKey(key)], [milliseconds])
+                    .WaitAsync(cancellationToken);
 
-            Metrics.OperationCompleted(
-                ValkeySharedStateMetrics.CounterIncrementOperation,
-                startTimestamp,
-                exception: null
-            );
-            return (long)result;
-        }
-        catch (Exception exception)
+                return (long)result;
+            }
+        );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<ExpiringCounterCount>> IncrementUntilExceededAsync(
+        IReadOnlyList<ExpiringCounterIncrement> increments,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(increments);
+
+        if (increments.Count == 0)
+            return [];
+
+        var now = TimeProvider.GetUtcNow();
+        var keys = new RedisKey[2 * increments.Count];
+        var values = new RedisValue[3 * increments.Count];
+        for (var i = 0; i < increments.Count; ++i)
         {
-            Metrics.OperationCompleted(
-                ValkeySharedStateMetrics.CounterIncrementOperation,
-                startTimestamp,
-                exception
-            );
-            throw;
+            var increment = increments[i];
+            var referenceKey = increment.ReferenceWeight > 0 ? increment.ReferenceKey : null;
+            var timeToLive = increment.ExpiresWhen - now;
+
+            keys[2 * i] = GetKey(increment.Key);
+            keys[2 * i + 1] = GetKey(referenceKey ?? increment.Key);
+
+            // The server counts a time-to-live in whole milliseconds and rejects zero, so round up.
+            values[3 * i] =
+                timeToLive > TimeSpan.Zero ? (long)Math.Ceiling(timeToLive.TotalMilliseconds) : 0L;
+            values[3 * i + 1] = referenceKey is null ? 0d : increment.ReferenceWeight;
+            values[3 * i + 2] = increment.Limit;
         }
+
+        var results = await Metrics.MeasureAsync(
+            ValkeySharedStateMetrics.CounterIncrementUntilExceededOperation,
+            async () =>
+            {
+                var database = await Connection.GetDatabaseAsync(cancellationToken);
+                var result = await database
+                    .ScriptEvaluateAsync(IncrementUntilExceededScript, keys, values)
+                    .WaitAsync(cancellationToken);
+
+                return (long[]?)result ?? [];
+            }
+        );
+
+        var counts = new List<ExpiringCounterCount>(results.Length / 2);
+        for (var i = 0; i + 1 < results.Length; i += 2)
+            counts.Add(new ExpiringCounterCount(results[i], results[i + 1]));
+
+        return counts;
     }
 
     /// <inheritdoc />
@@ -107,28 +171,16 @@ internal class ValkeyExpiringCounterSet(
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        var startTimestamp = Stopwatch.GetTimestamp();
-        try
-        {
-            var database = await Connection.GetDatabaseAsync(cancellationToken);
-            var value = await database.StringGetAsync(GetKey(key)).WaitAsync(cancellationToken);
+        return await Metrics.MeasureAsync(
+            ValkeySharedStateMetrics.CounterGetOperation,
+            async () =>
+            {
+                var database = await Connection.GetDatabaseAsync(cancellationToken);
+                var value = await database.StringGetAsync(GetKey(key)).WaitAsync(cancellationToken);
 
-            Metrics.OperationCompleted(
-                ValkeySharedStateMetrics.CounterGetOperation,
-                startTimestamp,
-                exception: null
-            );
-            return value.IsNull ? 0L : (long)value;
-        }
-        catch (Exception exception)
-        {
-            Metrics.OperationCompleted(
-                ValkeySharedStateMetrics.CounterGetOperation,
-                startTimestamp,
-                exception
-            );
-            throw;
-        }
+                return value.IsNull ? 0L : (long)value;
+            }
+        );
     }
 
     /// <inheritdoc />
@@ -136,27 +188,14 @@ internal class ValkeyExpiringCounterSet(
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        var startTimestamp = Stopwatch.GetTimestamp();
-        try
-        {
-            var database = await Connection.GetDatabaseAsync(cancellationToken);
-            await database.KeyDeleteAsync(GetKey(key)).WaitAsync(cancellationToken);
-
-            Metrics.OperationCompleted(
-                ValkeySharedStateMetrics.CounterRemoveOperation,
-                startTimestamp,
-                exception: null
-            );
-        }
-        catch (Exception exception)
-        {
-            Metrics.OperationCompleted(
-                ValkeySharedStateMetrics.CounterRemoveOperation,
-                startTimestamp,
-                exception
-            );
-            throw;
-        }
+        await Metrics.MeasureAsync(
+            ValkeySharedStateMetrics.CounterRemoveOperation,
+            async () =>
+            {
+                var database = await Connection.GetDatabaseAsync(cancellationToken);
+                await database.KeyDeleteAsync(GetKey(key)).WaitAsync(cancellationToken);
+            }
+        );
     }
 
     private RedisKey GetKey(string key) => KeyPrefix + key;

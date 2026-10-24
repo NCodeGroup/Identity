@@ -16,9 +16,11 @@
 
 #endregion
 
+using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Logging.EventSource;
 using Microsoft.Extensions.Options;
@@ -49,6 +51,50 @@ public class ProgramTests
         Assert.Equal([typeof(ConsoleLoggerProvider), typeof(EventSourceLoggerProvider)], providers);
     }
 
+    [Fact]
+    public async Task Logging_WhenTheJsonFormatterIsSelected_WritesEachEntryOnOneLine()
+    {
+        // The values the host image sets through its Logging__Console__ environment variables (ADR-0248).
+        await using var factory = new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["Logging:Console:FormatterName"] = "json",
+                ["Logging:Console:FormatterOptions:UseUtcTimestamp"] = "true",
+                ["Logging:Console:FormatterOptions:TimestampFormat"] = "O",
+            }
+        );
+
+        var optionsMonitor = factory.Services.GetRequiredService<
+            IOptionsMonitor<ConsoleLoggerOptions>
+        >();
+        var formatterName = optionsMonitor.CurrentValue.FormatterName;
+        Assert.Equal("json", formatterName);
+
+        var formatter = factory
+            .Services.GetServices<ConsoleFormatter>()
+            .Single(candidate => candidate.Name == formatterName);
+
+        var exception = CreateException();
+        var entry = new LogEntry<string>(
+            LogLevel.Error,
+            "Test",
+            new EventId(1),
+            "message",
+            exception,
+            static (state, _) => state
+        );
+        using var writer = new StringWriter();
+        formatter.Write(in entry, null, writer);
+        var text = writer.ToString().TrimEnd('\r', '\n');
+
+        Assert.DoesNotContain("\n", text);
+        using var document = JsonDocument.Parse(text);
+        var exceptionText = document.RootElement.GetProperty("Exception").GetString();
+        var timestamp = document.RootElement.GetProperty("Timestamp").GetString();
+        Assert.Contains("second line", exceptionText);
+        Assert.EndsWith("+00:00", timestamp);
+    }
+
     #endregion
 
     #region Configuration Tests
@@ -73,4 +119,17 @@ public class ProgramTests
     }
 
     #endregion
+
+    // An exception that was thrown, so it has a stack trace, with a message that spans two lines.
+    private static InvalidOperationException CreateException()
+    {
+        try
+        {
+            throw new InvalidOperationException("first line\nsecond line");
+        }
+        catch (InvalidOperationException exception)
+        {
+            return exception;
+        }
+    }
 }

@@ -32,11 +32,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # The Node major is pinned once, in src/frontend/.node-version (ADR-0152); the Dockerfile takes it as a build
-      # argument because a FROM line cannot read a file.
-      - name: Read the Node major
-        id: node
-        run: echo "version=$(cat src/frontend/.node-version)" >> "$GITHUB_OUTPUT"
+      # The Dockerfile names Node by a literal tag and digest, which a FROM line cannot read from a file, so its major
+      # must equal the single pin in src/frontend/.node-version (ADR-0152, ADR-0249).
+      - name: Check the Node image follows .node-version
+        run: |
+          major=$(cat src/frontend/.node-version)
+          if ! grep -q "node:${major}-trixie-slim@sha256:" src/NCode.Identity.OpenId.Host/Dockerfile; then
+            echo "::error::The Dockerfile must pin node:${major}-trixie-slim by digest (src/frontend/.node-version)"
+            exit 1
+          fi
 
       # Third-party actions, so each is pinned to a commit; Dependabot moves the pin and its version comment together.
       - name: Set up Docker Buildx
@@ -48,7 +52,32 @@ jobs:
           context: .
           file: src/NCode.Identity.OpenId.Host/Dockerfile
           platforms: linux/amd64,linux/arm64
-          build-args: NODE_VERSION=${{ steps.node.outputs.version }}
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # A multi-architecture build cannot be loaded into the local Docker daemon, so the amd64 image is built once more,
+      # from the cache, to be inspected.
+      - name: Load the amd64 image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: src/NCode.Identity.OpenId.Host/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ncode-identity-host:ci
+          cache-from: type=gha
+
+      # The image carries the log format (ADR-0248), so a change that drops it fails here rather than in production.
+      - name: Check the image logs one-line JSON
+        run: |
+          env=$(docker image inspect ncode-identity-host:ci --format '{{range .Config.Env}}{{println .}}{{end}}')
+          for setting in \
+            Logging__Console__FormatterName=json \
+            Logging__Console__FormatterOptions__UseUtcTimestamp=true \
+            Logging__Console__FormatterOptions__TimestampFormat=O; do
+            if ! grep -qxF "$setting" <<< "$env"; then
+              echo "::error::The image does not set ${setting}"
+              exit 1
+            fi
+          done

@@ -1,6 +1,7 @@
 # 210. The reference hosts log to standard output
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0248](0248-the-host-image-writes-one-line-json-logs.md): the host image selects one-line JSON)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -41,8 +42,8 @@ teardown (backlog `R54`, [ADR-0209](0209-a-replica-adds-each-usage-batch-to-the-
 
 - Nothing is written to the Windows Event Log by a reference host or by the integration tests; `ProgramTests` pins the
   set of providers.
-- The console provider's default `simple` format spreads one entry over several lines. One-line JSON for log
-  collectors is backlog `R74`.
+- The console provider's default `simple` format spreads one entry over several lines; the host image selects one-line
+  JSON ([ADR-0248](0248-the-host-image-writes-one-line-json-logs.md)).
 
 ## References
 

@@ -1,6 +1,8 @@
 # 235. Stored secrets are protected by a key hierarchy under an external root key
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0247](0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md): a live key ring key the server's
+  master key cannot decrypt stops the host)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 

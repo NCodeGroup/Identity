@@ -56,10 +56,11 @@ internal sealed class AuthenticationMetrics
     }
 
     /// <summary>
-    /// Records that a request was judged against a rate-limit partition.
+    /// Records that a request was judged against a registered rate-limit descriptor.
     /// </summary>
-    /// <param name="partition">The bounded partition name: <c>tenant</c>, <c>address</c>, or <c>client</c>.</param>
-    /// <param name="result">The bounded result: <c>admitted</c>, <c>rejected</c>, or <c>store_unavailable</c>.</param>
+    /// <param name="partition">The name of the registered rate-limit descriptor.</param>
+    /// <param name="result">The bounded result: <c>admitted</c>, <c>overage</c>, <c>rejected</c>, or
+    /// <c>store_unavailable</c>.</param>
     public void RateLimitJudged(string partition, string result) =>
         RateLimitingRequests.Add(
             1,

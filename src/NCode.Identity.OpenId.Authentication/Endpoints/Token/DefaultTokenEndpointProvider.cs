@@ -28,7 +28,6 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Authentication.Tokens;
-using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages.Parameters;
@@ -51,7 +50,6 @@ internal class DefaultTokenEndpointProvider(
     IKnownParameterCollectionProvider knownParameterCollectionProvider,
     IProofOfPossessionService proofOfPossessionService,
     IRequestRateLimiter requestRateLimiter,
-    ITenantUsageRecorder usageRecorder,
     ILogger<DefaultTokenEndpointProvider> logger
 ) : IEndpointProvider
 {
@@ -61,8 +59,6 @@ internal class DefaultTokenEndpointProvider(
         knownParameterCollectionProvider;
     private IProofOfPossessionService ProofOfPossessionService { get; } = proofOfPossessionService;
     private IRequestRateLimiter RequestRateLimiter { get; } = requestRateLimiter;
-
-    private ITenantUsageRecorder UsageRecorder { get; } = usageRecorder;
     private ILogger<DefaultTokenEndpointProvider> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -153,21 +149,18 @@ internal class DefaultTokenEndpointProvider(
         // until midnight UTC (ADR-0198).
         if (authResult.IsConfidential)
         {
-            var quotaDecision = await RequestRateLimiter.AcquireForTokenRequestAsync(
-                openIdContext,
+            var rateLimitContext = new RateLimitContext
+            {
+                OpenIdContext = openIdContext,
+                Client = authResult.ConfidentialClient,
+            };
+            var quotaDecision = await RequestRateLimiter.AcquireAsync(
+                RateLimitStages.TokenRequest,
+                rateLimitContext,
                 cancellationToken
             );
             if (quotaDecision.RetryAfter is { } retryAfter)
                 return RateLimitErrors.Refuse(openIdContext, retryAfter).AsHttpResult();
-
-            UsageRecorder.Record(openIdContext.Tenant.TenantId, TenantUsageMeters.TokenRequests);
-            if (quotaDecision.IsOverage)
-            {
-                UsageRecorder.Record(
-                    openIdContext.Tenant.TenantId,
-                    TenantUsageMeters.TokenRequestsOverage
-                );
-            }
         }
 
         var formData = await httpContext.Request.ReadFormAsync(cancellationToken);

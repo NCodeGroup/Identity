@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using Microsoft.Extensions.Options;
 using NCode.Identity.SharedState.Valkey.Facades;
 using NCode.Identity.SharedState.Valkey.Options;
@@ -67,30 +66,16 @@ internal class ValkeyExpiringKeySet(
             TimeSpan.FromMilliseconds(Math.Ceiling(timeToLive.TotalMilliseconds))
         );
 
-        var startTimestamp = Stopwatch.GetTimestamp();
-        try
-        {
-            var database = await Connection.GetDatabaseAsync(cancellationToken);
-            var added = await database
-                .StringSetAsync(GetKey(key), Marker, expiration, ValueCondition.NotExists)
-                .WaitAsync(cancellationToken);
-
-            Metrics.OperationCompleted(
-                ValkeySharedStateMetrics.KeySetTryAddOperation,
-                startTimestamp,
-                exception: null
-            );
-            return added;
-        }
-        catch (Exception exception)
-        {
-            Metrics.OperationCompleted(
-                ValkeySharedStateMetrics.KeySetTryAddOperation,
-                startTimestamp,
-                exception
-            );
-            throw;
-        }
+        return await Metrics.MeasureAsync(
+            ValkeySharedStateMetrics.KeySetTryAddOperation,
+            async () =>
+            {
+                var database = await Connection.GetDatabaseAsync(cancellationToken);
+                return await database
+                    .StringSetAsync(GetKey(key), Marker, expiration, ValueCondition.NotExists)
+                    .WaitAsync(cancellationToken);
+            }
+        );
     }
 
     /// <inheritdoc />
@@ -98,28 +83,14 @@ internal class ValkeyExpiringKeySet(
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        var startTimestamp = Stopwatch.GetTimestamp();
-        try
-        {
-            var database = await Connection.GetDatabaseAsync(cancellationToken);
-            var exists = await database.KeyExistsAsync(GetKey(key)).WaitAsync(cancellationToken);
-
-            Metrics.OperationCompleted(
-                ValkeySharedStateMetrics.KeySetContainsOperation,
-                startTimestamp,
-                exception: null
-            );
-            return exists;
-        }
-        catch (Exception exception)
-        {
-            Metrics.OperationCompleted(
-                ValkeySharedStateMetrics.KeySetContainsOperation,
-                startTimestamp,
-                exception
-            );
-            throw;
-        }
+        return await Metrics.MeasureAsync(
+            ValkeySharedStateMetrics.KeySetContainsOperation,
+            async () =>
+            {
+                var database = await Connection.GetDatabaseAsync(cancellationToken);
+                return await database.KeyExistsAsync(GetKey(key)).WaitAsync(cancellationToken);
+            }
+        );
     }
 
     private RedisKey GetKey(string key) => KeyPrefix + key;

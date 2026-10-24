@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-0237](0237-failed-password-attempts-are-limited-per-account.md): `RemoveAsync` removes a counter, and the Valkey
-  adapter runs `DEL`)
+  adapter runs `DEL`; and by
+  [ADR-0246](0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md): a limit is a registered
+  descriptor, and a stage's limits are counted in one round trip)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
 

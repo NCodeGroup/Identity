@@ -160,8 +160,9 @@ if (!string.IsNullOrEmpty(connectionString))
 }
 else
 {
-    // No connection string: hermetic test hosts boot this composition root and override the context with an isolated
-    // in-memory store. Default (ephemeral) data protection is sufficient because tests use ephemeral signing keys.
+    // No connection string: hermetic test hosts boot this composition root and replace the OpenID context and the Data
+    // Protection key ring with stores of their own; Data Protection otherwise keeps its default repository, which the
+    // production gate refuses.
     serviceCollection.AddDbContextFactory<OpenIdDbContext>(dbOptions =>
         dbOptions.UseInMemoryDatabase("OpenId")
     );

@@ -28,7 +28,8 @@ namespace NCode.Identity.SharedState;
 /// every replica that shares the set are each counted exactly once. The default adapter is in-process and therefore
 /// correct only for a single replica; a deployment that runs several replicas registers a shared adapter (for example
 /// Valkey) so a request counted by one replica is seen by all of them. A caller that counts a run of events, such as
-/// consecutive failures, removes the counter when the run ends.
+/// consecutive failures, removes the counter when the run ends. A caller that judges several limits at once names
+/// their counters in one ordered batch, which a networked adapter runs in one round trip.
 /// </summary>
 [PublicAPI]
 public interface IExpiringCounterSet
@@ -52,6 +53,24 @@ public interface IExpiringCounterSet
     ValueTask<long> IncrementAsync(
         string key,
         DateTimeOffset expiresWhen,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Increments the counters of an ordered batch, one after the other, and stops after the first counter whose count
+    /// exceeds its limit: the count after its increment plus the count of its reference counter, if it has one, times
+    /// its reference weight. Each increment is atomic, as <see cref="IncrementAsync"/> is. A networked adapter runs the
+    /// batch in one round trip. The keys of one batch share a hash tag, the text between the first <c>{</c> and the next
+    /// <c>}</c> of a key, so a clustered store keeps them on one node.
+    /// </summary>
+    /// <param name="increments">The counters to increment, in the order they are incremented.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>
+    /// One <see cref="ExpiringCounterCount"/> per counter that was reached, in order. Fewer counts than increments, or a
+    /// last count over its limit, means the batch stopped there.
+    /// </returns>
+    ValueTask<IReadOnlyList<ExpiringCounterCount>> IncrementUntilExceededAsync(
+        IReadOnlyList<ExpiringCounterIncrement> increments,
         CancellationToken cancellationToken
     );
 

@@ -1,6 +1,8 @@
 # 198. Plan-tier quotas are daily UTC counts enforced at the quota
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0246](0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md): a quota is a
+  registered fixed-window descriptor)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
 

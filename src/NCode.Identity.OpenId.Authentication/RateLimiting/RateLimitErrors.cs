@@ -32,19 +32,14 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// </summary>
 internal static class RateLimitErrors
 {
-    private static readonly object RefusedItemKey = new();
-
     /// <summary>
-    /// Creates the error for a refused request, and marks the request refused so that
-    /// <see cref="RateLimitEndpointFilter"/> does not record it as the tenant's usage (ADR-0199).
+    /// Creates the error for a refused request. The request rate limiter marks a request it refuses, so this does not.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> of the request.</param>
     /// <param name="retryAfter">How long the caller waits before retrying.</param>
     /// <returns>The <see cref="IOpenIdError"/> to answer the request with.</returns>
     public static IOpenIdError Refuse(OpenIdContext openIdContext, TimeSpan retryAfter)
     {
-        openIdContext.Http.Items[RefusedItemKey] = true;
-
         // Retry-After counts whole seconds, so round up and never tell the caller to retry at once.
         var seconds = Math.Max(1L, (long)Math.Ceiling(retryAfter.TotalSeconds));
 
@@ -58,12 +53,4 @@ internal static class RateLimitErrors
             )
             .WithResponseHeader(HeaderNames.CacheControl, "no-store");
     }
-
-    /// <summary>
-    /// Gets a value indicating whether a rate limit or quota refused the request.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
-    /// <returns><see langword="true"/> when <see cref="Refuse"/> refused the request.</returns>
-    public static bool IsRefused(HttpContext httpContext) =>
-        httpContext.Items.ContainsKey(RefusedItemKey);
 }

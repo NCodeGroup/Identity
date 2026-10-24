@@ -49,11 +49,13 @@ internal static class SecretProtectionRegistration
     /// <summary>
     /// Binds the options that configure how stored secrets are protected from <paramref name="configuration"/> and
     /// encrypts the Data Protection key ring under the master key of the server. The server's protector is loaded by a
-    /// hosted service that is placed before every other one, so it is ready before Data Protection loads the key ring.
+    /// hosted service that is placed before every other one, and the key ring gate is placed right after it, so the
+    /// protector is ready and every live key of the ring is known to decrypt before Data Protection loads the key ring.
     /// </summary>
     /// <remarks>
     /// Binding is strict and checked when the host starts: a key that maps to no option stops the host with an error
-    /// naming the key.
+    /// naming the key. The <see cref="DataProtectionKeyRingOptions.DefaultSectionName"/> section revokes Data
+    /// Protection keys by ID.
     /// </remarks>
     /// <param name="builder">The <see cref="IIdentityServerBuilder"/> whose services are configured.</param>
     /// <param name="configuration">The <see cref="IConfiguration"/> that holds the
@@ -70,6 +72,9 @@ internal static class SecretProtectionRegistration
 
         var recoverySection = section.GetSection(nameof(SecretProtectionOptions.Recovery));
         var localSection = configuration.GetSection(LocalRootKeyOptions.DefaultSectionName);
+        var keyRingSection = configuration.GetSection(
+            DataProtectionKeyRingOptions.DefaultSectionName
+        );
 
         var serviceCollection = builder.ServiceCollection;
 
@@ -89,10 +94,22 @@ internal static class SecretProtectionRegistration
             .Configure(options => localSection.BindStrictly(options))
             .ValidateOnStart();
 
+        serviceCollection
+            .AddOptions<DataProtectionKeyRingOptions>()
+            .Configure(options => keyRingSection.BindStrictly(options))
+            .ValidateOnStart();
+
         serviceCollection.TryAddSingleton<ServerSecretProtectorHolder>();
+        serviceCollection.TryAddSingleton(TimeProvider.System);
+
+        // The gate resolves IKeyManager, which Data Protection registers.
+        serviceCollection.AddDataProtection();
 
         // Hosted services start in registration order, and Data Protection registers one that loads the key ring, so
-        // the warmup goes first to have the protector ready before the key ring is read.
+        // the warmup goes first to have the protector ready before the key ring is read. The key ring gate goes right
+        // after it: it needs the protector the warmup loads to decrypt the keys, and it must refuse the host before
+        // Data Protection's own hosted service reads the ring. A startup validator cannot do this, because validators
+        // run before every hosted service, so before the warmup.
         if (
             !serviceCollection.Any(descriptor =>
                 descriptor.ServiceType == typeof(IHostedService)
@@ -103,6 +120,19 @@ internal static class SecretProtectionRegistration
             serviceCollection.Insert(
                 0,
                 ServiceDescriptor.Singleton<IHostedService, ServerSecretProtectorWarmup>()
+            );
+        }
+
+        if (
+            !serviceCollection.Any(descriptor =>
+                descriptor.ServiceType == typeof(IHostedService)
+                && descriptor.ImplementationType == typeof(DataProtectionKeyRingGate)
+            )
+        )
+        {
+            serviceCollection.Insert(
+                1,
+                ServiceDescriptor.Singleton<IHostedService, DataProtectionKeyRingGate>()
             );
         }
 

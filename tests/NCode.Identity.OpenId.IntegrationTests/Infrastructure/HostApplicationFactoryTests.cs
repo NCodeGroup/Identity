@@ -16,6 +16,7 @@
 
 #endregion
 
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -45,6 +46,32 @@ public class HostApplicationFactoryTests
         await derived.DisposeAsync();
 
         Assert.Equal(1, service.StopCalls);
+    }
+
+    #endregion
+
+    #region Services Property Tests
+
+    [Fact]
+    public async Task Services_WhenTwoFactoriesStart_KeepSeparateDataProtectionKeyRings()
+    {
+        await using var first = new HostApplicationFactory();
+        await using var second = new HostApplicationFactory();
+
+        var firstKeyIds = first
+            .Services.GetRequiredService<IKeyManager>()
+            .GetAllKeys()
+            .Select(key => key.KeyId)
+            .ToList();
+        var secondKeyIds = second
+            .Services.GetRequiredService<IKeyManager>()
+            .GetAllKeys()
+            .Select(key => key.KeyId)
+            .ToList();
+
+        Assert.NotEmpty(firstKeyIds);
+        Assert.NotEmpty(secondKeyIds);
+        Assert.Empty(firstKeyIds.Intersect(secondKeyIds));
     }
 
     #endregion

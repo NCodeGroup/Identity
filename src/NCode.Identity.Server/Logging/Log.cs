@@ -77,4 +77,22 @@ internal static partial class Log
         Message = "The root key is a local file; prefer a key management service."
     )]
     internal static partial void LocalRootKeyInProduction(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = EventIds.KeyRingKeyUndecryptable,
+        Level = LogLevel.Error,
+        Message = "The Data Protection key '{KeyId}' cannot be decrypted with the server's master key."
+    )]
+    internal static partial void KeyRingKeyUndecryptable(
+        this ILogger logger,
+        Exception exception,
+        Guid keyId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.KeyRingKeyRevoked,
+        Level = LogLevel.Warning,
+        Message = "Revoked the Data Protection key '{KeyId}': {Reason}."
+    )]
+    internal static partial void KeyRingKeyRevoked(this ILogger logger, Guid keyId, string reason);
 }

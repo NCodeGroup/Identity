@@ -696,6 +696,26 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Breaking: rate limits and quotas are registered descriptors judged in one round trip per stage.** Each limit is a
+  `RateLimitDescriptor` (name, stage, order, window, sliding or fixed, limit and overage settings, metered only, usage
+  meters, partition selector) contributed through `ICollectionDataSource<RateLimitDescriptor>`; the five built-ins
+  (`RateLimitPartitions`) keep their settings and behavior.
+  `IRequestRateLimiter.AcquireAsync(stage, RateLimitContext, CancellationToken)` and `RateLimitDecision` are public in
+  `NCode.Identity.OpenId.Authentication.Abstractions`, so a package judges a stage of its own (`RateLimitStages`); the
+  limiter marks a refused request, and `RateLimitEndpointFilter` records the usage meters once the endpoint has run.
+  `IExpiringCounterSet.IncrementUntilExceededAsync` counts a stage's limits in one call (one Valkey script, measured as
+  `counter.increment_until_exceeded`), and every implementation of the port implements it. Shared-state keys carry the
+  tenant in braces as a hash tag, so counters and replay records in flight across the upgrade start over. The
+  `QuotaExceeded` log event (2044) is retired, and `RateLimitExceeded` names the window
+  ([ADR-0246](docs/adr/0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md), backlog
+  `R41`).
+
+- **The host image writes one-line JSON logs.** The image sets `Logging__Console__FormatterName=json`,
+  `Logging__Console__FormatterOptions__UseUtcTimestamp=true` and
+  `Logging__Console__FormatterOptions__TimestampFormat=O`, so every entry, the migration worker's included, is one JSON
+  object on one line with a UTC timestamp; `Logging__Console__FormatterName=simple` restores text
+  ([ADR-0248](docs/adr/0248-the-host-image-writes-one-line-json-logs.md), backlog `R74`).
+
 - **Breaking: a client value that a ceiling lowers is incoherent.** `RegisteredValueCoherenceRule` checks every
   setting a client registers whose merge is a meet (`Min`, `And` or `Intersect`, which the added abstract
   `SettingDescriptor.HasMeetMerge` states), so a lifetime, timeout, size or rate above what the tenant, the server or a
@@ -1648,6 +1668,20 @@ change to the public API is a **major** version bump.
   (supersedes ADR-0177).
 
 ### Security
+
+- **A Data Protection key the server's master key cannot decrypt stops the host.** `DataProtectionKeyRingGate` checks
+  the live keys after the server's protector loads and before Data Protection loads its key ring, and the host names
+  each undecryptable key instead of letting Data Protection write a default key over them; a Development host revokes
+  the key and logs a warning. `DataProtectionKeyRing:RevokedKeyIds` (`DataProtectionKeyRingOptions`) revokes keys by ID,
+  and `AddConfiguration` registers Data Protection
+  ([ADR-0247](docs/adr/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md), backlog `R48`).
+
+- **The host image's base images are pinned by digest and tracked by Dependabot.** Every `FROM` of the Dockerfile names
+  its tag and the digest of its multi-architecture index, a weekly `docker` Dependabot stream moves the digests, and the
+  `Host image` workflow checks the Node major against `.node-version`. **Breaking:** the Dockerfile takes no
+  `NODE_VERSION` or `DOTNET_VERSION` build argument
+  ([ADR-0249](docs/adr/0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md), backlog
+  `R35`).
 
 - **Every password a local account is given meets the password policy.** The management API's create and reset, the
   self-service change and the developer and conformance seeders judge the password with `IPasswordPolicy` against the

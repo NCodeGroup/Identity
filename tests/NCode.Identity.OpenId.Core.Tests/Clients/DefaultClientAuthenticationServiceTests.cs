@@ -45,18 +45,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     public DefaultClientAuthenticationServiceTests()
     {
         MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
-
-        // Every authenticated client is counted against its rate limit; admitted unless a test says otherwise.
         MockRateLimiter = CreateStrictMock<IRequestRateLimiter>();
-        MockRateLimiter
-            .Setup(x =>
-                x.AcquireForClientAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<OpenIdClient>(),
-                    CancellationToken.None
-                )
-            )
-            .ReturnsAsync(RateLimitDecision.Admitted);
 
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         mockErrorFactory
@@ -173,6 +162,20 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
         return mockClient.Object;
     }
 
+    private void SetupClientRateLimitAdmits(OpenIdConfidentialClient client) =>
+        MockRateLimiter
+            .Setup(x =>
+                x.AcquireAsync(
+                    RateLimitStages.ClientAuthentication,
+                    It.Is<RateLimitContext>(context =>
+                        context.OpenIdContext == MockContext.Object && context.Client == client
+                    ),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(RateLimitDecision.Admitted)
+            .Verifiable();
+
     private void SetupAudit(string authenticationMethod, string reason) =>
         MockAuditEventRecorder
             .Setup(x =>
@@ -286,6 +289,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
             [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt],
             isRefused: false
         );
+        SetupClientRateLimitAdmits(client);
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
 
         var result = await service.AuthenticateClientAsync(
@@ -466,17 +470,8 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
 
+        // The strict rate limiter has no setup, so counting the public client would throw.
         await service.AuthenticateClientAsync(MockContext.Object, CancellationToken.None);
-
-        MockRateLimiter.Verify(
-            x =>
-                x.AcquireForClientAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<OpenIdClient>(),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Never
-        );
     }
 
     [Fact]
@@ -489,7 +484,15 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
             isRefused: false
         );
         MockRateLimiter
-            .Setup(x => x.AcquireForClientAsync(MockContext.Object, client, CancellationToken.None))
+            .Setup(x =>
+                x.AcquireAsync(
+                    RateLimitStages.ClientAuthentication,
+                    It.Is<RateLimitContext>(context =>
+                        context.OpenIdContext == MockContext.Object && context.Client == client
+                    ),
+                    CancellationToken.None
+                )
+            )
             .ReturnsAsync(new RateLimitDecision(TimeSpan.FromSeconds(1.5)))
             .Verifiable(Times.Once);
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));

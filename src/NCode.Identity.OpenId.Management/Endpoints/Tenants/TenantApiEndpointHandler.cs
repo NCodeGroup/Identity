@@ -876,7 +876,8 @@ internal class TenantApiEndpointHandler(
     /// <summary>
     /// Verifies that replacing a tenant's settings document leaves every value each of its clients registers permitted by
     /// every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The clients are not walked when the
-    /// change leaves the effective value of every setting a rule reads unchanged.
+    /// change leaves the effective value of every setting a rule reads unchanged. When the replaced document cannot be
+    /// honored, no client is checked, because none was coherent under it.
     /// </summary>
     /// <param name="tenantId">The identifier of the OpenID Tenant whose settings change.</param>
     /// <param name="currentSettings">The tenant's current settings document.</param>
@@ -885,7 +886,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="SettingError"/> instances, keyed by the tenant setting that does not permit each value, or
     /// an empty list.</returns>
-    // See ADR-0206.
+    // See ADR-0206 and ADR-0241.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
         string tenantId,
         JsonElement currentSettings,
@@ -894,8 +895,27 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var currentEffective = await MergeTenantSettingsAsync(currentSettings, cancellationToken);
-        var newEffective = await MergeTenantSettingsAsync(newSettings, cancellationToken);
+        var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var newEffective = EffectiveSettingsResolver.Resolve(
+            serverSettings,
+            OpenIdSettingScopes.Tenant,
+            newSettings
+        );
+
+        IReadOnlySettingCollection currentEffective;
+        try
+        {
+            currentEffective = EffectiveSettingsResolver.Resolve(
+                serverSettings,
+                OpenIdSettingScopes.Tenant,
+                currentSettings
+            );
+        }
+        catch (JsonException exception)
+        {
+            Logger.TenantSettingsUnreadable(tenantId, exception.Message);
+            return [];
+        }
 
         var findings = await TenantClientCoherenceChecker.FindIntroducedViolationsAsync(
             storeManager,

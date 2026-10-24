@@ -1,6 +1,8 @@
 # 233. The management API lists a tenant's incoherent clients
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0241](0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md): a settings write logs
+  a stored document it cannot read and does not count it as a violation the change introduces)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -68,9 +70,9 @@ API lists it on demand.**
   reads it.
 - A client of the API pages until `continuationToken` is `null`, and a page can be empty before the last.
 - A page costs one read of the tenant's settings and one read of up to `limit` clients' settings, with no secrets.
-- A write to the settings of the server, and a write to the settings of a tenant that changes a setting a coherence
-  rule reads, still fails when a stored document cannot be honored, because it checks the stored documents with the
-  validator that throws; backlog `R104` records it.
+- A write to the settings of the server or of a tenant logs a stored document that cannot be honored and does not
+  count it as a violation the change introduces, so the document does not fail the write, and this report still
+  lists it ([ADR-0241](0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md)).
 - This implements backlog `R87`.
 
 ## References

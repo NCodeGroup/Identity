@@ -646,7 +646,8 @@ internal class ServerApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
-        var currentServerSettings = await EffectiveSettingsResolver.ResolveServerAsync(
+        var currentServerSettings = await ResolveReplacedServerSettingsOrDefaultAsync(
+            serverId,
             serverSettings.Value,
             cancellationToken
         );
@@ -655,7 +656,13 @@ internal class ServerApiEndpointHandler(
             cancellationToken
         );
 
-        if (ClientCoherenceValidator.ReadsChangedSetting(currentServerSettings, newServerSettings))
+        if (
+            currentServerSettings is not null
+            && ClientCoherenceValidator.ReadsChangedSetting(
+                currentServerSettings,
+                newServerSettings
+            )
+        )
         {
             var coherenceErrors = await ValidateClientCoherenceAsync(
                 currentServerSettings,
@@ -690,12 +697,44 @@ internal class ServerApiEndpointHandler(
     }
 
     /// <summary>
+    /// Resolves the effective settings of the server's committed settings document, which a settings write replaces.
+    /// When the document cannot be honored by the settings vocabulary, nothing was coherent under it, so no client is
+    /// checked and the write may replace it with a document that can be honored.
+    /// </summary>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="replacedSettings">The server's committed settings document.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The server's effective settings, or <see langword="null"/> when the document cannot be honored.</returns>
+    // See ADR-0241.
+    private async ValueTask<IReadOnlySettingCollection?> ResolveReplacedServerSettingsOrDefaultAsync(
+        string serverId,
+        JsonElement replacedSettings,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            return await EffectiveSettingsResolver.ResolveServerAsync(
+                replacedSettings,
+                cancellationToken
+            );
+        }
+        catch (JsonException exception)
+        {
+            Logger.ServerSettingsUnreadable(serverId, exception.Message);
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Verifies that replacing the server's settings document leaves every value each client of every tenant registers
     /// permitted by every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The current and new
     /// server settings are each resolved through the <see cref="IEffectiveSettingsResolver"/>, and each tenant's
     /// document is resolved onto both. The tenants are read as an untracked, secret-free projection
     /// (<see cref="ITenantStore.GetSettingsPageAsync"/>), and the walk runs only when the effective value of a setting
-    /// a coherence rule reads changed (<see cref="IClientCoherenceValidator.ReadsChangedSetting"/>).
+    /// a coherence rule reads changed (<see cref="IClientCoherenceValidator.ReadsChangedSetting"/>). A tenant whose
+    /// settings document cannot be honored is logged and skipped, because none of its clients is coherent under either
+    /// settings.
     /// </summary>
     /// <param name="currentServerSettings">The server's effective settings with its current settings document.</param>
     /// <param name="newServerSettings">The server's effective settings with its new settings document.</param>
@@ -703,7 +742,7 @@ internal class ServerApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="SettingError"/> instances, keyed by the server setting that does not permit each value, or
     /// an empty list.</returns>
-    // See ADR-0206.
+    // See ADR-0206 and ADR-0241.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
         IReadOnlySettingCollection currentServerSettings,
         IReadOnlySettingCollection newServerSettings,
@@ -720,16 +759,26 @@ internal class ServerApiEndpointHandler(
             var result = await tenantStore.GetSettingsPageAsync(page, cancellationToken);
             foreach (var tenantSettings in result.Items)
             {
-                var currentTenantSettings = EffectiveSettingsResolver.Resolve(
-                    currentServerSettings,
-                    OpenIdSettingScopes.Tenant,
-                    tenantSettings.Value
-                );
-                var newTenantSettings = EffectiveSettingsResolver.Resolve(
-                    newServerSettings,
-                    OpenIdSettingScopes.Tenant,
-                    tenantSettings.Value
-                );
+                IReadOnlySettingCollection currentTenantSettings;
+                IReadOnlySettingCollection newTenantSettings;
+                try
+                {
+                    currentTenantSettings = EffectiveSettingsResolver.Resolve(
+                        currentServerSettings,
+                        OpenIdSettingScopes.Tenant,
+                        tenantSettings.Value
+                    );
+                    newTenantSettings = EffectiveSettingsResolver.Resolve(
+                        newServerSettings,
+                        OpenIdSettingScopes.Tenant,
+                        tenantSettings.Value
+                    );
+                }
+                catch (JsonException exception)
+                {
+                    Logger.TenantSettingsUnreadable(tenantSettings.TenantId, exception.Message);
+                    continue;
+                }
 
                 var findings = await TenantClientCoherenceChecker.FindIntroducedViolationsAsync(
                     storeManager,

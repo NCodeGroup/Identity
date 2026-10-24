@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S21`     | `S20`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R110`    | `R109`     |
+| `R` — Review findings                 | `R111`    | `R110`     |
 
 ---
 
@@ -605,6 +605,17 @@ _None remaining._
   counted name with a lookup that reads no claims, and let a refusal of the limit cost what a verification of the dummy
   hash costs. Touch points: `LocalAccountInteractiveCredentialVerifier`, `DefaultAuthenticatePasswordGrantHandler`,
   `ILocalAccountStore`, `AspNetIdentityLocalAccountStore`, ADR-0237, ADR-0239.
+- **`R110` — Answer a management request whose tenant or server settings document cannot be honored.** The
+  management endpoints that resolve a tenant's effective settings — the tenant's, a client's and a resource server's
+  effective settings, a client's create and settings update, and the tenant's incoherent clients (ADR-0233) — resolve
+  the tenant's stored document, which throws `JsonException` when the current settings vocabulary cannot honor it, so
+  each answers `500`, while a tenant settings write can repair the document (ADR-0241). The server's own document fails
+  the same way: while it cannot be honored, every request that resolves the server's settings — the server's effective
+  settings, a tenant settings write and each request above — answers `500` until a server settings write repairs it.
+  Answer with a problem that names the tenant or the server and the reason, as the incoherent-client report names a
+  client's (`DocumentError`). Touch points: `TenantApiEndpointHandler.MergeTenantSettingsAsync`,
+  `TenantApiEndpointHandler.ValidateClientCoherenceAsync`, `ClientApiEndpointHandler.MergeTenantSettingsAsync`,
+  `ResourceServerApiEndpointHandler`, `ServerApiEndpointHandler.GetEffectiveSettingsAsync`, ADR-0233, ADR-0241.
 
 ### Refactor
 

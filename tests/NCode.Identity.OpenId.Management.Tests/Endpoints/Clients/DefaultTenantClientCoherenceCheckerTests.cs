@@ -17,7 +17,9 @@
 #endregion
 
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
@@ -34,6 +36,7 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
     private MockRepository MockRepository { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<IClientCoherenceValidator> MockClientCoherenceValidator { get; }
+    private Mock<ILogger<DefaultTenantClientCoherenceChecker>> MockLogger { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IClientStore> MockClientStore { get; }
     private Mock<IReadOnlySettingCollection> MockCurrentSettings { get; }
@@ -45,6 +48,7 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockClientCoherenceValidator = MockRepository.Create<IClientCoherenceValidator>();
+        MockLogger = MockRepository.Create<ILogger<DefaultTenantClientCoherenceChecker>>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockClientStore = MockRepository.Create<IClientStore>();
         MockCurrentSettings = MockRepository.Create<IReadOnlySettingCollection>(MockBehavior.Loose);
@@ -52,7 +56,8 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
 
         Checker = new DefaultTenantClientCoherenceChecker(
             MockAmbientTenantAccessor.Object,
-            MockClientCoherenceValidator.Object
+            MockClientCoherenceValidator.Object,
+            MockLogger.Object
         );
     }
 
@@ -126,6 +131,17 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
             OpenIdSettingNames.IdTokenSigningAlgValuesSupported
         );
 
+    private static ClientCoherenceViolation CreateLoweredLifetimeViolation(string effectiveValue) =>
+        new(
+            OpenIdSettingNames.AccessTokenLifetime,
+            "01:00:00",
+            OpenIdSettingNames.AccessTokenLifetime
+        )
+        {
+            Description =
+                $"The 'access_token_lifetime' value '01:00:00' exceeds the effective 'access_token_lifetime' value '{effectiveValue}'.",
+        };
+
     private static PersistedClientSettings CreateClientSettings(string clientId) =>
         new()
         {
@@ -134,6 +150,34 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
             ConcurrencyToken = "settings-ct",
             Value = JsonSerializer.SerializeToElement(new { }),
         };
+
+    private static PersistedClientSettings CreateUnreadableClientSettings(string clientId) =>
+        new()
+        {
+            TenantId = TenantId,
+            ClientId = clientId,
+            ConcurrencyToken = "settings-ct",
+            Value = JsonSerializer.SerializeToElement(new { retired = true }),
+        };
+
+    private static bool HasProperty(JsonElement element, string name) =>
+        element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out _);
+
+    private void SetupUnreadableClientWarning()
+    {
+        MockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
+        MockLogger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Warning,
+                    It.Is<EventId>(eventId => eventId.Id == EventIds.ClientSettingsUnreadable),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<Exception?>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+                )
+            )
+            .Verifiable();
+    }
 
     #endregion
 
@@ -182,6 +226,25 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
     }
 
     [Fact]
+    public async Task FindIntroducedViolationsAsync_WhenAPredatingViolationNamesAnotherEffectiveValue_ReturnsEmpty()
+    {
+        SetupReadsChangedSetting(true);
+        SetupClients(CreateClientSettings("client-1"));
+        SetupValidate(MockNewSettings, CreateLoweredLifetimeViolation("00:04:00"));
+        SetupValidate(MockCurrentSettings, CreateLoweredLifetimeViolation("00:03:00"));
+
+        var findings = await Checker.FindIntroducedViolationsAsync(
+            MockStoreManager.Object,
+            TenantId,
+            MockCurrentSettings.Object,
+            MockNewSettings.Object,
+            CancellationToken.None
+        );
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
     public async Task FindIntroducedViolationsAsync_WhenTheNewSettingsAreCoherent_ReturnsEmpty()
     {
         SetupReadsChangedSetting(true);
@@ -213,6 +276,40 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
         );
 
         Assert.Empty(findings);
+    }
+
+    [Fact]
+    public async Task FindIntroducedViolationsAsync_WhenAClientDocumentCannotBeHonored_LogsItAndChecksTheOthers()
+    {
+        SetupReadsChangedSetting(true);
+        SetupClients(CreateUnreadableClientSettings("client-0"), CreateClientSettings("client-1"));
+        SetupValidate(MockNewSettings, CreateViolation());
+        SetupValidate(MockCurrentSettings);
+        MockClientCoherenceValidator
+            .Setup(x =>
+                x.Validate(
+                    MockNewSettings.Object,
+                    It.Is<JsonElement>(e => HasProperty(e, "retired"))
+                )
+            )
+            .Throws(
+                new JsonException(
+                    "The settings are invalid: 'retired' is not a registered setting."
+                )
+            )
+            .Verifiable();
+        SetupUnreadableClientWarning();
+
+        var findings = await Checker.FindIntroducedViolationsAsync(
+            MockStoreManager.Object,
+            TenantId,
+            MockCurrentSettings.Object,
+            MockNewSettings.Object,
+            CancellationToken.None
+        );
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("client-1", finding.ClientId);
     }
 
     #endregion

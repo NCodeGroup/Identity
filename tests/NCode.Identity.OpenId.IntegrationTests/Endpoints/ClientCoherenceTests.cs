@@ -96,6 +96,61 @@ public class ClientCoherenceTests
         Assert.Contains(clientId, body, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task PatchTenantSettings_WhenItLowersAClientsAccessTokenLifetime_ReturnsValidationProblem()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (createStatusCode, createBody) = await PostClientWithSettingsAsync(
+            administrator,
+            new Dictionary<string, object> { [OpenIdSettingNames.AccessTokenLifetime] = "00:04:00" }
+        );
+        Assert.True(createStatusCode == HttpStatusCode.Created, createBody);
+
+        var (statusCode, body) = await PatchTenantSettingValueAsync(
+            administrator,
+            OpenIdSettingNames.AccessTokenLifetime,
+            "00:03:00"
+        );
+
+        Assert.True(statusCode == HttpStatusCode.BadRequest, body);
+        Assert.True(HasError(body, OpenIdSettingNames.AccessTokenLifetime), body);
+        Assert.Contains("'00:04:00'", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PatchTenantSettings_WhenItRaisesTheCeilingOfAnAlreadyLoweredClientValue_ReturnsNoContent()
+    {
+        const string LoweredClientId = "it-lowered-client";
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (lowerStatusCode, lowerBody) = await PatchTenantSettingValueAsync(
+            administrator,
+            OpenIdSettingNames.AccessTokenLifetime,
+            "00:03:00"
+        );
+        Assert.True(lowerStatusCode == HttpStatusCode.NoContent, lowerBody);
+
+        // A direct store write, so no check refuses the client: the tenant's three-minute ceiling already lowers its
+        // one-hour lifetime.
+        await factory.SeedPublicClientWithSettingsAsync(
+            LoweredClientId,
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.AccessTokenLifetime] = "01:00:00",
+            },
+            RedirectUri
+        );
+
+        var (statusCode, body) = await PatchTenantSettingValueAsync(
+            administrator,
+            OpenIdSettingNames.AccessTokenLifetime,
+            "00:04:00"
+        );
+
+        Assert.True(statusCode == HttpStatusCode.NoContent, body);
+    }
+
     #endregion
 
     #region PostClient Tests
@@ -114,6 +169,22 @@ public class ClientCoherenceTests
         Assert.True(statusCode == HttpStatusCode.BadRequest, body);
         Assert.True(HasError(body, OpenIdSettingNames.GrantTypesSupported), body);
         Assert.Contains($"'{OpenIdConstants.GrantTypes.Implicit}'", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PostClient_WhenItsAccessTokenLifetimeExceedsItsTenants_ReturnsValidationProblem()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        var (statusCode, body) = await PostClientWithSettingsAsync(
+            administrator,
+            new Dictionary<string, object> { [OpenIdSettingNames.AccessTokenLifetime] = "01:00:00" }
+        );
+
+        Assert.True(statusCode == HttpStatusCode.BadRequest, body);
+        Assert.True(HasError(body, OpenIdSettingNames.AccessTokenLifetime), body);
+        Assert.Contains("'00:05:00'", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -172,34 +243,45 @@ public class ClientCoherenceTests
         return document.RootElement.GetProperty("clientId").GetString()!;
     }
 
-    private static async Task<(HttpStatusCode StatusCode, string Body)> PostClientAsync(
+    private static Task<(HttpStatusCode StatusCode, string Body)> PostClientAsync(
         HttpClient administrator,
         string[] grantTypes
+    ) =>
+        PostClientWithSettingsAsync(
+            administrator,
+            new Dictionary<string, object> { ["grant_types_supported"] = grantTypes }
+        );
+
+    private static async Task<(HttpStatusCode StatusCode, string Body)> PostClientWithSettingsAsync(
+        HttpClient administrator,
+        Dictionary<string, object> settings
     )
     {
+        var clientSettings = new Dictionary<string, object>(settings)
+        {
+            ["redirect_uris"] = new[] { RedirectUri },
+            ["token_endpoint_auth_method"] = OpenIdConstants
+                .ClientAuthenticationMethods
+                .ClientSecretPost,
+        };
+
         using var response = await administrator.PostAsJsonAsync(
             $"{TenantApiPath}/clients",
-            new
-            {
-                isDisabled = false,
-                settings = new Dictionary<string, object>
-                {
-                    ["redirect_uris"] = new[] { RedirectUri },
-                    ["token_endpoint_auth_method"] = OpenIdConstants
-                        .ClientAuthenticationMethods
-                        .ClientSecretPost,
-                    ["grant_types_supported"] = grantTypes,
-                },
-            }
+            new { isDisabled = false, settings = clientSettings }
         );
         return (response.StatusCode, await response.Content.ReadAsStringAsync());
     }
 
-    private static async Task<(HttpStatusCode StatusCode, string Body)> PatchTenantSettingAsync(
+    private static Task<(HttpStatusCode StatusCode, string Body)> PatchTenantSettingAsync(
         HttpClient administrator,
         string settingName,
         string[] values
-    )
+    ) => PatchTenantSettingValueAsync(administrator, settingName, values);
+
+    private static async Task<(
+        HttpStatusCode StatusCode,
+        string Body
+    )> PatchTenantSettingValueAsync(HttpClient administrator, string settingName, object value)
     {
         var operations = new[]
         {
@@ -207,7 +289,7 @@ public class ClientCoherenceTests
             {
                 op = "add",
                 path = $"/{settingName}",
-                value = values,
+                value = value,
             },
         };
         using var request = new HttpRequestMessage(HttpMethod.Patch, $"{TenantApiPath}/settings")

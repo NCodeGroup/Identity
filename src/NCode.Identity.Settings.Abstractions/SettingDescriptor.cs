@@ -70,6 +70,15 @@ public abstract class SettingDescriptor
     public abstract bool HasLatticeMerge { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the setting merges with a meet of <see cref="SettingMerge"/>
+    /// (<see cref="SettingMerge.Min{T}"/>, <see cref="SettingMerge.And"/>, <see cref="SettingMerge.Intersect{T}"/>),
+    /// whose result is never above either value. A value contributed at any scope is a ceiling over every scope below
+    /// it, and a value a child sets survives only where no ceiling above it is lower. Every setting with a meet merge
+    /// also has a lattice merge (<see cref="HasLatticeMerge"/>).
+    /// </summary>
+    public abstract bool HasMeetMerge { get; }
+
+    /// <summary>
     /// Factory method used to create a new <see cref="Setting"/> instance with the specified <paramref name="value"/>.
     /// The <paramref name="value"/> must be castable to <see cref="ValueType"/>.
     /// </summary>
@@ -135,6 +144,9 @@ public class SettingDescriptor<TValue> : SettingDescriptor
 
     /// <inheritdoc />
     public override bool HasLatticeMerge => SettingMerge.IsLatticeOperation(OnMerge);
+
+    /// <inheritdoc />
+    public override bool HasMeetMerge => SettingMerge.IsMeetOperation(OnMerge);
 
     private readonly TValue? _defaultValue;
     private readonly bool _hasDefault;

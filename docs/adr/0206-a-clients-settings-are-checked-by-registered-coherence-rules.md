@@ -5,8 +5,11 @@
   its own, and by
   [ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a change of the server's
   settings that is not a write is reported; a client whose refresh tokens rotate where a retry is required has a reuse
-  interval; and by [ADR-0233](0233-the-management-api-lists-a-tenants-incoherent-clients.md): the management API lists
-  a tenant's incoherent clients through the reporter the reconciliation uses)
+  interval; by [ADR-0233](0233-the-management-api-lists-a-tenants-incoherent-clients.md): the management API lists a
+  tenant's incoherent clients through the reporter the reconciliation uses; by
+  [ADR-0240](0240-a-client-value-that-a-ceiling-lowers-is-incoherent.md): a value that a `Min` ceiling lowers is
+  reported; and by [ADR-0241](0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md): a
+  settings write does not count a stored document it cannot read as a violation it introduces)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -76,12 +79,14 @@ authorization.
      DPoP-bound access tokens while the effective list is set and empty could not present an acceptable proof
      ([ADR-0097](0097-sender-constrained-access-tokens-dpop-and-mtls.md)). An unset list is unrestricted.
    - `RegisteredValueCoherenceRule` checks that a value which the client's own document registers survives into its
-     effective settings. For every registered setting that merges with a lattice operation, a string-list value that is
-     not in the effective list, and a registered `true` whose effective value is `false`, is a violation named by the
-     setting itself. `Union` and `Or` merges cannot drop a value, so only `Intersect` and `And` ceilings report. The
-     rule reads the registered settings, because a value that a ceiling dropped is absent from the effective list. It
-     is generic over the registered setting descriptors, so a package's own list setting is covered by registering its
-     descriptor. A `Min` or `Max` clamp is not covered (backlog `R71`).
+     effective settings. For every registered setting that merges with a meet (`SettingDescriptor.HasMeetMerge`:
+     `Min`, `And`, or `Intersect`) and applies within the client scope, a list value that is not in the effective
+     list, a registered `true` whose effective value is `false`, and any other value that differs from its effective
+     value, such as a lifetime above its tenant's, is a violation named by the setting itself. A join (`Max`, `Or`,
+     `Union`) cannot lower a value, so it never reports. The rule reads the registered settings, because a value that
+     a ceiling lowered is absent from the effective settings. It is generic over the registered setting descriptors,
+     so a package's own setting is covered by registering its descriptor
+     ([ADR-0240](0240-a-client-value-that-a-ceiling-lowers-is-incoherent.md)).
    - `IdTokenEncryptionCoherenceRule` checks that a client whose effective `id_token_encryption_required` is `true` has
      a non-empty effective `id_token_encrypted_response_alg`, and reports the missing algorithm otherwise
      ([ADR-0155](0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
@@ -137,7 +142,10 @@ authorization.
      tenant's clients are walked only when `ReadsChangedSetting` reports that the tenant's effective settings changed a
      setting that a rule reads. A server write first checks the server's effective settings the same way, and then each
      tenant. The walk pages through the clients as an untracked projection that carries no secrets, under an explicit
-     tenant scope, because the control-plane endpoints are not scoped to the tenant they address.
+     tenant scope, because the control-plane endpoints are not scoped to the tenant they address. A stored document
+     that the current settings vocabulary cannot honor, a client's or a tenant's, is logged and skipped, and a write
+     that replaces such a document checks no client; neither is a violation that the change introduces
+     ([ADR-0241](0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md)).
    - **A configuration change** — a deployment or a reload of `OpenId:Server:Settings` — cannot be refused, so the
      reconciliation of the server's settings reports it
      ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)):
@@ -193,7 +201,8 @@ authorization.
   their method changes.
 - A write to a client checks its whole effective settings, so a stored client that registers a value that its ceilings
   do not permit is reported at its next write, whatever the write changes.
-- A tenant or server change that narrows any list or flag a client registers is refused while it would drop that value.
+- A tenant or server change that narrows any list or flag, or lowers any `Min` ceiling, that a client registers is
+  refused while it would drop or lower that value.
 - A seeder refuses a client that its tenant's settings contradict, so the host does not start with a client that the
   server cannot honor.
 - A deployment or a reload that makes a stored client incoherent is logged, client by client, once per change of the

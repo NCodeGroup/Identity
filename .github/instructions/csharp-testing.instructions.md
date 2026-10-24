@@ -168,6 +168,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **Match a `JsonElement` argument by content.** `JsonElement` compares document references, and a Moq matcher is an
   expression tree that cannot contain `out _`, so call a static helper
   (`It.Is<JsonElement>(e => HasProperty(e, "foo"))`).
+- 👁 **Make one call of a strict setup fail by adding a narrower setup after the general one.** Moq uses the last
+  setup that matches, so a `.Throws(...)` setup matched by `It.Is<JsonElement>(e => HasProperty(e, "retired"))`
+  after the general setup fails only that document, and both setups are consumed
+  (`ServerApiEndpointHandlerTests`, `DefaultTenantClientCoherenceCheckerTests`).
 - 👁 **Capture an event handler a strict mock receives and invoke it directly.**
   `SetupAdd(x => x.Event += It.IsAny<EventHandler<TArgs>>()).Callback<EventHandler<TArgs>>(h => captured = h)`, plus a
   `SetupRemove` when the unit detaches when it stops (`ValkeyReplicaBroadcastSubscriberTests`).
@@ -213,6 +217,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   (`new DefaultPersistedPayloadSerializer([])`), never `JsonSerializer.SerializeToElement(payload)`. The server stores a
   versioned envelope, so a test that hands the code the bare payload passes while the code fails on every stored row
   (`DefaultSessionServiceTests`).
+- 👁 **Seed a settings document the vocabulary cannot honor through the store, and prove it unreadable first.** The
+  management API refuses such a document, so `SeedPublicClientWithSettingsAsync` writes it with an unregistered
+  setting name; assert that the incoherent-client report lists it with a `documentError` before the behavior under
+  test, so the test cannot pass on a document the server reads (`UnreadableSettingsDocumentTests`).
 - 👁 **A strict-mock test of a read-and-retry loop returns a new object for each read**
   (`SetupSequence(...).ReturnsAsync(first).ReturnsAsync(second)`): the code under test changes the object it read, so
   one shared instance makes the second read see the first attempt's own write.

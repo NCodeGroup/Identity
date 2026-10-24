@@ -183,6 +183,11 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **A change-token producer in a test returns a fresh token after each change.** `ChangeToken.OnChange` asks the
   producer for a new token after its callback; a producer that returns the cancelled token again fires forever. Swap in
   a new `CancellationTokenSource` before cancelling the old one (`ServerSettingsReconciliationServiceTests`).
+- 👁 **Test the rate limiter with descriptors of the test's own.** `DefaultRequestRateLimiterTests` mocks
+  `IRateLimitDescriptorCatalog` and declares sliding and fixed descriptors, so the built-in table is tested only in
+  `DefaultRateLimitDescriptorDataSourceTests`; match the batch with
+  `It.Is<IReadOnlyList<ExpiringCounterIncrement>>(x => x.SequenceEqual(expected))`, and build the `RedisValue` arrays a
+  Valkey test expects from the same CLR types the adapter passes (`long`, `double`).
 
 ## Persistence & integration tests
 
@@ -257,7 +262,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   because hosts that share a database must unwrap the same master keys. So data one host commits is visible to the
   others, but a tenant one host materialized, or usage it recorded and has not flushed, is not. Seed before the host
   that must see the data serves its first request. A test that needs isolation creates its own
-  `HostApplicationFactory`.
+  `HostApplicationFactory`. The factory also owns one Data Protection key ring, in its own in-memory
+  `DeveloperDataProtectionDbContext` database, so no test reads or writes the machine's key directory; a directly
+  built host that starts with `AddConfiguration` sets `KeyManagementOptions.XmlRepository` to an in-memory repository
+  (`IdentityServerBuilderExtensionsTests`).
 - 👁 **Never assert a startup failure through `WebApplicationFactory`.** When the host's entry point throws after
   `Build()` — mapping endpoints resolves options, so a configuration error usually lands there — the host's
   `await using var app` disposes the service provider, and under load the factory's deferred `StartAsync` reaches that

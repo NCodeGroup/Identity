@@ -127,18 +127,22 @@ DataProtection key ring are in the same database and are purged with it.
 
 ## Container image
 
-The `Dockerfile` builds the production image from the repository root. It needs the frontend's Node major, which it
-reads from the single pin in `src/frontend/.node-version`:
+The `Dockerfile` builds the production image from the repository root. Its base images are pinned by tag and digest, and
+Dependabot moves the digests
+([ADR-0249](../../docs/adr/0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)); the
+Node image's major matches the single pin in `src/frontend/.node-version`, which the `Host image` workflow checks:
 
 ```bash
-docker build --file src/NCode.Identity.OpenId.Host/Dockerfile \
-  --build-arg NODE_VERSION="$(cat src/frontend/.node-version)" \
-  --tag ncode-identity-host .
+docker build --file src/NCode.Identity.OpenId.Host/Dockerfile --tag ncode-identity-host .
 ```
 
 The image runs on a chiseled ASP.NET Core base with no shell. It runs as the non-root `app` user (UID 1654), listens on
 port **8080** over plain HTTP, and serves the `apps/auth` login bundle from `/app/auth`. TLS terminates at the ingress.
-Probe `/health/live` for liveness and `/health/ready` for readiness. CI builds it for `linux/amd64` and `linux/arm64`
+Probe `/health/live` for liveness and `/health/ready` for readiness. The image writes one JSON object per line to
+standard output, with a UTC timestamp, so a log collector keeps an entry and its exception in one record; set
+`Logging__Console__FormatterName=simple` to write text
+([ADR-0248](../../docs/adr/0248-the-host-image-writes-one-line-json-logs.md)). CI builds it for `linux/amd64` and
+`linux/arm64`
 ([ADR-0178](../../docs/adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
 
 The image starts in the `Production` environment, which refuses to start until the deployment provides:

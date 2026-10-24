@@ -45,9 +45,10 @@ and fnm honor it, so each repo selects its own Node (nvm reads only `.nvmrc`). `
 major as the floor — it is also what makes Turborepo's cache miss when the runtime changes — and `@types/node` tracks
 that major, not the newest release
 ([ADR-0147](../../docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Moving to a
-new major changes `.node-version`, `engines.node`, and the `@types/node` ranges together. With
-NVS: `nvs auto on` switches automatically on `cd`; it only lasts for the current shell, so persist it in your shell
-profile:
+new major changes `.node-version`, `engines.node`, the `@types/node` ranges, and the Node image of the host
+[`Dockerfile`](../NCode.Identity.OpenId.Host/Dockerfile) together; the `Host image` workflow checks that image's
+major. With NVS: `nvs auto on` switches automatically on `cd`; it only lasts for the current shell, so persist it in
+your shell profile:
 
 ```powershell
 # pwsh — $PROFILE.CurrentUserAllHosts (profile.ps1; covers the terminal and the VS Code PowerShell host)

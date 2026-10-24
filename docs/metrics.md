@@ -51,16 +51,17 @@ A rate-limited request is therefore `http.response.status_code=429` with
 
 ### `ncode.identity.rate_limiting.requests`
 
-Counter, unit `{request}`, meter `NCode.Identity.OpenId.Authentication`. Recorded once for each partition that judges a
-protocol request ([ADR-0196](adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)), including
-the daily quotas ([ADR-0198](adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)) and the overage
-a tier admits past them
-([ADR-0200](adr/0200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md)).
+Counter, unit `{request}`, meter `NCode.Identity.OpenId.Authentication`. Recorded once for each registered rate-limit
+descriptor a stage judges for a protocol request
+([ADR-0246](adr/0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md),
+[ADR-0196](adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)), including the daily quotas
+([ADR-0198](adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)) and the overage a tier admits past
+them ([ADR-0200](adr/0200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md)).
 
-| Attribute                                | Values                                                                  |
-| ---------------------------------------- | ----------------------------------------------------------------------- |
-| `ncode.identity.rate_limiting.partition` | `tenant`, `address`, `client`, `daily_requests`, `daily_token_requests` |
-| `ncode.identity.rate_limiting.result`    | `admitted`, `overage`, `rejected`, `store_unavailable` (fail open)      |
+| Attribute                                | Values                                                                                                                                                |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ncode.identity.rate_limiting.partition` | the `Name` of a registered `RateLimitDescriptor`: `address`, `tenant`, `client`, `daily_requests`, `daily_token_requests`, or one a package registers |
+| `ncode.identity.rate_limiting.result`    | `admitted`, `overage`, `rejected`, `store_unavailable` (fail open)                                                                                    |
 
 ### `ncode.identity.events.published`
 
@@ -82,8 +83,8 @@ An event type adds bounded attributes of its own by implementing `ISupportMetric
 Histogram, unit `s`, meter `NCode.Identity.SharedState.Valkey`. Recorded for each round trip to the shared-state
 server. The in-process adapter records nothing: a dictionary operation in memory has no latency or failure to watch.
 
-| Attribute                               | Values                                                                                                           |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `ncode.identity.shared_state.operation` | `counter.increment`, `counter.get`, `counter.remove`, `key_set.try_add`, `key_set.contains`, `broadcast.publish` |
-| `ncode.identity.shared_state.adapter`   | `valkey`, or the name another networked adapter declares                                                         |
-| `error.type`                            | On failure only: the full type name of the exception                                                             |
+| Attribute                               | Values                                                                                                                                               |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ncode.identity.shared_state.operation` | `counter.increment`, `counter.increment_until_exceeded`, `counter.get`, `counter.remove`, `key_set.try_add`, `key_set.contains`, `broadcast.publish` |
+| `ncode.identity.shared_state.adapter`   | `valkey`, or the name another networked adapter declares                                                                                             |
+| `error.type`                            | On failure only: the full type name of the exception                                                                                                 |

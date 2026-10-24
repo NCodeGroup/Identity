@@ -50,10 +50,20 @@ internal static class DefaultRegistration
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddSingleton<AuthenticationMetrics>();
             serviceCollection.TryAddSingleton<IRequestRateLimiter, DefaultRequestRateLimiter>();
+            serviceCollection.TryAddSingleton<
+                IRateLimitDescriptorCatalog,
+                DefaultRateLimitDescriptorCatalog
+            >();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICollectionDataSource<SettingDescriptor>,
                     DefaultRateLimitSettingDescriptorDataSource
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<RateLimitDescriptor>,
+                    DefaultRateLimitDescriptorDataSource
                 >()
             );
 

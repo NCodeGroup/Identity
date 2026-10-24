@@ -190,6 +190,11 @@ NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.KnownProxies.get -> strin
 NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.KnownProxies.set -> void
 NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.ReverseProxyOptions() -> void
 const NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.DefaultSectionName = "ReverseProxy" -> string!
+NCode.Identity.Server.SecretProtection.DataProtectionKeyRingOptions
+NCode.Identity.Server.SecretProtection.DataProtectionKeyRingOptions.DataProtectionKeyRingOptions() -> void
+NCode.Identity.Server.SecretProtection.DataProtectionKeyRingOptions.RevokedKeyIds.get -> System.Guid[]!
+NCode.Identity.Server.SecretProtection.DataProtectionKeyRingOptions.RevokedKeyIds.set -> void
+const NCode.Identity.Server.SecretProtection.DataProtectionKeyRingOptions.DefaultSectionName = "DataProtectionKeyRing" -> string!
 NCode.Identity.Server.ProductionSafetyRegistration
 NCode.Identity.Server.ProductionSafetyRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Server.ProductionSafetyRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddProductionSafety(Microsoft.Extensions.Configuration.IConfiguration! configuration, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

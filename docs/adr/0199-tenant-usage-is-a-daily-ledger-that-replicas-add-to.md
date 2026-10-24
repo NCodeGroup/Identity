@@ -4,7 +4,9 @@
   numbers its batches and the ledger adds each once; [ADR-0213](0213-the-usage-ledger-is-pruned-in-bounded-batches.md):
   the days past retention are removed in bounded batches;
   [ADR-0221](0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md): `TenantUsageOptions`
-  is bound from `OpenId:TenantUsage` and validated when the host starts)
+  is bound from `OpenId:TenantUsage` and validated when the host starts;
+  [ADR-0246](0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md): rate-limit descriptors
+  carry the usage meters, recorded once the request completes)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
 

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using Microsoft.Extensions.Options;
 using NCode.Identity.SharedState.Valkey.Facades;
 using NCode.Identity.SharedState.Valkey.Options;
@@ -56,28 +55,15 @@ internal sealed class ValkeyReplicaBroadcaster(
         ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(message);
 
-        var startTimestamp = Stopwatch.GetTimestamp();
-        try
-        {
-            var subscriber = await Connection.GetSubscriberAsync(cancellationToken);
-            await subscriber
-                .PublishAsync(RedisChannel.Literal(KeyPrefix + channel), message)
-                .WaitAsync(cancellationToken);
-
-            Metrics.OperationCompleted(
-                ValkeySharedStateMetrics.BroadcastPublishOperation,
-                startTimestamp,
-                exception: null
-            );
-        }
-        catch (Exception exception)
-        {
-            Metrics.OperationCompleted(
-                ValkeySharedStateMetrics.BroadcastPublishOperation,
-                startTimestamp,
-                exception
-            );
-            throw;
-        }
+        await Metrics.MeasureAsync(
+            ValkeySharedStateMetrics.BroadcastPublishOperation,
+            async () =>
+            {
+                var subscriber = await Connection.GetSubscriberAsync(cancellationToken);
+                await subscriber
+                    .PublishAsync(RedisChannel.Literal(KeyPrefix + channel), message)
+                    .WaitAsync(cancellationToken);
+            }
+        );
     }
 }

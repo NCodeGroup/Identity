@@ -41,6 +41,9 @@ internal sealed class ValkeySharedStateMetrics
 
     internal const string CounterIncrementOperation = "counter.increment";
 
+    internal const string CounterIncrementUntilExceededOperation =
+        "counter.increment_until_exceeded";
+
     internal const string CounterGetOperation = "counter.get";
 
     internal const string CounterRemoveOperation = "counter.remove";
@@ -71,12 +74,61 @@ internal sealed class ValkeySharedStateMetrics
     }
 
     /// <summary>
+    /// Runs an operation against the store and records its duration, tagged with the exception's type when it throws.
+    /// </summary>
+    /// <typeparam name="TResult">The type of the value the operation returns.</typeparam>
+    /// <param name="operation">The bounded operation name, such as <c>counter.increment</c>.</param>
+    /// <param name="action">The operation to run and measure.</param>
+    /// <returns>The value the operation returned. An exception the operation threw is rethrown.</returns>
+    public async ValueTask<TResult> MeasureAsync<TResult>(
+        string operation,
+        Func<ValueTask<TResult>> action
+    )
+    {
+        var startTimestamp = Stopwatch.GetTimestamp();
+        try
+        {
+            var result = await action();
+
+            OperationCompleted(operation, startTimestamp, exception: null);
+            return result;
+        }
+        catch (Exception exception)
+        {
+            OperationCompleted(operation, startTimestamp, exception);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Runs an operation against the store and records its duration, tagged with the exception's type when it throws.
+    /// </summary>
+    /// <param name="operation">The bounded operation name, such as <c>broadcast.publish</c>.</param>
+    /// <param name="action">The operation to run and measure.</param>
+    /// <returns>A task that completes when the operation has completed. An exception it threw is rethrown.</returns>
+    public async ValueTask MeasureAsync(string operation, Func<ValueTask> action)
+    {
+        var startTimestamp = Stopwatch.GetTimestamp();
+        try
+        {
+            await action();
+
+            OperationCompleted(operation, startTimestamp, exception: null);
+        }
+        catch (Exception exception)
+        {
+            OperationCompleted(operation, startTimestamp, exception);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Records the duration of an operation that started at <paramref name="startTimestamp"/>.
     /// </summary>
     /// <param name="operation">The bounded operation name, such as <c>counter.increment</c>.</param>
     /// <param name="startTimestamp">The <see cref="Stopwatch.GetTimestamp"/> at which the operation started.</param>
     /// <param name="exception">The exception the operation threw, or <see langword="null"/> when it succeeded.</param>
-    public void OperationCompleted(string operation, long startTimestamp, Exception? exception)
+    private void OperationCompleted(string operation, long startTimestamp, Exception? exception)
     {
         if (!OperationDuration.Enabled)
             return;

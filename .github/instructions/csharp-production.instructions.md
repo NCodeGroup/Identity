@@ -642,13 +642,20 @@ rationale.
   host starts while its database may still be migrating, and the integration factory seeds the server's settings before
   the first request (`HostApplicationFactory.SeedServerSettingsAsync`)
   ([ADR-0219](../../docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+- 👁 **A start check that needs the server's protector is a hosted service after the warmup.** `ValidateOnStart` and
+  every startup validator run before any hosted service starts, so before `ServerSecretProtectorWarmup` loads the
+  protector; `AddSecretProtection` inserts the warmup first and `DataProtectionKeyRingGate` second, both ahead of Data
+  Protection's hosted service
+  ([ADR-0247](../../docs/adr/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).
 - 👁 **A single-use or freshness check records into `IExpiringKeySet`, never a get-then-set.** A replay guard (a
   `jti`), a server-issued nonce, or any "accept once" record is an atomic add-if-absent on the shared-state port
   (`NCode.Identity.SharedState.Abstractions`), whose adapter the composition root chooses — in-process for one replica,
   Valkey for several. `IDistributedCache` cannot express it: a read followed by a write lets two concurrent requests
   both pass. Build the key with the tenant and a digest of the length-prefixed, request-supplied components
   (`ExpiringKeys.Create`), so tenants sharing a store never collide and an attacker-supplied value cannot make a key
-  ambiguous or unbounded. A library never registers a host-wide cache. See
+  ambiguous or unbounded. `ExpiringKeys.Create` puts the tenant in braces, the key's hash tag, so one script may touch
+  one tenant's keys on a clustered Valkey and never several tenants'; and every Valkey adapter call goes through
+  `ValkeySharedStateMetrics.MeasureAsync`. A library never registers a host-wide cache. See
   [ADR-0164](../../docs/adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md).
 - 👁 **A credential with a stored grant is spent through `IPersistedGrantService.ConsumeOnceOrDefault`, after every
   check passes and before its effect.** A refused request leaves it usable. `IExpiringKeySet` is for single-use state
@@ -735,13 +742,18 @@ rationale.
   `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through
   `IClientCertificateRevocationChecker`. See
   [ADR-0173](../../docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md).
-- 👁 **A count every replica must agree on increments `IExpiringCounterSet`, never a get-then-set.** A rate limit or a
-  quota counts with the port's atomic `IncrementAsync`, which starts a counter for one fixed window; a read followed by
-  a write loses concurrent requests. Read a count with `GetAsync` only for a counter this request does not add to (the
-  previous window). Count what is requested, not what later succeeds: counting only an outcome needs a read before the
-  work and an increment after it. See
-  [ADR-0196](../../docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) and
-  [ADR-0198](../../docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
+- 👁 **A count every replica must agree on increments `IExpiringCounterSet`, never a get-then-set.** A counter is
+  incremented with the port's atomic `IncrementAsync`, which starts a counter for one fixed window, or, for the limits
+  of a rate-limit stage, with `IncrementUntilExceededAsync`; a read followed by a write loses concurrent requests. Read
+  a counter this request does not add to (the previous window) with `GetAsync`, or as an increment's `ReferenceKey`
+  within the batch. Count what is requested, not what later succeeds: counting only an outcome needs a read before the
+  work and an increment after it. A rate limit or quota is a `RateLimitDescriptor` registered through
+  `ICollectionDataSource<RateLimitDescriptor>` and judged by `IRequestRateLimiter.AcquireAsync` at its stage, which
+  counts the stage's limits in one `IncrementUntilExceededAsync` call; never call the counter set for a limit from an
+  endpoint. See
+  [ADR-0196](../../docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
+  [ADR-0198](../../docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) and
+  [ADR-0246](../../docs/adr/0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md).
 - 👁 **A password is judged by `IPasswordPolicy` wherever it is set.** The management API's create and reset, an
   `IInteractivePasswordChanger`, and a configuration seeder pass the tenant's effective settings, the account's user
   name and email, and the password to `IPasswordPolicy.ValidateAsync` before the store hashes it, and answer a refusal
@@ -792,11 +804,14 @@ rationale.
   [ADR-0218](../../docs/adr/0218-ended-grants-are-removed-after-a-retention-period.md)).
 - 👁 **Public metadata is unmetered, and a limit an endpoint enforces refuses through `RateLimitErrors.Refuse`.** An
   endpoint any anonymous caller or cache fetches (discovery, the JSON Web Key Set) is marked `WithOpenIdMetered(false)`,
-  so it spends only the per-minute limits, never the tenant's daily quota or billable usage. `RateLimitEndpointFilter`
-  records usage after the endpoint runs, so a `429` raised inside an endpoint must come from `RateLimitErrors.Refuse`,
-  which marks the request refused; any other path bills the refused request. See
-  [ADR-0198](../../docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) and
-  [ADR-0199](../../docs/adr/0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md).
+  so it spends only the per-minute limits, never the tenant's daily quota or billable usage. The limiter marks a
+  request it refuses and adds the usage meters of each admitting stage to the request, and `RateLimitEndpointFilter`
+  records them after the endpoint runs unless a stage refused it, so a meter is a descriptor's `UsageMeter` or
+  `OverageUsageMeter`, never an `ITenantUsageRecorder.Record` call beside a limit; answer a refusal with
+  `RateLimitErrors.Refuse`. See
+  [ADR-0198](../../docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
+  [ADR-0199](../../docs/adr/0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) and
+  [ADR-0246](../../docs/adr/0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.

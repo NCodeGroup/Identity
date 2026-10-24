@@ -1693,3 +1693,52 @@ NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClie
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.AuthorizationEncryptedResponseAlg.init -> void
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.AuthorizationEncryptedResponseEnc.get -> string?
 NCode.Identity.OpenId.Authentication.Endpoints.Registration.Results.RegisterClientResponse.AuthorizationEncryptedResponseEnc.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.IRequestRateLimiter
+NCode.Identity.OpenId.Authentication.RateLimiting.IRequestRateLimiter.AcquireAsync(string! stage, NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDecision>
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitContext
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitContext.Client.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdClient?
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitContext.Client.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitContext.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitContext.OpenIdContext.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitContext.RateLimitContext() -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDecision
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDecision.IsRejected.get -> bool
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDecision.RateLimitDecision() -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDecision.RateLimitDecision(System.TimeSpan? RetryAfter) -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDecision.RetryAfter.get -> System.TimeSpan?
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDecision.RetryAfter.init -> void
+static NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDecision.Admitted.get -> NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDecision
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.IsMeteredOnly.get -> bool
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.IsMeteredOnly.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.IsSliding.get -> bool
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.IsSliding.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.LimitKey.get -> NCode.Identity.Settings.SettingKey<int>
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.LimitKey.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.Name.get -> string!
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.Name.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.Order.get -> int
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.Order.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.OverageKey.get -> NCode.Identity.Settings.SettingKey<int>?
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.OverageKey.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.OverageUsageMeter.get -> string?
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.OverageUsageMeter.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.PartitionValueSelector.get -> System.Func<NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitContext, string?>!
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.PartitionValueSelector.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.RateLimitDescriptor() -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.Stage.get -> string!
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.Stage.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.UsageMeter.get -> string?
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.UsageMeter.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.Window.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitDescriptor.Window.init -> void
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitPartitions
+const NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitPartitions.Address = "address" -> string!
+const NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitPartitions.Client = "client" -> string!
+const NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitPartitions.DailyRequests = "daily_requests" -> string!
+const NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitPartitions.DailyTokenRequests = "daily_token_requests" -> string!
+const NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitPartitions.Tenant = "tenant" -> string!
+NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitStages
+const NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitStages.ClientAuthentication = "client_authentication" -> string!
+const NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitStages.Request = "request" -> string!
+const NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitStages.TokenRequest = "token_request" -> string!

@@ -1,6 +1,8 @@
 # 200. A tier admits a bounded overage past its quota and bills it from the ledger
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0246](0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md): an overage is a
+  fixed-window descriptor's overage setting and meter)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
 

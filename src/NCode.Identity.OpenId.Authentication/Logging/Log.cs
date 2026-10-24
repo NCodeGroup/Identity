@@ -416,36 +416,25 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.RateLimitExceeded,
         Level = LogLevel.Information,
-        Message = "A request to tenant '{TenantId}' exceeded its '{Partition}' rate limit of {Limit} requests per minute and was refused."
+        Message = "A request to tenant '{TenantId}' exceeded its '{Partition}' limit of {Limit} requests per {Window} and was refused."
     )]
     internal static partial void RateLimitExceeded(
         this ILogger logger,
         string tenantId,
         string partition,
-        int limit
-    );
-
-    [LoggerMessage(
-        EventId = EventIds.QuotaExceeded,
-        Level = LogLevel.Information,
-        Message = "A request to tenant '{TenantId}' exceeded its '{Partition}' quota of {Quota} per UTC day and was refused until midnight UTC."
-    )]
-    internal static partial void QuotaExceeded(
-        this ILogger logger,
-        string tenantId,
-        string partition,
-        int quota
+        int limit,
+        TimeSpan window
     );
 
     [LoggerMessage(
         EventId = EventIds.RateLimitStoreUnavailable,
         Level = LogLevel.Warning,
-        Message = "The rate-limit counter store did not answer while judging the '{Partition}' limit of tenant '{TenantId}'; rate limits and quotas are not enforced, and every request is admitted, until it answers again. It is tried again every {RetryInterval}."
+        Message = "The rate-limit counter store did not answer while judging the '{Stage}' limits of tenant '{TenantId}'; rate limits and quotas are not enforced, and every request is admitted, until it answers again. It is tried again every {RetryInterval}."
     )]
     internal static partial void RateLimitStoreUnavailable(
         this ILogger logger,
         string tenantId,
-        string partition,
+        string stage,
         TimeSpan retryInterval,
         Exception exception
     );

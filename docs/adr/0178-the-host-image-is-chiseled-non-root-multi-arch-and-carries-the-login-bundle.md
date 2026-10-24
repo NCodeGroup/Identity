@@ -1,6 +1,9 @@
 # 178. The host image is chiseled, non-root, multi-arch, and carries the login bundle
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0248](0248-the-host-image-writes-one-line-json-logs.md): the image writes one-line JSON logs; and by
+  [ADR-0249](0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md): its base images are
+  pinned by digest, and the Node major is a literal the workflow checks)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 
@@ -32,10 +35,12 @@ consent. The lab cluster runs on Ampere A1 nodes, so the image must also run on 
 4. **The build context is an allow-list.** `.dockerignore` excludes everything, then re-admits the root build files
    and `src/`, minus build outputs, `node_modules`, and local settings. Tests, docs, `.git`, and secrets never reach
    the builder.
-5. **The Node major comes from its single pin.** A `FROM` line cannot read a file, so the Dockerfile takes
-   `NODE_VERSION` as a required build argument. Callers read it from `src/frontend/.node-version`
-   ([ADR-0152](0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)), and the Dockerfile
-   carries no default that could drift. pnpm is installed from `package.json`'s `packageManager` field.
+5. **The Node major follows its single pin.** The Node stage names its image by a literal major, tag and digest
+   (`node:<major>-trixie-slim@sha256:…`), because a `FROM` line cannot read a file and Dependabot cannot update a
+   `FROM` built from an `ARG`. The `Host image` workflow fails unless that major equals `src/frontend/.node-version`
+   ([ADR-0152](0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md),
+   [ADR-0249](0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)). pnpm is
+   installed from `package.json`'s `packageManager` field.
 6. **The version comes from `version.json` alone.** The build context has no `.git`, so the build sets
    `NBGV_GitEngine=Disabled`. Publishing is a release concern: the release workflow tags the image with the version it
    computes from the repository (backlog `F48`).

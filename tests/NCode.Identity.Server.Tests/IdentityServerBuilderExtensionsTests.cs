@@ -17,6 +17,9 @@
 #endregion
 
 using System.Threading.Channels;
+using System.Xml.Linq;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -432,6 +435,11 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
         secretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
         hostBuilder.Services.AddSingleton(secretProtectorProvider.Object);
 
+        // A started host reads its Data Protection key ring, which would otherwise be the machine's key directory.
+        hostBuilder.Services.Configure<KeyManagementOptions>(options =>
+            options.XmlRepository = new InMemoryXmlRepository()
+        );
+
         var builder = CreateStrictMock<IIdentityServerBuilder>();
         builder.Setup(x => x.ServiceCollection).Returns(hostBuilder.Services).Verifiable();
 
@@ -541,4 +549,17 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
     }
 
     #endregion
+
+    // A key ring repository that keeps its elements in memory, so a started host never reads the machine's key
+    // directory. It hands out copies, as a database would.
+    private sealed class InMemoryXmlRepository : IXmlRepository
+    {
+        private List<XElement> Elements { get; } = [];
+
+        public IReadOnlyCollection<XElement> GetAllElements() =>
+            Elements.Select(element => new XElement(element)).ToList();
+
+        public void StoreElement(XElement element, string friendlyName) =>
+            Elements.Add(new XElement(element));
+    }
 }

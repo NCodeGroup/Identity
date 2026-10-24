@@ -17,7 +17,6 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Results;
@@ -25,14 +24,15 @@ using NCode.Identity.OpenId.Results;
 namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 
 /// <summary>
-/// An endpoint filter, installed once on the OpenID endpoint group inside the environment filter, that counts every
-/// request against its tenant's tenant-wide and per-address rate limits and, for a metered endpoint, its daily request
-/// quota, and answers a refused request with <c>429 Too Many Requests</c> before its endpoint runs. It sits outside the
-/// exception filter, so a refused request is not audited as a protocol error: an attacker flooding the endpoint must not
-/// flood the audit log as well. Once the endpoint has run, a metered request that no limit refused — neither here nor
-/// the per-client limit or token quota inside the endpoint — is recorded as the tenant's usage.
+/// An endpoint filter, installed once on the OpenID endpoint group inside the environment filter, that judges the
+/// <c>request</c> rate-limit stage of every request and answers a refused request with <c>429 Too Many Requests</c>
+/// before its endpoint runs. The rate-limit descriptors registered for each stage, not the filter, decide which limits
+/// and quotas apply to a request and which usage meters it adds. The filter sits outside the exception filter, so a
+/// refused request is not audited as a protocol error: an attacker flooding the endpoint must not flood the audit log
+/// as well. Once the endpoint has run, the usage meters that the stages admitting the request added are recorded as the
+/// tenant's usage, unless a stage refused the request, here or inside the endpoint.
 /// </summary>
-// See ADR-0196 and ADR-0198; a request every limit admits is the tenant's usage (ADR-0199).
+// See ADR-0196, ADR-0198 and ADR-0246; a request every stage admits is the tenant's usage (ADR-0199).
 internal sealed class RateLimitEndpointFilter(
     IRequestRateLimiter rateLimiter,
     ITenantUsageRecorder usageRecorder
@@ -55,14 +55,11 @@ internal sealed class RateLimitEndpointFilter(
         if (feature is null)
             return await next(context);
 
-        var isMetered =
-            httpContext.GetEndpoint()?.Metadata.GetMetadata<IOpenIdEndpointMeteredMetadata>()
-            is not { IsMetered: false };
-
         var openIdContext = feature.OpenIdContext;
-        var decision = await RateLimiter.AcquireForTenantAsync(
-            openIdContext,
-            isMetered,
+        var rateLimitContext = new RateLimitContext { OpenIdContext = openIdContext };
+        var decision = await RateLimiter.AcquireAsync(
+            RateLimitStages.Request,
+            rateLimitContext,
             httpContext.RequestAborted
         );
         if (decision.RetryAfter is { } retryAfter)
@@ -70,13 +67,13 @@ internal sealed class RateLimitEndpointFilter(
 
         var result = await next(context);
 
-        if (isMetered && !RateLimitErrors.IsRefused(httpContext))
-        {
-            var tenantId = openIdContext.Tenant.TenantId;
-            UsageRecorder.Record(tenantId, TenantUsageMeters.Requests);
-            if (decision.IsOverage)
-                UsageRecorder.Record(tenantId, TenantUsageMeters.RequestsOverage);
-        }
+        var state = RateLimitRequestState.Get(httpContext);
+        if (state.IsRefused)
+            return result;
+
+        var tenantId = openIdContext.Tenant.TenantId;
+        foreach (var meter in state.UsageMeters)
+            UsageRecorder.Record(tenantId, meter);
 
         return result;
     }

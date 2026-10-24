@@ -1,6 +1,6 @@
 #region Copyright Preamble
 
-// Copyright @ 2024 NCode Group
+// Copyright @ 2026 NCode Group
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 #endregion
 
+using System.Collections.Immutable;
 using System.Diagnostics.Metrics;
 using System.Globalization;
-using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.Metrics.Testing;
@@ -26,12 +26,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Metrics;
 using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Authentication.SharedState;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
@@ -43,14 +43,19 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
 {
     private const string TenantId = "tenant-1";
 
-    private const string ClientId = "client-1";
+    private const string Stage = "test";
 
-    private const string RemoteAddress = "192.0.2.1";
+    private const string PartitionValue = "value";
 
     // Fifteen seconds into the minute, so the previous window weighs three quarters.
     private static DateTimeOffset WindowStart { get; } = new(2026, 10, 19, 12, 0, 0, TimeSpan.Zero);
 
     private static DateTimeOffset Now { get; } = WindowStart.AddSeconds(15);
+
+    // The one-day window that contains Now starts at midnight UTC.
+    private static DateTimeOffset DayStart { get; } = new(2026, 10, 19, 0, 0, 0, TimeSpan.Zero);
+
+    private Mock<IRateLimitDescriptorCatalog> MockCatalog { get; }
 
     private Mock<IExpiringCounterSet> MockCounterSet { get; }
 
@@ -59,6 +64,8 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     private Mock<OpenIdContext> MockContext { get; }
 
     private Mock<IReadOnlySettingCollection> MockTenantSettings { get; }
+
+    private DefaultHttpContext HttpContext { get; } = new();
 
     private FakeLogger<DefaultRequestRateLimiter> Logger { get; } = new();
 
@@ -83,6 +90,9 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             )
             .ToList();
 
+    private List<(int EventId, LogLevel Level)> LogEntries =>
+        Logger.Collector.GetSnapshot().Select(record => (record.Id.Id, record.Level)).ToList();
+
     public DefaultRequestRateLimiterTests()
     {
         // The meter factory scopes the meter to this test, so the collector sees only this limiter's measurements.
@@ -94,16 +104,21 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             AuthenticationMetrics.RateLimitingRequestsName
         );
 
+        MockCatalog = CreateStrictMock<IRateLimitDescriptorCatalog>();
         MockCounterSet = CreateStrictMock<IExpiringCounterSet>();
         MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockContext = CreateStrictMock<OpenIdContext>();
         MockTenantSettings = CreateStrictMock<IReadOnlySettingCollection>();
         Limiter = new DefaultRequestRateLimiter(
+            MockCatalog.Object,
             MockCounterSet.Object,
             MockTimeProvider.Object,
             new AuthenticationMetrics(meterFactory),
             Logger
         );
+
+        // Every judgement reads the request's HTTP context for its rate-limit state and its endpoint.
+        MockContext.Setup(x => x.Http).Returns(HttpContext).Verifiable();
     }
 
     protected override void Dispose(bool disposing)
@@ -122,50 +137,22 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     private void SetupTenant(bool readsSettings = true, bool readsTenantId = true)
     {
         var mockTenant = CreateStrictMock<OpenIdTenant>();
-        var tenantIdSetup = mockTenant.Setup(x => x.TenantId).Returns(TenantId);
         if (readsTenantId)
-            tenantIdSetup.Verifiable();
+            mockTenant.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         if (readsSettings)
         {
             var mockProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
             mockProvider.Setup(x => x.Collection).Returns(MockTenantSettings.Object).Verifiable();
             mockTenant.Setup(x => x.SettingsProvider).Returns(mockProvider.Object).Verifiable();
-
-            // The daily quotas are unset unless a test sets them; not verifiable, since a refused request never reads them.
-            var unset = 0;
-            MockTenantSettings
-                .Setup(x => x.TryGetValue(OpenIdSettingKeys.QuotaTenantRequestsPerDay, out unset))
-                .Returns(false);
-            MockTenantSettings
-                .Setup(x =>
-                    x.TryGetValue(OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, out unset)
-                )
-                .Returns(false);
-
-            // The overages are unset unless a test sets them; read only once a quota is spent.
-            MockTenantSettings
-                .Setup(x =>
-                    x.TryGetValue(OpenIdSettingKeys.QuotaTenantRequestsOveragePerDay, out unset)
-                )
-                .Returns(false);
-            MockTenantSettings
-                .Setup(x =>
-                    x.TryGetValue(
-                        OpenIdSettingKeys.QuotaTenantTokenRequestsOveragePerDay,
-                        out unset
-                    )
-                )
-                .Returns(false);
         }
 
         MockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
     }
 
-    private void SetupRemoteAddress(string remoteAddress = RemoteAddress)
+    private void SetupStage(params RateLimitDescriptor[] descriptors)
     {
-        var httpContext = new DefaultHttpContext();
-        httpContext.Connection.RemoteIpAddress = IPAddress.Parse(remoteAddress);
-        MockContext.Setup(x => x.Http).Returns(httpContext).Verifiable();
+        ImmutableArray<RateLimitDescriptor> stage = [.. descriptors];
+        MockCatalog.Setup(x => x.GetStage(Stage)).Returns(stage).Verifiable();
     }
 
     private static void SetupLimit(
@@ -178,66 +165,84 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         mockSettings.Setup(x => x.TryGetValue(key, out value)).Returns(limit.HasValue).Verifiable();
     }
 
-    private void SetupCounters(string partition, string value, long current, long previous)
+    private void SetupIncrements(
+        IReadOnlyList<ExpiringCounterIncrement> expected,
+        params ExpiringCounterCount[] counts
+    )
     {
+        IReadOnlyList<ExpiringCounterCount> answer = counts;
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
         MockCounterSet
             .Setup(x =>
-                x.IncrementAsync(
-                    CreateKey(partition, value, WindowStart),
-                    WindowStart.AddMinutes(2),
+                x.IncrementUntilExceededAsync(
+                    It.Is<IReadOnlyList<ExpiringCounterIncrement>>(actual =>
+                        actual.SequenceEqual(expected)
+                    ),
                     CancellationToken.None
                 )
             )
-            .ReturnsAsync(current)
-            .Verifiable();
-        MockCounterSet
-            .Setup(x =>
-                x.GetAsync(
-                    CreateKey(partition, value, WindowStart.AddMinutes(-1)),
-                    CancellationToken.None
-                )
-            )
-            .ReturnsAsync(previous)
+            .ReturnsAsync(answer)
             .Verifiable();
     }
 
-    private static DateTimeOffset DayStart { get; } = new(2026, 10, 19, 0, 0, 0, TimeSpan.Zero);
+    private RateLimitContext CreateContext(OpenIdClient? client = null) =>
+        new() { OpenIdContext = MockContext.Object, Client = client };
 
-    private void SetupQuotaCounter(string partition, long count)
-    {
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-        MockCounterSet
-            .Setup(x =>
-                x.IncrementAsync(
-                    CreateKey(partition, string.Empty, DayStart),
-                    DayStart.AddDays(1),
-                    CancellationToken.None
-                )
-            )
-            .ReturnsAsync(count)
-            .Verifiable();
-    }
+    private static SettingKey<int> GetLimitKey(string name) => new($"{name}_limit");
 
-    private void SetupTenantLimitOnly()
-    {
-        SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, 1);
-    }
+    private static RateLimitDescriptor CreateDescriptor(
+        string name,
+        int order = 0,
+        bool isMeteredOnly = false,
+        string? usageMeter = null,
+        Func<RateLimitContext, string?>? selector = null
+    ) =>
+        new()
+        {
+            Name = name,
+            Stage = Stage,
+            Order = order,
+            Window = TimeSpan.FromMinutes(1),
+            IsSliding = true,
+            LimitKey = GetLimitKey(name),
+            IsMeteredOnly = isMeteredOnly,
+            UsageMeter = usageMeter,
+            PartitionValueSelector = selector ?? (static _ => PartitionValue),
+        };
 
-    private long Timestamp { get; set; } = 1_000;
+    private static ExpiringCounterIncrement CreateSlidingIncrement(string name, long limit) =>
+        new()
+        {
+            Key = CreateKey(name, PartitionValue, WindowStart),
+            ExpiresWhen = WindowStart.AddMinutes(2),
+            Limit = limit,
+            ReferenceKey = CreateKey(name, PartitionValue, WindowStart.AddMinutes(-1)),
+            ReferenceWeight = 0.75,
+        };
 
-    // The breaker is timed on the monotonic timestamp, read only once the store has failed.
-    private void SetupTimestamps()
-    {
-        MockTimeProvider.Setup(x => x.GetTimestamp()).Returns(() => Timestamp);
-        MockTimeProvider.Setup(x => x.TimestampFrequency).Returns(TimeSpan.TicksPerSecond);
-    }
+    private static SettingKey<int> GetOverageKey(string name) => new($"{name}_overage");
 
-    private List<(int EventId, LogLevel Level)> LogEntries =>
-        Logger.Collector.GetSnapshot().Select(record => (record.Id.Id, record.Level)).ToList();
+    private static RateLimitDescriptor CreateFixedDescriptor(string name) =>
+        new()
+        {
+            Name = name,
+            Stage = Stage,
+            Window = TimeSpan.FromDays(1),
+            IsSliding = false,
+            LimitKey = GetLimitKey(name),
+            OverageKey = GetOverageKey(name),
+            UsageMeter = "meter",
+            OverageUsageMeter = "meter_overage",
+            PartitionValueSelector = static _ => PartitionValue,
+        };
+
+    private static ExpiringCounterIncrement CreateFixedIncrement(string name, long limit) =>
+        new()
+        {
+            Key = CreateKey(name, PartitionValue, DayStart),
+            ExpiresWhen = DayStart.AddDays(1),
+            Limit = limit,
+        };
 
     private static string CreateKey(string partition, string value, DateTimeOffset windowStart) =>
         ExpiringKeys.Create(
@@ -248,415 +253,347 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             windowStart.UtcTicks.ToString(CultureInfo.InvariantCulture)
         );
 
+    private RateLimitDescriptor SetupLimitedStage()
+    {
+        var descriptor = CreateDescriptor("limited", usageMeter: "limited_meter");
+        SetupStage(descriptor);
+        SetupTenant();
+        SetupLimit(MockTenantSettings, descriptor.LimitKey, 1);
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        return descriptor;
+    }
+
+    private long Timestamp { get; set; } = 1_000;
+
+    // The breaker is timed on the monotonic timestamp, read only once the store has failed.
+    private void SetupTimestamp() =>
+        MockTimeProvider.Setup(x => x.GetTimestamp()).Returns(() => Timestamp).Verifiable();
+
+    // The elapsed time since a failure is read only by a call that finds the breaker open.
+    private void SetupTimestampFrequency() =>
+        MockTimeProvider
+            .Setup(x => x.TimestampFrequency)
+            .Returns(TimeSpan.TicksPerSecond)
+            .Verifiable();
+
     #endregion
 
-    #region AcquireForTenantAsync Tests
+    #region AcquireAsync Tests
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenWithinTheDailyQuota_Admits()
+    public async Task AcquireAsync_WhenNoDescriptorHasALimit_AdmitsAndAddsItsUsageMeterWithoutTheStore()
     {
-        SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsPerDay, 100);
-        SetupQuotaCounter(DefaultRequestRateLimiter.DailyRequestsPartition, count: 100);
+        var descriptor = CreateDescriptor("unlimited", usageMeter: "unlimited_meter");
+        SetupStage(descriptor);
+        SetupTenant(readsTenantId: false);
+        SetupLimit(MockTenantSettings, descriptor.LimitKey, null);
 
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
+        var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
 
+        var state = RateLimitRequestState.Get(HttpContext);
         Assert.False(decision.IsRejected);
-        Assert.Equal(
-            [
-                (
-                    DefaultRequestRateLimiter.DailyRequestsPartition,
-                    AuthenticationMetrics.AdmittedResult
-                ),
-            ],
-            Judgements
-        );
-    }
-
-    [Fact]
-    public async Task AcquireForTenantAsync_WhenNotMetered_DoesNotSpendTheDailyQuota()
-    {
-        // Public metadata is not the tenant's metered usage, so the quota is neither read nor counted (ADR-0198).
-        SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
-
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: false,
-            CancellationToken.None
-        );
-
-        Assert.False(decision.IsRejected);
-        Assert.False(decision.IsOverage);
+        Assert.False(state.IsRefused);
+        Assert.Equal(["unlimited_meter"], state.UsageMeters);
         Assert.Empty(Judgements);
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenTheDailyQuotaIsSpent_RejectsUntilMidnightUtc()
+    public async Task AcquireAsync_WhenAUsageMeterIsAddedAgain_KeepsItOnce()
     {
-        SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsPerDay, 100);
-        SetupQuotaCounter(DefaultRequestRateLimiter.DailyRequestsPartition, count: 101);
+        var first = CreateDescriptor("first", order: 100, usageMeter: "shared");
+        var second = CreateDescriptor("second", order: 200, usageMeter: "shared");
+        SetupStage(first, second);
+        SetupTenant(readsTenantId: false);
+        SetupLimit(MockTenantSettings, first.LimitKey, null);
+        SetupLimit(MockTenantSettings, second.LimitKey, null);
 
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
+        var firstDecision = await Limiter.AcquireAsync(
+            Stage,
+            CreateContext(),
+            CancellationToken.None
+        );
+        var secondDecision = await Limiter.AcquireAsync(
+            Stage,
+            CreateContext(),
             CancellationToken.None
         );
 
-        Assert.True(decision.IsRejected);
-        Assert.Equal(DayStart.AddDays(1) - Now, decision.RetryAfter);
-        Assert.Equal(
-            [
-                (
-                    DefaultRequestRateLimiter.DailyRequestsPartition,
-                    AuthenticationMetrics.RejectedResult
-                ),
-            ],
-            Judgements
-        );
-    }
-
-    [Fact]
-    public async Task AcquireForTenantAsync_WhenPastTheQuotaWithinTheOverage_AdmitsAsOverage()
-    {
-        SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsPerDay, 100);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsOveragePerDay, 10);
-        SetupQuotaCounter(DefaultRequestRateLimiter.DailyRequestsPartition, count: 110);
-
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
-
-        Assert.False(decision.IsRejected);
-        Assert.True(decision.IsOverage);
-        Assert.Equal(
-            [
-                (
-                    DefaultRequestRateLimiter.DailyRequestsPartition,
-                    AuthenticationMetrics.OverageResult
-                ),
-            ],
-            Judgements
-        );
-    }
-
-    [Fact]
-    public async Task AcquireForTenantAsync_WhenPastTheQuotaAndTheOverage_RejectsUntilMidnightUtc()
-    {
-        SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsPerDay, 100);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsOveragePerDay, 10);
-        SetupQuotaCounter(DefaultRequestRateLimiter.DailyRequestsPartition, count: 111);
-
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
-
-        Assert.True(decision.IsRejected);
-        Assert.False(decision.IsOverage);
-        Assert.Equal(DayStart.AddDays(1) - Now, decision.RetryAfter);
-        Assert.Equal(
-            [
-                (
-                    DefaultRequestRateLimiter.DailyRequestsPartition,
-                    AuthenticationMetrics.RejectedResult
-                ),
-            ],
-            Judgements
-        );
-    }
-
-    [Fact]
-    public async Task AcquireForTenantAsync_WhenTheOverageIsZero_RejectsAtTheQuota()
-    {
-        SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsPerDay, 100);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantRequestsOveragePerDay, 0);
-        SetupQuotaCounter(DefaultRequestRateLimiter.DailyRequestsPartition, count: 101);
-
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
-
-        Assert.True(decision.IsRejected);
-    }
-
-    [Fact]
-    public async Task AcquireForTenantAsync_WhenTheTenantLimitRejects_DoesNotSpendTheDailyQuota()
-    {
-        SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, 1);
-        SetupCounters(
-            DefaultRequestRateLimiter.TenantPartition,
-            string.Empty,
-            current: 2,
-            previous: 0
-        );
-
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
-
-        Assert.True(decision.IsRejected);
-        Assert.Equal(
-            [(DefaultRequestRateLimiter.TenantPartition, AuthenticationMetrics.RejectedResult)],
-            Judgements
-        );
-        MockCounterSet.Verify(
-            x =>
-                x.IncrementAsync(
-                    CreateKey(
-                        DefaultRequestRateLimiter.DailyRequestsPartition,
-                        string.Empty,
-                        DayStart
-                    ),
-                    It.IsAny<DateTimeOffset>(),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Never
-        );
-    }
-
-    [Fact]
-    public async Task AcquireForTenantAsync_WhenNoLimitIsSet_AdmitsWithoutCounting()
-    {
-        SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
-
-        Assert.False(decision.IsRejected);
+        var state = RateLimitRequestState.Get(HttpContext);
+        Assert.False(firstDecision.IsRejected);
+        Assert.False(secondDecision.IsRejected);
+        Assert.Equal(["shared"], state.UsageMeters);
         Assert.Empty(Judgements);
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenTheEstimateIsWithinTheLimit_Admits()
+    public async Task AcquireAsync_WhenTheEstimateIsWithinTheLimit_AdmitsInOneBatch()
     {
+        var descriptor = CreateDescriptor("within", usageMeter: "within_meter");
+        SetupStage(descriptor);
         SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, 10);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-        // 4 × 0.75 + 7 = 10, which is the limit.
-        SetupCounters(
-            DefaultRequestRateLimiter.TenantPartition,
-            string.Empty,
-            current: 7,
-            previous: 4
+        SetupLimit(MockTenantSettings, descriptor.LimitKey, 10);
+        SetupIncrements(
+            [CreateSlidingIncrement("within", limit: 10)],
+            new ExpiringCounterCount(7, 4)
         );
 
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
+        var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
 
+        var state = RateLimitRequestState.Get(HttpContext);
         Assert.False(decision.IsRejected);
-        Assert.Equal(
-            [(DefaultRequestRateLimiter.TenantPartition, AuthenticationMetrics.AdmittedResult)],
-            Judgements
-        );
+        Assert.False(state.IsRefused);
+        Assert.Equal(["within_meter"], state.UsageMeters);
+        Assert.Equal([("within", AuthenticationMetrics.AdmittedResult)], Judgements);
+        Assert.Empty(LogEntries);
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenThePreviousWindowPushesTheEstimateOverTheLimit_RejectsUntilTheEstimateAdmitsAnother()
+    public async Task AcquireAsync_WhenThePreviousWindowPushesTheEstimateOverTheLimit_RejectsUntilTheEstimateAdmitsAnother()
     {
+        var descriptor = CreateDescriptor("crowded", usageMeter: "crowded_meter");
+        SetupStage(descriptor);
         SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, 10);
-        // 12 × 0.75 + 3 = 12, over the limit although the current window alone is not. One more request is admitted
-        // once 12 × (1 − e / 60 s) + 4 ≤ 10, half a minute into the window: fifteen seconds from now.
-        SetupCounters(
-            DefaultRequestRateLimiter.TenantPartition,
-            string.Empty,
-            current: 3,
-            previous: 12
+        SetupLimit(MockTenantSettings, descriptor.LimitKey, 10);
+        SetupIncrements(
+            [CreateSlidingIncrement("crowded", limit: 10)],
+            new ExpiringCounterCount(3, 12)
         );
 
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
+        var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
 
+        var state = RateLimitRequestState.Get(HttpContext);
         Assert.True(decision.IsRejected);
         Assert.Equal(TimeSpan.FromSeconds(15), decision.RetryAfter);
-        Assert.Equal(
-            [(DefaultRequestRateLimiter.TenantPartition, AuthenticationMetrics.RejectedResult)],
-            Judgements
-        );
+        Assert.True(state.IsRefused);
+        Assert.Empty(state.UsageMeters);
+        Assert.Equal([("crowded", AuthenticationMetrics.RejectedResult)], Judgements);
+        Assert.Equal([(EventIds.RateLimitExceeded, LogLevel.Information)], LogEntries);
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenTheAddressIsOverItsLimit_RejectsWithoutCountingTheTenant()
+    public async Task AcquireAsync_WhenAnEarlierLimitRejects_StopsTheBatchThere()
     {
+        var first = CreateDescriptor("first", order: 100, usageMeter: "first_meter");
+        var second = CreateDescriptor("second", order: 200, usageMeter: "second_meter");
+        SetupStage(first, second);
         SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, 1);
-        SetupCounters(
-            DefaultRequestRateLimiter.AddressPartition,
-            RemoteAddress,
-            current: 2,
-            previous: 0
+        SetupLimit(MockTenantSettings, first.LimitKey, 10);
+        SetupLimit(MockTenantSettings, second.LimitKey, 20);
+        SetupIncrements(
+            [
+                CreateSlidingIncrement("first", limit: 10),
+                CreateSlidingIncrement("second", limit: 20),
+            ],
+            new ExpiringCounterCount(11, 0)
         );
 
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
+        var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
+
+        var state = RateLimitRequestState.Get(HttpContext);
+        Assert.True(decision.IsRejected);
+        Assert.True(state.IsRefused);
+        Assert.Empty(state.UsageMeters);
+        Assert.Equal([("first", AuthenticationMetrics.RejectedResult)], Judgements);
+    }
+
+    [Fact]
+    public async Task AcquireAsync_WhenTheEndpointIsNotMetered_SkipsAMeteredOnlyDescriptor()
+    {
+        var metered = CreateDescriptor(
+            "metered",
+            order: 100,
+            isMeteredOnly: true,
+            usageMeter: "metered_meter"
+        );
+        var plain = CreateDescriptor("plain", order: 200, usageMeter: "plain_meter");
+        SetupStage(metered, plain);
+        SetupTenant();
+        SetupLimit(MockTenantSettings, plain.LimitKey, 10);
+        SetupIncrements(
+            [CreateSlidingIncrement("plain", limit: 10)],
+            new ExpiringCounterCount(1, 0)
+        );
+        var metadata = new EndpointMetadataCollection(
+            new DefaultOpenIdEndpointMeteredMetadata { IsMetered = false }
+        );
+        HttpContext.SetEndpoint(new Endpoint(null, metadata, "test"));
+
+        var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
+
+        var state = RateLimitRequestState.Get(HttpContext);
+        Assert.False(decision.IsRejected);
+        Assert.Equal(["plain_meter"], state.UsageMeters);
+        Assert.Equal([("plain", AuthenticationMetrics.AdmittedResult)], Judgements);
+    }
+
+    [Fact]
+    public async Task AcquireAsync_WhenTheSelectorReturnsNull_SkipsTheDescriptor()
+    {
+        var skipped = CreateDescriptor(
+            "skipped",
+            order: 100,
+            usageMeter: "skipped_meter",
+            selector: static _ => null
+        );
+        var applied = CreateDescriptor("applied", order: 200, usageMeter: "applied_meter");
+        SetupStage(skipped, applied);
+        SetupTenant();
+        SetupLimit(MockTenantSettings, applied.LimitKey, 10);
+        SetupIncrements(
+            [CreateSlidingIncrement("applied", limit: 10)],
+            new ExpiringCounterCount(1, 0)
+        );
+
+        var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
+
+        var state = RateLimitRequestState.Get(HttpContext);
+        Assert.False(decision.IsRejected);
+        Assert.Equal(["applied_meter"], state.UsageMeters);
+        Assert.Equal([("applied", AuthenticationMetrics.AdmittedResult)], Judgements);
+    }
+
+    [Fact]
+    public async Task AcquireAsync_WhenTheContextNamesAClient_ReadsTheClientSettings()
+    {
+        var descriptor = CreateDescriptor("client_limited", usageMeter: "client_meter");
+        var mockClientSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        SetupLimit(mockClientSettings, descriptor.LimitKey, 5);
+        var mockClient = CreateStrictMock<OpenIdClient>();
+        mockClient.Setup(x => x.Settings).Returns(mockClientSettings.Object).Verifiable();
+        SetupStage(descriptor);
+
+        // The tenant's settings provider has no setup: a context that names a client never reads it.
+        SetupTenant(readsSettings: false);
+        SetupIncrements(
+            [CreateSlidingIncrement("client_limited", limit: 5)],
+            new ExpiringCounterCount(1, 0)
+        );
+
+        var decision = await Limiter.AcquireAsync(
+            Stage,
+            CreateContext(mockClient.Object),
             CancellationToken.None
         );
 
-        Assert.True(decision.IsRejected);
-        Assert.Equal(
-            [(DefaultRequestRateLimiter.AddressPartition, AuthenticationMetrics.RejectedResult)],
-            Judgements
-        );
-        MockCounterSet.Verify(
-            x =>
-                x.IncrementAsync(
-                    CreateKey(DefaultRequestRateLimiter.TenantPartition, string.Empty, WindowStart),
-                    It.IsAny<DateTimeOffset>(),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Never
-        );
+        var state = RateLimitRequestState.Get(HttpContext);
+        Assert.False(decision.IsRejected);
+        Assert.Equal(["client_meter"], state.UsageMeters);
+        Assert.Equal([("client_limited", AuthenticationMetrics.AdmittedResult)], Judgements);
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenTheAddressIsIPv6_CountsItsSlash64()
+    public async Task AcquireAsync_WhenAFixedWindowIsWithinItsLimit_AdmitsAndAddsItsUsageMeter()
     {
+        var descriptor = CreateFixedDescriptor("daily");
+        SetupStage(descriptor);
         SetupTenant();
-        SetupRemoteAddress("2001:db8:1:2:3:4:5:6");
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, 1);
-        SetupCounters(
-            DefaultRequestRateLimiter.AddressPartition,
-            "2001:db8:1:2::/64",
-            current: 2,
-            previous: 0
-        );
+        SetupLimit(MockTenantSettings, descriptor.LimitKey, 5);
+        SetupLimit(MockTenantSettings, GetOverageKey("daily"), null);
+        SetupIncrements([CreateFixedIncrement("daily", limit: 5)], new ExpiringCounterCount(5, 0));
 
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
+        var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
 
-        Assert.True(decision.IsRejected);
+        var state = RateLimitRequestState.Get(HttpContext);
+        Assert.False(decision.IsRejected);
+        Assert.False(state.IsRefused);
+        Assert.Equal(["meter"], state.UsageMeters);
+        Assert.Equal([("daily", AuthenticationMetrics.AdmittedResult)], Judgements);
+        Assert.Empty(LogEntries);
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenTheCounterStoreThrows_AdmitsAndLogsAWarning()
+    public async Task AcquireAsync_WhenAFixedWindowIsPastItsLimitWithinTheOverage_AdmitsAndAddsTheOverageMeter()
     {
+        var descriptor = CreateFixedDescriptor("daily");
+        SetupStage(descriptor);
         SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, 1);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-        SetupTimestamps();
+        SetupLimit(MockTenantSettings, descriptor.LimitKey, 5);
+        SetupLimit(MockTenantSettings, GetOverageKey("daily"), 2);
+        SetupIncrements([CreateFixedIncrement("daily", limit: 7)], new ExpiringCounterCount(6, 0));
+
+        var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
+
+        var state = RateLimitRequestState.Get(HttpContext);
+        Assert.False(decision.IsRejected);
+        Assert.False(state.IsRefused);
+        Assert.Equal(["meter", "meter_overage"], state.UsageMeters);
+        Assert.Equal([("daily", AuthenticationMetrics.OverageResult)], Judgements);
+        Assert.Empty(LogEntries);
+    }
+
+    [Fact]
+    public async Task AcquireAsync_WhenAFixedWindowIsPastItsLimitAndOverage_RejectsUntilTheWindowEnds()
+    {
+        var descriptor = CreateFixedDescriptor("daily");
+        SetupStage(descriptor);
+        SetupTenant();
+        SetupLimit(MockTenantSettings, descriptor.LimitKey, 5);
+        SetupLimit(MockTenantSettings, GetOverageKey("daily"), 2);
+        SetupIncrements([CreateFixedIncrement("daily", limit: 7)], new ExpiringCounterCount(8, 0));
+
+        var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
+
+        var state = RateLimitRequestState.Get(HttpContext);
+        Assert.True(decision.IsRejected);
+        Assert.Equal(new TimeSpan(11, 59, 45), decision.RetryAfter);
+        Assert.True(state.IsRefused);
+        Assert.Empty(state.UsageMeters);
+        Assert.Equal([("daily", AuthenticationMetrics.RejectedResult)], Judgements);
+        Assert.Equal([(EventIds.RateLimitExceeded, LogLevel.Information)], LogEntries);
+    }
+
+    [Fact]
+    public async Task AcquireAsync_WhenTheStoreThrows_AdmitsEveryLimitUncountedAndLogsAWarning()
+    {
+        SetupLimitedStage();
+        SetupTimestamp();
         MockCounterSet
             .Setup(x =>
-                x.IncrementAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<DateTimeOffset>(),
+                x.IncrementUntilExceededAsync(
+                    It.IsAny<IReadOnlyList<ExpiringCounterIncrement>>(),
                     CancellationToken.None
                 )
             )
             .ThrowsAsync(new InvalidOperationException("The store is unavailable."))
             .Verifiable();
 
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
+        var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
 
+        var state = RateLimitRequestState.Get(HttpContext);
         Assert.False(decision.IsRejected);
-        Assert.Equal(
-            [
-                (
-                    DefaultRequestRateLimiter.TenantPartition,
-                    AuthenticationMetrics.StoreUnavailableResult
-                ),
-            ],
-            Judgements
-        );
+        Assert.False(state.IsRefused);
+        Assert.Equal(["limited_meter"], state.UsageMeters);
+        Assert.Equal([("limited", AuthenticationMetrics.StoreUnavailableResult)], Judgements);
         Assert.Equal([(EventIds.RateLimitStoreUnavailable, LogLevel.Warning)], LogEntries);
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_AfterTheCounterStoreThrows_AdmitsWithoutCallingItOrLoggingAgain()
+    public async Task AcquireAsync_WhenTheStoreThrewWithinTheRetryInterval_AdmitsWithoutCallingIt()
     {
-        SetupTenantLimitOnly();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-        SetupTimestamps();
+        SetupLimitedStage();
+        SetupTimestamp();
+        SetupTimestampFrequency();
         MockCounterSet
             .Setup(x =>
-                x.IncrementAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<DateTimeOffset>(),
+                x.IncrementUntilExceededAsync(
+                    It.IsAny<IReadOnlyList<ExpiringCounterIncrement>>(),
                     CancellationToken.None
                 )
             )
             .ThrowsAsync(new InvalidOperationException("The store is unavailable."))
             .Verifiable(Times.Once);
 
-        await Limiter.AcquireForTenantAsync(MockContext.Object, isMetered: true, default);
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
+        await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
+        var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
 
+        var state = RateLimitRequestState.Get(HttpContext);
         Assert.False(decision.IsRejected);
+        Assert.False(state.IsRefused);
+        Assert.Equal(["limited_meter"], state.UsageMeters);
         Assert.Equal(
             [
-                (
-                    DefaultRequestRateLimiter.TenantPartition,
-                    AuthenticationMetrics.StoreUnavailableResult
-                ),
-                (
-                    DefaultRequestRateLimiter.TenantPartition,
-                    AuthenticationMetrics.StoreUnavailableResult
-                ),
+                ("limited", AuthenticationMetrics.StoreUnavailableResult),
+                ("limited", AuthenticationMetrics.StoreUnavailableResult),
             ],
             Judgements
         );
@@ -664,51 +601,50 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenTheRetryIntervalHasPassedAndTheStoreAnswers_EnforcesAndLogsTheRecovery()
+    public async Task AcquireAsync_WhenTheStoreAnswersAfterTheRetryInterval_EnforcesAndLogsTheRecovery()
     {
-        SetupTenantLimitOnly();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-        SetupTimestamps();
+        SetupLimitedStage();
+        SetupTimestamp();
+        SetupTimestampFrequency();
+        IReadOnlyList<ExpiringCounterIncrement> expected =
+        [
+            CreateSlidingIncrement("limited", limit: 1),
+        ];
+        IReadOnlyList<ExpiringCounterCount> answer = [new ExpiringCounterCount(2, 0)];
         MockCounterSet
             .SetupSequence(x =>
-                x.IncrementAsync(
-                    CreateKey(DefaultRequestRateLimiter.TenantPartition, string.Empty, WindowStart),
-                    WindowStart.AddMinutes(2),
-                    CancellationToken.None
-                )
-            )
-            .ThrowsAsync(new InvalidOperationException("The store is unavailable."))
-            .ReturnsAsync(2L);
-        MockCounterSet
-            .Setup(x =>
-                x.GetAsync(
-                    CreateKey(
-                        DefaultRequestRateLimiter.TenantPartition,
-                        string.Empty,
-                        WindowStart.AddMinutes(-1)
+                x.IncrementUntilExceededAsync(
+                    It.Is<IReadOnlyList<ExpiringCounterIncrement>>(actual =>
+                        actual.SequenceEqual(expected)
                     ),
                     CancellationToken.None
                 )
             )
-            .ReturnsAsync(0L)
-            .Verifiable();
+            .ThrowsAsync(new InvalidOperationException("The store is unavailable."))
+            .ReturnsAsync(answer);
 
-        await Limiter.AcquireForTenantAsync(MockContext.Object, isMetered: true, default);
+        await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
         Timestamp += DefaultRequestRateLimiter.StoreRetryInterval.Ticks;
-        var decision = await Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
+        var decision = await Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
 
+        MockCounterSet.Verify(
+            x =>
+                x.IncrementUntilExceededAsync(
+                    It.Is<IReadOnlyList<ExpiringCounterIncrement>>(actual =>
+                        actual.SequenceEqual(expected)
+                    ),
+                    CancellationToken.None
+                ),
+            Times.Exactly(2)
+        );
+        var state = RateLimitRequestState.Get(HttpContext);
         Assert.True(decision.IsRejected);
+        Assert.True(state.IsRefused);
+        Assert.Equal(["limited_meter"], state.UsageMeters);
         Assert.Equal(
             [
-                (
-                    DefaultRequestRateLimiter.TenantPartition,
-                    AuthenticationMetrics.StoreUnavailableResult
-                ),
-                (DefaultRequestRateLimiter.TenantPartition, AuthenticationMetrics.RejectedResult),
+                ("limited", AuthenticationMetrics.StoreUnavailableResult),
+                ("limited", AuthenticationMetrics.RejectedResult),
             ],
             Judgements
         );
@@ -723,82 +659,10 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenACallMadeBeforeTheFailureAnswers_KeepsTheBreakerOpen()
+    public async Task AcquireAsync_WhenTheStoreDoesNotAnswerInTime_Admits()
     {
-        SetupTenantLimitOnly();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-        SetupTimestamps();
-        MockTimeProvider
-            .Setup(x =>
-                x.CreateTimer(
-                    It.IsAny<TimerCallback>(),
-                    It.IsAny<object?>(),
-                    DefaultRequestRateLimiter.StoreTimeout,
-                    It.IsAny<TimeSpan>()
-                )
-            )
-            .Returns(CreateLooseMock<ITimer>().Object)
-            .Verifiable();
-        var slow = new TaskCompletionSource<long>(
-            TaskCreationOptions.RunContinuationsAsynchronously
-        );
-        MockCounterSet
-            .SetupSequence(x =>
-                x.IncrementAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<DateTimeOffset>(),
-                    CancellationToken.None
-                )
-            )
-            .Returns(new ValueTask<long>(slow.Task))
-            .ThrowsAsync(new InvalidOperationException("The store is unavailable."));
-        MockCounterSet
-            .Setup(x => x.GetAsync(It.IsAny<string>(), CancellationToken.None))
-            .ReturnsAsync(0L)
-            .Verifiable();
-
-        var older = Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
-        await Limiter.AcquireForTenantAsync(MockContext.Object, isMetered: true, default);
-        slow.SetResult(1L);
-        await older;
-        await Limiter.AcquireForTenantAsync(MockContext.Object, isMetered: true, default);
-
-        MockCounterSet.Verify(
-            x =>
-                x.IncrementAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<DateTimeOffset>(),
-                    CancellationToken.None
-                ),
-            Times.Exactly(2)
-        );
-        Assert.Equal(
-            [
-                (
-                    DefaultRequestRateLimiter.TenantPartition,
-                    AuthenticationMetrics.StoreUnavailableResult
-                ),
-                (DefaultRequestRateLimiter.TenantPartition, AuthenticationMetrics.AdmittedResult),
-                (
-                    DefaultRequestRateLimiter.TenantPartition,
-                    AuthenticationMetrics.StoreUnavailableResult
-                ),
-            ],
-            Judgements
-        );
-        Assert.Equal([(EventIds.RateLimitStoreUnavailable, LogLevel.Warning)], LogEntries);
-    }
-
-    [Fact]
-    public async Task AcquireForTenantAsync_WhenTheCounterStoreDoesNotAnswerInTime_Admits()
-    {
-        SetupTenantLimitOnly();
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-        SetupTimestamps();
+        SetupLimitedStage();
+        SetupTimestamp();
         TimerCallback? timerCallback = null;
         object? timerState = null;
         MockTimeProvider
@@ -819,25 +683,20 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             )
             .Returns(CreateLooseMock<ITimer>().Object)
             .Verifiable();
-        var unanswered = new TaskCompletionSource<long>(
+        var unanswered = new TaskCompletionSource<IReadOnlyList<ExpiringCounterCount>>(
             TaskCreationOptions.RunContinuationsAsynchronously
         );
         MockCounterSet
             .Setup(x =>
-                x.IncrementAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<DateTimeOffset>(),
+                x.IncrementUntilExceededAsync(
+                    It.IsAny<IReadOnlyList<ExpiringCounterIncrement>>(),
                     CancellationToken.None
                 )
             )
-            .Returns(new ValueTask<long>(unanswered.Task))
+            .Returns(new ValueTask<IReadOnlyList<ExpiringCounterCount>>(unanswered.Task))
             .Verifiable();
 
-        var pending = Limiter.AcquireForTenantAsync(
-            MockContext.Object,
-            isMetered: true,
-            CancellationToken.None
-        );
+        var pending = Limiter.AcquireAsync(Stage, CreateContext(), CancellationToken.None);
         Assert.False(pending.IsCompleted);
         Assert.NotNull(timerCallback);
         timerCallback(timerState);
@@ -846,34 +705,23 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
         // The abandoned call's eventual failure is observed rather than left unobserved.
         unanswered.SetException(new TimeoutException("The store timed out."));
 
+        var state = RateLimitRequestState.Get(HttpContext);
         Assert.False(decision.IsRejected);
-        Assert.Equal(
-            [
-                (
-                    DefaultRequestRateLimiter.TenantPartition,
-                    AuthenticationMetrics.StoreUnavailableResult
-                ),
-            ],
-            Judgements
-        );
+        Assert.Equal(["limited_meter"], state.UsageMeters);
+        Assert.Equal([("limited", AuthenticationMetrics.StoreUnavailableResult)], Judgements);
         Assert.Equal([(EventIds.RateLimitStoreUnavailable, LogLevel.Warning)], LogEntries);
     }
 
     [Fact]
-    public async Task AcquireForTenantAsync_WhenCancelled_Throws()
+    public async Task AcquireAsync_WhenTheStoreCallIsCancelled_Throws()
     {
         using var cancellationSource = new CancellationTokenSource();
         await cancellationSource.CancelAsync();
-        SetupTenant();
-        SetupRemoteAddress();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitAddressPerMinute, null);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.RateLimitTenantPerMinute, 1);
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
+        SetupLimitedStage();
         MockCounterSet
             .Setup(x =>
-                x.IncrementAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<DateTimeOffset>(),
+                x.IncrementUntilExceededAsync(
+                    It.IsAny<IReadOnlyList<ExpiringCounterIncrement>>(),
                     cancellationSource.Token
                 )
             )
@@ -881,200 +729,12 @@ public sealed class DefaultRequestRateLimiterTests : BaseTests
             .Verifiable();
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            await Limiter.AcquireForTenantAsync(
-                MockContext.Object,
-                isMetered: true,
-                cancellationSource.Token
-            )
-        );
-    }
-
-    #endregion
-
-    #region AcquireForClientAsync Tests
-
-    [Fact]
-    public async Task AcquireForClientAsync_WhenNoLimitIsSet_AdmitsWithoutCounting()
-    {
-        var mockClientSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        SetupLimit(mockClientSettings, OpenIdSettingKeys.RateLimitClientPerMinute, null);
-        var mockClient = CreateStrictMock<OpenIdClient>();
-        mockClient.Setup(x => x.Settings).Returns(mockClientSettings.Object).Verifiable();
-
-        var decision = await Limiter.AcquireForClientAsync(
-            MockContext.Object,
-            mockClient.Object,
-            CancellationToken.None
+            await Limiter.AcquireAsync(Stage, CreateContext(), cancellationSource.Token)
         );
 
-        Assert.False(decision.IsRejected);
-    }
-
-    [Fact]
-    public async Task AcquireForClientAsync_WhenTheClientIsOverItsLimit_Rejects()
-    {
-        SetupTenant(readsSettings: false);
-        var mockClientSettings = CreateStrictMock<IReadOnlySettingCollection>();
-        SetupLimit(mockClientSettings, OpenIdSettingKeys.RateLimitClientPerMinute, 5);
-        var mockClient = CreateStrictMock<OpenIdClient>();
-        mockClient.Setup(x => x.Settings).Returns(mockClientSettings.Object).Verifiable();
-        mockClient.Setup(x => x.ClientId).Returns(ClientId).Verifiable();
-        // The current window alone is over the limit, so it becomes the next window's previous: one more request is
-        // admitted once 6 × (1 − e / 60 s) + 1 ≤ 5, twenty seconds into the next window: 65 seconds from now.
-        SetupCounters(DefaultRequestRateLimiter.ClientPartition, ClientId, current: 6, previous: 0);
-
-        var decision = await Limiter.AcquireForClientAsync(
-            MockContext.Object,
-            mockClient.Object,
-            CancellationToken.None
-        );
-
-        Assert.True(decision.IsRejected);
-        Assert.Equal(TimeSpan.FromSeconds(65), decision.RetryAfter);
-    }
-
-    #endregion
-
-    #region AcquireForTokenRequestAsync Tests
-
-    [Fact]
-    public async Task AcquireForTokenRequestAsync_WhenNoQuotaIsSet_AdmitsWithoutCounting()
-    {
-        SetupTenant(readsTenantId: false);
-
-        var decision = await Limiter.AcquireForTokenRequestAsync(
-            MockContext.Object,
-            CancellationToken.None
-        );
-
-        Assert.False(decision.IsRejected);
+        // A cancelled call is not a store failure: it opens no breaker and judges nothing.
         Assert.Empty(Judgements);
-    }
-
-    [Fact]
-    public async Task AcquireForTokenRequestAsync_WhenTheQuotaIsSpent_RejectsUntilMidnightUtc()
-    {
-        SetupTenant();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, 5);
-        SetupQuotaCounter(DefaultRequestRateLimiter.DailyTokenRequestsPartition, count: 6);
-
-        var decision = await Limiter.AcquireForTokenRequestAsync(
-            MockContext.Object,
-            CancellationToken.None
-        );
-
-        Assert.True(decision.IsRejected);
-        Assert.Equal(DayStart.AddDays(1) - Now, decision.RetryAfter);
-        Assert.Equal(
-            [
-                (
-                    DefaultRequestRateLimiter.DailyTokenRequestsPartition,
-                    AuthenticationMetrics.RejectedResult
-                ),
-            ],
-            Judgements
-        );
-    }
-
-    [Fact]
-    public async Task AcquireForTokenRequestAsync_WhenPastTheQuotaWithinTheOverage_AdmitsAsOverage()
-    {
-        SetupTenant();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, 5);
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantTokenRequestsOveragePerDay, 2);
-        SetupQuotaCounter(DefaultRequestRateLimiter.DailyTokenRequestsPartition, count: 7);
-
-        var decision = await Limiter.AcquireForTokenRequestAsync(
-            MockContext.Object,
-            CancellationToken.None
-        );
-
-        Assert.False(decision.IsRejected);
-        Assert.True(decision.IsOverage);
-        Assert.Equal(
-            [
-                (
-                    DefaultRequestRateLimiter.DailyTokenRequestsPartition,
-                    AuthenticationMetrics.OverageResult
-                ),
-            ],
-            Judgements
-        );
-    }
-
-    [Fact]
-    public async Task AcquireForTokenRequestAsync_WhenTheStoreThrows_AdmitsAndCountsTheFailure()
-    {
-        SetupTenant();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, 5);
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-        SetupTimestamps();
-        MockCounterSet
-            .Setup(x =>
-                x.IncrementAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<DateTimeOffset>(),
-                    CancellationToken.None
-                )
-            )
-            .ThrowsAsync(new InvalidOperationException("store unavailable"))
-            .Verifiable();
-
-        var decision = await Limiter.AcquireForTokenRequestAsync(
-            MockContext.Object,
-            CancellationToken.None
-        );
-
-        Assert.False(decision.IsRejected);
-        Assert.Equal(
-            [
-                (
-                    DefaultRequestRateLimiter.DailyTokenRequestsPartition,
-                    AuthenticationMetrics.StoreUnavailableResult
-                ),
-            ],
-            Judgements
-        );
-    }
-
-    [Fact]
-    public async Task AcquireForTokenRequestAsync_AfterTheStoreThrows_AdmitsWithoutCallingIt()
-    {
-        SetupTenant();
-        SetupLimit(MockTenantSettings, OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay, 5);
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-        SetupTimestamps();
-        MockCounterSet
-            .Setup(x =>
-                x.IncrementAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<DateTimeOffset>(),
-                    CancellationToken.None
-                )
-            )
-            .ThrowsAsync(new InvalidOperationException("store unavailable"))
-            .Verifiable(Times.Once);
-
-        await Limiter.AcquireForTokenRequestAsync(MockContext.Object, CancellationToken.None);
-        var decision = await Limiter.AcquireForTokenRequestAsync(
-            MockContext.Object,
-            CancellationToken.None
-        );
-
-        Assert.False(decision.IsRejected);
-        Assert.Equal(
-            [
-                (
-                    DefaultRequestRateLimiter.DailyTokenRequestsPartition,
-                    AuthenticationMetrics.StoreUnavailableResult
-                ),
-                (
-                    DefaultRequestRateLimiter.DailyTokenRequestsPartition,
-                    AuthenticationMetrics.StoreUnavailableResult
-                ),
-            ],
-            Judgements
-        );
+        Assert.Empty(LogEntries);
     }
 
     #endregion

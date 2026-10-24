@@ -1,7 +1,27 @@
 #nullable enable
+NCode.Identity.SharedState.ExpiringCounterCount
+NCode.Identity.SharedState.ExpiringCounterCount.Count.get -> long
+NCode.Identity.SharedState.ExpiringCounterCount.Count.init -> void
+NCode.Identity.SharedState.ExpiringCounterCount.ExpiringCounterCount() -> void
+NCode.Identity.SharedState.ExpiringCounterCount.ExpiringCounterCount(long Count, long ReferenceCount) -> void
+NCode.Identity.SharedState.ExpiringCounterCount.ReferenceCount.get -> long
+NCode.Identity.SharedState.ExpiringCounterCount.ReferenceCount.init -> void
+NCode.Identity.SharedState.ExpiringCounterIncrement
+NCode.Identity.SharedState.ExpiringCounterIncrement.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.SharedState.ExpiringCounterIncrement.ExpiresWhen.init -> void
+NCode.Identity.SharedState.ExpiringCounterIncrement.ExpiringCounterIncrement() -> void
+NCode.Identity.SharedState.ExpiringCounterIncrement.Key.get -> string!
+NCode.Identity.SharedState.ExpiringCounterIncrement.Key.init -> void
+NCode.Identity.SharedState.ExpiringCounterIncrement.Limit.get -> long
+NCode.Identity.SharedState.ExpiringCounterIncrement.Limit.init -> void
+NCode.Identity.SharedState.ExpiringCounterIncrement.ReferenceKey.get -> string?
+NCode.Identity.SharedState.ExpiringCounterIncrement.ReferenceKey.init -> void
+NCode.Identity.SharedState.ExpiringCounterIncrement.ReferenceWeight.get -> double
+NCode.Identity.SharedState.ExpiringCounterIncrement.ReferenceWeight.init -> void
 NCode.Identity.SharedState.IExpiringCounterSet
 NCode.Identity.SharedState.IExpiringCounterSet.GetAsync(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
 NCode.Identity.SharedState.IExpiringCounterSet.IncrementAsync(string! key, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
+NCode.Identity.SharedState.IExpiringCounterSet.IncrementUntilExceededAsync(System.Collections.Generic.IReadOnlyList<NCode.Identity.SharedState.ExpiringCounterIncrement>! increments, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.SharedState.ExpiringCounterCount>!>
 NCode.Identity.SharedState.IExpiringCounterSet.RemoveAsync(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.SharedState.IExpiringKeySet
 NCode.Identity.SharedState.IExpiringKeySet.ContainsAsync(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>

@@ -124,6 +124,23 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
             .ReturnsAsync(RedisResult.Create(count))
             .Verifiable();
 
+    private void SetupIncrementUntilExceeded(
+        RedisKey[] expectedKeys,
+        RedisValue[] expectedValues,
+        RedisResult result
+    ) =>
+        MockDatabase
+            .Setup(x =>
+                x.ScriptEvaluateAsync(
+                    ValkeyExpiringCounterSet.IncrementUntilExceededScript,
+                    It.Is<RedisKey[]>(keys => keys.SequenceEqual(expectedKeys)),
+                    It.Is<RedisValue[]>(values => values.SequenceEqual(expectedValues)),
+                    CommandFlags.None
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
     #region IncrementAsync Tests
 
     [Fact]
@@ -201,6 +218,134 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
         );
         AssertOperationRecorded(
             ValkeySharedStateMetrics.CounterIncrementOperation,
+            typeof(RedisConnectionException).FullName
+        );
+    }
+
+    #endregion
+
+    #region IncrementUntilExceededAsync Tests
+
+    [Fact]
+    public async Task IncrementUntilExceededAsync_RunsOneScriptOverEveryKeyAndReturnsTheCounts()
+    {
+        SetupNow();
+        SetupDatabase();
+        RedisKey[] expectedKeys =
+        [
+            KeyPrefix + "current",
+            KeyPrefix + "previous",
+            KeyPrefix + "next",
+            KeyPrefix + "next",
+        ];
+        RedisValue[] expectedValues = [30_000L, 0.75d, 10L, 60_000L, 0d, 5L];
+        var result = RedisResult.Create(new RedisValue[] { 7, 4, 1, 0 });
+        SetupIncrementUntilExceeded(expectedKeys, expectedValues, result);
+        ExpiringCounterIncrement[] increments =
+        [
+            new()
+            {
+                Key = "current",
+                ExpiresWhen = Now.AddSeconds(30),
+                Limit = 10,
+                ReferenceKey = "previous",
+                ReferenceWeight = 0.75,
+            },
+            new()
+            {
+                Key = "next",
+                ExpiresWhen = Now.AddSeconds(60),
+                Limit = 5,
+            },
+        ];
+        ExpiringCounterCount[] expectedCounts = [new(7, 4), new(1, 0)];
+
+        var counts = await CounterSet.IncrementUntilExceededAsync(
+            increments,
+            CancellationToken.None
+        );
+
+        Assert.Equal(expectedCounts, counts);
+        AssertOperationRecorded(
+            ValkeySharedStateMetrics.CounterIncrementUntilExceededOperation,
+            errorType: null
+        );
+    }
+
+    [Fact]
+    public async Task IncrementUntilExceededAsync_WhenAnExpiryIsNotInTheFuture_PassesAZeroTimeToLive()
+    {
+        SetupNow();
+        SetupDatabase();
+        RedisKey[] expectedKeys = [KeyPrefix + "key", KeyPrefix + "key"];
+        RedisValue[] expectedValues = [0L, 0d, 3L];
+        var result = RedisResult.Create(new RedisValue[] { 0, 0 });
+        SetupIncrementUntilExceeded(expectedKeys, expectedValues, result);
+        ExpiringCounterIncrement[] increments =
+        [
+            new()
+            {
+                Key = "key",
+                ExpiresWhen = Now,
+                Limit = 3,
+            },
+        ];
+        ExpiringCounterCount[] expectedCounts = [new(0, 0)];
+
+        var counts = await CounterSet.IncrementUntilExceededAsync(
+            increments,
+            CancellationToken.None
+        );
+
+        Assert.Equal(expectedCounts, counts);
+    }
+
+    [Fact]
+    public async Task IncrementUntilExceededAsync_WhenEmpty_ReturnsNoCountsWithoutACommand()
+    {
+        var counts = await CounterSet.IncrementUntilExceededAsync([], CancellationToken.None);
+
+        Assert.Empty(counts);
+        Assert.Empty(DurationCollector.GetMeasurementSnapshot());
+    }
+
+    [Fact]
+    public async Task IncrementUntilExceededAsync_WhenServerUnreachable_Throws()
+    {
+        SetupNow();
+        SetupDatabase();
+        MockDatabase
+            .Setup(x =>
+                x.ScriptEvaluateAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<RedisKey[]>(),
+                    It.IsAny<RedisValue[]>(),
+                    It.IsAny<CommandFlags>()
+                )
+            )
+            .ThrowsAsync(
+                new RedisConnectionException(
+                    ConnectionFailureType.UnableToConnect,
+                    CommandFlags.None,
+                    "down"
+                )
+            )
+            .Verifiable();
+        ExpiringCounterIncrement[] increments =
+        [
+            new()
+            {
+                Key = "key",
+                ExpiresWhen = Now.AddSeconds(30),
+                Limit = 3,
+            },
+        ];
+
+        await Assert.ThrowsAsync<RedisConnectionException>(async () =>
+            await CounterSet.IncrementUntilExceededAsync(increments, CancellationToken.None)
+        );
+        AssertOperationRecorded(
+            ValkeySharedStateMetrics.CounterIncrementUntilExceededOperation,
             typeof(RedisConnectionException).FullName
         );
     }

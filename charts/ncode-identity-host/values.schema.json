@@ -206,6 +206,60 @@
             }
           }
         },
+        "azureKeyVault": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "keyId": {
+              "type": "string"
+            },
+            "workloadIdentity": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "tenantId": {
+                  "type": "string"
+                },
+                "clientId": {
+                  "type": "string"
+                },
+                "audience": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tokenExpirationSeconds": {
+                  "type": "integer",
+                  "minimum": 600
+                }
+              }
+            }
+          }
+        },
+        "googleCloudKms": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "keyName": {
+              "type": "string"
+            },
+            "workloadIdentityFederation": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "provider": {
+                  "type": "string"
+                },
+                "serviceAccountEmail": {
+                  "type": "string"
+                },
+                "tokenExpirationSeconds": {
+                  "type": "integer",
+                  "minimum": 600
+                }
+              }
+            }
+          }
+        },
         "recovery": {
           "type": "object",
           "additionalProperties": false,

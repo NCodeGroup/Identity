@@ -495,7 +495,9 @@ per-request use priced below. The root key lives in AWS KMS, in the account that
 state key. A cluster reaches it through web identity federation, which needs the cluster's service-account issuer to be
 publicly discoverable, because AWS IAM fetches the issuer's discovery document and JWKS; a cluster whose issuer is
 private needs IAM Roles Anywhere (backlog `S19`) or the `local` provider. Google Cloud KMS, by contrast, accepts an
-uploaded JWKS, so a private issuer is no obstacle there.
+uploaded JWKS, so a private issuer is no obstacle there. The `azure-key-vault` and `google-cloud-kms` providers
+([ADR-0238](adr/0238-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)) let a deployment keep its root key
+in either service instead.
 
 | Service                    | Key cost                                         | Sign-operation cost                                            | Throughput notes                                                         |
 | -------------------------- | ------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------ |

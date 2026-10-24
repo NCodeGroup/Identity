@@ -270,6 +270,7 @@ standards.
 | [0232](./0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md) | The in-process dispatcher runs jobs concurrently up to a limit | Accepted |
 | [0233](./0233-the-management-api-lists-a-tenants-incoherent-clients.md) | The management API lists a tenant's incoherent clients | Accepted |
 | [0234](./0234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md) | A server settings reconciliation reaches only the tenants its change affects | Accepted |
-| [0235](./0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) | Stored secrets are protected by a key hierarchy under an external root key | Accepted |
+| [0235](./0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) | Stored secrets are protected by a key hierarchy under an external root key | Accepted (extended by [0238](./0238-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)) |
 | [0236](./0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) | A password is judged by one policy wherever it is set | Accepted |
 | [0237](./0237-failed-password-attempts-are-limited-per-account.md) | Failed password attempts are limited per account | Accepted |
+| [0238](./0238-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) | Azure Key Vault and Google Cloud KMS are root key providers | Accepted |

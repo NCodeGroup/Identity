@@ -48,6 +48,18 @@ change to the public API is a **major** version bump.
   the Helm chart, which federates the pod's service-account token with AWS (`secretProtection.awsKms`) only when
   `aws-kms` is selected, and refuses a malformed key ARN.
 
+- **`NCode.Identity.Secrets.Persistence.GoogleCloudKms`** and **`NCode.Identity.Secrets.Persistence.AzureKeyVault`** —
+  a Google Cloud KMS root key provider (`google-cloud-kms`, `AddGoogleCloudKmsRootKeyProvider`, crypto key resource
+  name in `SecretProtection:RootKeyProviders:GoogleCloudKms:KeyName`) that binds each wrap to its owner through the
+  additional authenticated data and checks CRC32C checksums on every request and response, and an Azure Key Vault root
+  key provider (`azure-key-vault`, `AddAzureKeyVaultRootKeyProvider`, key identifier in
+  `SecretProtection:RootKeyProviders:AzureKeyVault:KeyId`) that wraps with `RSA-OAEP-256` and refuses an RSA key under
+  3072 bits. Both take keyless credentials from their SDK's default chain (Application Default Credentials,
+  `DefaultAzureCredential`), never from configuration; wired into the reference host and the Helm chart, whose
+  `secretProtection.googleCloudKms` / `secretProtection.azureKeyVault` values mount workload identity credentials only
+  for the selected provider and refuse a malformed key name, key identifier or workload identity pool provider
+  ([ADR-0238](docs/adr/0238-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md), backlog `S15`).
+
 - **An administrator can block any end user.** `POST api/tenants/{tenantId}/principals/{principalId}/block` blocks a
   principal whatever its connections, `POST api/tenants/{tenantId}/principals/{principalId}/unblock` lifts the block,
   and `GET api/tenants/{tenantId}/principals/{principalId}` reports it. Blocking terminates every session of the

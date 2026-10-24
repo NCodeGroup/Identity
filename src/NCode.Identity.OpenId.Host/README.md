@@ -42,18 +42,23 @@ A **Production** host refuses to start without a real root key, and a root key m
 `SecretProtection` section selects it (environment variables use `__`, for example
 `SecretProtection__RootKeyProvider=local`):
 
-| Setting                                           | Meaning                                                        |
-|---------------------------------------------------|----------------------------------------------------------------|
-| `SecretProtection:RootKeyProvider`                | `ephemeral`, `local`, `aws-kms`, or another registered name    |
-| `SecretProtection:RootKeyProviders:Local:KeyPath` | File with a base64url 32-byte key (the `local` provider)       |
-| `SecretProtection:RootKeyProviders:Local:Key`     | The same key inline: Development and tests only                |
-| `SecretProtection:Recovery:PublicKeyPath`         | Offline recovery RSA public key (PEM) that also wraps the keys |
-| `SecretProtection:Recovery:Disabled`              | `true` only to acknowledge running without a recovery key      |
+| Setting                                           | Meaning                                                                                            |
+|---------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| `SecretProtection:RootKeyProvider`                | `ephemeral`, `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms`, or another registered name |
+| `SecretProtection:RootKeyProviders:Local:KeyPath` | File with a base64url 32-byte key (the `local` provider)                                           |
+| `SecretProtection:RootKeyProviders:Local:Key`     | The same key inline: Development and tests only                                                    |
+| `SecretProtection:Recovery:PublicKeyPath`         | Offline recovery RSA public key (PEM) that also wraps the keys                                     |
+| `SecretProtection:Recovery:Disabled`              | `true` only to acknowledge running without a recovery key                                          |
 
-Further providers ship as packages that register themselves by name, such as `aws-kms`, which takes
-`SecretProtection:RootKeyProviders:AwsKms:KeyArn` and finds its AWS credentials through the AWS SDK's default
-credential chain rather than configuration. The [Helm chart](../../charts/ncode-identity-host/README.md) wires these
-settings for a deployment.
+Further providers ship as packages that register themselves by name. The reference host registers the three below, and
+each stays inert until `SecretProtection:RootKeyProvider` selects it. `aws-kms` takes
+`SecretProtection:RootKeyProviders:AwsKms:KeyArn`, a key or alias ARN, and uses the AWS SDK's default credential chain.
+`azure-key-vault` takes `SecretProtection:RootKeyProviders:AzureKeyVault:KeyId`, the identifier of an RSA key of 3072
+bits or more in Key Vault or Managed HSM, with or without a version. It uses Azure.Identity's `DefaultAzureCredential`.
+`google-cloud-kms` takes `SecretProtection:RootKeyProviders:GoogleCloudKms:KeyName`, the resource name of a symmetric
+crypto key (`projects/<project>/locations/<location>/keyRings/<ring>/cryptoKeys/<key>`). It uses Google Application
+Default Credentials. None of them reads a credential from configuration. The
+[Helm chart](../../charts/ncode-identity-host/README.md) wires these settings for a deployment.
 
 **Local development.** Nothing to do: on first run the AppHost writes one development root key to
 `LocalApplicationData/NCode.Identity/LocalDev/root-key` (owner-only on Unix) and hands it to both OP instances it

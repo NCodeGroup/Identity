@@ -193,7 +193,8 @@ public static class ProductionSafetyRegistration
     {
         const string providerResolution =
             "Set it to a root key provider whose key outlives the process, such as a key management service "
-            + $"('{RootKeyProviderNames.AwsKms}') or '{RootKeyProviderNames.Local}' with a mounted key file.";
+            + $"('{RootKeyProviderNames.AwsKms}', '{RootKeyProviderNames.AzureKeyVault}' or "
+            + $"'{RootKeyProviderNames.GoogleCloudKms}') or '{RootKeyProviderNames.Local}' with a mounted key file.";
 
         var rootKeyProvider = configuration[RootKeyProviderConfigurationKey];
         if (string.IsNullOrWhiteSpace(rootKeyProvider))

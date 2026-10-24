@@ -1,6 +1,7 @@
 # 235. Stored secrets are protected by a key hierarchy under an external root key
 
-- **Status:** Accepted
+- **Status:** Accepted (extended by [ADR-0238](0238-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md):
+  the Azure Key Vault and Google Cloud KMS root key providers)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -89,7 +90,7 @@ service.
 - **Google Cloud KMS as the built-in cloud provider.** Its workload identity federation accepts an uploaded JWKS, so a
   cluster with a private service-account issuer authenticates without a stored credential. AWS KMS was chosen instead
   because the platform's state key, backups, parameters and CI federation already live in one AWS account: the root key
-  adds no vendor and is audited by the same CloudTrail. Google Cloud KMS remains a follow-up provider.
+  adds no vendor and is audited by the same CloudTrail. It is now a provider too (ADR-0238).
 
 ## Consequences
 

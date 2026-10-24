@@ -33,6 +33,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.Stores;
 /// <see cref="OpenIdDbContext"/>, reusing the framework store base for id/concurrency generation and normalization.
 /// Credential handling is owned here: it hashes and verifies passwords through the pluggable <see cref="IPasswordHasher"/>
 /// and keeps the hash a store-internal detail that never leaves on the <see cref="PersistedLocalAccount"/> contract.
+/// A user name that no account has, and an account without a password, are verified against the hasher's dummy hash,
+/// so a wrong password takes as long either way.
 /// </summary>
 internal sealed class LocalAccountStore(
     IStoreProvider storeProvider,
@@ -176,13 +178,12 @@ internal sealed class LocalAccountStore(
         );
         // A disabled account's credential is verified too, so the sign-in can tell the end user why it is refused.
         // See ADR-0229.
-        if (entity is null || string.IsNullOrEmpty(entity.PasswordHash))
-        {
-            return null;
-        }
-
-        var result = PasswordHasher.VerifyHashedPassword(entity.PasswordHash, password.Span);
-        if (result == PasswordVerificationResult.Failed)
+        var passwordHash = entity?.PasswordHash is { Length: > 0 } storedHash ? storedHash : null;
+        // An unknown user name and an account without a password are verified against the dummy hash, so a wrong
+        // password takes as long whether or not an account has the user name. See ADR-0239.
+        var verifiedHash = passwordHash ?? PasswordHasher.DummyPasswordHash;
+        var result = PasswordHasher.VerifyHashedPassword(verifiedHash, password.Span);
+        if (entity is null || passwordHash is null || result == PasswordVerificationResult.Failed)
         {
             return null;
         }

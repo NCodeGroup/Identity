@@ -271,5 +271,7 @@ standards.
 | [0233](./0233-the-management-api-lists-a-tenants-incoherent-clients.md) | The management API lists a tenant's incoherent clients | Accepted |
 | [0234](./0234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md) | A server settings reconciliation reaches only the tenants its change affects | Accepted |
 | [0235](./0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) | Stored secrets are protected by a key hierarchy under an external root key | Accepted |
-| [0236](./0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) | A password is judged by one policy wherever it is set | Accepted |
-| [0237](./0237-failed-password-attempts-are-limited-per-account.md) | Failed password attempts are limited per account | Accepted |
+| [0236](./0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) | A password is judged by one policy wherever it is set | Accepted (amended by [0238](./0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)) |
+| [0237](./0237-failed-password-attempts-are-limited-per-account.md) | Failed password attempts are limited per account | Accepted (amended by [0239](./0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md)) |
+| [0238](./0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md) | A password is judged, hashed and verified in its NFC form | Accepted |
+| [0239](./0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md) | A password is verified in the same time whether or not its account exists | Accepted |

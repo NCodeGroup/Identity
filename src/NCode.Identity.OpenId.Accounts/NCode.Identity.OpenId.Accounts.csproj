@@ -14,5 +14,6 @@
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Options" />
+        <PackageReference Include="NCode.Buffers" />
     </ItemGroup>
 </Project>

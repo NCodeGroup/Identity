@@ -16,10 +16,15 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Text;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Security.Cryptography;
+using System.Text;
+using System.Text.Unicode;
 using Microsoft.Extensions.Options;
+using NCode.Buffers;
 
 namespace NCode.Identity.OpenId.Accounts.Credentials;
 
@@ -27,17 +32,28 @@ namespace NCode.Identity.OpenId.Accounts.Credentials;
 /// Provides the default implementation of <see cref="IPasswordHasher"/> using PBKDF2-HMAC-SHA256 over the modern,
 /// span-based <see cref="Rfc2898DeriveBytes.Pbkdf2(ReadOnlySpan{byte}, ReadOnlySpan{byte}, Span{byte}, int, HashAlgorithmName)"/>
 /// primitive. The produced hash is a self-describing string carrying the scheme, iteration count, salt, and derived key
-/// so that iteration counts can be upgraded over time (rehash-on-verify).
+/// so that iteration counts can be upgraded over time (rehash-on-verify). It hashes and verifies the Unicode
+/// Normalization Form C (NFC) of the password, and verifies a stored hash of the password as submitted as a fallback
+/// that requests a rehash.
 /// </summary>
-internal sealed class DefaultPasswordHasher(IOptions<PasswordHasherOptions> optionsAccessor)
-    : IPasswordHasher
+// See ADR-0238.
+internal sealed class DefaultPasswordHasher : IPasswordHasher
 {
     private const string SchemeId = "ncode-pbkdf2-sha256";
     private const int MaxByteCount = 256;
 
     private static HashAlgorithmName Algorithm => HashAlgorithmName.SHA256;
 
-    private PasswordHasherOptions Options { get; } = Validate(optionsAccessor.Value);
+    public DefaultPasswordHasher(IOptions<PasswordHasherOptions> optionsAccessor)
+    {
+        Options = Validate(optionsAccessor.Value);
+        DummyPasswordHash = CreateDummyPasswordHash(Options);
+    }
+
+    private PasswordHasherOptions Options { get; }
+
+    /// <inheritdoc />
+    public string DummyPasswordHash { get; }
 
     private static PasswordHasherOptions Validate(PasswordHasherOptions options)
     {
@@ -49,8 +65,125 @@ internal sealed class DefaultPasswordHasher(IOptions<PasswordHasherOptions> opti
         return options;
     }
 
+    private static string CreateDummyPasswordHash(PasswordHasherOptions options)
+    {
+        // A random salt and key at the current iterations: verifying against it costs what verifying a stored hash
+        // of the current parameters costs, and no known password matches it. See ADR-0239.
+        Span<byte> salt = stackalloc byte[options.SaltByteCount];
+        Span<byte> key = stackalloc byte[options.HashByteCount];
+        RandomNumberGenerator.Fill(salt);
+        RandomNumberGenerator.Fill(key);
+        return Format(options.Iterations, salt, key);
+    }
+
+    private static string Format(int iterations, ReadOnlySpan<byte> salt, ReadOnlySpan<byte> hash)
+    {
+        var iterationsText = iterations.ToString(CultureInfo.InvariantCulture);
+        var saltText = Base64Url.EncodeToString(salt);
+        var hashText = Base64Url.EncodeToString(hash);
+        return string.Concat("$", SchemeId, "$", iterationsText, "$", saltText, "$", hashText);
+    }
+
     /// <inheritdoc />
     public string HashPassword(ReadOnlySpan<byte> password)
+    {
+        using var lease = RentNormalized(password, out var normalized);
+        ReadOnlySpan<byte> bytes = lease is null ? password : normalized.Span;
+        return HashCore(bytes);
+    }
+
+    /// <inheritdoc />
+    public PasswordVerificationResult VerifyHashedPassword(
+        string hashedPassword,
+        ReadOnlySpan<byte> password
+    )
+    {
+        using var lease = RentNormalized(password, out var normalized);
+        if (lease is null)
+        {
+            return VerifyCore(hashedPassword, password);
+        }
+
+        var result = VerifyCore(hashedPassword, normalized.Span);
+        if (result != PasswordVerificationResult.Failed)
+        {
+            return result;
+        }
+
+        // A stored hash of the password as submitted still verifies and is reported for a rehash, so the store
+        // replaces it with a hash of the NFC form. See ADR-0238.
+        var submittedResult = VerifyCore(hashedPassword, password);
+        return submittedResult == PasswordVerificationResult.Failed
+            ? PasswordVerificationResult.Failed
+            : PasswordVerificationResult.SuccessRehashNeeded;
+    }
+
+    // Returns the lease of a sensitive buffer holding the UTF-8 bytes of the NFC form, or null when the password is
+    // empty, is not valid UTF-8, or is already in NFC, in which case the password is used as it is.
+    private static IMemoryOwner<byte>? RentNormalized(
+        ReadOnlySpan<byte> password,
+        out ReadOnlyMemory<byte> normalized
+    )
+    {
+        normalized = default;
+        if (password.IsEmpty)
+        {
+            return null;
+        }
+
+        using var charsLease = BufferFactory.Rent<char>(
+            password.Length,
+            isSensitive: true,
+            out Span<char> chars
+        );
+
+        var status = Utf8.ToUtf16(
+            password,
+            chars,
+            out _,
+            out var charCount,
+            replaceInvalidSequences: false
+        );
+        if (status != OperationStatus.Done)
+        {
+            return null;
+        }
+
+        ReadOnlySpan<char> submitted = chars[..charCount];
+        if (submitted.IsNormalized(NormalizationForm.FormC))
+        {
+            return null;
+        }
+
+        var capacity = submitted.GetNormalizedLength(NormalizationForm.FormC);
+        while (true)
+        {
+            using var normalizedLease = BufferFactory.Rent<char>(
+                capacity,
+                isSensitive: true,
+                out Span<char> buffer
+            );
+
+            if (!submitted.TryNormalize(buffer, out var written, NormalizationForm.FormC))
+            {
+                capacity *= 2;
+                continue;
+            }
+
+            ReadOnlySpan<char> normalizedChars = buffer[..written];
+            var byteCount = SecureEncoding.UTF8.GetByteCount(normalizedChars);
+            var bytesLease = BufferFactory.Rent(
+                byteCount,
+                isSensitive: true,
+                out Memory<byte> bytes
+            );
+            SecureEncoding.UTF8.GetBytes(normalizedChars, bytes.Span);
+            normalized = bytes;
+            return bytesLease;
+        }
+    }
+
+    private string HashCore(ReadOnlySpan<byte> password)
     {
         var iterations = Options.Iterations;
 
@@ -61,16 +194,7 @@ internal sealed class DefaultPasswordHasher(IOptions<PasswordHasherOptions> opti
             RandomNumberGenerator.Fill(salt);
             Rfc2898DeriveBytes.Pbkdf2(password, salt, hash, iterations, Algorithm);
 
-            return string.Concat(
-                "$",
-                SchemeId,
-                "$",
-                iterations.ToString(CultureInfo.InvariantCulture),
-                "$",
-                Base64Url.EncodeToString(salt),
-                "$",
-                Base64Url.EncodeToString(hash)
-            );
+            return Format(iterations, salt, hash);
         }
         finally
         {
@@ -78,44 +202,16 @@ internal sealed class DefaultPasswordHasher(IOptions<PasswordHasherOptions> opti
         }
     }
 
-    /// <inheritdoc />
-    public PasswordVerificationResult VerifyHashedPassword(
+    private PasswordVerificationResult VerifyCore(
         string hashedPassword,
         ReadOnlySpan<byte> password
     )
     {
-        // $ncode-pbkdf2-sha256$<iterations>$<saltBase64Url>$<hashBase64Url>
-        var segments = hashedPassword.Split('$');
-        if (
-            segments.Length != 5
-            || segments[0].Length != 0
-            || !string.Equals(segments[1], SchemeId, StringComparison.Ordinal)
-            || !int.TryParse(
-                segments[2],
-                NumberStyles.None,
-                CultureInfo.InvariantCulture,
-                out var iterations
-            )
-            || iterations < 1
-        )
+        if (!TryParse(hashedPassword, out var iterations, out var salt, out var expectedHash))
         {
-            return PasswordVerificationResult.Failed;
-        }
-
-        byte[] salt;
-        byte[] expectedHash;
-        try
-        {
-            salt = Base64Url.DecodeFromChars(segments[3]);
-            expectedHash = Base64Url.DecodeFromChars(segments[4]);
-        }
-        catch (FormatException)
-        {
-            return PasswordVerificationResult.Failed;
-        }
-
-        if (expectedHash.Length is < 16 or > MaxByteCount)
-        {
+            // A stored hash this hasher cannot read takes as long to refuse as a wrong password. The dummy hash always
+            // reads, so this recursion is one level deep. See ADR-0239.
+            _ = VerifyCore(DummyPasswordHash, password);
             return PasswordVerificationResult.Failed;
         }
 
@@ -139,5 +235,52 @@ internal sealed class DefaultPasswordHasher(IOptions<PasswordHasherOptions> opti
         return iterations < Options.Iterations
             ? PasswordVerificationResult.SuccessRehashNeeded
             : PasswordVerificationResult.Success;
+    }
+
+    private static bool TryParse(
+        string hashedPassword,
+        out int iterations,
+        [NotNullWhen(true)] out byte[]? salt,
+        [NotNullWhen(true)] out byte[]? expectedHash
+    )
+    {
+        iterations = 0;
+        salt = null;
+        expectedHash = null;
+
+        // $ncode-pbkdf2-sha256$<iterations>$<saltBase64Url>$<hashBase64Url>
+        var segments = hashedPassword.Split('$');
+        if (
+            segments.Length != 5
+            || segments[0].Length != 0
+            || !string.Equals(segments[1], SchemeId, StringComparison.Ordinal)
+            || !int.TryParse(
+                segments[2],
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out iterations
+            )
+            || iterations < 1
+        )
+        {
+            return false;
+        }
+
+        try
+        {
+            salt = Base64Url.DecodeFromChars(segments[3]);
+            expectedHash = Base64Url.DecodeFromChars(segments[4]);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+
+        if (expectedHash.Length is < 16 or > MaxByteCount)
+        {
+            return false;
+        }
+
+        return true;
     }
 }

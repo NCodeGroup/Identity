@@ -16,15 +16,18 @@
 
 #endregion
 
+using System.Buffers;
 using System.Collections.Immutable;
+using System.Text;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Passwords;
 
 /// <summary>
-/// Judges a password by the minimum and maximum length the tenant's settings set, counted in Unicode code points, and
-/// then by every registered <see cref="IPasswordBlocklist"/> in order. It imposes no composition rules and does not
-/// truncate or normalize the password.
+/// Judges the Unicode Normalization Form C (NFC) of a password, the form a store hashes, by the minimum and maximum
+/// length the tenant's settings set, counted in Unicode code points, and then by every registered
+/// <see cref="IPasswordBlocklist"/> in order. It imposes no composition rules and does not truncate the password.
 /// </summary>
 // See ADR-0236.
 internal class DefaultPasswordPolicy(IEnumerable<IPasswordBlocklist> blocklists) : IPasswordPolicy
@@ -41,7 +44,10 @@ internal class DefaultPasswordPolicy(IEnumerable<IPasswordBlocklist> blocklists)
         var minLength = context.Settings.GetValue(OpenIdSettingKeys.PasswordMinLength);
         var maxLength = context.Settings.GetValue(OpenIdSettingKeys.PasswordMaxLength);
 
-        var length = CountCodePoints(password.Span);
+        // The policy judges the NFC form, the form a store hashes. See ADR-0238.
+        using var lease = RentNormalized(password, out var normalized);
+
+        var length = CountCodePoints(normalized.Span);
 
         if (length < minLength)
         {
@@ -61,7 +67,7 @@ internal class DefaultPasswordPolicy(IEnumerable<IPasswordBlocklist> blocklists)
 
         foreach (var blocklist in Blocklists)
         {
-            var listed = await blocklist.ContainsAsync(context, password, cancellationToken);
+            var listed = await blocklist.ContainsAsync(context, normalized, cancellationToken);
             if (listed)
             {
                 return PasswordPolicyResult.Rejected(
@@ -72,6 +78,40 @@ internal class DefaultPasswordPolicy(IEnumerable<IPasswordBlocklist> blocklists)
         }
 
         return PasswordPolicyResult.Accepted;
+    }
+
+    // Returns the lease of a sensitive buffer holding the NFC form, or null when the password is already in NFC, in
+    // which case normalized is the password itself.
+    private static IMemoryOwner<char>? RentNormalized(
+        ReadOnlyMemory<char> password,
+        out ReadOnlyMemory<char> normalized
+    )
+    {
+        normalized = password;
+        var source = password.Span;
+        if (source.IsNormalized(NormalizationForm.FormC))
+        {
+            return null;
+        }
+
+        var capacity = source.GetNormalizedLength(NormalizationForm.FormC);
+        while (true)
+        {
+            var lease = BufferFactory.Rent<char>(
+                capacity,
+                isSensitive: true,
+                out Memory<char> buffer
+            );
+
+            if (source.TryNormalize(buffer.Span, out var written, NormalizationForm.FormC))
+            {
+                normalized = buffer[..written];
+                return lease;
+            }
+
+            lease.Dispose();
+            capacity *= 2;
+        }
     }
 
     // NIST SP 800-63B counts each Unicode code point as one character, so a surrogate pair is a single character.

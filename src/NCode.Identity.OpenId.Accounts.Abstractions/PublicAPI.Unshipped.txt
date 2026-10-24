@@ -9,6 +9,7 @@ const NCode.Identity.OpenId.Accounts.AccountMaxLengths.UserName = 300 -> int
 NCode.Identity.OpenId.Accounts.AccountConstants
 NCode.Identity.OpenId.Accounts.AccountMaxLengths
 NCode.Identity.OpenId.Accounts.Credentials.IPasswordHasher
+NCode.Identity.OpenId.Accounts.Credentials.IPasswordHasher.DummyPasswordHash.get -> string!
 NCode.Identity.OpenId.Accounts.Credentials.IPasswordHasher.HashPassword(System.ReadOnlySpan<byte> password) -> string!
 NCode.Identity.OpenId.Accounts.Credentials.IPasswordHasher.VerifyHashedPassword(string! hashedPassword, System.ReadOnlySpan<byte> password) -> NCode.Identity.OpenId.Accounts.Credentials.PasswordVerificationResult
 NCode.Identity.OpenId.Accounts.Credentials.PasswordVerificationResult

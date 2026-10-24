@@ -3365,3 +3365,32 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   grant and the self-service change; beyond the limit a password is refused unchecked with the wrong-password answer,
   success or an administrator-set password clears the count, and the limiter fails closed (ADR-0237). Verification
   timing is `R107`._
+- **`R105` — Let the ASP.NET Core Identity adapter store a password the password policy accepts.**
+  `AspNetIdentityLocalAccountStore` creates and resets a password through `UserManager`, which runs the host's
+  `IPasswordValidator<TUser>`s; their defaults impose composition rules that NIST SP 800-63B forbids, so a password
+  `IPasswordPolicy` accepts (ADR-0236) can fail there and the management API answers `500` (`ThrowIfFailed`). Store the
+  hash through `IUserPasswordStore<TUser>` with the user manager's hasher and rotate the security stamp, so the policy
+  is the only judge. Touch points: `AspNetIdentityLocalAccountStore.AddAsync`, `SetPasswordAsync`, `ThrowIfFailed`.
+  _Closed: the ASP.NET Core Identity adapter hashes with the user manager's hasher and stores the hash through
+  `IUserPasswordStore<TUser>` (`CreateAsync(user)` to create, `UpdateSecurityStampAsync` to reset), so Identity's own
+  password validators never run and the password policy is the only rule (ADR-0238)._
+- **`R106` — Normalize a password before it is hashed and verified.** NIST SP 800-63B-4 §3.1.1.2 recommends NFC
+  normalization before hashing, so a password typed with another Unicode composition on another device still verifies;
+  the stores hash the UTF-8 bytes as submitted. Normalize in one place both stores use when they set and when they
+  verify, and verify an existing hash against the submitted form until it is rehashed. Touch points:
+  `DefaultPasswordHasher`, `LocalAccountStore`, `AspNetIdentityLocalAccountStore`, ADR-0236.
+  _Closed: a password is judged, hashed and verified in its NFC form (NIST SP 800-63B-4 §3.1.1.2); a hash stored from
+  another form verifies through a fallback that reports a rehash, and the store replaces it with an NFC hash (ADR-0238).
+  A host's own Identity pages are `R108`._
+- **`R107` — Verify a password in the same time whether or not its user name names an account.**
+  `LocalAccountStore.VerifyCredentialAsync` returns at once for a user name that no account has, or an account without a
+  password, and `AspNetIdentityLocalAccountStore.VerifyCredentialAsync` returns at once for an unknown or locked-out
+  user, while a known name costs a password hash, so the response time of a wrong password at the sign-in or the
+  password grant tells whether the account exists; OWASP ASVS 5.0 requires that a valid user cannot be deduced from the
+  response time of a failed authentication. The failed-attempt limit neither adds nor removes the difference (ADR-0237).
+  Verify the submitted password against a fixed dummy hash of the current parameters when there is no stored hash. Touch
+  points: `LocalAccountStore.VerifyCredentialAsync`, `AspNetIdentityLocalAccountStore.VerifyCredentialAsync`,
+  `DefaultPasswordHasher`, ADR-0237.
+  _Closed: a verification without a usable stored hash (an unknown user name, a passwordless, empty or locked-out
+  account, a hash the default hasher cannot read) verifies the password against `IPasswordHasher.DummyPasswordHash` of
+  the same cost and always refuses (ADR-0239). The attempt-limit lookup before the hasher is `R109`._

@@ -170,7 +170,7 @@ internal class DefaultClientKeyImporter(
             return false;
         }
 
-        if (request.Format != SecretKeyImportFormat.Jwk)
+        if (request.Format != SecretKeyImportFormats.Jwk)
             return TryImport(request, descriptor, operationsUse: null, out secret, out error);
 
         if (!TryParseKey(request.KeyMaterial, out var key))
@@ -323,7 +323,7 @@ internal class DefaultClientKeyImporter(
             SecretId = CryptoService.GenerateResourceId(),
             KeyId = key.KeyId,
             SecretType = descriptor.KeyType,
-            Format = SecretKeyImportFormat.Jwk,
+            Format = SecretKeyImportFormats.Jwk,
             KeyMaterial = key.ToJsonString(),
             Use = key.PublicKeyUse,
             Algorithm = key.Algorithm,
@@ -450,7 +450,7 @@ internal class DefaultClientKeyImporter(
     }
 
     /// <summary>
-    /// Imports a client's public key through its descriptor and checks that the algorithm it declares, if any, agrees
+    /// Imports a public key through its descriptor and checks that the algorithm it declares, if any, agrees
     /// with its use and accepts the key's type and size.
     /// </summary>
     private bool TryImport(
@@ -463,10 +463,22 @@ internal class DefaultClientKeyImporter(
     {
         secret = null;
 
-        if (!descriptor.SupportsPublicKeyImport)
+        if (descriptor.PublicKeyImportFormats.Count == 0)
         {
             error =
-                $"A '{descriptor.KeyType}' key is secret key material and cannot be registered as a client's public key.";
+                $"A '{descriptor.KeyType}' key is secret key material and cannot be imported as a public key.";
+            return false;
+        }
+
+        if (!descriptor.PublicKeyImportFormats.Contains(request.Format))
+        {
+            error =
+                $"The import format '{request.Format}' is not supported for a '{descriptor.KeyType}' key; expected "
+                + string.Join(
+                    ", ",
+                    descriptor.PublicKeyImportFormats.Select(format => $"'{format}'")
+                )
+                + ".";
             return false;
         }
 

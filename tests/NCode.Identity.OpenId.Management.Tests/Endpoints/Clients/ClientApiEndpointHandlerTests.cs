@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -38,13 +39,13 @@ using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
@@ -65,13 +66,15 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<IClientKeyImporter> MockClientKeyImporter { get; }
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
+    private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
     private Mock<IClientValidator> MockClientValidator { get; }
     private Mock<ISecretValidator> MockSecretValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
-    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
-    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
+    private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
+    private Mock<IClientCoherenceValidator> MockClientCoherenceValidator { get; }
+    private Mock<IClientCoherenceReporter> MockClientCoherenceReporter { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
@@ -94,17 +97,32 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockClientKeyImporter = MockRepository.Create<IClientKeyImporter>();
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
+        MockSecretProtectorProvider = MockRepository.Create<ISecretProtectorProvider>();
         MockClientValidator = MockRepository.Create<IClientValidator>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
         MockSecretValidator
             .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
             .Returns((ManagementError?)null);
+        // Update metadata is checked by the real validator against the real key-type catalog and algorithms.
+        var secretValidator = new DefaultSecretValidator(
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
+        );
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateUpdate(It.IsAny<PersistedSecret>(), It.IsAny<UpdateSecretRequest>())
+            )
+            .Returns(
+                (PersistedSecret secret, UpdateSecretRequest request) =>
+                    secretValidator.ValidateUpdate(secret, request)
+            );
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockSettingScopeCollectionProvider =
             MockRepository.Create<ISettingScopeCollectionProvider>();
-        MockServerProvider = MockRepository.Create<IOpenIdServerProvider>();
-        MockSecurityProfileCatalog = MockRepository.Create<ISecurityProfileCatalog>();
+        MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
+        MockClientCoherenceValidator = MockRepository.Create<IClientCoherenceValidator>();
+        MockClientCoherenceReporter = MockRepository.Create<IClientCoherenceReporter>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
         MockResourceOwnershipService
@@ -156,14 +174,15 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockSecretGenerator.Object,
             MockClientKeyImporter.Object,
             ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
-            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             MockSecretPublicKeyConverter.Object,
+            MockSecretProtectorProvider.Object,
             TimeProvider.System,
             MockCryptoService.Object,
             MockSettingSerializer.Object,
             MockSettingScopeCollectionProvider.Object,
-            MockServerProvider.Object,
-            MockSecurityProfileCatalog.Object,
+            MockEffectiveSettingsResolver.Object,
+            MockClientCoherenceValidator.Object,
+            MockClientCoherenceReporter.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
             NullLogger<ClientApiEndpointHandler>.Instance
@@ -212,7 +231,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private void SetupResourceId(string id = "generated-id")
     {
         MockCryptoService
-            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
             .Returns(id)
             .Verifiable();
     }
@@ -251,6 +270,34 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockSettingSerializer
             .Setup(x =>
                 x.ValidateSettings(
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.Client,
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
+            .Returns([
+                new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
+            ])
+            .Verifiable();
+
+    private void SetupValidSettingsUpdate() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettingsUpdate(
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.Client,
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
+            .Returns([])
+            .Verifiable();
+
+    private void SetupInvalidSettingsUpdate() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettingsUpdate(
+                    It.IsAny<JsonElement>(),
                     It.IsAny<JsonElement>(),
                     OpenIdSettingScopes.Client,
                     It.IsAny<JsonSerializerOptions>()
@@ -460,6 +507,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupEffectiveSettings();
+
         var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -509,6 +558,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+
+        SetupEffectiveSettings();
 
         var request = new CreateClientRequest
         {
@@ -560,6 +611,45 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         AssertSettingsValidationProblem(result);
+    }
+
+    [Fact]
+    public async Task CreateClientAsync_WhenARegisteredAlgorithmIsNotPermitted_ReturnsValidationProblem()
+    {
+        SetupValidSettings();
+        SetupStore();
+        SetupResourceId("generated-id");
+        MockClientValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedClient>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        SetupEffectiveSettings(
+            new ClientCoherenceViolation(
+                OpenIdSettingNames.IdTokenSignedResponseAlg,
+                "RS256",
+                OpenIdSettingNames.IdTokenSigningAlgValuesSupported
+            )
+        );
+
+        var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no AddAsync / SaveChangesAsync setup, so persisting the client would fail the test.
+        var result = await Handler.CreateClientAsync(
+            httpContext,
+            TenantId,
+            request,
+            CancellationToken.None
+        );
+
+        AssertAlgorithmNotPermitted(result, OpenIdSettingNames.IdTokenSignedResponseAlg, "RS256");
     }
 
     #endregion
@@ -653,6 +743,185 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         // No store scaffold is set up, so a strict-mock failure would mean authorization ran too late.
         Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    #endregion
+
+    #region ListIncoherentClientsAsync Tests
+
+    [Fact]
+    public async Task ListIncoherentClientsAsync_WhenAuthorized_ReturnsTheIncoherentClients()
+    {
+        var violation = new ClientCoherenceViolation(
+            OpenIdSettingNames.RedirectUris,
+            "http://x",
+            OpenIdSettingNames.RedirectUriKindsSupported
+        );
+        SetupAuthorization(AuthorizationResult.Success());
+        var tenantSettings = SetupIncoherentClientsStore(CreateTenantSettings());
+        Assert.NotNull(tenantSettings);
+        MockClientCoherenceReporter
+            .Setup(x =>
+                x.FindIncoherentClientsAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    tenantSettings,
+                    It.Is<PageRequest>(page => page.Cursor == "c1" && page.Limit == 10),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PagedResult<IncoherentClient>
+                {
+                    Items =
+                    [
+                        new IncoherentClient { ClientId = ClientId, Violations = [violation] },
+                    ],
+                    NextCursor = "next",
+                }
+            )
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ListIncoherentClientsAsync(
+            httpContext,
+            TenantId,
+            cursor: "c1",
+            limit: 10,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<IncoherentClientResource>>>(
+            result
+        );
+        var item = Assert.Single(json.Value!.Items);
+        Assert.Equal(TenantId, item.TenantId);
+        Assert.Equal(ClientId, item.ClientId);
+        Assert.Null(item.DocumentError);
+        var violationResource = Assert.Single(item.Violations);
+        Assert.Equal(violation.SettingName, violationResource.SettingName);
+        Assert.Equal(violation.Value, violationResource.Value);
+        Assert.Equal(violation.GoverningSettingName, violationResource.GoverningSettingName);
+        Assert.Equal(violation.Description, violationResource.Description);
+        Assert.Equal("next", json.Value.ContinuationToken);
+    }
+
+    [Fact]
+    public async Task ListIncoherentClientsAsync_WhenTheDocumentCannotBeHonored_ReturnsTheReason()
+    {
+        const string reason = "the document cannot be honored";
+        SetupAuthorization(AuthorizationResult.Success());
+        var tenantSettings = SetupIncoherentClientsStore(CreateTenantSettings());
+        Assert.NotNull(tenantSettings);
+        MockClientCoherenceReporter
+            .Setup(x =>
+                x.FindIncoherentClientsAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    tenantSettings,
+                    It.Is<PageRequest>(page => page.Cursor == null && page.Limit == 50),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PagedResult<IncoherentClient>
+                {
+                    Items =
+                    [
+                        new IncoherentClient
+                        {
+                            ClientId = ClientId,
+                            Violations = [],
+                            DocumentError = reason,
+                        },
+                    ],
+                    NextCursor = null,
+                }
+            )
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ListIncoherentClientsAsync(
+            httpContext,
+            TenantId,
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<IncoherentClientResource>>>(
+            result
+        );
+        var item = Assert.Single(json.Value!.Items);
+        Assert.Equal(reason, item.DocumentError);
+        Assert.Empty(item.Violations);
+        Assert.Null(json.Value.ContinuationToken);
+    }
+
+    [Fact]
+    public async Task ListIncoherentClientsAsync_WhenTheTenantIsMissing_ReturnsAnEmptyPage()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupIncoherentClientsStore(null);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ListIncoherentClientsAsync(
+            httpContext,
+            TenantId,
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<IncoherentClientResource>>>(
+            result
+        );
+        Assert.Empty(json.Value!.Items);
+        Assert.Null(json.Value.ContinuationToken);
+    }
+
+    [Fact]
+    public async Task ListIncoherentClientsAsync_WhenForbidden_ReturnsForbidWithoutQueryingStore()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.ListIncoherentClientsAsync(
+            httpContext,
+            TenantId,
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        // No store scaffold is set up, so a strict-mock failure would mean authorization ran too late.
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    // Returns the tenant's effective settings that the reporter receives, or null when the tenant has no settings.
+    private IReadOnlySettingCollection? SetupIncoherentClientsStore(
+        PersistedTenantSettings? tenantSettings
+    )
+    {
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tenantSettings)
+            .Verifiable();
+
+        return tenantSettings is null ? null : SetupTenantEffectiveSettings();
     }
 
     #endregion
@@ -772,26 +1041,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTenantSettings())
             .Verifiable();
-        MockSecurityProfileCatalog
-            .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.Tenant,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns(Array.Empty<Setting>())
-            .Verifiable();
-        MockSecurityProfileCatalog
-            .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.Client,
-                    It.IsAny<JsonSerializerOptions>()
-                )
-            )
-            .Returns(Array.Empty<Setting>())
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
 
         var descriptor = new SettingDescriptor<bool>
@@ -808,7 +1057,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             descriptor.Create(true),
             tenantOnlyDescriptor.Create(true)
         );
-        SetupServerProvider(effective);
+        SetupEffectiveSettingsResolver(effective);
         SetupSettingScopes(
             OpenIdSettingScopes.Client,
             (descriptor, true),
@@ -853,6 +1102,30 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.IsType<NotFound>(result);
     }
 
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbidWithoutResolvingTheSettings()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetEffectiveSettingsAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        // No tenant store or resolver is set up, so a strict-mock failure would mean the settings were resolved before
+        // authorization.
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
     private static ISettingCollection CreateSettingCollection(params Setting[] settings)
     {
         var list = settings.ToList();
@@ -882,23 +1155,45 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
     }
 
-    private void SetupServerProvider(ISettingCollection effectiveSettings)
+    private void SetupEffectiveSettingsResolver(ISettingCollection effectiveSettings)
     {
-        var mockServerCollection = new Mock<IReadOnlySettingCollection>(MockBehavior.Loose);
-        mockServerCollection
-            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
-            .Returns(effectiveSettings);
+        var tenantSettings = SetupTenantEffectiveSettings();
 
-        var mockProvider = new Mock<IReadOnlySettingCollectionProvider>(MockBehavior.Loose);
-        mockProvider.Setup(x => x.Collection).Returns(mockServerCollection.Object);
-
-        var mockServer = new Mock<OpenIdServer>(MockBehavior.Loose);
-        mockServer.Setup(x => x.SettingsProvider).Returns(mockProvider.Object);
-
-        MockServerProvider
-            .Setup(x => x.GetAsync(It.IsAny<OpenIdEnvironment>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockServer.Object)
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveStored(
+                    tenantSettings,
+                    OpenIdSettingScopes.Client,
+                    ClientId,
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns(effectiveSettings)
             .Verifiable();
+    }
+
+    private IReadOnlySettingCollection SetupTenantEffectiveSettings()
+    {
+        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
+        var tenantSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
+
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serverSettings)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveStored(
+                    serverSettings,
+                    OpenIdSettingScopes.Tenant,
+                    TenantId,
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns(tenantSettings)
+            .Verifiable();
+
+        return tenantSettings;
     }
 
     private static HttpContext CreateHttpContextWithEnvironment(bool authenticated)
@@ -927,7 +1222,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -948,6 +1243,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupEffectiveSettings();
+
         var httpContext = CreateHttpContext(authenticated: true);
 
         var result = await Handler.UpdateSettingsAsync(
@@ -964,7 +1261,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
     {
-        SetupInvalidSettings();
+        SetupInvalidSettingsUpdate();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -984,6 +1281,38 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         AssertSettingsValidationProblem(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenARegisteredAlgorithmIsNotPermitted_ReturnsValidationProblem()
+    {
+        SetupValidSettingsUpdate();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupEffectiveSettings(
+            new ClientCoherenceViolation(
+                OpenIdSettingNames.IdTokenSignedResponseAlg,
+                "RS256",
+                OpenIdSettingNames.IdTokenSigningAlgValuesSupported
+            )
+        );
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ClientId,
+            CreateAddPatch(OpenIdSettingNames.IdTokenSignedResponseAlg, "RS256"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        AssertAlgorithmNotPermitted(result, OpenIdSettingNames.IdTokenSignedResponseAlg, "RS256");
     }
 
     [Fact]
@@ -1011,7 +1340,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenJwksUriIsAddedToAClientWithPublicKeys_ReturnsConflict()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1039,7 +1368,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenJwksUriIsAddedToAClientWithOnlySharedSecrets_ReturnsNoContent()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1060,6 +1389,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupEffectiveSettings();
+
         var httpContext = CreateHttpContext(authenticated: true);
 
         var result = await Handler.UpdateSettingsAsync(
@@ -1071,6 +1402,63 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    #endregion
+
+    #region ValidateEffectiveSettingsAsync Tests
+
+    [Fact]
+    public async Task ValidateEffectiveSettingsAsync_WhenARuleFindsAViolation_KeysTheErrorByTheRegisteredSetting()
+    {
+        const string redirectUri = "myapp://callback";
+        SetupEffectiveSettings(
+            new ClientCoherenceViolation(
+                OpenIdSettingNames.RedirectUris,
+                redirectUri,
+                OpenIdSettingNames.RedirectUriKindsSupported
+            )
+        );
+
+        var errors = await Handler.ValidateEffectiveSettingsAsync(
+            TenantId,
+            EmptyObject(),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        var error = Assert.Single(errors);
+        Assert.Equal(OpenIdSettingNames.RedirectUris, error.SettingName);
+        Assert.Contains(redirectUri, error.Message, StringComparison.Ordinal);
+    }
+
+    private void SetupEffectiveSettings(params ClientCoherenceViolation[] violations)
+    {
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenantSettings())
+            .Verifiable();
+        var tenantSettings = SetupTenantEffectiveSettings();
+        MockClientCoherenceValidator
+            .Setup(x => x.Validate(tenantSettings, It.IsAny<JsonElement>()))
+            .Returns(violations)
+            .Verifiable();
+    }
+
+    private static void AssertAlgorithmNotPermitted(
+        IResult result,
+        string settingName,
+        string registered
+    )
+    {
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal([settingName], problem.ProblemDetails.Errors.Keys);
+        Assert.Contains($"'{registered}'", problem.ProblemDetails.Detail, StringComparison.Ordinal);
     }
 
     #endregion
@@ -1126,6 +1514,22 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     #region CreateSecretAsync Tests
 
+    private ISecretProtector SetupGenerateSecretProtector()
+    {
+        var protector = MockRepository.Create<ISecretProtector>().Object;
+        MockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    It.Is<IReadOnlyCollection<string>>(v => v.Count == 0),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+        return protector;
+    }
+
     [Fact]
     public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
     {
@@ -1137,9 +1541,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
 
+        var protector = SetupGenerateSecretProtector();
         var generated = CreatePersistedSecret();
         MockSecretGenerator
-            .Setup(x => x.GenerateSharedSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x => x.GenerateSharedSecret(protector, It.IsAny<GenerateSecretRequest>()))
             .Returns(
                 new GeneratedSecret { Secret = generated, SecretMaterial = "revealed-material" }
             )
@@ -1180,9 +1585,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
 
+        var protector = SetupGenerateSecretProtector();
         var generated = CreatePersistedSecret();
         MockSecretGenerator
-            .Setup(x => x.GenerateSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x => x.GenerateSecret(protector, It.IsAny<GenerateSecretRequest>()))
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
             .Verifiable();
         MockClientStore
@@ -1299,9 +1705,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
 
+        var protector = SetupGenerateSecretProtector();
         var generated = CreatePersistedSecret();
         MockSecretGenerator
-            .Setup(x => x.GenerateSharedSecret(It.IsAny<GenerateSecretRequest>()))
+            .Setup(x => x.GenerateSharedSecret(protector, It.IsAny<GenerateSecretRequest>()))
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = "material" })
             .Verifiable();
         MockClientStore
@@ -1491,6 +1898,22 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             Pem = "-----BEGIN PUBLIC KEY-----\nMII=\n-----END PUBLIC KEY-----",
         };
 
+    private ISecretProtector SetupSecretProtector()
+    {
+        var protector = MockRepository.Create<ISecretProtector>().Object;
+        MockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+        return protector;
+    }
+
     [Fact]
     public async Task GetPublicKeyAsync_WhenAsymmetricAndAuthorized_ReturnsJson()
     {
@@ -1501,9 +1924,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             )
             .ReturnsAsync(CreateClientSecret())
             .Verifiable();
+        var protector = SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretPublicKeyConverter
-            .Setup(x => x.Convert(It.IsAny<PersistedSecret>()))
+            .Setup(x => x.Convert(protector, It.IsAny<PersistedSecret>()))
             .Returns(CreatePublicKeyResource())
             .Verifiable();
 
@@ -1532,9 +1956,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             )
             .ReturnsAsync(CreateClientSecret())
             .Verifiable();
+        var protector = SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretPublicKeyConverter
-            .Setup(x => x.Convert(It.IsAny<PersistedSecret>()))
+            .Setup(x => x.Convert(protector, It.IsAny<PersistedSecret>()))
             .Returns((PublicKeyResource?)null)
             .Verifiable();
 
@@ -1576,7 +2001,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetPublicKeyAsync_WhenForbidden_ReturnsForbid()
+    public async Task GetPublicKeyAsync_WhenForbidden_ReturnsForbidWithoutProtector()
     {
         SetupStore();
         MockClientStore
@@ -1908,6 +2333,204 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var scoped = Assert.IsType<TenantOwnedResource<PersistedSecret>>(capturedResource);
         Assert.Equal(TenantId, scoped.TenantId);
         Assert.Equal("secret-1", scoped.Value.SecretId);
+    }
+
+    #endregion
+
+    #region RotateSecretAsync Tests
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenAuthorized_ReplacesTheSecretAndRevealsTheReplacement()
+    {
+        SetupStore();
+        var rotated = CreatePersistedSecret("secret-1", "rotated-ct");
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", EmptyObject(), rotated))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId("secret-2");
+
+        var protector = SetupGenerateSecretProtector();
+        var expiresWhen = DateTimeOffset.UnixEpoch.AddYears(3);
+        var replacement = CreatePersistedSecret("secret-2", "replacement-ct");
+        MockSecretGenerator
+            .Setup(x =>
+                x.GenerateSharedSecret(
+                    protector,
+                    It.Is<GenerateSecretRequest>(generate =>
+                        generate.SecretId == "secret-2"
+                        && generate.SecretType == rotated.SecretType
+                        && generate.KeySizeBits == rotated.KeySizeBits
+                        && generate.Use == rotated.Use
+                        && generate.Algorithm == rotated.Algorithm
+                        && generate.ExpiresWhen == expiresWhen
+                    )
+                )
+            )
+            .Returns(
+                new GeneratedSecret { Secret = replacement, SecretMaterial = "revealed-material" }
+            )
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddSecretAsync(ClientId, replacement, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.RemoveSecretAsync(ClientId, "secret-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RotateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = expiresWhen },
+            "rotated-ct",
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<CreatedSecretResource>>(result);
+        Assert.Equal("secret-2", created.Value?.SecretId);
+        Assert.Equal("revealed-material", created.Value?.SecretMaterial);
+        Assert.Equal($"/tenants/{TenantId}/clients/{ClientId}/secrets/secret-2", created.Location);
+        Assert.Equal("replacement-ct", httpContext.Response.Headers.ETag);
+        MockManagementAuditRecorder.Verify(
+            x =>
+                x.RecordClientSecretChangedAsync(
+                    httpContext,
+                    TenantId,
+                    ClientId,
+                    "secret-2",
+                    ResourceChangeTypes.Created,
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+        MockManagementAuditRecorder.Verify(
+            x =>
+                x.RecordClientSecretChangedAsync(
+                    httpContext,
+                    TenantId,
+                    ClientId,
+                    "secret-1",
+                    ResourceChangeTypes.Deleted,
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenSecretNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RotateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(3) },
+            null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenNotAuthorized_ReturnsForbidden()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", EmptyObject(), CreatePersistedSecret()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RotateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(3) },
+            null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenIfMatchDiffers_ReturnsPreconditionFailed()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", EmptyObject(), CreatePersistedSecret()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RotateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(3) },
+            "stale-ct",
+            CancellationToken.None
+        );
+
+        var status = Assert.IsType<StatusCodeHttpResult>(result);
+        Assert.Equal(StatusCodes.Status412PreconditionFailed, status.StatusCode);
+    }
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenSecretIsAKey_ReturnsBadRequest()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateClient("client-ct", EmptyObject(), CreatePublicKeySecret("secret-1", "kid-1"))
+            )
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RotateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(3) },
+            null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
     #endregion

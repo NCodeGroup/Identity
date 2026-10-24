@@ -30,6 +30,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 public sealed class GrantStoreTests : IDisposable
 {
     private const string GrantType = "authorization_code";
+    private const string SessionGrantType = "session";
     private const string HashedKey = "hashed-key-1";
     private const string TenantId = "tenant-1";
 
@@ -97,15 +98,17 @@ public sealed class GrantStoreTests : IDisposable
         string grantId = "grant-1",
         string? subjectId = "subject-1",
         string? sessionId = null,
-        string? refreshTokenLineageId = null
+        string? refreshTokenLineageId = null,
+        string grantType = GrantType,
+        string tenantId = TenantId
     ) =>
         new()
         {
-            GrantType = GrantType,
+            GrantType = grantType,
             HashedKey = hashedKey,
             GrantId = grantId,
             ConcurrencyToken = string.Empty,
-            TenantId = TenantId,
+            TenantId = tenantId,
             ClientId = null,
             SubjectId = subjectId,
             SessionId = sessionId,
@@ -246,6 +249,167 @@ public sealed class GrantStoreTests : IDisposable
 
     #endregion
 
+    #region GetUnrevokedExpiredPageAsync Tests
+
+    [Fact]
+    public async Task GetUnrevokedExpiredPageAsync_ReturnsTheUnrevokedGrantsOfTheTypeThatExpiredOrNeverExpire()
+    {
+        var expiredAt = DateTimeOffset.UnixEpoch.AddDays(10);
+        var expired = CreateGrant(
+            hashedKey: "hk-expired",
+            grantId: "grant-expired",
+            grantType: SessionGrantType
+        );
+        expired.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+        var neverExpires = CreateGrant(
+            hashedKey: "hk-never",
+            grantId: "grant-never",
+            grantType: SessionGrantType
+        );
+        neverExpires.ExpiresWhen = null;
+        var revoked = CreateGrant(
+            hashedKey: "hk-revoked",
+            grantId: "grant-revoked",
+            grantType: SessionGrantType
+        );
+        revoked.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+        revoked.RevokedWhen = DateTimeOffset.UnixEpoch.AddDays(2);
+        var notExpired = CreateGrant(
+            hashedKey: "hk-later",
+            grantId: "grant-later",
+            grantType: SessionGrantType
+        );
+        notExpired.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(20);
+        var otherType = CreateGrant(hashedKey: "hk-other", grantId: "grant-other");
+        otherType.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+
+        await _store.AddAsync(expired, CancellationToken.None);
+        await _store.AddAsync(neverExpires, CancellationToken.None);
+        await _store.AddAsync(revoked, CancellationToken.None);
+        await _store.AddAsync(notExpired, CancellationToken.None);
+        await _store.AddAsync(otherType, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var page = await _store.GetUnrevokedExpiredPageAsync(
+            SessionGrantType,
+            expiredAt,
+            new PageRequest { Limit = 50 },
+            CancellationToken.None
+        );
+
+        Assert.Equal(
+            new[] { "grant-expired", "grant-never" },
+            page.Items.Select(grant => grant.GrantId).ToList()
+        );
+        Assert.Null(page.NextCursor);
+    }
+
+    [Fact]
+    public async Task GetUnrevokedExpiredPageAsync_SkipsTheGrantsOfADisabledTenant()
+    {
+        const string disabledTenantId = "tenant-disabled";
+        await _tenantStore.AddAsync(
+            new PersistedTenant
+            {
+                TenantId = disabledTenantId,
+                ConcurrencyToken = string.Empty,
+                Issuer = null,
+                IsDisabled = true,
+                DisplayName = "Tenant Disabled",
+                Settings = new PersistedTenantSettings
+                {
+                    TenantId = disabledTenantId,
+                    ConcurrencyToken = string.Empty,
+                    Value = EmptyObject(),
+                },
+                Secrets = new PersistedTenantSecrets
+                {
+                    TenantId = disabledTenantId,
+                    ConcurrencyToken = string.Empty,
+                    Value = [],
+                },
+            },
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var enabledGrant = CreateGrant(
+            hashedKey: "hk-enabled",
+            grantId: "grant-enabled",
+            grantType: SessionGrantType
+        );
+        enabledGrant.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+        var disabledGrant = CreateGrant(
+            hashedKey: "hk-disabled",
+            grantId: "grant-disabled",
+            grantType: SessionGrantType,
+            tenantId: disabledTenantId
+        );
+        disabledGrant.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+
+        await _store.AddAsync(enabledGrant, CancellationToken.None);
+        await _store.AddAsync(disabledGrant, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var page = await _store.GetUnrevokedExpiredPageAsync(
+            SessionGrantType,
+            DateTimeOffset.UnixEpoch.AddDays(10),
+            new PageRequest { Limit = 50 },
+            CancellationToken.None
+        );
+
+        Assert.Single(page.Items);
+        Assert.Equal("grant-enabled", page.Items[0].GrantId);
+    }
+
+    [Fact]
+    public async Task GetUnrevokedExpiredPageAsync_KeysetPaginatesInOrder()
+    {
+        for (var index = 0; index < 3; index++)
+        {
+            var expired = CreateGrant(
+                hashedKey: $"hashed-key-{index}",
+                grantId: $"grant-{index}",
+                grantType: SessionGrantType
+            );
+            expired.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+            await _store.AddAsync(expired, CancellationToken.None);
+        }
+
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var expiredAt = DateTimeOffset.UnixEpoch.AddDays(10);
+
+        var firstPage = await _store.GetUnrevokedExpiredPageAsync(
+            SessionGrantType,
+            expiredAt,
+            new PageRequest { Limit = 2 },
+            CancellationToken.None
+        );
+
+        Assert.Equal(2, firstPage.Items.Count);
+        Assert.NotNull(firstPage.NextCursor);
+
+        var secondPage = await _store.GetUnrevokedExpiredPageAsync(
+            SessionGrantType,
+            expiredAt,
+            new PageRequest { Cursor = firstPage.NextCursor, Limit = 2 },
+            CancellationToken.None
+        );
+
+        Assert.Single(secondPage.Items);
+        Assert.Null(secondPage.NextCursor);
+
+        var seen = firstPage.Items.Concat(secondPage.Items).Select(grant => grant.GrantId).ToList();
+        Assert.Equal(new[] { "grant-0", "grant-1", "grant-2" }, seen);
+    }
+
+    #endregion
+
     #region RevokeWhereAsync Tests
 
     [Fact]
@@ -356,6 +520,77 @@ public sealed class GrantStoreTests : IDisposable
         Assert.Null(session2.RevokedWhen);
     }
 
+    [Fact]
+    public async Task RevokeWhereAsync_WithoutSession_RevokesOnlyTheGrantsIssuedUnderNoSession()
+    {
+        await _store.AddAsync(
+            CreateGrant(
+                hashedKey: "hk-s1",
+                grantId: "grant-s1",
+                subjectId: "alice",
+                sessionId: "sid-1"
+            ),
+            CancellationToken.None
+        );
+        await _store.AddAsync(
+            CreateGrant(hashedKey: "hk-n1", grantId: "grant-n1", subjectId: "alice"),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var revokedWhen = DateTimeOffset.UnixEpoch.AddMinutes(10);
+        var count = await _store.RevokeWhereAsync(
+            new GrantFilter { SubjectId = "alice", WithoutSession = true },
+            revokedWhen,
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(1, count);
+
+        var withSession = await _store.GetOrDefaultAsync("grant-s1", CancellationToken.None);
+        var withoutSession = await _store.GetOrDefaultAsync("grant-n1", CancellationToken.None);
+        Assert.NotNull(withSession);
+        Assert.NotNull(withoutSession);
+        Assert.Null(withSession.RevokedWhen);
+        Assert.Equal(revokedWhen, withoutSession.RevokedWhen);
+    }
+
+    [Fact]
+    public async Task RevokeWhereAsync_WhenFilteredByGrantId_RevokesOnlyThatGrant()
+    {
+        await _store.AddAsync(
+            CreateGrant(hashedKey: "hk-g1", grantId: "grant-1", subjectId: "alice"),
+            CancellationToken.None
+        );
+        await _store.AddAsync(
+            CreateGrant(hashedKey: "hk-g2", grantId: "grant-2", subjectId: "alice"),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var revokedWhen = DateTimeOffset.UnixEpoch.AddMinutes(10);
+        var count = await _store.RevokeWhereAsync(
+            new GrantFilter { GrantId = "grant-2" },
+            revokedWhen,
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(1, count);
+
+        var grant1 = await _store.GetOrDefaultAsync("grant-1", CancellationToken.None);
+        var grant2 = await _store.GetOrDefaultAsync("grant-2", CancellationToken.None);
+        Assert.NotNull(grant1);
+        Assert.NotNull(grant2);
+        Assert.Null(grant1.RevokedWhen);
+        Assert.Equal(revokedWhen, grant2.RevokedWhen);
+    }
+
     #endregion
 
     #region RevokeByRefreshTokenLineageAsync Tests
@@ -434,6 +669,252 @@ public sealed class GrantStoreTests : IDisposable
 
     #endregion
 
+    #region GetActiveByRefreshTokenLineageAsync Tests
+
+    [Fact]
+    public async Task GetActiveByRefreshTokenLineageAsync_ReturnsTheUnrevokedGrantsOfTheLineage()
+    {
+        var revoked = CreateGrant(
+            hashedKey: "hk-revoked",
+            grantId: "grant-revoked",
+            refreshTokenLineageId: "lineage-1"
+        );
+        revoked.RevokedWhen = DateTimeOffset.UnixEpoch.AddMinutes(10);
+
+        await _store.AddAsync(
+            CreateGrant(
+                hashedKey: "hk-active",
+                grantId: "grant-active",
+                refreshTokenLineageId: "lineage-1"
+            ),
+            CancellationToken.None
+        );
+        await _store.AddAsync(revoked, CancellationToken.None);
+        await _store.AddAsync(
+            CreateGrant(
+                hashedKey: "hk-other",
+                grantId: "grant-other",
+                refreshTokenLineageId: "lineage-2"
+            ),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var grants = await _store.GetActiveByRefreshTokenLineageAsync(
+            "lineage-1",
+            CancellationToken.None
+        );
+
+        var grant = Assert.Single(grants);
+        Assert.Equal("grant-active", grant.GrantId);
+        Assert.Equal(TenantId, grant.TenantId);
+        Assert.Equal("lineage-1", grant.RefreshTokenLineageId);
+        Assert.Null(grant.RevokedWhen);
+    }
+
+    [Fact]
+    public async Task GetActiveByRefreshTokenLineageAsync_ReturnsGrantsTheUnitOfWorkCanUpdate()
+    {
+        await _store.AddAsync(
+            CreateGrant(hashedKey: "hk-f", grantId: "grant-f", refreshTokenLineageId: "lineage-1"),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var grants = await _store.GetActiveByRefreshTokenLineageAsync(
+            "lineage-1",
+            CancellationToken.None
+        );
+        var grant = Assert.Single(grants);
+        var concurrencyToken = grant.ConcurrencyToken;
+
+        await _store.UpdateAsync(grant, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+
+        var reloaded = await _store.GetOrDefaultAsync("grant-f", CancellationToken.None);
+
+        Assert.NotNull(reloaded);
+        Assert.NotEqual(concurrencyToken, reloaded.ConcurrencyToken);
+    }
+
+    #endregion
+
+    #region RemoveEndedBeforeAsync Tests
+
+    [Fact]
+    public async Task RemoveEndedBeforeAsync_WhenAGrantExpiredBeforeTheCutoff_RemovesIt()
+    {
+        var cutoff = DateTimeOffset.UnixEpoch.AddDays(10);
+        var expired = CreateGrant(hashedKey: "hk-expired", grantId: "grant-expired");
+        expired.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+
+        await _store.AddAsync(expired, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveEndedBeforeAsync(cutoff, [], 10, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(1, removed);
+        Assert.Null(await _store.GetOrDefaultAsync("grant-expired", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RemoveEndedBeforeAsync_WhenAGrantWasRevokedBeforeTheCutoff_RemovesItBeforeItExpires()
+    {
+        var cutoff = DateTimeOffset.UnixEpoch.AddDays(10);
+        var revoked = CreateGrant(hashedKey: "hk-revoked", grantId: "grant-revoked");
+        revoked.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(30);
+        revoked.RevokedWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+
+        await _store.AddAsync(revoked, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveEndedBeforeAsync(cutoff, [], 10, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(1, removed);
+        Assert.Null(await _store.GetOrDefaultAsync("grant-revoked", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RemoveEndedBeforeAsync_WhenAGrantHasNotEnded_KeepsIt()
+    {
+        var cutoff = DateTimeOffset.UnixEpoch.AddDays(10);
+        var expiresLater = CreateGrant(hashedKey: "hk-later", grantId: "grant-later");
+        expiresLater.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(20);
+        var neverEnds = CreateGrant(hashedKey: "hk-never", grantId: "grant-never");
+        neverEnds.ExpiresWhen = null;
+
+        await _store.AddAsync(expiresLater, CancellationToken.None);
+        await _store.AddAsync(neverEnds, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveEndedBeforeAsync(cutoff, [], 10, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(0, removed);
+        Assert.NotNull(await _store.GetOrDefaultAsync("grant-later", CancellationToken.None));
+        Assert.NotNull(await _store.GetOrDefaultAsync("grant-never", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RemoveEndedBeforeAsync_RemovesAtMostTheLimit()
+    {
+        var cutoff = DateTimeOffset.UnixEpoch.AddDays(10);
+        for (var index = 0; index < 3; ++index)
+        {
+            var ended = CreateGrant(hashedKey: $"hk-{index}", grantId: $"grant-{index}");
+            ended.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+            await _store.AddAsync(ended, CancellationToken.None);
+        }
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveEndedBeforeAsync(cutoff, [], 2, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(2, removed);
+        Assert.Equal(1, await _dbContext.Grants.CountAsync());
+    }
+
+    [Fact]
+    public async Task RemoveEndedBeforeAsync_WhenTheLimitIsLessThanOne_Throws()
+    {
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+            await _store.RemoveEndedBeforeAsync(
+                DateTimeOffset.UnixEpoch.AddDays(10),
+                [],
+                0,
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task RemoveEndedBeforeAsync_WhenAGrantOfATypeEndedByRevocationExpiredUnrevoked_KeepsIt()
+    {
+        var cutoff = DateTimeOffset.UnixEpoch.AddDays(10);
+        var expired = CreateGrant(hashedKey: "hk-expired", grantId: "grant-expired");
+        expired.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+
+        await _store.AddAsync(expired, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveEndedBeforeAsync(
+            cutoff,
+            [GrantType],
+            10,
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(0, removed);
+        Assert.NotNull(await _store.GetOrDefaultAsync("grant-expired", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RemoveEndedBeforeAsync_WhenAGrantOfATypeEndedByRevocationWasRevokedBeforeTheCutoff_RemovesIt()
+    {
+        var cutoff = DateTimeOffset.UnixEpoch.AddDays(10);
+        var revoked = CreateGrant(hashedKey: "hk-revoked", grantId: "grant-revoked");
+        revoked.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+        revoked.RevokedWhen = DateTimeOffset.UnixEpoch.AddDays(2);
+
+        await _store.AddAsync(revoked, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveEndedBeforeAsync(
+            cutoff,
+            [GrantType],
+            10,
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(1, removed);
+        Assert.Null(await _store.GetOrDefaultAsync("grant-revoked", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RemoveEndedBeforeAsync_WhenAGrantOfATypeEndedByRevocationWasRevokedAfterTheCutoff_KeepsIt()
+    {
+        var cutoff = DateTimeOffset.UnixEpoch.AddDays(10);
+        var revoked = CreateGrant(hashedKey: "hk-revoked", grantId: "grant-revoked");
+        revoked.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+        revoked.RevokedWhen = DateTimeOffset.UnixEpoch.AddDays(20);
+
+        await _store.AddAsync(revoked, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveEndedBeforeAsync(
+            cutoff,
+            [GrantType],
+            10,
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(0, removed);
+        Assert.NotNull(await _store.GetOrDefaultAsync("grant-revoked", CancellationToken.None));
+    }
+
+    #endregion
+
     #region UpdateAsync Tests
 
     [Fact]
@@ -468,7 +949,7 @@ public sealed class GrantStoreTests : IDisposable
         stale.ConcurrencyToken = "stale-token";
         stale.ConsumedWhen = DateTimeOffset.UnixEpoch.AddMinutes(5);
 
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(async () =>
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
             await _store.UpdateAsync(stale, CancellationToken.None)
         );
     }

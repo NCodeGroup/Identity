@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
@@ -50,8 +51,8 @@ internal class DefaultSessionStateService(ICryptoService cryptoService) : ISessi
 
         var digest = CryptoService.HashValue(
             $"{clientId} {origin} {browserState} {salt}",
-            HashAlgorithmType.Sha256,
-            BinaryEncodingType.Base64Url
+            HashAlgorithmName.SHA256,
+            BinaryEncodings.Base64Url
         );
 
         return $"{digest}.{salt}";

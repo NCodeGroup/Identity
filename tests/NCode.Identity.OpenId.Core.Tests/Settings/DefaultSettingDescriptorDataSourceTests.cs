@@ -51,7 +51,13 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
         return new DefaultSettingDescriptorDataSource(
             CreateStrictMock<INullChangeToken>().Object,
             AlgorithmCollectionProvider,
-            profiles
+            profiles,
+            [
+                new HttpsRedirectUriKind(),
+                new LoopbackRedirectUriKind(),
+                new HttpRedirectUriKind(),
+                new PrivateUseRedirectUriKind(),
+            ]
         );
     }
 
@@ -123,6 +129,171 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
         var merged = descriptor.Merge(parentSetting, childSetting);
 
         Assert.Equal(expected, merged.Value);
+    }
+
+    [Theory]
+    [InlineData(new string[0], true)]
+    [InlineData(new[] { "https" }, true)]
+    [InlineData(new[] { "https", "loopback", "private_use" }, true)]
+    [InlineData(new[] { "HTTPS" }, false)]
+    [InlineData(new[] { "claimed_https" }, false)]
+    [InlineData(new[] { "" }, false)]
+    public void Collection_RedirectUriKindsSupported_AcceptsOnlyRegisteredKinds(
+        string[] value,
+        bool expected
+    )
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = GetDescriptor(dataSource, OpenIdSettingNames.RedirectUriKindsSupported);
+
+        var valid = descriptor.TryValidate((IReadOnlyCollection<string>)value, out _);
+
+        Assert.Equal(expected, valid);
+    }
+
+    [Fact]
+    public void Collection_RedirectUriKindsSupported_IntersectsDownTheCascade()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<IReadOnlyCollection<string>>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.RedirectUriKindsSupported)
+        );
+        var parentSetting = descriptor.Create(["https", "loopback"]);
+        var childSetting = descriptor.Create(["loopback", "private_use"]);
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.Equal(new[] { "loopback" }, merged.Value);
+    }
+
+    [Fact]
+    public void Collection_TlsClientCertificateBoundAccessTokens_IsTenantSupportAChildReplaces()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<bool>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.TlsClientCertificateBoundAccessTokens)
+        );
+        var parentSetting = descriptor.Create(true);
+        var childSetting = descriptor.Create(false);
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.Equal([OpenIdSettingScopes.Tenant], descriptor.AppliesTo.AsEnumerable());
+        Assert.True(descriptor.IsDiscoverable);
+        Assert.False(merged.Value);
+    }
+
+    [Fact]
+    public void Collection_MtlsEndpointAliasAuthority_IsRetiredAtTenants()
+    {
+        var dataSource = CreateDataSource();
+
+        var descriptor = GetDescriptor(dataSource, "mtls_endpoint_alias_authority");
+
+        Assert.True(descriptor.IsRetired);
+        Assert.Equal([OpenIdSettingScopes.Tenant], descriptor.AppliesTo.AsEnumerable());
+        Assert.False(descriptor.HasDefault);
+        Assert.False(descriptor.IsDiscoverable);
+    }
+
+    [Fact]
+    public void Collection_RequireTlsClientCertificateBoundAccessTokens_IsAClientRequirementAParentFloors()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<bool>>(
+            GetDescriptor(
+                dataSource,
+                OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens
+            )
+        );
+        var parentSetting = descriptor.Create(true);
+        var childSetting = descriptor.Create(false);
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.Equal([OpenIdSettingScopes.Client], descriptor.AppliesTo.AsEnumerable());
+        Assert.False(descriptor.IsDiscoverable);
+        Assert.True(merged.Value);
+    }
+
+    [Fact]
+    public void Collection_RefreshTokenRotationPolicy_DefaultsToUnboundAndAChildReplaces()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<string>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.RefreshTokenRotationPolicy)
+        );
+        var parentSetting = descriptor.Create("always");
+        var childSetting = descriptor.Create("unbound");
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.Equal("unbound", descriptor.Default);
+        Assert.Equal([OpenIdSettingScopes.Client], descriptor.AppliesTo.AsEnumerable());
+        Assert.False(descriptor.IsDiscoverable);
+        Assert.Equal("unbound", merged.Value);
+    }
+
+    [Fact]
+    public void Collection_RefreshTokenReuseInterval_IsOffByDefaultAndAChildReplaces()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<TimeSpan>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.RefreshTokenReuseInterval)
+        );
+        var parentSetting = descriptor.Create(TimeSpan.FromSeconds(10));
+        var childSetting = descriptor.Create(TimeSpan.FromSeconds(30));
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.Equal(TimeSpan.Zero, descriptor.Default);
+        Assert.Equal([OpenIdSettingScopes.Client], descriptor.AppliesTo.AsEnumerable());
+        Assert.False(descriptor.IsDiscoverable);
+        Assert.Equal(TimeSpan.FromSeconds(30), merged.Value);
+    }
+
+    [Fact]
+    public void Collection_RefreshTokenRotationRetryRequired_IsAClientRequirementAParentFloors()
+    {
+        var dataSource = CreateDataSource();
+        var descriptor = Assert.IsType<SettingDescriptor<bool>>(
+            GetDescriptor(dataSource, OpenIdSettingNames.RefreshTokenRotationRetryRequired)
+        );
+        var parentSetting = descriptor.Create(true);
+        var childSetting = descriptor.Create(false);
+
+        var merged = descriptor.Merge(parentSetting, childSetting);
+
+        Assert.False(descriptor.Default);
+        Assert.Equal([OpenIdSettingScopes.Client], descriptor.AppliesTo.AsEnumerable());
+        Assert.False(descriptor.IsDiscoverable);
+        Assert.True(merged.Value);
+    }
+
+    [Fact]
+    public void Collection_SessionAbsoluteLifetime_DefaultsTo30DaysAndAcceptsAtMostAYear()
+    {
+        var descriptor = Assert.IsType<SettingDescriptor<TimeSpan>>(
+            GetDescriptor(CreateDataSource(), OpenIdSettingNames.SessionAbsoluteLifetime)
+        );
+
+        Assert.Equal(TimeSpan.FromDays(30), descriptor.Default);
+        Assert.False(descriptor.TryValidate(TimeSpan.Zero, out _));
+        Assert.True(descriptor.TryValidate(TimeSpan.FromDays(365), out _));
+        Assert.False(descriptor.TryValidate(TimeSpan.FromDays(366), out _));
+    }
+
+    [Fact]
+    public void Collection_SessionIdleTimeout_DefaultsTo3DaysAndAcceptsAtMost100Days()
+    {
+        var descriptor = Assert.IsType<SettingDescriptor<TimeSpan>>(
+            GetDescriptor(CreateDataSource(), OpenIdSettingNames.SessionIdleTimeout)
+        );
+
+        Assert.Equal(TimeSpan.FromDays(3), descriptor.Default);
+        Assert.False(descriptor.TryValidate(TimeSpan.Zero, out _));
+        Assert.True(descriptor.TryValidate(TimeSpan.FromDays(100), out _));
+        Assert.False(descriptor.TryValidate(TimeSpan.FromDays(101), out _));
     }
 
     [Fact]
@@ -233,6 +404,28 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
         Assert.False(descriptor.HasDefault);
     }
 
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(300, true)]
+    [InlineData(600, true)]
+    [InlineData(601, false)]
+    public void Collection_AuthorizationResponseLifetime_AcceptsOneSecondToTenMinutes(
+        int seconds,
+        bool expected
+    )
+    {
+        // JARM §2.1 recommends a short lifetime, so the setting is capped at 10 minutes.
+        var descriptor = GetDescriptor(
+            CreateDataSource(),
+            OpenIdSettingNames.AuthorizationResponseLifetime
+        );
+
+        var valid = descriptor.TryValidate(TimeSpan.FromSeconds(seconds), out _);
+
+        Assert.Equal(expected, valid);
+    }
+
     [Fact]
     public void Collection_DoesNotDescribeTheClientAuthenticationMethod()
     {
@@ -255,6 +448,8 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
         public IReadOnlyCollection<ISecurityProfileRequirement> Requirements => [];
 
         public void ApplyCeilingSettings(ISecurityProfileCeilingBuilder ceiling) { }
+
+        public void ApplyDefaultSettings(ISecurityProfileDefaultsBuilder defaults) { }
     }
 
     #endregion

@@ -100,12 +100,80 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.ClientAuthenticationCredentialDeserializationFailed,
         Level = LogLevel.Warning,
-        Message = "Client authentication failed: a stored credential for client '{ClientId}' could not be deserialized (for example, a secret protected by an unavailable data-protection key)."
+        Message = "Client authentication failed: a stored credential for client '{ClientId}' could not be deserialized (for example, a secret protected by an unavailable master key or root key)."
     )]
     internal static partial void ClientAuthenticationCredentialDeserializationFailed(
         this ILogger logger,
         string clientId,
         Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientCertificateTrustAnchorsMissing,
+        Level = LogLevel.Warning,
+        Message = "Client authentication failed: client '{ClientId}' uses tls_client_auth but no trust anchors are configured, so no certificate it presents can be trusted."
+    )]
+    internal static partial void ClientCertificateTrustAnchorsMissing(
+        this ILogger logger,
+        string clientId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientCertificateUntrusted,
+        Level = LogLevel.Information,
+        Message = "Client authentication failed: the certificate presented by client '{ClientId}' does not chain to a configured trust anchor for client authentication ({ChainStatus})."
+    )]
+    internal static partial void ClientCertificateUntrusted(
+        this ILogger logger,
+        string clientId,
+        string chainStatus
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientCertificateRevocationFailed,
+        Level = LogLevel.Information,
+        Message = "Client authentication failed: the revocation status of certificate '{Subject}' in the chain presented by client '{ClientId}' is '{Status}'."
+    )]
+    internal static partial void ClientCertificateRevocationFailed(
+        this ILogger logger,
+        string clientId,
+        string subject,
+        string status
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientCertificateRevocationUnknownAccepted,
+        Level = LogLevel.Warning,
+        Message = "The revocation status of certificate '{Subject}' in the chain presented by client '{ClientId}' could not be determined, and the client's online_soft_fail revocation mode accepts it."
+    )]
+    internal static partial void ClientCertificateRevocationUnknownAccepted(
+        this ILogger logger,
+        string clientId,
+        string subject
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.RevocationInformationUnavailable,
+        Level = LogLevel.Warning,
+        Message = "The revocation information at '{Location}' could not be used to check certificate '{Subject}': {Reason}"
+    )]
+    internal static partial void RevocationInformationUnavailable(
+        this ILogger logger,
+        string location,
+        string subject,
+        string reason
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.RevocationRetrievalSuppressed,
+        Level = LogLevel.Debug,
+        Message = "The revocation information at '{Location}' is not retrieved to check certificate '{Subject}', because a retrieval that failed less than {FailureCacheDuration} ago is remembered."
+    )]
+    internal static partial void RevocationRetrievalSuppressed(
+        this ILogger logger,
+        string location,
+        string subject,
+        TimeSpan failureCacheDuration
     );
 
     [LoggerMessage(
@@ -266,6 +334,17 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.EndSessionPostLogoutRedirectUriKindRejected,
+        Level = LogLevel.Warning,
+        Message = "RP-initiated logout: post_logout_redirect_uri '{PostLogoutRedirectUri}' is registered for client '{ClientId}', but its kind is not permitted by redirect_uri_kinds_supported; not redirecting."
+    )]
+    internal static partial void EndSessionPostLogoutRedirectUriKindRejected(
+        this ILogger logger,
+        string postLogoutRedirectUri,
+        string clientId
+    );
+
+    [LoggerMessage(
         EventId = EventIds.EndSessionCompleted,
         Level = LogLevel.Information,
         Message = "RP-initiated logout completed; notified {ClientCount} participating client(s) via back-channel logout."
@@ -289,6 +368,13 @@ internal static partial class Log
         Message = "End-user session '{SessionId}' expired after exceeding its idle timeout."
     )]
     internal static partial void SessionIdleExpired(this ILogger logger, string sessionId);
+
+    [LoggerMessage(
+        EventId = EventIds.SessionAbsoluteExpired,
+        Level = LogLevel.Information,
+        Message = "End-user session '{SessionId}' expired at the end of its absolute lifetime."
+    )]
+    internal static partial void SessionAbsoluteExpired(this ILogger logger, string sessionId);
 
     [LoggerMessage(
         EventId = EventIds.SessionEvicted,
@@ -337,5 +423,154 @@ internal static partial class Log
         this ILogger logger,
         string clientId,
         Exception? exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ForwardedClientCertificateMalformed,
+        Level = LogLevel.Warning,
+        Message = "The client certificate forwarded in the '{HeaderName}' header could not be decoded as the configured '{Format}' format; the request is refused. Check that OpenId:MutualTls:Format matches how the proxy encodes the certificate."
+    )]
+    internal static partial void ForwardedClientCertificateMalformed(
+        this ILogger logger,
+        string headerName,
+        string format
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.RateLimitExceeded,
+        Level = LogLevel.Information,
+        Message = "A request to tenant '{TenantId}' exceeded its '{Partition}' limit of {Limit} requests per {Window} and was refused."
+    )]
+    internal static partial void RateLimitExceeded(
+        this ILogger logger,
+        string tenantId,
+        string partition,
+        int limit,
+        TimeSpan window
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.RateLimitStoreUnavailable,
+        Level = LogLevel.Warning,
+        Message = "The rate-limit counter store did not answer while judging the '{Stage}' limits of tenant '{TenantId}'; rate limits and quotas are not enforced, and every request is admitted, until it answers again. It is tried again every {RetryInterval}."
+    )]
+    internal static partial void RateLimitStoreUnavailable(
+        this ILogger logger,
+        string tenantId,
+        string stage,
+        TimeSpan retryInterval,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.RateLimitStoreRecovered,
+        Level = LogLevel.Information,
+        Message = "The rate-limit counter store answers again; rate limits and quotas are enforced."
+    )]
+    internal static partial void RateLimitStoreRecovered(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = EventIds.TenantUsageFlushFailed,
+        Level = LogLevel.Warning,
+        Message = "The usage of {EntryCount} tenant-day meters could not be added to the usage ledger; it is kept in memory and added by the next flush."
+    )]
+    internal static partial void TenantUsageFlushFailed(
+        this ILogger logger,
+        int entryCount,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantUsagePruneFailed,
+        Level = LogLevel.Warning,
+        Message = "The usage ledger's expired days could not be removed; the removal is retried at the next flush."
+    )]
+    internal static partial void TenantUsagePruneFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.TenantUsageDiscardedOnStop,
+        Level = LogLevel.Warning,
+        Message = "The usage of {EntryCount} tenant-day meters could not be added to the usage ledger before the replica stopped and is lost."
+    )]
+    internal static partial void TenantUsageDiscardedOnStop(this ILogger logger, int entryCount);
+
+    [LoggerMessage(
+        EventId = EventIds.GrantPruneFailed,
+        Level = LogLevel.Warning,
+        Message = "The grants that ended before their retention could not be removed; the removal is retried at the next prune."
+    )]
+    internal static partial void GrantPruneFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.EndedSessionTerminationFailed,
+        Level = LogLevel.Warning,
+        Message = "The sessions that ended while unused could not be terminated; the termination is retried at the next pass."
+    )]
+    internal static partial void EndedSessionTerminationFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.EndedSessionTerminationFailedForTenant,
+        Level = LogLevel.Warning,
+        Message = "The sessions of tenant {TenantId} that ended while unused could not all be terminated; a session whose grants were not revoked is terminated at the next pass."
+    )]
+    internal static partial void EndedSessionTerminationFailedForTenant(
+        this ILogger logger,
+        string tenantId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.EndedSessionsTerminated,
+        Level = LogLevel.Information,
+        Message = "{Count} sessions that ended while unused were terminated."
+    )]
+    internal static partial void EndedSessionsTerminated(this ILogger logger, int count);
+
+    [LoggerMessage(
+        EventId = EventIds.IncoherentClientReported,
+        Level = LogLevel.Warning,
+        Message = "The client '{ClientId}' of the tenant '{TenantId}' is incoherent with the server's settings and fails at its next request: {Violations}"
+    )]
+    internal static partial void IncoherentClientReported(
+        this ILogger logger,
+        string tenantId,
+        string clientId,
+        string violations
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientCoherenceCheckFailed,
+        Level = LogLevel.Warning,
+        Message = "The clients of the tenant '{TenantId}' could not be checked against the server's settings"
+    )]
+    internal static partial void ClientCoherenceCheckFailed(
+        this ILogger logger,
+        string tenantId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ClientCoherenceChecked,
+        Level = LogLevel.Information,
+        Message = "Checked the stored clients of the tenants that a change to the settings of the server '{ServerId}' affects: {IncoherentClientCount} incoherent"
+    )]
+    internal static partial void ClientCoherenceChecked(
+        this ILogger logger,
+        string serverId,
+        int incoherentClientCount
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.PasswordAttemptLimitReached,
+        Level = LogLevel.Information,
+        Message = "A password for an account of tenant '{TenantId}' was refused: the account reached its limit of {Limit} failed attempts."
+    )]
+    internal static partial void PasswordAttemptLimitReached(
+        this ILogger logger,
+        string tenantId,
+        int limit
     );
 }

@@ -41,6 +41,14 @@ public sealed class UpdateTenantRequest
     public string? Issuer { get; set; }
 
     /// <summary>
+    /// Gets or sets the mutual-TLS endpoint-alias authority for the tenant (RFC 8705 §5) — an <c>https</c> origin such as
+    /// <c>https://acme.mtls.example</c> that the discovery document mirrors the tenant's endpoints under, and that the
+    /// host-based tenant strategy routes to the tenant. <c>null</c> publishes no aliases.
+    /// </summary>
+    [JsonPropertyName("mtlsEndpointAliasAuthority")]
+    public string? MtlsEndpointAliasAuthority { get; set; }
+
+    /// <summary>
     /// Gets or sets the display name for the tenant.
     /// </summary>
     [JsonPropertyName("displayName")]

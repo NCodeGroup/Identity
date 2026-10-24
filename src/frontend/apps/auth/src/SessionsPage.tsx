@@ -10,12 +10,13 @@ import Typography from '@mui/material/Typography';
 import {
   ACCOUNT_PATH,
   ANTIFORGERY_FIELD,
-  LOGIN_ACTION,
   SESSIONS_LIST_ENDPOINT,
   SESSIONS_PATH,
   SESSIONS_REVOKE_ACTION,
   SESSIONS_REVOKE_ALL_ACTION,
+  resolveSurfacePath,
 } from './params.js';
+import { fetchSurfaceJson } from './surfaceFetch.js';
 
 /** One active session of the end-user (mirrors the OP's `/account/sessions/list` payload). */
 export type ActiveSession = {
@@ -40,24 +41,15 @@ export type SessionsPageProps = {
 };
 
 /**
- * Default loader: fetches the OP's active-sessions endpoint. A `401` means the cookie session is gone, so it redirects
- * to the login page (with the sessions page as the return URL); any other non-OK response yields no sessions. It is a
- * no-op when `fetch` is unavailable (e.g. a DOM-free unit test that does not inject a loader).
+ * Default loader: loads the OP's active-sessions endpoint. The login redirect on a `401` comes from
+ * `fetchSurfaceJson`.
  */
 async function fetchSessions(): Promise<readonly ActiveSession[] | null> {
-  if (typeof fetch !== 'function') {
-    return null;
-  }
-  const response = await fetch(SESSIONS_LIST_ENDPOINT, { headers: { accept: 'application/json' } });
-  if (response.status === 401) {
-    window.location.assign(`${LOGIN_ACTION}?ReturnUrl=${encodeURIComponent(SESSIONS_PATH)}`);
-    return null;
-  }
-  if (!response.ok) {
-    return null;
-  }
-  const payload = (await response.json()) as { sessions?: readonly ActiveSession[] };
-  return payload.sessions ?? [];
+  const payload = await fetchSurfaceJson<{ sessions?: readonly ActiveSession[] }>(
+    SESSIONS_LIST_ENDPOINT,
+    SESSIONS_PATH,
+  );
+  return payload ? (payload.sessions ?? []) : null;
 }
 
 function formatTimestamp(seconds: number | null | undefined): string | null {
@@ -143,7 +135,11 @@ export function SessionsPage({
                           data-testid="session-current"
                         />
                       ) : (
-                        <Stack component="form" method="post" action={SESSIONS_REVOKE_ACTION}>
+                        <Stack
+                          component="form"
+                          method="post"
+                          action={resolveSurfacePath(SESSIONS_REVOKE_ACTION)}
+                        >
                           <input type="hidden" name="sid" value={session.sessionId} />
                           <input type="hidden" name={ANTIFORGERY_FIELD} value={antiforgeryToken} />
                           <Button
@@ -186,7 +182,7 @@ export function SessionsPage({
               <Stack
                 component="form"
                 method="post"
-                action={SESSIONS_REVOKE_ALL_ACTION}
+                action={resolveSurfacePath(SESSIONS_REVOKE_ALL_ACTION)}
                 data-testid="sessions-revoke-others"
               >
                 <input type="hidden" name="scope" value="others" />
@@ -200,7 +196,7 @@ export function SessionsPage({
             <Stack
               component="form"
               method="post"
-              action={SESSIONS_REVOKE_ALL_ACTION}
+              action={resolveSurfacePath(SESSIONS_REVOKE_ALL_ACTION)}
               data-testid="sessions-revoke-all"
             >
               <input type="hidden" name="scope" value="all" />
@@ -210,7 +206,7 @@ export function SessionsPage({
               </Button>
             </Stack>
 
-            <Button href={ACCOUNT_PATH} variant="text">
+            <Button href={resolveSurfacePath(ACCOUNT_PATH)} variant="text">
               Back to your account
             </Button>
           </Stack>

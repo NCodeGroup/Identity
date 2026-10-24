@@ -1,7 +1,8 @@
 # 148. Security profiles accumulate down the settings cascade
 
 - **Status:** Accepted (amended by [ADR-0149](0149-settings-declare-the-scopes-they-apply-to.md): a resource server
-  selects no security profile, and `security_profiles` is rejected on a resource-server document)
+  selects no security profile, and `security_profiles` is rejected on a resource-server document; a profile's default
+  applies only to a setting that applies within the expanding scope)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -70,6 +71,32 @@ that selects it.**
    — is removed, and a value of another type is left to fail closed
    ([ADR-0139](0139-setting-names-are-a-closed-vocabulary.md)). Its `Down` restores what the single name can express
    and leaves a list of several names to fail closed.
+7. **A profile supplies the choices it constrains as overridable defaults.** A ceiling can exclude a protocol default —
+   the FAPI 2.0 signing ceilings exclude `RS256`, the registration default for `id_token_signed_response_alg` and
+   `introspection_signed_response_alg` — so without a default every client under the profile would need an explicit
+   choice and would otherwise fail at issuance. A profile therefore contributes defaults through
+   `ISecurityProfile.ApplyDefaultSettings` and `ISecurityProfileDefaultsBuilder`, which accepts only a setting that does
+   **not** merge with a lattice operation: a default is a choice, not a bound. `Expand` places the defaults of the
+   profiles a scope declares beneath that scope's own settings, so the scope's own value — and any value a scope below
+   it sets — replaces the default, and the profile's ceilings still decide whether that value is permitted. At the
+   server root the descriptor defaults, the computed `*_supported` values and the default-settings providers are a
+   baseline beneath the configuration, passed to `Expand` separately: a configured value replaces a baseline value, a
+   profile's default replaces a baseline value but never a configured one, and the profile's ceilings bound both.
+   Without that baseline a profile's default would never take effect at the root, because every setting with a
+   descriptor default already carries a value there. When several selected profiles default one setting, the profile
+   whose name sorts first in ordinal order supplies it. FAPI 2.0 defaults both signed responses to `PS256`.
+
+   Every `Expand` overload names the scope whose settings it expands: `Expand(scopeSettings, scopeName)`,
+   `Expand(scopeSettings, scopeName, baselineSettings)`, which the server root calls with `server`, and the overload
+   for a settings document. A scope name that no registered scope has is refused with an `ArgumentException`. A default
+   applies only where `ISettingScopeCollection.AppliesWithin(descriptor, scopeName)` holds, that is, to a setting that
+   applies to the expanding scope or to a scope below it
+   ([ADR-0149](0149-settings-declare-the-scopes-they-apply-to.md)): a setting for a scope above would be carried
+   without being honored, and the scope that owns it chooses its own default. A server or a tenant that selects
+   `fapi1-advanced` supplies `tls_client_certificate_bound_access_tokens`, which applies to tenants, and a client that
+   alone selects it takes its tenant's value, so `CertificateBoundAccessTokenCoherenceRule` reports the client while
+   that support is off. Ceilings still merge at every scope, because a bound below the scope that a setting applies to
+   only narrows what that scope inherits.
 
 ## Options considered
 
@@ -86,8 +113,25 @@ that selects it.**
   cascade's history.
 - **Leave the choice of ceiling settings to each profile author.** Rejected: one projection-merged ceiling makes that
   ceiling loosenable or inert without any signal — the failure ADR-0139 and ADR-0140 remove for configuration.
+- **A profile's default fills a choice only where the inherited value falls outside its ceiling.** Rejected: whether a
+  value is permitted depends on which list bounds which setting, which the catalog cannot know for an arbitrary setting,
+  and the default would then depend on the parent's value rather than on the scope's selection.
+- **Remove the descriptor default of every setting a profile defaults.** Rejected: the descriptor default is the
+  protocol default and the value a server that selects no profile reports, and each new profile default would
+  silently depend on it being absent.
+- **Expand the configuration alone and lay it over the descriptor defaults.** Rejected: a ceiling would then
+  replace a computed `*_supported` list instead of narrowing it, and merging instead would stop a configured
+  lifetime from exceeding its descriptor default.
 - **Declare each descriptor's merge kind as separate metadata.** Rejected: it restates the merge function and can drift
   from it; reading the kind from the `SettingMerge` function the descriptor uses cannot disagree with what it does.
+- **Infer the scope of an expansion from its settings.** Rejected: a settings collection does not say which scope it
+  belongs to, and an empty client document looks like an empty tenant document, so the inference would guess wrong
+  exactly where a default matters. An `Expand` overload without a scope is rejected for the same reason: a caller could
+  leave out the one fact that the filter needs.
+- **Filter a profile's ceilings by the scope a setting applies to, as its defaults are.** Rejected: a ceiling carried
+  below the scope that a setting applies to only narrows what that scope inherits, so it is never carried without
+  being honored, and filtering would make a bound depend on the scope a setting applies to, weakening the guarantee
+  that a selection bounds every scope below it.
 
 ## Consequences
 
@@ -101,6 +145,12 @@ that selects it.**
   for the algorithm lists). The order in which profiles apply never changes which values are permitted, and changes the
   order only for a list that no scope above sets.
 - A requirement's error description names "a selected security profile".
+- A profile's default applies at the scope that selects the profile, to each setting that applies within that scope,
+  beneath that scope's own value: it replaces a value a scope above sets, so a tenant that selects `fapi2` signs its
+  clients' ID tokens with `PS256` even when the server's default is another permitted algorithm, unless the tenant sets
+  its own. A setting that applies only to a scope above the expanding scope is not defaulted there, so a client that
+  alone selects `fapi1-advanced` takes its tenant's `tls_client_certificate_bound_access_tokens` and not the profile's
+  default (backlog `R68`). A profile whose default names a lattice setting fails when a scope selects it.
 - Follow-ups: a resource-server document accepts `security_profiles` but neither expands nor evaluates it, which is part
   of making the setting vocabulary scope-aware (backlog `F60`); and a single targeted resource server governs
   access-token encryption with its own effective settings, without combining the client's (backlog `F61`).
@@ -121,8 +171,9 @@ that selects it.**
   renaming a setting ships with a data migration; [ADR-0075](0075-runtime-consumption-of-resource-server-secrets.md) —
   resource-server token encryption.
 - OpenID Foundation FAPI 2.0 Security Profile and FAPI 2.0 Message Signing.
-- Code: `NCode.Identity.OpenId.Settings.ISecurityProfile`, `ISecurityProfileCeilingBuilder`, `ISecurityProfileCatalog`,
-  `DefaultSecurityProfileCatalog`, `SecurityProfileCeilingBuilder`, `DefaultSettingDescriptorDataSource`,
+- Code: `NCode.Identity.OpenId.Settings.ISecurityProfile`, `ISecurityProfileCeilingBuilder`,
+  `ISecurityProfileDefaultsBuilder`, `ISecurityProfileCatalog`, `DefaultSecurityProfileCatalog`,
+  `SecurityProfileCeilingBuilder`, `SecurityProfileDefaultsBuilder`, `Fapi2SecurityProfile`, `DefaultSettingDescriptorDataSource`,
   `RootSettingsCollectionDataSource`, `NCode.Identity.OpenId.Servers.DefaultOpenIdServerFactory`,
   `NCode.Identity.Settings.SettingDescriptor.HasLatticeMerge`, `NCode.Identity.Settings.SettingMerge`, and the
   `TranslateSecurityProfileToSecurityProfiles` migration.

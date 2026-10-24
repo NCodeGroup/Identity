@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (amended by [ADR-0073](0073-postgres-dev-database-and-aspire-migration-worker.md): the
   migrations now live in the host-owned `NCode.Identity.OpenId.Host.Database` project and are applied by the
-  Aspire migration worker; the policy that the host owns schema, applied deliberately outside Development, stands)
+  Aspire migration worker; the policy that the host owns schema, applied deliberately outside Development, stands;
+  amended by [ADR-0180](0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md): the host's
+  chart applies the migrations deliberately, in a Job before each rollout, and every migration keeps the previous
+  release working)
 - **Date:** 2026-10-03
 - **Deciders:** NCode Group
 

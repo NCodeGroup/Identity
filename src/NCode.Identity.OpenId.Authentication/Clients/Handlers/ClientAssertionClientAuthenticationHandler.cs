@@ -20,6 +20,7 @@ using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
@@ -56,6 +57,8 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
     ISecurityProfileCatalog securityProfileCatalog
 ) : CommonClientAuthenticationHandler(clientResolver, clientFactory, auditEventRecorder, logger)
 {
+    private const int JwsSegmentCount = 3;
+
     private IJwtValidator JwtValidator { get; } = jwtValidator;
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
@@ -113,24 +116,8 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
 
         var assertion = assertionValues.ToString();
 
-        // A client assertion is a compact JWS: header.payload.signature (RFC 7515 §7.1).
-        var parts = assertion.Split('.');
-        if (parts.Length != 3)
+        if (!TryDecodeHeaderAndPayload(assertion, out var header, out var payload))
             return ClientAuthenticationResult.Undefined;
-
-        JsonElement header;
-        JsonElement payload;
-        try
-        {
-            using var headerDoc = JsonDocument.Parse(DecodeBase64Url(parts[0]));
-            using var payloadDoc = JsonDocument.Parse(DecodeBase64Url(parts[1]));
-            header = headerDoc.RootElement.Clone();
-            payload = payloadDoc.RootElement.Clone();
-        }
-        catch (Exception exception) when (exception is FormatException or JsonException)
-        {
-            return ClientAuthenticationResult.Undefined;
-        }
 
         // The 'alg' header selects which handler owns the assertion and is never 'none' (RFC 7518 §3.6).
         if (
@@ -355,12 +342,48 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         return [issuer, endpointUrl];
     }
 
-    private static byte[] DecodeBase64Url(string value)
+    private static bool TryDecodeHeaderAndPayload(
+        string assertion,
+        out JsonElement header,
+        out JsonElement payload
+    )
     {
-        var byteCount = Base64Url.GetByteCountForDecode(value.Length);
-        var buffer = new byte[byteCount];
-        if (!Base64Url.TryDecode(value, buffer, out var bytesWritten))
-            throw new FormatException("The value is not valid base64url.");
-        return bytesWritten == byteCount ? buffer : buffer[..bytesWritten];
+        header = default;
+        payload = default;
+
+        // A client assertion is a compact JWS: header.payload.signature (RFC 7515 §7.1); the spare slot catches extra
+        // segments.
+        var assertionSpan = assertion.AsSpan();
+        Span<Range> ranges = stackalloc Range[JwsSegmentCount + 1];
+        var segmentCount = assertionSpan.Split(ranges, '.');
+
+        return segmentCount == JwsSegmentCount
+            && TryDecodeObject(assertionSpan[ranges[0]], out header)
+            && TryDecodeObject(assertionSpan[ranges[1]], out payload);
+    }
+
+    private static bool TryDecodeObject(ReadOnlySpan<char> encoded, out JsonElement element)
+    {
+        element = default;
+        try
+        {
+            var byteCount = Base64Url.GetByteCountForDecode(encoded.Length);
+            using var lease = BufferFactory.Rent(
+                byteCount,
+                isSensitive: false,
+                out Span<byte> utf8Json
+            );
+            if (!Base64Url.TryDecode(encoded, utf8Json, out _))
+                return false;
+
+            element = JsonElement.Parse(utf8Json);
+        }
+        catch (Exception exception) when (exception is FormatException or JsonException)
+        {
+            return false;
+        }
+
+        // The NCode.Json property readers throw on anything but a JSON object.
+        return element.ValueKind == JsonValueKind.Object;
     }
 }

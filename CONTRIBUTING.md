@@ -54,9 +54,10 @@ the same gates CI's frontend workflow runs. Every text file is LF with a final n
 with CRLF fails Prettier until it is converted.
 
 To preview the CI presentation (job summary + annotations) without pushing, run the gate with `GITHUB_ACTIONS=true` and
-point `GITHUB_STEP_SUMMARY`, `GITHUB_ENV`, and `GITHUB_OUTPUT` at empty temporary files, then read the summary file.
-Set all three: with `GITHUB_ACTIONS=true` Nerdbank.GitVersioning's cloud-build task writes to `GITHUB_ENV` during the
-build and fails it with `ArgumentNullException (Parameter 'path')` when that variable is unset.
+point `GITHUB_STEP_SUMMARY` at an empty temporary file, then read that file. The build writes nothing to `GITHUB_ENV`:
+`version.json` turns off Nerdbank.GitVersioning's cloud-build variables, whose unlocked appends from parallel MSBuild
+nodes tore that file and failed the job
+([ADR-0003](docs/adr/0003-central-package-management-and-lockstep-versioning.md)).
 
 When adding a project, place it in the solution folder that mirrors its directory — `/src/` for `src/**` and `/tests/`
 for `tests/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`) — never at the solution root.
@@ -84,13 +85,16 @@ marked tool-enforced or review-only. The highlights:
 1. Open (or find) a GitHub issue describing the problem or proposal. A change that affects the **public outcome**
    (semantics, public surface, validation/security posture) should reach agreement on the issue — and be recorded as an
    ADR under [`docs/adr/`](docs/adr/) — before the pull request.
-2. Work on `main`, or open a short-lived branch from it when the change warrants review on a pull request. Keep the
-   public surface deliberate; a breaking change to the public API is a **major** version bump.
+2. Work on a short-lived branch from `main`. Keep the public surface deliberate; a breaking change to the public API is
+   a **major** version bump.
 3. Record any consumer-visible change in [`CHANGELOG.md`](CHANGELOG.md) under `## [Unreleased]`.
 4. Ensure `./build/dod.ps1` passes locally before opening a pull request.
-5. Push to `main`, or open a PR against it for review. While pre-release, `main` carries **no branch protection** —
-   CI reports a verdict on every commit but nothing blocks the push, so the gate is the one you run locally
-   (`./build/dod.ps1 -Fast`). See [ADR-0125](docs/adr/0125-trunk-based-development-on-main.md).
+5. Push the branch and open a pull request against `main`, as a draft while it is in progress. It merges, by squash or
+   rebase, once the required checks pass on a branch up to date with `main` and every review thread is resolved; no
+   one pushes to `main` directly. See
+   [ADR-0261](docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md). CI runs on a push
+   to `main` and on a pull request, not on a push to any other branch, so a branch's commits are checked once. To check
+   a branch that has no pull request, open a draft pull request or run the workflows by hand (`workflow_dispatch`).
 
 An agent-assisted change of more than a few steps runs as **plan-and-execute**: Claude Opus plans it into `PLAN.md`, a
 lower-cost Copilot model executes one verified step at a time, and Opus re-plans any step that comes back — see

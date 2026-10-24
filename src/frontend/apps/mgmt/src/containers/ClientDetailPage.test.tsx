@@ -175,6 +175,39 @@ describe('ClientDetailPage', () => {
     );
   });
 
+  it('rotates a client secret under the client path and reveals the replacement once', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({
+          secretTypes: [
+            { secretType: 'symmetric', isAsymmetric: false, supportsPublicKeyExport: false },
+          ],
+        });
+      }
+      if (url.endsWith('/clients/web/secrets/s-old/rotate') && method === 'POST') {
+        return jsonResponse(createdSecret, 201);
+      }
+      if (url.endsWith('/clients/web/secrets')) {
+        return jsonResponse({
+          concurrencyToken: 'c1',
+          secrets: [{ ...createdSecret, secretId: 's-old', secretMaterial: null }],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('secret-rotate-s-old'));
+    fireEvent.click(screen.getByTestId('confirm-accept'));
+
+    expect(await screen.findByTestId('reveal-secret-material')).toHaveTextContent(
+      'one-time-material',
+    );
+    expect(calls.find((c) => c.method === 'POST')?.url).toBe(
+      'https://api.test/api/tenants/acme/clients/web/secrets/s-old/rotate',
+    );
+  });
+
   it('creates a secret and reveals its one-time material', async () => {
     installFetch((url, method) => {
       if (url.endsWith('/api/capabilities')) {

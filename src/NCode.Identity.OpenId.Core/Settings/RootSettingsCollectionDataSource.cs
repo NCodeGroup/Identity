@@ -43,7 +43,8 @@ namespace NCode.Identity.OpenId.Settings;
 /// <para>
 /// The server is the top of the settings cascade, so the security profiles its settings select are expanded through
 /// <see cref="ISecurityProfileCatalog"/> exactly as a tenant's or a client's are, and they then bind every tenant and
-/// client below it.
+/// client below it. Its descriptor defaults, computed supported values and default-settings-provider values are a
+/// baseline beneath its configuration, so a selected profile's default replaces them but never a configured value.
 /// </para>
 /// </remarks>
 // See ADR-0148 (security profiles accumulate down the cascade).
@@ -225,14 +226,22 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
 
     private IEnumerable<Setting> LoadCollection()
     {
-        var settings = SettingCollectionFactory.Create();
+        // The descriptor defaults, the computed supported values and the default-settings providers are the baseline
+        // beneath the server's configuration, so a selected security profile's default replaces them but never a
+        // configured value (ADR-0148).
+        var baselineSettings = SettingCollectionFactory.Create();
+        LoadDefaults(baselineSettings);
+        LoadSupportedAlgorithms(baselineSettings);
+        LoadDefaultSettingsProviders(baselineSettings);
 
-        LoadDefaults(settings);
-        LoadSupportedAlgorithms(settings);
-        LoadDefaultSettingsProviders(settings);
-        LoadFromConfiguration(settings);
+        var configuredSettings = SettingCollectionFactory.Create();
+        LoadFromConfiguration(configuredSettings);
 
-        return SecurityProfileCatalog.Expand(settings);
+        return SecurityProfileCatalog.Expand(
+            configuredSettings,
+            OpenIdSettingScopes.Server,
+            baselineSettings
+        );
     }
 
     private void LoadDefaultSettingsProviders(ISettingCollection settings)
@@ -307,9 +316,14 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
             OpenIdSettingKeys.UserInfoSigningAlgValuesSupported,
             asymmetricSigningAlgValuesSupported
         );
-        // A JWT introspection response is addressed to a resource server across a trust boundary (RFC 9701).
+        // A JWT introspection response is addressed to a resource server across a trust boundary (RFC 9701), and a JWT-secured
+        // authorization response to a client (JARM).
         settings.Set(
             OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported,
+            asymmetricSigningAlgValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.AuthorizationSigningAlgValuesSupported,
             asymmetricSigningAlgValuesSupported
         );
         settings.Set(
@@ -333,7 +347,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
             signingAlgValuesSupported
         );
 
-        // ID tokens, UserInfo responses, and JWT introspection responses are encrypted to the client's public key, and
+        // ID tokens, UserInfo responses, JWT introspection responses, and JWT-secured authorization responses are encrypted to the client's public key, and
         // request objects to the server's, so they advertise asymmetric key management only (ADR-0155). An access token
         // may be encrypted to a resource server that holds a shared key, so it keeps the full set.
         settings.Set(
@@ -346,6 +360,10 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         );
         settings.Set(
             OpenIdSettingKeys.IntrospectionEncryptionAlgValuesSupported,
+            asymmetricEncryptionAlgValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.AuthorizationEncryptionAlgValuesSupported,
             asymmetricEncryptionAlgValuesSupported
         );
         settings.Set(
@@ -367,6 +385,10 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         );
         settings.Set(
             OpenIdSettingKeys.IntrospectionEncryptionEncValuesSupported,
+            encryptionEncValuesSupported
+        );
+        settings.Set(
+            OpenIdSettingKeys.AuthorizationEncryptionEncValuesSupported,
             encryptionEncValuesSupported
         );
         settings.Set(

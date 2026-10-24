@@ -4,16 +4,18 @@
 # shell out to Node would couple a .NET contributor's inner loop to a pnpm install. This workflow gates the frontend
 # tier independently instead.
 #
-# It is path-filtered, so a C#-only push does not pay for a pnpm install. The consequence to know when configuring
-# branch protection: a pull request that touches no frontend file never reports this check, so it must NOT be marked
-# required — require the .NET "Definition of Done" check instead.
+# A push to main is path-filtered, so a C#-only push does not pay for a pnpm install. A pull request always runs the
+# workflow, and its `changes` job decides whether the frontend job runs. A skipped job reports success, so every pull
+# request reports "Lint, typecheck, test, build", which is a required check of the main ruleset (ADR-0261).
 name: Frontend CI
 
 on:
+  # See the note in ci.yml: a push gates only main, because a pull request already gates every other branch.
+  # A pull request always runs the workflow, so its required check reports; the `changes` job skips the frontend job
+  # when no frontend path changed. A push to main keeps the path filter.
   push:
-    # See the note in ci.yml: bot branches always carry an open pull request, so a push trigger would duplicate the
-    # whole run against the same tree.
-    branches-ignore: ['dependabot/**']
+    branches: [main]
+    # Keep in sync with the pattern in the `changes` job, which applies the same paths to a pull request.
     paths:
       - 'src/frontend/**'
       - '.github/workflows/frontend.yml'
@@ -21,15 +23,10 @@ on:
       - 'build/test-report.ps1'
       - 'build/coverage-report.ps1'
       - '.config/dotnet-tools.json'
+      - 'src/NCode.Identity.OpenId.Authentication.Interactive/**'
+      - 'tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/**'
   pull_request:
     branches: [main]
-    paths:
-      - 'src/frontend/**'
-      - '.github/workflows/frontend.yml'
-      - '.github/workflows/codecov-upload.yml'
-      - 'build/test-report.ps1'
-      - 'build/coverage-report.ps1'
-      - '.config/dotnet-tools.json'
   workflow_dispatch:
 
 # The frontend job only reads the tree; `id-token: write` (the Codecov OIDC upload) belongs to the separate codecov job
@@ -48,14 +45,51 @@ defaults:
     working-directory: src/frontend
 
 jobs:
+  # Decides from a pull request's changed files whether the frontend job runs; any other event always runs it.
+  changes:
+    name: Detect frontend changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      frontend: ${{ steps.diff.outputs.frontend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Keep the pattern in sync with the `push` trigger's `paths` list.
+      - name: Diff against the base
+        id: diff
+        shell: bash
+        working-directory: .
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "frontend=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          pattern='^(src/frontend/|\.github/workflows/frontend\.yml$|\.github/workflows/codecov-upload\.yml$|build/test-report\.ps1$|build/coverage-report\.ps1$|\.config/dotnet-tools\.json$|src/NCode\.Identity\.OpenId\.Authentication\.Interactive/|tests/NCode\.Identity\.OpenId\.Authentication\.Interactive\.Tests/)'
+          # Capture the list first: piping into `grep -q` under pipefail fails on a large diff, because grep exits at
+          # the first match and `git diff` then dies of SIGPIPE, which reads as "no frontend change".
+          changed="$(git diff --name-only "$BASE" HEAD)"
+          if grep -Eq "$pattern" <<< "$changed"; then echo "frontend=true" >> "$GITHUB_OUTPUT"; else echo "frontend=false" >> "$GITHUB_OUTPUT"; fi
+
   frontend:
     name: Lint, typecheck, test, build
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # The built-bundle step runs `dotnet test`, and Nerdbank.GitVersioning computes the version from commit
+          # height and FAILS on a shallow clone, which is the actions/checkout default. The full history is required.
+          fetch-depth: 0
 
       # The Node major is pinned once, in src/frontend/.node-version, which is the same file NVS selects locally and the
       # Aspire AppHost reads (ADR-0152), so CI runs the runtime a developer machine runs.
@@ -110,11 +144,12 @@ jobs:
         working-directory: .
         run: ./build/test-report.ps1 -Path 'src/frontend/*/*/test-results/junit.xml' -Title 'Frontend tests'
 
-      # Coverage is merged and rendered by the same ReportGenerator tool (pinned in .config/dotnet-tools.json) as the
-      # .NET coverage, so both tiers present coverage identically; that is the only reason this job installs .NET.
-      # Vitest writes no coverage when a test fails, so these steps follow a passing test step only.
+      # .NET renders the coverage report with the same ReportGenerator tool (pinned in .config/dotnet-tools.json) as the
+      # .NET coverage, so both tiers present coverage identically, and it runs the host's test against the built login
+      # bundle below. Vitest writes no coverage when a test fails, so the coverage report follows a passing test step
+      # only.
       - name: Setup .NET
-        if: steps.test.outcome == 'success'
+        if: always()
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
@@ -128,8 +163,19 @@ jobs:
           ./build/coverage-report.ps1 -Path 'src/frontend/*/*/coverage/cobertura-coverage.xml' -TargetDirectory artifacts/frontend-coverage -Title 'Frontend coverage' -ArtifactName frontend-coverage -PerPackageReports
 
       - name: Build
+        id: build
         if: always()
         run: pnpm run build
+
+      # The host splits the built login bundle's `index.html` around its mount point and serves its `assets` directory
+      # (ADR-0254). The .NET Definition of Done builds no frontend, so the split is tested here, against the real build.
+      - name: Test the host against the built login bundle
+        if: steps.build.outcome == 'success'
+        shell: pwsh
+        working-directory: .
+        env:
+          NCODE_AUTH_BUNDLE_INDEX: ${{ github.workspace }}/src/frontend/apps/auth/dist/index.html
+        run: dotnet test tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/NCode.Identity.OpenId.Authentication.Interactive.Tests.csproj --nologo --filter "FullyQualifiedName~InteractiveBundleShellTests.TryCreate_WhenGivenTheBuiltBundlesIndex" -- RunConfiguration.TreatNoTestsAsError=true
 
       - name: Upload test results
         if: always()
@@ -153,7 +199,8 @@ jobs:
   codecov:
     name: Codecov
     needs: frontend
-    if: ${{ !cancelled() }}
+    # A skipped frontend job leaves nothing to upload.
+    if: ${{ !cancelled() && needs.frontend.result != 'skipped' }}
     permissions:
       contents: read
       id-token: write

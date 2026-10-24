@@ -17,7 +17,10 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Secrets.Persistence.Options;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Registration;
 
 namespace NCode.Identity.Secrets.Persistence;
@@ -51,12 +54,27 @@ public static class DefaultRegistration
         /// <list type="bullet">
         /// <item><description><see cref="ISecretSerializer"/> - Serializes and deserializes secret keys
         /// for persistent storage.</description></item>
-        /// <item><description><see cref="ISecretGenerator"/> - Generates data-protected secret key material
-        /// server-side.</description></item>
+        /// <item><description><see cref="ISecretGenerator"/> - Generates secret key material server-side,
+        /// protected under the owner's master key.</description></item>
+        /// <item><description><see cref="ISecretImporter"/> - Imports externally supplied secret key
+        /// material.</description></item>
+        /// <item><description><see cref="TimeProvider"/> - Supplies the current time, defaulting to
+        /// <see cref="TimeProvider.System"/>.</description></item>
+        /// <item><description><see cref="IRootKeyProvider"/> - The ephemeral and local root key providers,
+        /// which wrap master keys with a root key.</description></item>
+        /// <item><description>A catalog that selects the configured root key provider.</description></item>
+        /// <item><description>The recovery key wrapper, which wraps master keys with the configured
+        /// recovery public key.</description></item>
+        /// <item><description>The factory that creates and unwraps master keys.</description></item>
+        /// <item><description><see cref="ISecretProtectorProvider"/> - Provides secret protectors backed by
+        /// the cached, persisted master key ring.</description></item>
+        /// <item><description>Options for <see cref="SecretProtectionOptions"/> and
+        /// <see cref="LocalRootKeyOptions"/>, which are bound to configuration elsewhere.</description></item>
         /// </list>
         /// <para>
-        /// Services are registered using <c>TryAddSingleton</c> semantics, meaning existing registrations
-        /// will not be overwritten.
+        /// Services are registered using <c>TryAdd*</c> semantics, meaning existing registrations
+        /// will not be overwritten. The <see cref="IRootKeyProvider"/> implementations are added as a
+        /// collection.
         /// </para>
         /// </remarks>
         [PublicAPI]
@@ -68,6 +86,24 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<ISecretSerializer, DefaultSecretSerializer>();
             serviceCollection.TryAddSingleton<ISecretGenerator, DefaultSecretGenerator>();
             serviceCollection.TryAddSingleton<ISecretImporter, DefaultSecretImporter>();
+
+            // Secret protection
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IRootKeyProvider, EphemeralRootKeyProvider>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IRootKeyProvider, LocalRootKeyProvider>()
+            );
+            serviceCollection.TryAddSingleton<
+                IRootKeyProviderCatalog,
+                DefaultRootKeyProviderCatalog
+            >();
+            serviceCollection.TryAddSingleton<IRecoveryKeyWrapper, RecoveryKeyWrapper>();
+            serviceCollection.TryAddSingleton<MasterKeyFactory>();
+            serviceCollection.TryAddSingleton<ISecretProtectorProvider, DefaultMasterKeyRing>();
+            serviceCollection.AddOptions<SecretProtectionOptions>();
+            serviceCollection.AddOptions<LocalRootKeyOptions>();
 
             return newBuilder;
         }

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Security.Claims;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -124,6 +125,31 @@ public sealed class DefaultRegistrationTests : IDisposable
 
         Assert.Contains("'InteractiveAuthentication'", exception.Message, StringComparison.Ordinal);
         Assert.Contains("'BundlePath'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AddInteractiveAuthentication_WhenNoBackendOffersAPasswordChange_ReportsItNotSupported()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var hostEnvironment = MockRepository.Create<IHostEnvironment>();
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection
+            .NewBuilder<OpenIdAuthenticationLibrary>()
+            .AddInteractiveAuthentication(configuration, hostEnvironment.Object);
+
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+        var passwordChanger = serviceProvider.GetRequiredService<IInteractivePasswordChanger>();
+
+        var result = await passwordChanger.ChangePasswordAsync(
+            null!,
+            new ClaimsPrincipal(),
+            "current",
+            "new",
+            CancellationToken.None
+        );
+
+        Assert.Equal(InteractivePasswordChangeResult.NotSupported, result);
     }
 
     #endregion

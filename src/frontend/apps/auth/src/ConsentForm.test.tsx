@@ -61,6 +61,28 @@ describe('ConsentForm', () => {
     expect(container.querySelector('#consent-deny')).not.toBeNull();
   });
 
+  it('leaves unchecked the scopes the end-user cleared on the server-rendered form', async () => {
+    const { container, findByText } = render(
+      <ConsentForm
+        returnUrl="/continue"
+        antiforgeryToken="tok"
+        loadDetails={async () => details}
+        clearedScopes={['profile']}
+      />,
+    );
+
+    expect(await findByText('profile')).toBeInTheDocument();
+
+    const openidCheckbox = container.querySelector<HTMLInputElement>(
+      'input[name="scope"][value="openid"]',
+    );
+    const profileCheckbox = container.querySelector<HTMLInputElement>(
+      'input[name="scope"][value="profile"]',
+    );
+    expect(openidCheckbox?.checked).toBe(true);
+    expect(profileCheckbox?.checked).toBe(false);
+  });
+
   it('captions a described scope with its raw value and shows an undescribed scope once', async () => {
     render(
       <ConsentForm

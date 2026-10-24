@@ -14,6 +14,11 @@ export {
 } from './components/ResourceServerTable.js';
 export { ScopeTable, type ScopeRow, type ScopeTableProps } from './components/ScopeTable.js';
 export {
+  TenantUsageTable,
+  type TenantUsageRow,
+  type TenantUsageTableProps,
+} from './components/TenantUsageTable.js';
+export {
   TenantFormDialog,
   emptyTenantFormValues,
   isValidTenantId,
@@ -72,6 +77,7 @@ export {
   emptyInitialAccessTokenFormValues,
   type InitialAccessTokenFormDialogProps,
   type InitialAccessTokenFormValues,
+  type InitialAccessTokenResourceServerOption,
 } from './components/InitialAccessTokenFormDialog.js';
 export {
   RevealInitialAccessTokenDialog,

@@ -83,13 +83,20 @@ it is enabled per clone and must not be relied on — do not generate the traile
 
 ## Push protocol
 
-When the user authorizes a push (says "push"), run these gates **before** pushing:
+When the user authorizes a push (says "push"), it pushes the current **topic branch** — never `main`, which accepts
+changes only through a pull request
+([ADR-0261](../docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)) — and opens its
+pull request against `main` if none exists. Run these gates **before** pushing:
 
 1. **Retire the plan.** If a `PLAN.md` exists, every step is `[x]` and its review (`/review-plan-diff`) has run with
    every queued fix step done. Promote its Decisions in gate 2, delete `PLAN.md`, and squash its `Plan step N` /
    `Re-plan step N` checkpoint commits into the conventional commit(s) they belong to — neither the plan nor its
    checkpoints reach `origin`
    ([ADR-0170](../docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
+   Before force-pushing the squash, fetch and confirm that every commit on `origin` past the plan's base is one of the
+   plan's own checkpoint commits. Replay any other commit, which someone else pushed, onto the squash so the push keeps
+   it, and pin the lease to the head you inspected (`git push --force-with-lease=<branch>:<sha>`), so a commit pushed
+   after the check rejects the push instead of being dropped.
 2. **Persist lessons.** Promote every lesson learned in the session into durable repository content — a convention
    into the scoped instruction files, a non-obvious decision into an ADR under [`docs/adr/`](../docs/adr/), a
    consumer-visible change into [`CHANGELOG.md`](../CHANGELOG.md), and pending work into [`BACKLOG.md`](../BACKLOG.md)
@@ -99,6 +106,10 @@ When the user authorizes a push (says "push"), run these gates **before** pushin
 4. **Pass the local pre-push gate.** Run `./build/dod.ps1 -Fast` — the local-development pre-push gate — and confirm
    its final line is `Definition of Done: PASSED`. The full `./build/dod.ps1` (which adds coverage + packing and
    treats NuGet advisories as errors) is the CI-parity gate that runs in CI, **not** before a local push.
+
+After the push, an item is done only when every check on the pull request's head commit succeeds. Remediate any
+failure in the same change, and archive a completed backlog item in a commit on the same branch before the pull request
+merges.
 
 This upholds [ADR-0008](../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md): conventions, reasoning, and
 recurring gotchas live in the repository.

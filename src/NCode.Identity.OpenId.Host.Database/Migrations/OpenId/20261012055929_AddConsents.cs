@@ -6,6 +6,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ContractMigration(
+        "Shipped before any release, so no running release deletes a client or tenant a consent references (ADR-0025)."
+    )]
     public partial class AddConsents : Migration
     {
         /// <inheritdoc />

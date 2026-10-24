@@ -31,10 +31,10 @@ namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
 /// Guards the reference host's Development overlay: the client ids its bootstrap document publishes and the public
 /// clients its developer seed registers are declared side by side, and must not drift apart (ADR-0146).
 /// </summary>
-public class DeveloperSpaClientSeedingTests(HostApplicationFactory factory)
-    : IClassFixture<HostApplicationFactory>
+public class DeveloperSpaClientSeedingTests(DeveloperSeedingHostApplicationFactory factory)
+    : IClassFixture<DeveloperSeedingHostApplicationFactory>
 {
-    private HostApplicationFactory Factory { get; } = factory;
+    private DeveloperSeedingHostApplicationFactory Factory { get; } = factory;
 
     private IReadOnlyList<DeveloperSpaClientSeed> GetSeededSpaClients() =>
         Factory

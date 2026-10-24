@@ -24,12 +24,15 @@ using NCode.Encoders;
 
 namespace NCode.Identity.OpenId.Authentication.SharedState;
 
+// See ADR-0246.
 /// <summary>
 /// Builds the keys this library records in the shared <c>IExpiringKeySet</c>. A key is
-/// <c>{purpose}:{tenantId}:{digest}</c>, where the digest is the base64url SHA-256 of the length-prefixed UTF-8
+/// <c>{purpose}:{tenant in braces}:{digest}</c>, where the digest is the base64url SHA-256 of the length-prefixed UTF-8
 /// components. The purpose and the tenant keep one tenant's records, and one kind of record, from colliding with another
-/// on a store every tenant shares. The length prefixes keep distinct component lists distinct — <c>("a:b", "c")</c> and
-/// <c>("a", "b:c")</c> never meet — and the digest bounds the key's length, since the components come from the request.
+/// on a store every tenant shares. The braces make the tenant the key's hash tag, so a clustered store keeps one
+/// tenant's keys on one node and one script may touch several of them. The length prefixes keep distinct component lists
+/// distinct — <c>("a:b", "c")</c> and <c>("a", "b:c")</c> never meet — and the digest bounds the key's length, since the
+/// components come from the request.
 /// </summary>
 internal static class ExpiringKeys
 {
@@ -60,6 +63,8 @@ internal static class ExpiringKeys
         Span<byte> digest = stackalloc byte[SHA256.HashSizeInBytes];
         SHA256.HashData(lease.Span, digest);
 
-        return $"{purpose}:{tenantId}:{Base64Url.Encode(digest)}";
+        var encodedDigest = Base64Url.Encode(digest);
+
+        return $"{purpose}:{{{tenantId}}}:{encodedDigest}";
     }
 }

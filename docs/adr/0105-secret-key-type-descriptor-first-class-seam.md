@@ -33,8 +33,8 @@ fold the parallel registries and duplicated state into it.
 1. **The descriptor owns every per-key-type operation:** `ValidateGeneration`, `GenerateKeyMaterial`, **import**
    (`ImportPublicKeyMaterial`, [ADR-0104](0104-import-public-asymmetric-secret-material.md)), **deserialize**
    (`DeserializeKeyMaterial`), and **export** (`ExportPublicKey` → a `JSON Web Key` object + a `SubjectPublicKeyInfo`
-   PEM), plus the capability flags (`SupportsPublicKeyExport` / `SupportsPublicKeyImport`). Registering one descriptor
-   adds a key type **end-to-end**.
+   PEM), plus the capabilities (`SupportsPublicKeyExport` and the `PublicKeyImportFormats` names the type imports).
+   Registering one descriptor adds a key type **end-to-end**.
 
 2. **The persistence services become thin wrappers over the catalog.** `DefaultSecretGenerator`,
    `DefaultSecretImporter`, and `DefaultSecretSerializer` now resolve the descriptor by `SecretType` and delegate; they

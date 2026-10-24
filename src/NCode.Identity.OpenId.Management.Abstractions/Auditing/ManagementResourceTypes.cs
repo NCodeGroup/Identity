@@ -77,4 +77,9 @@ public static class ManagementResourceTypes
     /// An initial access token (RFC 7591) that authorizes protected dynamic client registration.
     /// </summary>
     public const string InitialAccessToken = "initial_access_token";
+
+    /// <summary>
+    /// An end user's federated principal.
+    /// </summary>
+    public const string Principal = "principal";
 }

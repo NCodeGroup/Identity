@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;
@@ -23,29 +24,44 @@ namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;
 public class InteractiveAuthenticationPageRendererTests
 {
     private const string BundleShell =
-        "<!doctype html><html><body><div id=\"root\"></div><script src=\"/app.js\"></script></body></html>";
+        "<!doctype html><html><head><title>t</title></head><body><div id=\"root\"></div>"
+        + "<script src=\"./app.js\"></script></body></html>";
+
+    private const string SurfaceBase = "/acme/account/";
+
+    private const string Nonce = "n0nce";
+
+    private const string NonceBundleShell =
+        "<!doctype html><html><head><meta property=\"csp-nonce\" nonce=\"__NCODE_CSP_NONCE__\">"
+        + "<script type=\"module\" src=\"./app.js\" nonce=\"__NCODE_CSP_NONCE__\"></script></head>"
+        + "<body><div id=\"root\"></div></body></html>";
+
+    private static InteractiveBranding AcmeBranding { get; } =
+        new("Acme", null, null, null, "dark");
 
     #region RenderLoginPage Tests
 
     [Fact]
     public void RenderLoginPage_Always_ContainsStableAutomationIdsAndFields()
     {
-        var html = InteractiveAuthenticationPageRenderer.RenderLoginPage(
-            bundleIndexHtml: null,
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
             returnUrl: "/connect/authorize",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "token-123",
             errorMessage: null
         );
+        var html = writer.WrittenSpan.ToString();
 
         Assert.Contains("id=\"username\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"password\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"login\"", html, StringComparison.Ordinal);
-        Assert.Contains(
-            "method=\"post\" action=\"/account/login\"",
-            html,
-            StringComparison.Ordinal
-        );
+        Assert.Contains("method=\"post\" action=\"login\"", html, StringComparison.Ordinal);
         Assert.Contains(
             "name=\"ReturnUrl\" value=\"/connect/authorize\"",
             html,
@@ -61,13 +77,19 @@ public class InteractiveAuthenticationPageRendererTests
     [Fact]
     public void RenderLoginPage_WhenErrorMessage_RendersIt()
     {
-        var html = InteractiveAuthenticationPageRenderer.RenderLoginPage(
-            bundleIndexHtml: null,
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
             errorMessage: "The username or password is incorrect."
         );
+        var html = writer.WrittenSpan.ToString();
 
         Assert.Contains("role=\"alert\"", html, StringComparison.Ordinal);
         Assert.Contains("The username or password is incorrect.", html, StringComparison.Ordinal);
@@ -76,13 +98,19 @@ public class InteractiveAuthenticationPageRendererTests
     [Fact]
     public void RenderLoginPage_WhenHostileReturnUrl_EncodesIt()
     {
-        var html = InteractiveAuthenticationPageRenderer.RenderLoginPage(
-            bundleIndexHtml: null,
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
             returnUrl: "\"><script>alert(1)</script>",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
             errorMessage: null
         );
+        var html = writer.WrittenSpan.ToString();
 
         Assert.DoesNotContain("<script>alert(1)</script>", html, StringComparison.Ordinal);
     }
@@ -90,18 +118,152 @@ public class InteractiveAuthenticationPageRendererTests
     [Fact]
     public void RenderLoginPage_WhenBundlePresent_InjectsFormIntoRoot()
     {
-        var html = InteractiveAuthenticationPageRenderer.RenderLoginPage(
-            bundleIndexHtml: BundleShell,
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: InteractiveBundleShell.TryCreate(BundleShell),
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
             errorMessage: null
         );
+        var html = writer.WrittenSpan.ToString();
 
         // The empty mount point is replaced by the form, and the SPA script tag is preserved.
         Assert.DoesNotContain("<div id=\"root\"></div>", html, StringComparison.Ordinal);
         Assert.Contains("<div id=\"root\"><main", html, StringComparison.Ordinal);
-        Assert.Contains("<script src=\"/app.js\">", html, StringComparison.Ordinal);
+        Assert.Contains("<script src=\"./app.js\">", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenBundlePresent_WritesTheFormBetweenTheBundleHeadAndTail()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: InteractiveBundleShell.TryCreate(BundleShell),
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            errorMessage: null
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        // The document's base is written first inside <head>, so it resolves the bundle's relative asset URLs.
+        Assert.StartsWith(
+            "<!doctype html><html><head><base href=\"/acme/account/\" /><title>t</title></head>"
+                + "<body><div id=\"root\"><main",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.EndsWith(
+            "</main></div><script src=\"./app.js\"></script></body></html>",
+            html,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenTheEncodedValueOutgrowsTheBuffer_EncodesAllOfIt()
+    {
+        var writer = new ArrayBufferWriter<char>(initialCapacity: 1);
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            errorMessage: new string('<', 1000)
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.Contains(
+            $"class=\"auth-error\">{string.Concat(Enumerable.Repeat("&lt;", 1000))}</p>",
+            html,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenBundlePresent_EmbedsTheBrandingAfterTheBase()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: InteractiveBundleShell.TryCreate(BundleShell),
+            surfaceBase: SurfaceBase,
+            branding: AcmeBranding,
+            nonce: Nonce,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            errorMessage: null
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.StartsWith(
+            "<!doctype html><html><head><base href=\"/acme/account/\" />"
+                + "<script type=\"application/json\" id=\"branding\">{\"displayName\":\"Acme\",\"mode\":\"dark\"}</script>"
+                + "<title>t</title></head>",
+            html,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenTheBrandingHoldsMarkup_EscapesItInsideTheDataBlock()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: InteractiveBundleShell.TryCreate(BundleShell),
+            surfaceBase: SurfaceBase,
+            branding: new InteractiveBranding(
+                "</script><script>alert(1)</script>",
+                null,
+                null,
+                null,
+                null
+            ),
+            nonce: Nonce,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            errorMessage: null
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.DoesNotContain("</script><script>alert(1)", html, StringComparison.Ordinal);
+        Assert.Contains("\\u003C/script\\u003E", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenBundleIsAbsent_EmbedsNoBranding()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: AcmeBranding,
+            nonce: Nonce,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            errorMessage: null
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.DoesNotContain("id=\"branding\"", html, StringComparison.Ordinal);
     }
 
     #endregion
@@ -111,30 +273,37 @@ public class InteractiveAuthenticationPageRendererTests
     [Fact]
     public void RenderConsentPage_Always_ContainsStableAllowAndDenyIds()
     {
-        var html = InteractiveAuthenticationPageRenderer.RenderConsentPage(
-            bundleIndexHtml: null,
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderConsentPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
             appName: "Conformance Client",
             scopes: []
         );
+        var html = writer.WrittenSpan.ToString();
 
         Assert.Contains("id=\"consent-allow\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"consent-deny\"", html, StringComparison.Ordinal);
-        Assert.Contains(
-            "method=\"post\" action=\"/account/consent\"",
-            html,
-            StringComparison.Ordinal
-        );
+        Assert.Contains("method=\"post\" action=\"consent\"", html, StringComparison.Ordinal);
         Assert.Contains("Conformance Client", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void RenderConsentPage_WhenScopes_RendersACheckboxPerScopeWithCheckedState()
     {
-        var html = InteractiveAuthenticationPageRenderer.RenderConsentPage(
-            bundleIndexHtml: null,
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderConsentPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -145,6 +314,7 @@ public class InteractiveAuthenticationPageRendererTests
                 new InteractiveAuthenticationPageRenderer.ScopeView("email", null, false),
             ]
         );
+        var html = writer.WrittenSpan.ToString();
 
         Assert.Contains(
             "type=\"checkbox\" name=\"scope\" value=\"openid\" checked",
@@ -166,11 +336,17 @@ public class InteractiveAuthenticationPageRendererTests
     [Fact]
     public void RenderErrorPage_Always_ContainsStableAutomationElementAndErrorCode()
     {
-        var html = InteractiveAuthenticationPageRenderer.RenderErrorPage(
-            bundleIndexHtml: null,
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
             errorCode: "unauthorized_client",
             errorDescription: "The specified 'redirect_uri' is not valid for the associated 'client_id'."
         );
+        var html = writer.WrittenSpan.ToString();
 
         Assert.Contains("id=\"authorization-error\"", html, StringComparison.Ordinal);
         Assert.Contains("role=\"alert\"", html, StringComparison.Ordinal);
@@ -186,11 +362,17 @@ public class InteractiveAuthenticationPageRendererTests
     [Fact]
     public void RenderErrorPage_WhenNoDescription_OmitsDescriptionElement()
     {
-        var html = InteractiveAuthenticationPageRenderer.RenderErrorPage(
-            bundleIndexHtml: null,
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
             errorCode: "invalid_client",
             errorDescription: null
         );
+        var html = writer.WrittenSpan.ToString();
 
         Assert.Contains("id=\"authorization-error\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain(
@@ -203,11 +385,17 @@ public class InteractiveAuthenticationPageRendererTests
     [Fact]
     public void RenderErrorPage_WhenHostileErrorCode_EncodesIt()
     {
-        var html = InteractiveAuthenticationPageRenderer.RenderErrorPage(
-            bundleIndexHtml: null,
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
             errorCode: "\"><script>alert(1)</script>",
             errorDescription: null
         );
+        var html = writer.WrittenSpan.ToString();
 
         Assert.DoesNotContain("<script>alert(1)</script>", html, StringComparison.Ordinal);
     }
@@ -215,15 +403,130 @@ public class InteractiveAuthenticationPageRendererTests
     [Fact]
     public void RenderErrorPage_WhenBundlePresent_InjectsErrorIntoRoot()
     {
-        var html = InteractiveAuthenticationPageRenderer.RenderErrorPage(
-            bundleIndexHtml: BundleShell,
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            writer,
+            shell: InteractiveBundleShell.TryCreate(BundleShell),
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
             errorCode: "invalid_client",
             errorDescription: null
         );
+        var html = writer.WrittenSpan.ToString();
 
         Assert.DoesNotContain("<div id=\"root\"></div>", html, StringComparison.Ordinal);
         Assert.Contains("<div id=\"root\"><main", html, StringComparison.Ordinal);
-        Assert.Contains("<script src=\"/app.js\">", html, StringComparison.Ordinal);
+        Assert.Contains("<script src=\"./app.js\">", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderErrorPage_WhenBundleIsAbsent_WritesTheSurfaceBase()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            writer,
+            shell: null,
+            surfaceBase: "/a&b/account/",
+            branding: null,
+            nonce: Nonce,
+            errorCode: "invalid_client",
+            errorDescription: null
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.Contains(
+            "<head><meta charset=\"utf-8\" /><base href=\"/a&amp;b/account/\" />",
+            html,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void RenderErrorPage_WhenTheDescriptionCarriesTheNoncePlaceholder_WritesItAsText()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            writer,
+            shell: InteractiveBundleShell.TryCreate(NonceBundleShell),
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
+            errorCode: "invalid_client",
+            errorDescription: "__NCODE_CSP_NONCE__"
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.Contains(
+            "class=\"auth-error-description\">__NCODE_CSP_NONCE__</p>",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("nonce=\"n0nce\"", html, StringComparison.Ordinal);
+    }
+
+    #endregion
+
+    #region RenderBundlePage Tests
+
+    [Fact]
+    public void RenderBundlePage_Always_WritesTheBundleWithItsBaseAndAnEmptyMountPoint()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderBundlePage(
+            writer,
+            InteractiveBundleShell.TryCreate(BundleShell)!,
+            SurfaceBase,
+            branding: null,
+            nonce: Nonce
+        );
+
+        Assert.Equal(
+            "<!doctype html><html><head><base href=\"/acme/account/\" /><title>t</title></head><body>"
+                + "<div id=\"root\"></div><script src=\"./app.js\"></script></body></html>",
+            writer.WrittenSpan.ToString()
+        );
+    }
+
+    [Fact]
+    public void RenderBundlePage_WhenBrandingIsGiven_EmbedsItAfterTheBase()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderBundlePage(
+            writer,
+            InteractiveBundleShell.TryCreate(BundleShell)!,
+            SurfaceBase,
+            AcmeBranding,
+            nonce: Nonce
+        );
+
+        Assert.Equal(
+            "<!doctype html><html><head><base href=\"/acme/account/\" />"
+                + "<script type=\"application/json\" id=\"branding\">{\"displayName\":\"Acme\",\"mode\":\"dark\"}</script>"
+                + "<title>t</title></head><body><div id=\"root\"></div><script src=\"./app.js\"></script></body></html>",
+            writer.WrittenSpan.ToString()
+        );
+    }
+
+    [Fact]
+    public void RenderBundlePage_WhenTheBundleCarriesTheNoncePlaceholder_WritesTheNonceInItsPlace()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderBundlePage(
+            writer,
+            InteractiveBundleShell.TryCreate(NonceBundleShell)!,
+            SurfaceBase,
+            branding: null,
+            nonce: Nonce
+        );
+
+        Assert.Equal(
+            "<!doctype html><html><head><base href=\"/acme/account/\" />"
+                + "<meta property=\"csp-nonce\" nonce=\"n0nce\">"
+                + "<script type=\"module\" src=\"./app.js\" nonce=\"n0nce\"></script></head>"
+                + "<body><div id=\"root\"></div></body></html>",
+            writer.WrittenSpan.ToString()
+        );
     }
 
     #endregion

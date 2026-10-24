@@ -22,10 +22,10 @@ namespace NCode.Identity.Dispatch.InProcess;
 
 /// <summary>
 /// Provides the default, in-process, self-scheduling implementation of <see cref="IJobDispatcher"/>. Dispatched jobs
-/// are buffered in an in-memory queue and executed on a background worker with retry and back-off, surviving transient
-/// handler failures but not a process crash. Replace this adapter (register a different <see cref="IJobDispatcher"/>
-/// before calling <c>AddInProcessJobDispatcher</c>) with a durable or distributed backend when at-least-once delivery
-/// across restarts is required.
+/// are buffered in an in-memory queue and executed by background workers, up to the configured number at once, with
+/// retry and back-off, surviving transient handler failures but not a process crash. Replace this adapter (register a
+/// different <see cref="IJobDispatcher"/> before calling <c>AddInProcessJobDispatcher</c>) with a durable or
+/// distributed backend when at-least-once delivery across restarts is required.
 /// </summary>
 internal sealed class DefaultInProcessJobDispatcher(
     InProcessJobQueue queue,

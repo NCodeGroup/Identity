@@ -1,17 +1,9 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { AppThemeProvider } from '@ncode/ui';
-import { App } from './App.js';
+import { mountSurface } from './mount.js';
 
 const container = document.getElementById('root');
 if (!container) {
   throw new Error('Root container #root not found.');
 }
 
-createRoot(container).render(
-  <StrictMode>
-    <AppThemeProvider>
-      <App />
-    </AppThemeProvider>
-  </StrictMode>,
-);
+// The bundle mounts as soon as its module runs, over the page the host rendered (ADR-0253).
+mountSurface(container);

@@ -82,6 +82,52 @@ internal static class DefaultRegistration
                 IResultExecutor<AuthorizationResult>,
                 DefaultAuthorizationResultExecutor
             >();
+            serviceCollection.TryAddSingleton<
+                IAuthorizationResponseModeProvider,
+                DefaultAuthorizationResponseModeProvider
+            >();
+            serviceCollection.TryAddSingleton<
+                IAuthorizationResponseDeliveryResolver,
+                DefaultAuthorizationResponseDeliveryResolver
+            >();
+
+            // Response modes are an open vocabulary: a package adds one by registering its handler (ADR-0201).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IAuthorizationResponseModeHandler,
+                    QueryAuthorizationResponseModeHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IAuthorizationResponseModeHandler,
+                    FragmentAuthorizationResponseModeHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IAuthorizationResponseModeHandler,
+                    FormPostAuthorizationResponseModeHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IAuthorizationResponseModeHandler,
+                    QueryJwtAuthorizationResponseModeHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IAuthorizationResponseModeHandler,
+                    FragmentJwtAuthorizationResponseModeHandler
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IAuthorizationResponseModeHandler,
+                    FormPostJwtAuthorizationResponseModeHandler
+                >()
+            );
 
             // Continue Providers
             serviceCollection.TryAddEnumerable(

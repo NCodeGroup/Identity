@@ -49,7 +49,7 @@ internal sealed class SecretTypeCapabilitiesProvider(ISecretKeyTypeCatalog secre
                 SecretType = descriptor.KeyType,
                 IsAsymmetric = descriptor.IsAsymmetric,
                 SupportsPublicKeyExport = descriptor.SupportsPublicKeyExport,
-                SupportsPublicKeyImport = descriptor.SupportsPublicKeyImport,
+                SupportsPublicKeyImport = descriptor.PublicKeyImportFormats.Count > 0,
             })
             .ToList();
 

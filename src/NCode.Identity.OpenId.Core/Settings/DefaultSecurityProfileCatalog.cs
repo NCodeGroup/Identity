@@ -30,8 +30,10 @@ namespace NCode.Identity.OpenId.Settings;
 /// <remarks>
 /// <para>
 /// A scope selects a set of profiles and every one applies: the ceiling settings of each profile a scope declares are
-/// merged into that scope's settings, and the requirements of each profile in the effective set are evaluated. The
-/// profiles are visited in the ordinal order of their names, so the outcome never depends on how a list was written.
+/// merged into that scope's settings, its default settings fill each choice the scope leaves unset when the setting
+/// applies within the scope (to the scope itself or to a scope below it), and the requirements of each profile in
+/// the effective set are evaluated. The profiles are visited in the ordinal order of their names, so the outcome
+/// never depends on how a list was written.
 /// </para>
 /// <para>
 /// A selected name that matches no registered profile is an error, never "no profile": every entry point rejects such
@@ -39,15 +41,19 @@ namespace NCode.Identity.OpenId.Settings;
 /// selected.
 /// </para>
 /// </remarks>
-// See ADR-0108 (profiles), ADR-0140 (the security_profiles domain), and ADR-0148 (profiles accumulate down the cascade).
+// See ADR-0108 (profiles), ADR-0140 (the security_profiles domain), ADR-0148 (profiles accumulate down the cascade),
+// and ADR-0149 (the scope a setting applies within).
 internal sealed class DefaultSecurityProfileCatalog(
     IEnumerable<ISecurityProfile> profiles,
     ISettingSerializer settingSerializer,
-    ISettingCollectionFactory settingCollectionFactory
+    ISettingCollectionFactory settingCollectionFactory,
+    ISettingScopeCollectionProvider settingScopeCollectionProvider
 ) : ISecurityProfileCatalog
 {
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private ISettingCollectionFactory SettingCollectionFactory { get; } = settingCollectionFactory;
+    private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
+        settingScopeCollectionProvider;
 
     private FrozenDictionary<string, ISecurityProfile> ProfilesByName { get; } =
         profiles.ToFrozenDictionary(profile => profile.ProfileName, StringComparer.Ordinal);
@@ -99,10 +105,32 @@ internal sealed class DefaultSecurityProfileCatalog(
     }
 
     /// <inheritdoc />
-    public IReadOnlyCollection<Setting> Expand(IReadOnlyCollection<Setting> scopeSettings)
+    public IReadOnlyCollection<Setting> Expand(
+        IReadOnlyCollection<Setting> scopeSettings,
+        string scopeName
+    ) => Expand(scopeSettings, scopeName, []);
+
+    /// <inheritdoc />
+    public IReadOnlyCollection<Setting> Expand(
+        IReadOnlyCollection<Setting> scopeSettings,
+        string scopeName,
+        IReadOnlyCollection<Setting> baselineSettings
+    )
     {
-        IReadOnlySettingCollection expanded = SettingCollectionFactory.Create(scopeSettings);
+        ArgumentNullException.ThrowIfNull(scopeName);
+
+        var scopes = SettingScopeCollectionProvider.Collection;
+        if (!scopes.TryGet(scopeName, out _))
+        {
+            throw new ArgumentException(
+                $"'{scopeName}' is not a registered setting scope.",
+                nameof(scopeName)
+            );
+        }
+
+        IReadOnlySettingCollection expanded = Layer(baselineSettings, scopeSettings);
         var appliedProfileNames = new HashSet<string>(StringComparer.Ordinal);
+        var appliedProfiles = new List<ISecurityProfile>();
 
         // A profile's ceiling may itself select the profiles it builds on, so expansion repeats until every profile
         // the scope carries has contributed its ceiling. It ends because each pass applies at least one registered
@@ -113,6 +141,7 @@ internal sealed class DefaultSecurityProfileCatalog(
             foreach (var profile in pendingProfiles)
             {
                 appliedProfileNames.Add(profile.ProfileName);
+                appliedProfiles.Add(profile);
                 expanded = ApplyCeiling(expanded, profile);
             }
 
@@ -121,7 +150,10 @@ internal sealed class DefaultSecurityProfileCatalog(
                 .ToList();
         }
 
-        return appliedProfileNames.Count == 0 ? scopeSettings : expanded;
+        if (appliedProfiles.Count == 0)
+            return baselineSettings.Count == 0 ? scopeSettings : expanded;
+
+        return ApplyDefaults(expanded, appliedProfiles, scopeSettings, scopes, scopeName);
     }
 
     /// <inheritdoc />
@@ -129,7 +161,29 @@ internal sealed class DefaultSecurityProfileCatalog(
         JsonElement settingsJson,
         string scopeName,
         JsonSerializerOptions jsonOptions
-    ) => Expand(SettingSerializer.DeserializeSettings(settingsJson, scopeName, jsonOptions));
+    ) =>
+        Expand(
+            SettingSerializer.DeserializeSettings(settingsJson, scopeName, jsonOptions),
+            scopeName
+        );
+
+    // The scope's own settings replace the baseline's, as the server's configuration replaces a descriptor default.
+    private IReadOnlySettingCollection Layer(
+        IReadOnlyCollection<Setting> baselineSettings,
+        IReadOnlyCollection<Setting> scopeSettings
+    )
+    {
+        if (baselineSettings.Count == 0)
+            return SettingCollectionFactory.Create(scopeSettings);
+
+        var layered = SettingCollectionFactory.Create(baselineSettings);
+        foreach (var setting in scopeSettings)
+        {
+            layered.Set(setting);
+        }
+
+        return layered;
+    }
 
     // Each profile's ceiling is built in its own collection and merged on its own: collecting several profiles into one
     // collection would let a later profile's value for a setting replace an earlier profile's instead of merging with it.
@@ -142,6 +196,58 @@ internal sealed class DefaultSecurityProfileCatalog(
         var builder = new SecurityProfileCeilingBuilder(profile.ProfileName, ceiling);
         profile.ApplyCeilingSettings(builder);
         return settings.Merge(ceiling);
+    }
+
+    // A profile's defaults sit beneath the scope's own settings and above its baseline: a value the scope sets
+    // replaces the default, and the default replaces a baseline value. A default is never a lattice setting, so it
+    // cannot interact with a ceiling, and when several profiles default one setting the profile whose name sorts
+    // first in ordinal order supplies it. A default applies only to a setting that applies within the expanding scope
+    // (the scope itself or a scope below it): a setting for a scope above it would be carried without being honored,
+    // and the scope that does own it chooses its own default. A ceiling is not filtered the same way, because a
+    // bound below the scope a setting applies to only narrows.
+    private IReadOnlyCollection<Setting> ApplyDefaults(
+        IReadOnlySettingCollection settings,
+        IEnumerable<ISecurityProfile> profiles,
+        IReadOnlyCollection<Setting> scopeSettings,
+        ISettingScopeCollection scopes,
+        string scopeName
+    )
+    {
+        var scopeSettingNames = scopeSettings
+            .Select(setting => setting.Descriptor.Name)
+            .ToHashSet(StringComparer.Ordinal);
+        var defaults = new Dictionary<string, Setting>(StringComparer.Ordinal);
+        foreach (
+            var profile in profiles.OrderBy(profile => profile.ProfileName, StringComparer.Ordinal)
+        )
+        {
+            var profileDefaults = SettingCollectionFactory.Create();
+            var builder = new SecurityProfileDefaultsBuilder(profile.ProfileName, profileDefaults);
+            profile.ApplyDefaultSettings(builder);
+
+            foreach (var setting in profileDefaults)
+            {
+                var name = setting.Descriptor.Name;
+                if (
+                    !scopeSettingNames.Contains(name)
+                    && scopes.AppliesWithin(setting.Descriptor, scopeName)
+                )
+                {
+                    defaults.TryAdd(name, setting);
+                }
+            }
+        }
+
+        if (defaults.Count == 0)
+            return settings;
+
+        var result = SettingCollectionFactory.Create(settings);
+        foreach (var setting in defaults.Values)
+        {
+            result.Set(setting);
+        }
+
+        return result;
     }
 
     private List<ISecurityProfile> GetSelectedProfiles(IReadOnlySettingCollection settings)

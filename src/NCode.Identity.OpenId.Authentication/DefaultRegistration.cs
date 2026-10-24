@@ -20,18 +20,22 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Consent;
 using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Messages;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
+using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Pkce;
+using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens;
+using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Mediator;
 using NCode.Registration;
 
@@ -72,17 +76,21 @@ public static class DefaultRegistration
 
             newBuilder
                 .AddAuditingServices()
+                .AddClientCertificateServices()
                 .AddClientServices()
                 .AddClientSettingServices()
                 .AddConsentServices()
                 .AddEndpoints()
                 .AddMessageServices()
                 .AddOutboundHttpServices()
+                .AddPasswordServices()
                 .AddPersistenceServices()
                 .AddPkceServices()
+                .AddRateLimitingServices()
                 .AddResourceServerServices()
                 .AddSessionServices()
                 .AddSubjectServices()
+                .AddTenantUsageServices()
                 .AddTokenServices();
 
             return newBuilder;

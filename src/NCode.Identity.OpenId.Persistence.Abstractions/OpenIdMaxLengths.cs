@@ -107,4 +107,9 @@ public static class OpenIdMaxLengths
     /// Specifies the maximum length of a human-readable <c>Description</c>.
     /// </summary>
     public const int Description = 1000;
+
+    /// <summary>
+    /// Gets the max length of the name of a tenant-usage meter (ADR-0199).
+    /// </summary>
+    public const int UsageMeter = 100;
 }

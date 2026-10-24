@@ -16,6 +16,7 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Core.Tests.ClientCertificates;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using Xunit;
@@ -72,8 +73,14 @@ public class OpenIdSettingRulesTests
     [Theory]
     [InlineData("query", true)]
     [InlineData("form_post", true)]
-    [InlineData("query.jwt", false)]
-    public void ResponseMode_AcceptsTheImplementedModes(string value, bool expected)
+    [InlineData("query.jwt", true)]
+    [InlineData("fragment.jwt", true)]
+    [InlineData("form_post.jwt", true)]
+    [InlineData("jwt", true)]
+    [InlineData("web_message", true)]
+    [InlineData("", false)]
+    [InlineData("query jwt", false)]
+    public void ResponseMode_AcceptsAnyResponseModeName(string value, bool expected)
     {
         Assert.Equal(expected, IsValid(OpenIdSettingRules.ResponseMode(), value));
     }
@@ -127,6 +134,29 @@ public class OpenIdSettingRulesTests
     }
 
     [Theory]
+    [InlineData("unbound", true)]
+    [InlineData("always", true)]
+    [InlineData("never", false)]
+    [InlineData("Always", false)]
+    public void RefreshTokenRotationPolicy_AcceptsTheRotationPolicies(string value, bool expected)
+    {
+        Assert.Equal(expected, IsValid(OpenIdSettingRules.RefreshTokenRotationPolicy(), value));
+    }
+
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(60, true)]
+    [InlineData(61, false)]
+    [InlineData(-1, false)]
+    public void RefreshTokenReuseInterval_AcceptsAtMostOneMinute(int seconds, bool expected)
+    {
+        Assert.Equal(
+            expected,
+            IsValid(OpenIdSettingRules.RefreshTokenReuseInterval(), TimeSpan.FromSeconds(seconds))
+        );
+    }
+
+    [Theory]
     [InlineData("authorization_code", true)]
     [InlineData("implicit", true)]
     [InlineData("hybrid", false)]
@@ -151,6 +181,24 @@ public class OpenIdSettingRulesTests
     public void AccessTokenType_AcceptsOnlyTheJwtAccessTokenType(string value, bool expected)
     {
         Assert.Equal(expected, IsValid(OpenIdSettingRules.AccessTokenType(), value));
+    }
+
+    [Theory]
+    [InlineData("online", true)]
+    [InlineData("online_soft_fail", true)]
+    [InlineData("offline", false)]
+    [InlineData("none", true)]
+    [InlineData("Online", false)]
+    [InlineData("", false)]
+    public void ClientCertificateRevocationMode_AcceptsOnlyTheNamedModes(
+        string value,
+        bool expected
+    )
+    {
+        Assert.Equal(
+            expected,
+            IsValid(OpenIdSettingRules.ClientCertificateRevocationMode(), value)
+        );
     }
 
     #endregion
@@ -245,19 +293,6 @@ public class OpenIdSettingRulesTests
     }
 
     [Theory]
-    [InlineData("https://mtls.example.com", true)]
-    [InlineData("https://mtls.example.com/", true)]
-    [InlineData("https://mtls.example.com:8443", true)]
-    [InlineData("http://mtls.example.com", false)]
-    [InlineData("https://mtls.example.com/path", false)]
-    [InlineData("https://mtls.example.com/?x=1", false)]
-    [InlineData("https://user@mtls.example.com", false)]
-    public void HttpsOrigin_AcceptsOnlyAnHttpsOrigin(string value, bool expected)
-    {
-        Assert.Equal(expected, IsValid(OpenIdSettingRules.HttpsOrigin(), value));
-    }
-
-    [Theory]
     [InlineData("application/oauth-authz-req+jwt", true)]
     [InlineData("application/jwt", true)]
     [InlineData("application/jwt; charset=utf-8", false)]
@@ -270,6 +305,12 @@ public class OpenIdSettingRulesTests
     [Theory]
     [InlineData("CN=client, O=Example", true)]
     [InlineData("   ", false)]
+    [InlineData("cn=client,o=Example", true)]
+    [InlineData("2.5.4.97=PSDGB-FCA-123456,CN=x", true)]
+    [InlineData("CN", false)]
+    [InlineData("XX=y", false)]
+    [InlineData("CN=a,", false)]
+    [InlineData("/C=US/O=Example", false)]
     public void DistinguishedName_AcceptsAParsableName(string value, bool expected)
     {
         Assert.Equal(expected, IsValid(OpenIdSettingRules.DistinguishedName(), value));
@@ -302,6 +343,44 @@ public class OpenIdSettingRulesTests
     public void EmailAddress_AcceptsABareAddress(string value, bool expected)
     {
         Assert.Equal(expected, IsValid(OpenIdSettingRules.EmailAddress(), value));
+    }
+
+    [Fact]
+    public void CaCertificatePem_CertificateAuthority_IsValid()
+    {
+        using var authority = TestCertificates.CreateRootAuthority("Root");
+
+        Assert.True(
+            IsValid(OpenIdSettingRules.CaCertificatePem(), authority.ExportCertificatePem())
+        );
+    }
+
+    [Fact]
+    public void CaCertificatePem_EndEntityCertificate_IsInvalid()
+    {
+        using var authority = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(authority, "CN=client");
+
+        Assert.False(IsValid(OpenIdSettingRules.CaCertificatePem(), leaf.ExportCertificatePem()));
+    }
+
+    [Fact]
+    public void CaCertificatePem_MultipleCertificates_IsInvalid()
+    {
+        using var first = TestCertificates.CreateRootAuthority("First");
+        using var second = TestCertificates.CreateRootAuthority("Second");
+        var bundle = first.ExportCertificatePem() + "\n" + second.ExportCertificatePem();
+
+        Assert.False(IsValid(OpenIdSettingRules.CaCertificatePem(), bundle));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not a certificate")]
+    [InlineData("-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----")]
+    public void CaCertificatePem_NotACertificate_IsInvalid(string value)
+    {
+        Assert.False(IsValid(OpenIdSettingRules.CaCertificatePem(), value));
     }
 
     #endregion

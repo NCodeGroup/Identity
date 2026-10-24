@@ -17,12 +17,11 @@
 #endregion
 
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Logging;
-using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.Secrets.Keys;
 
@@ -51,13 +50,24 @@ internal abstract class MutualTlsClientAuthenticationHandler(
         clientCertificateResolver;
 
     /// <summary>
+    /// Determines whether the presented client <paramref name="certificate"/> is trusted as a credential at all, before
+    /// it is matched against the client's registration. The default trusts it, since the self-signed method's match is
+    /// itself the proof; a PKI method validates the chain to the client's trust anchors.
+    /// </summary>
+    protected virtual ValueTask<bool> IsCertificateTrustedAsync(
+        OpenIdClient openIdClient,
+        PresentedClientCertificate certificate,
+        CancellationToken cancellationToken
+    ) => ValueTask.FromResult(true);
+
+    /// <summary>
     /// Matches the presented client <paramref name="certificate"/> against the client's registration, returning the
     /// <see cref="SecretKey"/> that represents the authenticating credential when it matches, or <see langword="null"/>
     /// when it does not.
     /// </summary>
     protected abstract ValueTask<SecretKey?> MatchCertificateAsync(
         OpenIdClient openIdClient,
-        X509Certificate2 certificate,
+        PresentedClientCertificate certificate,
         CancellationToken cancellationToken
     );
 
@@ -131,7 +141,7 @@ internal abstract class MutualTlsClientAuthenticationHandler(
             return rejected;
 
         var certificate = await ClientCertificateResolver.ResolveCertificateAsync(
-            openIdContext.Http,
+            openIdContext,
             cancellationToken
         );
         if (certificate is null)
@@ -139,6 +149,19 @@ internal abstract class MutualTlsClientAuthenticationHandler(
                 openIdContext,
                 clientId,
                 "client_certificate_missing",
+                cancellationToken
+            );
+
+        var isTrusted = await IsCertificateTrustedAsync(
+            publicClient,
+            certificate,
+            cancellationToken
+        );
+        if (!isTrusted)
+            return await FailAsync(
+                openIdContext,
+                clientId,
+                "client_certificate_untrusted",
                 cancellationToken
             );
 

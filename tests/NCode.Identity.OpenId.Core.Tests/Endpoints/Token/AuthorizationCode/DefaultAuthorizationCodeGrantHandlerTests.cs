@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
@@ -55,6 +56,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
     private Mock<TimeProvider> MockTimeProvider { get; }
     private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private Mock<ITokenService> MockTokenService { get; }
+    private Mock<ISessionService> MockSessionService { get; }
     private DefaultAuthorizationCodeGrantHandler Handler { get; }
 
     public DefaultAuthorizationCodeGrantHandlerTests()
@@ -62,10 +64,12 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
         MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         MockTokenService = CreateStrictMock<ITokenService>();
+        MockSessionService = CreateStrictMock<ISessionService>();
         Handler = new DefaultAuthorizationCodeGrantHandler(
             MockTimeProvider.Object,
             MockPersistedGrantService.Object,
-            MockTokenService.Object
+            MockTokenService.Object,
+            MockSessionService.Object
         );
     }
 
@@ -85,6 +89,21 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
             "subject-id"
         );
     }
+
+    private PersistedGrant<AuthorizationGrant> CreateSessionGrant(DateTimeOffset? consumedWhen) =>
+        new()
+        {
+            Status = PersistedGrantStatus.Active,
+            TenantId = TenantId,
+            ClientId = "client-1",
+            SubjectId = "subject-1",
+            SessionId = "session-xyz",
+            ConsumedWhen = consumedWhen,
+            Payload = new AuthorizationGrant(
+                CreateStrictMock<IAuthorizationRequest>().Object,
+                CreateSubjectAuthenticationWithSession("session-xyz")
+            ),
+        };
 
     private void SetupReplayLookup(PersistedGrant<AuthorizationGrant>? consumedGrant)
     {
@@ -226,40 +245,27 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenAuthorizationCodeReplayed_RevokesSessionAndReturnsInvalidGrant()
+    public async Task HandleAsync_WhenAuthorizationCodeReplayed_TerminatesItsSessionAndReturnsInvalidGrant()
     {
-        // RFC 6749 §4.1.2 / ADR-0112: a second redemption of an already-consumed code revokes the end-user session's
-        // grants (the access and refresh tokens previously issued from that code).
+        // RFC 6749 §4.1.2 / ADR-0112 / ADR-0228: a second redemption of an already-consumed code terminates the
+        // end-user session the code was issued under through the session service.
         var (mockContext, mockClient, _, mockTokenRequest, mockError) = CreateScaffold();
 
         SetupConsume(mockTokenRequest, null);
 
-        var consumedGrant = new PersistedGrant<AuthorizationGrant>
-        {
-            Status = PersistedGrantStatus.Active,
-            TenantId = TenantId,
-            ClientId = "client-1",
-            SubjectId = "subject-1",
-            SessionId = "session-xyz",
-            Payload = new AuthorizationGrant(
-                CreateStrictMock<IAuthorizationRequest>().Object,
-                CreateSubjectAuthenticationWithSession("session-xyz")
-            ),
-        };
+        var consumedGrant = CreateSessionGrant(CreatedWhen);
         SetupReplayLookup(consumedGrant);
 
-        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
-
-        MockPersistedGrantService
+        MockSessionService
             .Setup(x =>
-                x.RevokeBySessionAsync(
+                x.RevokeAsync(
                     It.IsAny<OpenIdContext>(),
                     "session-xyz",
-                    It.IsAny<DateTimeOffset>(),
+                    SessionTerminationReasons.AuthorizationCodeReplay,
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<long>(2L))
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Handler.HandleAsync(
@@ -271,16 +277,28 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        MockPersistedGrantService.Verify(
-            x =>
-                x.RevokeBySessionAsync(
-                    It.IsAny<OpenIdContext>(),
-                    "session-xyz",
-                    It.IsAny<DateTimeOffset>(),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Once
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheCodeWasNeverRedeemed_TerminatesNoSession()
+    {
+        // A code that expired unused or was revoked is not a replay, so it terminates no session.
+        var (mockContext, mockClient, _, mockTokenRequest, mockError) = CreateScaffold();
+
+        SetupConsume(mockTokenRequest, null);
+
+        var unusedGrant = CreateSessionGrant(null);
+        SetupReplayLookup(unusedGrant);
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
         );
+
+        Assert.Same(mockError.Object, result);
     }
 
     [Fact]

@@ -22,6 +22,7 @@ using NCode.Encoders;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Authentication.Pkce;
 using NCode.Identity.OpenId.Authentication.ResourceServers;
 using NCode.Identity.OpenId.Contexts;
@@ -52,24 +53,29 @@ internal class DefaultValidateAuthorizationRequestHandler(
         CancellationToken cancellationToken
     )
     {
-        var (openIdContext, openIdClient, authorizationRequest) = command;
+        var (openIdContext, openIdClient, authorizationRequest, delivery) = command;
 
         var openIdEnvironment = openIdContext.Environment;
 
         var requestMessage = authorizationRequest.OriginalRequestMessage;
         var requestObject = authorizationRequest.OriginalRequestObject;
 
-        ValidateRequestMessage(requestMessage);
-
         if (requestObject != null)
-            ValidateRequestObject(requestMessage, requestObject);
+            ValidateRequestObject(openIdClient, requestMessage, requestObject);
 
-        ValidateRequest(openIdContext, openIdClient, authorizationRequest);
+        ValidateRequiredParameters(openIdContext, authorizationRequest);
+
+        ValidateRequest(openIdContext, openIdClient, authorizationRequest, delivery);
 
         // Apply any security-profile authorization-request requirements (e.g. FAPI's confidential-client rule).
         await SecurityProfileCatalog.EvaluateRequirementsAsync(
             openIdClient.Settings,
-            new AuthorizationRequestProfileContext(openIdContext, openIdClient),
+            new AuthorizationRequestProfileContext(
+                openIdContext,
+                openIdClient,
+                authorizationRequest,
+                delivery
+            ),
             cancellationToken
         );
 
@@ -99,26 +105,35 @@ internal class DefaultValidateAuthorizationRequestHandler(
         }
     }
 
+    // The effective request carries response_type and redirect_uri: the request object's values when there is one
+    // (RFC 9101 §6.3), which may be its only copy, as in a pushed request whose body is only the object and client
+    // authentication (RFC 9126 §3).
     [AssertionMethod]
-    private static void ValidateRequestMessage(IAuthorizationRequestMessage requestMessage)
+    private static void ValidateRequiredParameters(
+        OpenIdContext openIdContext,
+        IAuthorizationRequest authorizationRequest
+    )
     {
-        var errorFactory = requestMessage.OpenIdEnvironment.ErrorFactory;
+        var errorFactory = openIdContext.ErrorFactory;
 
-        var responseTypesCount = requestMessage.ResponseTypes?.Count ?? 0;
-        if (responseTypesCount == 0)
+        if (authorizationRequest.ResponseTypes.Count == 0)
             throw errorFactory
                 .MissingParameter(OpenIdConstants.Parameters.ResponseType)
                 .AsException();
 
-        var redirectUri = requestMessage.RedirectUri;
-        if (redirectUri is null)
+        // ValidateRequestObject already requires the object's redirect_uri.
+        if (
+            authorizationRequest.OriginalRequestObject is null
+            && authorizationRequest.OriginalRequestMessage.RedirectUri is null
+        )
             throw errorFactory
                 .MissingParameter(OpenIdConstants.Parameters.RedirectUri)
                 .AsException();
     }
 
     [AssertionMethod]
-    private static void ValidateRequestObject(
+    internal static void ValidateRequestObject(
+        OpenIdClient openIdClient,
         IAuthorizationRequestMessage requestMessage,
         IAuthorizationRequestObject requestObject
     )
@@ -150,57 +165,20 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 )
                 .AsException();
 
-        /*
-         * So that the request is a valid OAuth 2.0 Authorization Request, values for the response_type and client_id parameters MUST
-         * be included using the OAuth 2.0 request syntax, since they are REQUIRED by OAuth 2.0. The values for these parameters MUST
-         * match those in the Request Object, if present.
-         */
+        // The parameters a request object must carry, and how an outer copy of each relates to them, are declared in one
+        // table (RFC 9101 §5, §6.3; ADR-0202).
+        RequestObjectParameterPolicy.Validate(
+            errorFactory,
+            errorCode,
+            requestMessage,
+            requestObject
+        );
 
-        if (requestMessage.ResponseTypes != null && requestObject.ResponseTypes != null)
-        {
-            var requestMessageResponseType = ResponseTypeValues.Canonicalize(
-                requestMessage.ResponseTypes
-            );
-            var requestObjectResponseType = ResponseTypeValues.Canonicalize(
-                requestObject.ResponseTypes
-            );
-            if (
-                !string.Equals(
-                    requestMessageResponseType,
-                    requestObjectResponseType,
-                    StringComparison.Ordinal
-                )
-            )
-                throw errorFactory
-                    .InvalidRequest(
-                        "The 'response_type' parameter in the JWT request object must match the same value from the request message.",
-                        errorCode
-                    )
-                    .AsException();
-        }
-
-        /*
-         * The Client ID values in the "client_id" request parameter and in the Request Object "client_id" claim MUST be identical.
-         */
-
-        if (string.IsNullOrEmpty(requestObject.ClientId))
-            throw errorFactory
-                .MissingParameter(
-                    "The 'client_id' parameter in the JWT request object is missing.",
-                    errorCode
-                )
-                .AsException();
-
-        if (
-            !string.Equals(
-                requestObject.ClientId,
-                requestMessage.ClientId,
-                StringComparison.Ordinal
-            )
-        )
+        // The object's client_id must name the client the request was identified or authenticated as (RFC 9101 §5).
+        if (!string.Equals(requestObject.ClientId, openIdClient.ClientId, StringComparison.Ordinal))
             throw errorFactory
                 .InvalidRequest(
-                    "The 'client_id' parameter in the JWT request object must match the same value from the request message.",
+                    "The 'client_id' parameter in the JWT request object must name the requesting client.",
                     errorCode
                 )
                 .AsException();
@@ -210,13 +188,14 @@ internal class DefaultValidateAuthorizationRequestHandler(
     private static void ValidateRequest(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
-        IAuthorizationRequest request
+        IAuthorizationRequest request,
+        AuthorizationResponseDelivery delivery
     )
     {
         var errorFactory = openIdContext.ErrorFactory;
         var settings = openIdClient.Settings;
 
-        ValidateProtocolRules(errorFactory, request);
+        ValidateProtocolRules(errorFactory, request, delivery);
         ValidateConfiguredConstraints(errorFactory, settings, request);
         ValidateResponseType(openIdContext, openIdClient, request);
         ValidateCodeChallenge(errorFactory, openIdClient, request);
@@ -226,7 +205,8 @@ internal class DefaultValidateAuthorizationRequestHandler(
     [AssertionMethod]
     private static void ValidateProtocolRules(
         IOpenIdErrorFactory errorFactory,
-        IAuthorizationRequest request
+        IAuthorizationRequest request,
+        AuthorizationResponseDelivery delivery
     )
     {
         var requestedScopes = request.Scopes;
@@ -257,11 +237,12 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 .InvalidRequest("The 'openid' scope is required when requesting id tokens.")
                 .AsException();
 
-        // A token never travels in a query string (OAuth 2.0 Multiple Response Type Encoding Practices §2.1).
-        if (request.ResponseMode == OpenIdConstants.ResponseModes.Query && returnsTokens)
+        // A token never travels in a query string (OAuth 2.0 Multiple Response Type Encoding Practices §2.1), not even
+        // inside a JWT-secured authorization response (JARM §2.3.1).
+        if (returnsTokens && delivery.ResponseModeHandler.DeliversInQuery)
             throw errorFactory
                 .InvalidRequest(
-                    "The 'query' response mode must not be used with a response type that returns a token or an ID token."
+                    $"The '{delivery.ResponseModeHandler.ResponseMode}' response mode must not be used with a response type that returns a token or an ID token."
                 )
                 .AsException();
 
@@ -521,19 +502,7 @@ internal class DefaultValidateAuthorizationRequestHandler(
                     .AsException();
         }
 
-        // response_modes_supported
-        if (
-            settings.TryGetValue(
-                OpenIdSettingKeys.ResponseModesSupported,
-                out var responseModesSupported
-            )
-        )
-        {
-            if (!responseModesSupported.Contains(request.ResponseMode))
-                throw errorFactory
-                    .NotSupported(OpenIdConstants.Parameters.ResponseMode)
-                    .AsException();
-        }
+        // response_modes_supported is enforced when the delivery is derived (IAuthorizationResponseDeliveryResolver)
 
         // scopes_supported is enforced in HandleAsync via IClientScopeService (ADR-0026)
 

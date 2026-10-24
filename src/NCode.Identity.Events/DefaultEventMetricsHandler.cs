@@ -24,32 +24,31 @@ namespace NCode.Identity.Events;
 
 /// <summary>
 /// A universal subscriber that emits a metric for every published event, so metrics hang off the same
-/// seam as logging and audit. The counter is tagged with low-cardinality dimensions only (the event
-/// type, and for audit events the action and outcome); high-cardinality fields such as subject or
-/// tenant are never used as metric dimensions.
+/// seam as logging and audit. The counter is tagged with bounded dimensions only: the event type, for audit events the
+/// action and outcome, and whatever bounded attributes the event declares through
+/// <see cref="ISupportMetricAttributes"/>. High-cardinality fields such as subject or tenant are never dimensions.
 /// </summary>
-internal class DefaultEventMetricsHandler
-    : IEventHandler<IEvent>,
-        ISupportHandlerPriority,
-        IDisposable
+// See ADR-0197.
+internal class DefaultEventMetricsHandler : IEventHandler<IEvent>, ISupportHandlerPriority
 {
-    /// <summary>
-    /// The name of the <see cref="System.Diagnostics.Metrics.Meter"/> that emits event metrics.
-    /// </summary>
-    public const string MeterName = "NCode.Identity.Events";
-
     /// <summary>
     /// The name of the counter that records the number of published events.
     /// </summary>
     public const string EventsPublishedCounterName = "ncode.identity.events.published";
 
-    private Meter Meter { get; }
+    internal const string EventTypeAttribute = "ncode.identity.event.type";
+
+    internal const string AuditActionAttribute = "ncode.identity.audit.action";
+
+    internal const string AuditOutcomeAttribute = "ncode.identity.audit.outcome";
+
     private Counter<long> EventsPublished { get; }
 
-    public DefaultEventMetricsHandler()
+    public DefaultEventMetricsHandler(IMeterFactory meterFactory)
     {
-        Meter = new Meter(MeterName);
-        EventsPublished = Meter.CreateCounter<long>(
+        // The factory owns the meter and disposes it with the service provider.
+        var meter = meterFactory.Create(EventMetrics.MeterName);
+        EventsPublished = meter.CreateCounter<long>(
             EventsPublishedCounterName,
             unit: "{event}",
             description: "The number of events published through the event seam."
@@ -62,18 +61,18 @@ internal class DefaultEventMetricsHandler
     /// <inheritdoc />
     public ValueTask HandleAsync(IEvent @event, CancellationToken cancellationToken)
     {
-        var tags = new TagList { { "event.type", @event.GetType().Name } };
+        var tags = new TagList { { EventTypeAttribute, @event.GetType().Name } };
 
         if (@event is IAuditEvent auditEvent)
         {
-            tags.Add("audit.action", auditEvent.Action);
-            tags.Add("audit.outcome", auditEvent.Outcome);
+            tags.Add(AuditActionAttribute, auditEvent.Action);
+            tags.Add(AuditOutcomeAttribute, auditEvent.Outcome);
         }
+
+        if (@event is ISupportMetricAttributes supportMetricAttributes)
+            supportMetricAttributes.AddMetricAttributes(ref tags);
 
         EventsPublished.Add(1, tags);
         return ValueTask.CompletedTask;
     }
-
-    /// <inheritdoc />
-    public void Dispose() => Meter.Dispose();
 }

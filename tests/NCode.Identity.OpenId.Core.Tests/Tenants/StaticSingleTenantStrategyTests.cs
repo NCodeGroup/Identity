@@ -131,6 +131,88 @@ public sealed class StaticSingleTenantStrategyTests
         mocks.Verify();
     }
 
+    #region GetControlPlaneTenantId Tests
+
+    [Fact]
+    public void GetControlPlaneTenantId_WhenATenantIsConfigured_ReturnsTheConfiguredTenantId()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions { TenantId = "tenant-1" }
+        );
+
+        Assert.Equal("tenant-1", strategy.GetControlPlaneTenantId());
+    }
+
+    [Fact]
+    public void GetControlPlaneTenantId_WhenNoTenantIsConfigured_ReturnsTheDefaultTenantId()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(mocks.Create<IStoreManagerFactory>().Object);
+
+        Assert.Equal(StaticSingleTenantOptions.DefaultTenantId, strategy.GetControlPlaneTenantId());
+    }
+
+    #endregion
+
+    #region ResolveControlPlaneTenantAsync Tests
+
+    [Fact]
+    public async Task ResolveControlPlaneTenantAsync_Always_ReturnsTheConfiguredTenant()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var provisioner = mocks.Create<ITenantProvisioner>();
+
+        var persistedTenant = CreateTenant(isDisabled: false);
+
+        provisioner
+            .Setup(x =>
+                x.EnsureCreatedAsync("tenant-1", "Tenant One", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(persistedTenant)
+            .Verifiable();
+
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions { TenantId = "tenant-1", DisplayName = "Tenant One" }
+        );
+
+        // The strategy serves no other tenant, so no other tenant can issue the caller's token.
+        var result = await strategy.ResolveControlPlaneTenantAsync(
+            CreateHttpContext(provisioner.Object),
+            CancellationToken.None
+        );
+
+        Assert.Same(persistedTenant, result);
+        mocks.Verify();
+    }
+
+    #endregion
+
+    #region IsRequiredTenant Tests
+
+    [Theory]
+    [InlineData("tenant-1", true)]
+    [InlineData(RootTenantOptions.DefaultTenantId, true)]
+    [InlineData("tenant-2", false)]
+    public void IsRequiredTenant_RequiresTheConfiguredAndRootTenantsOnly(
+        string tenantId,
+        bool expected
+    )
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions { TenantId = "tenant-1" }
+        );
+
+        Assert.Equal(expected, strategy.IsRequiredTenant(tenantId));
+        mocks.Verify();
+    }
+
+    #endregion
+
     #region GetDefaultIssuerAsync Tests
 
     [Fact]
@@ -180,6 +262,64 @@ public sealed class StaticSingleTenantStrategyTests
 
     #endregion
 
+    #region GetDefaultMtlsEndpointAliasAuthorityAsync Tests
+
+    [Fact]
+    public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_WhenConfiguredTenant_ReturnsTheConfiguredAlias()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var strategy = CreateStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            new StaticSingleTenantOptions
+            {
+                TenantId = "tenant-1",
+                Issuer = "https://op.example",
+                MtlsEndpointAliasAuthority = "https://mtls.op.example",
+            }
+        );
+
+        var alias = await strategy.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            "tenant-1",
+            CancellationToken.None
+        );
+
+        Assert.Equal("https://mtls.op.example", alias);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_WhenAnotherTenant_ReturnsNone()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+
+        // Not even the root tenant's configured alias: the strategy does not serve the root tenant.
+        var strategy = new StaticSingleTenantStrategy(
+            mocks.Create<IStoreManagerFactory>().Object,
+            Options.Create(
+                new TenantResolutionOptions
+                {
+                    Root = { MtlsEndpointAliasAuthority = "https://mtls.example" },
+                    StaticSingle = new StaticSingleTenantOptions
+                    {
+                        TenantId = "tenant-1",
+                        Issuer = "https://op.example",
+                        MtlsEndpointAliasAuthority = "https://mtls.op.example",
+                    },
+                }
+            )
+        );
+
+        var alias = await strategy.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            RootTenantOptions.DefaultTenantId,
+            CancellationToken.None
+        );
+
+        Assert.Null(alias);
+        mocks.Verify();
+    }
+
+    #endregion
+
     #region ValidateTenantAsync Tests
 
     [Theory]
@@ -201,6 +341,7 @@ public sealed class StaticSingleTenantStrategyTests
         var failures = await strategy.ValidateTenantAsync(
             "default",
             new Uri(issuer),
+            null,
             mocks.Create<IStoreManager>().Object,
             CancellationToken.None
         );
@@ -221,6 +362,7 @@ public sealed class StaticSingleTenantStrategyTests
         var failures = await strategy.ValidateTenantAsync(
             "tenant-1",
             issuer: null,
+            null,
             mocks.Create<IStoreManager>().Object,
             CancellationToken.None
         );
@@ -244,6 +386,7 @@ public sealed class StaticSingleTenantStrategyTests
         var failures = await strategy.ValidateTenantAsync(
             RootTenantOptions.DefaultTenantId,
             issuer: null,
+            null,
             mocks.Create<IStoreManager>().Object,
             CancellationToken.None
         );

@@ -24,6 +24,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -37,6 +38,9 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     private readonly OpenIdDbContext _dbContext;
     private readonly TenantStore _store;
     private readonly ClientStore _clientStore;
+    private readonly ResourceServerStore _resourceServerStore;
+    private readonly RoleAssignmentStore _roleAssignmentStore;
+    private readonly MasterKeyStore _masterKeyStore;
 
     public TenantStoreLifecycleTests()
     {
@@ -50,6 +54,17 @@ public sealed class TenantStoreLifecycleTests : IDisposable
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
         _clientStore = new ClientStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _resourceServerStore = new ResourceServerStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext
+        );
+        _roleAssignmentStore = new RoleAssignmentStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext
+        );
+        _masterKeyStore = new MasterKeyStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
     }
 
     public void Dispose()
@@ -131,6 +146,96 @@ public sealed class TenantStoreLifecycleTests : IDisposable
         _dbContext.ChangeTracker.Clear();
     }
 
+    private async Task SeedResourceServerAsync(bool isSystem)
+    {
+        const string resourceServerId = "rs-1";
+
+        var resourceServer = new PersistedResourceServer
+        {
+            TenantId = TenantId,
+            ResourceServerId = resourceServerId,
+            Identifier = isSystem ? "urn:ncode:openid" : "https://api.example.com",
+            ConcurrencyToken = string.Empty,
+            Name = "Resource Server One",
+            IsSystem = isSystem,
+            IsDisabled = false,
+            Settings = new PersistedResourceServerSettings
+            {
+                TenantId = TenantId,
+                ResourceServerId = resourceServerId,
+                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
+            Scopes =
+            [
+                new PersistedScope
+                {
+                    Value = "openid",
+                    Description = "Sign you in and issue an identity token.",
+                    IsSystem = isSystem,
+                },
+            ],
+            Secrets = new PersistedResourceServerSecrets
+            {
+                TenantId = TenantId,
+                ResourceServerId = resourceServerId,
+                Value = [],
+            },
+        };
+
+        await _resourceServerStore.AddAsync(resourceServer, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+    }
+
+    private async Task SeedRoleAssignmentAsync()
+    {
+        await _roleAssignmentStore.AddAsync(
+            new PersistedRoleAssignment
+            {
+                TenantId = TenantId,
+                AssignmentId = "assign-1",
+                PrincipalId = "subject-1",
+                RoleName = "Owner",
+                ResourceType = "client",
+                ResourceId = ClientId,
+                ConcurrencyToken = string.Empty,
+            },
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+    }
+
+    private static PersistedMasterKey CreateMasterKey(
+        string ownerType,
+        string ownerId,
+        int version
+    ) =>
+        new()
+        {
+            KeyId = Guid.NewGuid(),
+            OwnerType = ownerType,
+            OwnerId = ownerId,
+            Version = version,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            RetiredWhen = null,
+            RootKeyProvider = RootKeyProviderNames.Local,
+            RootKeyId = $"root-key-{version}",
+            RootWrappedKey = $"root-wrapped-key-{version}",
+            RecoveryKeyId = null,
+            RecoveryWrappedKey = null,
+            KeyCheck = $"key-check-{version}",
+        };
+
+    private async Task SeedMasterKeysAsync(params PersistedMasterKey[] masterKeys)
+    {
+        foreach (var masterKey in masterKeys)
+            await _masterKeyStore.AddAsync(masterKey, CancellationToken.None);
+
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+    }
+
     [Fact]
     public async Task AddAsync_AssignsRowConcurrencyToken()
     {
@@ -155,9 +260,68 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     }
 
     [Fact]
-    public async Task RemoveAsync_WhenHasSecrets_Throws()
+    public async Task RemoveAsync_WhenTheTenantHoldsSecrets_RemovesThemWithIt()
     {
-        await SeedTenantAsync(CreateSecret("secret-1"));
+        await SeedTenantAsync(CreateSecret("secret-1"), CreateSecret("secret-2"));
+
+        var removed = await _store.RemoveAsync(TenantId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+
+        Assert.True(removed);
+        Assert.Empty(await _dbContext.TenantSecrets.ToListAsync());
+        Assert.Empty(await _dbContext.Secrets.ToListAsync());
+        Assert.Empty(await _dbContext.Tenants.ToListAsync());
+    }
+
+    [Fact]
+    public async Task RemoveAsync_TenantWithMasterKeys_RemovesThemAndKeepsOthers()
+    {
+        await SeedTenantAsync();
+        var otherTenantKey = CreateMasterKey(SecretOwnerTypes.Tenant, "tenant-2", 1);
+        var serverKey = CreateMasterKey(SecretOwnerTypes.Server, TenantId, 1);
+        await SeedMasterKeysAsync(
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantId, 1),
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantId.ToUpperInvariant(), 2),
+            otherTenantKey,
+            serverKey
+        );
+
+        var removed = await _store.RemoveAsync(TenantId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+
+        Assert.True(removed);
+        var remainingKeyIds = await _dbContext
+            .MasterKeys.AsNoTracking()
+            .Select(entity => entity.KeyId)
+            .ToListAsync();
+        Assert.Equal(2, remainingKeyIds.Count);
+        Assert.Contains(otherTenantKey.KeyId, remainingKeyIds);
+        Assert.Contains(serverKey.KeyId, remainingKeyIds);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WhenTheTenantHoldsASystemResourceServerAndOwners_RemovesThemWithIt()
+    {
+        await SeedTenantAsync();
+        await SeedResourceServerAsync(isSystem: true);
+        await SeedRoleAssignmentAsync();
+
+        var removed = await _store.RemoveAsync(TenantId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+
+        Assert.True(removed);
+        Assert.Empty(await _dbContext.ResourceServers.IgnoreQueryFilters().ToListAsync());
+        Assert.Empty(await _dbContext.Scopes.IgnoreQueryFilters().ToListAsync());
+        Assert.Empty(await _dbContext.ResourceServerSecrets.IgnoreQueryFilters().ToListAsync());
+        Assert.Empty(await _dbContext.RoleAssignments.IgnoreQueryFilters().ToListAsync());
+        Assert.Empty(await _dbContext.Tenants.ToListAsync());
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WhenHasANonSystemResourceServer_Throws()
+    {
+        await SeedTenantAsync();
+        await SeedResourceServerAsync(isSystem: false);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await _store.RemoveAsync(TenantId, CancellationToken.None)
@@ -205,9 +369,20 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     }
 
     [Fact]
-    public async Task HasDependentsAsync_WhenHasSecrets_ReturnsTrue()
+    public async Task HasDependentsAsync_WhenTheTenantHoldsOnlySecrets_ReturnsFalse()
     {
         await SeedTenantAsync(CreateSecret("secret-1"));
+
+        var result = await _store.HasDependentsAsync(TenantId, CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task HasDependentsAsync_WhenHasANonSystemResourceServer_ReturnsTrue()
+    {
+        await SeedTenantAsync();
+        await SeedResourceServerAsync(isSystem: false);
 
         var result = await _store.HasDependentsAsync(TenantId, CancellationToken.None);
 

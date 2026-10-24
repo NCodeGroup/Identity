@@ -16,10 +16,12 @@
 
 #endregion
 
-using System.Buffers;
 using System.Buffers.Text;
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -28,17 +30,20 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NCode.Extensions.DataProtection;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Host;
+using NCode.Identity.OpenId.Host.Database;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
@@ -53,7 +58,8 @@ namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 /// (EF Core caches its internal service provider by option configuration, so a shared database name
 /// would cause parallel test hosts to collide). At present the tenant has no signing keys; once an
 /// ephemeral development key composition exists, this factory (or a derived one) can apply it so that
-/// token-signing and a non-empty JWKS can be asserted.
+/// token-signing and a non-empty JWKS can be asserted. A host is stopped through its own run loop
+/// (<see cref="ApplicationRunLoopHost"/>), so each hosted service is stopped once.
 /// </remarks>
 public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 {
@@ -75,11 +81,31 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// </summary>
     public Func<HttpRequestMessage, string>? ClientJwksResponder { get; set; }
 
+    /// <summary>
+    /// When set, overrides the SSRF-guarded certificate revocation HTTP client with a stub that serves the DER bytes
+    /// this responder returns, so a CRL fetch can be exercised without a real network connection.
+    /// </summary>
+    public Func<HttpRequestMessage, byte[]>? CertificateRevocationListResponder { get; set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the developer clients of the Development overlay are seeded. They are seeded
+    /// only when a derived factory returns <see langword="true"/>, because they are public clients with <c>http</c>
+    /// redirect URIs that a test narrowing the server's or the tenant's ceilings would make incoherent.
+    /// </summary>
+    protected virtual bool SeedsDeveloperClients => false;
+
     private string DatabaseName { get; } = $"it-{Guid.NewGuid():N}";
+
+    private string KeyRingDatabaseName { get; } = $"it-keys-{Guid.NewGuid():N}";
 
     // Shared across every host built from this factory instance (including WithWebHostBuilder-derived hosts) so data
     // seeded through one host is visible to another; a per-host root would give each its own empty database.
     private InMemoryDatabaseRoot DatabaseRoot { get; } = new();
+
+    // Every host this factory builds, including WithWebHostBuilder derivatives that share its database, must unwrap the
+    // same master keys, so they share one root key. The hosts also share the factory's key ring, which that root key
+    // protects. An inline key is allowed outside Production; this one is generated per run and never committed.
+    private string RootKey { get; } = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
 
     /// <summary>
     /// Persists the server's own settings document. The server is materialized once, by the first request that needs
@@ -176,6 +202,38 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
         await store.AddAsync(persistedClient, CancellationToken.None);
         await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a public client registered with the given redirect URIs and the extra
+    /// client settings.
+    /// </summary>
+    public async Task SeedPublicClientWithSettingsAsync(
+        string clientId,
+        IReadOnlyDictionary<string, object> settings,
+        params string[] redirectUris
+    )
+    {
+        // A first request forces the static tenant provider to persist the tenant entity,
+        // which ClientStore.AddAsync requires as a foreign key.
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        var allSettings = new Dictionary<string, object>(settings)
+        {
+            ["redirect_uris"] = redirectUris,
+            ["token_endpoint_auth_method"] = OpenIdConstants.ClientAuthenticationMethods.None,
+        };
+
+        using var scope = Services.CreateScope();
+        await AddClientAsync(
+            scope.ServiceProvider,
+            clientId,
+            System.Text.Json.JsonSerializer.SerializeToElement(allSettings),
+            []
+        );
     }
 
     /// <summary>
@@ -337,11 +395,17 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        // Persist the given client_secret through the same shared-secret primitive production uses (ADR-0110), so the
-        // stored UTF-8 shape is identical to a generated secret's and client authentication round-trips.
+        // Persist the given client_secret through the same shared-secret primitive production uses (ADR-0110), protected
+        // under the tenant's master key, so the stored UTF-8 shape is identical to a generated secret's and client
+        // authentication round-trips.
+        var protector = await serviceProvider
+            .GetRequiredService<ISecretProtectorProvider>()
+            .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
+
         var persistedSecret = serviceProvider
             .GetRequiredService<ISecretGenerator>()
             .ImportSharedSecret(
+                protector,
                 new ImportSharedSecretRequest
                 {
                     SecretId = $"{clientId}-secret",
@@ -386,31 +450,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        var protector = serviceProvider
-            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
-            .CreateDataProtector();
-
-        // Only the public certificate is registered; the server verifies assertions with it.
-        var certificateBytes = certificate.Export(X509ContentType.Cert);
-        var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(certificateBytes, ref writer);
-
-        using var publicKey = certificate.GetRSAPublicKey();
-        var keySizeBits = publicKey!.KeySize;
-
-        var persistedSecret = new PersistedSecret
-        {
-            SecretId = $"{clientId}-cert",
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
-            // A certificate is persisted as its crypto family plus the x509 encoding (ADR-0104).
-            SecretType = SecretTypes.Rsa,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
-            KeySizeBits = keySizeBits,
-            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
-        };
+        var persistedSecret = CreateCertificateSecret(serviceProvider, clientId, certificate);
 
         var settings = new Dictionary<string, object>
         {
@@ -430,14 +470,111 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     }
 
     /// <summary>
+    /// Ensures the tenant exists and seeds a confidential <c>private_key_jwt</c> client whose registered key is the
+    /// public half of <paramref name="certificate"/>, registered with the given redirect URIs and the extra client
+    /// settings, so a security profile's authorization flow can be exercised end to end.
+    /// </summary>
+    public async Task SeedPrivateKeyJwtClientWithSettingsAsync(
+        string clientId,
+        X509Certificate2 certificate,
+        IReadOnlyDictionary<string, object> settings,
+        params string[] redirectUris
+    )
+    {
+        // A first request forces the static tenant provider to persist the tenant entity,
+        // which ClientStore.AddAsync requires as a foreign key.
+        using (var warmupClient = CreateClient())
+        {
+            using var _ = await warmupClient.GetAsync("/oauth2/jwks");
+        }
+
+        using var scope = Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        var persistedSecret = CreateCertificateSecret(serviceProvider, clientId, certificate);
+
+        var allSettings = new Dictionary<string, object>(settings)
+        {
+            ["redirect_uris"] = redirectUris,
+            ["token_endpoint_auth_method"] = OpenIdConstants
+                .ClientAuthenticationMethods
+                .PrivateKeyJwt,
+        };
+
+        await AddClientAsync(
+            serviceProvider,
+            clientId,
+            System.Text.Json.JsonSerializer.SerializeToElement(allSettings),
+            [persistedSecret]
+        );
+    }
+
+    private static PersistedSecret CreateCertificateSecret(
+        IServiceProvider serviceProvider,
+        string clientId,
+        X509Certificate2 certificate
+    )
+    {
+        // Only the public certificate is registered, stored unencrypted; the server verifies assertions with it.
+        var certificateBytes = certificate.Export(X509ContentType.Cert);
+
+        using var publicKey = certificate.GetRSAPublicKey();
+        var keySizeBits = publicKey!.KeySize;
+
+        return new PersistedSecret
+        {
+            SecretId = $"{clientId}-cert",
+            Use = null,
+            Algorithm = null,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
+            // A certificate is persisted as its crypto family plus the x509 encoding (ADR-0104).
+            SecretType = SecretTypes.Rsa,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
+            KeySizeBits = keySizeBits,
+            EncodedValue = Base64Url.EncodeToString(certificateBytes),
+        };
+    }
+
+    /// <summary>
     /// Ensures the tenant exists and seeds a confidential client whose public verification keys are published at the
     /// given <paramref name="jwksUri"/> (resolved at runtime), with no stored secrets, so the client can authenticate
     /// via <c>private_key_jwt</c> by signing a <c>client_assertion</c> with the corresponding private key.
     /// </summary>
-    public async Task SeedConfidentialClientWithJwksUriAsync(
+    public Task SeedConfidentialClientWithJwksUriAsync(
         string clientId,
         string jwksUri,
         params string[] grantTypes
+    ) =>
+        SeedClientWithJwksUriAsync(
+            clientId,
+            jwksUri,
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            grantTypes
+        );
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client registered for <c>self_signed_tls_client_auth</c>
+    /// whose certificates are published, as the <c>x5c</c> of its keys, at the given <paramref name="jwksUri"/>
+    /// (resolved at runtime), with no stored secrets (RFC 8705 §2.2).
+    /// </summary>
+    public Task SeedSelfSignedTlsClientWithJwksUriAsync(
+        string clientId,
+        string jwksUri,
+        params string[] grantTypes
+    ) =>
+        SeedClientWithJwksUriAsync(
+            clientId,
+            jwksUri,
+            OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth,
+            grantTypes
+        );
+
+    private async Task SeedClientWithJwksUriAsync(
+        string clientId,
+        string jwksUri,
+        string authenticationMethod,
+        string[] grantTypes
     )
     {
         using (var warmupClient = CreateClient())
@@ -448,9 +585,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         var settings = new Dictionary<string, object>
         {
             ["jwks_uri"] = jwksUri,
-            ["token_endpoint_auth_method"] = OpenIdConstants
-                .ClientAuthenticationMethods
-                .PrivateKeyJwt,
+            ["token_endpoint_auth_method"] = authenticationMethod,
         };
         if (grantTypes.Length > 0)
             settings["grant_types_supported"] = grantTypes;
@@ -507,7 +642,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// <summary>
     /// Ensures the tenant exists and seeds a confidential client registered for <c>self_signed_tls_client_auth</c>
     /// whose registered certificate is the public half of <paramref name="certificate"/>, carrying the given
-    /// additional client settings (for example <c>tls_client_certificate_bound_access_tokens</c>).
+    /// additional client settings (for example <c>require_tls_client_certificate_bound_access_tokens</c>).
     /// </summary>
     public async Task SeedSelfSignedTlsClientAsync(
         string clientId,
@@ -524,13 +659,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        var protector = serviceProvider
-            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
-            .CreateDataProtector();
-
         var certificateBytes = certificate.Export(X509ContentType.Cert);
-        var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(certificateBytes, ref writer);
 
         using var publicKey = certificate.GetRSAPublicKey();
         var keySizeBits = publicKey!.KeySize;
@@ -545,7 +674,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
             KeySizeBits = keySizeBits,
-            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+            EncodedValue = Base64Url.EncodeToString(certificateBytes),
         };
 
         var settings = new Dictionary<string, object>(additionalSettings)
@@ -567,12 +696,35 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
     /// <summary>
     /// Ensures the tenant exists and seeds a confidential client registered for <c>tls_client_auth</c>
-    /// (RFC 8705 §2.1) whose expected certificate subject distinguished name is <paramref name="subjectDn"/>, so the
-    /// client authenticates by presenting a PKI certificate with that subject on the mutual-TLS connection.
+    /// (RFC 8705 §2.1) whose expected certificate subject distinguished name is <paramref name="subjectDn"/> and whose
+    /// certificate must chain to one of <paramref name="trustAnchors"/> (PEM), so the client authenticates by
+    /// presenting a certificate issued by that PKI with that subject on the mutual-TLS connection.
+    /// </summary>
+    public Task SeedTlsClientAuthSubjectDnClientAsync(
+        string clientId,
+        string subjectDn,
+        IReadOnlyCollection<string> trustAnchors,
+        params string[] grantTypes
+    ) =>
+        SeedTlsClientAuthSubjectDnClientAsync(
+            clientId,
+            subjectDn,
+            trustAnchors,
+            new Dictionary<string, object>(),
+            grantTypes
+        );
+
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client registered for <c>tls_client_auth</c> whose expected
+    /// certificate subject distinguished name is <paramref name="subjectDn"/> and whose certificate must chain to one
+    /// of <paramref name="trustAnchors"/> (PEM), carrying the given additional client settings (for example
+    /// <c>tls_client_auth_revocation_mode</c>), which override the defaults this method sets.
     /// </summary>
     public async Task SeedTlsClientAuthSubjectDnClientAsync(
         string clientId,
         string subjectDn,
+        IReadOnlyCollection<string> trustAnchors,
+        IReadOnlyDictionary<string, object> additionalSettings,
         params string[] grantTypes
     )
     {
@@ -587,7 +739,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 .ClientAuthenticationMethods
                 .TlsClientAuth,
             ["tls_client_auth_subject_dn"] = subjectDn,
+            ["tls_client_auth_trust_anchors"] = trustAnchors,
+            // By default the test PKI publishes no revocation data.
+            ["tls_client_auth_revocation_mode"] = OpenIdConstants
+                .ClientCertificateRevocationMode
+                .None,
         };
+        foreach (var (name, value) in additionalSettings)
+            settings[name] = value;
         if (grantTypes.Length > 0)
             settings["grant_types_supported"] = grantTypes;
 
@@ -656,17 +815,16 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        var protector = serviceProvider
-            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
-            .CreateDataProtector();
+        var protector = await serviceProvider
+            .GetRequiredService<ISecretProtectorProvider>()
+            .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
 
+        var secretId = $"{clientId}-secret";
         var secretBytes = Encoding.UTF8.GetBytes(clientSecret);
-        var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(secretBytes, ref writer);
 
         var persistedSecret = new PersistedSecret
         {
-            SecretId = $"{clientId}-secret",
+            SecretId = secretId,
             Use = null,
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
@@ -674,7 +832,10 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
             KeySizeBits = secretBytes.Length * 8,
-            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+            EncodedValue = protector.ProtectToString(
+                secretBytes,
+                SecretProtectionContext.ForPersistedSecret(secretId)
+            ),
         };
 
         var settings = new Dictionary<string, object>
@@ -815,12 +976,11 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             await storeManager.SaveChangesAsync(CancellationToken.None);
         }
 
-        var protector = serviceProvider
-            .GetRequiredService<IDataProtectorFactory<PersistedSecret>>()
-            .CreateDataProtector();
+        var protector = await serviceProvider
+            .GetRequiredService<ISecretProtectorProvider>()
+            .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
+        var secretId = $"{clientId}-secret";
         var secretBytes = Encoding.UTF8.GetBytes(storedSecret);
-        var writer = new ArrayBufferWriter<byte>();
-        protector.ProtectSpan(secretBytes, ref writer);
 
         var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
             new Dictionary<string, object>()
@@ -847,7 +1007,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                     [
                         new PersistedSecret
                         {
-                            SecretId = $"{clientId}-secret",
+                            SecretId = secretId,
                             Use = null,
                             Algorithm = null,
                             CreatedWhen = DateTimeOffset.UnixEpoch,
@@ -855,7 +1015,10 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                             SecretType = SecretTypes.Symmetric,
                             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
                             KeySizeBits = secretBytes.Length * 8,
-                            EncodedValue = Base64Url.EncodeToString(writer.WrittenSpan),
+                            EncodedValue = protector.ProtectToString(
+                                secretBytes,
+                                SecretProtectionContext.ForPersistedSecret(secretId)
+                            ),
                         },
                     ],
                 },
@@ -946,6 +1109,78 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 
+    /// <summary>
+    /// Replaces the settings document that the store holds for the tenant. It writes through the store, without the
+    /// management API's checks and without evicting the tenant that the host materialized, so a management request
+    /// reads a document the settings vocabulary may not honor while the caller's token still validates.
+    /// </summary>
+    /// <param name="settings">The tenant's settings document.</param>
+    public async Task ReplaceTenantSettingsAsync(IReadOnlyDictionary<string, object> settings)
+    {
+        using var scope = Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var tenantStore = storeManager.GetStore<ITenantStore>();
+        var tenantSettings =
+            await tenantStore.GetSettingsOrDefaultAsync(TenantId, CancellationToken.None)
+            ?? throw new InvalidOperationException(
+                "The tenant is not persisted yet; serve a request first."
+            );
+
+        tenantSettings.Value = System.Text.Json.JsonSerializer.SerializeToElement(settings);
+        await tenantStore.UpdateSettingsAsync(tenantSettings, CancellationToken.None);
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Creates an HTTP client that calls the management API as the given client: it obtains a
+    /// <c>client_credentials</c> access token with the <c>read:clients</c> scope, then sends it as a bearer token.
+    /// </summary>
+    /// <param name="clientId">The identifier of the client that authenticates with a shared secret.</param>
+    /// <param name="clientSecret">The client's secret, as sent to the token endpoint.</param>
+    /// <returns>The HTTP client, which does not follow redirects and carries the bearer token.</returns>
+    public async Task<HttpClient> CreateManagementClientAsync(string clientId, string clientSecret)
+    {
+        const string managementScope = "read:clients";
+
+        var client = CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var credentials = Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}");
+        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
+        {
+            Headers =
+            {
+                Authorization = new AuthenticationHeaderValue(
+                    "Basic",
+                    Convert.ToBase64String(credentials)
+                ),
+            },
+            Content = new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["scope"] = managementScope,
+                }
+            ),
+        };
+
+        using var response = await client.SendAsync(tokenRequest);
+        response.EnsureSuccessStatusCode();
+        using var document = System.Text.Json.JsonDocument.Parse(
+            await response.Content.ReadAsStringAsync()
+        );
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            document.RootElement.GetProperty("access_token").GetString()
+        );
+        return client;
+    }
+
     private PersistedTenant CreateEmptyTenant(string tenantId) =>
         new()
         {
@@ -983,6 +1218,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 new Dictionary<string, string?>
                 {
                     ["OpenId:TenantResolution:StaticSingle:Issuer"] = TestServerIssuer,
+                    ["SecretProtection:RootKeyProvider"] = "local",
+                    ["SecretProtection:RootKeyProviders:Local:Key"] = RootKey,
                 }
             )
         );
@@ -997,10 +1234,27 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 options.UseInMemoryDatabase(DatabaseName, DatabaseRoot)
             );
 
+            // The key ring lives beside the master key that protects it, shared by every host of this factory, and no
+            // test reads or writes the machine's key directory.
+            serviceCollection.RemoveAll<DbContextOptions<DeveloperDataProtectionDbContext>>();
+            serviceCollection.AddDbContext<DeveloperDataProtectionDbContext>(options =>
+                options.UseInMemoryDatabase(KeyRingDatabaseName, DatabaseRoot)
+            );
+            serviceCollection
+                .AddDataProtection()
+                .PersistKeysToDbContext<DeveloperDataProtectionDbContext>();
+
             // Widen the server ceiling (registered after the library default, so it unions on top):
             // enables the client_credentials and resource-owner password grants plus a custom "api" scope for
             // integration coverage. Both grants stay off in the host's own secure defaults.
             serviceCollection.AddSingleton<IDefaultSettingsProvider, TestServerSettingsProvider>();
+
+            // Seed no developer clients unless a derived factory opts in (the last registration wins, so the
+            // developer seeder sees an empty set of clients).
+            if (!SeedsDeveloperClients)
+            {
+                serviceCollection.AddSingleton(new DeveloperInteractiveSeedOptions());
+            }
 
             // Replace the SSRF-guarded client jwks_uri HTTP client with a stub serving canned JSON, so a jwks_uri
             // fetch can be exercised without a real outbound connection (which the guard would refuse).
@@ -1013,21 +1267,29 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                     );
             }
 
+            // Replace the SSRF-guarded certificate revocation HTTP client with a stub serving a canned CRL, so a CRL
+            // fetch can be exercised without a real outbound connection (which the guard would refuse).
+            if (CertificateRevocationListResponder is { } crlResponder)
+            {
+                serviceCollection
+                    .AddHttpClient("NCode.Identity.OpenId.ClientCertificateRevocation")
+                    .ConfigurePrimaryHttpMessageHandler(() =>
+                        new StubBinaryHttpMessageHandler(crlResponder)
+                    );
+            }
+
             // The TestServer terminates no TLS, so mutual-TLS client authentication is exercised by forwarding the
             // client certificate in a header (the reverse-proxy path the default resolver already supports).
-            serviceCollection.Configure<NCode.Identity.OpenId.Authentication.Tokens.MutualTlsForwardingOptions>(
-                options =>
-                {
-                    options.CertificateHeaderName = MutualTlsCertificateHeaderName;
-                    options.Format = NCode
-                        .Identity
-                        .OpenId
-                        .Authentication
-                        .Tokens
-                        .MutualTlsClientCertificateFormat
-                        .Base64Der;
-                }
-            );
+            serviceCollection.Configure<MutualTlsForwardingOptions>(options =>
+            {
+                options.CertificateHeaderName = MutualTlsCertificateHeaderName;
+                options.Format = ClientCertificateHeaderFormats.Base64Der;
+            });
         });
     }
+
+    /// <inheritdoc />
+    protected override Microsoft.Extensions.Hosting.IHost CreateHost(
+        Microsoft.Extensions.Hosting.IHostBuilder builder
+    ) => new ApplicationRunLoopHost(base.CreateHost(builder));
 }

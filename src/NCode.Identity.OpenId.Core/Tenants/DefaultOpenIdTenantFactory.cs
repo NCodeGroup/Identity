@@ -35,6 +35,7 @@ using NCode.Identity.Results;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
@@ -56,9 +57,10 @@ public class DefaultOpenIdTenantFactory(
     IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
     ISettingSerializer settingSerializer,
     ISecretSerializer secretSerializer,
+    ISecretProtectorProvider secretProtectorProvider,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
-    ISecurityProfileCatalog securityProfileCatalog
+    IEffectiveSettingsResolver effectiveSettingsResolver
 ) : IOpenIdTenantFactory
 {
     /// <summary>
@@ -98,6 +100,11 @@ public class DefaultOpenIdTenantFactory(
     protected ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     /// <summary>
+    /// Gets the <see cref="ISecretProtectorProvider"/> used to get the <see cref="ISecretProtector"/> that unprotects a tenant's secrets.
+    /// </summary>
+    protected ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
+
+    /// <summary>
     /// Gets the <see cref="ISecretKeyCollectionProviderFactory"/> used to create <see cref="ISecretKeyCollectionProvider"/> instances.
     /// </summary>
     protected ISecretKeyCollectionProviderFactory SecretKeyCollectionProviderFactory { get; } =
@@ -110,9 +117,10 @@ public class DefaultOpenIdTenantFactory(
         collectionDataSourceFactory;
 
     /// <summary>
-    /// Gets the <see cref="ISecurityProfileCatalog"/> used to expand a scope's selected security profile.
+    /// Gets the <see cref="IEffectiveSettingsResolver"/> used to read each scope's persisted settings document.
     /// </summary>
-    protected ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    protected IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
 
     /// <inheritdoc />
     public virtual async ValueTask<
@@ -128,7 +136,10 @@ public class DefaultOpenIdTenantFactory(
         // Probe the cache before any store round-trip when the tenant's identity can be determined from the request
         // alone (static/path strategies). Host-based tenancy must map its domain to a tenant via the store, so it
         // falls through to a full resolve. A cache hit intentionally serves the cached tenant without re-reading the
-        // store, so a tenant disabled after it was cached continues to serve until the cache entry expires.
+        // store. A management write announces the change (TenantChangedCommand), and every replica evicts the tenant
+        // when the announcement arrives (ADR-0205). A replica that missed the announcement evicts every cached tenant
+        // when its subscription is restored, and a cached tenant lives at most OpenIdTenantOptions.TenantCacheLifetime
+        // (ADR-0219).
         PersistedTenant? persistedTenant = null;
         if (!TenantResolver.TryGetTenantId(httpContext, out var tenantId))
         {
@@ -151,13 +162,73 @@ public class DefaultOpenIdTenantFactory(
         }
 
         persistedTenant ??= await TenantResolver.ResolveTenantAsync(httpContext, cancellationToken);
-        tenantId = persistedTenant.TenantId;
 
+        return await MaterializeTenantAsync(
+            httpContext,
+            openIdEnvironment,
+            openIdServer,
+            persistedTenant.TenantId,
+            propertyBag,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    public virtual async ValueTask<
+        AsyncSharedReferenceLease<OpenIdTenant>
+    > CreateControlPlaneTenantAsync(
+        HttpContext httpContext,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
+        // The control-plane tenant is identified by configuration rather than from the request, and it is shared through
+        // the same cache as when a request addresses it. The cache is probed before any store round-trip, so a cache hit
+        // serves it as a request tenant is served (see CreateTenantForRequestAsync).
+        var tenantId = TenantResolver.GetControlPlaneTenantId();
+
+        await using var cachedTenantReference = await TenantCache.TryGetAsync(
+            tenantId,
+            propertyBag,
+            cancellationToken
+        );
+
+        if (cachedTenantReference.IsActive)
+        {
+            return cachedTenantReference.AddReference();
+        }
+
+        var persistedTenant = await TenantResolver.ResolveControlPlaneTenantAsync(
+            httpContext,
+            cancellationToken
+        );
+
+        return await MaterializeTenantAsync(
+            httpContext,
+            openIdEnvironment,
+            openIdServer,
+            persistedTenant.TenantId,
+            propertyBag,
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> MaterializeTenantAsync(
+        HttpContext httpContext,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
+        string tenantId,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
         // A tenant is seeded whenever it is materialized: the bootstrap of a tenant created on demand, and the
         // reconciliation that brings an existing tenant up to date with the seed contributors (ADR-0166). The provisioner
         // is scoped (its mediator is request-scoped), so it is resolved from the request's services.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
-        persistedTenant = await provisioner.SeedAsync(tenantId, cancellationToken);
+        var persistedTenant = await provisioner.SeedAsync(tenantId, cancellationToken);
 
         var tenantPropertyBag = propertyBag.Clone();
 
@@ -360,12 +431,9 @@ public class DefaultOpenIdTenantFactory(
         CancellationToken cancellationToken
     )
     {
-        var jsonOptions = openIdEnvironment.JsonSerializerOptions;
-        var initialSettingsJson = persistedTenant.Settings.Value;
-        var initialSettings = SecurityProfileCatalog.Expand(
-            initialSettingsJson,
+        var initialSettings = EffectiveSettingsResolver.ReadScopeSettings(
             OpenIdSettingScopes.Tenant,
-            jsonOptions
+            persistedTenant.Settings.Value
         );
 
         var periodicPollingSource = CollectionDataSourceFactory.CreatePeriodicPolling(
@@ -398,7 +466,7 @@ public class DefaultOpenIdTenantFactory(
         CancellationToken cancellationToken
     )
     {
-        var (openIdEnvironment, _, persistedTenant) = state;
+        var persistedTenant = state.PersistedTenant;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
@@ -414,11 +482,9 @@ public class DefaultOpenIdTenantFactory(
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
-        var jsonOptions = openIdEnvironment.JsonSerializerOptions;
-        var settings = SecurityProfileCatalog.Expand(
-            newSettings.Value,
+        var settings = EffectiveSettingsResolver.ReadScopeSettings(
             OpenIdSettingScopes.Tenant,
-            jsonOptions
+            newSettings.Value
         );
 
         // update the state after successfully deserializing the settings
@@ -485,7 +551,7 @@ public class DefaultOpenIdTenantFactory(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the tenant's <see cref="ISecretKeyCollectionProvider"/> instance.</returns>
     /// <exception cref="InvalidOperationException">A key of the tenant cannot be unprotected.</exception>
-    protected virtual ValueTask<
+    protected virtual async ValueTask<
         AsyncSharedReferenceLease<ISecretKeyCollectionProvider>
     > GetTenantSecretsAsync(
         HttpContext httpContext,
@@ -500,7 +566,10 @@ public class DefaultOpenIdTenantFactory(
     )
     {
         var refreshInterval = OpenIdOptions.Tenant.SecretsPeriodicRefreshInterval;
-        var initialCollection = DeserializeTenantSecrets(persistedTenant);
+        var initialCollection = await DeserializeTenantSecretsAsync(
+            persistedTenant,
+            cancellationToken
+        );
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedTenant,
@@ -511,24 +580,33 @@ public class DefaultOpenIdTenantFactory(
 
         var provider = SecretKeyCollectionProviderFactory.Create(dataSource, owns: true);
 
-        return ValueTask.FromResult(provider.AsSharedReference());
+        return provider.AsSharedReference();
     }
 
-    // A tenant key that cannot be unprotected means the Data Protection key ring that protected it is missing or has
-    // changed. The server never discards or replaces such a key (ADR-0169), so the tenant fails with a reason an
-    // operator can act on instead of the key ring's bare cryptographic error.
-    private IReadOnlyCollection<SecretKey> DeserializeTenantSecrets(PersistedTenant persistedTenant)
+    // A tenant key that cannot be unprotected means the master key that protected it, or the root key that wraps that
+    // master key, is missing or has changed. The server never discards or replaces such a key (ADR-0169), so the
+    // tenant fails with a reason an operator can act on instead of the bare cryptographic error.
+    private async ValueTask<IReadOnlyCollection<SecretKey>> DeserializeTenantSecretsAsync(
+        PersistedTenant persistedTenant,
+        CancellationToken cancellationToken
+    )
     {
         try
         {
-            return SecretSerializer.DeserializeSecrets(persistedTenant.Secrets.Value);
+            var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+                SecretOwner.ForTenant(persistedTenant.TenantId),
+                persistedTenant.Secrets.Value,
+                cancellationToken
+            );
+
+            return SecretSerializer.DeserializeSecrets(protector, persistedTenant.Secrets.Value);
         }
         catch (CryptographicException exception)
         {
             throw new InvalidOperationException(
                 $"The keys of the tenant with id '{persistedTenant.TenantId}' cannot be unprotected, so the tenant "
-                    + "cannot be served. The Data Protection key ring that protected them is missing or has changed: "
-                    + "restore it. The server does not discard or replace a key it cannot read.",
+                    + "cannot be served. The master key that protected them, or the root key that wraps it, is missing "
+                    + "or has changed: restore it. The server does not discard or replace a key it cannot read.",
                 exception
             );
         }
@@ -554,7 +632,13 @@ public class DefaultOpenIdTenantFactory(
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 
-        var secrets = SecretSerializer.DeserializeSecrets(newSecrets.Value);
+        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+            SecretOwner.ForTenant(tenantId),
+            newSecrets.Value,
+            cancellationToken
+        );
+
+        var secrets = SecretSerializer.DeserializeSecrets(protector, newSecrets.Value);
 
         // update the state after successfully deserializing the secrets
         persistedTenant.Secrets = newSecrets;
@@ -589,6 +673,7 @@ public class DefaultOpenIdTenantFactory(
             persistedTenant.TenantId,
             persistedTenant.DisplayName,
             tenantIssuer,
+            persistedTenant.MtlsEndpointAliasAuthority,
             tenantBaseAddress,
             tenantSettings,
             tenantSecrets,

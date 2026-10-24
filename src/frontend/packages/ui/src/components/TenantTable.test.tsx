@@ -3,8 +3,20 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { TenantTable, type TenantRow } from './TenantTable.js';
 
 const tenants: TenantRow[] = [
-  { tenantId: 'root', displayName: 'Root', issuer: 'https://id.example', isDisabled: false },
-  { tenantId: 'old', displayName: 'Legacy', issuer: null, isDisabled: true },
+  {
+    tenantId: 'root',
+    displayName: 'Root',
+    issuer: 'https://id.example',
+    mtlsEndpointAliasAuthority: 'https://mtls.id.example',
+    isDisabled: false,
+  },
+  {
+    tenantId: 'old',
+    displayName: 'Legacy',
+    issuer: null,
+    mtlsEndpointAliasAuthority: null,
+    isDisabled: true,
+  },
 ];
 
 describe('TenantTable', () => {
@@ -14,10 +26,12 @@ describe('TenantTable', () => {
     expect(screen.getByText('Legacy')).toBeInTheDocument();
   });
 
-  it('shows the issuer, or an em dash when there is none', () => {
+  it('shows the issuer and mTLS endpoint alias, or an em dash for each that is absent', () => {
     render(<TenantTable tenants={tenants} />);
     expect(screen.getByText('https://id.example')).toBeInTheDocument();
-    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.getByText('https://mtls.id.example')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'mTLS endpoint alias' })).toBeInTheDocument();
+    expect(screen.getAllByText('—')).toHaveLength(2);
   });
 
   it('invokes onSelect with the tenant id when a row is clicked', () => {

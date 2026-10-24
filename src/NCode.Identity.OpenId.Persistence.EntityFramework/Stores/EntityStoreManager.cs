@@ -100,7 +100,18 @@ internal sealed class EntityStoreManager<TDbContext>(
     /// <inheritdoc />
     public async ValueTask SaveChangesAsync(CancellationToken cancellationToken)
     {
-        await DbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await DbContext.SaveChangesAsync(cancellationToken);
+        }
+        // See ADR-0208.
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new StoreConcurrencyException(
+                "The store was changed by another unit of work after it was read.",
+                exception
+            );
+        }
     }
 
     private object? GetStoreNonGeneric(Type storeType)

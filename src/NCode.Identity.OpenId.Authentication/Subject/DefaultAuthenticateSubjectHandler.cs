@@ -20,7 +20,9 @@ using System.Diagnostics;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -45,7 +47,8 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 internal class DefaultAuthenticateSubjectHandler(
     IStoreManagerFactory storeManagerFactory,
     IPrincipalResolver principalResolver,
-    IAuditEventRecorder auditEventRecorder
+    IAuditEventRecorder auditEventRecorder,
+    ISessionService sessionService
 )
     : ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>,
         ICommandResponseHandler<AuthenticateResourceRequestCommand, AuthenticateSubjectDisposition>
@@ -53,6 +56,7 @@ internal class DefaultAuthenticateSubjectHandler(
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
+    private ISessionService SessionService { get; } = sessionService;
 
     private const string BearerPrefix = "Bearer ";
     private const string BearerScheme = "Bearer";
@@ -126,6 +130,22 @@ internal class DefaultAuthenticateSubjectHandler(
         Debug.Assert(baseResult.Succeeded);
 
         var baseTicket = baseResult.Ticket;
+
+        // The server-side session of the cookie must still be active, as on the authorize path; a session that was
+        // revoked or has ended leaves the request unauthenticated, so the endpoint asks for a new login. See ADR-0225.
+        var sessionId = baseTicket.Principal.FindFirst(JoseClaimNames.Payload.Sid)?.Value;
+        if (
+            !string.IsNullOrEmpty(sessionId)
+            && !await SessionService.ValidateAndTouchAsync(
+                openIdContext,
+                sessionId,
+                cancellationToken
+            )
+        )
+        {
+            return Undefined();
+        }
+
         return await CompleteAsync(
             openIdContext,
             baseTicket.Principal,

@@ -35,5 +35,7 @@
         <ProjectReference Include="..\NCode.Identity.OpenId.Messages.Abstractions\NCode.Identity.OpenId.Messages.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.Abstractions\NCode.Identity.OpenId.Persistence.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets.Persistence.Abstractions\NCode.Identity.Secrets.Persistence.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.SharedState.Abstractions\NCode.Identity.SharedState.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Time\NCode.Time.csproj" />
     </ItemGroup>
 </Project>

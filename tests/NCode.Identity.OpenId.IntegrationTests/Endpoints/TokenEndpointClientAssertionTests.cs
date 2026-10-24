@@ -313,6 +313,22 @@ public class TokenEndpointClientAssertionTests
         );
     }
 
+    [Theory]
+    [InlineData("not-a-jwt")]
+    [InlineData("e30.e30.c2ln.e30")]
+    [InlineData("!!!.e30.c2ln")]
+    [InlineData("WzFd.e30.c2ln")]
+    [InlineData("eyJhbGciOiJIUzI1NiJ9.WzFd.c2ln")]
+    public async Task PostToken_ClientAssertion_WhenMalformed_ReturnsInvalidClient(string assertion)
+    {
+        using var factory = await CreateSeededFactoryAsync();
+        var client = CreateClient(factory);
+
+        using var response = await client.PostAsync(TokenPath, ClientAssertionBody(assertion));
+
+        await AssertInvalidClientAsync(response);
+    }
+
     [Fact]
     public async Task PostToken_PrivateKeyJwt_WithRegisteredCertificate_ReturnsAccessToken()
     {

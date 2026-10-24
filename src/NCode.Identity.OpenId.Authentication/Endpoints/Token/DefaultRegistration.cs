@@ -105,6 +105,13 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<ITokenGrantHandler, DefaultDeviceCodeGrantHandler>()
             );
 
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateTokenGrantCommand<DeviceCodeGrant>>,
+                    DefaultValidateDeviceCodeGrantHandler
+                >()
+            );
+
             // CIBA (Client-Initiated Backchannel Authentication)
 
             serviceCollection.TryAddSingleton<
@@ -114,6 +121,13 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ITokenGrantHandler, DefaultCibaGrantHandler>()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateTokenGrantCommand<CibaGrant>>,
+                    DefaultValidateCibaGrantHandler
+                >()
             );
 
             // Client Credentials

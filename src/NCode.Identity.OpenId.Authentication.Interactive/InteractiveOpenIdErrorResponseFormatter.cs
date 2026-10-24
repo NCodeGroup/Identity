@@ -16,8 +16,7 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
-using NCode.Buffers;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
 
@@ -31,10 +30,13 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// programmatic callers keep the JSON body. It handles only an <see cref="IOpenIdError"/>, so other response types are
 /// unaffected.
 /// </summary>
-internal sealed class InteractiveOpenIdErrorResponseFormatter(InteractiveBundleReader bundleReader)
-    : IOpenIdResponseFormatter
+internal sealed class InteractiveOpenIdErrorResponseFormatter(
+    InteractiveBundleReader bundleReader,
+    InteractiveSurfacePaths surfacePaths
+) : IOpenIdResponseFormatter
 {
     private InteractiveBundleReader BundleReader { get; } = bundleReader;
+    private InteractiveSurfacePaths SurfacePaths { get; } = surfacePaths;
 
     /// <inheritdoc />
     public IReadOnlyList<string> MediaTypes { get; } = [OpenIdConstants.MediaTypes.Html];
@@ -50,9 +52,20 @@ internal sealed class InteractiveOpenIdErrorResponseFormatter(InteractiveBundleR
     {
         var error = (IOpenIdError)context.Response;
 
-        var bundleIndexHtml = await BundleReader.TryReadIndexHtmlAsync(cancellationToken);
-        var html = InteractiveAuthenticationPageRenderer.RenderErrorPage(
-            bundleIndexHtml,
+        // A request that resolved no tenant has no branding to embed.
+        var branding = context.HttpContext.GetOpenIdContextOrDefault() is { } openIdContext
+            ? InteractiveBranding.FromSettings(openIdContext.Tenant.SettingsProvider.Collection)
+            : null;
+        var security = InteractivePageSecurity.Create(branding);
+
+        using var html = InteractiveHtmlResult.CreateBuffer();
+        InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            html,
+            await BundleReader.TryReadShellAsync(cancellationToken),
+            // The page is served at the protocol endpoint, so its base points the bundle's assets at the surface.
+            SurfacePaths.GetSurfaceBase(context.HttpContext),
+            branding,
+            security.Nonce,
             error.Code,
             error.Description
         );
@@ -62,8 +75,12 @@ internal sealed class InteractiveOpenIdErrorResponseFormatter(InteractiveBundleR
         {
             httpResponse.StatusCode = context.StatusCode.Value;
         }
-        httpResponse.ContentType = "text/html; charset=utf-8";
 
-        await httpResponse.WriteAsync(html, SecureEncoding.UTF8, cancellationToken);
+        await InteractiveHtmlResult.WriteAsync(
+            httpResponse,
+            html.AsReadOnlySequence,
+            security.Policy,
+            cancellationToken
+        );
     }
 }

@@ -1,0 +1,17 @@
+# A production release whose root key is in Google Cloud KMS, reached through workload identity federation.
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  existingSecret: identity-database
+secretProtection:
+  rootKeyProvider: google-cloud-kms
+  googleCloudKms:
+    keyName: projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root
+    workloadIdentityFederation:
+      provider: projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster
+      serviceAccountEmail: ncode-identity@my-project.iam.gserviceaccount.com
+  recovery:
+    publicKeyConfigMap: identity-recovery-key

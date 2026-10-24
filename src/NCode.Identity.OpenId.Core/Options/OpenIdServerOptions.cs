@@ -39,8 +39,9 @@ public sealed class OpenIdServerOptions
     public string ServerId { get; set; } = DefaultServerId;
 
     /// <summary>
-    /// Gets or sets the period of time after which the settings for the server are refreshed.
-    /// The default value is 5 minutes.
+    /// Gets or sets the period of time after which the server's persisted settings are read again.
+    /// A committed change is read at once on every replica that receives its announcement, so the period bounds a
+    /// replica that missed it. The default value is 5 minutes.
     /// </summary>
     public TimeSpan SettingsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(5.0);
 
@@ -49,6 +50,13 @@ public sealed class OpenIdServerOptions
     /// The default value is 15 minutes.
     /// </summary>
     public TimeSpan SecretsPeriodicRefreshInterval { get; set; } = TimeSpan.FromMinutes(15.0);
+
+    /// <summary>
+    /// Gets or sets how long one replica holds the reconciliation of a change to the server's effective settings
+    /// before another replica may take it over. A replica that finds the reconciliation held checks again after this
+    /// period. The default value is 10 minutes.
+    /// </summary>
+    public TimeSpan ReconciliationLeaseDuration { get; set; } = TimeSpan.FromMinutes(10.0);
 
     /// <summary>
     /// Gets or sets the configuration section that holds the server's settings, keyed by setting name (for example

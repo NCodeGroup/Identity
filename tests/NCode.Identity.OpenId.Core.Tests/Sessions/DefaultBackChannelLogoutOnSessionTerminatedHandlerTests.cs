@@ -47,7 +47,7 @@ public class DefaultBackChannelLogoutOnSessionTerminatedHandlerTests : BaseTests
         var command = new OnSessionTerminatedCommand(
             context,
             new SessionTermination(
-                SessionTerminationReason.Logout,
+                SessionTerminationReasons.Logout,
                 "subject-1",
                 "sid-1",
                 ["c1", "c2"]

@@ -175,7 +175,7 @@ describe('SessionsPage', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Active sessions');
     expect(screen.getByRole('link', { name: 'Back to your account' })).toHaveAttribute(
       'href',
-      '/account',
+      '/account/',
     );
   });
 

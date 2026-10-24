@@ -1,6 +1,12 @@
 # 169. Every tenant is provisioned with persisted keys
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md): deleting a tenant also
+  removes the data of its end users; by
+  [ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md): the re-seed after a change
+  of the server's settings is part of one reconciliation; by
+  [ADR-0235](0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): a key is unreadable
+  when its tenant's master key, or the root key that wraps it, is lost or changed, no longer when the Data Protection
+  key ring is)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -29,8 +35,8 @@ tenant data is reserved.
 
 ## Decision
 
-**When a tenant is seeded, it gets a persisted key for each configured algorithm it holds no usable key for. The server
-generates keys only to fill those gaps; it never removes, replaces, or rotates one.**
+**When a tenant is seeded, it gets a persisted key for each configured algorithm its settings use and it holds no usable
+key for. The server generates keys only to fill those gaps; it never removes, replaces, or rotates one.**
 
 1. **One seed contributor in the core library.** `NCode.Identity.OpenId.Core` registers the contributor by default, beside the
    tenant seed pipeline and the tenant options it owns. It generates each key through `ISecretGenerator` and stores it
@@ -81,6 +87,56 @@ generates keys only to fill those gaps; it never removes, replaces, or rotates o
    key change.
 8. **Operators keep control.** A deployment that brings its own keys imports one for each configured algorithm, or sets
    `OpenId:Tenant:KeyProvisioning:Enabled` to `false`.
+9. **A tenant gets only the keys its settings use.** A configured algorithm is provisioned for a tenant only when one of
+   its effective algorithm lists names it. `OpenId:Tenant:KeyProvisioning:AlgorithmSettings` names those lists (an
+   open vocabulary): by default, the lists the tenant signs ID tokens, UserInfo responses, introspection responses,
+   JWT-secured authorization responses (JARM, `authorization_signing_alg_values_supported`), and access tokens with,
+   and the key-management lists it decrypts request objects and access tokens encrypted to it with.
+   - The settings materialize only after the seed, so the contributor resolves the tenant's persisted document, expanded
+     through its security profiles, onto the server's committed settings through `IEffectiveSettingsResolver`
+     ([ADR-0204](0204-a-scopes-effective-settings-are-resolved-by-one-service.md)), as the materialized tenant does.
+   - A `fapi2` tenant, whose lists exclude `RS256`, gets no RS256 key. A tenant that later permits a configured
+     algorithm gains its key at its next seed (decision 10).
+   - The configured set stays the ceiling: a client registering an algorithm outside it, such as `ES384`, still needs
+     the algorithm configured or a key imported.
+   - A held key the tenant's settings no longer use is kept: provisioning never removes a key, and retiring one is key
+     lifecycle (backlog `S8`).
+10. **A committed tenant change re-seeds the tenant at once.** A tenant is seeded when it is materialized, and the
+    tenant cache keeps a materialized tenant until its absolute lifetime ends, so a tenant whose settings later permit a
+    configured algorithm would advertise it without a key until then. Every management write to a tenant — its record,
+    its settings, a secret, or its deletion — therefore sends one `TenantChangedCommand` after it commits. The mediator
+    fans it out to every registered handler, so other packages can react to a tenant change too.
+    - The default handler evicts the tenant from this replica's `IOpenIdTenantCache` (`RemoveAsync`), so the change
+      takes effect on this replica at once. When the tenant's settings changed (`SettingsChanged`), it also seeds the
+      tenant through `ITenantProvisioner`. It evicts first: a request that misses the cache afterwards materializes
+      the tenant, which seeds it too.
+    - Only a settings change seeds in the write. A secret delete that removed the last key for an algorithm in use
+      would otherwise get that key back before the delete returned. The next materialization still fills the gap, so
+      a provisioned tenant always holds keys, and deleting the tenant removes them (decision 11).
+    - `Ephemeral` developer mode keeps one in-memory key per tenant for the life of the process, so the eviction does
+      not replace the key and invalidate the tokens the tenant issued, including the administrator's own.
+    - The seed runs in its own service scope, because the provisioner is scoped and a change need not be announced from
+      a request. A seed failure fails the write's response, as it would fail the tenant's next materialization.
+    - After the seed, whether or not it succeeded, the handler announces the change on the `tenant-changed` channel of
+      the replica broadcast port, so every replica evicts the tenant
+      ([ADR-0205](0205-replicas-announce-changes-through-a-broadcast-port.md)). A failed announcement is logged and
+      never fails the committed write. A replica that missed it keeps its cached tenant and picks the change up through
+      its polls: the tenant's settings every 5 minutes and its secrets, including the key this replica provisioned,
+      every 15.
+    - A change of the server's effective settings also reaches every tenant's effective lists, whether it is a
+      management write, a configuration reload, or a deployment. The reconciliation of the server's settings
+      ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)) runs
+      `TenantKeyReconciliationHandler`, which reads the keys of every tenant whose effective lists name a configured
+      algorithm and sends a `TenantChangedCommand` with `SettingsChanged` for each seeded one that lacks a key, which
+      evicts, seeds, and announces it. A tenant that holds no key is left to its first materialization. A failure for
+      one tenant is logged and the pass continues. The pass runs in the background on one replica, outside every
+      request and outside the job dispatcher, and a pass that a restart interrupted runs again.
+11. **A tenant's keys are part of the tenant.** Provisioning gives every tenant keys, and those keys serve only that
+    tenant, so they must not make the tenant impossible to delete. Deleting a tenant therefore removes its secrets, its
+    system resource servers with their scopes and secrets, the role assignments recorded in it, and the data of its end
+    users ([ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md)), in one unit of work. Only a client or a resource
+    server the tenant did not seed blocks the delete (`409 Conflict`): those are records an operator created, and the
+    delete would otherwise destroy them.
 
 ## Options considered
 
@@ -92,30 +148,47 @@ generates keys only to fill those gaps; it never removes, replaces, or rotates o
 - **Seed a single RSA key, as the developer seeder did.** Rejected: FAPI 2.0 tenants cannot use RS256, and a fixed key
   shape is a closed vocabulary.
 - **One RSA key without `alg` for both RS256 and PS256.** Rejected: a key should be bound to one algorithm.
-- **Derive the algorithm set from each tenant's effective signing settings.** Deferred (backlog `S12`): settings
-  materialize after the seed. Until then, a tenant whose profile excludes an algorithm still holds a key for it, unused.
+- **Provision every configured algorithm for every tenant.** Rejected (originally adopted, revised by backlog `S12`): a
+  tenant whose profile excludes an algorithm held and published a key for it that it never used.
+- **Provision the union of the configured set and each tenant's lists.** Rejected: the effective lists default to every
+  registered asymmetric algorithm, so a tenant would hold a key for each; the configured set keeps the operator in
+  control of which key types exist.
 - **Remove and regenerate an unreadable key in production.** Rejected: it hides a lost key ring and silently changes
   the keys relying parties trust.
 - **Provision only in the server composition (`AddIdentityServer`).** Rejected: the core library owns tenants, their
   seed pipeline, and their options, so every composition gets the same behavior.
 - **2048-bit RSA keys.** Rejected for the NIST horizon above, since provisioned keys do not rotate yet.
+- **Re-seed when a replica's settings poll sees a change.** Rejected: the poll runs outside a request on every replica,
+  so each would race to seed the same tenant, and the new key would still wait for the secrets poll. The replica that
+  makes the change seeds once, at the moment it commits. The reconciliation reacts to a replica's poll too, but one
+  lease per change lets only one replica run it
+  ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+- **Skip seeding a tenant being deleted.** Rejected: it needs a tombstone state that every seed path checks, and the
+  system resource server and ownership rows would still block the delete.
 
 ## Consequences
 
 - A production deployment boots from configuration alone: the first request to the root tenant provisions its keys,
   the bootstrap administrator obtains a token, and every tenant created through the management API holds keys before
   its create returns.
-- By default every tenant publishes three signing keys. A `fapi2` tenant also publishes an RS256 key it never signs
-  with (`S12`).
+- By default every tenant publishes three signing keys; a `fapi2` tenant publishes two, because its lists exclude RS256.
+- Every seed computes the tenant's effective settings once, a merge of in-memory collections, to decide which keys it
+  needs.
 - A tenant's first seed generates its keys, which takes hundreds of milliseconds per RSA key and never happens on a
   cache hit.
 - An existing tenant gains its missing keys at its next seed; a held RS256 key, of any accepted size, satisfies RS256.
+- A management write to a tenant evicts it, so the next request on that replica materializes the tenant again; a
+  settings write returns after any key the new settings need has been provisioned.
 - A tenant whose keys cannot be unprotected stays unavailable until its key ring is restored, so the key ring's own
   protection (backlog `S10`) matters more.
 - **Breaking:**
   - `AddDeveloperSigningKey` is `AddPersistentDeveloperKeys`, and it registers only the pruning contributor.
   - `Ephemeral` mode turns provisioning off.
   - `OpenIdTenantOptions` gains `KeyProvisioning`.
+  - `TenantKeySeedHandler` reads `IEffectiveSettingsResolver` to compute the tenant's settings.
+  - `TenantChangedHandler` needs an `IReplicaBroadcaster` to announce the change.
+  - `NCode.Identity.OpenId.Core` references the SharedState abstractions.
+  - `IOpenIdTenantCache` gains `RemoveAsync`, so a custom cache must implement eviction.
 
 ## References
 

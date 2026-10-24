@@ -27,13 +27,15 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
 /// Represents a mediator command that validates an authenticated subject for an OpenID request, applying the
-/// post-authentication checks (for example, <c>max_age</c>, a required ACR, and account state) that must pass before
-/// the subject is used to issue tokens. A handler records a failure on <paramref name="OperationDisposition"/> rather
-/// than returning a result.
+/// post-authentication checks (for example, <c>max_age</c> and a required ACR) that must pass before the subject is
+/// used to issue tokens. It includes the end user's standing (<see cref="ValidateSubjectStandingCommand"/>). A handler
+/// records a failure on <paramref name="OperationDisposition"/> rather than returning a result.
 /// </summary>
 /// <param name="OpenIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
 /// <param name="OpenIdClient">The <see cref="OpenIdClient"/> the request is for.</param>
-/// <param name="OpenIdRequest">The <see cref="IOpenIdRequest"/> being processed.</param>
+/// <param name="OpenIdRequest">The <see cref="IOpenIdRequest"/> being processed, or <c>null</c> when the subject is
+/// validated outside a protocol request, such as at the approval of a backchannel authentication request; the request's
+/// <c>max_age</c>, <c>acr_values</c> and <c>claims</c> are then not checked.</param>
 /// <param name="SubjectAuthentication">The <see cref="SubjectAuthentication"/> identifying the authenticated end-user to validate.</param>
 /// <param name="OperationDisposition">The disposition a handler records a validation error on when the subject must not proceed.</param>
 /// <param name="EnforceAuthenticationAge">Whether to enforce the authentication-age freshness checks (the request's
@@ -46,7 +48,7 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 public readonly record struct ValidateSubjectAuthenticationCommand(
     OpenIdContext OpenIdContext,
     OpenIdClient OpenIdClient,
-    IOpenIdRequest OpenIdRequest,
+    IOpenIdRequest? OpenIdRequest,
     SubjectAuthentication SubjectAuthentication,
     OperationDisposition<IOpenIdError> OperationDisposition,
     bool EnforceAuthenticationAge

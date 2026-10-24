@@ -37,28 +37,6 @@ public static partial class OpenIdConstants
         /// client must echo in a subsequent DPoP proof.
         /// </summary>
         public const string NonceHeaderName = "DPoP-Nonce";
-
-        /// <summary>
-        /// Contains the required value of the <c>typ</c> JOSE header of a DPoP proof JWT (RFC 9449 §4.2).
-        /// </summary>
-        public const string ProofJwtType = "dpop+jwt";
-
-        /// <summary>
-        /// Contains the name of the <c>htm</c> DPoP proof claim: the HTTP method of the bound request (RFC 9449 §4.2).
-        /// </summary>
-        public const string HttpMethodClaim = "htm";
-
-        /// <summary>
-        /// Contains the name of the <c>htu</c> DPoP proof claim: the HTTP target URI of the bound request, without
-        /// query or fragment (RFC 9449 §4.2).
-        /// </summary>
-        public const string HttpUriClaim = "htu";
-
-        /// <summary>
-        /// Contains the name of the <c>ath</c> DPoP proof claim: the base64url SHA-256 hash of the access token the
-        /// proof accompanies when presented to a protected resource (RFC 9449 §4.2).
-        /// </summary>
-        public const string AccessTokenHashClaim = "ath";
     }
 
     /// <summary>

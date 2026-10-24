@@ -45,6 +45,24 @@ public interface IGrantStore : IStore<PersistedGrant>
     );
 
     /// <summary>
+    /// Gets a single page of the <see cref="PersistedGrant"/> instances of the specified grant type that are not
+    /// revoked and whose expiration is at or before <paramref name="expiredAt"/> or that never expire, ordered by
+    /// their identifier using keyset (cursor) pagination. The grants of a disabled tenant are not returned.
+    /// </summary>
+    /// <param name="grantType">The grant type of the grants that are returned.</param>
+    /// <param name="expiredAt">The time at or before which the expiration of a grant selects it.</param>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
+    /// <see cref="PersistedGrant"/> instances and the cursor for the next page.</returns>
+    ValueTask<PagedResult<PersistedGrant>> GetUnrevokedExpiredPageAsync(
+        string grantType,
+        DateTimeOffset expiredAt,
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Soft-revokes every active grant selected by the supplied <see cref="GrantFilter"/> by setting its
     /// <c>RevokedWhen</c> timestamp; already-revoked grants are left unchanged. The caller should ensure the filter is
     /// not empty (see <see cref="GrantFilter.IsEmpty"/>) so an unscoped bulk revoke is not performed by accident.
@@ -77,6 +95,19 @@ public interface IGrantStore : IStore<PersistedGrant>
     );
 
     /// <summary>
+    /// Gets every grant of the refresh-token rotation family that is not revoked. The grants are read into the unit of
+    /// work, so the caller can update them in it; a grant that expired is included.
+    /// </summary>
+    /// <param name="refreshTokenLineageId">The opaque identifier of the refresh-token rotation family.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the grants of the
+    /// family that are not revoked.</returns>
+    ValueTask<IReadOnlyList<PersistedGrant>> GetActiveByRefreshTokenLineageAsync(
+        string refreshTokenLineageId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Attempts to retrieve a persisted grant from the store by its opaque <c>GrantId</c>.
     /// </summary>
     /// <param name="grantId">The opaque identifier of the grant.</param>
@@ -98,6 +129,31 @@ public interface IGrantStore : IStore<PersistedGrant>
     ValueTask<PersistedGrant?> GetOrDefaultAsync(
         string grantType,
         string hashedKey,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Removes, when the unit of work is saved, up to <paramref name="limit"/> grants that ended before
+    /// <paramref name="endedBefore"/>. A grant ends when it expires or, if earlier, when it is revoked; a grant that
+    /// neither expires nor is revoked never ends. A grant whose type is listed in
+    /// <paramref name="grantTypesEndedByRevocation"/>, such as an end-user session that ends when it is terminated,
+    /// ends only when it is revoked, so an expired grant of such a type is kept until it is revoked.
+    /// </summary>
+    /// <remarks>
+    /// A caller prunes by repeating the removal, each time in a new unit of work, until fewer grants than the limit
+    /// are removed. Two callers that remove the same grants conflict: the later commit fails as a lost concurrency
+    /// race, and that caller reads the next batch.
+    /// </remarks>
+    /// <param name="endedBefore">The time before which a grant must have ended to be removed.</param>
+    /// <param name="grantTypesEndedByRevocation">The types of the grants that end only when they are revoked.</param>
+    /// <param name="limit">The greatest number of grants to remove; it must be at least one.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the count of grants staged for removal.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is less than one.</exception>
+    ValueTask<int> RemoveEndedBeforeAsync(
+        DateTimeOffset endedBefore,
+        IReadOnlyCollection<string> grantTypesEndedByRevocation,
+        int limit,
         CancellationToken cancellationToken
     );
 }

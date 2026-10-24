@@ -38,7 +38,7 @@ public interface IFederatedPrincipalStore : IStore
     ValueTask AddAsync(PersistedFederatedPrincipal principal, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Updates an existing federated principal in the store, such as its metadata bags.
+    /// Updates an existing federated principal in the store, such as its metadata bags or its block state.
     /// </summary>
     /// <param name="principal">The <see cref="PersistedFederatedPrincipal"/> to update.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -61,7 +61,8 @@ public interface IFederatedPrincipalStore : IStore
     );
 
     /// <summary>
-    /// Removes a federated principal from the store.
+    /// Removes a federated principal from the store, together with every role assignment the principal holds,
+    /// ownership included, in every tenant, and the consents and grants of the principal in its tenant.
     /// </summary>
     /// <param name="principalId">The opaque identifier of the principal to remove.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>

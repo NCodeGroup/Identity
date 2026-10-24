@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ExpandMigration(
+        "Each rewritten document means the same to the previous release, which defaults the setting to true."
+    )]
     public partial class RetireAllowUnsafeTokenResponse : Migration
     {
         // Every table that stores a settings document (ADR-0139: a stored document that names a retired setting fails

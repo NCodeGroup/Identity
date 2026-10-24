@@ -34,7 +34,8 @@ namespace NCode.Identity.SharedState.Valkey;
 internal class ValkeyExpiringKeySet(
     IValkeyConnection connection,
     IOptions<ValkeyOptions> optionsAccessor,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    ValkeySharedStateMetrics metrics
 ) : IExpiringKeySet
 {
     private static RedisValue Marker => 1;
@@ -44,6 +45,8 @@ internal class ValkeyExpiringKeySet(
     private string KeyPrefix { get; } = optionsAccessor.Value.KeyPrefix;
 
     private TimeProvider TimeProvider { get; } = timeProvider;
+
+    private ValkeySharedStateMetrics Metrics { get; } = metrics;
 
     /// <inheritdoc />
     public async ValueTask<bool> TryAddAsync(
@@ -63,10 +66,16 @@ internal class ValkeyExpiringKeySet(
             TimeSpan.FromMilliseconds(Math.Ceiling(timeToLive.TotalMilliseconds))
         );
 
-        var database = await Connection.GetDatabaseAsync(cancellationToken);
-        return await database
-            .StringSetAsync(GetKey(key), Marker, expiration, ValueCondition.NotExists)
-            .WaitAsync(cancellationToken);
+        return await Metrics.MeasureAsync(
+            ValkeySharedStateMetrics.KeySetTryAddOperation,
+            async () =>
+            {
+                var database = await Connection.GetDatabaseAsync(cancellationToken);
+                return await database
+                    .StringSetAsync(GetKey(key), Marker, expiration, ValueCondition.NotExists)
+                    .WaitAsync(cancellationToken);
+            }
+        );
     }
 
     /// <inheritdoc />
@@ -74,8 +83,14 @@ internal class ValkeyExpiringKeySet(
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        var database = await Connection.GetDatabaseAsync(cancellationToken);
-        return await database.KeyExistsAsync(GetKey(key)).WaitAsync(cancellationToken);
+        return await Metrics.MeasureAsync(
+            ValkeySharedStateMetrics.KeySetContainsOperation,
+            async () =>
+            {
+                var database = await Connection.GetDatabaseAsync(cancellationToken);
+                return await database.KeyExistsAsync(GetKey(key)).WaitAsync(cancellationToken);
+            }
+        );
     }
 
     private RedisKey GetKey(string key) => KeyPrefix + key;

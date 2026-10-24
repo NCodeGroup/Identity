@@ -22,8 +22,10 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Core.ResourceServers;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.OpenId.Tenants.Strategies;
+using NCode.Identity.SharedState;
 using NCode.Mediator;
 using NCode.Registration;
 
@@ -92,6 +94,33 @@ internal static class DefaultRegistration
                     TenantKeySeedHandler
                 >()
             );
+
+            // A committed change to a tenant evicts it from this replica's cache and seeds it again, so a key its new
+            // settings require is provisioned at once rather than when the tenant is next materialized (ADR-0169).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<TenantChangedCommand>,
+                    TenantChangedHandler
+                >()
+            );
+
+            // A tenant change announced on the replica broadcast channel evicts the tenant from this replica's cache, so
+            // every replica serves the change rather than only the one that made it (ADR-0205).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IReplicaBroadcastHandler,
+                    TenantChangeBroadcastHandler
+                >()
+            );
+
+            // A change to the server's effective settings seeds every tenant that lacks a key its settings use (ADR-0219).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ReconcileServerSettingsCommand>,
+                    TenantKeyReconciliationHandler
+                >()
+            );
+
             serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

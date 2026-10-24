@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -36,11 +37,10 @@ using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
@@ -86,14 +86,14 @@ internal class ResourceServerApiEndpointHandler(
     IResourceServerValidator resourceServerValidator,
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
-    ISecretImporter secretImporter,
+    IClientKeyImporter keyImporter,
     ISecretPublicKeyConverter secretPublicKeyConverter,
+    ISecretProtectorProvider secretProtectorProvider,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
-    IOpenIdServerProvider serverProvider,
-    ISecurityProfileCatalog securityProfileCatalog,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ResourceServerApiEndpointHandler> logger
@@ -104,15 +104,16 @@ internal class ResourceServerApiEndpointHandler(
     private IResourceServerValidator ResourceServerValidator { get; } = resourceServerValidator;
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
-    private ISecretImporter SecretImporter { get; } = secretImporter;
+    private IClientKeyImporter KeyImporter { get; } = keyImporter;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
     private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
         settingScopeCollectionProvider;
-    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
-    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -899,11 +900,14 @@ internal class ResourceServerApiEndpointHandler(
     /// Merges a resource server's persisted settings onto the addressed tenant's effective settings, producing the same
     /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves at runtime (server baseline
     /// merged with the tenant's — expanded with the ceilings of the security profiles it selects — and then the resource
-    /// server's persisted overrides). A resource server selects no security profile, so its document is merged
-    /// unexpanded (ADR-0149).
+    /// server's persisted overrides). Every document is read through the <see cref="IEffectiveSettingsResolver"/>
+    /// (ADR-0204); a resource server selects no security profile, so its document adds none (ADR-0149). A document that
+    /// cannot be honored fails naming its owner.
     /// </summary>
+    /// <exception cref="UnreadableSettingsException">The resource server's document, the tenant's or the server's
+    /// cannot be honored.</exception>
+    // See ADR-0245.
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeResourceServerSettingsAsync(
-        OpenIdContext openIdContext,
         string tenantId,
         PersistedResourceServer resourceServer,
         IStoreManager storeManager,
@@ -918,22 +922,19 @@ internal class ResourceServerApiEndpointHandler(
             return null;
         }
 
-        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
-
-        var tenantScopeSettings = SecurityProfileCatalog.Expand(
-            tenantSettings.Value,
+        var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var tenantEffective = EffectiveSettingsResolver.ResolveStored(
+            serverEffective,
             OpenIdSettingScopes.Tenant,
-            jsonOptions
+            tenantId,
+            tenantSettings.Value
         );
-        var resourceServerScopeSettings = SettingSerializer.DeserializeSettings(
-            resourceServer.Settings.Value,
+        return EffectiveSettingsResolver.ResolveStored(
+            tenantEffective,
             OpenIdSettingScopes.ResourceServer,
-            jsonOptions
+            resourceServer.ResourceServerId,
+            resourceServer.Settings.Value
         );
-
-        var tenantEffective = server.SettingsProvider.Collection.Merge(tenantScopeSettings);
-        return tenantEffective.Merge(resourceServerScopeSettings);
     }
 
     /// <summary>
@@ -1022,7 +1023,8 @@ internal class ResourceServerApiEndpointHandler(
 
         var settingsValue = SerializeToElement(jsonObject);
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
-        var settingErrors = SettingSerializer.ValidateSettings(
+        var settingErrors = SettingSerializer.ValidateSettingsUpdate(
+            settings.Value,
             settingsValue,
             OpenIdSettingScopes.ResourceServer,
             jsonOptions
@@ -1070,26 +1072,29 @@ internal class ResourceServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var openIdContext = httpContext.GetOpenIdContext();
-        var effectiveSettings = await MergeResourceServerSettingsAsync(
-            openIdContext,
-            tenantId,
-            resourceServer,
-            storeManager,
-            cancellationToken
-        );
-        if (effectiveSettings is null)
-        {
-            return TypedResults.NotFound();
-        }
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
+
+        // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
+        // document that cannot be honored, and the stored document's token is not the effective view's.
+        // A null projection is the absent tenant, answered 404. See ADR-0245.
         return await ProcessGetAsync(
             httpContext,
-            effectiveSettings,
+            resourceServer.Settings.Value,
             node,
             Operations.Read,
-            settings => ToResourceServerEffectiveSettingsResource(resourceServer, settings)
+            async (_, token) =>
+            {
+                var effectiveSettings = await MergeResourceServerSettingsAsync(
+                    tenantId,
+                    resourceServer,
+                    storeManager,
+                    token
+                );
+                return effectiveSettings is null
+                    ? null
+                    : ToResourceServerEffectiveSettingsResource(resourceServer, effectiveSettings);
+            },
+            cancellationToken
         );
     }
 
@@ -1166,10 +1171,17 @@ internal class ResourceServerApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(resourceServer.TenantId),
+            [],
+            cancellationToken
+        );
+
         GeneratedSecret generatedSecret;
         try
         {
             generatedSecret = SecretGenerator.GenerateSecret(
+                protector,
                 new GenerateSecretRequest
                 {
                     SecretId = secretId,
@@ -1269,40 +1281,35 @@ internal class ResourceServerApiEndpointHandler(
             return ToErrorResult(validationError);
         }
 
-        if (!Enum.TryParse<SecretKeyImportFormat>(request.Format, ignoreCase: true, out var format))
-        {
-            return TypedResults.Problem(
-                detail: $"The import format '{request.Format}' is not supported.",
-                statusCode: StatusCodes.Status400BadRequest
-            );
-        }
-
         var secretId = CryptoService.GenerateResourceId();
 
-        PersistedSecret importedSecret;
-        try
+        var importRequest = new SecretKeyImportRequest
         {
-            importedSecret = SecretImporter.ImportSecret(
-                new SecretKeyImportRequest
-                {
-                    SecretId = secretId,
-                    SecretType = request.SecretType,
-                    Format = format,
-                    KeyMaterial = request.KeyMaterial,
-                    Use = request.Use,
-                    Algorithm = request.Algorithm,
-                    CreatedWhen = TimeProvider.GetUtcNow(),
-                    ExpiresWhen = request.ExpiresWhen,
-                }
-            );
-        }
-        catch (ArgumentException exception)
+            SecretId = secretId,
+            SecretType = request.SecretType,
+            Format = request.Format,
+            KeyMaterial = request.KeyMaterial,
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            CreatedWhen = TimeProvider.GetUtcNow(),
+            ExpiresWhen = request.ExpiresWhen,
+        };
+        if (!KeyImporter.TryImportKey(importRequest, out var importedSecret, out var importError))
         {
-            Logger.SecretGenerationFailed(exception);
             return TypedResults.Problem(
-                detail: "The secret could not be imported from the supplied material.",
+                detail: importError,
                 statusCode: StatusCodes.Status400BadRequest
             );
+        }
+
+        var keyIdConflict = KeyIdConflictOrDefault(
+            resourceServer.Secrets.Value,
+            importedSecret,
+            "resource server"
+        );
+        if (keyIdConflict is not null)
+        {
+            return keyIdConflict;
         }
 
         try
@@ -1397,9 +1404,15 @@ internal class ResourceServerApiEndpointHandler(
             cancellationToken
         );
 
-        var scoped = resourceServerSecret is null
-            ? null
-            : TenantOwnedResource.For(resourceServerSecret.TenantId, resourceServerSecret.Value);
+        if (resourceServerSecret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var scoped = TenantOwnedResource.For(
+            resourceServerSecret.TenantId,
+            resourceServerSecret.Value
+        );
 
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
         return await ProcessGetAsync(
@@ -1407,7 +1420,20 @@ internal class ResourceServerApiEndpointHandler(
             scoped,
             node,
             Operations.Read,
-            x => SecretPublicKeyConverter.Convert(x.Value)
+            async (x, ct) =>
+            {
+                // The owner is the tenant that owns the secret, not the route value.
+                // The protector is acquired only after authorization, so a caller who may not read the secret
+                // never loads its owner's master keys.
+                var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+                    SecretOwner.ForTenant(resourceServerSecret.TenantId),
+                    [x.Value],
+                    ct
+                );
+
+                return SecretPublicKeyConverter.Convert(protector, x.Value);
+            },
+            cancellationToken
         );
     }
 
@@ -1459,9 +1485,16 @@ internal class ResourceServerApiEndpointHandler(
             return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
         }
 
+        var metadataError = SecretValidator.ValidateUpdate(secret, request);
+        if (metadataError is not null)
+        {
+            return ToErrorResult(metadataError);
+        }
+
         var updated = new PersistedSecret
         {
             SecretId = secret.SecretId,
+            KeyId = secret.KeyId,
             ConcurrencyToken = secret.ConcurrencyToken,
             Use = request.Use,
             Algorithm = request.Algorithm,

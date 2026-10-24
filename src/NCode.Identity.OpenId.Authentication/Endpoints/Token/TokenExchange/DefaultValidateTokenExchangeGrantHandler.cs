@@ -29,9 +29,10 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange;
 /// <remarks>
 /// The spec-mandated authorization for token exchange (confidential-client requirement, requester entitlement to the
 /// presented tokens, and the subject token's <c>may_act</c> authorization of the actor) is enforced directly by
-/// <see cref="DefaultTokenExchangeGrantHandler"/> because it requires the validated token payloads. This handler is the
-/// mediator seam where a host layers additional per-client exchange policy (for example, restricting the permitted
-/// delegation targets); the default performs no additional checks.
+/// <see cref="DefaultTokenExchangeGrantHandler"/> because it requires the validated token payloads. This handler
+/// validates the subject the exchange issues tokens for, so an end user whose account is disabled, deleted or blocked
+/// is refused; the actor is not validated. It is also the mediator seam where a host layers further per-client
+/// exchange policy (for example, restricting the permitted delegation targets).
 /// </remarks>
 internal class DefaultValidateTokenExchangeGrantHandler
     : ICommandHandler<ValidateTokenGrantCommand<TokenExchangeGrant>>,
@@ -41,8 +42,20 @@ internal class DefaultValidateTokenExchangeGrantHandler
     public int MediatorPriority => DefaultMediatorPriorities.High;
 
     /// <inheritdoc />
-    public ValueTask HandleAsync(
+    public async ValueTask HandleAsync(
         ValidateTokenGrantCommand<TokenExchangeGrant> command,
         CancellationToken cancellationToken
-    ) => ValueTask.CompletedTask;
+    )
+    {
+        var (openIdContext, openIdClient, tokenRequest, grant) = command;
+
+        // validate the subject
+        await TokenGrantSubjectValidation.ValidateAsync(
+            openIdContext,
+            openIdClient,
+            tokenRequest,
+            grant.SubjectAuthentication,
+            cancellationToken
+        );
+    }
 }

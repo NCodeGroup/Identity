@@ -148,7 +148,41 @@ public class DefaultRevokeTokenHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordTokenRevokedAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<OpenIdClient>(),
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheRefreshTokenHasALineage_RevokesTheLineage()
+    {
+        var (command, _) = CreateScaffold(Token);
+        SetupCreateGrantId();
+        SetupGetGrant(CreateGrant(ClientId) with { RefreshTokenLineageId = "lineage-1" });
+
+        // No SetRevokedOnceAsync setup: the strict mock fails if only the presented grant is revoked.
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeByRefreshTokenLineageAsync(
+                    It.IsAny<OpenIdContext>(),
+                    "lineage-1",
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<long>(2L))
             .Verifiable();
         MockAuditEventRecorder
             .Setup(x =>

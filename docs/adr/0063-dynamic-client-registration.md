@@ -9,7 +9,10 @@
   only one the client authenticates with, and it must be within the tenant's `token_endpoint_auth_methods_supported`;
   `jwks` amended by [ADR-0161](0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md): its
   keys are imported under the client-key policy and stored as the client's secrets, the response projects them back,
-  and an update replaces them)
+  and an update replaces them; the initial access token amended in place: it is spent by the one registration it
+  authorizes and expires within thirty days; deregistration amended by
+  [ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md): the store removes the client with its secrets and grants
+  in one unit of work)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 
@@ -76,7 +79,12 @@ Concretely:
   by looking the bearer up as that grant and confirming its payload `client_id` matches the `{client_id}` in the route.
   Because the grant store keys on a **salted hash of the token**, the plaintext token is never stored — the same
   posture the authorization-code and device-code grants already have. The RFC 7591 _initial access token_ is modeled
-  the same way (`initial_access_token` grant); it is minted through the management API (see Consequences).
+  the same way (`initial_access_token` grant); it is minted through the management API (see Consequences). Unlike the
+  registration access token, it is **single-use and short-lived**: minting gives it an expiry (one day by default, at
+  most thirty days), and the one registration it authorizes spends it
+  ([ADR-0192](0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)). The endpoint spends
+  it through `IInitialAccessTokenValidator.TryConsumeAsync`, after every check on the registration has passed and
+  immediately before the client is stored, so a refused registration leaves the token unspent.
 - **Authorization is configurable, protected by default.** A new discoverable-as-non-standard setting
   `registration_endpoint_allow_anonymous` (default `false`, merged with the boolean **meet** `And` so a parent that
   disallows anonymous registration cannot be loosened downward) governs the endpoint. When `false`, the caller must
@@ -90,8 +98,9 @@ Concretely:
   `response_types` to `code` per RFC 7591; a grant type that uses a redirect (`authorization_code`, `implicit`) requires
   at least one `redirect_uris` value; and each redirect URI must be a valid absolute URI without a fragment. Failures
   return the RFC 7591 error codes `invalid_client_metadata` / `invalid_redirect_uri`.
-- **Delete removes dependents first.** A client cannot be removed while it owns secrets, so `DELETE` removes the
-  client's secrets, then the client, then revokes the `registration_access_token` grant.
+- **Delete removes the client with what it owns.** `DELETE` removes the client, and the store removes its secrets and
+  grants, the `registration_access_token` grant included, in the same unit of work
+  ([ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md)).
 
 ## Options considered
 
@@ -128,9 +137,14 @@ Concretely:
   without touching the endpoint. Initial access tokens are **provisioned through the management API**: a tenant-scoped
   `POST api/tenants/{tenantId}/grants/initial-access-tokens` mints a hash-keyed `initial_access_token` grant,
   returning the one-time plaintext token (revealed once, ADR-0050 posture) together with the grant id for later
-  revocation through the grant management endpoint, and records an `InitialAccessTokenCreatedAuditEvent`. A deployment
-  that wants protected registration either mints tokens this way or replaces the validator seam (for example, to accept
-  an access token carrying a required scope); it may also enable anonymous registration. Minting reuses the shared
+  revocation through the grant management endpoint, and records an `InitialAccessTokenCreatedAuditEvent`. A minted token
+  expires after one day unless the request's `lifetimeSeconds` says otherwise, and `lifetimeSeconds` is at most thirty
+  days (2 592 000 seconds; a longer lifetime is a `400`), so the response always reports `expiresWhen`. The one
+  registration the token authorizes spends it: `TryConsumeAsync` returns `false` for a token that is already spent,
+  expired or revoked, and the registration is answered `invalid_token` (`401`). A registration refused for any other
+  reason leaves the token unspent. A deployment that wants protected registration either mints tokens this way or
+  replaces the validator seam (for example, to accept an access token carrying a required scope), in which case the
+  replacement implements `TryConsumeAsync` as well; it may also enable anonymous registration. Minting reuses the shared
   `IPersistedGrantService.AddAsync`, which now returns the server-generated grant id so the management surface can hand
   it back for revocation.
 - Informational metadata are registered client settings with their RFC 7591 names, so the settings document holds no

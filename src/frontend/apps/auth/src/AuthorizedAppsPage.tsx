@@ -13,8 +13,9 @@ import {
   APPLICATIONS_LIST_ENDPOINT,
   APPLICATIONS_PATH,
   APPLICATIONS_REVOKE_ACTION,
-  LOGIN_ACTION,
+  resolveSurfacePath,
 } from './params.js';
+import { fetchSurfaceJson } from './surfaceFetch.js';
 
 /** A single granted scope on an authorized application. */
 export type AuthorizedScope = {
@@ -39,26 +40,15 @@ export type AuthorizedAppsPageProps = {
 };
 
 /**
- * Default loader: fetches the OP's authorized-applications endpoint. A `401` means the cookie session is gone, so it
- * redirects to the login page (with the applications page as the return URL); any other non-OK response yields no
- * applications. It is a no-op when `fetch` is unavailable (e.g. a DOM-free unit test that does not inject a loader).
+ * Default loader: loads the OP's authorized-applications endpoint. The login redirect on a `401` comes from
+ * `fetchSurfaceJson`.
  */
 async function fetchApplications(): Promise<readonly AuthorizedApplication[] | null> {
-  if (typeof fetch !== 'function') {
-    return null;
-  }
-  const response = await fetch(APPLICATIONS_LIST_ENDPOINT, {
-    headers: { accept: 'application/json' },
-  });
-  if (response.status === 401) {
-    window.location.assign(`${LOGIN_ACTION}?ReturnUrl=${encodeURIComponent(APPLICATIONS_PATH)}`);
-    return null;
-  }
-  if (!response.ok) {
-    return null;
-  }
-  const payload = (await response.json()) as { applications?: readonly AuthorizedApplication[] };
-  return payload.applications ?? [];
+  const payload = await fetchSurfaceJson<{ applications?: readonly AuthorizedApplication[] }>(
+    APPLICATIONS_LIST_ENDPOINT,
+    APPLICATIONS_PATH,
+  );
+  return payload ? (payload.applications ?? []) : null;
 }
 
 /**
@@ -126,7 +116,11 @@ export function AuthorizedAppsPage({
                       <Typography sx={{ wordBreak: 'break-all' }}>
                         <strong>{application.clientName ?? application.clientId}</strong>
                       </Typography>
-                      <Stack component="form" method="post" action={APPLICATIONS_REVOKE_ACTION}>
+                      <Stack
+                        component="form"
+                        method="post"
+                        action={resolveSurfacePath(APPLICATIONS_REVOKE_ACTION)}
+                      >
                         <input type="hidden" name="client_id" value={application.clientId} />
                         <input type="hidden" name={ANTIFORGERY_FIELD} value={antiforgeryToken} />
                         <Button
@@ -159,7 +153,7 @@ export function AuthorizedAppsPage({
               </Stack>
             )}
 
-            <Button href={ACCOUNT_PATH} variant="text">
+            <Button href={resolveSurfacePath(ACCOUNT_PATH)} variant="text">
               Back to your account
             </Button>
           </Stack>

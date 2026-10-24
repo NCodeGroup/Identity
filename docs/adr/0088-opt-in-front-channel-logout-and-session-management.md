@@ -1,7 +1,10 @@
 # 88. Opt-in Front-Channel Logout and Session Management (available, disabled by default)
 
 - **Status:** Accepted (revises the deferral recorded in
-  [ADR-0074](0074-session-management-and-logout.md), which declined these two mechanisms outright)
+  [ADR-0074](0074-session-management-and-logout.md), which declined these two mechanisms outright; amended by
+  [ADR-0256](0256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md):
+  the `check_session_iframe` is the one page relying parties may frame, and the front-channel logout page frames only
+  the clients' logout origins)
 - **Date:** 2026-10-13
 - **Deciders:** NCode Group
 

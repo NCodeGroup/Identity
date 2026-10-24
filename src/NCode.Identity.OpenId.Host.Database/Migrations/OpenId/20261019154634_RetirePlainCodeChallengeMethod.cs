@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ExpandMigration(
+        "Each rewritten list only drops 'plain', which this release refuses too; the previous release reads it."
+    )]
     public partial class RetirePlainCodeChallengeMethod : Migration
     {
         // Every table that stores a settings document (ADR-0140: narrowing a setting's domain makes a stored document

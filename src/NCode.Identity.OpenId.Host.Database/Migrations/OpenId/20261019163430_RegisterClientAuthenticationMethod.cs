@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ExpandMigration(
+        "Each rewritten document is valid for the previous release, and its clients keep their methods."
+    )]
     public partial class RegisterClientAuthenticationMethod : Migration
     {
         // Every table that stores a settings document (ADR-0140: narrowing a setting's domain makes a stored document

@@ -1,5 +1,11 @@
-import { buildEndSessionUrl, type AuthClientConfig, type AuthDeps } from '@ncode/auth';
+import {
+  buildEndSessionUrl,
+  type AuthClientConfig,
+  type AuthDeps,
+  type KeyValueStorage,
+} from '@ncode/auth';
 import type { RuntimeConfig } from '@ncode/config';
+import { resolveRoute } from './routes.js';
 
 /** Path, relative to the app origin, the OpenID Provider redirects back to after authorization. */
 export const CALLBACK_PATH = '/callback';
@@ -28,6 +34,27 @@ export function authConfigFromRuntime(
     redirectUri: redirectUri(origin),
     scopes: runtime.scopes,
   };
+}
+
+/** The session-storage key holding the console path to restore once the sign-in round trip completes. */
+export const RETURN_PATH_KEY = 'ncode.mgmt.returnPath';
+
+/**
+ * Remembers the console path the user was on before the sign-in redirect, so a deep link or a reload that lands on the
+ * sign-in screen returns to the same scope and surface once signed in (ADR-0174).
+ */
+export function rememberReturnPath(storage: KeyValueStorage, pathname: string): void {
+  storage.setItem(RETURN_PATH_KEY, pathname);
+}
+
+/**
+ * Takes (reads and clears) the remembered return path, resolved to its canonical console path. Whatever was stored,
+ * the result is a same-origin console route, so the restore can never redirect off the console.
+ */
+export function takeReturnPath(storage: KeyValueStorage): string {
+  const stored = storage.getItem(RETURN_PATH_KEY);
+  storage.removeItem(RETURN_PATH_KEY);
+  return resolveRoute(stored ?? '/').path;
 }
 
 /** The runtime dependencies for the auth flow: global fetch and session-scoped transaction storage. */

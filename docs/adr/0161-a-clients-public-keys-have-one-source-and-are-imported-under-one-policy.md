@@ -1,6 +1,7 @@
 # 161. A client's public keys have one source and are imported under one policy
 
-- **Status:** Accepted
+- **Status:** Accepted (applied to every owner's keys by
+  [ADR-0186](0186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md))
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -117,8 +118,15 @@ client key enters.**
   keys are no longer used; `AsymmetricSecretKeyTypeDescriptor.ExpectedJwkKeyType` becomes the public `JwkKeyType`
   member every descriptor implements; `PersistedSecret`, `SecretEntity`, and `SecretKeyImportRequest` gain `KeyId`
   (a schema migration adds the nullable column).
-- A `self_signed_tls_client_auth` client that publishes a `jwks_uri` has no registered certificate until certificates
-  in a published set (`x5c`) are imported — a follow-up recorded in the backlog.
+- A JSON Web Key's certificate is imported with it: the first `x5c` entry (RFC 7517 §4.7) is kept as the key's
+  certificate once it is shown to carry the key's public key, and a key whose `x5c` is empty, malformed, or names
+  another key is refused. A `self_signed_tls_client_auth` client can therefore register its certificates through
+  `jwks` or publish them at a `jwks_uri` (RFC 8705 §2.2). The rest of the chain is not kept, since a self-signed
+  certificate is matched by thumbprint, not by chain.
+- Because such a key now carries its certificate, a JWT the client signs with it — a client assertion, a request
+  object, or a CIBA request — is refused once that certificate has expired or before it becomes valid (the
+  certificate-lifetime requirement those validations add, with the usual clock skew). A key published without `x5c` is
+  unaffected. The certificate's validity is compared with the UTC clock, so the host's time zone does not shift it.
 - Tenant, server, and resource-server key imports and updates keep their existing checks; applying the key-to-algorithm
   rule to them is a follow-up recorded in the backlog.
 

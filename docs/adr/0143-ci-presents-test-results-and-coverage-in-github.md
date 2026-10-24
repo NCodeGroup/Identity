@@ -1,6 +1,7 @@
 # 143. CI presents test results and coverage in GitHub, through job summaries, annotations, and Codecov
 
-- **Status:** Accepted
+- **Status:** Accepted (coverage scope set by
+  [ADR-0185](0185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md))
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -67,6 +68,9 @@ read-only.**
   eleven separate HTML reports and a second presentation style. Installing .NET in the frontend job purely to run
   ReportGenerator is the price of one merged report rendered the same way as the .NET tier's.
 - **Coverage thresholds as a gate** — out of scope: reporting coverage is not deciding a coverage policy.
+
+What the figure measures, and how a partially covered line counts, is set by
+[ADR-0185](0185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md).
 
 ## Consequences
 

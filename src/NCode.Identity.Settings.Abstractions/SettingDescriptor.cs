@@ -56,6 +56,20 @@ public abstract class SettingDescriptor
     public bool IsDiscoverable { get; init; }
 
     /// <summary>
+    /// Gets why the setting is retired, or <see langword="null"/> while it is in use. A retired setting stays
+    /// registered until no running release reads it, so a stored settings document that carries it still loads:
+    /// reading the document ignores it, an update may keep its stored value or remove it, and every other write that
+    /// carries it is refused with this reason.
+    /// </summary>
+    public string? RetiredReason { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the setting is retired.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(RetiredReason))]
+    public bool IsRetired => RetiredReason is not null;
+
+    /// <summary>
     /// Gets a value indicating whether the default value is set.
     /// </summary>
     public abstract bool HasDefault { get; }
@@ -68,6 +82,15 @@ public abstract class SettingDescriptor
     /// together reach the same bound in whatever order they are merged.
     /// </summary>
     public abstract bool HasLatticeMerge { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the setting merges with a meet of <see cref="SettingMerge"/>
+    /// (<see cref="SettingMerge.Min{T}"/>, <see cref="SettingMerge.And"/>, <see cref="SettingMerge.Intersect{T}"/>),
+    /// whose result is never above either value. A value contributed at any scope is a ceiling over every scope below
+    /// it, and a value a child sets survives only where no ceiling above it is lower. Every setting with a meet merge
+    /// also has a lattice merge (<see cref="HasLatticeMerge"/>).
+    /// </summary>
+    public abstract bool HasMeetMerge { get; }
 
     /// <summary>
     /// Factory method used to create a new <see cref="Setting"/> instance with the specified <paramref name="value"/>.
@@ -135,6 +158,9 @@ public class SettingDescriptor<TValue> : SettingDescriptor
 
     /// <inheritdoc />
     public override bool HasLatticeMerge => SettingMerge.IsLatticeOperation(OnMerge);
+
+    /// <inheritdoc />
+    public override bool HasMeetMerge => SettingMerge.IsMeetOperation(OnMerge);
 
     private readonly TValue? _defaultValue;
     private readonly bool _hasDefault;

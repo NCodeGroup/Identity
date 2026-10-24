@@ -79,6 +79,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   fallback so it **would succeed** — give the tenant a key the policy permits — and pair the test with a control that
   shows the same fallback succeeding when the rule does not apply. Otherwise the refusal also happens because the
   fallback itself fails, the same error is asserted, and the test passes with the rule removed.
+- 👁 **A fix that moves a refusal earlier is proven by a request the old code deferred.** When the change is *when* a
+  request is refused (credentials checked before sign-in rather than when the response is written), send a request the
+  old code accepts and parks, for example an authorization request without `prompt=none`, which the old code answers
+  with the login challenge (`302`). A request the old code also refuses at the end passes with the fix removed.
 
 ## Isolation & mocking
 
@@ -117,6 +121,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **Hermetic — no network, no ambient host.** Use `DefaultHttpContext` with a test `RequestServices`, in-memory
   fakes, and constructed `ClaimsPrincipal`s. A resource/principal/stub a single test needs is a small local
   `private sealed` type in the test file.
+- 👁 **A test that listens to a framework meter sees the whole process.** A `MeterListener` or OpenTelemetry reader
+  subscribed to `System.Net.Http` (or any shared meter name) also collects the instruments other tests record in
+  parallel, so assert the property on **every** collected point and look for this test's own point with
+  `Assert.Contains` — never `Assert.Single` over a shared instrument.
 - 👁 **Dispose a test's real service provider asynchronously.** A test that resolves the real algorithms or key types
   (`AddSecretsLibrary().AddJoseLibrary()`) owns a container holding a service that implements only
   `IAsyncDisposable` (the algorithm-collection provider), so a synchronous `ServiceProvider.Dispose()` throws
@@ -153,6 +161,39 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   `Setup(x => x.ContainsAsync(ExpiringKeys.Create("p", tenant, nonce), ct))` does not compile. Build the value into a
   local first (`var expectedKey = ExpiringKeys.Create(…);`) and match it in the setup; this also keeps the matched value
   visible in the test.
+- 👁 **Stop the unit at the mediator to inspect a command it builds midway.** When the behavior under test is the
+  content of a command the unit sends before more work (the subject a token exchange validates), capture the command in
+  the setup's callback and return `ValueTask.FromException(...)`, so the unit stops there and the test mocks nothing
+  after it (`DefaultTokenExchangeGrantHandlerTests`).
+- 👁 **Run a function argument through a strict setup.** When the unit passes a function that the collaborator calls
+  midway (the `isRefusedAsync` of `ILocalAccountStore.VerifyCredentialAsync`), set up
+  `.Returns((T1 _, T2 _, Func<…> callback, CancellationToken cancellationToken) => HelperAsync(callback, …,
+  cancellationToken))` with a static `async` helper rather than an `async` lambda, so the delegate returns the member's
+  own `ValueTask<T>` (`LocalAccountStoreSetup.SetupVerification`).
+- 👁 **Match a `JsonElement` argument by content.** `JsonElement` compares document references, and a Moq matcher is an
+  expression tree that cannot contain `out _`, so call a static helper
+  (`It.Is<JsonElement>(e => HasProperty(e, "foo"))`).
+- 👁 **Make one call of a strict setup fail by adding a narrower setup after the general one.** Moq uses the last
+  setup that matches, so a `.Throws(...)` setup matched by `It.Is<JsonElement>(e => HasProperty(e, "retired"))`
+  after the general setup fails only that document, and both setups are consumed
+  (`ServerApiEndpointHandlerTests`, `DefaultTenantClientCoherenceCheckerTests`).
+- 👁 **Capture an event handler a strict mock receives and invoke it directly.**
+  `SetupAdd(x => x.Event += It.IsAny<EventHandler<TArgs>>()).Callback<EventHandler<TArgs>>(h => captured = h)`, plus a
+  `SetupRemove` when the unit detaches when it stops (`ValkeyReplicaBroadcastSubscriberTests`).
+- 👁 **A change-token producer in a test returns a fresh token after each change.** `ChangeToken.OnChange` asks the
+  producer for a new token after its callback; a producer that returns the cancelled token again fires forever. Swap in
+  a new `CancellationTokenSource` before cancelling the old one (`ServerSettingsReconciliationServiceTests`).
+- 👁 **Test the rate limiter with descriptors of the test's own.** `DefaultRequestRateLimiterTests` mocks
+  `IRateLimitDescriptorCatalog` and declares sliding and fixed descriptors, so the built-in table is tested only in
+  `DefaultRateLimitDescriptorDataSourceTests`; match the batch with
+  `It.Is<IReadOnlyList<ExpiringCounterIncrement>>(x => x.SequenceEqual(expected))`, and build the `RedisValue` arrays a
+  Valkey test expects from the same CLR types the adapter passes (`long`, `double`).
+- 👁 **Prove a shared retrieval with a gated stub handler.** The handler awaits a `TaskCompletionSource`: start two
+  calls, release the gate, and assert one request; cancel the first caller and dispose the input it passed to prove that
+  the retrieval runs on its own token and its own copy (`DefaultClientCertificateRevocationCheckerTests`).
+- 👁 **Test a migration rule with synthetic migrations.** Private sealed `Migration` subclasses in the test file,
+  carrying the markers under test, exercise `ExpandOnlyRule.Check` without a database; a theory over the host's real
+  migrations proves that each one is classified (`ExpandOnlyRuleTests`).
 
 ## Persistence & integration tests
 
@@ -177,6 +218,40 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   (`.HasIndex(…).IsUnique().HasFilter("… IS NOT NULL")`). A test that must observe the constraint (a duplicate
   rejected, or multiple rows allowed past a filtered `NULL`) runs against **SQLite in-memory** (`EnsureCreated` builds
   and enforces the index); the collision surfaces as a `DbUpdateException` on the offending `SaveChanges`.
+- 👁 **EF InMemory enforces no foreign key.** A deletion whose dependents reference the deleted row is tested on SQLite
+  in-memory, where a missed dependent fails `SaveChanges` (`ClientStoreRelationalRemovalTests`,
+  `TenantStoreRelationalRemovalTests`).
+- 👁 **EF Core's SQLite provider cannot compare or order a `DateTimeOffset`.** Test a store query that filters on one,
+  such as a grant's `ExpiresWhen` or `RevokedWhen`, on EF InMemory.
+- 👁 **A test that adds an entity to the `OpenIdDbContext` model calls `EnableServiceProviderCaching(false)`.** Entity
+  Framework caches the model per context type across service providers, so without it the test may receive a model
+  built without its entity (`TenantStoreContributedEntityRemovalTests`).
+- 👁 **A lost race through the store manager is `StoreConcurrencyException`;** only a test that calls
+  `DbContext.SaveChangesAsync` directly sees EF's `DbUpdateConcurrencyException`. See
+  [ADR-0208](../../docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).
+- 👁 **Build a stored grant's `PayloadJson` with the real `DefaultPersistedPayloadSerializer`**
+  (`new DefaultPersistedPayloadSerializer([])`), never `JsonSerializer.SerializeToElement(payload)`. The server stores a
+  versioned envelope, so a test that hands the code the bare payload passes while the code fails on every stored row
+  (`DefaultSessionServiceTests`).
+- 👁 **Seed a settings document the vocabulary cannot honor through the store, and prove it unreadable first.** The
+  management API refuses such a document, so `SeedPublicClientWithSettingsAsync` writes it with an unregistered
+  setting name; assert that the incoherent-client report lists it with a `documentError` before the behavior under
+  test, so the test cannot pass on a document the server reads (`UnreadableSettingsDocumentTests`).
+- 👁 **Make a served tenant's own settings document unreadable after the management client authenticates.**
+  `HostApplicationFactory.ReplaceTenantSettingsAsync` writes the document through the store and leaves the materialized
+  tenant cached, so the token still validates and the management request reads the document
+  (`UnreadableSettingsDocumentTests`). A handler test that a read authorizes before it resolves gives the strict
+  resolver no setup (`GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbidWithoutResolvingTheSettings`).
+- 👁 **A strict-mock test of a read-and-retry loop returns a new object for each read**
+  (`SetupSequence(...).ReturnsAsync(first).ReturnsAsync(second)`): the code under test changes the object it read, so
+  one shared instance makes the second read see the first attempt's own write.
+- 👁 **Test a read-modify-write through the update function it passes.** The strict setup of `UpdatePayloadAsync`
+  captures the `update` argument in its callback; the test invokes it with the stored grant the scenario means, such as
+  one a concurrent request changed, and asserts the update it returns (`DefaultSessionServiceTests`,
+  [ADR-0222](../../docs/adr/0222-a-grants-payload-is-changed-by-a-read-modify-write.md)).
+- 👁 **A mocked `OpenIdContext` or `OpenIdTenant` that the code under test disposes sets up its protected
+  `DisposeAsyncCore`.** `mock.Protected().Setup<ValueTask>("DisposeAsyncCore")…Verifiable()`; `DisposeAsync` is not
+  virtual and calls it (`EndedSessionTerminationServiceTests`).
 - 👁 **A global query filter is bypassed for change-tracked entities.** A `HasQueryFilter` predicate (e.g. the
   tenant-scoping filter, [ADR-0018](../../docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md)) is
   applied to a **database** query, but a first-level-cache hit — an entity already tracked from a prior `Add`/read,
@@ -187,12 +262,16 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   `IClassFixture` that protects/unprotects secrets (confidential clients, encrypted key material) leaks
   keyring/serializer state between tests, and the second run fails (`invalid_client`). Give each such test its own
   `using var factory = new HostApplicationFactory();`.
-- 👁 **Each factory instance owns an isolated in-memory database, and `WithWebHostBuilder` builds a _separate_ host with
-  its _own_ database.** `HostApplicationFactory.ConfigureWebHost` creates a fresh `InMemoryDatabaseRoot` per host,
-  so `factory` and `factory.WithWebHostBuilder(…)` do **not** share data. A test that both **seeds** data and
-  **configures** the host must do both on the **same** instance: configure through a subclass that overrides
-  `ConfigureWebHost` (calling `base` first), then seed via that instance's helpers — never seed one instance and request
-  another, or the request hits a different, empty database.
+- 👁 **Each `HostApplicationFactory` instance owns one in-memory database and one root key, which every host it builds
+  shares.** The factory keeps its `InMemoryDatabaseRoot` and root key on the instance. `factory.WithWebHostBuilder(…)`
+  builds a separate host (its own service provider, caches, and hosted services) over that database and root key,
+  because hosts that share a database must unwrap the same master keys. So data one host commits is visible to the
+  others, but a tenant one host materialized, or usage it recorded and has not flushed, is not. Seed before the host
+  that must see the data serves its first request. A test that needs isolation creates its own
+  `HostApplicationFactory`. The factory also owns one Data Protection key ring, in its own in-memory
+  `DeveloperDataProtectionDbContext` database, so no test reads or writes the machine's key directory; a directly
+  built host that starts with `AddConfiguration` sets `KeyManagementOptions.XmlRepository` to an in-memory repository
+  (`IdentityServerBuilderExtensionsTests`).
 - 👁 **Never assert a startup failure through `WebApplicationFactory`.** When the host's entry point throws after
   `Build()` — mapping endpoints resolves options, so a configuration error usually lands there — the host's
   `await using var app` disposes the service provider, and under load the factory's deferred `StartAsync` reaches that
@@ -200,11 +279,25 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   fails in the parallel gate. Assert startup failures against a host built directly
   (`Host.CreateEmptyApplicationBuilder`, the registration under test, then `StartAsync`), and keep factory-based tests
   for hosts that start.
+- 👁 **The integration host is stopped by its own run loop, once.**
+  - The host's entry point awaits `RunAsync`, which stops the host when the application stops and then disposes it.
+  - `WebApplicationFactory` would stop the same host again, concurrently. The run loop then disposed the service
+    provider under the other stop's work: a usage flush failed, and its warning hit the disposed Windows Event Log
+    provider and threw from a random test's disposal.
+  - `HostApplicationFactory.CreateHost` returns an `ApplicationRunLoopHost`. Its `StopAsync` calls `StopApplication`
+    and waits for `ApplicationStopped`, and its `Dispose` leaves disposal to the run loop.
+  - Never call `StopAsync` or `Dispose` on a factory's host; dispose the factory.
+- 👁 **The integration host logs only through the console and EventSource providers.** It inherits them from the host's
+  composition root, so a test writes nothing to the machine's Windows Event Log; `ProgramTests` pins the set.
 - 👁 **A directly built host that composes the whole server needs a store-factory stub.** `AddIdentityServer()` leaves
-  the persistence provider to the host, yet resolving the setting-descriptor catalog resolves the client-authentication
-  handlers, which depend on `IStoreManagerFactory`. A configuration-only test registers a never-called strict
+  the persistence provider to the host, yet a client-authentication handler, the effective-settings resolver, and
+  services the host starts depend on `IStoreManagerFactory`. A configuration-only test registers a never-called strict
   `new Mock<IStoreManagerFactory>(MockBehavior.Strict).Object` rather than disabling DI validation or composing a
   database.
+- 👁 **Prove that composition constructs no strategy by registering one that throws.** Register
+  `services.AddSingleton<IClientAuthenticationHandler>(_ => throw new InvalidOperationException(…))`, configure a
+  server setting so options validation reads the setting-descriptor catalog, and read `IOptions<OpenIdOptions>.Value`
+  (`AddIdentityServer_ReadingTheOpenIdOptions_ConstructsNoClientAuthenticationHandler`).
 - 👁 **A test host pins an issuer for every tenant it serves.** A tenant is served only beneath its stored issuer
   ([ADR-0165](../../docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), so
   `HostApplicationFactory` pins the static tenant to `HostApplicationFactory.TestServerIssuer` (`http://localhost`). A
@@ -213,11 +306,17 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   issuer; and a directly built host that starts configures `StaticSingle:Issuer`. A tenant seeded without an issuer
   fails closed when it is served.
 - 👁 **The integration host runs in the `Development` environment, without its launch profile.**
-  `HostApplicationFactory` sets `Development`, so the host loads `appsettings.Development.json` — the developer seed and
-  its `DeveloperInteractiveSeed:TenantId` — but never `launchSettings.json`, whose environment variables pin each
-  launch profile's issuer and bootstrap administrator. Configure what a test depends on in the factory
-  (`ConfigureAppConfiguration`) rather than assuming a launch profile's value, and expect an unhandled exception to reach
-  the client as the developer exception page's `500`.
+  `HostApplicationFactory` sets `Development`, so the host loads `appsettings.Development.json` — the developer seed's
+  `DeveloperInteractiveSeed:TenantId`, though the factory seeds none of the developer clients — but never
+  `launchSettings.json`, whose environment variables pin each launch profile's issuer and bootstrap administrator.
+  Configure what a test depends on in the factory (`ConfigureAppConfiguration`) rather than assuming a launch profile's
+  value, and expect an unhandled exception to reach the client as the developer exception page's `500`.
+- 👁 **The integration host seeds no developer clients unless a test opts in.** The developer clients are public and use
+  `http` redirect URIs, and the seeder checks them for coherence, so with them seeded a test that narrows the server's
+  or the tenant's ceilings (a FAPI profile, `token_endpoint_auth_methods_supported`, `redirect_uri_kinds_supported`)
+  would stop the static tenant from being served. `HostApplicationFactory.SeedsDeveloperClients` is `false`, and a test
+  that exercises the developer clients uses `DeveloperSeedingHostApplicationFactory`, which returns `true`
+  (`DeveloperSpaClientSeedingTests`).
 - 👁 **Configuration the composition root reads while it registers services is a host setting in a test factory.** A
   `ConfigureAppConfiguration` overlay reaches options bound later, but not a value `Program.cs` reads to decide what to
   register — `DeveloperKeys:Mode`, read by `AddDevelopmentEnvironment`, keeps its default and the test silently runs
@@ -237,6 +336,52 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   authorization request endpoint) and redeems it with `TestPkce.CodeVerifier`; a test without them exercises the
   refusal, not the flow. Sign a user in with `InteractiveLogin.SignInAsync` rather than another copy of the antiforgery
   dance.
+- 👁 **Drive the device flow through its endpoints.** Start it at `/oauth2/device_authorization`, sign the user in with
+  `InteractiveLogin.SignInAsync`, approve at `/oauth2/device` with the session cookie and the form fields `user_code`
+  and `action=approve`, and redeem the `device_code` at `/oauth2/token` (`LocalAccountLifecycleTests`).
+- 👁 **Post an interactive form through `InteractiveLogin.PostFormAsync`.** It reads the page's antiforgery tokens and
+  posts the fields with them and the session cookie; a bundle page answers `503` in the integration host but still
+  issues the tokens. Assert a refused sign-in with `SubmitLoginAsync`, which returns the response, and
+  `ReadSessionCookie`.
+- 👁 **Prove a page's security headers over HTTP, for a returning browser too.** Read `Content-Security-Policy` and
+  `X-Frame-Options` from `HttpResponseMessage.Headers`, not `Content.Headers`; find the policy's nonce in the page and
+  prove a `'sha256-…'` source by hashing the page's own `<script>` text; send the antiforgery cookie the first response
+  set back with a second request, because antiforgery adds `X-Frame-Options` only when it stores an antiforgery cookie,
+  so a test of a first response alone passes without the page's own headers (`HtmlPageSecurityTests`).
+- 👁 **Prove a header that depends on the forwarded scheme with a forwarded request.** Send `X-Forwarded-Proto: https`
+  over `http` through a host that trusts `127.0.0.1` in `ReverseProxy:KnownProxies`, and pair it with a control whose
+  host trusts no proxy. A test over `https` alone still passes when the step that writes the header runs before
+  `UseReverseProxy` (`StrictTransportSecurityTests`).
+- 👁 **A password a test sets through an entry point meets the password policy.** The management API, the
+  change-password page and the seeders refuse a password shorter than 15 characters or on the common-password list
+  (`passwordpassword` is), so such a test uses a long, unlisted passphrase; `SeedLocalAccountAsync` writes to the store
+  and skips the policy. A test of the failed-attempt limit lowers `password_failed_attempts_limit` with
+  `SeedTenantSettingsAsync` before the first request (`PasswordAttemptLimitTests`).
+- 👁 **Prove an equal-time verification by recording that the hasher ran, never by measuring time.** Elapsed time is
+  flaky in the parallel gate. Assert that the path without a stored hash verifies the dummy hash: a strict
+  `IPasswordHasher<TUser>` setup for the ASP.NET Core Identity adapter, a recording `IPasswordHasher` fake for the
+  Entity Framework store (Moq cannot match its span arguments), and a recording decorator that a derived
+  `HostApplicationFactory` registers end to end (`PasswordVerificationTimingTests`). A refusal at the attempt limit is
+  proven the same way (`SignIn_WhenTheLimitIsReached_VerifiesAgainstTheDummyHash`).
+- 👁 **Test the ASP.NET Core Identity adapter against a real `UserManager<TUser>` as well as a mocked one.** A mocked
+  `UserManager` hides what its own methods do: `CreateAsync(user, password)` runs the password validators, and
+  `CheckPasswordAsync` rehashes and rotates the security stamp.
+  `AspNetIdentityLocalAccountStoreEntityFrameworkTests` composes
+  `AddIdentityCore<IdentityUser>().AddEntityFrameworkStores<IdentityDbContext>()` over EF InMemory with the adapter's
+  own registration. Write a password that is not in NFC with escapes (`"cafe\u0301"`), never as a pasted character an
+  editor may normalize. The user manager's hasher is the adapter's `NormalizingPasswordHasher<TUser>`, so a hash of a
+  password as typed comes from a raw `PasswordHasher<TUser>` (`SetStoredPasswordHashAsync`), and a mocked
+  `UserManager<TUser>` is built with a hasher wrapped in it.
+- 👁 **Assert a URI the server must deliver as written on `Headers.Location.OriginalString`.** `HttpClient` parses
+  the header into a `Uri`, whose `AbsoluteUri` and `ToString()` normalize it, so such an assertion passes while the
+  server sends `myapp://callback/` for `myapp://callback`.
+- 👁 **A private-use redirect URI in a test is a reverse domain name** (`com.example.app:/callback`);
+  `myapp://callback` is of no registered kind and is refused
+  ([ADR-0203](../../docs/adr/0203-redirect-uris-are-matched-exactly.md)).
+- 👁 **The ephemeral developer key signs only `RS256`.** A test that needs the tenant to sign with `PS256` or
+  `ES256`, such as a FAPI client's JARM response, selects `DeveloperKeys:Mode` `None` with `builder.UseSetting` (a
+  host setting, above), so the tenant is provisioned `RS256`, `PS256`, and `ES256` keys
+  (`Fapi1AdvancedAuthorizationTests`).
 - 👁 **Seed a client registered for the method the test authenticates with.** A client authenticates only with its
   registered `token_endpoint_auth_method`
   ([ADR-0145](../../docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md)), so each integration-test
@@ -244,6 +389,23 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   `SeedClientSecretJwtClientAsync`, the certificate and `jwks_uri` seeders (`private_key_jwt`), the mutual-TLS seeders,
   and `SeedPublicClientAsync` (`none`). A negative test whose client is registered for another method is refused for the
   wrong reason — `invalid_client` from the method mismatch — and passes without exercising the rule it names.
+- 👁 **Build a certificate subject with `X500DistinguishedNameBuilder` to choose each value's string type.** A subject
+  DN is matched by RFC 4517 rules, not by bytes.
+- 👁 **Serve revocation data through a stub handler, never the network.** Build a CRL with
+  `CertificateRevocationListBuilder` (`TestCrls` for the extensions and entries the builder cannot write), signed by a
+  CA whose key usage includes `CrlSign`, and an OCSP response with `TestOcspResponses`, signed by the issuer or by a
+  responder from `TestCertificates.CreateOcspResponder`. Unit tests stub `IHttpClientFactory` and answer by
+  `RequestUri`: an OCSP GET appends the URL-encoded base64 request to the responder's location. Integration tests set
+  `HostApplicationFactory.CertificateRevocationListResponder` before the first request.
+- 👁 **Pin a protocol encoder or parser to bytes another implementation wrote.** A parser and a test builder that share
+  one misreading of the specification both pass. Keep a few fixtures that a reference tool produced, with the commands
+  that produced them in a comment, and never edit them by hand (`OcspOpenSslFixtures`, written by OpenSSL with RSA keys
+  where the builder signs with ECDSA).
+- 👁 **Test a contract with an artifact the .NET gate does not build through a fact the workflow that builds it
+  runs.** The Definition of Done installs no Node, so `InteractiveBundleShellTests` reads the built `apps/auth`
+  `index.html` under `[BuiltAuthBundleFact]`, which skips unless `NCODE_AUTH_BUNDLE_INDEX` names it. Frontend CI sets
+  the variable after `pnpm run build`. Locally, run `pnpm exec vite build` in `src/frontend/apps/auth` and set the
+  variable to the absolute path of `dist/index.html`.
 - 👁 **Validate new tests in Release before running `dod.ps1`.** The gate builds and tests in **Release**, where
   `Debug.Assert` and `#if DEBUG` blocks disappear; run `dotnet test <proj> --configuration Release` first to catch
   Debug-vs-Release differences fast (a `#if DEBUG` auth bypass, a stripped assertion).
@@ -251,3 +413,15 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   (`JwtEncoderOptions.EnsureTokenLifetime`, on by default) injects a default `iat` / `nbf` / `exp` and overwrites a
   non-integer `iat`, so a test of lifetime validation (an absent, malformed, or far-off time claim) must encode its
   payload with `IJoseSerializer.CreateEncoder(new JoseSigningOptions(credentials)).Encode(payload)`.
+- 👁 **Assert a background job's effect by polling with a deadline** (a `Stopwatch`, 100 ms steps, about 15 s), never
+  with a fixed delay (`TenantKeyProvisioningTests.WaitForSecretIdsAsync`).
+- 👁 **Prove a worker's concurrency with a job that waits for a release.** Dispatch a job whose handler awaits a
+  `TaskCompletionSource` and assert that a second job completes while the first waits; prove the limit by setting it to
+  one and asserting that the second job does not complete within a short wait, then release the first
+  (`InProcessJobDispatchTests`). Fail a dispatched job from a test handler with `ValueTask.FromException`, as an `async`
+  handler fails: the worker invokes handlers through reflection, which wraps a synchronous throw in
+  `TargetInvocationException`, so a synchronous `OperationCanceledException` never reaches the code under test as one.
+- 👁 **Change configuration at runtime through the host's `IConfigurationRoot`.** Set the key on
+  `factory.Services.GetRequiredService<IConfiguration>()` cast to `IConfigurationRoot` and call `Reload()`: the test's
+  in-memory overlay is the last provider and keeps the value through the reload, and every reload token fires
+  (`TenantKeyProvisioningTests`).

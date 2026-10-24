@@ -19,6 +19,7 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
+using NCode.Identity.OpenId.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
@@ -70,6 +71,75 @@ public class EndSessionEndpointTests
         // The OP login cookie is cleared (an expired Set-Cookie for the interactive scheme).
         var clearing = ReadSetCookieRaw(response, InteractiveCookieName);
         Assert.NotNull(clearing);
+    }
+
+    [Fact]
+    public async Task GetEndSession_WhenThePostLogoutRedirectUriIsNotAscii_RedirectsToItPercentEncoded()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedPublicClientWithSettingsAsync(
+            "rp-escape",
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.PostLogoutRedirectUris] = new[]
+                {
+                    "https://rp.example/apr\u00e8s-logout",
+                },
+            },
+            "https://rp.example/callback"
+        );
+
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = false,
+            }
+        );
+
+        var postLogoutRedirectUri = Uri.EscapeDataString("https://rp.example/apr\u00e8s-logout");
+        using var response = await client.GetAsync(
+            $"{EndSessionPath}?client_id=rp-escape&post_logout_redirect_uri={postLogoutRedirectUri}"
+        );
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.Equal(
+            "https://rp.example/apr%C3%A8s-logout",
+            response.Headers.Location?.OriginalString
+        );
+    }
+
+    [Fact]
+    public async Task GetEndSession_WhenThePostLogoutRedirectUriIsOfNoKind_RendersLoggedOut()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedPublicClientWithSettingsAsync(
+            "rp-no-kind",
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.PostLogoutRedirectUris] = new[] { "myapp://logout" },
+            },
+            "https://rp.example/callback"
+        );
+
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = false,
+            }
+        );
+
+        var postLogoutRedirectUri = Uri.EscapeDataString("myapp://logout");
+        using var response = await client.GetAsync(
+            $"{EndSessionPath}?client_id=rp-no-kind&post_logout_redirect_uri={postLogoutRedirectUri}"
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Null(response.Headers.Location);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("logged out", body, StringComparison.OrdinalIgnoreCase);
     }
 
     #region Login Helpers

@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Contexts;
@@ -63,8 +64,13 @@ public class OpenIdExceptionEndpointFilterTests : BaseTests
         // A redirect-delivered authorization error is carried by AuthorizationResult (ISupportOpenIdError),
         // not an OpenIdResult; the funnel must still audit it from the returned result.
         var authorizationResult = new AuthorizationResult(
-            new Uri("https://rp.example/callback"),
-            "query",
+            mockContext.Object,
+            CreateLooseMock<OpenIdClient>().Object,
+            new AuthorizationResponseDelivery(
+                "https://rp.example/callback",
+                new QueryAuthorizationResponseModeHandler(),
+                "state-1"
+            ),
             mockError.Object
         );
 

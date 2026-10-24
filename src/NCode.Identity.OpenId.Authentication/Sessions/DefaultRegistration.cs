@@ -20,6 +20,7 @@ using System.Net;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Dispatch;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Mediator;
@@ -37,7 +38,8 @@ internal static class DefaultRegistration
     {
         /// <summary>
         /// Configures the session service, its eviction policy and termination handlers, the session-state service,
-        /// and front- and back-channel logout delivery.
+        /// front- and back-channel logout delivery, and the hosted service that terminates the sessions that ended
+        /// while no request used them.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
@@ -105,6 +107,17 @@ internal static class DefaultRegistration
                     BackChannelLogoutDeliveryJobHandler
                 >()
             );
+
+            // A session that ends while no request uses it is terminated in the background, once (ADR-0223).
+            serviceCollection.AddOptions<EndedSessionTerminationOptions>().ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<EndedSessionTerminationOptions>,
+                    EndedSessionTerminationOptionsValidator
+                >()
+            );
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.AddHostedService<EndedSessionTerminationService>();
 
             return builder;
         }

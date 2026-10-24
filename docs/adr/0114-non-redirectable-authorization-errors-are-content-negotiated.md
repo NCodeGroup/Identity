@@ -1,6 +1,8 @@
 # 114. Non-redirectable authorization errors are content-negotiated via a response-formatter seam
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0253](0253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md):
+  the bundle redraws the error page instead of replacing it)
 - **Date:** 2026-10-16
 - **Deciders:** NCode Group
 

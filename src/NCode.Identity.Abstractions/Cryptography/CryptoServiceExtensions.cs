@@ -39,7 +39,7 @@ public static class CryptoServiceExtensions
         /// </summary>
         /// <returns>The newly generated random bytes encoded as a string.</returns>
         public string GenerateUrlSafeKey() =>
-            cryptoService.GenerateKey(DefaultKeyByteLength, BinaryEncodingType.Base64Url);
+            cryptoService.GenerateKey(DefaultKeyByteLength, BinaryEncodings.Base64Url);
 
         /// <summary>
         /// Generates a strong cryptographic random value that is Base64Url encoded.
@@ -47,13 +47,13 @@ public static class CryptoServiceExtensions
         /// <param name="byteLength">Specifies the number of random bytes to generate. Defaults to 32 bytes.</param>
         /// <returns>The newly generated random bytes encoded as a string.</returns>
         public string GenerateUrlSafeKey(int byteLength) =>
-            cryptoService.GenerateKey(byteLength, BinaryEncodingType.Base64Url);
+            cryptoService.GenerateKey(byteLength, BinaryEncodings.Base64Url);
 
         /// <summary>
         /// Generates a new opaque canonical resource identifier (128 bits of CSPRNG entropy, Base64Url encoded).
         /// </summary>
         /// <returns>The newly generated opaque resource identifier.</returns>
         public string GenerateResourceId() =>
-            cryptoService.GenerateKey(ResourceIdByteLength, BinaryEncodingType.Base64Url);
+            cryptoService.GenerateKey(ResourceIdByteLength, BinaryEncodings.Base64Url);
     }
 }

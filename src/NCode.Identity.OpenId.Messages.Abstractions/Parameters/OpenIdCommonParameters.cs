@@ -296,11 +296,11 @@ public static class OpenIdCommonParameters
     };
 
     /// <summary>
-    /// Gets the <see cref="KnownParameter"/> for the <c>redirect_uri</c> message parameter which parses <see cref="StringValues"/> into an <see cref="Uri"/> result.
+    /// Gets the <see cref="KnownParameter"/> for the <c>redirect_uri</c> message parameter, kept as the <see cref="String"/> the client wrote, because a redirect URI is matched, delivered, and compared as written.
     /// </summary>
-    public static readonly KnownParameter<Uri> RedirectUri = new(
+    public static readonly KnownParameter<string> RedirectUri = new(
         OpenIdConstants.Parameters.RedirectUri,
-        CommonParameterParsers.Uri
+        CommonParameterParsers.String
     )
     {
         AllowMissingStringValues = false,

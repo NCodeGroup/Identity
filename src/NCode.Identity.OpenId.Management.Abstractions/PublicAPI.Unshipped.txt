@@ -4,6 +4,7 @@ abstract NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Client = "client" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ClientSecret = "client.secret" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.InitialAccessToken = "initial_access_token" -> string!
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Principal = "principal" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ResourceServer = "resource_server" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ResourceServerScope = "resource_server.scope" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ResourceServerSecret = "resource_server.secret" -> string!
@@ -100,8 +101,17 @@ NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSetting
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.Settings.init -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ResourceServerSettingsResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.KeyId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.KeyId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Curve.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.Curve.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest
+NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.ExpiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.RotateSecretRequest.RotateSecretRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.KeyId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.KeyId.init -> void
+NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateUpdate(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! secret, NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest! request) -> NCode.Identity.OpenId.Management.ManagementError?
 override NCode.Identity.OpenId.Management.Auditing.InitialAccessTokenCreatedAuditEvent.ResourceType.get -> string!
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
@@ -118,6 +128,7 @@ NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordServerS
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes
+NCode.Identity.OpenId.Management.Auditing.PrincipalChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.ResourceServerChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.ResourceServerScopeChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.ResourceServerScopeChangedAuditEvent.ResourceServerId.get -> string!
@@ -159,6 +170,16 @@ NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource.Secrets
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource.Secrets.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.ClientCoherenceViolationResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.Description.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.Description.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.GoverningSettingName.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.GoverningSettingName.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.SettingName.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.SettingName.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.Value.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource.Value.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource.ClientEffectiveSettingsResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientEffectiveSettingsResource.ClientId.get -> string!
@@ -183,6 +204,16 @@ NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.IsDisable
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.IsDisabled.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.Settings.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Management.Contracts.Clients.CreateClientRequest.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.ClientId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.ClientId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.DocumentError.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.DocumentError.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.IncoherentClientResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.Violations.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Clients.ClientCoherenceViolationResource!>!
+NCode.Identity.OpenId.Management.Contracts.Clients.IncoherentClientResource.Violations.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest
 NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Clients.UpdateClientRequest.IsDisabled.set -> void
@@ -221,13 +252,17 @@ NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenReques
 NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.Description.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.LifetimeSeconds.get -> long?
 NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.LifetimeSeconds.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.ResourceServerId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Grants.CreateInitialAccessTokenRequest.ResourceServerId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.CreatedInitialAccessTokenResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.CreatedWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.Description.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.Description.init -> void
-NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ExpiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ResourceServerId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ResourceServerId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.ExpiresWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.GrantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Grants.CreatedInitialAccessTokenResource.GrantId.init -> void
@@ -249,7 +284,7 @@ NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.CreatedWhen.
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.CreatedWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.LastActivityWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.LastActivityWhen.init -> void
-NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.ExpiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.ExpiresWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.AuthTime.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionResource.AuthTime.init -> void
@@ -277,6 +312,16 @@ NCode.Identity.OpenId.Management.Contracts.OwnerResource.PrincipalId.get -> stri
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.PrincipalId.init -> void
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.RoleName.get -> string!
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.RoleName.init -> void
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.IsBlocked.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.IsBlocked.init -> void
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.PrincipalId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.PrincipalId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.PrincipalResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ClientGrantResource() -> void
 NCode.Identity.OpenId.Management.Contracts.ResourceServers.ClientGrantResource.ClientId.get -> string!
@@ -563,6 +608,7 @@ override NCode.Identity.OpenId.Management.Auditing.ClientChangedAuditEvent.Resou
 override NCode.Identity.OpenId.Management.Auditing.ClientSecretChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.GrantsRevokedBulkAuditEvent.Action.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.PrincipalChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.Action.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerScopeChangedAuditEvent.ResourceType.get -> string!
@@ -582,6 +628,7 @@ virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.NormalizeLimit(int? limit) -> int
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<TValue, TResponse>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, object? authorizationResource, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<TValue, TResponse>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
+virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, object? authorizationResource, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<TValue, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TResponse>>! mapperAsync, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessListAsync<TItem, TResource>(Microsoft.AspNetCore.Http.HttpContext! httpContext, object? authorizationResource, System.Func<System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<TItem>!>>! fetchPageAsync, System.Func<TItem, TResource>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ToErrorResult(NCode.Identity.OpenId.Management.ManagementError! error) -> Microsoft.AspNetCore.Http.IResult!
@@ -604,8 +651,36 @@ NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Failure
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Failures.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.IsIssuerDerived.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.IsIssuerDerived.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.IsMtlsEndpointAliasAuthorityDerived.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.IsMtlsEndpointAliasAuthorityDerived.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.MtlsEndpointAliasAuthority.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Issuer.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.Issuer.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.TenantAddressResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Tenants.TenantAddressResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.MtlsEndpointAliasAuthority.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.MtlsEndpointAliasAuthority.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest.MtlsEndpointAliasAuthority.set -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.Count.get -> long
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.Count.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.Day.get -> System.DateOnly
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.Day.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.Meter.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.Meter.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry.TenantUsageEntry() -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.Entries.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageEntry!>!
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.Entries.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.From.get -> System.DateOnly
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.From.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.To.get -> System.DateOnly
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.To.init -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantUsageResource.TenantUsageResource() -> void

@@ -1,4 +1,4 @@
-import type { BootstrapDocument, OpenIdDiscovery, RuntimeConfig } from './types.js';
+import type { BootstrapDocument, BrandingConfig, OpenIdDiscovery, RuntimeConfig } from './types.js';
 
 /** Thrown when runtime configuration cannot be discovered or is invalid. */
 export class RuntimeConfigError extends Error {
@@ -23,6 +23,34 @@ function requireNonEmpty(value: unknown, field: string): string {
 /** Default login scopes: `openid` plus one management scope that binds the `urn:ncode:management` audience. */
 export const DEFAULT_SCOPES: readonly string[] = ['openid', 'read:clients'];
 
+/**
+ * Reads the brandable theme tokens from an untrusted value, keeping each token only when it has the expected shape.
+ * Returns `undefined` when the value is not an object or sets no usable token, so the default theme applies.
+ */
+export function parseBrandingConfig(raw: unknown): BrandingConfig | undefined {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return undefined;
+  }
+  const source = raw as Record<string, unknown>;
+  const text = (value: unknown): string | undefined =>
+    typeof value === 'string' && value.trim() ? value : undefined;
+
+  const displayName = text(source.displayName);
+  const logoUrl = text(source.logoUrl);
+  const primaryColor = text(source.primaryColor);
+  const secondaryColor = text(source.secondaryColor);
+  const mode = source.mode === 'light' || source.mode === 'dark' ? source.mode : undefined;
+
+  const branding: BrandingConfig = {
+    ...(displayName ? { displayName } : {}),
+    ...(logoUrl ? { logoUrl } : {}),
+    ...(primaryColor ? { primaryColor } : {}),
+    ...(secondaryColor ? { secondaryColor } : {}),
+    ...(mode ? { mode } : {}),
+  };
+  return Object.keys(branding).length > 0 ? branding : undefined;
+}
+
 /** Validates and normalizes the host-published bootstrap document. */
 export function parseBootstrapDocument(raw: unknown): BootstrapDocument {
   if (raw === null || typeof raw !== 'object') {
@@ -37,10 +65,7 @@ export function parseBootstrapDocument(raw: unknown): BootstrapDocument {
       ? (doc.features as Record<string, boolean>)
       : {};
 
-  const branding =
-    doc.branding && typeof doc.branding === 'object'
-      ? (doc.branding as BootstrapDocument['branding'])
-      : undefined;
+  const branding = parseBrandingConfig(doc.branding);
 
   const scopes =
     Array.isArray(doc.scopes) && doc.scopes.every((s) => typeof s === 'string')

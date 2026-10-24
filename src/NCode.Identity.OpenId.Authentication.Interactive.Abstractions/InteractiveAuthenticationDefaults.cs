@@ -114,6 +114,11 @@ public static class InteractiveAuthenticationDefaults
     public const string SessionsRevokeAllPath = "/account/sessions/revoke-all";
 
     /// <summary>
+    /// The request path of the self-service change-password page, which its form posts to.
+    /// </summary>
+    public const string PasswordPath = "/account/password";
+
+    /// <summary>
     /// The name of the JavaScript-readable cookie the login/consent pages echo back as the antiforgery request token,
     /// so the single-page surface can submit an antiforgery-protected form without the server rendering the token.
     /// </summary>

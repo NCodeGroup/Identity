@@ -178,6 +178,44 @@ internal class GrantStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedGrant>> GetUnrevokedExpiredPageAsync(
+        string grantType,
+        DateTimeOffset expiredAt,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var afterId = DecodeCursor(page.Cursor);
+
+        var query = DbContext
+            .Grants.Include(entity => entity.Tenant)
+            .Include(entity => entity.Client)
+            .AsQueryable();
+
+        if (afterId is { } id)
+        {
+            query = query.Where(entity => entity.Id > id);
+        }
+
+        // The sessions that ended while no request used them. See ADR-0223.
+        var cutoff = expiredAt.ToUniversalTime();
+        query = query.Where(entity =>
+            entity.GrantType == grantType
+            && entity.RevokedWhen == null
+            && (entity.ExpiresWhen == null || entity.ExpiresWhen <= cutoff)
+            && !entity.Tenant.IsDisabled
+        );
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var entities = await query
+            .OrderBy(entity => entity.Id)
+            .Take(page.Limit + 1)
+            .ToListAsync(cancellationToken);
+
+        return await BuildPageAsync(entities, page.Limit, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async ValueTask<long> RevokeWhereAsync(
         GrantFilter filter,
         DateTimeOffset revokedWhen,
@@ -227,6 +265,60 @@ internal class GrantStore(
         return entities.Count;
     }
 
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<PersistedGrant>> GetActiveByRefreshTokenLineageAsync(
+        string refreshTokenLineageId,
+        CancellationToken cancellationToken
+    )
+    {
+        // The grants are tracked, so the caller can update them in the same unit of work. The lineage id is an opaque
+        // resource id matched verbatim.
+        var entities = await DbContext
+            .Grants.Include(entity => entity.Tenant)
+            .Include(entity => entity.Client)
+            .Where(entity =>
+                entity.RevokedWhen == null && entity.RefreshTokenLineageId == refreshTokenLineageId
+            )
+            .ToListAsync(cancellationToken);
+
+        var grants = new List<PersistedGrant>(entities.Count);
+        foreach (var entity in entities)
+        {
+            grants.Add(await MapFromEntityAsync(entity, cancellationToken));
+        }
+
+        return grants;
+    }
+
+    /// <inheritdoc />
+    // See ADR-0218.
+    public async ValueTask<int> RemoveEndedBeforeAsync(
+        DateTimeOffset endedBefore,
+        IReadOnlyCollection<string> grantTypesEndedByRevocation,
+        int limit,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(grantTypesEndedByRevocation);
+        ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+
+        var cutoff = endedBefore.ToUniversalTime();
+        var endedByRevocation = grantTypesEndedByRevocation.ToList();
+
+        // The prune never removes a session that was not terminated. See ADR-0223.
+        var entities = await DbContext
+            .Grants.Where(entity =>
+                entity.RevokedWhen < cutoff
+                || (entity.ExpiresWhen < cutoff && !endedByRevocation.Contains(entity.GrantType))
+            )
+            .OrderBy(entity => entity.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+        DbContext.Grants.RemoveRange(entities);
+
+        return entities.Count;
+    }
+
     private static IQueryable<GrantEntity> ApplyGrantFilters(
         IQueryable<GrantEntity> query,
         GrantFilter filter
@@ -250,6 +342,19 @@ internal class GrantStore(
         if (!string.IsNullOrEmpty(filter.SessionId))
         {
             query = query.Where(entity => entity.SessionId == filter.SessionId);
+        }
+
+        // A grant issued under no session has no sid.
+        if (filter.WithoutSession)
+        {
+            query = query.Where(entity => entity.SessionId == null);
+        }
+
+        // The grant id is the opaque public identifier, which the store matches by its normalized form.
+        if (!string.IsNullOrEmpty(filter.GrantId))
+        {
+            var normalizedGrantId = Normalize(filter.GrantId);
+            query = query.Where(entity => entity.NormalizedGrantId == normalizedGrantId);
         }
 
         // The grant type is a fixed protocol constant, so it is matched verbatim.
@@ -344,7 +449,7 @@ internal class GrantStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 "The OpenId Grant has been modified by another process. Please reload and try again."
             );
         }

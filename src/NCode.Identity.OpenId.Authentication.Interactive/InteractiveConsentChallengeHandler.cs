@@ -29,18 +29,22 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// consent page, carrying the parked continuation as the return URL so the authorization request resumes once the
 /// consent decision is recorded. This replaces the core no-op handler when the interactive surface is registered.
 /// </summary>
-internal sealed class InteractiveConsentChallengeHandler
+internal sealed class InteractiveConsentChallengeHandler(InteractiveSurfacePaths surfacePaths)
     : ICommandResponseHandler<ConsentChallengeCommand, ReadOnlyEndpointDisposition>
 {
+    private InteractiveSurfacePaths SurfacePaths { get; } = surfacePaths;
+
     /// <inheritdoc />
     public ValueTask<ReadOnlyEndpointDisposition> HandleAsync(
         ConsentChallengeCommand command,
         CancellationToken cancellationToken
     )
     {
-        var location =
-            $"{InteractiveAuthenticationDefaults.ConsentPath}?ReturnUrl="
-            + Uri.EscapeDataString(command.ContinueUrl);
+        var consentPath = SurfacePaths.GetSurfacePath(
+            command.OpenIdContext.Http,
+            InteractiveAuthenticationDefaults.ConsentPath
+        );
+        var location = $"{consentPath}?ReturnUrl=" + Uri.EscapeDataString(command.ContinueUrl);
 
         RedirectHttpResult result = TypedResults.Redirect(location);
         return ValueTask.FromResult(ReadOnlyEndpointDisposition.Handled(result));

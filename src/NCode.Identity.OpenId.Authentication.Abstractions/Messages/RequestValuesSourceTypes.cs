@@ -41,4 +41,9 @@ public static class RequestValuesSourceTypes
     /// previously stored at the pushed authorization request endpoint.
     /// </summary>
     public const string PushedAuthorizationRequest = "pushed_authorization_request";
+
+    /// <summary>
+    /// Specifies that the values were read from a verified <c>request object</c> (RFC 9101).
+    /// </summary>
+    public const string RequestObject = "request_object";
 }

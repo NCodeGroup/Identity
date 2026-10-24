@@ -1,11 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Plugin, PluginOption } from 'vite';
+import { ASYNC_UTIL_TIMEOUT_MS } from '@ncode/test-support';
 import {
+  BROWSER_TEST_TIMEOUT_MS,
+  CHUNK_SIZE_LIMIT_KB,
+  CSP_NONCE_PLACEHOLDER,
   defineBackendServedSurfaceConfig,
   defineStandaloneSurfaceConfig,
   defineTestConfig,
+  failOnOversizedChunks,
+  oversizedChunks,
   resolveServiceOrigin,
   testGates,
+  VENDOR_CHUNKS,
+  type BundleOutput,
   type CoverageFloors,
 } from './preset.js';
 
@@ -22,6 +30,104 @@ function pluginNames(option: PluginOption): string[] {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+const expectedBuild = {
+  outDir: 'dist',
+  assetsDir: 'assets',
+  sourcemap: true,
+  chunkSizeWarningLimit: CHUNK_SIZE_LIMIT_KB,
+  rolldownOptions: {
+    output: {
+      codeSplitting: {
+        groups: VENDOR_CHUNKS.map(({ name, test }, index) => ({
+          name,
+          test,
+          priority: VENDOR_CHUNKS.length - index,
+        })),
+      },
+    },
+  },
+};
+
+function chunk(fileName: string, sizeKb: number): BundleOutput {
+  return { type: 'chunk', fileName, code: 'x'.repeat(sizeKb * 1000) };
+}
+
+describe('VENDOR_CHUNKS', () => {
+  function vendorChunkOf(moduleId: string): string | undefined {
+    return VENDOR_CHUNKS.find(({ test }) => test.test(moduleId))?.name;
+  }
+
+  it.each([
+    ['/w/node_modules/.pnpm/react@19/node_modules/react/index.js', 'react'],
+    ['/w/node_modules/.pnpm/react-dom@19/node_modules/react-dom/client.js', 'react'],
+    ['/w/node_modules/.pnpm/scheduler@0/node_modules/scheduler/index.js', 'react'],
+    ['/w/node_modules/.pnpm/@mui+material@9/node_modules/@mui/material/Tab/Tab.js', 'mui'],
+    ['/w/node_modules/.pnpm/@emotion+react@11/node_modules/@emotion/react/dist/x.js', 'mui'],
+    ['/w/node_modules/.pnpm/react-redux@9/node_modules/react-redux/dist/x.js', 'redux'],
+    ['/w/node_modules/.pnpm/@reduxjs+toolkit@2/node_modules/@reduxjs/toolkit/dist/x.js', 'redux'],
+    ['/w/node_modules/.pnpm/clsx@2/node_modules/clsx/dist/clsx.mjs', 'vendor'],
+    ['C:\\w\\node_modules\\react\\index.js', 'react'],
+    ['/w/packages/ui/src/index.ts', undefined],
+  ])('puts %s in the %s chunk', (moduleId, expected) => {
+    expect(vendorChunkOf(moduleId)).toBe(expected);
+  });
+});
+
+describe('oversizedChunks', () => {
+  it('lists only the code chunks above the limit', () => {
+    const bundle: Record<string, BundleOutput> = {
+      'big.js': chunk('assets/big.js', 501),
+      'edge.js': chunk('assets/edge.js', 500),
+      'big.css': { type: 'asset', fileName: 'assets/big.css' },
+    };
+
+    expect(oversizedChunks(bundle, 500)).toStrictEqual([
+      { fileName: 'assets/big.js', sizeKb: 501 },
+    ]);
+  });
+});
+
+describe('failOnOversizedChunks', () => {
+  type GenerateBundle = (
+    this: { error(message: string): never },
+    options: unknown,
+    bundle: Record<string, BundleOutput>,
+  ) => void;
+
+  function generate(plugin: Plugin, bundle: Record<string, BundleOutput>): void {
+    const context = {
+      error(message: string): never {
+        throw new Error(message);
+      },
+    };
+    (plugin.generateBundle as unknown as GenerateBundle).call(context, {}, bundle);
+  }
+
+  it('runs only in builds', () => {
+    expect(failOnOversizedChunks().apply).toBe('build');
+  });
+
+  it('fails the build on a chunk above the default limit', () => {
+    const plugin = failOnOversizedChunks();
+
+    expect(() => generate(plugin, { 'a.js': chunk('assets/a.js', 501) })).toThrow(
+      /Chunks larger than 500 kB after minification: assets\/a\.js \(501\.00 kB\)/,
+    );
+    expect(() => generate(plugin, { 'a.js': chunk('assets/a.js', 500) })).not.toThrow();
+  });
+
+  it('holds the build to its configured chunk-size limit', () => {
+    const plugin = failOnOversizedChunks();
+    (plugin.configResolved as unknown as (config: unknown) => void)({
+      build: { chunkSizeWarningLimit: 100 },
+    });
+
+    expect(() =>
+      generate(plugin, { 'a.js': chunk('assets/a.js', 101), 'b.js': chunk('assets/b.js', 99) }),
+    ).toThrow(/larger than 100 kB after minification: assets\/a\.js \(101\.00 kB\)\. Split/);
+  });
 });
 
 describe('testGates', () => {
@@ -51,8 +157,12 @@ describe('testGates', () => {
     const test = testGates({ environment: 'jsdom', coverage: floors });
 
     expect(test.environment).toBe('jsdom');
-    expect(test.testTimeout).toBe(15_000);
+    expect(test.testTimeout).toBe(BROWSER_TEST_TIMEOUT_MS);
     expect(test.globals).toBe(true);
+  });
+
+  it('leaves room for three Testing Library waits before a browser test times out', () => {
+    expect(BROWSER_TEST_TIMEOUT_MS).toBeGreaterThanOrEqual(3 * ASYNC_UTIL_TIMEOUT_MS);
   });
 
   it('copies the floors rather than sharing the caller object', () => {
@@ -133,6 +243,7 @@ describe('defineStandaloneSurfaceConfig', () => {
     });
 
     expect(config.base).toBe('/');
+    expect(config).not.toHaveProperty('html');
     expect(config.server).toStrictEqual({
       port: 5174,
       strictPort: true,
@@ -144,9 +255,10 @@ describe('defineStandaloneSurfaceConfig', () => {
         },
       },
     });
-    expect(config.build).toStrictEqual({ outDir: 'dist', sourcemap: true });
+    expect(config.build).toStrictEqual(expectedBuild);
     expect(config.test).toStrictEqual(testGates({ environment: 'jsdom', coverage: floors }));
     expect(pluginNames(config.plugins ?? [])).toContain('vite:react-babel');
+    expect(pluginNames(config.plugins ?? [])).toContain('ncode:fail-on-oversized-chunks');
   });
 
   it('reads the service-discovery variables from the process environment by default', () => {
@@ -171,19 +283,19 @@ describe('defineStandaloneSurfaceConfig', () => {
 });
 
 describe('defineBackendServedSurfaceConfig', () => {
-  it('builds the bundle under the base the host serves it from, with no dev server', () => {
-    const config = defineBackendServedSurfaceConfig({ base: '/account/', coverage: floors });
+  it('builds a bundle that resolves its assets against the document base, with no dev server', () => {
+    const config = defineBackendServedSurfaceConfig({ coverage: floors });
 
-    expect(config.base).toBe('/account/');
+    expect(config.base).toBe('./');
+    expect(config.html).toStrictEqual({ cspNonce: '__NCODE_CSP_NONCE__' });
     expect(config).not.toHaveProperty('server');
-    expect(config.build).toStrictEqual({ outDir: 'dist', sourcemap: true });
+    expect(config.build).toStrictEqual(expectedBuild);
     expect(config.test).toStrictEqual(testGates({ environment: 'jsdom', coverage: floors }));
     expect(pluginNames(config.plugins ?? [])).toContain('vite:react-babel');
+    expect(pluginNames(config.plugins ?? [])).toContain('ncode:fail-on-oversized-chunks');
   });
 
-  it.each(['account/', '/account', ''])('rejects base %j', (base) => {
-    expect(() => defineBackendServedSurfaceConfig({ base, coverage: floors })).toThrow(
-      new RangeError(`Base '${base}' must start and end with '/'.`),
-    );
+  it("names the placeholder the host replaces with each response's nonce", () => {
+    expect(CSP_NONCE_PLACEHOLDER).toBe('__NCODE_CSP_NONCE__');
   });
 });

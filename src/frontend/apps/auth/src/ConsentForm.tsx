@@ -8,7 +8,12 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import FormGroup from '@mui/material/FormGroup';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { ANTIFORGERY_FIELD, CONSENT_ACTION, CONSENT_DETAILS_ENDPOINT } from './params.js';
+import {
+  ANTIFORGERY_FIELD,
+  CONSENT_ACTION,
+  CONSENT_DETAILS_ENDPOINT,
+  resolveSurfacePath,
+} from './params.js';
 
 /** A single requested scope, with a friendly description and whether the subject has already granted it. */
 export type ConsentScope = {
@@ -33,7 +38,14 @@ export type ConsentFormProps = {
   readonly productName?: string;
   /** Loads the pending request; defaults to a same-origin fetch of the consent-details endpoint. */
   readonly loadDetails?: (returnUrl: string) => Promise<ConsentDetails | null>;
+  /**
+   * The scopes the end-user cleared on the server-rendered form before the bundle mounted, which start unchecked.
+   */
+  readonly clearedScopes?: readonly string[];
 };
+
+/** The default for {@link ConsentFormProps.clearedScopes}: no scope was cleared. */
+const noClearedScopes: readonly string[] = [];
 
 /**
  * Default details loader: fetches the OP's consent-details endpoint for the pending authorization request. It is a
@@ -44,7 +56,7 @@ async function fetchDetails(returnUrl: string): Promise<ConsentDetails | null> {
     return null;
   }
   const response = await fetch(
-    `${CONSENT_DETAILS_ENDPOINT}?ReturnUrl=${encodeURIComponent(returnUrl)}`,
+    `${resolveSurfacePath(CONSENT_DETAILS_ENDPOINT)}?ReturnUrl=${encodeURIComponent(returnUrl)}`,
     { headers: { accept: 'application/json' } },
   );
   if (!response.ok) {
@@ -65,6 +77,7 @@ export function ConsentForm({
   antiforgeryToken,
   productName,
   loadDetails = fetchDetails,
+  clearedScopes = noClearedScopes,
 }: ConsentFormProps) {
   const [details, setDetails] = useState<ConsentDetails | null>(null);
 
@@ -98,7 +111,12 @@ export function ConsentForm({
     >
       <Card sx={{ width: '100%', maxWidth: 400 }}>
         <CardContent>
-          <Stack spacing={3} component="form" method="post" action={CONSENT_ACTION}>
+          <Stack
+            spacing={3}
+            component="form"
+            method="post"
+            action={resolveSurfacePath(CONSENT_ACTION)}
+          >
             <Typography variant="h5" component="h1">
               Authorize access
             </Typography>
@@ -114,8 +132,13 @@ export function ConsentForm({
                     control={
                       // A consent screen pre-selects every requested scope so Allow authorizes the request; the
                       // subject unchecks a scope to down-scope. Defaulting to the prior-granted state would silently
-                      // drop a freshly-requested scope (e.g. openid) when the subject clicks Allow.
-                      <Checkbox name="scope" value={scope.value} defaultChecked />
+                      // drop a freshly-requested scope (e.g. openid) when the subject clicks Allow. The exception is a
+                      // scope the end-user already cleared on the page the host rendered (ADR-0253).
+                      <Checkbox
+                        name="scope"
+                        value={scope.value}
+                        defaultChecked={!clearedScopes.includes(scope.value)}
+                      />
                     }
                     label={
                       <Box>

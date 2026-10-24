@@ -161,6 +161,56 @@ internal class ClientStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedClientSettings>> GetSettingsPageAsync(
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var query = DbContext.Clients.AsNoTracking();
+
+        if (DecodeCursor(page.Cursor) is { } afterId)
+        {
+            query = query.Where(client => client.Id > afterId);
+        }
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var rows = await query
+            .OrderBy(client => client.Id)
+            .Take(page.Limit + 1)
+            .Select(client => new
+            {
+                client.Id,
+                TenantId = client.Tenant.TenantId,
+                client.ClientId,
+                client.SettingsConcurrencyToken,
+                client.SettingsJson,
+            })
+            .ToListAsync(cancellationToken);
+
+        var hasMore = rows.Count > page.Limit;
+        var count = hasMore ? page.Limit : rows.Count;
+
+        var items = new List<PersistedClientSettings>(count);
+        for (var index = 0; index < count; index++)
+        {
+            var row = rows[index];
+            items.Add(
+                new PersistedClientSettings
+                {
+                    TenantId = row.TenantId,
+                    ClientId = row.ClientId,
+                    ConcurrencyToken = row.SettingsConcurrencyToken,
+                    Value = row.SettingsJson,
+                }
+            );
+        }
+
+        var nextCursor = hasMore ? EncodeCursor(rows[count - 1].Id) : null;
+
+        return new PagedResult<PersistedClientSettings> { Items = items, NextCursor = nextCursor };
+    }
+
+    /// <inheritdoc />
     public async ValueTask<PagedResult<PersistedClient>> GetPageByResourceServerAsync(
         string resourceServerId,
         PageRequest page,
@@ -293,7 +343,7 @@ internal class ClientStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The OpenId Client with ClientId='{clientId}' has been modified by another process. Please reload and try again."
             );
         }
@@ -321,7 +371,7 @@ internal class ClientStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The settings for OpenId Client with ClientId='{clientId}' have been modified by another process. Please reload and try again."
             );
         }
@@ -459,7 +509,7 @@ internal class ClientStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The secret with SecretId='{persistedSecret.SecretId}' has been modified by another process. Please reload and try again."
             );
         }
@@ -509,39 +559,47 @@ internal class ClientStore(
             return false;
         }
 
-        // Evaluate the guard against the change tracker, not a fresh DB query: a caller that removed the client's
-        // secrets earlier in this same unit of work (e.g. DCR deregistration) has them marked Deleted but not yet
-        // saved, so a database query would still see them and wrongly block the removal.
-        var hasSecrets = clientEntity.Secrets.Any(clientSecret =>
-            DbContext.Entry(clientSecret).State != EntityState.Deleted
+        // Everything that exists for the client is removed with it: its secrets, its grants to resource servers, its consents, the grants issued to it, and the role assignments at its resource node, whose resource type is the client's. See ADR-0212.
+        DbContext.ClientSecrets.RemoveRange(clientEntity.Secrets);
+        DbContext.Secrets.RemoveRange(
+            clientEntity.Secrets.Select(clientSecret => clientSecret.Secret)
         );
-        if (hasSecrets)
-        {
-            throw new InvalidOperationException(
-                $"The OpenId Client with ClientId='{clientId}' cannot be removed because it still has one or more secrets."
-            );
-        }
+
+        var clientKey = clientEntity.Id;
+        var tenantKey = clientEntity.TenantId;
+        var normalizedClientId = clientEntity.NormalizedClientId;
+
+        DbContext.ClientGrants.RemoveRange(
+            await DbContext
+                .ClientGrants.IgnoreQueryFilters()
+                .Where(entity => entity.ClientId == clientKey)
+                .ToListAsync(cancellationToken)
+        );
+        DbContext.Consents.RemoveRange(
+            await DbContext
+                .Consents.IgnoreQueryFilters()
+                .Where(entity => entity.ClientId == clientKey)
+                .ToListAsync(cancellationToken)
+        );
+        DbContext.Grants.RemoveRange(
+            await DbContext
+                .Grants.IgnoreQueryFilters()
+                .Where(entity => entity.ClientId == clientKey)
+                .ToListAsync(cancellationToken)
+        );
+        DbContext.RoleAssignments.RemoveRange(
+            await DbContext
+                .RoleAssignments.IgnoreQueryFilters()
+                .Where(entity =>
+                    entity.TenantId == tenantKey
+                    && entity.ResourceType == OpenIdResourceTypes.Client
+                    && entity.NormalizedResourceId == normalizedClientId
+                )
+                .ToListAsync(cancellationToken)
+        );
 
         DbContext.Clients.Remove(clientEntity);
 
         return true;
-    }
-
-    /// <inheritdoc />
-    public async ValueTask<bool> HasDependentsAsync(
-        string clientId,
-        CancellationToken cancellationToken
-    )
-    {
-        var clientEntity = await GetEntityOrDefaultAsync(clientId, cancellationToken);
-        if (clientEntity is null)
-        {
-            return false;
-        }
-
-        return await DbContext.ClientSecrets.AnyAsync(
-            clientSecret => clientSecret.ClientId == clientEntity.Id,
-            cancellationToken
-        );
     }
 }

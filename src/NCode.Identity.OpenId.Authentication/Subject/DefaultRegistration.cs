@@ -17,6 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Mediator;
 using NCode.Registration;
@@ -54,6 +55,23 @@ internal static class DefaultRegistration
                 ICommandHandler<ValidateSubjectAuthenticationCommand>,
                 DefaultValidateSubjectAuthenticationHandler
             >();
+
+            // Every validation of a subject includes its standing; it is added after the default handler, which
+            // TryAddSingleton registers only when no handler exists.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateSubjectAuthenticationCommand>,
+                    DefaultValidateStandingOnSubjectAuthenticationHandler
+                >()
+            );
+
+            // A blocked principal is refused wherever a subject's standing is validated.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<ValidateSubjectStandingCommand>,
+                    DefaultValidateBlockedSubjectHandler
+                >()
+            );
 
             serviceCollection.TryAddSingleton<
                 ICommandResponseHandler<AuthenticateSubjectCommand, AuthenticateSubjectDisposition>,

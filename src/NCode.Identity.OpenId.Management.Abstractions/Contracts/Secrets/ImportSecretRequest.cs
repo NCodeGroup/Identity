@@ -38,8 +38,8 @@ public sealed class ImportSecretRequest
     public required string SecretType { get; init; }
 
     /// <summary>
-    /// Gets the encoding of the supplied <see cref="KeyMaterial"/>. Supported values are <c>jwk</c>, <c>pem</c>,
-    /// and <c>certificate</c>.
+    /// Gets the encoding of the supplied <see cref="KeyMaterial"/>: a lowercase format name the secret type imports.
+    /// The built-in RSA and ECC types import <c>jwk</c>, <c>pem</c>, and <c>certificate</c>.
     /// </summary>
     public required string Format { get; init; }
 

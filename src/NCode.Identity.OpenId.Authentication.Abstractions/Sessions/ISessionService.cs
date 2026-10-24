@@ -67,8 +67,8 @@ public interface ISessionService
     /// <param name="sessionId">The opaque session identifier (<c>sid</c>).</param>
     /// <param name="clientId">The identifier of the participating client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> if an
-    /// active session was found and updated; otherwise <c>false</c>.</returns>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when this
+    /// call added the client; <c>false</c> when the session is not active or already lists the client.</returns>
     ValueTask<bool> AddClientAsync(
         OpenIdContext openIdContext,
         string sessionId,
@@ -77,10 +77,10 @@ public interface ISessionService
     );
 
     /// <summary>
-    /// Validates that the session identified by <paramref name="sessionId"/> is still active and, when a sliding idle
-    /// (inactivity) timeout applies, that it has not been idle for longer than its window. When the session is still
-    /// valid its last-activity marker is advanced (the sliding window is renewed); when it has lapsed it is revoked.
-    /// This is the server-authoritative session check performed when an authenticated request resolves a session.
+    /// Validates that the session identified by <paramref name="sessionId"/> is still active and has not ended. When the
+    /// session is still valid its last-activity marker is advanced and its expiry slides; when it has ended, at its
+    /// absolute end or at the end of its idle window, it is terminated. This is the server-authoritative session check
+    /// performed when an authenticated request resolves a session.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="sessionId">The opaque session identifier (<c>sid</c>).</param>
@@ -88,6 +88,22 @@ public interface ISessionService
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when the
     /// session remains valid; otherwise <c>false</c> (missing, revoked, expired, or idle-timed-out).</returns>
     ValueTask<bool> ValidateAndTouchAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Terminates the session identified by <paramref name="sessionId"/> through the session-termination seam when it
+    /// has ended, at its absolute end or at the end of its idle window, unless another caller terminated it. Of the
+    /// requests and background passes that find one ended session, only one terminates it.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
+    /// <param name="sessionId">The opaque session identifier (<c>sid</c>).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when this
+    /// call terminated the session; <c>false</c> when it is missing, revoked, or has not ended.</returns>
+    ValueTask<bool> TerminateIfEndedAsync(
         OpenIdContext openIdContext,
         string sessionId,
         CancellationToken cancellationToken
@@ -111,54 +127,67 @@ public interface ISessionService
     /// <summary>
     /// Terminates a single session, dispatching the session-termination side effects (grant revocation, back-channel
     /// logout notification, and auditing) through the <see cref="OnSessionTerminatedCommand"/> seam. Other sessions the
-    /// subject holds are left intact.
+    /// subject holds are left intact. Of the callers that terminate one session at the same time, only one terminates
+    /// it.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="sessionId">The opaque session identifier (<c>sid</c>) to terminate.</param>
-    /// <param name="reason">The reason the session is being terminated.</param>
+    /// <param name="reason">The reason the session is being terminated: one of <see cref="SessionTerminationReasons"/> or
+    /// an extension's own name.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask RevokeAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when this
+    /// call terminated the session; <c>false</c> when the session does not exist or is already revoked, including by a
+    /// concurrent caller.</returns>
+    ValueTask<bool> RevokeAsync(
         OpenIdContext openIdContext,
         string sessionId,
-        SessionTerminationReason reason,
+        string reason,
         CancellationToken cancellationToken
     );
 
     /// <summary>
-    /// Terminates every session the specified subject holds ("sign out everywhere"), dispatching the
+    /// Terminates every session the specified subject holds that no caller has terminated, a session that has ended
+    /// included ("sign out everywhere"), and revokes every grant the subject holds, dispatching the
     /// session-termination side effects through the <see cref="OnSessionTerminatedCommand"/> seam as a single
     /// subject-wide termination.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="subjectId">The stable, server-owned principal identifier whose sessions are terminated.</param>
-    /// <param name="reason">The reason the sessions are being terminated.</param>
+    /// <param name="reason">The reason the sessions are being terminated: one of <see cref="SessionTerminationReasons"/> or
+    /// an extension's own name.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask RevokeAllAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of sessions
+    /// this call terminated; a session a concurrent caller terminated first is not counted.</returns>
+    /// <exception cref="ArgumentException">The <paramref name="subjectId"/> is null or empty.</exception>
+    ValueTask<int> RevokeAllAsync(
         OpenIdContext openIdContext,
         string subjectId,
-        SessionTerminationReason reason,
+        string reason,
         CancellationToken cancellationToken
     );
 
     /// <summary>
     /// Terminates every session the specified subject holds <em>except</em> the one identified by
     /// <paramref name="exceptSessionId"/> ("sign out everywhere else"), terminating each remaining session individually
-    /// through the <see cref="OnSessionTerminatedCommand"/> seam so the retained session and the grants issued under it
-    /// stay intact.
+    /// through the <see cref="OnSessionTerminatedCommand"/> seam. A session no caller terminated is terminated, an
+    /// ended one included, and every grant the subject holds under no session is revoked; the retained session and the
+    /// grants issued under it stay intact.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> instance associated with the current request.</param>
     /// <param name="subjectId">The stable, server-owned principal identifier whose sessions are terminated.</param>
     /// <param name="exceptSessionId">The opaque session identifier (<c>sid</c>) to retain.</param>
-    /// <param name="reason">The reason the sessions are being terminated.</param>
+    /// <param name="reason">The reason the sessions are being terminated: one of <see cref="SessionTerminationReasons"/> or
+    /// an extension's own name.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask RevokeAllExceptAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of sessions
+    /// this call terminated; a session a concurrent caller terminated first is not counted.</returns>
+    /// <exception cref="ArgumentException">The <paramref name="subjectId"/> or <paramref name="exceptSessionId"/> is
+    /// null or empty.</exception>
+    ValueTask<int> RevokeAllExceptAsync(
         OpenIdContext openIdContext,
         string subjectId,
         string exceptSessionId,
-        SessionTerminationReason reason,
+        string reason,
         CancellationToken cancellationToken
     );
 }

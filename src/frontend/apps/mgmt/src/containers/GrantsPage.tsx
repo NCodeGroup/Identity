@@ -13,11 +13,16 @@ import {
   RevealInitialAccessTokenDialog,
   type InitialAccessTokenFormValues,
 } from '@ncode/ui';
-import type { CreatedInitialAccessTokenResource, GrantResource } from '@ncode/api';
+import {
+  tenantScope,
+  type CreatedInitialAccessTokenResource,
+  type GrantResource,
+} from '@ncode/api';
 import {
   apiErrorMessage,
   useCreateInitialAccessTokenMutation,
   useListGrantsQuery,
+  useListResourceServersQuery,
   useRevokeGrantMutation,
   useRevokeGrantsMutation,
   type ApiError,
@@ -32,7 +37,11 @@ type DialogState =
   | { readonly kind: 'revoke'; readonly grant: GrantResource }
   | { readonly kind: 'revoke-many' }
   | { readonly kind: 'mint' }
-  | { readonly kind: 'reveal'; readonly created: CreatedInitialAccessTokenResource };
+  | {
+      readonly kind: 'reveal';
+      readonly created: CreatedInitialAccessTokenResource;
+      readonly resourceServer: string | null;
+    };
 
 const closed: DialogState = { kind: 'none' };
 
@@ -41,7 +50,9 @@ const closed: DialogState = { kind: 'none' };
  * administratively, so there is no create/edit — only single revocation and a filtered bulk revoke
  * (which the server requires to carry at least one filter). Subject/client filters are applied as the
  * list query parameters. Wires the RTK Query grant list and revocation mutations to the stateless
- * {@link GrantTable} and {@link ConfirmDialog}; owns only filter/dialog/error state.
+ * {@link GrantTable} and {@link ConfirmDialog}; owns only filter/dialog/error state. Minting an initial
+ * access token loads the tenant's non-system resource servers while the form is open, so the token can be
+ * scoped to one and the client it registers is bound to it (ADR-0192).
  */
 export function GrantsPage({ tenantId }: GrantsPageProps) {
   // Read the clock once, in a state initializer: reading it during render would make the table's output impure.
@@ -65,6 +76,11 @@ export function GrantsPage({ tenantId }: GrantsPageProps) {
   const [mintToken, { isLoading: isMinting }] = useCreateInitialAccessTokenMutation();
 
   const [dialog, setDialog] = useState<DialogState>(closed);
+  const { data: resourceServerData } = useListResourceServersQuery(
+    { scope: tenantScope(tenantId) },
+    { skip: dialog.kind !== 'mint' },
+  );
+  const resourceServers = (resourceServerData?.items ?? []).filter((r) => !r.isSystem);
   const [dialogError, setDialogError] = useState<string>();
   const [mintError, setMintError] = useState<string>();
 
@@ -116,9 +132,14 @@ export function GrantsPage({ tenantId }: GrantsPageProps) {
           description: values.description.length > 0 ? values.description : null,
           lifetimeSeconds:
             values.lifetimeSeconds.length > 0 ? Number(values.lifetimeSeconds) : null,
+          ...(values.resourceServerId ? { resourceServerId: values.resourceServerId } : {}),
         },
       }).unwrap();
-      setDialog({ kind: 'reveal', created });
+      const scopedTo = created.resourceServerId ?? null;
+      const resourceServer = scopedTo
+        ? (resourceServers.find((r) => r.resourceServerId === scopedTo)?.name ?? scopedTo)
+        : null;
+      setDialog({ kind: 'reveal', created, resourceServer });
     } catch (mintTokenError) {
       setMintError(apiErrorMessage(mintTokenError as ApiError));
     }
@@ -216,6 +237,7 @@ export function GrantsPage({ tenantId }: GrantsPageProps) {
 
       <InitialAccessTokenFormDialog
         open={dialog.kind === 'mint'}
+        resourceServers={resourceServers}
         isSubmitting={isMinting}
         error={mintError}
         onSubmit={handleMint}
@@ -227,6 +249,7 @@ export function GrantsPage({ tenantId }: GrantsPageProps) {
         token={dialog.kind === 'reveal' ? dialog.created.initialAccessToken : ''}
         grantId={dialog.kind === 'reveal' ? dialog.created.grantId : ''}
         expiresWhen={dialog.kind === 'reveal' ? dialog.created.expiresWhen : null}
+        resourceServer={dialog.kind === 'reveal' ? dialog.resourceServer : null}
         onClose={() => setDialog(closed)}
       />
     </>

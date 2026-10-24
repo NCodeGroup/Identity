@@ -92,7 +92,7 @@ public sealed class TokenRequest : OpenIdMessage<TokenRequest>, ITokenRequest
     }
 
     /// <inheritdoc />
-    public Uri? RedirectUri
+    public string? RedirectUri
     {
         get => GetKnownParameter(OpenIdCommonParameters.RedirectUri);
         set => SetKnownParameter(OpenIdCommonParameters.RedirectUri, value);

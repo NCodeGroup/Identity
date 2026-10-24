@@ -17,51 +17,30 @@
 #endregion
 
 using Moq;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Sessions;
 
 public class DefaultRevokeGrantsOnSessionTerminatedHandlerTests : BaseTests
 {
-    private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
-    private Mock<IStoreManager> MockStoreManager { get; }
-    private Mock<IGrantStore> MockGrantStore { get; }
+    private Mock<IPersistedGrantService> MockPersistedGrantService { get; }
     private DefaultRevokeGrantsOnSessionTerminatedHandler Handler { get; }
 
     public DefaultRevokeGrantsOnSessionTerminatedHandlerTests()
     {
-        MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
-        MockStoreManager = CreateStrictMock<IStoreManager>();
-        MockGrantStore = CreateStrictMock<IGrantStore>();
+        MockPersistedGrantService = CreateStrictMock<IPersistedGrantService>();
         Handler = new DefaultRevokeGrantsOnSessionTerminatedHandler(
             TimeProvider.System,
-            MockStoreManagerFactory.Object
+            MockPersistedGrantService.Object
         );
     }
 
-    private void SetupStore()
-    {
-        MockStoreManagerFactory
-            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MockStoreManager.Object)
-            .Verifiable();
-        MockStoreManager
-            .Setup(x => x.GetStore<IGrantStore>())
-            .Returns(MockGrantStore.Object)
-            .Verifiable();
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
-    }
-
     private static OnSessionTerminatedCommand CreateCommand(
-        SessionTerminationReason reason,
+        string reason,
         string? subjectId,
         string? sessionId
     ) => new(Mock.Of<OpenIdContext>(), new SessionTermination(reason, subjectId, sessionId, []));
@@ -69,20 +48,20 @@ public class DefaultRevokeGrantsOnSessionTerminatedHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenSessionScoped_RevokesBySession()
     {
-        SetupStore();
-        MockGrantStore
+        MockPersistedGrantService
             .Setup(x =>
                 x.RevokeWhereAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.Is<GrantFilter>(f => f.SessionId == "sid-1" && f.SubjectId == null),
                     It.IsAny<DateTimeOffset>(),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(2)
+            .Returns(new ValueTask<long>(2L))
             .Verifiable();
 
         await Handler.HandleAsync(
-            CreateCommand(SessionTerminationReason.AdministrativeRevocation, "subject-1", "sid-1"),
+            CreateCommand(SessionTerminationReasons.AdministrativeRevocation, "subject-1", "sid-1"),
             CancellationToken.None
         );
     }
@@ -90,20 +69,20 @@ public class DefaultRevokeGrantsOnSessionTerminatedHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenSubjectWide_RevokesBySubject()
     {
-        SetupStore();
-        MockGrantStore
+        MockPersistedGrantService
             .Setup(x =>
                 x.RevokeWhereAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.Is<GrantFilter>(f => f.SubjectId == "subject-1" && f.SessionId == null),
                     It.IsAny<DateTimeOffset>(),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(5)
+            .Returns(new ValueTask<long>(5L))
             .Verifiable();
 
         await Handler.HandleAsync(
-            CreateCommand(SessionTerminationReason.GlobalSignOut, "subject-1", sessionId: null),
+            CreateCommand(SessionTerminationReasons.GlobalSignOut, "subject-1", sessionId: null),
             CancellationToken.None
         );
     }
@@ -111,9 +90,13 @@ public class DefaultRevokeGrantsOnSessionTerminatedHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenNeitherScope_DoesNothing()
     {
-        // No store scaffold is set up: a strict-mock failure would mean the handler touched the store.
+        // No setups: a strict-mock failure would mean the handler revoked grants.
         await Handler.HandleAsync(
-            CreateCommand(SessionTerminationReason.GlobalSignOut, subjectId: null, sessionId: null),
+            CreateCommand(
+                SessionTerminationReasons.GlobalSignOut,
+                subjectId: null,
+                sessionId: null
+            ),
             CancellationToken.None
         );
     }

@@ -48,6 +48,18 @@ public static class OpenIdEndpointConventionBuilderExtensions
             );
 
         /// <summary>
+        /// Adds <see cref="IOpenIdEndpointMeteredMetadata"/> to the <see cref="IEndpointConventionBuilder"/> to indicate
+        /// whether requests to the endpoint are the tenant's metered usage, counted against its daily request quota and
+        /// recorded in its usage ledger. An endpoint without the metadata is metered.
+        /// </summary>
+        /// <param name="isMetered">Specifies whether requests to the endpoint are metered. Default is <c>true</c>.</param>
+        /// <returns>The <see cref="IEndpointConventionBuilder"/> instance for method chaining.</returns>
+        public TBuilder WithOpenIdMetered(bool isMetered = true) =>
+            builder.WithMetadata(
+                new DefaultOpenIdEndpointMeteredMetadata { IsMetered = isMetered }
+            );
+
+        /// <summary>
         /// Adds <see cref="IOpenIdEndpointResourceServerClientMetadata"/> to the <see cref="IEndpointConventionBuilder"/>
         /// so that the endpoint accepts a client bound to a resource server. Every other endpoint refuses such a client.
         /// </summary>

@@ -35,9 +35,8 @@ internal class DefaultCheckSessionEndpointProvider : IEndpointProvider
 {
     // The salt travels inside the session_state the RP sends, so the script digests exactly the same UTF-8 string the
     // server did (client_id, the message origin, the browser state, and the salt), then Base64Url-encodes (unpadded).
-    private static readonly string Html =
-        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Check Session</title></head>"
-        + "<body><script>(function(){"
+    private const string Script =
+        "(function(){"
         + "var cookieName='"
         + DefaultSessionStateService.BrowserStateCookieName
         + "';"
@@ -52,7 +51,27 @@ internal class DefaultCheckSessionEndpointProvider : IEndpointProvider
         + "e.source.postMessage(expected===sessionState?'unchanged':'changed',e.origin);"
         + "}).catch(function(){e.source.postMessage('error',e.origin);});"
         + "}catch(ex){e.source.postMessage('error',e.origin);}},false);"
-        + "})();</script></body></html>";
+        + "})();";
+
+    private const string Html =
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Check Session</title></head>"
+        + "<body><script>"
+        + Script
+        + "</script></body></html>";
+
+    // Relying parties frame this document cross-site by design, so it is the one page that may be framed. See ADR-0256.
+    private static HtmlPageSecurityPolicy Policy { get; } =
+        new()
+        {
+            Directives =
+            [
+                new(
+                    ContentSecurityPolicyDirectives.ScriptSrc,
+                    ContentSecurityPolicySources.Sha256(Script)
+                ),
+            ],
+            AllowsFraming = true,
+        };
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>
@@ -71,8 +90,7 @@ internal class DefaultCheckSessionEndpointProvider : IEndpointProvider
     /// <response code="200">The check session iframe document.</response>
     internal virtual IResult HandleRouteAsync(HttpContext httpContext)
     {
-        // The document is framed cross-site by relying parties, so it must be embeddable; the global security headers
-        // must not forbid framing for this endpoint to function.
+        httpContext.Response.SetHtmlPageSecurity(Policy);
         return TypedResults.Content(Html, "text/html; charset=utf-8");
     }
 }

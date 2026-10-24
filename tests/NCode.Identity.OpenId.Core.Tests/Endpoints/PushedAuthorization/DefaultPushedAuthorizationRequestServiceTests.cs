@@ -91,7 +91,7 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
 
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         MockCryptoService
-            .Setup(x => x.GenerateKey(32, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns(Reference)
             .Verifiable();
 

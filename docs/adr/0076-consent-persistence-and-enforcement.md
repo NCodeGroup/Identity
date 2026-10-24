@@ -1,6 +1,8 @@
 # 76. Durable consent — a first-class persisted aggregate, enforced at authorize
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0229](0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md): a consent denial
+  answers the parked authorization request with access_denied)
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
 
@@ -64,11 +66,13 @@ NormalizedSubjectId)` index for subject enumeration. `SaveAsync` **upserts** (wi
 - **The consent surface resolves its own authoritative request.** The interactive module exposes
   `GET /account/consent/details?ReturnUrl=…`, which calls `ResolvePendingConsentAsync` to resolve the pending
   authorization request (client + requested scopes) **without consuming** the continuation — the same pattern
-  IdentityServer's `IIdentityServerInteractionService.GetAuthorizationContextAsync(returnUrl)` uses. `POST /account/consent`
-  re-resolves the request authoritatively (never trusting posted scopes), records the decision for the cookie-resolved
-  subject via `GrantConsentAsync` on allow, and redirects to the continuation to resume; deny abandons the flow. The
-  `apps/auth` consent form fetches those details to show the real client and scopes while keeping the
-  `consent-allow` / `consent-deny` locators.
+  IdentityServer's `IIdentityServerInteractionService.GetAuthorizationContextAsync(returnUrl)` uses.
+  `POST /account/consent` re-resolves the request authoritatively (never trusting posted scopes), records the decision
+  for the cookie-resolved subject via `GrantConsentAsync` on allow, and redirects to the continuation to resume; a deny
+  answers the parked authorization request with `access_denied` at the client's redirect URI
+  ([ADR-0229](0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)). The `apps/auth`
+  consent form fetches those details to show the real client and scopes while keeping the `consent-allow` /
+  `consent-deny` locators.
 - **The remaining surfaces join the shared platform.** The consent screen stays an `apps/auth` surface, and the
   Playground (`apps/playground`) and conformance (`apps/conformance`) surfaces are scaffolded as apps on the same
   `@ncode/*` platform ([ADR-0064](0064-frontend-presentation-platform.md)) rather than bespoke UIs.

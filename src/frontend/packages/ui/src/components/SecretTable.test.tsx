@@ -15,6 +15,7 @@ const secrets: SecretRow[] = [
   {
     ...base,
     secretId: 's-active',
+    keyId: 's-active',
     secretType: 'symmetric',
     keySizeBits: 256,
     expiresWhen: '2099-01-01T12:00:00Z',
@@ -22,6 +23,7 @@ const secrets: SecretRow[] = [
   {
     ...base,
     secretId: 's-expired',
+    keyId: 'imported-kid',
     secretType: 'rsa',
     keySizeBits: 2048,
     expiresWhen: '2020-01-01T12:00:00Z',
@@ -33,6 +35,13 @@ describe('SecretTable', () => {
     render(<SecretTable secrets={secrets} now={now} />);
     expect(screen.getByTestId('secret-row-s-active')).toHaveTextContent('symmetric');
     expect(screen.getByTestId('secret-row-s-active')).toHaveTextContent('256');
+  });
+
+  it('shows the key id each key is selected by', () => {
+    render(<SecretTable secrets={secrets} now={now} />);
+    expect(screen.getByRole('columnheader', { name: 'Key ID' })).toBeInTheDocument();
+    expect(screen.getByTestId('secret-kid-s-active')).toHaveTextContent('s-active');
+    expect(screen.getByTestId('secret-kid-s-expired')).toHaveTextContent('imported-kid');
   });
 
   it('flags an expired secret', () => {
@@ -63,6 +72,29 @@ describe('SecretTable', () => {
     expect(screen.queryByTestId('secret-export-s-active')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('secret-export-s-expired'));
     expect(onExportPublicKey).toHaveBeenCalledWith('s-expired');
+  });
+
+  it('shows the rotate action only for rotatable secret types', () => {
+    const onRotate = vi.fn();
+    render(
+      <SecretTable
+        secrets={secrets}
+        now={now}
+        onRotate={onRotate}
+        rotatableSecretTypes={['symmetric']}
+      />,
+    );
+
+    // 's-active' is symmetric (rotatable); 's-expired' is rsa (not rotatable).
+    expect(screen.queryByTestId('secret-rotate-s-expired')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('secret-rotate-s-active'));
+    expect(onRotate).toHaveBeenCalledWith('s-active');
+  });
+
+  it('hides the rotate action when rotatable types are not supplied', () => {
+    render(<SecretTable secrets={secrets} now={now} onRotate={vi.fn()} />);
+
+    expect(screen.queryByTestId('secret-rotate-s-active')).not.toBeInTheDocument();
   });
 
   it('hides the export action when no exportable types are known', () => {
@@ -99,6 +131,7 @@ describe('SecretTable', () => {
           {
             ...base,
             secretId: 's-odd',
+            keyId: 's-odd',
             secretType: 'ecc',
             keySizeBits: 256,
             expiresWhen: 'not-a-date',
@@ -122,6 +155,7 @@ describe('SecretTable', () => {
           {
             ...base,
             secretId: 's-boundary',
+            keyId: 's-boundary',
             secretType: 'rsa',
             keySizeBits: 2048,
             expiresWhen: '2026-06-01T00:00:00Z',

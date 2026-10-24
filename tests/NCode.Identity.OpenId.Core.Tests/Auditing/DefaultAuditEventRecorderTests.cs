@@ -354,6 +354,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         await recorder.RecordClientAuthenticationFailedAsync(
             mockContext.Object,
             "client-1",
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
             "client_not_found",
             CancellationToken.None
         );
@@ -362,6 +363,10 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal("client.authentication", captured.Action);
         Assert.Equal(AuditOutcome.Failure, captured.Outcome);
         Assert.Equal("client-1", captured.ClientId);
+        Assert.Equal(
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            captured.AuthenticationMethod
+        );
         Assert.Equal("client_not_found", captured.Reason);
         Assert.Null(captured.SubjectId);
     }
@@ -506,6 +511,56 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
     #endregion
 
+    #region RecordRefreshTokenRetryAsync Tests
+
+    [Fact]
+    public async Task RecordRefreshTokenRetryAsync_PublishesRetryAuditEventWithSuccessOutcome()
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        var mockTenant = MockRepository.Create<OpenIdTenant>();
+        var mockClient = MockRepository.Create<OpenIdClient>();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
+        mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
+
+        RefreshTokenRetryAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(
+                    It.IsAny<RefreshTokenRetryAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (RefreshTokenRetryAuditEvent auditEvent, CancellationToken _) =>
+                    captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = new DefaultAuditEventRecorder(mockPublisher.Object, TimeProvider.System);
+
+        await recorder.RecordRefreshTokenRetryAsync(
+            mockContext.Object,
+            mockClient.Object,
+            "subject-1",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("token.refresh.retry", captured.Action);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal("client-1", captured.ClientId);
+        Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Equal("api/token", captured.Source);
+    }
+
+    #endregion
+
     #region Session Lifecycle Tests
 
     [Fact]
@@ -547,8 +602,12 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal("sid-1", captured.SessionId);
     }
 
-    [Fact]
-    public async Task RecordSessionTerminatedAsync_PublishesSessionTerminatedAuditEventWithReason()
+    [Theory]
+    [InlineData(SessionTerminationReasons.GlobalSignOut)]
+    [InlineData("password_changed")]
+    public async Task RecordSessionTerminatedAsync_PublishesSessionTerminatedAuditEventWithReason(
+        string reason
+    )
     {
         var mockContext = MockRepository.Create<OpenIdContext>();
         var mockTenant = MockRepository.Create<OpenIdTenant>();
@@ -577,7 +636,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         await recorder.RecordSessionTerminatedAsync(
             mockContext.Object,
-            SessionTerminationReason.GlobalSignOut,
+            reason,
             "subject-1",
             sessionId: null,
             CancellationToken.None
@@ -589,8 +648,8 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
         Assert.Null(captured.SessionId);
-        Assert.Equal(SessionTerminationReason.GlobalSignOut, captured.TerminationReason);
-        Assert.Equal(nameof(SessionTerminationReason.GlobalSignOut), captured.Reason);
+        Assert.Equal(reason, captured.TerminationReason);
+        Assert.Equal(reason, captured.Reason);
     }
 
     #endregion

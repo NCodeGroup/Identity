@@ -1,7 +1,7 @@
 # Backend for Frontend (BFF) — cookie sessions with server-side token custody
 
 - **Status:** Proposed. This is a design only, and nothing in it is implemented yet. The library is tracked as backlog
-  [`F78`](../BACKLOG.md), and moving the management console onto it is tracked as [`U23`](../BACKLOG.md). When each
+  [`F84`](../BACKLOG.md), and moving the management console onto it is tracked as [`U26`](../BACKLOG.md). When each
   phase lands, its decisions ([§8](#8-decisions-and-options-considered)) become ADRs.
 - **Date:** 2026-10-20
 - **Scope:** a new **server-side** library that turns an ASP.NET Core application into the Backend for Frontend (BFF)
@@ -959,7 +959,7 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
 | 2     | `NCode.Identity.Bff` core: the scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP. |
 | 3     | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and `NCode.Identity.Bff.Yarp`.                                                                           |
 | 4     | Multiple frontends, `UseBffSecurityHeaders()`, and the `/bff/jwks` endpoint.                                                                                                                                     |
-| 5     | `U23`: the management console moves onto the BFF. The reference host serves the console through the BFF as a confidential client of its own root tenant, and the console's `@ncode/auth` token custody is retired. The Playground stays a public client on purpose. |
+| 5     | `U26`: the management console moves onto the BFF. The reference host serves the console through the BFF as a confidential client of its own root tenant, and the console's `@ncode/auth` token custody is retired. The Playground stays a public client on purpose. |
 
 ---
 
@@ -997,7 +997,7 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
    worth a separate package?
 5. **Package naming.** Should the packages be `NCode.Identity.Bff` or `NCode.Identity.OpenId.Bff`? The protocol client
    sits under `OpenId` because it is a protocol concern, and the BFF is an application pattern.
-6. **The reference host as its own BFF.** For `U23`, should the console's BFF run in the OP host process (simplest),
+6. **The reference host as its own BFF.** For `U26`, should the console's BFF run in the OP host process (simplest),
    or as a separate host (cleaner separation of the OP and its first-party client)?
 
 ---

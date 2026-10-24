@@ -1,0 +1,16 @@
+# A production release whose root key is in AWS KMS, reached through web identity federation.
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  existingSecret: identity-database
+secretProtection:
+  rootKeyProvider: aws-kms
+  awsKms:
+    keyArn: arn:aws:kms:us-west-2:111122223333:alias/ncode-identity-root
+    webIdentity:
+      roleArn: arn:aws:iam::111122223333:role/ncode-identity-root-key
+  recovery:
+    publicKeyConfigMap: identity-recovery-key

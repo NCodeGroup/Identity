@@ -10,6 +10,7 @@
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Jwt.Abstractions\NCode.Identity.Jwt.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
+        <ProjectReference Include="..\NCode.Time\NCode.Time.csproj" />
     </ItemGroup>
 
     <ItemGroup>

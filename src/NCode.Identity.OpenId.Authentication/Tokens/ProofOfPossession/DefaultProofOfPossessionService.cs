@@ -19,6 +19,7 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using NCode.Encoders;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
@@ -63,9 +64,8 @@ internal class DefaultProofOfPossessionService(
         );
 
         var certificateThumbprint = await EvaluateMutualTlsAsync(
-            httpContext,
-            settings.GetValue(OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens),
-            errorFactory,
+            openIdContext,
+            settings.GetValue(OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens),
             cancellationToken
         );
 
@@ -85,8 +85,8 @@ internal class DefaultProofOfPossessionService(
         {
             throw errorFactory
                 .InvalidRequest(
-                    "The client's access tokens must be sender-constrained; present a DPoP proof or a bound client "
-                        + "certificate."
+                    "The client's access tokens must be sender-constrained; present a DPoP proof, or register the "
+                        + "client for certificate-bound access tokens and present its certificate."
                 )
                 .AsException();
         }
@@ -192,7 +192,7 @@ internal class DefaultProofOfPossessionService(
         if (!string.IsNullOrEmpty(confirmation.X509CertificateSha256Thumbprint))
         {
             var certificate = await ClientCertificateResolver.ResolveCertificateAsync(
-                httpContext,
+                openIdContext,
                 cancellationToken
             );
             if (certificate is null)
@@ -203,7 +203,7 @@ internal class DefaultProofOfPossessionService(
                 );
             }
 
-            var thumbprint = Base64Url.Encode(SHA256.HashData(certificate.RawData));
+            var thumbprint = Base64Url.Encode(SHA256.HashData(certificate.Certificate.RawData));
             if (
                 !string.Equals(
                     thumbprint,
@@ -253,7 +253,9 @@ internal class DefaultProofOfPossessionService(
         }
 
         var proofJwt = proofs.Count == 1 ? proofs[0] : null;
-        var requireDPoP = openIdClient.Settings.GetValue(OpenIdSettingKeys.RequireDPoP);
+        var requireDPoP = openIdClient.Settings.GetValue(
+            OpenIdSettingKeys.RequireDPoPBoundAccessTokens
+        );
 
         if (string.IsNullOrEmpty(proofJwt))
         {
@@ -285,9 +287,8 @@ internal class DefaultProofOfPossessionService(
     }
 
     private async ValueTask<string?> EvaluateMutualTlsAsync(
-        HttpContext httpContext,
+        OpenIdContext openIdContext,
         bool certificateBindingRequired,
-        IOpenIdErrorFactory errorFactory,
         CancellationToken cancellationToken
     )
     {
@@ -295,20 +296,20 @@ internal class DefaultProofOfPossessionService(
             return null;
 
         var certificate = await ClientCertificateResolver.ResolveCertificateAsync(
-            httpContext,
+            openIdContext,
             cancellationToken
         );
 
         if (certificate is null)
         {
-            throw errorFactory
-                .InvalidRequest(
+            throw openIdContext
+                .ErrorFactory.InvalidRequest(
                     "A client certificate is required for certificate-bound access tokens."
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
         }
 
-        return Base64Url.Encode(SHA256.HashData(certificate.RawData));
+        return Base64Url.Encode(SHA256.HashData(certificate.Certificate.RawData));
     }
 }

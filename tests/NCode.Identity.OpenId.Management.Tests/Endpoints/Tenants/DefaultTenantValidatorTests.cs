@@ -127,6 +127,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
                 x.ValidateTenantAsync(
                     TenantId,
                     issuer,
+                    null,
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
                 )
@@ -450,9 +451,28 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateDeleteAsync_WhenRequiredTenant_Returns409WithoutCheckingDependents()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        MockTenantResolver.Setup(x => x.IsRequiredTenant(TenantId)).Returns(true).Verifiable();
+
+        var error = await Validator.ValidateDeleteAsync(
+            CreateUser(authenticated: true),
+            CreateTenant(),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
+        Assert.Contains("required by the deployment", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ValidateDeleteAsync_WhenHasDependents_Returns409()
     {
         SetupAuthorization(AuthorizationResult.Success());
+        MockTenantResolver.Setup(x => x.IsRequiredTenant(TenantId)).Returns(false).Verifiable();
         SetupTenantStore();
         MockTenantStore
             .Setup(x => x.HasDependentsAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -468,12 +488,14 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
+        Assert.Contains("clients or resource servers", error.Detail, StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task ValidateDeleteAsync_WhenValid_ReturnsNull()
     {
         SetupAuthorization(AuthorizationResult.Success());
+        MockTenantResolver.Setup(x => x.IsRequiredTenant(TenantId)).Returns(false).Verifiable();
         SetupTenantStore();
         MockTenantStore
             .Setup(x => x.HasDependentsAsync(TenantId, It.IsAny<CancellationToken>()))

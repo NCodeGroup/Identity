@@ -714,6 +714,401 @@ public class TokenIntrospectionEndpointTests
 
     #endregion
 
+    #region Dynamic Registration Tests
+
+    private static async Task<string> MintInitialAccessTokenAsync(
+        HttpClient administrator,
+        string resourceServerId
+    )
+    {
+        using var response = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/grants/initial-access-tokens",
+            new { resourceServerId }
+        );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+
+        using var document = JsonDocument.Parse(body);
+        Assert.Equal(
+            resourceServerId,
+            document.RootElement.GetProperty("resourceServerId").GetString()
+        );
+        var initialAccessToken = document.RootElement.GetProperty("initialAccessToken").GetString();
+        Assert.False(string.IsNullOrEmpty(initialAccessToken));
+        return initialAccessToken;
+    }
+
+    private static async Task<HttpResponseMessage> RegisterAsync(
+        HttpClient client,
+        string initialAccessToken,
+        string tokenEndpointAuthMethod,
+        IReadOnlyDictionary<string, object>? extraMetadata = null
+    )
+    {
+        var metadata = new Dictionary<string, object>
+        {
+            ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+            ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
+            // The binding comes from the initial access token alone; a request member is ignored.
+            ["resource_server_id"] = BillingResourceServerId,
+        };
+        foreach (var (name, value) in extraMetadata ?? NoSettings)
+        {
+            metadata[name] = value;
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/register")
+        {
+            Headers =
+            {
+                Authorization = new AuthenticationHeaderValue("Bearer", initialAccessToken),
+            },
+            Content = JsonContent.Create(metadata),
+        };
+        return await client.SendAsync(request);
+    }
+
+    [Fact]
+    public async Task PostRegister_WithATokenScopedToAResourceServer_RegistersAClientThatIntrospectsForIt()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            BillingResourceServerId,
+            BillingAudience,
+            BillingScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var initialAccessToken = await MintInitialAccessTokenAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+
+        using var registrationResponse = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registration = JsonDocument.Parse(registrationBody);
+        Assert.Equal(
+            OrdersResourceServerId,
+            registration.RootElement.GetProperty("resource_server_id").GetString()
+        );
+        var clientId = registration.RootElement.GetProperty("client_id").GetString();
+        var clientSecret = registration.RootElement.GetProperty("client_secret").GetString();
+        Assert.False(string.IsNullOrEmpty(clientId));
+        Assert.False(string.IsNullOrEmpty(clientSecret));
+
+        var accessToken = await IssueAccessTokenAsync(client, $"{OrdersScope} {BillingScope}");
+        var root = await IntrospectJsonAsync(client, clientId, clientSecret, accessToken);
+
+        Assert.True(root.GetProperty("active").GetBoolean());
+        Assert.Equal(OrdersAudience, root.GetProperty("aud").GetString());
+        Assert.Equal(OrdersScope, root.GetProperty("scope").GetString());
+    }
+
+    [Fact]
+    public async Task PostRegister_WithIntrospectionEncryption_EncryptsTheJwtToTheRegisteredKey()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var initialAccessToken = await MintInitialAccessTokenAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+        using var rsa = RSA.Create(2048);
+        var parameters = rsa.ExportParameters(includePrivateParameters: false);
+
+        using var registrationResponse = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            new Dictionary<string, object>
+            {
+                ["introspection_signed_response_alg"] = "RS256",
+                ["introspection_encrypted_response_alg"] = "RSA-OAEP-256",
+                ["jwks"] = new Dictionary<string, object>
+                {
+                    ["keys"] = new[]
+                    {
+                        new Dictionary<string, object>
+                        {
+                            ["kty"] = "RSA",
+                            ["use"] = "enc",
+                            ["alg"] = "RSA-OAEP-256",
+                            ["kid"] = "it-introspection-enc",
+                            ["n"] = Base64Url.EncodeToString(parameters.Modulus),
+                            ["e"] = Base64Url.EncodeToString(parameters.Exponent),
+                        },
+                    },
+                },
+            }
+        );
+
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registration = JsonDocument.Parse(registrationBody);
+        var root = registration.RootElement;
+        Assert.Equal("RS256", root.GetProperty("introspection_signed_response_alg").GetString());
+        Assert.Equal(
+            "RSA-OAEP-256",
+            root.GetProperty("introspection_encrypted_response_alg").GetString()
+        );
+        var clientId = root.GetProperty("client_id").GetString();
+        var clientSecret = root.GetProperty("client_secret").GetString();
+        Assert.False(string.IsNullOrEmpty(clientId));
+        Assert.False(string.IsNullOrEmpty(clientSecret));
+
+        var accessToken = await IssueAccessTokenAsync(client, OrdersScope);
+        using var response = await IntrospectAsync(
+            client,
+            clientId,
+            clientSecret,
+            accessToken,
+            JwtResponseMediaType
+        );
+
+        var jwt = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, jwt);
+        Assert.Equal(5, jwt.Split('.').Length);
+        var header = DecodeSegment(jwt, 0);
+        Assert.Equal("RSA-OAEP-256", header.GetProperty("alg").GetString());
+        Assert.Equal("it-introspection-enc", header.GetProperty("kid").GetString());
+    }
+
+    [Fact]
+    public async Task PostRegister_WithATokenScopedToAResourceServer_RefusesAPublicClient()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var initialAccessToken = await MintInitialAccessTokenAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+
+        using var response = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.None
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+        using var document = JsonDocument.Parse(body);
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            document.RootElement.GetProperty("error").GetString()
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WithAnInitialAccessTokenAlreadySpent_ReturnsUnauthorized()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var initialAccessToken = await MintInitialAccessTokenAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+        using var firstResponse = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+        );
+        var firstBody = await firstResponse.Content.ReadAsStringAsync();
+        Assert.True(firstResponse.StatusCode == HttpStatusCode.Created, firstBody);
+
+        using var secondResponse = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        var secondBody = await secondResponse.Content.ReadAsStringAsync();
+        Assert.True(secondResponse.StatusCode == HttpStatusCode.Unauthorized, secondBody);
+        using var document = JsonDocument.Parse(secondBody);
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidToken,
+            document.RootElement.GetProperty("error").GetString()
+        );
+    }
+
+    [Fact]
+    public async Task PostRegister_WhenTheRegistrationIsRefused_LeavesTheInitialAccessTokenUnspent()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var initialAccessToken = await MintInitialAccessTokenAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+        using var refusedResponse = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.None
+        );
+        var refusedBody = await refusedResponse.Content.ReadAsStringAsync();
+        Assert.True(refusedResponse.StatusCode == HttpStatusCode.BadRequest, refusedBody);
+
+        using var response = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+    }
+
+    [Fact]
+    public async Task PutRegistration_OfAClientBoundToAResourceServer_RefusesMakingItPublic()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            IssuingClientId,
+            OrdersResourceServerId,
+            OrdersAudience,
+            OrdersScope
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var initialAccessToken = await MintInitialAccessTokenAsync(
+            administrator,
+            OrdersResourceServerId
+        );
+        using var client = CreateHttpClient(factory);
+        using var registrationResponse = await RegisterAsync(
+            client,
+            initialAccessToken,
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost
+        );
+        var registrationBody = await registrationResponse.Content.ReadAsStringAsync();
+        Assert.True(registrationResponse.StatusCode == HttpStatusCode.Created, registrationBody);
+        using var registration = JsonDocument.Parse(registrationBody);
+        var clientId = registration.RootElement.GetProperty("client_id").GetString();
+        var registrationAccessToken = registration
+            .RootElement.GetProperty("registration_access_token")
+            .GetString();
+        var registrationClientUri = registration
+            .RootElement.GetProperty("registration_client_uri")
+            .GetString();
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, registrationClientUri)
+        {
+            Headers =
+            {
+                Authorization = new AuthenticationHeaderValue("Bearer", registrationAccessToken),
+            },
+            Content = JsonContent.Create(
+                new Dictionary<string, object>
+                {
+                    ["client_id"] = clientId ?? string.Empty,
+                    ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                    ["token_endpoint_auth_method"] = OpenIdConstants
+                        .ClientAuthenticationMethods
+                        .None,
+                }
+            ),
+        };
+        using var response = await client.SendAsync(request);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+        using var document = JsonDocument.Parse(body);
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            document.RootElement.GetProperty("error").GetString()
+        );
+    }
+
+    [Fact]
+    public async Task PostInitialAccessToken_WhenTheResourceServerDoesNotExist_ReturnsBadRequest()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/grants/initial-access-tokens",
+            new { resourceServerId = "it-missing-rs" }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+    }
+
+    [Fact]
+    public async Task PostInitialAccessToken_WithoutALifetime_ExpiresAfterOneDay()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/grants/initial-access-tokens",
+            new { description = "it-default-lifetime" }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        using var document = JsonDocument.Parse(body);
+        var createdWhen = document.RootElement.GetProperty("createdWhen").GetDateTimeOffset();
+        var expiresWhen = document.RootElement.GetProperty("expiresWhen").GetDateTimeOffset();
+        Assert.Equal(TimeSpan.FromDays(1), expiresWhen - createdWhen);
+    }
+
+    [Fact]
+    public async Task PostInitialAccessToken_WhenTheLifetimeExceedsThirtyDays_ReturnsBadRequest()
+    {
+        using var factory = await CreateFactoryAsync(NoSettings);
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await administrator.PostAsJsonAsync(
+            $"{TenantApiPath}/grants/initial-access-tokens",
+            new { lifetimeSeconds = 2_592_001 }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+    }
+
+    #endregion
+
     // A tenant that encrypts access tokens to itself lists a key-management algorithm among the keys it is provisioned
     // with (ADR-0169), which only a host without developer keys provisions. The developer-key mode decides what the host
     // registers, so it is supplied as a host setting, which that read observes, rather than as a configuration overlay

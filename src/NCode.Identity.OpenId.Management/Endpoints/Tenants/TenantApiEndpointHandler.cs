@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -26,23 +27,25 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
+using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 using SystemTextJsonPatch;
@@ -78,14 +81,15 @@ internal class TenantApiEndpointHandler(
     ITenantResolver tenantResolver,
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
-    ISecretImporter secretImporter,
+    IClientKeyImporter keyImporter,
     ISecretPublicKeyConverter secretPublicKeyConverter,
+    ISecretProtectorProvider secretProtectorProvider,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
-    IOpenIdServerProvider serverProvider,
-    ISecurityProfileCatalog securityProfileCatalog,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
+    ITenantClientCoherenceChecker tenantClientCoherenceChecker,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<TenantApiEndpointHandler> logger
@@ -97,21 +101,34 @@ internal class TenantApiEndpointHandler(
     private ITenantResolver TenantResolver { get; } = tenantResolver;
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
-    private ISecretImporter SecretImporter { get; } = secretImporter;
+    private IClientKeyImporter KeyImporter { get; } = keyImporter;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
     private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
         settingScopeCollectionProvider;
-    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
-    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
+    private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
+        tenantClientCoherenceChecker;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
         resourceOwnershipService;
     private ILogger<TenantApiEndpointHandler> Logger { get; } = logger;
+
+    /// <summary>
+    /// Gets the most days one read of a tenant's usage spans: a year of the ledger's retention (ADR-0199).
+    /// </summary>
+    internal const int MaxUsageDays = 366;
+
+    /// <summary>
+    /// Gets how many days before the last day a read of a tenant's usage starts when it names no first day.
+    /// </summary>
+    internal const int DefaultUsageDays = 30;
 
     /// <inheritdoc />
     protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
@@ -135,6 +152,10 @@ internal class TenantApiEndpointHandler(
             .MapDelete("/{tenantId}", DeleteTenantAsync)
             .Produces(StatusCodes.Status204NoContent);
         tenants.MapGet("/{tenantId}/address", GetAddressAsync).Produces<TenantAddressResource>();
+        tenants
+            .MapGet("/{tenantId}/usage", GetUsageAsync)
+            .Produces<TenantUsageResource>()
+            .ProducesValidationProblem();
 
         tenants.MapGet("/{tenantId}/settings", GetSettingsAsync).Produces<TenantSettingsResource>();
         tenants
@@ -186,6 +207,7 @@ internal class TenantApiEndpointHandler(
             TenantId = tenant.TenantId,
             ConcurrencyToken = tenant.ConcurrencyToken,
             Issuer = tenant.Issuer,
+            MtlsEndpointAliasAuthority = tenant.MtlsEndpointAliasAuthority,
             IsDisabled = tenant.IsDisabled,
             DisplayName = tenant.DisplayName,
         };
@@ -334,12 +356,19 @@ internal class TenantApiEndpointHandler(
         var issuer =
             NullIfEmpty(request.Issuer)
             ?? await TenantResolver.GetDefaultIssuerAsync(tenantId, cancellationToken);
+        var mtlsEndpointAliasAuthority =
+            NullIfEmpty(request.MtlsEndpointAliasAuthority)
+            ?? await TenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync(
+                tenantId,
+                cancellationToken
+            );
 
         var tenant = new PersistedTenant
         {
             TenantId = tenantId,
             ConcurrencyToken = string.Empty,
             Issuer = issuer,
+            MtlsEndpointAliasAuthority = mtlsEndpointAliasAuthority,
             IsDisabled = request.IsDisabled,
             DisplayName = request.DisplayName,
             Settings = new PersistedTenantSettings
@@ -425,14 +454,16 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Previews the address of an OpenID tenant: the issuer it has, or would have, and every reason it could not be served
-    /// there. A caller checks a tenant's name and issuer with it before creating the tenant or changing its issuer; the
-    /// same rules judge the write itself.
+    /// Previews the address of an OpenID tenant: the issuer and mutual-TLS endpoint-alias authority it has, or would have,
+    /// and every reason it could not be served there. A caller checks a tenant's name and addresses with it before creating
+    /// the tenant or changing them; the same rules judge the write itself.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant, whether or not it exists.</param>
     /// <param name="issuer">The proposed issuer; when omitted, the tenant's current issuer, or for a tenant without one
     /// the issuer its strategy derives for it.</param>
+    /// <param name="mtlsEndpointAliasAuthority">The proposed mutual-TLS endpoint-alias authority; when omitted, the
+    /// tenant's current alias, or for a tenant without one the alias its strategy derives for it.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's address and the reasons it cannot be served there, if any.</response>
     // See ADR-0165 (the address is previewed through the seam that judges it).
@@ -441,6 +472,7 @@ internal class TenantApiEndpointHandler(
         HttpContext httpContext,
         [FromRoute] string tenantId,
         [FromQuery] string? issuer,
+        [FromQuery] string? mtlsEndpointAliasAuthority,
         CancellationToken cancellationToken
     )
     {
@@ -468,9 +500,20 @@ internal class TenantApiEndpointHandler(
             proposedIssuer
             ?? await TenantResolver.GetDefaultIssuerAsync(tenantId, cancellationToken);
 
+        var proposedAlias =
+            NullIfEmpty(mtlsEndpointAliasAuthority)
+            ?? NullIfEmpty(tenant?.MtlsEndpointAliasAuthority);
+        var effectiveAlias =
+            proposedAlias
+            ?? await TenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync(
+                tenantId,
+                cancellationToken
+            );
+
         var failures = await TenantResolver.ValidateTenantAsync(
             tenantId,
             effectiveIssuer,
+            effectiveAlias,
             storeManager,
             cancellationToken
         );
@@ -481,6 +524,9 @@ internal class TenantApiEndpointHandler(
                 TenantId = tenantId,
                 Issuer = effectiveIssuer,
                 IsIssuerDerived = proposedIssuer is null && effectiveIssuer is not null,
+                MtlsEndpointAliasAuthority = effectiveAlias,
+                IsMtlsEndpointAliasAuthorityDerived =
+                    proposedAlias is null && effectiveAlias is not null,
                 Exists = exists,
                 Failures = failures
                     .Select(failure => new TenantAddressFailure
@@ -523,6 +569,7 @@ internal class TenantApiEndpointHandler(
         var model = new UpdateTenantRequest
         {
             Issuer = tenant.Issuer,
+            MtlsEndpointAliasAuthority = tenant.MtlsEndpointAliasAuthority,
             DisplayName = tenant.DisplayName,
             IsDisabled = tenant.IsDisabled,
         };
@@ -540,10 +587,17 @@ internal class TenantApiEndpointHandler(
             );
         }
 
-        // An update that clears the issuer restores the one the tenant's strategy derives for it (ADR-0165).
+        // An update that clears the issuer or the alias restores the one the tenant's strategy derives for it (ADR-0165,
+        // ADR-0195).
         model.Issuer =
             NullIfEmpty(model.Issuer)
             ?? await TenantResolver.GetDefaultIssuerAsync(tenant.TenantId, cancellationToken);
+        model.MtlsEndpointAliasAuthority =
+            NullIfEmpty(model.MtlsEndpointAliasAuthority)
+            ?? await TenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync(
+                tenant.TenantId,
+                cancellationToken
+            );
 
         // Core preconditions (authorization + If-Match + required fields + the tenant's address + issuer uniqueness)
         // are asserted by the validator against the hydrated model (ADR-0014, ADR-0160).
@@ -561,6 +615,7 @@ internal class TenantApiEndpointHandler(
         }
 
         tenant.Issuer = model.Issuer;
+        tenant.MtlsEndpointAliasAuthority = model.MtlsEndpointAliasAuthority;
         tenant.IsDisabled = model.IsDisabled;
         tenant.DisplayName = model.DisplayName;
 
@@ -575,6 +630,13 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
 
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenant.TenantId,
+            settingsChanged: false,
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
     }
 
@@ -585,7 +647,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The tenant was deleted.</response>
-    /// <response code="409">The tenant still has clients or secrets and cannot be deleted.</response>
+    /// <response code="409">The tenant still has clients or resource servers and cannot be deleted.</response>
     [EndpointName("api/tenants/delete")]
     internal virtual async ValueTask<IResult> DeleteTenantAsync(
         HttpContext httpContext,
@@ -627,7 +689,99 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
 
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenant.TenantId,
+            settingsChanged: false,
+            cancellationToken
+        );
+
         return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Gets a tenant's usage from the durable daily ledger: the count of each meter on each UTC calendar day of a range,
+    /// which the platform bills a plan by and reports to the customer. The ledger keeps a deleted tenant's usage, so it
+    /// can still be read.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="from">The first UTC calendar day, inclusive; when omitted, 30 days before <paramref name="to"/>.</param>
+    /// <param name="to">The last UTC calendar day, inclusive; when omitted, the current UTC day.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The tenant's usage on the range.</response>
+    /// <response code="400">The range is reversed, longer than <see cref="MaxUsageDays"/> days, or would start before the
+    /// first representable day.</response>
+    // See ADR-0199.
+    [EndpointName("api/tenants/usage/get")]
+    internal virtual async ValueTask<IResult> GetUsageAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromQuery] DateOnly? from,
+        [FromQuery] DateOnly? to,
+        CancellationToken cancellationToken
+    )
+    {
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            node,
+            Operations.Read
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var lastDay = to ?? DateOnly.FromDateTime(TimeProvider.GetUtcNow().UtcDateTime);
+        if (from is null && lastDay.DayNumber < DefaultUsageDays)
+        {
+            // The default range would start before DateOnly.MinValue, which AddDays refuses by throwing.
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    ["to"] =
+                    [
+                        $"Without 'from', 'to' must be at least {DefaultUsageDays} days after the first representable day.",
+                    ],
+                }
+            );
+        }
+
+        var firstDay = from ?? lastDay.AddDays(-DefaultUsageDays);
+        if (firstDay > lastDay || lastDay.DayNumber - firstDay.DayNumber >= MaxUsageDays)
+        {
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    ["from"] =
+                    [
+                        $"The range must run forward from 'from' to 'to' and span at most {MaxUsageDays} days.",
+                    ],
+                }
+            );
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantUsageStore>();
+        var usage = await store.ListAsync(tenantId, firstDay, lastDay, cancellationToken);
+
+        return TypedResults.Ok(
+            new TenantUsageResource
+            {
+                TenantId = tenantId,
+                From = firstDay,
+                To = lastDay,
+                Entries = usage
+                    .Select(entry => new TenantUsageEntry
+                    {
+                        Day = entry.Day,
+                        Meter = entry.Meter,
+                        Count = entry.Count,
+                    })
+                    .ToList(),
+            }
+        );
     }
 
     /// <summary>
@@ -682,46 +836,110 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var openIdContext = httpContext.GetOpenIdContext();
-        var effectiveSettings = await MergeTenantSettingsAsync(
-            openIdContext,
-            tenantSettings,
-            cancellationToken
-        );
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+
+        // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
+        // document that cannot be honored, and the stored document's token is not the effective view's.
+        // See ADR-0245.
         return await ProcessGetAsync(
             httpContext,
-            effectiveSettings,
+            tenantSettings.Value,
             node,
             Operations.Read,
-            settings => ToTenantEffectiveSettingsResource(tenantId, settings)
+            async (settings, token) =>
+            {
+                var effectiveSettings = await MergeTenantSettingsAsync(tenantId, settings, token);
+                return ToTenantEffectiveSettingsResource(tenantId, effectiveSettings);
+            },
+            cancellationToken
         );
     }
 
     /// <summary>
-    /// Merges a tenant's persisted settings onto the server's effective settings, producing the same effective
-    /// <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the tenant at runtime — including
-    /// the ceilings of the security profiles the tenant selects.
+    /// Merges a tenant's persisted settings onto the server's effective settings through the
+    /// <see cref="IEffectiveSettingsResolver"/>, producing the same effective <see cref="IReadOnlySettingCollection"/>
+    /// the authorization server resolves for the tenant at runtime — including the ceilings of the security profiles the
+    /// tenant selects (ADR-0204). A document that cannot be honored fails naming the tenant.
     /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
-    /// <param name="tenantSettings">The <see cref="PersistedTenantSettings"/> whose values to merge.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the settings document.</param>
+    /// <param name="tenantSettings">The tenant's settings document to merge.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>.</returns>
+    /// <exception cref="UnreadableSettingsException">The tenant's document, or the server's, cannot be honored.</exception>
+    // See ADR-0245.
     internal virtual async ValueTask<IReadOnlySettingCollection> MergeTenantSettingsAsync(
-        OpenIdContext openIdContext,
-        PersistedTenantSettings tenantSettings,
+        string tenantId,
+        JsonElement tenantSettings,
         CancellationToken cancellationToken
     )
     {
-        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var expandedSettings = SecurityProfileCatalog.Expand(
-            tenantSettings.Value,
+        var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        return EffectiveSettingsResolver.ResolveStored(
+            serverEffective,
             OpenIdSettingScopes.Tenant,
-            jsonOptions
+            tenantId,
+            tenantSettings
         );
-        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
-        return server.SettingsProvider.Collection.Merge(expandedSettings);
+    }
+
+    /// <summary>
+    /// Verifies that replacing a tenant's settings document leaves every value each of its clients registers permitted by
+    /// every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The clients are not walked when the
+    /// change leaves the effective value of every setting a rule reads unchanged. When the replaced document cannot be
+    /// honored, no client is checked, because none was coherent under it.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenID Tenant whose settings change.</param>
+    /// <param name="currentSettings">The tenant's current settings document.</param>
+    /// <param name="newSettings">The tenant's new settings document.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> used to page through the tenant's clients.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="SettingError"/> instances, keyed by the tenant setting that does not permit each value, or
+    /// an empty list.</returns>
+    // See ADR-0206 and ADR-0241.
+    internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
+        string tenantId,
+        JsonElement currentSettings,
+        JsonElement newSettings,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var newEffective = EffectiveSettingsResolver.Resolve(
+            serverSettings,
+            OpenIdSettingScopes.Tenant,
+            newSettings
+        );
+
+        IReadOnlySettingCollection currentEffective;
+        try
+        {
+            currentEffective = EffectiveSettingsResolver.Resolve(
+                serverSettings,
+                OpenIdSettingScopes.Tenant,
+                currentSettings
+            );
+        }
+        catch (JsonException exception)
+        {
+            Logger.TenantSettingsUnreadable(tenantId, exception.Message);
+            return [];
+        }
+
+        var findings = await TenantClientCoherenceChecker.FindIntroducedViolationsAsync(
+            storeManager,
+            tenantId,
+            currentEffective,
+            newEffective,
+            cancellationToken
+        );
+
+        return findings
+            .Select(finding => new SettingError(
+                finding.Violation.GoverningSettingName,
+                $"The change would make the client '{finding.ClientId}' incoherent: {finding.Violation.Description}"
+            ))
+            .ToList();
     }
 
     /// <summary>
@@ -788,7 +1006,8 @@ internal class TenantApiEndpointHandler(
 
         var settingsValue = SerializeToElement(jsonObject);
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
-        var settingErrors = SettingSerializer.ValidateSettings(
+        var settingErrors = SettingSerializer.ValidateSettingsUpdate(
+            tenantSettings.Value,
             settingsValue,
             OpenIdSettingScopes.Tenant,
             jsonOptions
@@ -796,6 +1015,18 @@ internal class TenantApiEndpointHandler(
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);
+        }
+
+        var coherenceErrors = await ValidateClientCoherenceAsync(
+            tenantId,
+            tenantSettings.Value,
+            settingsValue,
+            storeManager,
+            cancellationToken
+        );
+        if (coherenceErrors.Count > 0)
+        {
+            return SettingsValidationProblem(coherenceErrors);
         }
 
         tenantSettings.Value = settingsValue;
@@ -809,6 +1040,13 @@ internal class TenantApiEndpointHandler(
             tenantSettings.TenantId,
             ResourceChangeTypes.SettingsUpdated,
             ToResourceValues(ToTenantSettingsResource(tenantSettings)),
+            cancellationToken
+        );
+
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenantSettings.TenantId,
+            settingsChanged: true,
             cancellationToken
         );
 
@@ -890,10 +1128,17 @@ internal class TenantApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(tenantId),
+            [],
+            cancellationToken
+        );
+
         GeneratedSecret generatedSecret;
         try
         {
             generatedSecret = SecretGenerator.GenerateSecret(
+                protector,
                 new GenerateSecretRequest
                 {
                     SecretId = secretId,
@@ -943,6 +1188,13 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
 
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenantId,
+            settingsChanged: false,
+            cancellationToken
+        );
+
         // The store assigns the secret's token on insert (ADR-0012), so no re-read is needed.
         httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
         return TypedResults.Created($"/tenants/{tenantId}/secrets/{secretId}", secretResource);
@@ -985,40 +1237,31 @@ internal class TenantApiEndpointHandler(
             return ToErrorResult(validationError);
         }
 
-        if (!Enum.TryParse<SecretKeyImportFormat>(request.Format, ignoreCase: true, out var format))
-        {
-            return TypedResults.Problem(
-                detail: $"The import format '{request.Format}' is not supported.",
-                statusCode: StatusCodes.Status400BadRequest
-            );
-        }
-
         var secretId = CryptoService.GenerateResourceId();
 
-        PersistedSecret importedSecret;
-        try
+        var importRequest = new SecretKeyImportRequest
         {
-            importedSecret = SecretImporter.ImportSecret(
-                new SecretKeyImportRequest
-                {
-                    SecretId = secretId,
-                    SecretType = request.SecretType,
-                    Format = format,
-                    KeyMaterial = request.KeyMaterial,
-                    Use = request.Use,
-                    Algorithm = request.Algorithm,
-                    CreatedWhen = TimeProvider.GetUtcNow(),
-                    ExpiresWhen = request.ExpiresWhen,
-                }
-            );
-        }
-        catch (ArgumentException exception)
+            SecretId = secretId,
+            SecretType = request.SecretType,
+            Format = request.Format,
+            KeyMaterial = request.KeyMaterial,
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            CreatedWhen = TimeProvider.GetUtcNow(),
+            ExpiresWhen = request.ExpiresWhen,
+        };
+        if (!KeyImporter.TryImportKey(importRequest, out var importedSecret, out var importError))
         {
-            Logger.SecretGenerationFailed(exception);
             return TypedResults.Problem(
-                detail: "The secret could not be imported from the supplied material.",
+                detail: importError,
                 statusCode: StatusCodes.Status400BadRequest
             );
+        }
+
+        var keyIdConflict = KeyIdConflictOrDefault(tenant.Secrets.Value, importedSecret, "tenant");
+        if (keyIdConflict is not null)
+        {
+            return keyIdConflict;
         }
 
         try
@@ -1044,6 +1287,13 @@ internal class TenantApiEndpointHandler(
             secretId,
             ResourceChangeTypes.Created,
             ToResourceValues(importedSecretResource),
+            cancellationToken
+        );
+
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenantId,
+            settingsChanged: false,
             cancellationToken
         );
 
@@ -1106,6 +1356,11 @@ internal class TenantApiEndpointHandler(
         var store = storeManager.GetStore<ITenantStore>();
 
         var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, cancellationToken);
+        if (secret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
         var scoped = TenantOwnedResource.ForOrDefault(tenantId, secret);
 
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
@@ -1114,7 +1369,19 @@ internal class TenantApiEndpointHandler(
             scoped,
             node,
             Operations.Read,
-            x => SecretPublicKeyConverter.Convert(x.Value)
+            async (x, ct) =>
+            {
+                // The protector is acquired only after authorization, so a caller who may not read the secret
+                // never loads its owner's master keys.
+                var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+                    SecretOwner.ForTenant(tenantId),
+                    [x.Value],
+                    ct
+                );
+
+                return SecretPublicKeyConverter.Convert(protector, x.Value);
+            },
+            cancellationToken
         );
     }
 
@@ -1166,9 +1433,16 @@ internal class TenantApiEndpointHandler(
             return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
         }
 
+        var metadataError = SecretValidator.ValidateUpdate(secret, request);
+        if (metadataError is not null)
+        {
+            return ToErrorResult(metadataError);
+        }
+
         var updated = new PersistedSecret
         {
             SecretId = secret.SecretId,
+            KeyId = secret.KeyId,
             ConcurrencyToken = secret.ConcurrencyToken,
             Use = request.Use,
             Algorithm = request.Algorithm,
@@ -1189,6 +1463,13 @@ internal class TenantApiEndpointHandler(
             secretId,
             ResourceChangeTypes.Updated,
             ToResourceValues(ToSecretResource(updated)),
+            cancellationToken
+        );
+
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenantId,
+            settingsChanged: false,
             cancellationToken
         );
 
@@ -1242,6 +1523,13 @@ internal class TenantApiEndpointHandler(
             secretId,
             ResourceChangeTypes.Deleted,
             secretValues,
+            cancellationToken
+        );
+
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenantId,
+            settingsChanged: false,
             cancellationToken
         );
 
@@ -1311,6 +1599,23 @@ internal class TenantApiEndpointHandler(
             ResourceNodeTypes.Tenant,
             tenantId,
             principalId,
+            cancellationToken
+        );
+    }
+
+    // Announces a committed change to the tenant: this replica evicts it from the tenant cache, so the change takes effect
+    // at once, and seeds it after a settings change, so a key its new settings require is provisioned (ADR-0169). The
+    // mediator is request-scoped, so it is resolved from the request's services.
+    private static ValueTask NotifyTenantChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        bool settingsChanged,
+        CancellationToken cancellationToken
+    )
+    {
+        var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
+        return mediator.SendAsync(
+            new TenantChangedCommand(tenantId, settingsChanged),
             cancellationToken
         );
     }

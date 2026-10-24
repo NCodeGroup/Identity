@@ -38,6 +38,12 @@ of a package to use, and **which** projects use it.
 - The version is a property of the commit, not of an edited file — releases are reproducible from git.
 - A package with no source change still gets a new version on each family release; that is the intended trade for
   lockstep simplicity.
+- The version is stamped into the assemblies and packages only; `version.json` sets `cloudBuild.setVersionVariables` to
+  `false`, so a build on GitHub Actions does not export `GitBuildVersion` and its siblings through `GITHUB_ENV`. Nothing
+  reads them, and Nerdbank.GitVersioning 3.10 appends them from every parallel MSBuild node without a lock, which tears
+  lines in that file. The runner rejects a torn line at the end of the job (`Unable to process file command 'env'
+  successfully`), failing a job whose work succeeded. A workflow that later needs the version asks for it explicitly
+  (`nbgv get-version`) rather than turning the export back on.
 
 ## References
 

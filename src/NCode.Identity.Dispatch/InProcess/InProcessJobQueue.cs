@@ -26,7 +26,7 @@ namespace NCode.Identity.Dispatch.InProcess;
 
 /// <summary>
 /// A bounded in-memory channel of pending <see cref="DispatchWorkItem"/>s that the in-process dispatcher writes to and
-/// the <see cref="JobDispatchWorker"/> drains. Its capacity and full-queue behavior are host-configurable via
+/// the <see cref="JobDispatchWorker"/>'s consumers drain. Its capacity and full-queue behavior are host-configurable via
 /// <see cref="InProcessJobDispatcherOptions"/>; a slow drain never stalls the producing path, and durable
 /// at-least-once delivery is the job of a durable dispatcher adapter. A full queue drops the job and logs it,
 /// consistently across the immediate, initial-delay, and retry enqueue paths.
@@ -48,14 +48,14 @@ internal sealed class InProcessJobQueue
             new BoundedChannelOptions(value.QueueCapacity)
             {
                 FullMode = value.FullMode,
-                SingleReader = true,
+                SingleReader = false,
                 SingleWriter = false,
             }
         );
     }
 
     /// <summary>
-    /// Gets the reader the worker drains.
+    /// Gets the reader the worker's consumers drain.
     /// </summary>
     public ChannelReader<DispatchWorkItem> Reader => Channel.Reader;
 

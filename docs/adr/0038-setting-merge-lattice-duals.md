@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (`allow_unsafe_token_response` retired by
   [ADR-0142](0142-listed-response-types-are-the-only-front-channel-token-control.md): `response_types_supported` is the
-  only control over the tokens the authorization endpoint returns)
+  only control over the tokens the authorization endpoint returns;
+  [ADR-0216](0216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md): refresh-token rotation is the
+  `refresh_token_rotation_policy` that a child replaces)
 - **Date:** 2026-10-03
 - **Deciders:** NCode Group
 

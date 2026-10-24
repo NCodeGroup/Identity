@@ -51,9 +51,13 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // The FAPI 2.0 security profile; the catalog (Core) resolves it from this strategy collection.
+            // The FAPI 2.0 and FAPI 1.0 Advanced security profiles; the catalog (Core) resolves them from this strategy
+            // collection.
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<ISecurityProfile, Fapi2SecurityProfile>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<ISecurityProfile, Fapi1AdvancedSecurityProfile>()
             );
 
             return builder;

@@ -72,6 +72,15 @@ internal class DefaultTenantResolver(
     ) => await Selected.ResolveTenantAsync(httpContext, cancellationToken);
 
     /// <inheritdoc />
+    public string GetControlPlaneTenantId() => Selected.GetControlPlaneTenantId();
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedTenant> ResolveControlPlaneTenantAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    ) => await Selected.ResolveControlPlaneTenantAsync(httpContext, cancellationToken);
+
+    /// <inheritdoc />
     public async ValueTask<string?> GetDefaultIssuerAsync(
         string tenantId,
         CancellationToken cancellationToken
@@ -85,9 +94,29 @@ internal class DefaultTenantResolver(
     }
 
     /// <inheritdoc />
+    public async ValueTask<string?> GetDefaultMtlsEndpointAliasAuthorityAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        // A strategy derives an alias from a well-formed identifier only; a malformed one is reported by validation.
+        if (!TenantAddressRules.IsValidTenantId(tenantId))
+            return null;
+
+        return await Selected.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            tenantId,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    public bool IsRequiredTenant(string tenantId) => Selected.IsRequiredTenant(tenantId);
+
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
         string tenantId,
         string? issuer,
+        string? mtlsEndpointAliasAuthority,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
@@ -120,15 +149,49 @@ internal class DefaultTenantResolver(
             );
         }
 
+        Uri? mtlsEndpointAliasAuthorityUri = null;
+        if (
+            !string.IsNullOrEmpty(mtlsEndpointAliasAuthority)
+            && !TenantAddressRules.TryParseMtlsEndpointAliasAuthority(
+                mtlsEndpointAliasAuthority,
+                out mtlsEndpointAliasAuthorityUri
+            )
+        )
+        {
+            failures.Add(
+                new TenantValidationFailure
+                {
+                    Detail =
+                        $"The mTLS endpoint alias authority '{mtlsEndpointAliasAuthority}' must be "
+                        + $"{TenantAddressRules.MtlsEndpointAliasAuthorityRequirement}.",
+                }
+            );
+        }
+
         // The remaining rules, the strategy's included, are only meaningful for a well-formed identifier and issuer.
         if (failures.Count > 0)
             return failures;
+
+        var store = storeManager.GetStore<ITenantStore>();
+
+        // A tenant identifier names its tenant in every route and management call, so one that belonged to a deleted
+        // tenant is never reissued (ADR-0189).
+        if (await store.IsTenantIdRetiredAsync(tenantId, cancellationToken))
+        {
+            failures.Add(
+                new TenantValidationFailure
+                {
+                    Detail =
+                        $"The tenant identifier '{tenantId}' belonged to a deleted tenant and is never reissued.",
+                    IsConflict = true,
+                }
+            );
+        }
 
         // The issuer is the tenant's identity and is asserted in every token it mints, so two tenants sharing one
         // would mint tokens a relying party cannot tell apart (ADR-0129).
         if (issuerUri is not null)
         {
-            var store = storeManager.GetStore<ITenantStore>();
             var holder = await store.GetOrDefaultByIssuerAsync(
                 issuerUri.OriginalString,
                 cancellationToken
@@ -142,6 +205,26 @@ internal class DefaultTenantResolver(
                     new TenantValidationFailure
                     {
                         Detail = $"Another tenant already has the issuer '{issuer}'.",
+                        IsConflict = true,
+                    }
+                );
+            }
+            else if (
+                await store.GetRetiredIssuerHolderOrDefaultAsync(
+                    issuerUri.OriginalString,
+                    cancellationToken
+                )
+                    is { } formerHolder
+                && !string.Equals(formerHolder, tenantId, StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                // Relying parties that trusted a retired issuer would accept another tenant's tokens under it, so only
+                // the tenant that gave it up can take it back (ADR-0189).
+                failures.Add(
+                    new TenantValidationFailure
+                    {
+                        Detail =
+                            $"The issuer '{issuer}' belonged to another tenant and is never reissued.",
                         IsConflict = true,
                     }
                 );
@@ -163,6 +246,7 @@ internal class DefaultTenantResolver(
         var strategyFailures = await Selected.ValidateTenantAsync(
             tenantId,
             issuerUri,
+            mtlsEndpointAliasAuthorityUri,
             storeManager,
             cancellationToken
         );

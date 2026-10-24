@@ -37,7 +37,9 @@ configuration file is a single call to it with that workspace's coverage floors.
    - `defineStandaloneSurfaceConfig({ port, bootstrapHost, coverage })` serves a surface from its own dev server. The
      port is pinned with `strictPort`, and the bootstrap document is proxied to the Aspire service the AppHost
      references, falling back to a fixed origin outside Aspire.
-   - `defineBackendServedSurfaceConfig({ base, coverage })` builds a bundle the OpenID Provider host serves.
+   - `defineBackendServedSurfaceConfig({ coverage })` builds a bundle the OpenID Provider host serves. The bundle has
+     a relative base; the host sets the document's `<base href>` to where it serves the bundle
+     ([ADR-0193](0193-the-interactive-surface-is-served-under-the-tenant-route.md)).
 2. **Node loads the preset directly.** Vite bundles a configuration file but leaves its bare imports external, so Node
    imports the preset as TypeScript source by stripping its types. The preset is therefore one module
    (`src/preset.ts`):

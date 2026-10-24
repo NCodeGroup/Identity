@@ -46,7 +46,7 @@ partial class JoseSerializer
 
     private static JsonJwt ParseJson(string token)
     {
-        var root = JsonSerializer.Deserialize<JsonElement>(token);
+        var root = JsonElement.Parse(token);
 
         if (root.ValueKind != JsonValueKind.Object)
             throw new JoseException("The JOSE JSON serialization must be a JSON object.");

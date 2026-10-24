@@ -62,8 +62,32 @@ relationships in a mask or a chain, closes the behavior and the topology even wh
 - A new vocabulary starts open; closing it is the exception a reviewer must be able to justify in three sentences.
 - The settings framework is open to new entity types: setting scopes are registered `SettingScopeDescriptor` data with
   their cascade derived by a catalog ([ADR-0149](0149-settings-declare-the-scopes-they-apply-to.md)).
-- The existing public enums are re-evaluated against the test (backlog `D15`); one that fails it becomes names plus
-  registrations in its own change.
+- The existing public enums were re-evaluated against the test (backlog `D15`). Four failed it and became names:
+    - `SessionTerminationReason` became the `SessionTerminationReasons` names, because an extension ends a session for
+      its own reason ([ADR-0098](0098-session-lifecycle-termination-seam.md)).
+    - `SecretKeyImportFormat` became the `SecretKeyImportFormats` names, which each key type declares, because a
+      registered key type parses its own formats ([ADR-0104](0104-import-public-asymmetric-secret-material.md)).
+    - `HashAlgorithmType` became the framework's `HashAlgorithmName`, and `BinaryEncodingType` became the
+      `BinaryEncodings` names of registered encoders
+      ([ADR-0190](0190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md)).
+
+  The rest pass, each for the reason given:
+    - `AlgorithmType` mirrors the four JOSE algorithm registries of RFC 7518: signature, key management, content
+      encryption, and compression. The algorithms inside each registry are open names.
+    - `JoseSerializationFormat` lists the three serializations that RFC 7515 and RFC 7516 define.
+    - `RequestObjectSource` lists the two parameters that RFC 9101 defines for a request object, `request` and
+      `request_uri`.
+    - `SerializationFormat` chooses between the two representations of the library's own message converter.
+    - `TenantPlane` follows from the topology: the root tenant is the control plane, and every other tenant is a
+      workload tenant.
+    - `DeveloperKeyMode` selects among the development key behaviors the server implements. A deployment that needs
+      other keys selects `None` and provisions them like production keys.
+    - `ObjectJsonDateStringHandling`, `ObjectJsonIntegerHandling`, and `ObjectJsonRealHandling` are options of the
+      library's `ObjectJsonConverter`, and each member is a branch of that converter.
+    - `PersistedGrantStatus` is never stored. The grant service derives it on read from a grant's revocation and expiry
+      instants. A grant type's own lifecycle, such as a pending device code, lives in its payload.
+    - `PasswordVerificationResult`, `OutboundHttpReadResult`, and `OwnerRemovalResult` are the outcome sets of one
+      library-owned operation each.
 - The audit-conventions sweep checks every `enum`, every `[Flags]`, and every `switch` that encodes relationships among a
   vocabulary's members.
 

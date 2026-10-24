@@ -59,10 +59,10 @@ Concretely:
 
 - **Expansion at the authorization endpoint, before `redirect_uri` is trusted.** The authorization endpoint resolves a
   PAR `request_uri` into the stored parameters **in the endpoint handler, immediately after loading the raw request
-  values and before the client-redirect context is derived**. This placement is deliberate: the endpoint reads
-  `state`, `response_mode`, and `redirect_uri` directly from the request values to decide whether an error may be
-  redirected to the client, so the stored parameters must already be in place when that decision is made. Expanding
-  later (inside `LoadAuthorizationRequestCommand`) would leave `GetClientRedirectContext` looking at an empty request.
+  values and before the response delivery is derived**. This placement is deliberate: the delivery resolver reads
+  `state`, `response_mode`, and `redirect_uri` from the request values to decide whether an error may be redirected to
+  the client, so the stored parameters must already be in place when that decision is made. Expanding later (inside
+  `LoadAuthorizationRequestCommand`) would leave the delivery resolver looking at an empty request.
 
 - **Client binding and non-redirectable failures.** A PAR `request_uri` is bound to the client that pushed it: the
   authenticated `client_id` at the authorization endpoint must match the grant's stored `ClientId`, else the request is

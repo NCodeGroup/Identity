@@ -3507,3 +3507,30 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   configured or changed, and kept or removed by an update (`ISettingSerializer.ValidateSettingsUpdate`);
   `PromoteMtlsEndpointAliasAuthority` copies the alias and keeps the key the previous release reads, and `Down` writes
   it back, null documents included (ADR-0251). Removing the key after a release is deferred item `D17`._
+- **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
+  replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
+  `src/frontend/apps/auth/src/main.tsx:12-21`.
+  _Closed: the host embeds the tenant's branding in every page it serves with the bundle as a JSON data block, so the
+  login bundle mounts as soon as its script runs; it carries typed or autofilled values, the focused field and the
+  consent scopes the end user cleared into its own form (a carried password is set on the input, never in markup) and
+  redraws the authorization error page; the branding endpoint is removed (ADR-0253)._
+- **`R30` — Serve interactive bundle assets without resolving the tenant.** Touch point:
+  `InteractiveAuthenticationEndpointGroup.cs:55`.
+  _Closed: the bundle's hashed `assets` directory is served from a route group that resolves no tenant, with a one-year
+  `immutable` cache; `index.html` and paths outside it answer 404 (ADR-0254)._
+- **`R36` — Test the bundle-shell split against the built bundle's real `index.html`.** Touch point:
+  `InteractiveBundleShell.cs:51-100`.
+  _Closed: a test splits and renders the real built `index.html`; Frontend CI builds the bundle, checks out the full
+  history and runs it (ADR-0254)._
+- **`R111` — Make the frontend tests independent of the runner's speed.** On a loaded CI runner three tests failed
+  while waiting for an element and passed when the job ran again: the playground's `App.test.tsx` ("renders the
+  explorer once runtime config is loaded"), the management app's `App.test.tsx` ("browses tenants globally, then
+  crosses into a tenant scope") and `TenantsPage.test.tsx` ("previews the issuer and mTLS endpoint alias a new tenant
+  would be given"), each after about five seconds. A gate that fails on timing alone hides real failures. Find what
+  each test waits for (lazy routes, MUI transitions, debounced queries), make the waits deterministic (fake timers or
+  awaiting the request mock), and set one deliberate `asyncUtilTimeout` and test timeout for the frontend packages.
+  Touch points: `src/frontend/apps/playground/src/App.test.tsx`, `src/frontend/apps/mgmt/src/App.test.tsx`,
+  `src/frontend/apps/mgmt/src/containers/TenantsPage.test.tsx`, the packages' Vitest configuration.
+  _Closed: every browser-simulating frontend package waits up to 10 seconds for an element and allows 30 seconds a test;
+  the three timing-sensitive tests load lazily loaded surfaces first and the tenant address preview's debounce is a prop
+  its tests set to 0, so they wait for an outcome rather than the runner._

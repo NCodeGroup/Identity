@@ -539,18 +539,6 @@ _None remaining._
 
 ### P2
 
-- **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
-  replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
-  `src/frontend/apps/auth/src/main.tsx:12-21`.
-- **`R111` — Make the frontend tests independent of the runner's speed.** On a loaded CI runner three tests failed
-  while waiting for an element and passed when the job ran again: the playground's `App.test.tsx` ("renders the
-  explorer once runtime config is loaded"), the management app's `App.test.tsx` ("browses tenants globally, then
-  crosses into a tenant scope") and `TenantsPage.test.tsx` ("previews the issuer and mTLS endpoint alias a new tenant
-  would be given"), each after about five seconds. A gate that fails on timing alone hides real failures. Find what
-  each test waits for (lazy routes, MUI transitions, debounced queries), make the waits deterministic (fake timers or
-  awaiting the request mock), and set one deliberate `asyncUtilTimeout` and test timeout for the frontend packages.
-  Touch points: `src/frontend/apps/playground/src/App.test.tsx`, `src/frontend/apps/mgmt/src/App.test.tsx`,
-  `src/frontend/apps/mgmt/src/containers/TenantsPage.test.tsx`, the packages' Vitest configuration.
 - **`R112` — Forbid framing of every interactive page.** RFC 9700 §4.16 requires an authorization server to prevent
   clickjacking, and the interactive surface relies on ASP.NET Core antiforgery, which sends
   `X-Frame-Options: SAMEORIGIN` only with a response that stores a new antiforgery cookie: a login, consent, or
@@ -563,10 +551,6 @@ _None remaining._
 
 ### P3
 
-- **`R30` — Serve interactive bundle assets without resolving the tenant.** Touch point:
-  `InteractiveAuthenticationEndpointGroup.cs:55`.
-- **`R36` — Test the bundle-shell split against the built bundle's real `index.html`.** Touch point:
-  `InteractiveBundleShell.cs:51-100`.
 - **`R64` — Check client-certificate revocation through OCSP and the remaining CRL forms.** The default checker shares
   each retrieval, remembers a failed one, verifies RSA-PSS lists and offers `online_soft_fail`
   ([ADR-0252](docs/adr/0252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)).
@@ -582,5 +566,8 @@ _None remaining._
 - **`R44` — Key the conformance seed by `client_id`.** Stop passing keys by array position
   (`run-conformance.ps1:318-321`), generate both FAPI templates from one source, and derive `discoveryUrl` from
   `$IssuerUrl`.
-- **`R45` — Deduplicate the frontend data and routing code.** An owner-generic builder for `managementApi.ts`'s
-  secrets and settings endpoints, one `fetchSurfaceJson` helper for the 401 redirect, and tenant detail tabs in the URL.
+- **`R45` — Build the console's secrets and settings endpoints from one owner-generic builder.** `managementApi.ts`
+  defines the secrets and settings endpoints once per owner type (server, tenant, client, resource server), about 28 near-
+  copies. One builder parameterized by the owner's path and cache tags should produce them all. The account pages'
+  `fetchSurfaceJson` helper and the tenant tabs with their own addresses are done (ADR-0255). Touch points:
+  `src/frontend/packages/store/src/managementApi.ts` and its tests.

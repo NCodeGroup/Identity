@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-0247](0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md): a live key ring key the server's
-  master key cannot decrypt stops the host)
+  master key cannot decrypt stops the host; extended by
+  [ADR-0260](0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md): the Azure Key Vault and Google Cloud
+  KMS root key providers)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -91,7 +93,7 @@ service.
 - **Google Cloud KMS as the built-in cloud provider.** Its workload identity federation accepts an uploaded JWKS, so a
   cluster with a private service-account issuer authenticates without a stored credential. AWS KMS was chosen instead
   because the platform's state key, backups, parameters and CI federation already live in one AWS account: the root key
-  adds no vendor and is audited by the same CloudTrail. Google Cloud KMS remains a follow-up provider.
+  adds no vendor and is audited by the same CloudTrail. It is a provider too (ADR-0260).
 
 ## Consequences
 

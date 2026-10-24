@@ -43,4 +43,14 @@ public static class RootKeyProviderNames
     /// Contains the name of the provider that wraps keys with a key held in AWS Key Management Service.
     /// </summary>
     public const string AwsKms = "aws-kms";
+
+    /// <summary>
+    /// Contains the name of the provider that wraps keys with an RSA key held in Azure Key Vault or Managed HSM.
+    /// </summary>
+    public const string AzureKeyVault = "azure-key-vault";
+
+    /// <summary>
+    /// Contains the name of the provider that wraps keys with a symmetric key held in Google Cloud KMS.
+    /// </summary>
+    public const string GoogleCloudKms = "google-cloud-kms";
 }

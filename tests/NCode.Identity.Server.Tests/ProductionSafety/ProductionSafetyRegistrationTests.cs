@@ -441,6 +441,8 @@ public class ProductionSafetyRegistrationTests
         Assert.Equal("SecretProtection:RootKeyProvider", violation.ConfigurationKey);
         Assert.Contains("is not set", violation.Problem);
         Assert.Contains("'aws-kms'", violation.Resolution);
+        Assert.Contains("'azure-key-vault'", violation.Resolution);
+        Assert.Contains("'google-cloud-kms'", violation.Resolution);
     }
 
     [Fact]
@@ -459,6 +461,8 @@ public class ProductionSafetyRegistrationTests
         Assert.Equal("SecretProtection:RootKeyProvider", violation.ConfigurationKey);
         Assert.Contains("'ephemeral' keeps the root key in memory", violation.Problem);
         Assert.Contains("'aws-kms'", violation.Resolution);
+        Assert.Contains("'azure-key-vault'", violation.Resolution);
+        Assert.Contains("'google-cloud-kms'", violation.Resolution);
     }
 
     [Theory]

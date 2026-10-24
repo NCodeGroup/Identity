@@ -115,10 +115,28 @@ applied. Rendered for its side effect only.
 {{- if and (eq .Values.secretProtection.rootKeyProvider "aws-kms") .Values.secretProtection.awsKms.keyArn (not (regexMatch "^arn:aws[a-z-]*:kms:[a-z0-9-]+:[0-9]{12}:(key/[A-Za-z0-9-]+|alias/[A-Za-z0-9/_-]+)$" .Values.secretProtection.awsKms.keyArn)) }}
 {{- fail "secretProtection.awsKms.keyArn must be the ARN of a KMS key or alias, such as arn:aws:kms:us-west-2:111122223333:alias/ncode-identity-root." }}
 {{- end }}
+{{- if eq .Values.secretProtection.rootKeyProvider "azure-key-vault" }}
+{{- $azureKeyVault := .Values.secretProtection.azureKeyVault }}
+{{- if not (regexMatch "^https://[A-Za-z0-9-]+([.][A-Za-z0-9-]+)+/keys/[A-Za-z0-9-]{1,127}(/[A-Za-z0-9]{32})?$" $azureKeyVault.keyId) }}
+{{- fail "secretProtection.azureKeyVault.keyId must be the identifier of a Key Vault or Managed HSM key, such as https://contoso.vault.azure.net/keys/ncode-identity-root." }}
+{{- end }}
+{{- if ne (empty $azureKeyVault.workloadIdentity.tenantId) (empty $azureKeyVault.workloadIdentity.clientId) }}
+{{- fail "secretProtection.azureKeyVault.workloadIdentity needs both tenantId and clientId, or neither." }}
+{{- end }}
+{{- end }}
+{{- if eq .Values.secretProtection.rootKeyProvider "google-cloud-kms" }}
+{{- $googleCloudKms := .Values.secretProtection.googleCloudKms }}
+{{- if not (regexMatch "^projects/[a-z0-9.:-]+/locations/[a-z0-9-]+/keyRings/[A-Za-z0-9_-]{1,63}/cryptoKeys/[A-Za-z0-9_-]{1,63}$" $googleCloudKms.keyName) }}
+{{- fail "secretProtection.googleCloudKms.keyName must be the resource name of a Cloud KMS crypto key, such as projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root." }}
+{{- end }}
+{{- if and $googleCloudKms.workloadIdentityFederation.provider (not (regexMatch "^projects/[0-9]+/locations/global/workloadIdentityPools/[a-z0-9-]+/providers/[a-z0-9-]+$" $googleCloudKms.workloadIdentityFederation.provider)) }}
+{{- fail "secretProtection.googleCloudKms.workloadIdentityFederation.provider must be the resource name of a workload identity pool provider, such as projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster." }}
+{{- end }}
+{{- end }}
 {{- if eq .Values.environment "Production" }}
 {{- $secretProtection := .Values.secretProtection }}
 {{- if or (not $secretProtection.rootKeyProvider) (eq $secretProtection.rootKeyProvider "ephemeral") }}
-{{- fail "secretProtection.rootKeyProvider must name a root key held outside the pod in Production: local or aws-kms." }}
+{{- fail "secretProtection.rootKeyProvider must name a root key held outside the pod in Production: local, aws-kms, azure-key-vault or google-cloud-kms." }}
 {{- end }}
 {{- if and (eq $secretProtection.rootKeyProvider "local") (not $secretProtection.local.keySecret) }}
 {{- fail "secretProtection.local.keySecret must name the Secret holding the local root key." }}
@@ -178,5 +196,23 @@ affinity:
 {{- with .Values.tolerations }}
 tolerations:
   {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{/*
+The external_account credential configuration that Google Application Default Credentials read: it exchanges the
+projected service-account token with Google STS, and impersonates a service account when one is named. Empty unless the
+release uses Google Cloud KMS through workload identity federation. The token path must match the volume
+deployment.yaml mounts.
+*/}}
+{{- define "identity-host.googleCloudCredentialConfiguration" -}}
+{{- $googleCloudKms := .Values.secretProtection.googleCloudKms }}
+{{- $federation := $googleCloudKms.workloadIdentityFederation }}
+{{- if and (eq .Values.secretProtection.rootKeyProvider "google-cloud-kms") $federation.provider }}
+{{- $configuration := dict "type" "external_account" "audience" (printf "//iam.googleapis.com/%s" $federation.provider) "subject_token_type" "urn:ietf:params:oauth:token-type:jwt" "token_url" "https://sts.googleapis.com/v1/token" "credential_source" (dict "file" "/var/run/secrets/tokens/google/token" "format" (dict "type" "text")) }}
+{{- if $federation.serviceAccountEmail }}
+{{- $_ := set $configuration "service_account_impersonation_url" (printf "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/%s:generateAccessToken" $federation.serviceAccountEmail) }}
+{{- end }}
+{{- $configuration | toPrettyJson }}
 {{- end }}
 {{- end }}

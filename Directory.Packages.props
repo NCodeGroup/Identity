@@ -103,6 +103,17 @@
     <PackageVersion Include="AWSSDK.SecurityToken" Version="4.0.101.6" />
   </ItemGroup>
 
+  <!-- Root key provider (NCode.Identity.Secrets.Persistence.AzureKeyVault only). -->
+  <ItemGroup>
+    <PackageVersion Include="Azure.Identity" Version="1.21.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.10.2" />
+  </ItemGroup>
+
+  <!-- Root key provider (NCode.Identity.Secrets.Persistence.GoogleCloudKms only). -->
+  <ItemGroup>
+    <PackageVersion Include="Google.Cloud.Kms.V1" Version="3.27.0" />
+  </ItemGroup>
+
   <!-- Metrics export (NCode.Identity.Server only; the library packages depend only on System.Diagnostics.Metrics).
        See ADR-0197. -->
   <ItemGroup>

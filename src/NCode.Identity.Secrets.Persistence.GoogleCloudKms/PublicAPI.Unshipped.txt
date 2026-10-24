@@ -1,0 +1,9 @@
+#nullable enable
+const NCode.Identity.Secrets.Persistence.GoogleCloudKms.Options.GoogleCloudKmsRootKeyOptions.DefaultSectionName = "SecretProtection:RootKeyProviders:GoogleCloudKms" -> string!
+NCode.Identity.Secrets.Persistence.GoogleCloudKms.DefaultRegistration
+NCode.Identity.Secrets.Persistence.GoogleCloudKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!)
+NCode.Identity.Secrets.Persistence.GoogleCloudKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!).AddGoogleCloudKmsRootKeyProvider(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
+NCode.Identity.Secrets.Persistence.GoogleCloudKms.Options.GoogleCloudKmsRootKeyOptions
+NCode.Identity.Secrets.Persistence.GoogleCloudKms.Options.GoogleCloudKmsRootKeyOptions.GoogleCloudKmsRootKeyOptions() -> void
+NCode.Identity.Secrets.Persistence.GoogleCloudKms.Options.GoogleCloudKmsRootKeyOptions.KeyName.get -> string?
+NCode.Identity.Secrets.Persistence.GoogleCloudKms.Options.GoogleCloudKmsRootKeyOptions.KeyName.set -> void

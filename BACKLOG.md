@@ -538,19 +538,6 @@ _None remaining._
 - **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
   replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
   `src/frontend/apps/auth/src/main.tsx:12-21`.
-- **`R101` — Enforce a password policy wherever a password is set.** Nothing checks a new password: an administrator's
-  account creation and password reset and the self-service change (ADR-0230) accept any non-empty value. NIST SP
-  800-63B requires a minimum length, a maximum of at least 64 characters, a check against a blocklist of compromised
-  and common passwords, and no composition rules. Add one policy seam that every entry point applies, with a tenant
-  setting for the minimum length. Touch points: `LocalAccountApiEndpointHandler` (create, reset),
-  `LocalAccountInteractivePasswordChanger`, `InteractivePasswordChangeResult`.
-- **`R102` — Limit failed password attempts per account.** The interactive login, the self-service password change
-  and the password grant verify a password as often as they are asked: the Entity Framework account store has no
-  lockout, and no endpoint limits failed attempts per account. NIST SP 800-63B §5.2.2 requires the verifier to limit
-  consecutive failed attempts. Count failures per account with `IExpiringCounterSet` and refuse beyond a limit with the
-  answer a wrong password gets. Touch points: `InteractiveAuthenticationEndpointHandler.PostLoginAsync`,
-  `LocalAccountInteractivePasswordChanger`, `DefaultAuthenticatePasswordGrantHandler`, `LocalAccountStore`.
-
 ### P3
 
 - **`R30` — Serve interactive bundle assets without resolving the tenant.** Touch point:

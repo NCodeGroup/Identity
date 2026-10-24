@@ -550,23 +550,10 @@ _None remaining._
 
 ### P2
 
-- **`R113` — Send `Strict-Transport-Security` from the reference host.** The host redirects plain HTTP to HTTPS
-  (`UseHttpsRedirection`) but sends no HSTS header, so when it terminates TLS itself, as mutual TLS requires, a
-  browser's later plain-HTTP request to the issuer can be intercepted before the redirect (RFC 6797, OWASP Secure
-  Headers). Add HSTS to the server's turnkey pipeline outside Development, configured from a section (`max-age`,
-  `includeSubDomains`, `preload`), and document that a TLS-terminating proxy sends it instead
-  ([ADR-0256](docs/adr/0256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
-  Touch points: `src/NCode.Identity.OpenId.Host/Program.cs`, `NCode.Identity.Server`.
+_None remaining._
 
 ### P3
 
-- **`R64` — Check client-certificate revocation through OCSP and the remaining CRL forms.** The default checker shares
-  each retrieval, remembers a failed one, verifies RSA-PSS lists and offers `online_soft_fail`
-  ([ADR-0252](docs/adr/0252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)).
-  It still answers Unknown for an OCSP-only PKI, for delta, partitioned (`reasons`, `onlySomeReasons`) and indirect
-  CRLs, and for a CRL signed by a key other than the issuing certificate's. Add OCSP (RFC 6960, a direct query without
-  stapling, with a response cache), delta and partitioned CRLs, indirect CRLs and CRL-signer path validation. Touch
-  points: `DefaultClientCertificateRevocationChecker`, `CertificateRevocationList`, ADR-0173, ADR-0252.
 - **`R67` — Run the conformance pre-flight in the FAPI 1.0 Advanced run.** Advertised certificate binding does not
   force every client to present a certificate (`R42`), so `-Fapi1Advanced` has no reason to skip the pre-flight; update
   `build/conformance/README.md` with it. Touch points: `build/conformance/run-conformance.ps1` (`Initialize-Fapi1Run`).

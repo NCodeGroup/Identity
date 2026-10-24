@@ -190,6 +190,25 @@ NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.KnownProxies.get -> strin
 NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.KnownProxies.set -> void
 NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.ReverseProxyOptions() -> void
 const NCode.Identity.Server.ReverseProxy.ReverseProxyOptions.DefaultSectionName = "ReverseProxy" -> string!
+NCode.Identity.Server.StrictTransportSecurityApplicationBuilderExtensions
+NCode.Identity.Server.StrictTransportSecurityApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
+NCode.Identity.Server.StrictTransportSecurityApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseStrictTransportSecurity() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
+NCode.Identity.Server.StrictTransportSecurityRegistration
+NCode.Identity.Server.StrictTransportSecurityRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Server.StrictTransportSecurityRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddStrictTransportSecurity(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+const NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions.DefaultSectionName = "StrictTransportSecurity" -> string!
+NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions
+NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions.Enabled.get -> bool
+NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions.Enabled.set -> void
+NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions.ExcludedHosts.get -> string![]!
+NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions.ExcludedHosts.set -> void
+NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions.IncludeSubDomains.get -> bool
+NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions.IncludeSubDomains.set -> void
+NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions.MaxAge.get -> System.TimeSpan
+NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions.MaxAge.set -> void
+NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions.Preload.get -> bool
+NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions.Preload.set -> void
+NCode.Identity.Server.StrictTransportSecurity.StrictTransportSecurityOptions.StrictTransportSecurityOptions() -> void
 NCode.Identity.Server.SecretProtection.DataProtectionKeyRingOptions
 NCode.Identity.Server.SecretProtection.DataProtectionKeyRingOptions.DataProtectionKeyRingOptions() -> void
 NCode.Identity.Server.SecretProtection.DataProtectionKeyRingOptions.RevokedKeyIds.get -> System.Guid[]!

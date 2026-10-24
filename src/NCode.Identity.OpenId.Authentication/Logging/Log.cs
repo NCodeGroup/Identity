@@ -153,25 +153,25 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.CertificateRevocationListUnavailable,
+        EventId = EventIds.RevocationInformationUnavailable,
         Level = LogLevel.Warning,
-        Message = "The certificate revocation list at '{CrlUri}' could not be used to check certificate '{Subject}': {Reason}"
+        Message = "The revocation information at '{Location}' could not be used to check certificate '{Subject}': {Reason}"
     )]
-    internal static partial void CertificateRevocationListUnavailable(
+    internal static partial void RevocationInformationUnavailable(
         this ILogger logger,
-        string crlUri,
+        string location,
         string subject,
         string reason
     );
 
     [LoggerMessage(
-        EventId = EventIds.CertificateRevocationListRetrievalSuppressed,
+        EventId = EventIds.RevocationRetrievalSuppressed,
         Level = LogLevel.Debug,
-        Message = "The certificate revocation list at '{CrlUri}' is not retrieved to check certificate '{Subject}', because a retrieval that failed less than {FailureCacheDuration} ago is remembered."
+        Message = "The revocation information at '{Location}' is not retrieved to check certificate '{Subject}', because a retrieval that failed less than {FailureCacheDuration} ago is remembered."
     )]
-    internal static partial void CertificateRevocationListRetrievalSuppressed(
+    internal static partial void RevocationRetrievalSuppressed(
         this ILogger logger,
-        string crlUri,
+        string location,
         string subject,
         TimeSpan failureCacheDuration
     );

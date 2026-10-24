@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Security.Cryptography.X509Certificates;
+
 namespace NCode.Identity.OpenId.Core.Tests.ClientCertificates;
 
 /// <summary>
@@ -27,6 +29,10 @@ internal sealed class ClientCertificateOptions
     [TestCertificates.ClientAuthenticationOid];
 
     public IReadOnlyList<string> CrlDistributionPoints { get; init; } = [];
+
+    public IReadOnlyList<string> OcspUris { get; init; } = [];
+
+    public IReadOnlyList<X509Extension> ExtraExtensions { get; init; } = [];
 
     public DateTimeOffset? NotBefore { get; init; }
 

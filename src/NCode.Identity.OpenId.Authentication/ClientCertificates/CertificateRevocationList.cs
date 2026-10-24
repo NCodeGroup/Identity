@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Formats.Asn1;
 using System.Numerics;
@@ -26,24 +27,27 @@ using NCode.Identity.OpenId.ClientCertificates;
 namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 
 /// <summary>
-/// A parsed X.509 certificate revocation list (RFC 5280 §5.1) of the version 2 form, together with the bytes its
-/// signature covers. Parsing reads the list; it does not verify who signed it.
+/// A parsed X.509 certificate revocation list (RFC 5280 §5.1) of the version 2 form: its issuer, validity, entries by
+/// serial number, issuing distribution point, CRL number, delta indicator, authority key identifier and freshest CRL
+/// locations, together with the bytes its signature covers. Parsing reads the list; it does not verify who signed it.
+/// <see cref="IsSignedBy"/> decides whether a signer signed the list, and computes the verdict for each signer once
+/// per list.
 /// </summary>
 internal sealed class CertificateRevocationList
 {
     private const string DeltaCrlIndicatorOid = "2.5.29.27";
     private const string IssuingDistributionPointOid = "2.5.29.28";
-    private const string Mgf1Oid = "1.2.840.113549.1.1.8";
-    private const string Sha256Oid = "2.16.840.1.101.3.4.2.1";
-    private const string Sha384Oid = "2.16.840.1.101.3.4.2.2";
-    private const string Sha512Oid = "2.16.840.1.101.3.4.2.3";
+    private const string CrlNumberOid = "2.5.29.20";
+    private const string AuthorityKeyIdentifierOid = "2.5.29.35";
+    private const string FreshestCrlOid = "2.5.29.46";
+    private const string IssuerAltNameOid = "2.5.29.18";
+    private const string AuthorityInfoAccessOid = "1.3.6.1.5.5.7.1.1";
+    private const string ReasonCodeOid = "2.5.29.21";
+    private const string HoldInstructionCodeOid = "2.5.29.23";
+    private const string InvalidityDateOid = "2.5.29.24";
+    private const string CertificateIssuerOid = "2.5.29.29";
 
     private static readonly Asn1Tag ExtensionsTag = new(TagClass.ContextSpecific, 0, true);
-
-    private static readonly Asn1Tag PssHashAlgorithmTag = new(TagClass.ContextSpecific, 0, true);
-    private static readonly Asn1Tag PssMaskGenAlgorithmTag = new(TagClass.ContextSpecific, 1, true);
-    private static readonly Asn1Tag PssSaltLengthTag = new(TagClass.ContextSpecific, 2, true);
-    private static readonly Asn1Tag PssTrailerFieldTag = new(TagClass.ContextSpecific, 3, true);
 
     private static readonly Asn1Tag DistributionPointNameTag = new(
         TagClass.ContextSpecific,
@@ -70,6 +74,9 @@ internal sealed class CertificateRevocationList
         5
     );
 
+    private ConcurrentDictionary<string, bool> SignerVerdicts { get; } =
+        new(StringComparer.Ordinal);
+
     /// <summary>
     /// Gets the name of the authority that issued the list.
     /// </summary>
@@ -86,9 +93,13 @@ internal sealed class CertificateRevocationList
     public required DateTimeOffset? NextUpdate { get; init; }
 
     /// <summary>
-    /// Gets the serial numbers of the certificates the list revokes.
+    /// Gets the entries of the list by serial number. A serial number has more than one entry when the list is
+    /// indirect and lists certificates of several issuers that share it.
     /// </summary>
-    public required IReadOnlySet<BigInteger> RevokedSerialNumbers { get; init; }
+    public required IReadOnlyDictionary<
+        BigInteger,
+        IReadOnlyList<CrlEntry>
+    > EntriesBySerialNumber { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the list uses a feature that this reader does not support, so that the list
@@ -97,19 +108,37 @@ internal sealed class CertificateRevocationList
     public required bool HasUnsupportedFeatures { get; init; }
 
     /// <summary>
-    /// Gets the locations the list says it is published at. The list covers every location when it names none.
+    /// Gets the issuing distribution point of the list, which declares the scope of the list, or
+    /// <see langword="null"/> when the list declares none and so covers every certificate of its issuer.
     /// </summary>
-    public required IReadOnlyList<string> DistributionPointUris { get; init; }
+    public required CrlIssuingDistributionPoint? IssuingDistributionPoint { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the list covers only end-entity certificates.
+    /// Gets the sequence number of the list, or <see langword="null"/> when the list carries none.
     /// </summary>
-    public required bool OnlyContainsUserCertificates { get; init; }
+    public required BigInteger? CrlNumber { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the list covers only certificate authority certificates.
+    /// Gets the number of the complete list that a delta list is based on, or <see langword="null"/> when the list is
+    /// not a delta list.
     /// </summary>
-    public required bool OnlyContainsAuthorityCertificates { get; init; }
+    public required BigInteger? DeltaBaseCrlNumber { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the list is a delta list, which holds only the changes since a complete list.
+    /// </summary>
+    public bool IsDelta => DeltaBaseCrlNumber is not null;
+
+    /// <summary>
+    /// Gets the authority key identifier extension value of the list, or an empty value when the list carries none.
+    /// </summary>
+    public required ReadOnlyMemory<byte> AuthorityKeyIdentifier { get; init; }
+
+    /// <summary>
+    /// Gets the <c>http</c> and <c>https</c> locations of the delta lists that the freshest CRL extension of the list
+    /// names.
+    /// </summary>
+    public required IReadOnlyList<string> FreshestCrlUris { get; init; }
 
     /// <summary>
     /// Gets the object identifier of the algorithm that signed the list.
@@ -180,31 +209,82 @@ internal sealed class CertificateRevocationList
                 nextUpdate = ReadTime(tbs);
 
             var hasUnsupportedFeatures = false;
-            var distributionPointUris = new List<string>();
-            var onlyContainsUserCertificates = false;
-            var onlyContainsAuthorityCertificates = false;
+            CrlIssuingDistributionPoint? issuingDistributionPoint = null;
+            BigInteger? crlNumber = null;
+            BigInteger? deltaBaseCrlNumber = null;
+            var authorityKeyIdentifier = ReadOnlyMemory<byte>.Empty;
+            var freshestCrlUris = new List<string>();
 
-            var revokedSerialNumbers = new HashSet<BigInteger>();
+            var entries = new Dictionary<BigInteger, List<CrlEntry>>();
+            var currentIssuer = issuer;
+            var hasCertificateIssuer = false;
             if (tbs.HasData && tbs.PeekTag() == Asn1Tag.Sequence)
             {
                 var revokedCertificates = tbs.ReadSequence();
                 while (revokedCertificates.HasData)
                 {
                     var entry = revokedCertificates.ReadSequence();
-                    revokedSerialNumbers.Add(entry.ReadInteger());
+                    var serialNumber = entry.ReadInteger();
                     ReadTime(entry);
 
-                    if (!entry.HasData)
-                        continue;
-
-                    var entryExtensions = entry.ReadSequence();
-                    entry.ThrowIfNotEmpty();
-                    while (entryExtensions.HasData)
+                    var isRemoveFromCrl = false;
+                    if (entry.HasData)
                     {
-                        ReadExtension(entryExtensions, out _, out var critical, out _);
-                        if (critical)
-                            hasUnsupportedFeatures = true;
+                        var entryExtensions = entry.ReadSequence();
+                        entry.ThrowIfNotEmpty();
+                        while (entryExtensions.HasData)
+                        {
+                            ReadExtension(
+                                entryExtensions,
+                                out var entryOid,
+                                out var entryCritical,
+                                out var entryValue
+                            );
+                            if (entryOid == CertificateIssuerOid)
+                            {
+                                hasCertificateIssuer = true;
+                                var namesReader = new AsnReader(entryValue, AsnEncodingRules.DER);
+                                var generalNames = namesReader.ReadSequence();
+                                namesReader.ThrowIfNotEmpty();
+                                if (
+                                    CrlDistributionPoints.TryReadDirectoryName(
+                                        generalNames,
+                                        out var certificateIssuer
+                                    )
+                                )
+                                {
+                                    currentIssuer = certificateIssuer;
+                                }
+                                else
+                                {
+                                    hasUnsupportedFeatures = true;
+                                }
+                            }
+                            else if (entryOid == ReasonCodeOid)
+                            {
+                                var reasonReader = new AsnReader(entryValue, AsnEncodingRules.DER);
+                                var reason = reasonReader.ReadEnumeratedBytes();
+                                reasonReader.ThrowIfNotEmpty();
+                                isRemoveFromCrl = reason.Span is [8];
+                            }
+                            else if (
+                                entryOid != HoldInstructionCodeOid
+                                && entryOid != InvalidityDateOid
+                                && entryCritical
+                            )
+                            {
+                                hasUnsupportedFeatures = true;
+                            }
+                        }
                     }
+
+                    if (!entries.TryGetValue(serialNumber, out var serialEntries))
+                    {
+                        serialEntries = [];
+                        entries.Add(serialNumber, serialEntries);
+                    }
+
+                    serialEntries.Add(new CrlEntry(serialNumber, currentIssuer, isRemoveFromCrl));
                 }
             }
 
@@ -216,26 +296,49 @@ internal sealed class CertificateRevocationList
                 while (extensions.HasData)
                 {
                     ReadExtension(extensions, out var oid, out var critical, out var value);
-                    if (oid == IssuingDistributionPointOid)
+                    switch (oid)
                     {
-                        if (
-                            !TryReadIssuingDistributionPoint(
-                                value,
-                                distributionPointUris,
-                                out onlyContainsUserCertificates,
-                                out onlyContainsAuthorityCertificates
-                            )
-                        )
-                        {
-                            hasUnsupportedFeatures = true;
-                        }
-                    }
-                    else if (oid == DeltaCrlIndicatorOid || critical)
-                    {
-                        hasUnsupportedFeatures = true;
+                        case IssuingDistributionPointOid:
+                            if (TryReadIssuingDistributionPoint(value, out var point))
+                                issuingDistributionPoint = point;
+                            else
+                                hasUnsupportedFeatures = true;
+                            break;
+
+                        case CrlNumberOid:
+                            crlNumber = ReadInteger(value);
+                            break;
+
+                        case DeltaCrlIndicatorOid:
+                            deltaBaseCrlNumber = ReadInteger(value);
+                            break;
+
+                        case AuthorityKeyIdentifierOid:
+                            authorityKeyIdentifier = value;
+                            break;
+
+                        case FreshestCrlOid:
+                            freshestCrlUris.AddRange(
+                                CrlDistributionPoints
+                                    .ReadPoints(value)
+                                    .SelectMany(distributionPoint => distributionPoint.Uris)
+                            );
+                            break;
+
+                        case IssuerAltNameOid:
+                        case AuthorityInfoAccessOid:
+                            break;
+
+                        default:
+                            if (critical)
+                                hasUnsupportedFeatures = true;
+                            break;
                     }
                 }
             }
+
+            if (hasCertificateIssuer && issuingDistributionPoint is not { IsIndirect: true })
+                hasUnsupportedFeatures = true;
 
             tbs.ThrowIfNotEmpty();
 
@@ -244,11 +347,16 @@ internal sealed class CertificateRevocationList
                 Issuer = issuer,
                 ThisUpdate = thisUpdate,
                 NextUpdate = nextUpdate,
-                RevokedSerialNumbers = revokedSerialNumbers,
+                EntriesBySerialNumber = entries.ToDictionary(
+                    pair => pair.Key,
+                    pair => (IReadOnlyList<CrlEntry>)pair.Value
+                ),
                 HasUnsupportedFeatures = hasUnsupportedFeatures,
-                DistributionPointUris = distributionPointUris,
-                OnlyContainsUserCertificates = onlyContainsUserCertificates,
-                OnlyContainsAuthorityCertificates = onlyContainsAuthorityCertificates,
+                IssuingDistributionPoint = issuingDistributionPoint,
+                CrlNumber = crlNumber,
+                DeltaBaseCrlNumber = deltaBaseCrlNumber,
+                AuthorityKeyIdentifier = authorityKeyIdentifier,
+                FreshestCrlUris = freshestCrlUris,
                 SignatureAlgorithm = signatureAlgorithm,
                 SignatureAlgorithmParameters = signatureParameters,
                 SignedData = signedData,
@@ -267,50 +375,107 @@ internal sealed class CertificateRevocationList
     }
 
     /// <summary>
-    /// Determines whether the list revokes the specified certificate, by comparing the certificate's serial number
-    /// with the serial numbers the list revokes. The caller decides whether the list was issued by the certificate's
-    /// issuer.
+    /// Finds the entry for the certificate that has the specified serial number and was issued by the specified
+    /// authority, or returns <see langword="null"/> when the list holds none. The issuer of an entry is the one its
+    /// certificate issuer extension names, which applies to the entries after it until another extension replaces it.
     /// </summary>
-    public bool IsRevoked(X509Certificate2 certificate)
+    public CrlEntry? FindEntry(BigInteger serialNumber, X500DistinguishedName certificateIssuer)
     {
-        var serialNumber = new BigInteger(
-            certificate.SerialNumberBytes.Span,
-            isUnsigned: false,
-            isBigEndian: true
-        );
-        return RevokedSerialNumbers.Contains(serialNumber);
+        if (!EntriesBySerialNumber.TryGetValue(serialNumber, out var entries))
+            return null;
+
+        foreach (var entry in entries)
+        {
+            if (RevocationNames.Matches(entry.CertificateIssuer, certificateIssuer))
+                return entry;
+        }
+
+        return null;
     }
 
     /// <summary>
-    /// Determines whether the list is within the scope it declares for a certificate whose CRL distribution point is
-    /// the specified location. The list covers the location when it names no locations or names this one, and it
-    /// covers the kind of certificate unless it declares that it holds only the other kind.
+    /// Determines whether the specified delta list can be applied to this complete list (RFC 5280 §5.2.4). The two
+    /// lists must have the same issuer, the same scope and the same authority key, and the number of this list must
+    /// be at least the number of the complete list the delta is based on and less than the number of the delta.
     /// </summary>
-    public bool Covers(string distributionPointUri, bool isAuthority)
-    {
-        if (
-            DistributionPointUris.Count > 0
-            && !DistributionPointUris.Contains(distributionPointUri, StringComparer.Ordinal)
+    public bool CanApplyDelta(CertificateRevocationList delta) =>
+        !IsDelta
+        && delta.DeltaBaseCrlNumber is { } baseNumber
+        && delta.CrlNumber is { } deltaNumber
+        && CrlNumber is { } number
+        && number >= baseNumber
+        && number < deltaNumber
+        && RevocationNames.Matches(Issuer, delta.Issuer)
+        && (IssuingDistributionPoint?.Encoded ?? ReadOnlyMemory<byte>.Empty).Span.SequenceEqual(
+            (delta.IssuingDistributionPoint?.Encoded ?? ReadOnlyMemory<byte>.Empty).Span
         )
+        && AuthorityKeyIdentifier.Span.SequenceEqual(delta.AuthorityKeyIdentifier.Span);
+
+    /// <summary>
+    /// Determines whether the list is within the scope it declares for a certificate at the specified distribution
+    /// point (RFC 5280 §6.3.3 step b). A point that names a CRL issuer needs an indirect list issued by that
+    /// authority; a point that names none needs a list issued by the certificate's issuer. The issuing distribution
+    /// point of the list must then name one of the locations of the point, when it names any, and must allow the kind
+    /// of certificate.
+    /// </summary>
+    public bool IsInScope(
+        CrlDistributionPoint point,
+        X500DistinguishedName certificateIssuer,
+        bool isAuthority
+    )
+    {
+        if (point.CrlIssuer is { } crlIssuer)
+        {
+            if (
+                IssuingDistributionPoint is not { IsIndirect: true }
+                || !RevocationNames.Matches(Issuer, crlIssuer)
+            )
+            {
+                return false;
+            }
+        }
+        else if (!RevocationNames.Matches(Issuer, certificateIssuer))
         {
             return false;
         }
 
-        if (OnlyContainsUserCertificates && isAuthority)
+        if (IssuingDistributionPoint is not { } idp)
+            return true;
+
+        if (idp.HasName && !idp.Uris.Any(uri => point.Uris.Contains(uri, StringComparer.Ordinal)))
             return false;
 
-        if (OnlyContainsAuthorityCertificates && !isAuthority)
+        if (idp.OnlyContainsUserCertificates && isAuthority)
             return false;
 
-        return true;
+        return !(idp.OnlyContainsAuthorityCertificates && !isAuthority);
     }
+
+    /// <summary>
+    /// Gets the reasons the list covers for the specified distribution point (RFC 5280 §6.3.3 step d) as a mask: the
+    /// reasons both the list and the point name, where a list or a point that names none covers every reason.
+    /// </summary>
+    public int GetCoveredReasons(CrlDistributionPoint point) =>
+        (IssuingDistributionPoint?.OnlySomeReasons, point.Reasons) switch
+        {
+            ({ } listReasons, { } pointReasons) => listReasons & pointReasons,
+            ({ } listReasons, null) => listReasons,
+            (null, { } pointReasons) => pointReasons,
+            _ => CrlReasons.All,
+        } & CrlReasons.All;
 
     /// <summary>
     /// Determines whether the specified certificate issued and signed the list. The certificate must be allowed to
     /// sign revocation lists, its subject must match the issuer named in the list, and the signature must verify
-    /// with the certificate's public key.
+    /// with the certificate's public key. The verdict for each signer is computed once per list.
     /// </summary>
-    public bool IsSignedBy(X509Certificate2 issuer)
+    public bool IsSignedBy(X509Certificate2 signer) =>
+        SignerVerdicts.GetOrAdd(
+            signer.GetCertHashString(HashAlgorithmName.SHA256),
+            _ => VerifySignedBy(signer)
+        );
+
+    private bool VerifySignedBy(X509Certificate2 issuer)
     {
         if (
             issuer.Extensions.OfType<X509KeyUsageExtension>().FirstOrDefault() is { } keyUsage
@@ -326,35 +491,15 @@ internal sealed class CertificateRevocationList
             if (!issuerName.Matches(DistinguishedName.FromX500(issuer.SubjectName)))
                 return false;
 
-            // RSA PKCS#1 v1.5, RSASSA-PSS (MGF1 over the same hash, salt as long as the hash) and ECDSA signatures,
-            // each with SHA-256, SHA-384 or SHA-512, are supported. A list signed with SHA-1, or by a signer other
-            // than the issuing certificate (an indirect or delegated signer), is not accepted.
-            return SignatureAlgorithm switch
-            {
-                "1.2.840.113549.1.1.11" => VerifyRsa(
-                    issuer,
-                    HashAlgorithmName.SHA256,
-                    RSASignaturePadding.Pkcs1
-                ),
-                "1.2.840.113549.1.1.12" => VerifyRsa(
-                    issuer,
-                    HashAlgorithmName.SHA384,
-                    RSASignaturePadding.Pkcs1
-                ),
-                "1.2.840.113549.1.1.13" => VerifyRsa(
-                    issuer,
-                    HashAlgorithmName.SHA512,
-                    RSASignaturePadding.Pkcs1
-                ),
-                "1.2.840.113549.1.1.10" => TryGetPssHashAlgorithm(
-                    SignatureAlgorithmParameters,
-                    out var pssHash
-                ) && VerifyRsa(issuer, pssHash, RSASignaturePadding.Pss),
-                "1.2.840.10045.4.3.2" => VerifyEcdsa(issuer, HashAlgorithmName.SHA256),
-                "1.2.840.10045.4.3.3" => VerifyEcdsa(issuer, HashAlgorithmName.SHA384),
-                "1.2.840.10045.4.3.4" => VerifyEcdsa(issuer, HashAlgorithmName.SHA512),
-                _ => false,
-            };
+            // RSA PKCS#1 v1.5, RSASSA-PSS and ECDSA signatures with SHA-256, SHA-384 or SHA-512 are supported. A list
+            // signed with SHA-1 is not accepted.
+            return RevocationSignature.Verify(
+                issuer,
+                SignatureAlgorithm,
+                SignatureAlgorithmParameters,
+                SignedData.Span,
+                Signature.Span
+            );
         }
         catch (CryptographicException)
         {
@@ -362,170 +507,91 @@ internal sealed class CertificateRevocationList
         }
     }
 
-    /// <summary>
-    /// Reads the parameters of an RSASSA-PSS signature algorithm and returns the hash algorithm they name. The
-    /// parameters are accepted only when they name SHA-256, SHA-384 or SHA-512, a mask generation function MGF1 over
-    /// the same hash, a salt as long as the hash, and no trailer field or the trailer field <c>1</c>. Parameters
-    /// that leave a field to its default (SHA-1), or that are not well formed, are refused.
-    /// </summary>
-    internal static bool TryGetPssHashAlgorithm(
-        ReadOnlyMemory<byte> parameters,
-        out HashAlgorithmName hashAlgorithm
-    )
-    {
-        hashAlgorithm = default;
-
-        try
-        {
-            var reader = new AsnReader(parameters, AsnEncodingRules.DER);
-            var pssParameters = reader.ReadSequence();
-            reader.ThrowIfNotEmpty();
-
-            var hashField = pssParameters.ReadSequence(PssHashAlgorithmTag);
-            var hashOid = ReadHashAlgorithmIdentifier(hashField);
-            hashField.ThrowIfNotEmpty();
-
-            var (hashName, hashLength) = hashOid switch
-            {
-                Sha256Oid => (HashAlgorithmName.SHA256, 32),
-                Sha384Oid => (HashAlgorithmName.SHA384, 48),
-                Sha512Oid => (HashAlgorithmName.SHA512, 64),
-                _ => (default(HashAlgorithmName), 0),
-            };
-            if (hashLength == 0)
-                return false;
-
-            var maskGenField = pssParameters.ReadSequence(PssMaskGenAlgorithmTag);
-            var maskGen = maskGenField.ReadSequence();
-            maskGenField.ThrowIfNotEmpty();
-            if (maskGen.ReadObjectIdentifier() != Mgf1Oid)
-                return false;
-
-            var maskGenHashOid = ReadHashAlgorithmIdentifier(maskGen);
-            maskGen.ThrowIfNotEmpty();
-            if (maskGenHashOid != hashOid)
-                return false;
-
-            var saltLengthField = pssParameters.ReadSequence(PssSaltLengthTag);
-            var saltLength = saltLengthField.ReadInteger();
-            saltLengthField.ThrowIfNotEmpty();
-            if (saltLength != hashLength)
-                return false;
-
-            if (pssParameters.HasData && pssParameters.PeekTag() == PssTrailerFieldTag)
-            {
-                var trailerField = pssParameters.ReadSequence(PssTrailerFieldTag);
-                var trailer = trailerField.ReadInteger();
-                trailerField.ThrowIfNotEmpty();
-                if (trailer != BigInteger.One)
-                    return false;
-            }
-
-            pssParameters.ThrowIfNotEmpty();
-
-            hashAlgorithm = hashName;
-            return true;
-        }
-        catch (AsnContentException)
-        {
-            return false;
-        }
-    }
-
-    private static string ReadHashAlgorithmIdentifier(AsnReader reader)
-    {
-        var identifier = reader.ReadSequence();
-        var oid = identifier.ReadObjectIdentifier();
-        if (identifier.HasData)
-            identifier.ReadNull();
-
-        identifier.ThrowIfNotEmpty();
-        return oid;
-    }
-
-    private bool VerifyRsa(
-        X509Certificate2 issuer,
-        HashAlgorithmName hashAlgorithm,
-        RSASignaturePadding padding
-    )
-    {
-        using var key = issuer.GetRSAPublicKey();
-        return key is not null
-            && key.VerifyData(SignedData.Span, Signature.Span, hashAlgorithm, padding);
-    }
-
-    private bool VerifyEcdsa(X509Certificate2 issuer, HashAlgorithmName hashAlgorithm)
-    {
-        using var key = issuer.GetECDsaPublicKey();
-        return key is not null
-            && key.VerifyData(
-                SignedData.Span,
-                Signature.Span,
-                hashAlgorithm,
-                DSASignatureFormat.Rfc3279DerSequence
-            );
-    }
-
     private static bool TryReadIssuingDistributionPoint(
         byte[] value,
-        List<string> uris,
-        out bool onlyContainsUserCertificates,
-        out bool onlyContainsAuthorityCertificates
+        [NotNullWhen(true)] out CrlIssuingDistributionPoint? point
     )
     {
-        onlyContainsUserCertificates = false;
-        onlyContainsAuthorityCertificates = false;
+        point = null;
 
         var reader = new AsnReader(value, AsnEncodingRules.DER);
-        var point = reader.ReadSequence();
+        var sequence = reader.ReadSequence();
         reader.ThrowIfNotEmpty();
 
-        while (point.HasData)
+        var uris = new List<string>();
+        var hasName = false;
+        var onlyContainsUserCertificates = false;
+        var onlyContainsAuthorityCertificates = false;
+        int? onlySomeReasons = null;
+        var isIndirect = false;
+
+        while (sequence.HasData)
         {
-            var tag = point.PeekTag();
+            var tag = sequence.PeekTag();
             if (tag == DistributionPointNameTag)
             {
-                var distributionPointName = point.ReadSequence(DistributionPointNameTag);
+                hasName = true;
+                var distributionPointName = sequence.ReadSequence(DistributionPointNameTag);
                 if (!CrlDistributionPoints.TryReadFullNameUris(distributionPointName, uris))
                     return false;
             }
             else if (tag == OnlyContainsUserCertificatesTag)
             {
-                onlyContainsUserCertificates = point.ReadBoolean(OnlyContainsUserCertificatesTag);
+                onlyContainsUserCertificates = sequence.ReadBoolean(
+                    OnlyContainsUserCertificatesTag
+                );
             }
             else if (tag == OnlyContainsAuthorityCertificatesTag)
             {
-                onlyContainsAuthorityCertificates = point.ReadBoolean(
+                onlyContainsAuthorityCertificates = sequence.ReadBoolean(
                     OnlyContainsAuthorityCertificatesTag
                 );
             }
             else if (tag == OnlySomeReasonsTag)
             {
-                point.ReadEncodedValue();
-                return false;
+                onlySomeReasons = CrlReasons.Read(sequence, OnlySomeReasonsTag);
             }
             else if (tag == IndirectCrlTag)
             {
-                if (point.ReadBoolean(IndirectCrlTag))
-                    return false;
+                isIndirect = sequence.ReadBoolean(IndirectCrlTag);
             }
             else if (tag == OnlyContainsAttributeCertificatesTag)
             {
-                if (point.ReadBoolean(OnlyContainsAttributeCertificatesTag))
+                if (sequence.ReadBoolean(OnlyContainsAttributeCertificatesTag))
                     return false;
             }
             else
             {
-                point.ReadEncodedValue();
+                sequence.ReadEncodedValue();
                 return false;
             }
         }
 
+        if (onlyContainsUserCertificates && onlyContainsAuthorityCertificates)
+            return false;
+
+        point = new CrlIssuingDistributionPoint(
+            uris,
+            hasName,
+            onlyContainsUserCertificates,
+            onlyContainsAuthorityCertificates,
+            onlySomeReasons,
+            isIndirect,
+            value
+        );
         return true;
     }
 
     private static bool IsTime(Asn1Tag tag) =>
         tag == Asn1Tag.UtcTime || tag == Asn1Tag.GeneralizedTime;
+
+    private static BigInteger ReadInteger(byte[] value)
+    {
+        var reader = new AsnReader(value, AsnEncodingRules.DER);
+        var number = reader.ReadInteger();
+        reader.ThrowIfNotEmpty();
+        return number;
+    }
 
     private static DateTimeOffset ReadTime(AsnReader reader) =>
         reader.PeekTag() == Asn1Tag.GeneralizedTime

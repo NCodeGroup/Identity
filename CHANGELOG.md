@@ -1716,6 +1716,33 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **Client-certificate revocation is checked through OCSP and every CRL form.** The default
+  `IClientCertificateRevocationChecker` asks each registered `IClientCertificateRevocationSource` in registration
+  order until one answers `Good` or `Revoked`. The `ocsp` source queries the responders that the certificate's
+  authority information access names (RFC 6960 with the RFC 5019 profile: a SHA-1 `CertID`, no nonce, GET up to 255
+  characters and POST beyond), accepts a response signed by the issuer or by a responder it issued with
+  `id-kp-OCSPSigning`, checks a responder without `id-pkix-ocsp-nocheck` through its CRLs, and caches a response until
+  its `nextUpdate`. The `crl` source follows RFC 5280 §6.3.3: partitioned lists (`reasons`, `onlySomeReasons`),
+  indirect lists (`cRLIssuer`, `indirectCRL`, `certificateIssuer`), delta lists (`freshestCRL`, `deltaCRLIndicator`),
+  `removeFromCRL`, and a list signed by another key whose certificate chains to the same trust anchor and is not
+  revoked. A parsed list is cached per location and verified by each check, and a responder location that fails is
+  remembered for `FailureCacheDuration`. **Breaking:** `IClientCertificateRevocationChecker.CheckAsync` takes a
+  `ClientCertificateRevocationContext` (`Certificate`, `Issuer`, `TrustAnchor`, `Intermediates`, `Depth`), and
+  `IClientCertificateRevocationSource` and `ClientCertificateRevocationSourceNames` are added. Log events 2050 and 2061
+  keep their IDs, but their messages name any revocation source and record the location as `Location` instead of
+  `CrlUri`
+  ([ADR-0259](docs/adr/0259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md), backlog `R64`).
+
+- **The server sends `Strict-Transport-Security` on every HTTPS response outside Development.**
+  `AddStrictTransportSecurity` binds `StrictTransportSecurityOptions` strictly from the `StrictTransportSecurity`
+  section (`Enabled`, `MaxAge`, `IncludeSubDomains`, `Preload`, `ExcludedHosts`) and validates it when the host starts,
+  and `UseStrictTransportSecurity`, which the reference host calls right after `UseReverseProxy`, adds the header to
+  every response to a request that arrived over HTTPS, directly or through a trusted proxy. The default is
+  `max-age=31536000; includeSubDomains`; `Preload` requires `IncludeSubDomains` and a `MaxAge` of at least 365 days;
+  `localhost`, `127.0.0.1` and `[::1]` never receive it. A deployment whose TLS-terminating proxy sends the header sets
+  `StrictTransportSecurity:Enabled` to `false`
+  ([ADR-0258](docs/adr/0258-the-server-sends-strict-transport-security-outside-development.md), backlog `R113`).
+
 - **Every page the server writes has a strict Content-Security-Policy and cannot be framed, except the
   `check_session_iframe` and, by its client's origin, the `form_post` response.**
   `HttpResponse.SetHtmlPageSecurity(HtmlPageSecurityPolicy)` writes each page's policy (`default-src 'none'`,

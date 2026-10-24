@@ -73,7 +73,7 @@ entry and/or ADR that closed it.
 
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet | `D18`     | `D17`      |
+| `D` — Deferred, intentionally not-yet | `D19`     | `D18`      |
 | `F` — Feature gaps                    | `F85`     | `F84`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
@@ -127,6 +127,17 @@ entry and/or ADR that closed it.
   table and gives each rewritten row a new `SettingsConcurrencyToken`, and delete the retired descriptor. Not before:
   the previous release still reads the key. Touch points: `NCode.Identity.OpenId.Host.Database` migrations,
   `DefaultSettingDescriptorDataSource`.
+- **`D18` — Let configuration order and select the client-certificate revocation sources.** The default checker asks
+  every registered `IClientCertificateRevocationSource` in registration order, `ocsp` then `crl`
+  ([ADR-0259](docs/adr/0259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md)), so a
+  deployment whose OCSP responder the server cannot reach pays one `FetchTimeout` per responder in each
+  `FailureCacheDuration` before the CRLs answer, and skips OCSP only by replacing the checker. A configured order
+  (`OpenId:ClientCertificateRevocation:Sources`) must be validated when the host starts without constructing the
+  sources, which read the options it would validate, so it needs registered source descriptors and a catalog, as
+  client-authentication methods have
+  ([ADR-0207](docs/adr/0207-client-authentication-methods-are-named-by-registered-descriptors.md)). Deferred until a
+  deployment needs it. Touch points: `DefaultClientCertificateRevocationChecker`, `ClientCertificateRevocationOptions`,
+  `AddClientCertificateServices`.
 
 ## Feature gaps — not yet implemented (group `F`)
 

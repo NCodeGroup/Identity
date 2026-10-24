@@ -1454,10 +1454,10 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // tls_client_auth_revocation_mode: how a tls_client_auth chain's revocation status is checked; the secure
-            // default is online, where the server fetches each issuer's CRL through its guarded outbound HTTP client
-            // and rejects a chain whose status cannot be determined. online_soft_fail refuses a revoked certificate
-            // and accepts one whose status cannot be determined. Not advertised. Override (Replace): a child fully
-            // replaces the parent value.
+            // default is online, where the server asks its OCSP responders, then the CRLs, through its guarded outbound
+            // HTTP client and rejects a chain whose status cannot be determined. online_soft_fail refuses a revoked
+            // certificate and accepts one whose status cannot be determined. Not advertised. Override (Replace): a
+            // child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthRevocationMode,

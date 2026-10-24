@@ -26,6 +26,7 @@ using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Tokens;
@@ -960,6 +961,24 @@ public sealed class DefaultRegistrationTests
         );
 
         Assert.Contains($"'{expectedKey}'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheOcspSourceBeforeTheCrlSource()
+    {
+        using var host = BuildHost([]);
+
+        var names = host
+            .Services.GetServices<IClientCertificateRevocationSource>()
+            .Select(source => source.Name);
+
+        Assert.Equal(
+            [
+                ClientCertificateRevocationSourceNames.Ocsp,
+                ClientCertificateRevocationSourceNames.Crl,
+            ],
+            names
+        );
     }
 
     #endregion

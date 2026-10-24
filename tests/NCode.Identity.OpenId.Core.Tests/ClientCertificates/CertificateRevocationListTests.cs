@@ -65,15 +65,15 @@ public sealed class CertificateRevocationListTests
         );
         Assert.NotNull(crl.NextUpdate);
         Assert.Equal(nextUpdate.ToUnixTimeSeconds(), crl.NextUpdate.Value.ToUnixTimeSeconds());
-        var revokedSerialNumber = Assert.Single(crl.RevokedSerialNumbers);
-        Assert.Equal(
+        Assert.Single(crl.EntriesBySerialNumber);
+        var entry = crl.FindEntry(
             new BigInteger(leaf.SerialNumberBytes.Span, isUnsigned: false, isBigEndian: true),
-            revokedSerialNumber
+            root.SubjectName
         );
+        Assert.NotNull(entry);
+        Assert.False(entry.IsRemoveFromCrl);
         Assert.False(crl.HasUnsupportedFeatures);
-        Assert.Empty(crl.DistributionPointUris);
-        Assert.False(crl.OnlyContainsUserCertificates);
-        Assert.False(crl.OnlyContainsAuthorityCertificates);
+        Assert.Null(crl.IssuingDistributionPoint);
         Assert.Equal("1.2.840.10045.4.3.2", crl.SignatureAlgorithm);
         Assert.False(crl.SignedData.IsEmpty);
         Assert.False(crl.Signature.IsEmpty);
@@ -131,7 +131,7 @@ public sealed class CertificateRevocationListTests
     }
 
     [Fact]
-    public void TryParse_WithADeltaCrlIndicator_IsUnsupported()
+    public void TryParse_WithADeltaCrlIndicator_ReadsTheBaseCrlNumber()
     {
         using var root = TestCertificates.CreateRootAuthority("Root");
         var encoded = TestCrls.Build(
@@ -143,7 +143,47 @@ public sealed class CertificateRevocationListTests
 
         Assert.True(result);
         Assert.NotNull(crl);
-        Assert.True(crl.HasUnsupportedFeatures);
+        Assert.False(crl.HasUnsupportedFeatures);
+        Assert.True(crl.IsDelta);
+        Assert.Equal(BigInteger.One, crl.DeltaBaseCrlNumber);
+    }
+
+    [Fact]
+    public void TryParse_ABuiltCrl_ReadsItsCrlNumberAndAuthorityKey()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var encoded = BuildCrl(root, DateTimeOffset.UtcNow.AddDays(1));
+
+        var result = CertificateRevocationList.TryParse(encoded, out var crl);
+
+        Assert.True(result);
+        Assert.NotNull(crl);
+        Assert.False(crl.HasUnsupportedFeatures);
+        Assert.Equal(BigInteger.One, crl.CrlNumber);
+        Assert.False(crl.AuthorityKeyIdentifier.IsEmpty);
+        Assert.False(crl.IsDelta);
+        Assert.Null(crl.DeltaBaseCrlNumber);
+    }
+
+    [Fact]
+    public void TryParse_WithAFreshestCrl_ReadsItsLocations()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var freshest = TestCrls.DistributionPoints(
+            TestCrls.FreshestCrlOid,
+            new TestDistributionPoint("http://crl.example.test/delta.crl")
+        );
+        var encoded = TestCrls.Build(
+            root,
+            extensions: [(TestCrls.FreshestCrlOid, false, freshest.RawData)]
+        );
+
+        var result = CertificateRevocationList.TryParse(encoded, out var crl);
+
+        Assert.True(result);
+        Assert.NotNull(crl);
+        Assert.False(crl.HasUnsupportedFeatures);
+        Assert.Equal(["http://crl.example.test/delta.crl"], crl.FreshestCrlUris);
     }
 
     [Fact]
@@ -185,13 +225,15 @@ public sealed class CertificateRevocationListTests
         Assert.True(result);
         Assert.NotNull(crl);
         Assert.False(crl.HasUnsupportedFeatures);
-        Assert.Equal(uri, Assert.Single(crl.DistributionPointUris));
-        Assert.True(crl.OnlyContainsUserCertificates);
-        Assert.False(crl.OnlyContainsAuthorityCertificates);
+        Assert.NotNull(crl.IssuingDistributionPoint);
+        Assert.Equal(uri, Assert.Single(crl.IssuingDistributionPoint.Uris));
+        Assert.True(crl.IssuingDistributionPoint.HasName);
+        Assert.True(crl.IssuingDistributionPoint.OnlyContainsUserCertificates);
+        Assert.False(crl.IssuingDistributionPoint.OnlyContainsAuthorityCertificates);
     }
 
     [Fact]
-    public void TryParse_WithAnIndirectIssuingDistributionPoint_IsUnsupported()
+    public void TryParse_WithAnIndirectIssuingDistributionPoint_ReadsIt()
     {
         using var root = TestCertificates.CreateRootAuthority("Root");
         var encoded = TestCrls.Build(
@@ -210,52 +252,14 @@ public sealed class CertificateRevocationListTests
 
         Assert.True(result);
         Assert.NotNull(crl);
-        Assert.True(crl.HasUnsupportedFeatures);
-    }
-
-    #endregion
-
-    #region IsRevoked Tests
-
-    [Fact]
-    public void IsRevoked_WhenTheSerialIsListed_ReturnsTrue()
-    {
-        using var root = TestCertificates.CreateRootAuthority("Root");
-        using var leaf = TestCertificates.CreateClientCertificate(root, "CN=c");
-        var encoded = BuildCrl(root, DateTimeOffset.UtcNow.AddDays(1), leaf);
-        var parsed = CertificateRevocationList.TryParse(encoded, out var crl);
-        Assert.True(parsed);
-        Assert.NotNull(crl);
-
-        var result = crl.IsRevoked(leaf);
-
-        Assert.True(result);
+        Assert.False(crl.HasUnsupportedFeatures);
+        Assert.NotNull(crl.IssuingDistributionPoint);
+        Assert.True(crl.IssuingDistributionPoint.IsIndirect);
+        Assert.False(crl.IssuingDistributionPoint.HasName);
     }
 
     [Fact]
-    public void IsRevoked_WhenTheSerialIsNotListed_ReturnsFalse()
-    {
-        using var root = TestCertificates.CreateRootAuthority("Root");
-        using var leaf = TestCertificates.CreateClientCertificate(root, "CN=c");
-        using var other = TestCertificates.CreateClientCertificate(root, "CN=d");
-        var encoded = BuildCrl(root, DateTimeOffset.UtcNow.AddDays(1), leaf);
-        var parsed = CertificateRevocationList.TryParse(encoded, out var crl);
-        Assert.True(parsed);
-        Assert.NotNull(crl);
-
-        var result = crl.IsRevoked(other);
-
-        Assert.False(result);
-    }
-
-    #endregion
-
-    #region Covers Tests
-
-    private static CertificateRevocationList ParseWithIssuingDistributionPoint(
-        string uri,
-        bool onlyContainsUserCertificates = false
-    )
+    public void TryParse_WithOnlySomeReasons_ReadsThem()
     {
         using var root = TestCertificates.CreateRootAuthority("Root");
         var encoded = TestCrls.Build(
@@ -265,13 +269,93 @@ public sealed class CertificateRevocationListTests
                 (
                     TestCrls.IssuingDistributionPointOid,
                     true,
-                    TestCrls.IssuingDistributionPoint(
-                        uri: uri,
-                        onlyContainsUserCertificates: onlyContainsUserCertificates
-                    )
+                    TestCrls.IssuingDistributionPoint(onlySomeReasons: 0x006)
                 ),
             ]
         );
+
+        var result = CertificateRevocationList.TryParse(encoded, out var crl);
+
+        Assert.True(result);
+        Assert.NotNull(crl);
+        Assert.False(crl.HasUnsupportedFeatures);
+        Assert.NotNull(crl.IssuingDistributionPoint);
+        Assert.Equal(0x006, crl.IssuingDistributionPoint.OnlySomeReasons);
+    }
+
+    [Fact]
+    public void TryParse_WithOnlyAttributeCertificates_IsUnsupported()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var encoded = TestCrls.Build(
+            root,
+            extensions:
+            [
+                (
+                    TestCrls.IssuingDistributionPointOid,
+                    true,
+                    TestCrls.IssuingDistributionPoint(onlyContainsAttributeCertificates: true)
+                ),
+            ]
+        );
+
+        var result = CertificateRevocationList.TryParse(encoded, out var crl);
+
+        Assert.True(result);
+        Assert.NotNull(crl);
+        Assert.True(crl.HasUnsupportedFeatures);
+    }
+
+    [Fact]
+    public void TryParse_WithACertificateIssuerInADirectList_IsUnsupported()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var encoded = TestCrls.Build(
+            root,
+            entries:
+            [
+                new TestCrlEntry(
+                    [0x01],
+                    [
+                        (
+                            TestCrls.CertificateIssuerOid,
+                            true,
+                            TestCrls.CertificateIssuer(new X500DistinguishedName("CN=Other Issuer"))
+                        ),
+                    ]
+                ),
+            ]
+        );
+
+        var result = CertificateRevocationList.TryParse(encoded, out var crl);
+
+        Assert.True(result);
+        Assert.NotNull(crl);
+        Assert.True(crl.HasUnsupportedFeatures);
+    }
+
+    #endregion
+
+    #region FindEntry Tests
+
+    private static readonly X500DistinguishedName OtherIssuer = new("CN=Other Issuer");
+
+    private static byte[] BuildIndirectCrl(X509Certificate2 root, params TestCrlEntry[] entries) =>
+        TestCrls.Build(
+            root,
+            extensions:
+            [
+                (
+                    TestCrls.IssuingDistributionPointOid,
+                    true,
+                    TestCrls.IssuingDistributionPoint(indirect: true)
+                ),
+            ],
+            entries: entries
+        );
+
+    private static CertificateRevocationList Parse(byte[] encoded)
+    {
         var parsed = CertificateRevocationList.TryParse(encoded, out var crl);
         Assert.True(parsed);
         Assert.NotNull(crl);
@@ -279,35 +363,362 @@ public sealed class CertificateRevocationListTests
     }
 
     [Fact]
-    public void Covers_WhenTheIssuingDistributionPointNamesTheUri_ReturnsTrue()
+    public void FindEntry_WhenTheSerialIsListed_ReturnsTheEntry()
     {
-        const string uri = "http://crl.example.com/root.crl";
-        var crl = ParseWithIssuingDistributionPoint(uri);
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(root, "CN=c");
+        var crl = Parse(BuildCrl(root, DateTimeOffset.UtcNow.AddDays(1), leaf));
+        var serialNumber = new BigInteger(
+            leaf.SerialNumberBytes.Span,
+            isUnsigned: false,
+            isBigEndian: true
+        );
 
-        var result = crl.Covers(uri, isAuthority: false);
+        var result = crl.FindEntry(serialNumber, root.SubjectName);
+
+        Assert.NotNull(result);
+        Assert.Equal(serialNumber, result.SerialNumber);
+        Assert.Equal(root.SubjectName.RawData, result.CertificateIssuer.RawData);
+        Assert.False(result.IsRemoveFromCrl);
+    }
+
+    [Fact]
+    public void FindEntry_WhenTheSerialIsNotListed_ReturnsNull()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(root, "CN=c");
+        using var other = TestCertificates.CreateClientCertificate(root, "CN=d");
+        var crl = Parse(BuildCrl(root, DateTimeOffset.UtcNow.AddDays(1), leaf));
+        var serialNumber = new BigInteger(
+            other.SerialNumberBytes.Span,
+            isUnsigned: false,
+            isBigEndian: true
+        );
+
+        var result = crl.FindEntry(serialNumber, root.SubjectName);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void FindEntry_WhenACertificateIssuerNamesAnotherIssuer_ReturnsNull()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var crl = Parse(
+            BuildIndirectCrl(
+                root,
+                new TestCrlEntry(
+                    [0x01],
+                    [(TestCrls.CertificateIssuerOid, true, TestCrls.CertificateIssuer(OtherIssuer))]
+                )
+            )
+        );
+
+        var result = crl.FindEntry(BigInteger.One, root.SubjectName);
+
+        Assert.False(crl.HasUnsupportedFeatures);
+        Assert.Null(result);
+        Assert.NotNull(crl.FindEntry(BigInteger.One, OtherIssuer));
+    }
+
+    [Fact]
+    public void FindEntry_WithACertificateIssuer_AppliesItToTheEntriesAfterIt()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var crl = Parse(
+            BuildIndirectCrl(
+                root,
+                new TestCrlEntry([0x01]),
+                new TestCrlEntry(
+                    [0x02],
+                    [(TestCrls.CertificateIssuerOid, true, TestCrls.CertificateIssuer(OtherIssuer))]
+                ),
+                new TestCrlEntry([0x03])
+            )
+        );
+
+        Assert.NotNull(crl.FindEntry(new BigInteger(1), root.SubjectName));
+        Assert.Null(crl.FindEntry(new BigInteger(1), OtherIssuer));
+        Assert.NotNull(crl.FindEntry(new BigInteger(2), OtherIssuer));
+        Assert.NotNull(crl.FindEntry(new BigInteger(3), OtherIssuer));
+        Assert.Null(crl.FindEntry(new BigInteger(3), root.SubjectName));
+    }
+
+    [Fact]
+    public void FindEntry_WithRemoveFromCrl_MarksTheEntry()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var crl = Parse(
+            TestCrls.Build(
+                root,
+                entries:
+                [
+                    new TestCrlEntry(
+                        [0x01],
+                        [(TestCrls.ReasonCodeOid, false, TestCrls.ReasonCode(8))]
+                    ),
+                    new TestCrlEntry(
+                        [0x02],
+                        [(TestCrls.ReasonCodeOid, false, TestCrls.ReasonCode(1))]
+                    ),
+                ]
+            )
+        );
+
+        var removed = crl.FindEntry(new BigInteger(1), root.SubjectName);
+        var revoked = crl.FindEntry(new BigInteger(2), root.SubjectName);
+
+        Assert.NotNull(removed);
+        Assert.True(removed.IsRemoveFromCrl);
+        Assert.NotNull(revoked);
+        Assert.False(revoked.IsRemoveFromCrl);
+    }
+
+    #endregion
+
+    #region CanApplyDelta Tests
+
+    private static readonly byte[] AuthorityKey = [0x30, 0x04, 0x80, 0x02, 0x01, 0x02];
+
+    private static CertificateRevocationList ParseNumbered(
+        X509Certificate2 issuer,
+        int number,
+        int? deltaBase = null,
+        string? issuingDistributionPointUri = null
+    )
+    {
+        var extensions = new List<(string Oid, bool Critical, byte[] Value)>
+        {
+            (TestCrls.CrlNumberOid, false, TestCrls.CrlNumber(number)),
+            (TestCrls.AuthorityKeyIdentifierOid, false, AuthorityKey),
+        };
+        if (deltaBase is { } baseNumber)
+        {
+            extensions.Add(
+                (TestCrls.DeltaCrlIndicatorOid, true, TestCrls.DeltaCrlIndicator(baseNumber))
+            );
+        }
+
+        if (issuingDistributionPointUri is not null)
+        {
+            extensions.Add(
+                (
+                    TestCrls.IssuingDistributionPointOid,
+                    true,
+                    TestCrls.IssuingDistributionPoint(uri: issuingDistributionPointUri)
+                )
+            );
+        }
+
+        return Parse(TestCrls.Build(issuer, extensions: extensions));
+    }
+
+    [Fact]
+    public void CanApplyDelta_WhenTheNumbersAndScopeMatch_ReturnsTrue()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var complete = ParseNumbered(root, number: 10);
+        var delta = ParseNumbered(root, number: 11, deltaBase: 10);
+
+        var result = complete.CanApplyDelta(delta);
 
         Assert.True(result);
     }
 
     [Fact]
-    public void Covers_WhenItNamesAnotherUri_ReturnsFalse()
+    public void CanApplyDelta_WhenTheBaseIsAfterTheCompleteList_ReturnsFalse()
     {
-        var crl = ParseWithIssuingDistributionPoint("http://crl.example.com/root.crl");
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var complete = ParseNumbered(root, number: 10);
+        var delta = ParseNumbered(root, number: 12, deltaBase: 11);
 
-        var result = crl.Covers("http://crl.example.com/other.crl", isAuthority: false);
+        var result = complete.CanApplyDelta(delta);
 
         Assert.False(result);
     }
 
     [Fact]
-    public void Covers_WhenOnlyUserCertificatesAndTheCertificateIsAnAuthority_ReturnsFalse()
+    public void CanApplyDelta_WhenTheDeltaIsNotAfterTheCompleteList_ReturnsFalse()
     {
-        const string uri = "http://crl.example.com/root.crl";
-        var crl = ParseWithIssuingDistributionPoint(uri, onlyContainsUserCertificates: true);
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var complete = ParseNumbered(root, number: 10);
+        var delta = ParseNumbered(root, number: 10, deltaBase: 9);
 
-        var result = crl.Covers(uri, isAuthority: true);
+        var result = complete.CanApplyDelta(delta);
 
         Assert.False(result);
+    }
+
+    [Fact]
+    public void CanApplyDelta_WhenTheIssuersDiffer_ReturnsFalse()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var other = TestCertificates.CreateRootAuthority("Other");
+        var complete = ParseNumbered(root, number: 10);
+        var delta = ParseNumbered(other, number: 11, deltaBase: 10);
+
+        var result = complete.CanApplyDelta(delta);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void CanApplyDelta_WhenTheIssuingDistributionPointsDiffer_ReturnsFalse()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var complete = ParseNumbered(
+            root,
+            number: 10,
+            issuingDistributionPointUri: "http://crl.example.test/a.crl"
+        );
+        var delta = ParseNumbered(
+            root,
+            number: 11,
+            deltaBase: 10,
+            issuingDistributionPointUri: "http://crl.example.test/b.crl"
+        );
+
+        var result = complete.CanApplyDelta(delta);
+
+        Assert.False(result);
+    }
+
+    #endregion
+
+    #region IsInScope Tests
+
+    private const string PointUri = "http://crl.example.test/a.crl";
+
+    private static CertificateRevocationList ParseWithExtension(
+        X509Certificate2 issuer,
+        byte[] issuingDistributionPoint
+    ) =>
+        Parse(
+            TestCrls.Build(
+                issuer,
+                extensions: [(TestCrls.IssuingDistributionPointOid, true, issuingDistributionPoint)]
+            )
+        );
+
+    [Fact]
+    public void IsInScope_ForADirectListOfTheIssuer_ReturnsTrue()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var crl = Parse(BuildCrl(root, DateTimeOffset.UtcNow.AddDays(1)));
+        var point = new CrlDistributionPoint([PointUri], null, null);
+
+        var result = crl.IsInScope(point, root.SubjectName, isAuthority: false);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsInScope_WhenTheIssuerDiffers_ReturnsFalse()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var crl = Parse(BuildCrl(root, DateTimeOffset.UtcNow.AddDays(1)));
+        var point = new CrlDistributionPoint([PointUri], null, null);
+
+        var result = crl.IsInScope(point, OtherIssuer, isAuthority: false);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsInScope_WhenThePointNamesACrlIssuerAndTheListIsIndirect_ReturnsTrue()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var crl = Parse(BuildIndirectCrl(root));
+        var point = new CrlDistributionPoint([PointUri], null, root.SubjectName);
+
+        var result = crl.IsInScope(point, OtherIssuer, isAuthority: false);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsInScope_WhenThePointNamesACrlIssuerAndTheListIsDirect_ReturnsFalse()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var crl = Parse(BuildCrl(root, DateTimeOffset.UtcNow.AddDays(1)));
+        var point = new CrlDistributionPoint([PointUri], null, root.SubjectName);
+
+        var result = crl.IsInScope(point, root.SubjectName, isAuthority: false);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsInScope_WhenTheIssuingDistributionPointNamesAnotherLocation_ReturnsFalse()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var crl = ParseWithExtension(root, TestCrls.IssuingDistributionPoint(uri: PointUri));
+        var matching = new CrlDistributionPoint([PointUri], null, null);
+        var other = new CrlDistributionPoint(["http://crl.example.test/b.crl"], null, null);
+
+        var result = crl.IsInScope(other, root.SubjectName, isAuthority: false);
+
+        Assert.False(result);
+        Assert.True(crl.IsInScope(matching, root.SubjectName, isAuthority: false));
+    }
+
+    [Fact]
+    public void IsInScope_WhenOnlyUserCertificatesAndTheCertificateIsAnAuthority_ReturnsFalse()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var crl = ParseWithExtension(
+            root,
+            TestCrls.IssuingDistributionPoint(onlyContainsUserCertificates: true)
+        );
+        var point = new CrlDistributionPoint([PointUri], null, null);
+
+        var result = crl.IsInScope(point, root.SubjectName, isAuthority: true);
+
+        Assert.False(result);
+        Assert.True(crl.IsInScope(point, root.SubjectName, isAuthority: false));
+    }
+
+    #endregion
+
+    #region GetCoveredReasons Tests
+
+    [Fact]
+    public void GetCoveredReasons_WithoutReasons_ReturnsEveryReason()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var crl = Parse(BuildCrl(root, DateTimeOffset.UtcNow.AddDays(1)));
+        var point = new CrlDistributionPoint([PointUri], null, null);
+
+        var result = crl.GetCoveredReasons(point);
+
+        Assert.Equal(0x1FE, result);
+    }
+
+    [Fact]
+    public void GetCoveredReasons_WithBoth_ReturnsTheIntersection()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var crl = ParseWithExtension(
+            root,
+            TestCrls.IssuingDistributionPoint(onlySomeReasons: 0x006)
+        );
+        var point = new CrlDistributionPoint([PointUri], 0x00E, null);
+
+        var result = crl.GetCoveredReasons(point);
+
+        Assert.Equal(0x006, result);
+    }
+
+    [Fact]
+    public void GetCoveredReasons_WithOnlyThePointsReasons_ReturnsThem()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        var crl = Parse(BuildCrl(root, DateTimeOffset.UtcNow.AddDays(1)));
+        var point = new CrlDistributionPoint([PointUri], 0x00E, null);
+
+        var result = crl.GetCoveredReasons(point);
+
+        Assert.Equal(0x00E, result);
     }
 
     #endregion
@@ -450,70 +861,6 @@ public sealed class CertificateRevocationListTests
         Assert.NotNull(crl);
 
         var result = crl.IsSignedBy(root);
-
-        Assert.False(result);
-    }
-
-    #endregion
-
-    #region TryGetPssHashAlgorithm Tests
-
-    [Fact]
-    public void TryGetPssHashAlgorithm_WithSha256ParametersWithoutNull_ReturnsTheHash()
-    {
-        var parameters = Convert.FromHexString(
-            "3030A00D300B0609608648016503040201A11A301806092A864886F70D010108300B0609608648016503040201A203020120"
-        );
-
-        var result = CertificateRevocationList.TryGetPssHashAlgorithm(
-            parameters,
-            out var hashAlgorithm
-        );
-
-        Assert.True(result);
-        Assert.Equal(HashAlgorithmName.SHA256, hashAlgorithm);
-    }
-
-    [Fact]
-    public void TryGetPssHashAlgorithm_WithNullHashParameters_ReturnsTheHash()
-    {
-        var parameters = Convert.FromHexString(
-            "3034A00F300D06096086480165030402010500A11C301A06092A864886F70D010108300D06096086480165030402010500A203020120"
-        );
-
-        var result = CertificateRevocationList.TryGetPssHashAlgorithm(
-            parameters,
-            out var hashAlgorithm
-        );
-
-        Assert.True(result);
-        Assert.Equal(HashAlgorithmName.SHA256, hashAlgorithm);
-    }
-
-    [Theory]
-    [InlineData(
-        "3030A00D300B0609608648016503040201A11A301806092A864886F70D010108300B0609608648016503040202A203020120"
-    )]
-    [InlineData(
-        "3030A00D300B0609608648016503040201A11A301806092A864886F70D010108300B0609608648016503040201A203020121"
-    )]
-    [InlineData(
-        "3035A00D300B0609608648016503040201A11A301806092A864886F70D010108300B0609608648016503040201A203020120A303020102"
-    )]
-    [InlineData(
-        "3028A009300706052B0E03021AA116301406092A864886F70D010108300706052B0E03021AA203020114"
-    )]
-    [InlineData(
-        "3030A00D300B0609608648016503040201A11A301806092A864886F70D010109300B0609608648016503040201A203020120"
-    )]
-    [InlineData("3000")]
-    public void TryGetPssHashAlgorithm_WithParametersThatAreNotAccepted_ReturnsFalse(
-        string parametersHex
-    )
-    {
-        var parameters = Convert.FromHexString(parametersHex);
-
-        var result = CertificateRevocationList.TryGetPssHashAlgorithm(parameters, out _);
 
         Assert.False(result);
     }

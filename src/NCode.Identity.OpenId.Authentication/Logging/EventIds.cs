@@ -79,7 +79,7 @@ internal static class EventIds
     public const int RateLimitStoreRecovered = Base + 47;
     public const int EndSessionPostLogoutRedirectUriKindRejected = Base + 48;
     public const int ClientCertificateRevocationFailed = Base + 49;
-    public const int CertificateRevocationListUnavailable = Base + 50;
+    public const int RevocationInformationUnavailable = Base + 50;
     public const int TenantUsageDiscardedOnStop = Base + 51;
     public const int GrantPruneFailed = Base + 52;
     public const int IncoherentClientReported = Base + 53;
@@ -90,6 +90,6 @@ internal static class EventIds
     public const int EndedSessionTerminationFailedForTenant = Base + 58;
     public const int EndedSessionsTerminated = Base + 59;
     public const int PasswordAttemptLimitReached = Base + 60;
-    public const int CertificateRevocationListRetrievalSuppressed = Base + 61;
+    public const int RevocationRetrievalSuppressed = Base + 61;
     public const int ClientCertificateRevocationUnknownAccepted = Base + 62;
 }

@@ -36,9 +36,9 @@ internal static class DefaultRegistration
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
         /// <summary>
-        /// Configures the client-certificate resolver, the chain validator, the revocation checker with its
-        /// guarded HTTP client, and the decoders of the known forwarded-certificate formats. The forwarded-header
-        /// settings are configured by the host; the server's <c>AddConfiguration</c> binds them from
+        /// Configures the client-certificate resolver, the chain validator, the revocation checker with its sources
+        /// and their guarded HTTP client, and the decoders of the known forwarded-certificate formats. The
+        /// forwarded-header settings are configured by the host; the server's <c>AddConfiguration</c> binds them from
         /// <c>OpenId:MutualTls</c>.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
@@ -73,16 +73,39 @@ internal static class DefaultRegistration
                 DefaultClientCertificateChainValidator
             >();
 
+            serviceCollection.TryAddSingleton<RevocationDataFetcher>();
+            serviceCollection.TryAddSingleton<RevocationRetrievalCache>();
+
+            // The CRL source is registered as itself because the OCSP source checks delegated responders through it.
+            serviceCollection.TryAddSingleton<CrlClientCertificateRevocationSource>();
+
+            // Sources are asked in registration order: OCSP, then the CRLs. See ADR-0259.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IClientCertificateRevocationSource,
+                    OcspClientCertificateRevocationSource
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IClientCertificateRevocationSource,
+                    CrlClientCertificateRevocationSource
+                >(serviceProvider =>
+                    serviceProvider.GetRequiredService<CrlClientCertificateRevocationSource>()
+                )
+            );
+
             serviceCollection.TryAddSingleton<
                 IClientCertificateRevocationChecker,
                 DefaultClientCertificateRevocationChecker
             >();
 
-            // The CRL fetch targets a URL named by the presented client certificate, so it uses a dedicated HTTP
-            // client whose connections are pinned away from private/loopback/link-local addresses (SSRF floor) and
-            // which never follows redirects, so a redirect cannot bounce the fetch to an internal host.
+            // Revocation information is fetched from a URL named by the presented client certificate, so it uses a
+            // dedicated HTTP client whose connections are pinned away from private/loopback/link-local addresses
+            // (SSRF floor) and which never follows redirects, so a redirect cannot bounce the fetch to an internal
+            // host.
             serviceCollection
-                .AddHttpClient(DefaultClientCertificateRevocationChecker.HttpClientName)
+                .AddHttpClient(RevocationDataFetcher.HttpClientName)
                 .ConfigurePrimaryHttpMessageHandler(serviceProvider => new SocketsHttpHandler
                 {
                     AllowAutoRedirect = false,

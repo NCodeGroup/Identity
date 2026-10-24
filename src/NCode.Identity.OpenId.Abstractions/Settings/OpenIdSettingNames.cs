@@ -1075,4 +1075,28 @@ public static class OpenIdSettingNames
     /// </summary>
     public const string QuotaTenantTokenRequestsOveragePerDay =
         "quota_tenant_token_requests_overage_per_day";
+
+    /// <summary>
+    /// Contains the name of the <c>password_min_length</c> setting: the fewest characters, counted as Unicode code
+    /// points, a password set for a local account may have.
+    /// </summary>
+    public const string PasswordMinLength = "password_min_length";
+
+    /// <summary>
+    /// Contains the name of the <c>password_max_length</c> setting: the most characters, counted as Unicode code
+    /// points, a password set for a local account may have.
+    /// </summary>
+    public const string PasswordMaxLength = "password_max_length";
+
+    /// <summary>
+    /// Contains the name of the <c>password_failed_attempts_limit</c> setting: the failed password attempts an account
+    /// may accumulate within the window before every password for it is refused.
+    /// </summary>
+    public const string PasswordFailedAttemptsLimit = "password_failed_attempts_limit";
+
+    /// <summary>
+    /// Contains the name of the <c>password_failed_attempts_window</c> setting: how long the failed password attempts,
+    /// counted from the first one, are kept.
+    /// </summary>
+    public const string PasswordFailedAttemptsWindow = "password_failed_attempts_window";
 }

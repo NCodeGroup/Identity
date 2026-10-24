@@ -1632,6 +1632,26 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **Every password a local account is given meets the password policy.** The management API's create and reset, the
+  self-service change and the developer and conformance seeders judge the password with `IPasswordPolicy` against the
+  tenant's settings: at least `password_min_length` characters (15 by default, never below 8, counted as Unicode code
+  points), at most `password_max_length` (128 by default, never below 64), no composition rules, and not on a
+  blocklist — the bundled list of 46,483 common passwords and the account's own user name or email; a deployment adds a
+  breached-password checker by registering an `IPasswordBlocklist`. The management API answers a refused password
+  `400`; the change page shows `password_too_short`, `password_too_long` or `password_blocklisted` with guidance. The
+  developer seed's administrator password is `dev-admin-password`. **Breaking:** `InteractivePasswordChangeResult` is a
+  class carrying the page's error code (`InteractivePasswordChangeErrors`), and `IPasswordPolicy`, `IPasswordBlocklist`,
+  `PasswordPolicyContext`, `PasswordPolicyResult` and `PasswordPolicyErrors` are added
+  ([ADR-0236](docs/adr/0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md), backlog `R101`).
+
+- **Failed password attempts are limited per account.** The interactive sign-in, the password grant and the
+  self-service change count failed passwords per account in `IExpiringCounterSet`; once
+  `password_failed_attempts_limit` failures (10 by default, at most 100) fall within `password_failed_attempts_window`
+  of the first (15 minutes by default), every password for the account is refused with the answer a wrong password
+  gets until the window ends. A verified password, and a password an administrator sets, clear the count.
+  **Breaking:** `IExpiringCounterSet` gains `RemoveAsync`, and `IPasswordAttemptLimiter` is added
+  ([ADR-0237](docs/adr/0237-failed-password-attempts-are-limited-per-account.md), backlog `R102`).
+
 - **A blocked or disabled end user cannot sign in, and the client is answered `access_denied`.** The interactive
   sign-in validates the end user's standing before it creates a session, so a blocked principal or a disabled local
   account gets neither a session nor a cookie: a sign-in that resumes an authorization request answers it with

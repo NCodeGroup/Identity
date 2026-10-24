@@ -1105,6 +1105,32 @@ NCode.Identity.OpenId.Authentication.OutboundHttp.IOutboundHttpContentReader.Rea
 NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpReadResult
 NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpReadResult.Completed = 0 -> NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpReadResult
 NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpReadResult.Exceeded = 1 -> NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpReadResult
+NCode.Identity.OpenId.Authentication.Passwords.IPasswordAttemptLimiter
+NCode.Identity.OpenId.Authentication.Passwords.IPasswordAttemptLimiter.IsLimitReachedAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! userName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Authentication.Passwords.IPasswordAttemptLimiter.RecordFailureAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! userName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Passwords.IPasswordAttemptLimiter.ResetAsync(string! tenantId, string! userName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Passwords.IPasswordBlocklist
+NCode.Identity.OpenId.Authentication.Passwords.IPasswordBlocklist.ContainsAsync(NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyContext! context, System.ReadOnlyMemory<char> password, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Authentication.Passwords.IPasswordPolicy
+NCode.Identity.OpenId.Authentication.Passwords.IPasswordPolicy.ValidateAsync(NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyContext! context, System.ReadOnlyMemory<char> password, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyResult!>
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyContext
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyContext.PasswordPolicyContext() -> void
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyContext.Email.get -> string?
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyContext.Email.init -> void
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyContext.Settings.get -> NCode.Identity.Settings.IReadOnlySettingCollection!
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyContext.Settings.init -> void
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyContext.UserName.get -> string!
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyContext.UserName.init -> void
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyErrors
+const NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyErrors.Blocklisted = "password_blocklisted" -> string!
+const NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyErrors.TooLong = "password_too_long" -> string!
+const NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyErrors.TooShort = "password_too_short" -> string!
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyResult
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyResult.Error.get -> string?
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyResult.ErrorDescription.get -> string?
+NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyResult.IsRejected.get -> bool
+static NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyResult.Accepted.get -> NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyResult!
+static NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyResult.Rejected(string! error, string! errorDescription) -> NCode.Identity.OpenId.Authentication.Passwords.PasswordPolicyResult!
 NCode.Identity.OpenId.Authentication.Pkce.ICodeChallengeMethod
 NCode.Identity.OpenId.Authentication.Pkce.ICodeChallengeMethod.ComputeChallenge(string! codeVerifier) -> string!
 NCode.Identity.OpenId.Authentication.Pkce.ICodeChallengeMethod.Method.get -> string!

@@ -88,4 +88,5 @@ internal static class EventIds
     public const int EndedSessionTerminationFailed = Base + 57;
     public const int EndedSessionTerminationFailedForTenant = Base + 58;
     public const int EndedSessionsTerminated = Base + 59;
+    public const int PasswordAttemptLimitReached = Base + 60;
 }

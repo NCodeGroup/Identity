@@ -135,6 +135,10 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
         // Every configuration seeder checks the clients it creates with this validator before it stores them.
         serviceCollection.TryAddSingleton<SeededClientValidator>();
 
+        // Every configuration seeder checks the password of an account it creates with this validator before it stores
+        // it.
+        serviceCollection.TryAddSingleton<SeededLocalAccountValidator>();
+
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<
                 IValidateOptions<BootstrapAdminOptions>,

@@ -550,4 +550,15 @@ internal static partial class Log
         string serverId,
         int incoherentClientCount
     );
+
+    [LoggerMessage(
+        EventId = EventIds.PasswordAttemptLimitReached,
+        Level = LogLevel.Information,
+        Message = "A password for an account of tenant '{TenantId}' was refused without being verified: the account reached its limit of {Limit} failed attempts."
+    )]
+    internal static partial void PasswordAttemptLimitReached(
+        this ILogger logger,
+        string tenantId,
+        int limit
+    );
 }

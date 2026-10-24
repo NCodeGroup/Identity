@@ -23,6 +23,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Interactive;
+using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
@@ -35,18 +36,21 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// configured <see cref="ILocalAccountStore"/> — the same credential path the resource-owner password grant uses. It
 /// verifies the submitted username/password and, on success, builds the cookie <see cref="ClaimsPrincipal"/> carrying
 /// the subject, issuer, tenant, and authentication-time claims the authorize flow reads. A host fronting a different
-/// backend (LDAP, an external identity provider, passwordless) registers its own implementation instead.
+/// backend (LDAP, an external identity provider, passwordless) registers its own implementation instead. A password for
+/// an account that reached its limit of failed attempts is refused without being verified, as a wrong one is.
 /// </summary>
 internal sealed class LocalAccountInteractiveCredentialVerifier(
     IStoreManagerFactory storeManagerFactory,
     IAuthenticationContextReferenceResolver authenticationContextReferenceResolver,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    IPasswordAttemptLimiter passwordAttemptLimiter
 ) : IInteractiveCredentialVerifier
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IAuthenticationContextReferenceResolver AuthenticationContextReferenceResolver { get; } =
         authenticationContextReferenceResolver;
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private IPasswordAttemptLimiter PasswordAttemptLimiter { get; } = passwordAttemptLimiter;
 
     /// <inheritdoc />
     public async ValueTask<ClaimsPrincipal?> VerifyCredentialAsync(
@@ -56,16 +60,56 @@ internal sealed class LocalAccountInteractiveCredentialVerifier(
         CancellationToken cancellationToken
     )
     {
+        var limitedUserName = await ResolveLimitedUserNameAsync(username, cancellationToken);
+
+        // A reached limit is answered as a wrong password, without verifying it. See ADR-0237.
+        if (
+            await PasswordAttemptLimiter.IsLimitReachedAsync(
+                openIdContext,
+                limitedUserName,
+                cancellationToken
+            )
+        )
+        {
+            return null;
+        }
+
         var account = await VerifyCredentialsAsync(username, password, cancellationToken);
 
         // A disabled account goes on to the sign-in's standing check, which refuses it with its reason.
         // See ADR-0229.
         if (account is null)
         {
+            // A failure is recorded even when the client disconnects.
+            await PasswordAttemptLimiter.RecordFailureAsync(
+                openIdContext,
+                limitedUserName,
+                CancellationToken.None
+            );
             return null;
         }
 
+        await PasswordAttemptLimiter.ResetAsync(
+            openIdContext.Tenant.TenantId,
+            limitedUserName,
+            cancellationToken
+        );
+
         return await BuildCookiePrincipalAsync(openIdContext, account, cancellationToken);
+    }
+
+    // The limit counts the user name the store holds for the submitted one, so every spelling the store's database
+    // matches (a trailing space under a padding collation, an accent under an accent-insensitive one) shares one
+    // count; a name no account has is counted as submitted. See ADR-0237.
+    private async ValueTask<string> ResolveLimitedUserNameAsync(
+        string userName,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ILocalAccountStore>();
+        var account = await store.GetByUserNameOrDefaultAsync(userName, cancellationToken);
+        return account?.UserName ?? userName;
     }
 
     private async ValueTask<PersistedLocalAccount?> VerifyCredentialsAsync(

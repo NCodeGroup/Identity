@@ -76,6 +76,7 @@ export function PasswordPage({
               label="New password"
               type="password"
               autoComplete="new-password"
+              helperText="Use a long passphrase that you do not use anywhere else. Common and compromised passwords are refused."
               required
               fullWidth
             />

@@ -50,7 +50,8 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 /// descriptors before it is stored: a value the server cannot honor stops the seeding with an error naming the client,
 /// rather than storing a client that fails every request that loads it. Its key set is imported under the client-key
 /// policy a dynamically registered <c>jwks</c> follows, and a key set the policy refuses stops the seeding the same way.
-/// So does a setting that a client coherence rule refuses.
+/// So does a setting that a client coherence rule refuses. The test user's password must meet the tenant's password
+/// policy, and a refused one stops the seeding with an error naming the test user.
 /// </remarks>
 // See ADR-0140.
 internal sealed class ConformanceSeedHandler(
@@ -61,6 +62,7 @@ internal sealed class ConformanceSeedHandler(
     ICryptoService cryptoService,
     TimeProvider timeProvider,
     SeededClientValidator seededClientValidator,
+    SeededLocalAccountValidator seededLocalAccountValidator,
     ILogger<ConformanceSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
@@ -77,6 +79,8 @@ internal sealed class ConformanceSeedHandler(
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private SeededClientValidator SeededClientValidator { get; } = seededClientValidator;
+    private SeededLocalAccountValidator SeededLocalAccountValidator { get; } =
+        seededLocalAccountValidator;
     private ILogger<ConformanceSeedHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -257,6 +261,14 @@ internal sealed class ConformanceSeedHandler(
             Claims = BuildTestUserProfileClaims(),
             ConcurrencyToken = string.Empty,
         };
+
+        await SeededLocalAccountValidator.EnsureCanBeSeededAsync(
+            "conformance test user",
+            context.Tenant,
+            account,
+            password,
+            cancellationToken
+        );
 
         // Encode the password into a pinned, zeroed-on-return buffer so the credential never lingers on the GC heap;
         // the store hashes it internally.

@@ -1135,6 +1135,14 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.QuotaTenantRequestsOvera
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.QuotaTenantTokenRequestsOveragePerDay = "quota_tenant_token_requests_overage_per_day" -> string!
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.QuotaTenantRequestsOveragePerDay.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.QuotaTenantTokenRequestsOveragePerDay.get -> NCode.Identity.Settings.SettingKey<int>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PasswordFailedAttemptsLimit = "password_failed_attempts_limit" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PasswordFailedAttemptsWindow = "password_failed_attempts_window" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PasswordMaxLength = "password_max_length" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PasswordMinLength = "password_min_length" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PasswordFailedAttemptsLimit.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PasswordFailedAttemptsWindow.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PasswordMaxLength.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PasswordMinLength.get -> NCode.Identity.Settings.SettingKey<int>
 const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.FormPostJwt = "form_post.jwt" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.FragmentJwt = "fragment.jwt" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.Jwt = "jwt" -> string!

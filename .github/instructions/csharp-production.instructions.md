@@ -723,6 +723,20 @@ rationale.
   work and an increment after it. See
   [ADR-0196](../../docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) and
   [ADR-0198](../../docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
+- 👁 **A password is judged by `IPasswordPolicy` wherever it is set.** The management API's create and reset, an
+  `IInteractivePasswordChanger`, and a configuration seeder pass the tenant's effective settings, the account's user
+  name and email, and the password to `IPasswordPolicy.ValidateAsync` before the store hashes it, and answer a refusal
+  with its description (management `400`) or its error code (the change page). Another password the policy must refuse
+  is a registered `IPasswordBlocklist`, never a check in one caller, and a store's own password validators are not the
+  policy
+  ([ADR-0236](../../docs/adr/0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md)).
+- 👁 **Every password verification goes through `IPasswordAttemptLimiter`.** Ask `IsLimitReachedAsync` before the store
+  verifies, with the user name the store holds for the submitted one (`GetByUserNameOrDefaultAsync`, or the submitted
+  name when no account has it), and answer a reached limit exactly as a wrong password, without verifying; after a
+  failed verification call `RecordFailureAsync` with `CancellationToken.None`; after a verified password, or a password
+  an administrator sets, call `ResetAsync`, last when other effects such as ending sessions must not depend on the
+  counter store. A count of a run of events that ends is cleared with `IExpiringCounterSet.RemoveAsync`
+  ([ADR-0237](../../docs/adr/0237-failed-password-attempts-are-limited-per-account.md)).
 - 👁 **A write that a background loop retries is idempotent.** A save can commit and still fail at its caller (a lost
   acknowledgement, a timeout, a cancelled shutdown). Give the write an identity that the store records in the same
   unit of work, and skip a write whose identity is already there: the usage ledger's per-replica batch checkpoint,

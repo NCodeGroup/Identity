@@ -27,7 +27,8 @@ namespace NCode.Identity.SharedState;
 /// the count with the partition's limit. Its central operation is an <b>atomic</b> increment, so concurrent requests on
 /// every replica that shares the set are each counted exactly once. The default adapter is in-process and therefore
 /// correct only for a single replica; a deployment that runs several replicas registers a shared adapter (for example
-/// Valkey) so a request counted by one replica is seen by all of them.
+/// Valkey) so a request counted by one replica is seen by all of them. A caller that counts a run of events, such as
+/// consecutive failures, removes the counter when the run ends.
 /// </summary>
 [PublicAPI]
 public interface IExpiringCounterSet
@@ -61,4 +62,13 @@ public interface IExpiringCounterSet
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The count of the counter; or zero if it is absent or expired.</returns>
     ValueTask<long> GetAsync(string key, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes the counter named <paramref name="key"/>, so the next increment starts it again at one with a new
+    /// expiry. Removing a counter that is absent or expired does nothing.
+    /// </summary>
+    /// <param name="key">The name of the counter. Keys are compared ordinally.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that completes when the counter is no longer present.</returns>
+    ValueTask RemoveAsync(string key, CancellationToken cancellationToken);
 }

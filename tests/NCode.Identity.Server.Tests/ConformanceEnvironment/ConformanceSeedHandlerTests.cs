@@ -27,6 +27,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -65,7 +66,8 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         ISettingSerializer settingSerializer,
         IOpenIdEnvironmentProvider openIdEnvironmentProvider,
         IClientKeyImporter? clientKeyImporter = null,
-        CoherencePolicy? coherencePolicy = null
+        CoherencePolicy? coherencePolicy = null,
+        SeededLocalAccountValidator? seededLocalAccountValidator = null
     )
     {
         // Strict mocks: on the guard paths under test the secret, protector, crypto, and time dependencies are
@@ -77,6 +79,10 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         coherencePolicy ??= new CoherencePolicy(
             CreateStrictMock<IEffectiveSettingsResolver>().Object,
             CreateStrictMock<IClientCoherenceValidator>().Object
+        );
+        seededLocalAccountValidator ??= new SeededLocalAccountValidator(
+            CreateStrictMock<IEffectiveSettingsResolver>().Object,
+            CreateStrictMock<IPasswordPolicy>().Object
         );
 
         return new ConformanceSeedHandler(
@@ -92,6 +98,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
                 coherencePolicy.Resolver,
                 coherencePolicy.Validator
             ),
+            seededLocalAccountValidator,
             NullLogger<ConformanceSeedHandler>.Instance
         );
     }
@@ -124,6 +131,10 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
                 openIdEnvironmentProvider,
                 coherencePolicy.Resolver,
                 coherencePolicy.Validator
+            ),
+            new SeededLocalAccountValidator(
+                CreateStrictMock<IEffectiveSettingsResolver>().Object,
+                CreateStrictMock<IPasswordPolicy>().Object
             ),
             NullLogger<ConformanceSeedHandler>.Instance
         );
@@ -161,6 +172,43 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             .Verifiable();
 
         return new CoherencePolicy(mockResolver.Object, mockValidator.Object);
+    }
+
+    private SeededLocalAccountValidator CreateSeededLocalAccountValidator(
+        PasswordPolicyResult result
+    )
+    {
+        var mockCollection = CreateLooseMock<ISettingCollection>();
+
+        var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
+        mockResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockCollection.Object)
+            .Verifiable();
+        mockResolver
+            .Setup(x =>
+                x.Resolve(
+                    It.IsAny<IReadOnlySettingCollection>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns(mockCollection.Object)
+            .Verifiable();
+
+        var mockPolicy = CreateStrictMock<IPasswordPolicy>();
+        mockPolicy
+            .Setup(x =>
+                x.ValidateAsync(
+                    It.IsAny<PasswordPolicyContext>(),
+                    It.IsAny<ReadOnlyMemory<char>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
+        return new SeededLocalAccountValidator(mockResolver.Object, mockPolicy.Object);
     }
 
     private SeedTenantCommand CreateCommand(
@@ -252,7 +300,14 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             TestUserFamilyName = "User",
             TestUserPassword = "conformance-password",
         };
-        var handler = CreateHandler(options);
+        var handler = CreateHandler(
+            options,
+            CreateStrictMock<ISettingSerializer>().Object,
+            CreateStrictMock<IOpenIdEnvironmentProvider>().Object,
+            seededLocalAccountValidator: CreateSeededLocalAccountValidator(
+                PasswordPolicyResult.Accepted
+            )
+        );
 
         var mockStoreManager = CreateStrictMock<IStoreManager>();
         var mockAccountStore = CreateStrictMock<ILocalAccountStore>();
@@ -296,6 +351,52 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         Assert.Equal("Conformance", claims[JoseClaimNames.Payload.GivenName]);
         Assert.Equal("User", claims[JoseClaimNames.Payload.FamilyName]);
         Assert.Equal("Conformance User", claims[JoseClaimNames.Payload.Name]);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheTestUserPasswordIsRefused_ThrowsNamingTheTestUser()
+    {
+        var options = new ConformanceSeedOptions
+        {
+            TenantId = WorkloadTenantId,
+            Clients = [],
+            TestUserName = "conformance-user",
+            TestUserPassword = "short",
+        };
+        var handler = CreateHandler(
+            options,
+            CreateStrictMock<ISettingSerializer>().Object,
+            CreateStrictMock<IOpenIdEnvironmentProvider>().Object,
+            seededLocalAccountValidator: CreateSeededLocalAccountValidator(
+                PasswordPolicyResult.Rejected(
+                    PasswordPolicyErrors.TooShort,
+                    "The password must have at least 15 characters."
+                )
+            )
+        );
+
+        // No AddAsync setup: the strict store refuses an account that would be stored.
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        var mockAccountStore = CreateStrictMock<ILocalAccountStore>();
+        mockStoreManager
+            .Setup(x => x.GetStore<ILocalAccountStore>())
+            .Returns(mockAccountStore.Object)
+            .Verifiable();
+        mockAccountStore
+            .Setup(x =>
+                x.GetByUserNameOrDefaultAsync("conformance-user", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync((PersistedLocalAccount?)null)
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await handler.HandleAsync(
+                CreateCommand(WorkloadTenantId, TenantPlane.Workload, mockStoreManager.Object),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Contains("'conformance-user'", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

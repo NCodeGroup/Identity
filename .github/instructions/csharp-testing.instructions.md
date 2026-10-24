@@ -311,6 +311,11 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   posts the fields with them and the session cookie; a bundle page answers `503` in the integration host but still
   issues the tokens. Assert a refused sign-in with `SubmitLoginAsync`, which returns the response, and
   `ReadSessionCookie`.
+- 👁 **A password a test sets through an entry point meets the password policy.** The management API, the
+  change-password page and the seeders refuse a password shorter than 15 characters or on the common-password list
+  (`passwordpassword` is), so such a test uses a long, unlisted passphrase; `SeedLocalAccountAsync` writes to the store
+  and skips the policy. A test of the failed-attempt limit lowers `password_failed_attempts_limit` with
+  `SeedTenantSettingsAsync` before the first request (`PasswordAttemptLimitTests`).
 - 👁 **Assert a URI the server must deliver as written on `Headers.Location.OriginalString`.** `HttpClient` parses
   the header into a `Uri`, whose `AbsoluteUri` and `ToString()` normalize it, so such an assertion passes while the
   server sends `myapp://callback/` for `myapp://callback`.

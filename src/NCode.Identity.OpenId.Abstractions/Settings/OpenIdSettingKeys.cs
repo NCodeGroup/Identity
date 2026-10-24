@@ -1070,4 +1070,26 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<int> QuotaTenantTokenRequestsOveragePerDay =>
         new(OpenIdSettingNames.QuotaTenantTokenRequestsOveragePerDay);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'password_min_length' setting.
+    /// </summary>
+    public static SettingKey<int> PasswordMinLength => new(OpenIdSettingNames.PasswordMinLength);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'password_max_length' setting.
+    /// </summary>
+    public static SettingKey<int> PasswordMaxLength => new(OpenIdSettingNames.PasswordMaxLength);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'password_failed_attempts_limit' setting.
+    /// </summary>
+    public static SettingKey<int> PasswordFailedAttemptsLimit =>
+        new(OpenIdSettingNames.PasswordFailedAttemptsLimit);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'password_failed_attempts_window' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> PasswordFailedAttemptsWindow =>
+        new(OpenIdSettingNames.PasswordFailedAttemptsWindow);
 }

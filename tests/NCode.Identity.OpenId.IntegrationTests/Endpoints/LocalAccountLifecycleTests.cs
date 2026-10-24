@@ -31,6 +31,7 @@ using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -572,6 +573,140 @@ public class LocalAccountLifecycleTests
 
         var (statusCode, body) = await RefreshAsync(client, clientId, refreshToken);
         AssertRefused(statusCode, body, "access_denied");
+    }
+
+    [Fact]
+    public async Task Create_WhenThePasswordMeetsThePolicy_CreatesTheAccount()
+    {
+        const string userName = "policy-user";
+        const string password = "policy-user-password";
+        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await administrator.PostAsync(
+            $"{TenantApiPath}/local-accounts",
+            JsonContent.Create(new { userName, password })
+        );
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, responseBody);
+        var client = CreateClient(factory);
+        Assert.NotNull(await InteractiveLogin.SignInAsync(client, userName, password));
+    }
+
+    [Fact]
+    public async Task Create_WhenThePolicyRefusesThePassword_AnswersBadRequest()
+    {
+        using var factory = new BootstrapAdminHostApplicationFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await administrator.PostAsync(
+            $"{TenantApiPath}/local-accounts",
+            JsonContent.Create(new { userName = "policy-user", password = "passwordpassword" })
+        );
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, responseBody);
+        Assert.Contains("commonly used", responseBody);
+    }
+
+    [Fact]
+    public async Task ResetPassword_WhenThePolicyRefusesThePassword_KeepsThePassword()
+    {
+        using var factory = new BootstrapAdminHostApplicationFactory();
+        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await administrator.PostAsync(
+            $"{TenantApiPath}/local-accounts/{localAccountId}/password",
+            JsonContent.Create(new { password = "too-short-pw" })
+        );
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, responseBody);
+        Assert.Contains("at least 15", responseBody);
+        var client = CreateClient(factory);
+        Assert.NotNull(await InteractiveLogin.SignInAsync(client, UserName, Password));
+    }
+
+    [Fact]
+    public async Task ChangePassword_WhenThePolicyRefusesTheNewPassword_ChangesNothing()
+    {
+        const string refusedPassword = "short-pass";
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+
+        using var changeResponse = await InteractiveLogin.PostFormAsync(
+            client,
+            "/account/password",
+            "/account/password",
+            sessionCookie,
+            new Dictionary<string, string>
+            {
+                ["current_password"] = Password,
+                ["new_password"] = refusedPassword,
+                ["confirm_password"] = refusedPassword,
+            }
+        );
+
+        Assert.Equal(HttpStatusCode.Found, changeResponse.StatusCode);
+        var location = changeResponse.Headers.Location;
+        Assert.NotNull(location);
+        Assert.Contains("error=password_too_short", location.OriginalString);
+
+        Assert.NotNull(await InteractiveLogin.SignInAsync(client, UserName, Password));
+    }
+
+    [Fact]
+    public async Task ResetPassword_ClearsTheFailedPasswordAttempts()
+    {
+        const string wrongPassword = "lifecycle-wrong-password";
+        const string resetPassword = "lifecycle-password-reset";
+        using var factory = new BootstrapAdminHostApplicationFactory();
+
+        // The tenant reads its settings at its first request, so they are seeded before anything is sent.
+        await factory.SeedTenantSettingsAsync(
+            new Dictionary<string, object> { [OpenIdSettingNames.PasswordFailedAttemptsLimit] = 2 }
+        );
+        var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
+        var client = CreateClient(factory);
+
+        using var firstWrongResponse = await InteractiveLogin.SubmitLoginAsync(
+            client,
+            UserName,
+            wrongPassword,
+            "/foo"
+        );
+        Assert.Null(InteractiveLogin.ReadSessionCookie(firstWrongResponse));
+
+        using var secondWrongResponse = await InteractiveLogin.SubmitLoginAsync(
+            client,
+            UserName,
+            wrongPassword,
+            "/foo"
+        );
+        Assert.Null(InteractiveLogin.ReadSessionCookie(secondWrongResponse));
+
+        // The limit holds, so even the right password is refused.
+        using var limitedResponse = await InteractiveLogin.SubmitLoginAsync(
+            client,
+            UserName,
+            Password,
+            "/foo"
+        );
+        Assert.Null(InteractiveLogin.ReadSessionCookie(limitedResponse));
+
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var resetResponse = await administrator.PostAsync(
+            $"{TenantApiPath}/local-accounts/{localAccountId}/password",
+            JsonContent.Create(new { password = resetPassword })
+        );
+        var resetBody = await resetResponse.Content.ReadAsStringAsync();
+        Assert.True(resetResponse.StatusCode == HttpStatusCode.NoContent, resetBody);
+
+        Assert.NotNull(await InteractiveLogin.SignInAsync(client, UserName, resetPassword));
     }
 
     #endregion

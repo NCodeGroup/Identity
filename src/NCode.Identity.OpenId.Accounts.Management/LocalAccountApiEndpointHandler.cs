@@ -28,6 +28,7 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Management.Contracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management;
@@ -37,6 +38,7 @@ using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
@@ -68,7 +70,8 @@ PATCH  api/tenants/{tenantId}/local-accounts/{localAccountId}/metadata
 /// so every operation authorizes against the owning tenant scope (there is no per-account owner model). The host must
 /// register an <see cref="ILocalAccountStore"/> implementation (the Entity Framework reference or the ASP.NET Core
 /// Identity adapter) that these endpoints operate over. Deleting or disabling an account, or resetting its password,
-/// ends every session of its principal.
+/// ends every session of its principal. Every password it sets meets the tenant's password policy; a refused password
+/// is answered 400 with the requirement it fails.
 /// </summary>
 internal class LocalAccountApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
@@ -77,7 +80,10 @@ internal class LocalAccountApiEndpointHandler(
     ILocalAccountValidator localAccountValidator,
     IManagementAuditRecorder managementAuditRecorder,
     ISessionService sessionService,
-    IOpenIdContextFactory openIdContextFactory
+    IOpenIdContextFactory openIdContextFactory,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
+    IPasswordPolicy passwordPolicy,
+    IPasswordAttemptLimiter passwordAttemptLimiter
 ) : ManagementApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -92,6 +98,10 @@ internal class LocalAccountApiEndpointHandler(
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private ISessionService SessionService { get; } = sessionService;
     private IOpenIdContextFactory OpenIdContextFactory { get; } = openIdContextFactory;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
+    private IPasswordPolicy PasswordPolicy { get; } = passwordPolicy;
+    private IPasswordAttemptLimiter PasswordAttemptLimiter { get; } = passwordAttemptLimiter;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -102,7 +112,8 @@ internal class LocalAccountApiEndpointHandler(
 
         accounts
             .MapPost("", CreateLocalAccountAsync)
-            .Produces<LocalAccountResource>(StatusCodes.Status201Created);
+            .Produces<LocalAccountResource>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest);
         accounts
             .MapGet("", ListLocalAccountsAsync)
             .Produces<CollectionResource<LocalAccountResource>>();
@@ -122,7 +133,8 @@ internal class LocalAccountApiEndpointHandler(
             .Produces(StatusCodes.Status204NoContent);
         accounts
             .MapPost("/{localAccountId}/password", ResetPasswordAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest);
 
         accounts
             .MapGet("/{localAccountId}/claims", GetClaimsAsync)
@@ -175,6 +187,38 @@ internal class LocalAccountApiEndpointHandler(
         var localAccountId = CryptoService.GenerateResourceId();
         var principalId = CryptoService.GenerateResourceId();
 
+        var account = new PersistedLocalAccount
+        {
+            TenantId = tenantId,
+            LocalAccountId = localAccountId,
+            UserName = request.UserName,
+            Email = request.Email,
+            EmailVerified = request.EmailVerified,
+            IsEnabled = request.IsEnabled,
+            Claims =
+                request
+                    .Claims?.Select(claim => new PersistedLocalAccountClaim
+                    {
+                        Type = claim.Type,
+                        Value = claim.Value,
+                    })
+                    .ToList()
+                ?? [],
+            ConcurrencyToken = string.Empty,
+        };
+
+        var passwordError = await ValidatePasswordAsync(
+            storeManager,
+            tenantId,
+            account,
+            request.Password,
+            cancellationToken
+        );
+        if (passwordError is not null)
+        {
+            return ToErrorResult(passwordError);
+        }
+
         // Eagerly create the owning principal and the account's self-issued connection so the account resolves to a
         // principal uniformly with any federated identity (ADR-0051/ADR-0057).
         var principal = new PersistedFederatedPrincipal
@@ -213,26 +257,6 @@ internal class LocalAccountApiEndpointHandler(
             .GetStore<IFederatedIdentityStore>()
             .AddAsync(identity, cancellationToken);
 
-        var account = new PersistedLocalAccount
-        {
-            TenantId = tenantId,
-            LocalAccountId = localAccountId,
-            UserName = request.UserName,
-            Email = request.Email,
-            EmailVerified = request.EmailVerified,
-            IsEnabled = request.IsEnabled,
-            Claims =
-                request
-                    .Claims?.Select(claim => new PersistedLocalAccountClaim
-                    {
-                        Type = claim.Type,
-                        Value = claim.Value,
-                    })
-                    .ToList()
-                ?? [],
-            ConcurrencyToken = string.Empty,
-        };
-
         await WithPasswordBytesAsync(
             request.Password,
             (bytes, ct) => storeManager.GetStore<ILocalAccountStore>().AddAsync(account, bytes, ct),
@@ -251,6 +275,11 @@ internal class LocalAccountApiEndpointHandler(
             ToResourceValues(resource),
             cancellationToken
         );
+
+        // The password an administrator sets replaces the one being guessed, so its failed attempts start over. It
+        // runs last, with CancellationToken.None, because the limit fails closed: a counter store that throws must not
+        // skip the audit record. See ADR-0237.
+        await PasswordAttemptLimiter.ResetAsync(tenantId, request.UserName, CancellationToken.None);
 
         httpContext.Response.Headers.ETag = account.ConcurrencyToken;
         return TypedResults.Created(
@@ -526,6 +555,18 @@ internal class LocalAccountApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
+        var passwordError = await ValidatePasswordAsync(
+            storeManager,
+            tenantId,
+            account,
+            request.Password,
+            cancellationToken
+        );
+        if (passwordError is not null)
+        {
+            return ToErrorResult(passwordError);
+        }
+
         await WithPasswordBytesAsync(
             request.Password,
             (bytes, ct) => store.SetPasswordAsync(localAccountId, bytes, ct),
@@ -553,6 +594,11 @@ internal class LocalAccountApiEndpointHandler(
             resourceValues: null,
             cancellationToken
         );
+
+        // The password an administrator sets replaces the one being guessed, so its failed attempts start over. It
+        // runs last, with CancellationToken.None, because the limit fails closed: a counter store that throws must not
+        // skip ending the sessions or the audit record. See ADR-0237.
+        await PasswordAttemptLimiter.ResetAsync(tenantId, account.UserName, CancellationToken.None);
 
         return TypedResults.NoContent();
     }
@@ -818,6 +864,59 @@ internal class LocalAccountApiEndpointHandler(
             operation
         );
         return result.Succeeded;
+    }
+
+    // Judges a password an administrator sets by the addressed tenant's effective settings, resolved from its stored
+    // document so the tenant need not be served. See ADR-0236.
+    private async ValueTask<ManagementError?> ValidatePasswordAsync(
+        IStoreManager storeManager,
+        string tenantId,
+        PersistedLocalAccount account,
+        string password,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenant = await storeManager
+            .GetStore<ITenantStore>()
+            .GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return new ManagementError
+            {
+                StatusCode = StatusCodes.Status404NotFound,
+                Detail = "The tenant was not found.",
+            };
+        }
+
+        var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var tenantSettings = EffectiveSettingsResolver.Resolve(
+            serverSettings,
+            OpenIdSettingScopes.Tenant,
+            tenant.Settings.Value
+        );
+
+        var passwordMemory = password.AsMemory();
+        var policyContext = new PasswordPolicyContext
+        {
+            Settings = tenantSettings,
+            UserName = account.UserName,
+            Email = account.Email,
+        };
+        var result = await PasswordPolicy.ValidateAsync(
+            policyContext,
+            passwordMemory,
+            cancellationToken
+        );
+        if (!result.IsRejected)
+        {
+            return null;
+        }
+
+        return new ManagementError
+        {
+            StatusCode = StatusCodes.Status400BadRequest,
+            Detail = result.ErrorDescription,
+        };
     }
 
     // Encodes the password into a pinned, zeroed-on-return buffer so the plaintext never lingers on the GC heap.

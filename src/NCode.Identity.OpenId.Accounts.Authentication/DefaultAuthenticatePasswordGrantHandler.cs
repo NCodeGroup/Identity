@@ -22,6 +22,7 @@ using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
+using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.PrincipalResolution;
@@ -36,17 +37,26 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// by the configured <see cref="ILocalAccountStore"/>. This handler is registered only when the host opts into the
 /// local-account authentication capability, so its mere presence is what enables the grant; the default
 /// <c>NCode.Identity.OpenId.Authentication</c> handler reports the grant as unsupported when this capability is absent.
-/// A store that rejects the credentials yields a failed (not unsupported) result, so the two cases stay distinct.
+/// A store that rejects the credentials yields a failed (not unsupported) result, so the two cases stay distinct. A
+/// password for an account that reached its limit of failed attempts is refused without being verified, as a wrong one
+/// is.
 /// </summary>
 internal class DefaultAuthenticatePasswordGrantHandler(
     IStoreManagerFactory storeManagerFactory,
     IPrincipalResolver principalResolver,
-    IAuditEventRecorder auditEventRecorder
+    IAuditEventRecorder auditEventRecorder,
+    IPasswordAttemptLimiter passwordAttemptLimiter
 ) : ICommandResponseHandler<AuthenticatePasswordGrantCommand, AuthenticateSubjectDisposition>
 {
+    internal const string InvalidCredentialsReason = "The provided credentials are invalid.";
+
+    internal const string AttemptLimitReachedReason =
+        "The account has reached its limit of failed password attempts.";
+
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
+    private IPasswordAttemptLimiter PasswordAttemptLimiter { get; } = passwordAttemptLimiter;
 
     internal virtual AuthenticateSubjectDisposition Failed() => new();
 
@@ -68,12 +78,50 @@ internal class DefaultAuthenticatePasswordGrantHandler(
             return Failed();
         }
 
+        var limitedUserName = await ResolveLimitedUserNameAsync(username, cancellationToken);
+
+        // A reached limit is answered as a wrong password, without verifying it. See ADR-0237.
+        if (
+            await PasswordAttemptLimiter.IsLimitReachedAsync(
+                openIdContext,
+                limitedUserName,
+                cancellationToken
+            )
+        )
+        {
+            await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
+                openIdContext,
+                AttemptLimitReachedReason,
+                username,
+                cancellationToken
+            );
+            return Failed();
+        }
+
         var account = await VerifyCredentialsAsync(username, password, cancellationToken);
+        if (account is null)
+        {
+            // A failure is recorded even when the client disconnects.
+            await PasswordAttemptLimiter.RecordFailureAsync(
+                openIdContext,
+                limitedUserName,
+                CancellationToken.None
+            );
+        }
+        else
+        {
+            await PasswordAttemptLimiter.ResetAsync(
+                openIdContext.Tenant.TenantId,
+                limitedUserName,
+                cancellationToken
+            );
+        }
+
         if (account is not { IsEnabled: true })
         {
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
                 openIdContext,
-                "The provided credentials are invalid.",
+                InvalidCredentialsReason,
                 username,
                 cancellationToken
             );
@@ -107,6 +155,20 @@ internal class DefaultAuthenticatePasswordGrantHandler(
         );
 
         return Authenticated(ticket);
+    }
+
+    // The limit counts the user name the store holds for the submitted one, so every spelling the store's database
+    // matches (a trailing space under a padding collation, an accent under an accent-insensitive one) shares one
+    // count; a name no account has is counted as submitted. See ADR-0237.
+    private async ValueTask<string> ResolveLimitedUserNameAsync(
+        string userName,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ILocalAccountStore>();
+        var account = await store.GetByUserNameOrDefaultAsync(userName, cancellationToken);
+        return account?.UserName ?? userName;
     }
 
     private async ValueTask<PersistedLocalAccount?> VerifyCredentialsAsync(

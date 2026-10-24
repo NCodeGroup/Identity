@@ -231,7 +231,7 @@ standards.
 | [0193](./0193-the-interactive-surface-is-served-under-the-tenant-route.md) | The interactive surface is served under the tenant route, and its session is scoped to the tenant's path | Accepted |
 | [0194](./0194-a-tenant-brands-its-interactive-surface-through-settings.md) | A tenant brands its interactive surface through settings | Accepted |
 | [0195](./0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md) | A tenant's mTLS endpoint alias is a routed tenant property | Accepted |
-| [0196](./0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) | Tenants are rate limited through a shared expiring counter set | Accepted |
+| [0196](./0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) | Tenants are rate limited through a shared expiring counter set | Accepted (amended by [0237](./0237-failed-password-attempts-are-limited-per-account.md)) |
 | [0197](./0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) | Protocol metrics have one owner per signal and only bounded dimensions | Accepted |
 | [0198](./0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) | Plan-tier quotas are daily UTC counts enforced at the quota | Accepted |
 | [0199](./0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) | Tenant usage is a daily ledger that replicas add to | Accepted |
@@ -265,9 +265,11 @@ standards.
 | [0227](./0227-a-session-is-terminated-at-most-once-on-every-path.md) | A session is terminated at most once on every path | Accepted (amended by [0228](./0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md), [0230](./0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)) |
 | [0228](./0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md) | A session is terminated with the clients it lists when claimed, and a replayed code terminates it | Accepted |
 | [0229](./0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md) | A refused end user cannot sign in, and the client is answered access_denied | Accepted |
-| [0230](./0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md) | An end user changes their password and keeps only the current session | Accepted |
+| [0230](./0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md) | An end user changes their password and keeps only the current session | Accepted (amended by [0236](./0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md), [0237](./0237-failed-password-attempts-are-limited-per-account.md)) |
 | [0231](./0231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md) | A ping or push client is told when its CIBA request is denied | Accepted |
 | [0232](./0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md) | The in-process dispatcher runs jobs concurrently up to a limit | Accepted |
 | [0233](./0233-the-management-api-lists-a-tenants-incoherent-clients.md) | The management API lists a tenant's incoherent clients | Accepted |
 | [0234](./0234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md) | A server settings reconciliation reaches only the tenants its change affects | Accepted |
 | [0235](./0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) | Stored secrets are protected by a key hierarchy under an external root key | Accepted |
+| [0236](./0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) | A password is judged by one policy wherever it is set | Accepted |
+| [0237](./0237-failed-password-attempts-are-limited-per-account.md) | Failed password attempts are limited per account | Accepted |

@@ -138,4 +138,16 @@ describe('describePasswordError', () => {
       'The password could not be changed. Please try again.',
     );
   });
+
+  it('maps the password policy codes', () => {
+    expect(describePasswordError('password_too_short')).toBe(
+      'The new password is too short. A passphrase of several words is long enough and easy to remember.',
+    );
+    expect(describePasswordError('password_too_long')).toBe(
+      'The new password is too long. Choose a shorter one.',
+    );
+    expect(describePasswordError('password_blocklisted')).toBe(
+      'The new password is too common or is known to be compromised. Choose one you do not use anywhere else.',
+    );
+  });
 });

@@ -43,6 +43,8 @@ internal sealed class ValkeySharedStateMetrics
 
     internal const string CounterGetOperation = "counter.get";
 
+    internal const string CounterRemoveOperation = "counter.remove";
+
     internal const string KeySetTryAddOperation = "key_set.try_add";
 
     internal const string KeySetContainsOperation = "key_set.contains";

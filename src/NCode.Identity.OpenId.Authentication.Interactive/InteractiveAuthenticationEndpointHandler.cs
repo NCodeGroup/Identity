@@ -72,10 +72,6 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     // The `error` and `status` query values the change-password page reads back to show its message.
     private const string ErrorQueryName = "error";
     private const string StatusQueryName = "status";
-    private const string PasswordInvalidRequestError = "invalid_request";
-    private const string PasswordMismatchError = "password_mismatch";
-    private const string InvalidCurrentPasswordError = "invalid_current_password";
-    private const string PasswordNotSupportedError = "not_supported";
     private const string PasswordChangedStatus = "changed";
 
     private const string AssetRouteParameterName = "asset";
@@ -1027,10 +1023,11 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     /// <summary>
     /// Changes the current end-user's password from the change-password form, then redirects back to the page with the
     /// outcome: <c>?status=changed</c>, or <c>?error=</c> with <c>invalid_request</c> for a missing field,
-    /// <c>password_mismatch</c> when the confirmation differs from the new password, <c>invalid_current_password</c>
-    /// when the current password is wrong, or <c>not_supported</c> when the credential backend has no password to
-    /// change. A change keeps the current session and ends every other session. A request without an active session is
-    /// redirected to the login page.
+    /// <c>password_mismatch</c> when the confirmation differs from the new password, or the error code the credential
+    /// backend reports: <c>invalid_current_password</c> when the current password is wrong, <c>not_supported</c> when
+    /// it has no password to change, or a password policy code such as <c>password_too_short</c>. A change keeps the
+    /// current session and ends every other session. A request without an active session is redirected to the login
+    /// page.
     /// </summary>
     public async ValueTask<IResult> PostPasswordAsync(
         HttpContext httpContext,
@@ -1056,12 +1053,20 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
         if (string.IsNullOrEmpty(currentPassword) || string.IsNullOrEmpty(newPassword))
         {
-            return RedirectToPasswordPage(httpContext, ErrorQueryName, PasswordInvalidRequestError);
+            return RedirectToPasswordPage(
+                httpContext,
+                ErrorQueryName,
+                InteractivePasswordChangeErrors.InvalidRequest
+            );
         }
 
         if (!string.Equals(newPassword, confirmPassword, StringComparison.Ordinal))
         {
-            return RedirectToPasswordPage(httpContext, ErrorQueryName, PasswordMismatchError);
+            return RedirectToPasswordPage(
+                httpContext,
+                ErrorQueryName,
+                InteractivePasswordChangeErrors.PasswordMismatch
+            );
         }
 
         var result = await PasswordChanger.ChangePasswordAsync(
@@ -1071,35 +1076,22 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             newPassword,
             httpContext.RequestAborted
         );
-        switch (result)
+        if (!result.IsChanged)
         {
-            case InteractivePasswordChangeResult.Changed:
-                // A change keeps the current session, ends every other one and revokes the grants issued under no
-                // session. The password is already saved, so a client disconnect does not cancel the termination.
-                // See ADR-0226 and ADR-0230.
-                await SessionService.RevokeAllExceptAsync(
-                    openIdContext,
-                    subjectId,
-                    currentSessionId,
-                    SessionTerminationReasons.PasswordChanged,
-                    CancellationToken.None
-                );
-                return RedirectToPasswordPage(httpContext, StatusQueryName, PasswordChangedStatus);
-
-            case InteractivePasswordChangeResult.CurrentPasswordInvalid:
-                return RedirectToPasswordPage(
-                    httpContext,
-                    ErrorQueryName,
-                    InvalidCurrentPasswordError
-                );
-
-            default:
-                return RedirectToPasswordPage(
-                    httpContext,
-                    ErrorQueryName,
-                    PasswordNotSupportedError
-                );
+            return RedirectToPasswordPage(httpContext, ErrorQueryName, result.Error);
         }
+
+        // A change keeps the current session, ends every other one and revokes the grants issued under no session.
+        // The password is already saved, so a client disconnect does not cancel the termination.
+        // See ADR-0226 and ADR-0230.
+        await SessionService.RevokeAllExceptAsync(
+            openIdContext,
+            subjectId,
+            currentSessionId,
+            SessionTerminationReasons.PasswordChanged,
+            CancellationToken.None
+        );
+        return RedirectToPasswordPage(httpContext, StatusQueryName, PasswordChangedStatus);
     }
 
     /// <summary>

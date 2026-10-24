@@ -30,7 +30,8 @@ namespace NCode.Identity.SharedState.Valkey;
 /// server runs a script atomically, so every concurrent increment across every replica is counted once and a counter
 /// never outlives its window. The time-to-live is computed from this replica's clock, so the expiry does not depend on
 /// the server's clock agreeing with it. A command against an unreachable server throws rather than reporting a count,
-/// so the caller decides how a limit behaves while the server is down.
+/// so the caller decides how a limit behaves while the server is down. <c>RemoveAsync</c> runs <c>DEL</c> on the
+/// counter's key.
 /// </summary>
 internal class ValkeyExpiringCounterSet(
     IValkeyConnection connection,
@@ -123,6 +124,34 @@ internal class ValkeyExpiringCounterSet(
         {
             Metrics.OperationCompleted(
                 ValkeySharedStateMetrics.CounterGetOperation,
+                startTimestamp,
+                exception
+            );
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask RemoveAsync(string key, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        var startTimestamp = Stopwatch.GetTimestamp();
+        try
+        {
+            var database = await Connection.GetDatabaseAsync(cancellationToken);
+            await database.KeyDeleteAsync(GetKey(key)).WaitAsync(cancellationToken);
+
+            Metrics.OperationCompleted(
+                ValkeySharedStateMetrics.CounterRemoveOperation,
+                startTimestamp,
+                exception: null
+            );
+        }
+        catch (Exception exception)
+        {
+            Metrics.OperationCompleted(
+                ValkeySharedStateMetrics.CounterRemoveOperation,
                 startTimestamp,
                 exception
             );

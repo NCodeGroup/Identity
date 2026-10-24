@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S21`     | `S20`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R105`    | `R104`     |
+| `R` — Review findings                 | `R108`    | `R107`     |
 
 ---
 
@@ -597,6 +597,26 @@ _None remaining._
   `IClientCoherenceReporter` does (ADR-0233) and do not count it as a violation the change introduces. Touch points:
   `DefaultTenantClientCoherenceChecker`, `ServerApiEndpointHandler.ValidateClientCoherenceAsync`,
   `TenantApiEndpointHandler`.
+- **`R105` — Let the ASP.NET Core Identity adapter store a password the password policy accepts.**
+  `AspNetIdentityLocalAccountStore` creates and resets a password through `UserManager`, which runs the host's
+  `IPasswordValidator<TUser>`s; their defaults impose composition rules that NIST SP 800-63B forbids, so a password
+  `IPasswordPolicy` accepts (ADR-0236) can fail there and the management API answers `500` (`ThrowIfFailed`). Store the
+  hash through `IUserPasswordStore<TUser>` with the user manager's hasher and rotate the security stamp, so the policy
+  is the only judge. Touch points: `AspNetIdentityLocalAccountStore.AddAsync`, `SetPasswordAsync`, `ThrowIfFailed`.
+- **`R106` — Normalize a password before it is hashed and verified.** NIST SP 800-63B-4 §3.1.1.2 recommends NFC
+  normalization before hashing, so a password typed with another Unicode composition on another device still verifies;
+  the stores hash the UTF-8 bytes as submitted. Normalize in one place both stores use when they set and when they
+  verify, and verify an existing hash against the submitted form until it is rehashed. Touch points:
+  `DefaultPasswordHasher`, `LocalAccountStore`, `AspNetIdentityLocalAccountStore`, ADR-0236.
+- **`R107` — Verify a password in the same time whether or not its user name names an account.**
+  `LocalAccountStore.VerifyCredentialAsync` returns at once for a user name that no account has, or an account without a
+  password, and `AspNetIdentityLocalAccountStore.VerifyCredentialAsync` returns at once for an unknown or locked-out
+  user, while a known name costs a password hash, so the response time of a wrong password at the sign-in or the
+  password grant tells whether the account exists; OWASP ASVS 5.0 requires that a valid user cannot be deduced from the
+  response time of a failed authentication. The failed-attempt limit neither adds nor removes the difference (ADR-0237).
+  Verify the submitted password against a fixed dummy hash of the current parameters when there is no stored hash. Touch
+  points: `LocalAccountStore.VerifyCredentialAsync`, `AspNetIdentityLocalAccountStore.VerifyCredentialAsync`,
+  `DefaultPasswordHasher`, ADR-0237.
 
 ### Refactor
 

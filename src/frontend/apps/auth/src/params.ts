@@ -150,6 +150,12 @@ export function describePasswordError(error: string | null): string | null {
       return 'The current password is incorrect.';
     case 'not_supported':
       return 'Your account has no password to change here.';
+    case 'password_too_short':
+      return 'The new password is too short. A passphrase of several words is long enough and easy to remember.';
+    case 'password_too_long':
+      return 'The new password is too long. Choose a shorter one.';
+    case 'password_blocklisted':
+      return 'The new password is too common or is known to be compromised. Choose one you do not use anywhere else.';
     default:
       return 'The password could not be changed. Please try again.';
   }

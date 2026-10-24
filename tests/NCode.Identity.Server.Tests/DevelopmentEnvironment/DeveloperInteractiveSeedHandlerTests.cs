@@ -19,7 +19,10 @@
 using System.Text.Json;
 using Moq;
 using NCode.Identity.OpenId;
+using NCode.Identity.OpenId.Accounts.DataContracts;
+using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -38,7 +41,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
 
     private DeveloperInteractiveSeedHandler CreateHandler(
         DeveloperInteractiveSeedOptions options
-    ) => new(options, CreateSeededClientValidator());
+    ) => new(options, CreateSeededClientValidator(), CreateSeededLocalAccountValidator());
 
     private SeededClientValidator CreateSeededClientValidator(
         ISettingSerializer? settingSerializer = null,
@@ -51,6 +54,15 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
             openIdEnvironmentProvider ?? CreateStrictMock<IOpenIdEnvironmentProvider>().Object,
             effectiveSettingsResolver ?? CreateStrictMock<IEffectiveSettingsResolver>().Object,
             clientCoherenceValidator ?? CreateStrictMock<IClientCoherenceValidator>().Object
+        );
+
+    private SeededLocalAccountValidator CreateSeededLocalAccountValidator(
+        IEffectiveSettingsResolver? effectiveSettingsResolver = null,
+        IPasswordPolicy? passwordPolicy = null
+    ) =>
+        new(
+            effectiveSettingsResolver ?? CreateStrictMock<IEffectiveSettingsResolver>().Object,
+            passwordPolicy ?? CreateStrictMock<IPasswordPolicy>().Object
         );
 
     private SeedTenantCommand CreateCommand(string tenantId, TenantPlane plane) =>
@@ -170,7 +182,8 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
             CreateSeededClientValidator(
                 mockSettingSerializer.Object,
                 mockEnvironmentProvider.Object
-            )
+            ),
+            CreateSeededLocalAccountValidator()
         );
 
         var mockClientStore = CreateStrictMock<IClientStore>();
@@ -256,7 +269,8 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
                 mockEnvironmentProvider.Object,
                 mockResolver.Object,
                 mockValidator.Object
-            )
+            ),
+            CreateSeededLocalAccountValidator()
         );
 
         // No AddAsync setup: the strict store refuses a client that would be stored.
@@ -284,6 +298,71 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
             exception.Message,
             StringComparison.Ordinal
         );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheAdministratorPasswordIsRefused_ThrowsNamingTheAdministrator()
+    {
+        var server = CreateLooseMock<ISettingCollection>().Object;
+        var tenantSettings = CreateLooseMock<ISettingCollection>().Object;
+        var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
+        mockResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(server)
+            .Verifiable();
+        mockResolver
+            .Setup(x => x.Resolve(server, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
+            .Returns(tenantSettings)
+            .Verifiable();
+
+        var mockPolicy = CreateStrictMock<IPasswordPolicy>();
+        mockPolicy
+            .Setup(x =>
+                x.ValidateAsync(
+                    It.IsAny<PasswordPolicyContext>(),
+                    It.IsAny<ReadOnlyMemory<char>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                PasswordPolicyResult.Rejected(
+                    PasswordPolicyErrors.TooShort,
+                    "The password must have at least 15 characters."
+                )
+            )
+            .Verifiable();
+
+        var options = new DeveloperInteractiveSeedOptions
+        {
+            TenantId = WorkloadTenantId,
+            AdminPassword = "short",
+        };
+        var handler = new DeveloperInteractiveSeedHandler(
+            options,
+            CreateSeededClientValidator(),
+            CreateSeededLocalAccountValidator(mockResolver.Object, mockPolicy.Object)
+        );
+
+        // No AddAsync setup: the strict store refuses an account that would be stored.
+        var mockAccountStore = CreateStrictMock<ILocalAccountStore>();
+        mockAccountStore
+            .Setup(x => x.GetByUserNameOrDefaultAsync("admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedLocalAccount?)null)
+            .Verifiable();
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        mockStoreManager
+            .Setup(x => x.GetStore<ILocalAccountStore>())
+            .Returns(mockAccountStore.Object)
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await handler.HandleAsync(
+                CreateCommand(WorkloadTenantId, TenantPlane.Workload, mockStoreManager.Object),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Contains("'admin'", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

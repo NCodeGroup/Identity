@@ -186,4 +186,36 @@ public sealed class DefaultInProcessExpiringCounterSetTests : BaseTests
     }
 
     #endregion
+
+    #region RemoveAsync Tests
+
+    [Fact]
+    public async Task RemoveAsync_WhenPresent_StartsTheCountAgain()
+    {
+        var counterSet = CreateCounterSet();
+        await counterSet.IncrementAsync("key", Start.AddMinutes(1), CancellationToken.None);
+        await counterSet.IncrementAsync("key", Start.AddMinutes(1), CancellationToken.None);
+
+        await counterSet.RemoveAsync("key", CancellationToken.None);
+        var count = await counterSet.IncrementAsync(
+            "key",
+            Start.AddMinutes(1),
+            CancellationToken.None
+        );
+
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WhenAbsent_DoesNothing()
+    {
+        var counterSet = CreateCounterSet();
+
+        await counterSet.RemoveAsync("key", CancellationToken.None);
+        var count = await counterSet.GetAsync("key", CancellationToken.None);
+
+        Assert.Equal(0, count);
+    }
+
+    #endregion
 }

@@ -41,16 +41,20 @@ namespace NCode.Identity.Server.DevelopmentEnvironment;
 /// A seeded client's settings come from configuration, so the document is checked before it is stored: its settings
 /// are validated against the registered setting domains and against the client coherence rules of the tenant it is
 /// seeded into, and a failure stops the seeding with an error naming the client, rather than storing a client that
-/// fails every request that loads it.
+/// fails every request that loads it. The administrator's password must meet the tenant's password policy, and a
+/// refused one stops the seeding with an error naming the administrator.
 /// </remarks>
 // See ADR-0140 and ADR-0206.
 internal sealed class DeveloperInteractiveSeedHandler(
     DeveloperInteractiveSeedOptions options,
-    SeededClientValidator seededClientValidator
+    SeededClientValidator seededClientValidator,
+    SeededLocalAccountValidator seededLocalAccountValidator
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
     private DeveloperInteractiveSeedOptions Options { get; } = options;
     private SeededClientValidator SeededClientValidator { get; } = seededClientValidator;
+    private SeededLocalAccountValidator SeededLocalAccountValidator { get; } =
+        seededLocalAccountValidator;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.Low;
@@ -179,6 +183,14 @@ internal sealed class DeveloperInteractiveSeedHandler(
             ],
             ConcurrencyToken = string.Empty,
         };
+
+        await SeededLocalAccountValidator.EnsureCanBeSeededAsync(
+            "developer administrator",
+            context.Tenant,
+            account,
+            password,
+            cancellationToken
+        );
 
         // Encode the password into a pinned, zeroed-on-return buffer so the credential never lingers on the GC heap;
         // the store hashes it internally.

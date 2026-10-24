@@ -239,4 +239,46 @@ public sealed class ValkeyExpiringCounterSetTests : BaseTests
     }
 
     #endregion
+
+    #region RemoveAsync Tests
+
+    [Fact]
+    public async Task RemoveAsync_DeletesThePrefixedKey()
+    {
+        SetupDatabase();
+        MockDatabase
+            .Setup(x => x.KeyDeleteAsync(KeyPrefix + "key", CommandFlags.None))
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        await CounterSet.RemoveAsync("key", CancellationToken.None);
+
+        AssertOperationRecorded(ValkeySharedStateMetrics.CounterRemoveOperation, errorType: null);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WhenServerUnreachable_Throws()
+    {
+        SetupDatabase();
+        MockDatabase
+            .Setup(x => x.KeyDeleteAsync(KeyPrefix + "key", CommandFlags.None))
+            .ThrowsAsync(
+                new RedisConnectionException(
+                    ConnectionFailureType.UnableToConnect,
+                    CommandFlags.None,
+                    "down"
+                )
+            )
+            .Verifiable();
+
+        await Assert.ThrowsAsync<RedisConnectionException>(async () =>
+            await CounterSet.RemoveAsync("key", CancellationToken.None)
+        );
+        AssertOperationRecorded(
+            ValkeySharedStateMetrics.CounterRemoveOperation,
+            typeof(RedisConnectionException).FullName
+        );
+    }
+
+    #endregion
 }

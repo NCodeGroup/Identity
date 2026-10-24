@@ -1,6 +1,8 @@
 # 196. Tenants are rate limited through a shared expiring counter set
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0237](0237-failed-password-attempts-are-limited-per-account.md): `RemoveAsync` removes a counter, and the Valkey
+  adapter runs `DEL`)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
 
@@ -33,13 +35,14 @@ client, against per-minute limits that are settings bounded by the merge lattice
    `IncrementAsync(key, expiresWhen)` atomically increments a counter and returns its count, starting an absent or
    expired counter at one with the given expiry and leaving the expiry of a live counter unchanged (one fixed window);
    `GetAsync(key)` reads a count without incrementing it. A counter whose expiry is not in the future is not recorded,
-   and the increment returns zero.
+   and the increment returns zero. `RemoveAsync(key)` removes a counter, so a count of a run of events that has ended
+   starts again ([ADR-0237](0237-failed-password-attempts-are-limited-per-account.md)).
 2. **The adapters.** `AddInProcessExpiringCounterSet` registers the in-process default (a concurrent dictionary of
    `Interlocked` counters with the key set's periodic sweep), correct for one replica; `AddIdentityServer` registers it
    beside the in-process key set. `AddValkey` replaces it with `ValkeyExpiringCounterSet`, which runs one script —
    `INCR`, then `PEXPIRE` when the increment started the counter — so the increment and the expiry are atomic on the
    server and a counter never outlives its window. The time-to-live is computed from the replica's clock, as the key set
-   does.
+   does. `RemoveAsync` runs `DEL`.
 3. **The algorithm is a sliding-window estimate over two fixed windows.** For a limit of `L` requests per window `W` —
    one minute, so the limits read as requests per minute — a request increments the counter of the current window (keyed
    by its start, and kept for two windows so it can serve as the previous one) and reads the previous window's count.

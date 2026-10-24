@@ -33,6 +33,9 @@ describe('PasswordPage', () => {
     expect(next).toHaveAttribute('type', 'password');
     expect(next).toHaveAttribute('autocomplete', 'new-password');
     expect(next).toBeRequired();
+    expect(next).toHaveAccessibleDescription(
+      'Use a long passphrase that you do not use anywhere else. Common and compromised passwords are refused.',
+    );
 
     const confirm = screen.getByLabelText(/Confirm new password/);
     expect(confirm).toHaveAttribute('id', 'confirm_password');

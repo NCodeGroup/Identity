@@ -75,6 +75,16 @@ internal class DefaultInProcessExpiringCounterSet(TimeProvider timeProvider) : I
         return ValueTask.FromResult(count);
     }
 
+    /// <inheritdoc />
+    public ValueTask RemoveAsync(string key, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        Entries.TryRemove(key, out _);
+
+        return ValueTask.CompletedTask;
+    }
+
     private long Increment(string key, DateTimeOffset expiresWhen, DateTimeOffset now)
     {
         while (true)

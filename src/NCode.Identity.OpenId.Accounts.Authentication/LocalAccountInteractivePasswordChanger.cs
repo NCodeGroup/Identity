@@ -20,6 +20,7 @@ using System.Security.Claims;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Interactive;
+using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
@@ -30,14 +31,20 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 /// Provides the local-account implementation of the <see cref="IInteractivePasswordChanger"/> seam, backed by the
 /// configured <see cref="ILocalAccountStore"/>. It resolves the signed-in end user's single enabled local account,
 /// verifies the current password through the same credential path the interactive sign-in uses, and replaces the
-/// password in one unit of work. An end user without exactly one enabled local account has no password to change here.
+/// password in one unit of work. It judges the new password with the password policy before it verifies the current
+/// one, and verifies the current password under the limit on failed attempts. An end user without exactly one enabled
+/// local account has no password to change here.
 /// </summary>
 // See ADR-0230.
 internal sealed class LocalAccountInteractivePasswordChanger(
-    IStoreManagerFactory storeManagerFactory
+    IStoreManagerFactory storeManagerFactory,
+    IPasswordPolicy passwordPolicy,
+    IPasswordAttemptLimiter passwordAttemptLimiter
 ) : IInteractivePasswordChanger
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private IPasswordPolicy PasswordPolicy { get; } = passwordPolicy;
+    private IPasswordAttemptLimiter PasswordAttemptLimiter { get; } = passwordAttemptLimiter;
 
     /// <inheritdoc />
     public async ValueTask<InteractivePasswordChangeResult> ChangePasswordAsync(
@@ -85,6 +92,37 @@ internal sealed class LocalAccountInteractivePasswordChanger(
             return InteractivePasswordChangeResult.NotSupported;
         }
 
+        // The new password is judged before the current one is verified, so a password the policy refuses costs no
+        // verification. See ADR-0236.
+        var newPasswordMemory = newPassword.AsMemory();
+        var policyContext = new PasswordPolicyContext
+        {
+            Settings = openIdContext.Tenant.SettingsProvider.Collection,
+            UserName = account.UserName,
+            Email = account.Email,
+        };
+        var policyResult = await PasswordPolicy.ValidateAsync(
+            policyContext,
+            newPasswordMemory,
+            cancellationToken
+        );
+        if (policyResult.IsRejected)
+        {
+            return InteractivePasswordChangeResult.Refused(policyResult.Error);
+        }
+
+        // A reached limit is answered as a wrong password, without verifying it. See ADR-0237.
+        if (
+            await PasswordAttemptLimiter.IsLimitReachedAsync(
+                openIdContext,
+                account.UserName,
+                cancellationToken
+            )
+        )
+        {
+            return InteractivePasswordChangeResult.CurrentPasswordInvalid;
+        }
+
         // Encode each password into its own pinned, zeroed-on-return buffer so the credentials never linger on the GC
         // heap.
         var currentByteCount = SecureEncoding.UTF8.GetByteCount(currentPassword);
@@ -108,8 +146,20 @@ internal sealed class LocalAccountInteractivePasswordChanger(
             )
         )
         {
+            // A failure is recorded even when the client disconnects.
+            await PasswordAttemptLimiter.RecordFailureAsync(
+                openIdContext,
+                account.UserName,
+                CancellationToken.None
+            );
             return InteractivePasswordChangeResult.CurrentPasswordInvalid;
         }
+
+        await PasswordAttemptLimiter.ResetAsync(
+            openIdContext.Tenant.TenantId,
+            account.UserName,
+            cancellationToken
+        );
 
         var newByteCount = SecureEncoding.UTF8.GetByteCount(newPassword);
         using var newOwner = SecureMemoryPool<byte>.Shared.Rent(newByteCount);

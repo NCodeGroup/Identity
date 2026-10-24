@@ -35,7 +35,9 @@ public interface IInteractivePasswordChanger
 {
     /// <summary>
     /// Changes the password of the signed-in end user after it verifies the current one. A backend without a password
-    /// to change for the end user reports <see cref="InteractivePasswordChangeResult.NotSupported"/>.
+    /// to change for the end user reports <see cref="InteractivePasswordChangeResult.NotSupported"/>; a backend that
+    /// sets passwords judges the new one with the server's password policy and reports a refusal with
+    /// <see cref="InteractivePasswordChangeResult.Refused"/> and the policy's error code.
     /// </summary>
     /// <param name="openIdContext">The resolved <see cref="OpenIdContext"/> whose tenant scopes the credential
     /// lookup.</param>
@@ -45,7 +47,9 @@ public interface IInteractivePasswordChanger
     /// <param name="newPassword">The password the end user chose to replace it.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
     /// asynchronous operation.</param>
-    /// <returns>The <see cref="InteractivePasswordChangeResult"/> that reports whether the password changed.</returns>
+    /// <returns>
+    /// The <see cref="InteractivePasswordChangeResult"/> that reports the change, or the error code that refused it.
+    /// </returns>
     ValueTask<InteractivePasswordChangeResult> ChangePasswordAsync(
         OpenIdContext openIdContext,
         ClaimsPrincipal principal,

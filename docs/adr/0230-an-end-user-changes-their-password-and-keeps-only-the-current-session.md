@@ -1,6 +1,10 @@
 # 230. An end user changes their password and keeps only the current session
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0236](0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md): the new password meets the password
+  policy, and the change result is a class that carries the page's error code;
+  [ADR-0237](0237-failed-password-attempts-are-limited-per-account.md): the current password is verified under the
+  limit on failed attempts)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -19,8 +23,11 @@ user but the current one and revokes every grant that was issued under no sessio
 
 1. **A seam changes the password, and the surface registers one that reports no support.**
    `IInteractivePasswordChanger.ChangePasswordAsync(OpenIdContext, ClaimsPrincipal, string currentPassword, string
-   newPassword, CancellationToken)` returns `ValueTask<InteractivePasswordChangeResult>`. The enum is the closed set of
-   outcomes of one operation: `NotSupported` (`0`), `CurrentPasswordInvalid` (`1`) and `Changed` (`2`).
+   newPassword, CancellationToken)` returns `ValueTask<InteractivePasswordChangeResult>`. The result is `Changed`, or it
+   carries the error code the page shows: `NotSupported` (`not_supported`), `CurrentPasswordInvalid`
+   (`invalid_current_password`), or `Refused(error)` with a code of the backend's own, such as the password policy's
+   ([ADR-0236](0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md)). The codes are an open vocabulary whose
+   known values are `InteractivePasswordChangeErrors`.
    `AddInteractiveAuthentication` registers `DefaultInteractivePasswordChanger`, which always reports `NotSupported`,
    with `TryAddSingleton`, and `AddLocalAccountInteractiveAuthentication` replaces it with
    `LocalAccountInteractivePasswordChanger`.
@@ -29,10 +36,13 @@ user but the current one and revokes every grant that was issued under no sessio
    `NotSupported` otherwise. It verifies the current password with `VerifyCredentialAsync(account.UserName, ...)` and
    requires the verified account to be the same `LocalAccountId`, and it reports `CurrentPasswordInvalid` otherwise.
    It replaces the password and saves in one unit of work. Both passwords are encoded into `SecureMemoryPool` buffers.
+   It judges the new password with `IPasswordPolicy` before it verifies the current one, and verifies the current one
+   under the limit on failed attempts ([ADR-0237](0237-failed-password-attempts-are-limited-per-account.md)).
 3. **`GET` and `POST /account/password` serve the change.** `InteractiveAuthenticationDefaults.PasswordPath` is the
    path. The form fields are `current_password`, `new_password` and `confirm_password`. The post redirects back to the
-   page with `?error=` and one of `invalid_request`, `password_mismatch`, `invalid_current_password` or
-   `not_supported`, or with `?status=changed`. Both methods require an active session
+   page with `?error=` and `invalid_request`, `password_mismatch`, or the result's error code, such as
+   `invalid_current_password`, `not_supported` or `password_too_short`, or with `?status=changed`. Both methods require
+   an active session
    ([ADR-0229](0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)) and redirect to the
    login page otherwise.
 4. **A change ends the other sessions and the sessionless grants.** After `Changed`, the post calls
@@ -43,8 +53,9 @@ user but the current one and revokes every grant that was issued under no sessio
    and then dispatches one termination for each session it claimed, so a dispatch that fails leaves only the grants of
    the current session active. Consents are kept. The "sign out everywhere else" action has the same effect, because
    one method has one meaning.
-5. **There is no password policy and no limit on failed attempts.** The change accepts any non-empty password that the
-   confirmation repeats, and the verification of the current password is not rate limited (backlog `R101` and `R102`).
+5. **The new password meets the password policy, and the current password is checked under the limit on failed
+   attempts.** See [ADR-0236](0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) and
+   [ADR-0237](0237-failed-password-attempts-are-limited-per-account.md).
 
 ## Options considered
 
@@ -77,6 +88,10 @@ user but the current one and revokes every grant that was issued under no sessio
   it.
 - [ADR-0228](0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md) —
   the claim returns the clients that the termination notifies.
+- [ADR-0236](0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) — the password policy that judges the new
+  password.
+- [ADR-0237](0237-failed-password-attempts-are-limited-per-account.md) — the limit on failed attempts that the
+  verification of the current password observes.
 - [NIST SP 800-63B](https://pages.nist.gov/800-63-3/sp800-63b.html) — a change of an authenticator ends the sessions
   that it authenticated.
 - [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/) V3.3.3 — terminate the other

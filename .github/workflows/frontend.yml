@@ -4,15 +4,18 @@
 # shell out to Node would couple a .NET contributor's inner loop to a pnpm install. This workflow gates the frontend
 # tier independently instead.
 #
-# It is path-filtered, so a C#-only push does not pay for a pnpm install. The consequence to know when configuring
-# branch protection: a pull request that touches no frontend file never reports this check, so it must NOT be marked
-# required — require the .NET "Definition of Done" check instead.
+# A push to main is path-filtered, so a C#-only push does not pay for a pnpm install. A pull request always runs the
+# workflow, and its `changes` job decides whether the frontend job runs. A skipped job reports success, so every pull
+# request reports "Lint, typecheck, test, build", which is a required check of the main ruleset (ADR-0261).
 name: Frontend CI
 
 on:
   # See the note in ci.yml: a push gates only main, because a pull request already gates every other branch.
+  # A pull request always runs the workflow, so its required check reports; the `changes` job skips the frontend job
+  # when no frontend path changed. A push to main keeps the path filter.
   push:
     branches: [main]
+    # Keep in sync with the pattern in the `changes` job, which applies the same paths to a pull request.
     paths:
       - 'src/frontend/**'
       - '.github/workflows/frontend.yml'
@@ -24,15 +27,6 @@ on:
       - 'tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/**'
   pull_request:
     branches: [main]
-    paths:
-      - 'src/frontend/**'
-      - '.github/workflows/frontend.yml'
-      - '.github/workflows/codecov-upload.yml'
-      - 'build/test-report.ps1'
-      - 'build/coverage-report.ps1'
-      - '.config/dotnet-tools.json'
-      - 'src/NCode.Identity.OpenId.Authentication.Interactive/**'
-      - 'tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/**'
   workflow_dispatch:
 
 # The frontend job only reads the tree; `id-token: write` (the Codecov OIDC upload) belongs to the separate codecov job
@@ -51,8 +45,38 @@ defaults:
     working-directory: src/frontend
 
 jobs:
+  # Decides from a pull request's changed files whether the frontend job runs; any other event always runs it.
+  changes:
+    name: Detect frontend changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      frontend: ${{ steps.diff.outputs.frontend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Keep the pattern in sync with the `push` trigger's `paths` list.
+      - name: Diff against the base
+        id: diff
+        shell: bash
+        working-directory: .
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "frontend=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          pattern='^(src/frontend/|\.github/workflows/frontend\.yml$|\.github/workflows/codecov-upload\.yml$|build/test-report\.ps1$|build/coverage-report\.ps1$|\.config/dotnet-tools\.json$|src/NCode\.Identity\.OpenId\.Authentication\.Interactive/|tests/NCode\.Identity\.OpenId\.Authentication\.Interactive\.Tests/)'
+          if git diff --name-only "$BASE" HEAD | grep -Eq "$pattern"; then echo "frontend=true" >> "$GITHUB_OUTPUT"; else echo "frontend=false" >> "$GITHUB_OUTPUT"; fi
+
   frontend:
     name: Lint, typecheck, test, build
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -172,7 +196,8 @@ jobs:
   codecov:
     name: Codecov
     needs: frontend
-    if: ${{ !cancelled() }}
+    # A skipped frontend job leaves nothing to upload.
+    if: ${{ !cancelled() && needs.frontend.result != 'skipped' }}
     permissions:
       contents: read
       id-token: write

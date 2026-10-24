@@ -184,6 +184,19 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
     }
 
     [Fact]
+    public void Collection_MtlsEndpointAliasAuthority_IsRetiredAtTenants()
+    {
+        var dataSource = CreateDataSource();
+
+        var descriptor = GetDescriptor(dataSource, "mtls_endpoint_alias_authority");
+
+        Assert.True(descriptor.IsRetired);
+        Assert.Equal([OpenIdSettingScopes.Tenant], descriptor.AppliesTo.AsEnumerable());
+        Assert.False(descriptor.HasDefault);
+        Assert.False(descriptor.IsDiscoverable);
+    }
+
+    [Fact]
     public void Collection_RequireTlsClientCertificateBoundAccessTokens_IsAClientRequirementAParentFloors()
     {
         var dataSource = CreateDataSource();

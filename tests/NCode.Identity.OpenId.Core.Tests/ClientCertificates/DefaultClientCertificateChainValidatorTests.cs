@@ -321,6 +321,42 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
     }
 
     [Fact]
+    public async Task ValidateAsync_RevocationUnknownUnderSoftFail_ReturnsTrue()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(root, "CN=client");
+        var client = CreateClient(
+            [ToPem(root)],
+            OpenIdConstants.ClientCertificateRevocationMode.OnlineSoftFail
+        );
+        var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
+        SetupCheck(mockChecker, leaf, root, ClientCertificateRevocationStatus.Unknown);
+
+        var result = await CreateValidator(mockChecker.Object)
+            .ValidateAsync(client, Present(leaf), CancellationToken.None);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_CertificateRevokedUnderSoftFail_ReturnsFalse()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(root, "CN=client");
+        var client = CreateClient(
+            [ToPem(root)],
+            OpenIdConstants.ClientCertificateRevocationMode.OnlineSoftFail
+        );
+        var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
+        SetupCheck(mockChecker, leaf, root, ClientCertificateRevocationStatus.Revoked);
+
+        var result = await CreateValidator(mockChecker.Object)
+            .ValidateAsync(client, Present(leaf), CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
     public async Task ValidateAsync_WithAnIntermediate_ChecksTheLeafAndTheIntermediate()
     {
         using var root = TestCertificates.CreateRootAuthority("Root");

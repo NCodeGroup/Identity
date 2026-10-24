@@ -22,6 +22,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
@@ -54,7 +55,8 @@ public class DefaultClientCertificateRevocationCheckerTests : BaseTests
     }
 
     private DefaultClientCertificateRevocationChecker CreateChecker(
-        StubHttpMessageHandler? handler = null
+        HttpMessageHandler? handler = null,
+        ClientCertificateRevocationOptions? options = null
     )
     {
         if (handler is not null)
@@ -72,6 +74,7 @@ public class DefaultClientCertificateRevocationCheckerTests : BaseTests
             MockHttpClientFactory.Object,
             new DefaultOutboundHttpContentReader(),
             MemoryCache,
+            Options.Create(options ?? new ClientCertificateRevocationOptions()),
             CreateLooseMock<ILogger<DefaultClientCertificateRevocationChecker>>().Object
         );
     }
@@ -108,6 +111,24 @@ public class DefaultClientCertificateRevocationCheckerTests : BaseTests
         {
             RequestCount++;
             return Task.FromResult(respond(request));
+        }
+    }
+
+    private sealed class AsyncStubHttpMessageHandler(
+        Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> respond
+    ) : HttpMessageHandler
+    {
+        private int _requestCount;
+
+        public int RequestCount => Volatile.Read(ref _requestCount);
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
+            Interlocked.Increment(ref _requestCount);
+            return respond(request, cancellationToken);
         }
     }
 
@@ -344,6 +365,137 @@ public class DefaultClientCertificateRevocationCheckerTests : BaseTests
         Assert.Equal(ClientCertificateRevocationStatus.Good, first);
         Assert.Equal(ClientCertificateRevocationStatus.Unknown, second);
         Assert.Equal(2, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task CheckAsync_WhenTheFetchFailedRecently_DoesNotFetchAgain()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(
+            root,
+            "CN=c",
+            new ClientCertificateOptions { CrlDistributionPoints = [CrlUri] }
+        );
+        var handler = new StubHttpMessageHandler(_ => NotFoundResponse());
+        var checker = CreateChecker(handler);
+
+        var first = await checker.CheckAsync(leaf, root, CancellationToken.None);
+        var second = await checker.CheckAsync(leaf, root, CancellationToken.None);
+
+        Assert.Equal(ClientCertificateRevocationStatus.Unknown, first);
+        Assert.Equal(ClientCertificateRevocationStatus.Unknown, second);
+        Assert.Equal(1, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task CheckAsync_WhenTheListExceedsTheConfiguredSize_ReturnsUnknown()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(
+            root,
+            "CN=c",
+            new ClientCertificateOptions { CrlDistributionPoints = [CrlUri] }
+        );
+        var crl = BuildCrl(root, leaf);
+        var handler = new StubHttpMessageHandler(_ => CrlResponse(crl));
+        var checker = CreateChecker(
+            handler,
+            new ClientCertificateRevocationOptions { MaxResponseSizeBytes = 16 }
+        );
+
+        var result = await checker.CheckAsync(leaf, root, CancellationToken.None);
+
+        Assert.Equal(ClientCertificateRevocationStatus.Unknown, result);
+        Assert.Equal(1, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task CheckAsync_WhenTheFetchOutlastsTheConfiguredTimeout_ReturnsUnknown()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(
+            root,
+            "CN=c",
+            new ClientCertificateOptions { CrlDistributionPoints = [CrlUri] }
+        );
+        var handler = new AsyncStubHttpMessageHandler(
+            async (_, cancellationToken) =>
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                return NotFoundResponse();
+            }
+        );
+        var checker = CreateChecker(
+            handler,
+            new ClientCertificateRevocationOptions { FetchTimeout = TimeSpan.FromMilliseconds(100) }
+        );
+
+        var result = await checker.CheckAsync(leaf, root, CancellationToken.None);
+
+        Assert.Equal(ClientCertificateRevocationStatus.Unknown, result);
+        Assert.Equal(1, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task CheckAsync_WhenTwoChecksRunAtOnce_RetrievesTheListOnce()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(
+            root,
+            "CN=c",
+            new ClientCertificateOptions { CrlDistributionPoints = [CrlUri] }
+        );
+        var crl = BuildCrl(root);
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new AsyncStubHttpMessageHandler(
+            async (_, _) =>
+            {
+                await gate.Task;
+                return CrlResponse(crl);
+            }
+        );
+        var checker = CreateChecker(handler);
+
+        var first = checker.CheckAsync(leaf, root, CancellationToken.None).AsTask();
+        var second = checker.CheckAsync(leaf, root, CancellationToken.None).AsTask();
+        gate.SetResult();
+        var results = await Task.WhenAll(first, second);
+
+        Assert.All(results, result => Assert.Equal(ClientCertificateRevocationStatus.Good, result));
+        Assert.Equal(1, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task CheckAsync_WhenTheFirstCallerGivesUp_CompletesTheRetrievalForTheOthers()
+    {
+        using var root = TestCertificates.CreateRootAuthority("Root");
+        using var leaf = TestCertificates.CreateClientCertificate(
+            root,
+            "CN=c",
+            new ClientCertificateOptions { CrlDistributionPoints = [CrlUri] }
+        );
+        var crl = BuildCrl(root);
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new AsyncStubHttpMessageHandler(
+            async (_, _) =>
+            {
+                await gate.Task;
+                return CrlResponse(crl);
+            }
+        );
+        var checker = CreateChecker(handler);
+        using var cancellation = new CancellationTokenSource();
+        var issuerCopy = X509CertificateLoader.LoadCertificate(root.RawData);
+
+        var first = checker.CheckAsync(leaf, issuerCopy, cancellation.Token).AsTask();
+        await cancellation.CancelAsync();
+        issuerCopy.Dispose();
+        var second = checker.CheckAsync(leaf, root, CancellationToken.None).AsTask();
+        gate.SetResult();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
+        Assert.Equal(ClientCertificateRevocationStatus.Good, await second);
+        Assert.Equal(1, handler.RequestCount);
     }
 
     #endregion

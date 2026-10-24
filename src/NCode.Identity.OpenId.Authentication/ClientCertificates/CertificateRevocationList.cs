@@ -33,8 +33,17 @@ internal sealed class CertificateRevocationList
 {
     private const string DeltaCrlIndicatorOid = "2.5.29.27";
     private const string IssuingDistributionPointOid = "2.5.29.28";
+    private const string Mgf1Oid = "1.2.840.113549.1.1.8";
+    private const string Sha256Oid = "2.16.840.1.101.3.4.2.1";
+    private const string Sha384Oid = "2.16.840.1.101.3.4.2.2";
+    private const string Sha512Oid = "2.16.840.1.101.3.4.2.3";
 
     private static readonly Asn1Tag ExtensionsTag = new(TagClass.ContextSpecific, 0, true);
+
+    private static readonly Asn1Tag PssHashAlgorithmTag = new(TagClass.ContextSpecific, 0, true);
+    private static readonly Asn1Tag PssMaskGenAlgorithmTag = new(TagClass.ContextSpecific, 1, true);
+    private static readonly Asn1Tag PssSaltLengthTag = new(TagClass.ContextSpecific, 2, true);
+    private static readonly Asn1Tag PssTrailerFieldTag = new(TagClass.ContextSpecific, 3, true);
 
     private static readonly Asn1Tag DistributionPointNameTag = new(
         TagClass.ContextSpecific,
@@ -108,6 +117,12 @@ internal sealed class CertificateRevocationList
     public required string SignatureAlgorithm { get; init; }
 
     /// <summary>
+    /// Gets the encoded parameters of the algorithm that signed the list, or an empty value when the algorithm
+    /// carries none.
+    /// </summary>
+    public required ReadOnlyMemory<byte> SignatureAlgorithmParameters { get; init; }
+
+    /// <summary>
     /// Gets the encoded bytes the signature covers.
     /// </summary>
     public required ReadOnlyMemory<byte> SignedData { get; init; }
@@ -152,6 +167,10 @@ internal sealed class CertificateRevocationList
 
             var algorithm = new AsnReader(innerAlgorithm, AsnEncodingRules.DER).ReadSequence();
             var signatureAlgorithm = algorithm.ReadObjectIdentifier();
+            var signatureParameters = algorithm.HasData
+                ? algorithm.ReadEncodedValue()
+                : ReadOnlyMemory<byte>.Empty;
+            algorithm.ThrowIfNotEmpty();
 
             var issuer = new X500DistinguishedName(tbs.ReadEncodedValue().Span);
             var thisUpdate = ReadTime(tbs);
@@ -231,6 +250,7 @@ internal sealed class CertificateRevocationList
                 OnlyContainsUserCertificates = onlyContainsUserCertificates,
                 OnlyContainsAuthorityCertificates = onlyContainsAuthorityCertificates,
                 SignatureAlgorithm = signatureAlgorithm,
+                SignatureAlgorithmParameters = signatureParameters,
                 SignedData = signedData,
                 Signature = signature,
             };
@@ -306,14 +326,30 @@ internal sealed class CertificateRevocationList
             if (!issuerName.Matches(DistinguishedName.FromX500(issuer.SubjectName)))
                 return false;
 
-            // Only RSA PKCS#1 v1.5 and ECDSA signatures with SHA-256, SHA-384 or SHA-512 are supported. A list signed
-            // with RSA-PSS or SHA-1, or by a signer other than the issuing certificate (an indirect or delegated
-            // signer), is not accepted.
+            // RSA PKCS#1 v1.5, RSASSA-PSS (MGF1 over the same hash, salt as long as the hash) and ECDSA signatures,
+            // each with SHA-256, SHA-384 or SHA-512, are supported. A list signed with SHA-1, or by a signer other
+            // than the issuing certificate (an indirect or delegated signer), is not accepted.
             return SignatureAlgorithm switch
             {
-                "1.2.840.113549.1.1.11" => VerifyRsa(issuer, HashAlgorithmName.SHA256),
-                "1.2.840.113549.1.1.12" => VerifyRsa(issuer, HashAlgorithmName.SHA384),
-                "1.2.840.113549.1.1.13" => VerifyRsa(issuer, HashAlgorithmName.SHA512),
+                "1.2.840.113549.1.1.11" => VerifyRsa(
+                    issuer,
+                    HashAlgorithmName.SHA256,
+                    RSASignaturePadding.Pkcs1
+                ),
+                "1.2.840.113549.1.1.12" => VerifyRsa(
+                    issuer,
+                    HashAlgorithmName.SHA384,
+                    RSASignaturePadding.Pkcs1
+                ),
+                "1.2.840.113549.1.1.13" => VerifyRsa(
+                    issuer,
+                    HashAlgorithmName.SHA512,
+                    RSASignaturePadding.Pkcs1
+                ),
+                "1.2.840.113549.1.1.10" => TryGetPssHashAlgorithm(
+                    SignatureAlgorithmParameters,
+                    out var pssHash
+                ) && VerifyRsa(issuer, pssHash, RSASignaturePadding.Pss),
                 "1.2.840.10045.4.3.2" => VerifyEcdsa(issuer, HashAlgorithmName.SHA256),
                 "1.2.840.10045.4.3.3" => VerifyEcdsa(issuer, HashAlgorithmName.SHA384),
                 "1.2.840.10045.4.3.4" => VerifyEcdsa(issuer, HashAlgorithmName.SHA512),
@@ -326,16 +362,96 @@ internal sealed class CertificateRevocationList
         }
     }
 
-    private bool VerifyRsa(X509Certificate2 issuer, HashAlgorithmName hashAlgorithm)
+    /// <summary>
+    /// Reads the parameters of an RSASSA-PSS signature algorithm and returns the hash algorithm they name. The
+    /// parameters are accepted only when they name SHA-256, SHA-384 or SHA-512, a mask generation function MGF1 over
+    /// the same hash, a salt as long as the hash, and no trailer field or the trailer field <c>1</c>. Parameters
+    /// that leave a field to its default (SHA-1), or that are not well formed, are refused.
+    /// </summary>
+    internal static bool TryGetPssHashAlgorithm(
+        ReadOnlyMemory<byte> parameters,
+        out HashAlgorithmName hashAlgorithm
+    )
+    {
+        hashAlgorithm = default;
+
+        try
+        {
+            var reader = new AsnReader(parameters, AsnEncodingRules.DER);
+            var pssParameters = reader.ReadSequence();
+            reader.ThrowIfNotEmpty();
+
+            var hashField = pssParameters.ReadSequence(PssHashAlgorithmTag);
+            var hashOid = ReadHashAlgorithmIdentifier(hashField);
+            hashField.ThrowIfNotEmpty();
+
+            var (hashName, hashLength) = hashOid switch
+            {
+                Sha256Oid => (HashAlgorithmName.SHA256, 32),
+                Sha384Oid => (HashAlgorithmName.SHA384, 48),
+                Sha512Oid => (HashAlgorithmName.SHA512, 64),
+                _ => (default(HashAlgorithmName), 0),
+            };
+            if (hashLength == 0)
+                return false;
+
+            var maskGenField = pssParameters.ReadSequence(PssMaskGenAlgorithmTag);
+            var maskGen = maskGenField.ReadSequence();
+            maskGenField.ThrowIfNotEmpty();
+            if (maskGen.ReadObjectIdentifier() != Mgf1Oid)
+                return false;
+
+            var maskGenHashOid = ReadHashAlgorithmIdentifier(maskGen);
+            maskGen.ThrowIfNotEmpty();
+            if (maskGenHashOid != hashOid)
+                return false;
+
+            var saltLengthField = pssParameters.ReadSequence(PssSaltLengthTag);
+            var saltLength = saltLengthField.ReadInteger();
+            saltLengthField.ThrowIfNotEmpty();
+            if (saltLength != hashLength)
+                return false;
+
+            if (pssParameters.HasData && pssParameters.PeekTag() == PssTrailerFieldTag)
+            {
+                var trailerField = pssParameters.ReadSequence(PssTrailerFieldTag);
+                var trailer = trailerField.ReadInteger();
+                trailerField.ThrowIfNotEmpty();
+                if (trailer != BigInteger.One)
+                    return false;
+            }
+
+            pssParameters.ThrowIfNotEmpty();
+
+            hashAlgorithm = hashName;
+            return true;
+        }
+        catch (AsnContentException)
+        {
+            return false;
+        }
+    }
+
+    private static string ReadHashAlgorithmIdentifier(AsnReader reader)
+    {
+        var identifier = reader.ReadSequence();
+        var oid = identifier.ReadObjectIdentifier();
+        if (identifier.HasData)
+            identifier.ReadNull();
+
+        identifier.ThrowIfNotEmpty();
+        return oid;
+    }
+
+    private bool VerifyRsa(
+        X509Certificate2 issuer,
+        HashAlgorithmName hashAlgorithm,
+        RSASignaturePadding padding
+    )
     {
         using var key = issuer.GetRSAPublicKey();
         return key is not null
-            && key.VerifyData(
-                SignedData.Span,
-                Signature.Span,
-                hashAlgorithm,
-                RSASignaturePadding.Pkcs1
-            );
+            && key.VerifyData(SignedData.Span, Signature.Span, hashAlgorithm, padding);
     }
 
     private bool VerifyEcdsa(X509Certificate2 issuer, HashAlgorithmName hashAlgorithm)

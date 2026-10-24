@@ -1,7 +1,9 @@
 # 180. Migrations run before the rollout and keep the previous release working
 
 - **Status:** Accepted (expand-and-contract checked by
-  [ADR-0184](0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md))
+  [ADR-0184](0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md); amended by
+  [ADR-0250](0250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md): raw
+  SQL is classified)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

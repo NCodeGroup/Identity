@@ -17,10 +17,12 @@
 #endregion
 
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
@@ -36,30 +38,37 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// location it was fetched from. A certificate is <see cref="ClientCertificateRevocationStatus.Good"/> or
 /// <see cref="ClientCertificateRevocationStatus.Revoked"/> only on the word of such a list; otherwise its status is
 /// <see cref="ClientCertificateRevocationStatus.Unknown"/>. A verified list is cached per location and issuing
-/// certificate until its next update, for at most one hour.
+/// certificate until its next update, for at most the configured maximum cache duration. Concurrent checks of one
+/// list share a single retrieval, which is bounded by its own timeout, and a retrieval that yielded no usable list is
+/// remembered for a configured time.
 /// </summary>
 internal sealed class DefaultClientCertificateRevocationChecker(
     TimeProvider timeProvider,
     IHttpClientFactory httpClientFactory,
     IOutboundHttpContentReader outboundHttpContentReader,
     IMemoryCache memoryCache,
+    IOptions<ClientCertificateRevocationOptions> options,
     ILogger<DefaultClientCertificateRevocationChecker> logger
 ) : IClientCertificateRevocationChecker
 {
     internal const string HttpClientName = "NCode.Identity.OpenId.ClientCertificateRevocation";
 
-    private const int MaxSizeBytes = 10 * 1024 * 1024;
+    private const string UnavailableKeySuffix = ":unavailable";
 
-    private static readonly TimeSpan FetchTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan ThisUpdateSkew = TimeSpan.FromMinutes(5);
-    private static readonly TimeSpan MaxCacheDuration = TimeSpan.FromHours(1);
 
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
     private IOutboundHttpContentReader OutboundHttpContentReader { get; } =
         outboundHttpContentReader;
     private IMemoryCache MemoryCache { get; } = memoryCache;
+    private ClientCertificateRevocationOptions Options { get; } = options.Value;
     private ILogger<DefaultClientCertificateRevocationChecker> Logger { get; } = logger;
+
+    private ConcurrentDictionary<
+        string,
+        Lazy<Task<CertificateRevocationList?>>
+    > Retrievals { get; } = new(StringComparer.Ordinal);
 
     /// <inheritdoc />
     public async ValueTask<ClientCertificateRevocationStatus> CheckAsync(
@@ -126,7 +135,83 @@ internal sealed class DefaultClientCertificateRevocationChecker(
             return cached;
         }
 
-        var encoded = await FetchAsync(certificate, uri, cancellationToken);
+        // A retrieval that yielded no usable list is remembered, so an unreachable or misbehaving source is not
+        // asked again for every check. See ADR-0252.
+        var failureKey = $"{cacheKey}{UnavailableKeySuffix}";
+        if (MemoryCache.TryGetValue(failureKey, out _))
+        {
+            Logger.CertificateRevocationListRetrievalSuppressed(
+                uri,
+                certificate.Subject,
+                Options.FailureCacheDuration
+            );
+            return null;
+        }
+
+        // Concurrent checks of one list share a retrieval. It runs on a copy of the issuer's data and without the
+        // caller's token, so a caller that gives up or disposes its certificate does not break it for the others.
+        var issuerData = issuer.RawData;
+        var subject = certificate.Subject;
+        var retrieval = Retrievals.GetOrAdd(
+            cacheKey,
+            _ => new Lazy<Task<CertificateRevocationList?>>(() =>
+                RetrieveAsync(cacheKey, subject, issuerData, uri)
+            )
+        );
+        return await retrieval.Value.WaitAsync(cancellationToken);
+    }
+
+    // A Task, not a ValueTask, because every caller sharing the retrieval awaits it.
+    private async Task<CertificateRevocationList?> RetrieveAsync(
+        string cacheKey,
+        string subject,
+        byte[] issuerData,
+        string uri
+    )
+    {
+        try
+        {
+            using var issuer = X509CertificateLoader.LoadCertificate(issuerData);
+            var crl = await RetrieveVerifiedCrlAsync(subject, issuer, uri, CancellationToken.None);
+            if (crl is null)
+            {
+                MemoryCache.Set(
+                    $"{cacheKey}{UnavailableKeySuffix}",
+                    true,
+                    Options.FailureCacheDuration
+                );
+                return null;
+            }
+
+            var maxExpiration = TimeProvider.GetUtcNow() + Options.MaxCacheDuration;
+            MemoryCache.Set(
+                cacheKey,
+                crl,
+                new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpiration =
+                        crl.NextUpdate is { } nextUpdate && nextUpdate < maxExpiration
+                            ? nextUpdate
+                            : maxExpiration,
+                }
+            );
+
+            return crl;
+        }
+        finally
+        {
+            Retrievals.TryRemove(cacheKey, out _);
+        }
+    }
+
+    private async ValueTask<CertificateRevocationList?> RetrieveVerifiedCrlAsync(
+        string subject,
+        X509Certificate2 issuer,
+        string uri,
+        CancellationToken cancellationToken
+    )
+    {
+        var encoded = await FetchAsync(subject, uri, cancellationToken);
         if (encoded is null)
             return null;
 
@@ -134,7 +219,7 @@ internal sealed class DefaultClientCertificateRevocationChecker(
         {
             Logger.CertificateRevocationListUnavailable(
                 uri,
-                certificate.Subject,
+                subject,
                 "The response is not a DER encoded certificate revocation list."
             );
             return null;
@@ -144,7 +229,7 @@ internal sealed class DefaultClientCertificateRevocationChecker(
         {
             Logger.CertificateRevocationListUnavailable(
                 uri,
-                certificate.Subject,
+                subject,
                 "The list uses a feature that is not supported."
             );
             return null;
@@ -154,7 +239,7 @@ internal sealed class DefaultClientCertificateRevocationChecker(
         {
             Logger.CertificateRevocationListUnavailable(
                 uri,
-                certificate.Subject,
+                subject,
                 "The list is not signed by the issuing certificate."
             );
             return null;
@@ -163,11 +248,7 @@ internal sealed class DefaultClientCertificateRevocationChecker(
         var now = TimeProvider.GetUtcNow();
         if (crl.ThisUpdate > now + ThisUpdateSkew)
         {
-            Logger.CertificateRevocationListUnavailable(
-                uri,
-                certificate.Subject,
-                "The list is not yet valid."
-            );
+            Logger.CertificateRevocationListUnavailable(uri, subject, "The list is not yet valid.");
             return null;
         }
 
@@ -175,27 +256,17 @@ internal sealed class DefaultClientCertificateRevocationChecker(
         {
             Logger.CertificateRevocationListUnavailable(
                 uri,
-                certificate.Subject,
+                subject,
                 "The list is not current: it has no next update, or its next update has passed."
             );
             return null;
         }
 
-        var maxExpiration = now + MaxCacheDuration;
-        MemoryCache.Set(
-            cacheKey,
-            crl,
-            new MemoryCacheEntryOptions
-            {
-                AbsoluteExpiration = nextUpdate < maxExpiration ? nextUpdate : maxExpiration,
-            }
-        );
-
         return crl;
     }
 
     private async ValueTask<byte[]?> FetchAsync(
-        X509Certificate2 certificate,
+        string subject,
         string uri,
         CancellationToken cancellationToken
     )
@@ -204,14 +275,14 @@ internal sealed class DefaultClientCertificateRevocationChecker(
         {
             Logger.CertificateRevocationListUnavailable(
                 uri,
-                certificate.Subject,
+                subject,
                 "The location is not an absolute URI."
             );
             return null;
         }
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(FetchTimeout);
+        timeoutCts.CancelAfter(Options.FetchTimeout);
 
         try
         {
@@ -228,7 +299,7 @@ internal sealed class DefaultClientCertificateRevocationChecker(
             {
                 Logger.CertificateRevocationListUnavailable(
                     uri,
-                    certificate.Subject,
+                    subject,
                     $"The list could not be fetched (HTTP {(int)response.StatusCode})."
                 );
                 return null;
@@ -238,14 +309,14 @@ internal sealed class DefaultClientCertificateRevocationChecker(
             var readResult = await OutboundHttpContentReader.ReadCappedAsync(
                 response,
                 buffer,
-                MaxSizeBytes,
+                Options.MaxResponseSizeBytes,
                 timeoutCts.Token
             );
             if (readResult != OutboundHttpReadResult.Completed)
             {
                 Logger.CertificateRevocationListUnavailable(
                     uri,
-                    certificate.Subject,
+                    subject,
                     "The list exceeds the maximum allowed size."
                 );
                 return null;
@@ -257,18 +328,14 @@ internal sealed class DefaultClientCertificateRevocationChecker(
         {
             Logger.CertificateRevocationListUnavailable(
                 uri,
-                certificate.Subject,
+                subject,
                 $"The list could not be fetched: {exception.Message}"
             );
             return null;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            Logger.CertificateRevocationListUnavailable(
-                uri,
-                certificate.Subject,
-                "The fetch timed out."
-            );
+            Logger.CertificateRevocationListUnavailable(uri, subject, "The fetch timed out.");
             return null;
         }
     }

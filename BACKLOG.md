@@ -73,7 +73,7 @@ entry and/or ADR that closed it.
 
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
+| `D` — Deferred, intentionally not-yet | `D18`     | `D17`      |
 | `F` — Feature gaps                    | `F85`     | `F84`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
@@ -119,6 +119,14 @@ entry and/or ADR that closed it.
   catch-up: land the frontend toolchain the way
   [ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md) describes, and
   hold any major that cannot land yet with an `ignore` rule and a backlog item. Touch point: `.github/dependabot.yml`.
+- **`D17` — Remove the retired `mtls_endpoint_alias_authority` setting.** `PromoteMtlsEndpointAliasAuthority` copies
+  each tenant's alias into its `MtlsEndpointAliasAuthority` column and leaves the setting in the stored document for the
+  previous release, and the setting stays registered as retired
+  ([ADR-0251](docs/adr/0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md)). In the first
+  release after the one that ships that migration, add a `[ContractMigration]` that removes the key from every settings
+  table and gives each rewritten row a new `SettingsConcurrencyToken`, and delete the retired descriptor. Not before:
+  the previous release still reads the key. Touch points: `NCode.Identity.OpenId.Host.Database` migrations,
+  `DefaultSettingDescriptorDataSource`.
 
 ## Feature gaps — not yet implemented (group `F`)
 
@@ -556,10 +564,13 @@ _None remaining._
   `InteractiveAuthenticationEndpointGroup.cs:55`.
 - **`R36` — Test the bundle-shell split against the built bundle's real `index.html`.** Touch point:
   `InteractiveBundleShell.cs:51-100`.
-- **`R64` — Check client-certificate revocation beyond complete CRLs.** The default checker refuses, as Unknown, an
-  OCSP-only PKI, delta, partitioned and indirect CRLs, a CRL signed by a key other than the issuing certificate, and
-  RSA-PSS or SHA-1 signatures. It also retries an unreachable distribution point on every request (no negative cache,
-  no single-flight). Touch points: `DefaultClientCertificateRevocationChecker`, `CertificateRevocationList`, ADR-0173.
+- **`R64` — Check client-certificate revocation through OCSP and the remaining CRL forms.** The default checker shares
+  each retrieval, remembers a failed one, verifies RSA-PSS lists and offers `online_soft_fail`
+  ([ADR-0252](docs/adr/0252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)).
+  It still answers Unknown for an OCSP-only PKI, for delta, partitioned (`reasons`, `onlySomeReasons`) and indirect
+  CRLs, and for a CRL signed by a key other than the issuing certificate's. Add OCSP (RFC 6960, a direct query without
+  stapling, with a response cache), delta and partitioned CRLs, indirect CRLs and CRL-signer path validation. Touch
+  points: `DefaultClientCertificateRevocationChecker`, `CertificateRevocationList`, ADR-0173, ADR-0252.
 - **`R67` — Run the conformance pre-flight in the FAPI 1.0 Advanced run.** Advertised certificate binding does not
   force every client to present a certificate (`R42`), so `-Fapi1Advanced` has no reason to skip the pre-flight; update
   `build/conformance/README.md` with it. Touch points: `build/conformance/run-conformance.ps1` (`Initialize-Fapi1Run`).

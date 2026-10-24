@@ -1,4 +1,15 @@
 #nullable enable
+const NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.SectionName = "ClientCertificateRevocation" -> string!
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.ClientCertificateRevocationOptions() -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.FailureCacheDuration.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.FailureCacheDuration.set -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.FetchTimeout.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.FetchTimeout.set -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.MaxCacheDuration.get -> System.TimeSpan
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.MaxCacheDuration.set -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.MaxResponseSizeBytes.get -> int
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationOptions.MaxResponseSizeBytes.set -> void
 NCode.Identity.OpenId.Authentication.DefaultRegistration
 NCode.Identity.OpenId.Authentication.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
 NCode.Identity.OpenId.Authentication.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!).AddOpenIdAuthenticationLibrary(NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>! joseBuilder) -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Authentication.OpenIdAuthenticationLibrary>!

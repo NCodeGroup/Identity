@@ -55,6 +55,14 @@ internal static class DefaultRegistration
                 >()
             );
 
+            serviceCollection.AddOptions<ClientCertificateRevocationOptions>().ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<ClientCertificateRevocationOptions>,
+                    ClientCertificateRevocationOptionsValidator
+                >()
+            );
+
             serviceCollection.TryAddSingleton<
                 IClientCertificateResolver,
                 DefaultClientCertificateResolver

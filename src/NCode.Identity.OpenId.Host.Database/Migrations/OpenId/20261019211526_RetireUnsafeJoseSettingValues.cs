@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ContractMigration(
+        "Shipped before any release, so no running release honors the retired settings (ADR-0155, ADR-0025)."
+    )]
     public partial class RetireUnsafeJoseSettingValues : Migration
     {
         // Every table that stores a settings document (ADR-0139).

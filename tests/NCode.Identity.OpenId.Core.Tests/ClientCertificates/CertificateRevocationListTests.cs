@@ -381,6 +381,34 @@ public sealed class CertificateRevocationListTests
         Assert.True(result);
     }
 
+    [Theory]
+    [InlineData("SHA256")]
+    [InlineData("SHA384")]
+    [InlineData("SHA512")]
+    public void IsSignedBy_AnRsaPssAuthority_ReturnsTrue(string hashAlgorithmName)
+    {
+        using var root = CreateAuthority(
+            "RsaPssRoot",
+            X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign,
+            rsa: true
+        );
+        var encoded = new CertificateRevocationListBuilder().Build(
+            root,
+            BigInteger.One,
+            DateTimeOffset.UtcNow.AddDays(1),
+            new HashAlgorithmName(hashAlgorithmName),
+            RSASignaturePadding.Pss
+        );
+        var parsed = CertificateRevocationList.TryParse(encoded, out var crl);
+        Assert.True(parsed);
+        Assert.NotNull(crl);
+        Assert.Equal("1.2.840.113549.1.1.10", crl.SignatureAlgorithm);
+
+        var result = crl.IsSignedBy(root);
+
+        Assert.True(result);
+    }
+
     [Fact]
     public void IsSignedBy_AnotherAuthority_ReturnsFalse()
     {
@@ -422,6 +450,70 @@ public sealed class CertificateRevocationListTests
         Assert.NotNull(crl);
 
         var result = crl.IsSignedBy(root);
+
+        Assert.False(result);
+    }
+
+    #endregion
+
+    #region TryGetPssHashAlgorithm Tests
+
+    [Fact]
+    public void TryGetPssHashAlgorithm_WithSha256ParametersWithoutNull_ReturnsTheHash()
+    {
+        var parameters = Convert.FromHexString(
+            "3030A00D300B0609608648016503040201A11A301806092A864886F70D010108300B0609608648016503040201A203020120"
+        );
+
+        var result = CertificateRevocationList.TryGetPssHashAlgorithm(
+            parameters,
+            out var hashAlgorithm
+        );
+
+        Assert.True(result);
+        Assert.Equal(HashAlgorithmName.SHA256, hashAlgorithm);
+    }
+
+    [Fact]
+    public void TryGetPssHashAlgorithm_WithNullHashParameters_ReturnsTheHash()
+    {
+        var parameters = Convert.FromHexString(
+            "3034A00F300D06096086480165030402010500A11C301A06092A864886F70D010108300D06096086480165030402010500A203020120"
+        );
+
+        var result = CertificateRevocationList.TryGetPssHashAlgorithm(
+            parameters,
+            out var hashAlgorithm
+        );
+
+        Assert.True(result);
+        Assert.Equal(HashAlgorithmName.SHA256, hashAlgorithm);
+    }
+
+    [Theory]
+    [InlineData(
+        "3030A00D300B0609608648016503040201A11A301806092A864886F70D010108300B0609608648016503040202A203020120"
+    )]
+    [InlineData(
+        "3030A00D300B0609608648016503040201A11A301806092A864886F70D010108300B0609608648016503040201A203020121"
+    )]
+    [InlineData(
+        "3035A00D300B0609608648016503040201A11A301806092A864886F70D010108300B0609608648016503040201A203020120A303020102"
+    )]
+    [InlineData(
+        "3028A009300706052B0E03021AA116301406092A864886F70D010108300706052B0E03021AA203020114"
+    )]
+    [InlineData(
+        "3030A00D300B0609608648016503040201A11A301806092A864886F70D010109300B0609608648016503040201A203020120"
+    )]
+    [InlineData("3000")]
+    public void TryGetPssHashAlgorithm_WithParametersThatAreNotAccepted_ReturnsFalse(
+        string parametersHex
+    )
+    {
+        var parameters = Convert.FromHexString(parametersHex);
+
+        var result = CertificateRevocationList.TryGetPssHashAlgorithm(parameters, out _);
 
         Assert.False(result);
     }

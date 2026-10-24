@@ -264,6 +264,34 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             ])
             .Verifiable();
 
+    private void SetupValidSettingsUpdate() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettingsUpdate(
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.Tenant,
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
+            .Returns([])
+            .Verifiable();
+
+    private void SetupInvalidSettingsUpdate() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettingsUpdate(
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<JsonElement>(),
+                    OpenIdSettingScopes.Tenant,
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
+            .Returns([
+                new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
+            ])
+            .Verifiable();
+
     private static void AssertSettingsValidationProblem(IResult result)
     {
         var problem = Assert.IsType<ValidationProblem>(result);
@@ -801,7 +829,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         MockTenantStore
@@ -829,7 +857,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenTheReplacedDocumentCannotBeHonored_WritesWithoutCheckingTheClients()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         MockTenantStore
@@ -887,7 +915,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenTheChangeMakesAClientIncoherent_ReturnsValidationProblem()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -929,7 +957,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenTheChangeMakesManyClientsIncoherent_ListsTenAndCountsTheRest()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -977,7 +1005,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
     {
-        SetupInvalidSettings();
+        SetupInvalidSettingsUpdate();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         MockTenantStore

@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ContractMigration(
+        "Shipped before any release, so no running release reads 'require_dpop' (ADR-0097, ADR-0025)."
+    )]
     public partial class RenameDPoPRequirement : Migration
     {
         // The setting that was a client's requirement for DPoP-bound access tokens (RFC 9449).
@@ -21,8 +24,8 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // The previous release keeps serving while this migration is applied (ADR-0180), and ADR-0184 leaves a
-            // data rewrite to review. That release fails closed on a document that now carries
+            // The previous release keeps serving while this migration is applied (ADR-0180), so this data rewrite is a
+            // contract step (ADR-0250). That release fails closed on a document that now carries
             // 'require_dpop_bound_access_tokens', because a stored document that names a setting the release does not
             // know fails to load (ADR-0139). Such a document is refused until the rollout completes.
             //

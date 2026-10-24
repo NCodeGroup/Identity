@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ExpandMigration(
+        "The copy writes only columns the previous release does not read and keeps the setting it reads."
+    )]
     public partial class PromoteMtlsEndpointAliasAuthority : Migration
     {
         /// <inheritdoc />
@@ -33,11 +36,12 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 filter: "\"NormalizedMtlsEndpointAliasHost\" IS NOT NULL");
 
             // The 'mtls_endpoint_alias_authority' setting is retired: the alias authority is a tenant property the host
-            // strategy routes on (ADR-0195). Each tenant's stored value moves into the new column, with its derived host,
-            // and the key leaves the settings document, which gets a new settings concurrency token as any other settings
-            // write does (ADR-0139: a stored document that names a retired setting fails closed when it is read). The
-            // setting applied only to tenants, so no other table stores it. A stored value was validated as an https
-            // origin when it was written; an empty one meant "no aliases".
+            // strategy routes on (ADR-0195). Each tenant's stored value is copied into the alias columns, with its
+            // derived host, and the tenant gets a new concurrency token, as any other tenant write does. The setting
+            // stays in the settings document: the previous release reads it while this release rolls out and after a
+            // rollback (ADR-0180), this release ignores it as a retired setting, and a later release removes it
+            // (ADR-0251). The setting applied only to tenants. A stored value was validated as an https origin when it
+            // was written; an empty or null value meant "no aliases", so only a non-empty string is copied.
             migrationBuilder.Sql(
                 """
                 UPDATE "Tenants" AS target
@@ -45,20 +49,20 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     "NormalizedMtlsEndpointAliasHost" = lower(
                         substring(migrated.authority from '^https://(\[[^]]+\]|[^/:]+)')
                     ),
-                    "SettingsJson" = (migrated.document - 'mtls_endpoint_alias_authority')::text,
-                    "SettingsConcurrencyToken" = replace(gen_random_uuid()::text, '-', '')
+                    "ConcurrencyToken" = replace(gen_random_uuid()::text, '-', '')
                 FROM (
                     SELECT source."Id",
-                        source.document,
                         NULLIF(rtrim(source.document ->> 'mtls_endpoint_alias_authority', '/'), '') AS authority
                     FROM (
                         SELECT "Id", "SettingsJson"::jsonb AS document
                         FROM "Tenants"
                         WHERE strpos("SettingsJson", 'mtls_endpoint_alias_authority') > 0
                     ) AS source
-                    WHERE jsonb_typeof(source.document -> 'mtls_endpoint_alias_authority') IN ('string', 'null')
+                    WHERE jsonb_typeof(source.document) = 'object'
+                        AND jsonb_typeof(source.document -> 'mtls_endpoint_alias_authority') = 'string'
                 ) AS migrated
-                WHERE target."Id" = migrated."Id";
+                WHERE target."Id" = migrated."Id"
+                    AND migrated.authority IS NOT NULL;
                 """
             );
         }
@@ -66,6 +70,43 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // The previous release reads the alias from the 'mtls_endpoint_alias_authority' setting, which Up leaves
+            // in place. The setting takes each tenant's current alias, so an alias changed while this release served
+            // survives the downgrade, and a tenant without an alias loses a stale value. A tenant with an alias and a
+            // null settings document, as a provisioned tenant has, gets a document that holds only the setting. A
+            // rewritten document gets a new settings concurrency token, as any other settings write does. Any other
+            // document that is not a JSON object, and an empty, null or non-string value of a tenant without an
+            // alias, are left as is.
+            migrationBuilder.Sql(
+                """
+                UPDATE "Tenants"
+                SET "SettingsJson" = CASE
+                        WHEN "MtlsEndpointAliasAuthority" IS NULL
+                            THEN ("SettingsJson"::jsonb - 'mtls_endpoint_alias_authority')::text
+                        ELSE jsonb_set(
+                            CASE
+                                WHEN jsonb_typeof("SettingsJson"::jsonb) = 'null' THEN '{}'::jsonb
+                                ELSE "SettingsJson"::jsonb
+                            END,
+                            '{mtls_endpoint_alias_authority}',
+                            to_jsonb("MtlsEndpointAliasAuthority")
+                        )::text
+                    END,
+                    "SettingsConcurrencyToken" = replace(gen_random_uuid()::text, '-', '')
+                WHERE (
+                        jsonb_typeof("SettingsJson"::jsonb) = 'object'
+                        OR (jsonb_typeof("SettingsJson"::jsonb) = 'null' AND "MtlsEndpointAliasAuthority" IS NOT NULL)
+                    )
+                    AND CASE
+                        WHEN "MtlsEndpointAliasAuthority" IS NULL
+                            THEN jsonb_typeof("SettingsJson"::jsonb -> 'mtls_endpoint_alias_authority') = 'string'
+                                AND "SettingsJson"::jsonb ->> 'mtls_endpoint_alias_authority' <> ''
+                        ELSE ("SettingsJson"::jsonb -> 'mtls_endpoint_alias_authority')
+                            IS DISTINCT FROM to_jsonb("MtlsEndpointAliasAuthority")
+                    END;
+                """
+            );
+
             migrationBuilder.DropIndex(
                 name: "IX_Tenants_NormalizedMtlsEndpointAliasHost",
                 table: "Tenants");

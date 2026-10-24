@@ -1,51 +1,48 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { loadBranding } from './branding.js';
+import { describe, expect, it } from 'vitest';
+import { BRANDING_ELEMENT_ID, readBranding } from './branding.js';
 
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
+/** Builds a detached document whose head holds the given markup. */
+function documentWithHead(head: string): Document {
+  const doc = document.implementation.createHTMLDocument('');
+  doc.head.innerHTML = head;
+  return doc;
 }
 
-describe('loadBranding', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it('fetches the branding beneath the tenant surface and keeps its well-formed tokens', async () => {
-    const fetchFn = vi.fn(() =>
-      Promise.resolve(
-        jsonResponse({ displayName: 'Acme', primaryColor: '#1565c0', mode: 'bogus' }),
-      ),
+describe('readBranding', () => {
+  it('reads the branding the host embedded and keeps its well-formed tokens', () => {
+    const doc = documentWithHead(
+      `<script type="application/json" id="${BRANDING_ELEMENT_ID}">{"displayName":"Acme","primaryColor":"#1565c0","mode":"bogus"}</script>`,
     );
 
-    const branding = await loadBranding(fetchFn, 'https://op.example/acme/account/');
-
-    expect(branding).toEqual({ displayName: 'Acme', primaryColor: '#1565c0' });
-    expect(fetchFn).toHaveBeenCalledWith('/acme/account/branding', {
-      headers: { Accept: 'application/json' },
-      credentials: 'same-origin',
-    });
+    expect(readBranding(doc)).toEqual({ displayName: 'Acme', primaryColor: '#1565c0' });
   });
 
-  it('resolves against the document base and the global fetch by default', async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(jsonResponse({ mode: 'dark' })));
-    vi.stubGlobal('fetch', fetchMock);
-
-    await expect(loadBranding()).resolves.toEqual({ mode: 'dark' });
-    expect(fetchMock).toHaveBeenCalledWith('/account/branding', expect.anything());
+  it('applies the default presentation when the page embeds no branding', () => {
+    expect(readBranding(documentWithHead(''))).toBeUndefined();
+    expect(
+      readBranding(documentWithHead(`<script type="application/json" id="branding"></script>`)),
+    ).toBeUndefined();
   });
 
-  it('applies the default presentation when the host answers with an error', async () => {
-    const fetchFn = vi.fn(() => Promise.resolve(jsonResponse({}, 404)));
+  it('applies the default presentation when the embedded branding is not JSON', () => {
+    const doc = documentWithHead(
+      `<script type="application/json" id="${BRANDING_ELEMENT_ID}">{not json</script>`,
+    );
 
-    await expect(loadBranding(fetchFn, 'https://op.example/account/')).resolves.toBeUndefined();
+    expect(readBranding(doc)).toBeUndefined();
   });
 
-  it('applies the default presentation when the request fails', async () => {
-    const fetchFn = vi.fn(() => Promise.reject(new TypeError('offline')));
+  it('reads the live document by default', () => {
+    const block = document.createElement('script');
+    block.type = 'application/json';
+    block.id = BRANDING_ELEMENT_ID;
+    block.textContent = '{"mode":"dark"}';
+    document.head.append(block);
 
-    await expect(loadBranding(fetchFn, 'https://op.example/account/')).resolves.toBeUndefined();
+    try {
+      expect(readBranding()).toEqual({ mode: 'dark' });
+    } finally {
+      block.remove();
+    }
   });
 });

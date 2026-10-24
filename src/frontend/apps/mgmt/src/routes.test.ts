@@ -24,6 +24,11 @@ describe('routePath', () => {
     );
   });
 
+  it("nests each of the tenant's own surfaces under its tenant", () => {
+    expect(routePath(tenantRoute('acme', 'secrets'))).toBe('/tenants/acme/secrets');
+    expect(routePath(tenantRoute('acme', 'usage'))).toBe('/tenants/acme/usage');
+  });
+
   it('opens a tenant on its clients by default', () => {
     expect(routePath(tenantRoute('acme'))).toBe('/tenants/acme/clients');
   });

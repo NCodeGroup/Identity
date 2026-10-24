@@ -18,6 +18,7 @@
 
 using System.Buffers;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
@@ -42,6 +43,9 @@ internal static class InteractiveAuthenticationPageRenderer
     private const string StandaloneHeadEnd = "</title></head><body><div id=\"root\">";
     private const string StandaloneTail = "</div></body></html>";
 
+    private const string BrandingStart = "<script type=\"application/json\" id=\"branding\">";
+    private const string BrandingEnd = "</script>";
+
     /// <summary>A single requested scope the consent form presents as a checkbox. <paramref name="Checked"/> is the
     /// default selection state — a consent screen pre-selects the requested scopes so <c>Allow</c> authorizes the
     /// request, and the subject unchecks a scope to down-scope the grant.</summary>
@@ -51,17 +55,26 @@ internal static class InteractiveAuthenticationPageRenderer
     /// Renders the login page: a native form POST to the login endpoint carrying <c>username</c>, <c>password</c>, the
     /// return URL, and the antiforgery token, with the stable <c>username</c> / <c>password</c> / <c>login</c> ids.
     /// </summary>
+    /// <param name="writer">The buffer the page is written to.</param>
+    /// <param name="shell">The bundle's split <c>index.html</c>, or <see langword="null"/> for a standalone page.</param>
+    /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
+    /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
+    /// <param name="returnUrl">The URL the form carries so the end-user returns to it once signed in.</param>
+    /// <param name="antiforgeryFieldName">The name of the form field that carries the antiforgery token.</param>
+    /// <param name="antiforgeryToken">The antiforgery token the form carries.</param>
+    /// <param name="errorMessage">The message shown above the form, or <see langword="null"/> for none.</param>
     public static void RenderLoginPage(
         IBufferWriter<char> writer,
         InteractiveBundleShell? shell,
         string surfaceBase,
+        InteractiveBranding? branding,
         string returnUrl,
         string antiforgeryFieldName,
         string antiforgeryToken,
         string? errorMessage
     )
     {
-        WriteHead(writer, shell, surfaceBase, "Sign in");
+        WriteHead(writer, shell, surfaceBase, branding, "Sign in");
         Write(
             writer,
             // The action is relative to the page, so the form posts to the login endpoint of the tenant that served it.
@@ -90,10 +103,20 @@ internal static class InteractiveAuthenticationPageRenderer
     /// Renders the consent page: a per-scope checkbox over the requested scopes and allow/deny submit buttons with the
     /// stable <c>consent-allow</c> / <c>consent-deny</c> ids, posting to the consent endpoint.
     /// </summary>
+    /// <param name="writer">The buffer the page is written to.</param>
+    /// <param name="shell">The bundle's split <c>index.html</c>, or <see langword="null"/> for a standalone page.</param>
+    /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
+    /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
+    /// <param name="returnUrl">The URL the form carries so the request resumes once consent is given.</param>
+    /// <param name="antiforgeryFieldName">The name of the form field that carries the antiforgery token.</param>
+    /// <param name="antiforgeryToken">The antiforgery token the form carries.</param>
+    /// <param name="appName">The name of the application that requests access.</param>
+    /// <param name="scopes">The requested scopes, each presented as a checkbox.</param>
     public static void RenderConsentPage(
         IBufferWriter<char> writer,
         InteractiveBundleShell? shell,
         string surfaceBase,
+        InteractiveBranding? branding,
         string returnUrl,
         string antiforgeryFieldName,
         string antiforgeryToken,
@@ -101,7 +124,7 @@ internal static class InteractiveAuthenticationPageRenderer
         IReadOnlyList<ScopeView> scopes
     )
     {
-        WriteHead(writer, shell, surfaceBase, "Authorize access");
+        WriteHead(writer, shell, surfaceBase, branding, "Authorize access");
         Write(
             writer,
             "<main class=\"auth-card\"><form method=\"post\" action=\"consent\"><h1>Authorize access</h1><p>"
@@ -134,15 +157,22 @@ internal static class InteractiveAuthenticationPageRenderer
     /// <c>authorization-error</c> element (plus a <c>data-error-code</c> attribute) so automation — including the
     /// OpenID conformance suite's <c>oidcc-ensure-registered-redirect-uri</c> browser task — can assert on it.
     /// </summary>
+    /// <param name="writer">The buffer the page is written to.</param>
+    /// <param name="shell">The bundle's split <c>index.html</c>, or <see langword="null"/> for a standalone page.</param>
+    /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
+    /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
+    /// <param name="errorCode">The error code, such as <c>invalid_client</c>.</param>
+    /// <param name="errorDescription">The human-readable error description, or <see langword="null"/> for none.</param>
     public static void RenderErrorPage(
         IBufferWriter<char> writer,
         InteractiveBundleShell? shell,
         string surfaceBase,
+        InteractiveBranding? branding,
         string errorCode,
         string? errorDescription
     )
     {
-        WriteHead(writer, shell, surfaceBase, "Authorization error");
+        WriteHead(writer, shell, surfaceBase, branding, "Authorization error");
         Write(
             writer,
             "<main class=\"auth-card\"><h1>Authorization error</h1>"
@@ -185,24 +215,31 @@ internal static class InteractiveAuthenticationPageRenderer
     /// Renders a page the single-page bundle draws entirely (the account, applications, and sessions pages): the
     /// bundle's document with its base set to the surface beneath the tenant and its mount point left empty.
     /// </summary>
+    /// <param name="writer">The buffer the page is written to.</param>
+    /// <param name="shell">The bundle's split <c>index.html</c>.</param>
+    /// <param name="surfaceBase">The URL of the surface beneath the tenant, which the page's base is set to.</param>
+    /// <param name="branding">The tenant's branding, embedded for the bundle; <see langword="null"/> embeds none.</param>
     public static void RenderBundlePage(
         IBufferWriter<char> writer,
         InteractiveBundleShell shell,
-        string surfaceBase
+        string surfaceBase,
+        InteractiveBranding? branding
     )
     {
-        WriteHead(writer, shell, surfaceBase, title: string.Empty);
+        WriteHead(writer, shell, surfaceBase, branding, title: string.Empty);
         WriteTail(writer, shell);
     }
 
     // Writes the bundle's head, which ends inside its #root, so the SPA enhances the form on mount; without the bundle,
     // a minimal standalone document keeps the form working. Either way the document's base is the surface beneath the
     // request's tenant, so the bundle's relative asset URLs, its API calls, and the forms' relative actions resolve
-    // there whatever path the page itself was served at (ADR-0193).
+    // there whatever path the page itself was served at (ADR-0193). The tenant's branding follows the base, so the
+    // bundle finds it in the page it mounts over.
     private static void WriteHead(
         IBufferWriter<char> writer,
         InteractiveBundleShell? shell,
         string surfaceBase,
+        InteractiveBranding? branding,
         string title
     )
     {
@@ -210,6 +247,11 @@ internal static class InteractiveAuthenticationPageRenderer
         {
             Write(writer, shell.Prelude.Span);
             WriteBase(writer, surfaceBase);
+            if (branding is not null)
+            {
+                WriteBranding(writer, branding);
+            }
+
             Write(writer, shell.Head.Span);
             return;
         }
@@ -226,6 +268,15 @@ internal static class InteractiveAuthenticationPageRenderer
         Write(writer, "<base href=\"");
         WriteEncoded(writer, surfaceBase);
         Write(writer, "\" />");
+    }
+
+    // The bundle reads this block when it mounts (ADR-0253). The default encoder of JsonSerializerOptions.Web escapes
+    // `<`, `>` and `&`, so no value can close the block.
+    private static void WriteBranding(IBufferWriter<char> writer, InteractiveBranding branding)
+    {
+        Write(writer, BrandingStart);
+        Write(writer, JsonSerializer.Serialize(branding, JsonSerializerOptions.Web));
+        Write(writer, BrandingEnd);
     }
 
     private static void WriteTail(IBufferWriter<char> writer, InteractiveBundleShell? shell) =>

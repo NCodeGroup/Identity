@@ -734,6 +734,16 @@ rationale.
   refusal that resumes a parked authorization request answers it through `IContinueRefusalService`, which delivers the
   error to the client, never a redirect elsewhere. See
   [ADR-0229](../../docs/adr/0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md).
+- 👁 **A page the bundle draws over carries the state the bundle starts from.** The host writes what the bundle needs
+  into the page, such as the tenant's branding as a `<script type="application/json" id="branding">` block serialized
+  with `JsonSerializerOptions.Web`, whose encoder escapes `<`, `>` and `&`. The bundle reads it, and the server form's
+  state, when it mounts. Never add an endpoint the bundle must call before it can render. See
+  [ADR-0253](../../docs/adr/0253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md).
+- 👁 **A content-hashed static file is served by a route group that resolves no tenant.**
+  `InteractiveBundleAssetEndpointGroup` takes the tenant-route prefix and adds no `OpenIdEnvironmentEndpointFilter`. It
+  reads through the `assets`-rooted `InteractiveBundleReader`, so nothing outside `assets`, the bundle's `index.html`
+  included, is servable, and it sends a served file `Cache-Control: public, max-age=31536000, immutable`. See
+  [ADR-0254](../../docs/adr/0254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md).
 - 👁 **Background work that runs protocol machinery in a tenant creates its context with
   `IOpenIdContextFactory.CreateForBackgroundAsync` in its own DI scope.** The context has no endpoint, connection or
   user, and it is disposed before the scope. See

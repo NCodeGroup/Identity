@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import Stack from '@mui/material/Stack';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import {
@@ -17,25 +15,29 @@ import {
   useUpdateTenantSettingsMutation,
 } from '@ncode/store';
 import { DataStateBoundary, TenantUsageTable } from '@ncode/ui';
+import type { TenantOwnSurface } from '../routes.js';
 import { SecretsManager } from './SecretsManager.js';
 import { SettingsManager } from './SettingsManager.js';
 
 export type TenantDetailPageProps = {
   readonly tenantId: string;
+  /** The tenant surface the address bar names. */
+  readonly surface: TenantOwnSurface;
 };
 
-type TenantSurface = 'secrets' | 'settings' | 'usage';
+type TenantTabProps = {
+  readonly tenantId: string;
+};
 
 /**
- * Container: the current tenant's own secrets, settings, and usage surface (as opposed to its clients'). Mirrors the
+ * Container: the current tenant's own secrets, settings, or usage surface (as opposed to its clients'), as the
+ * `surface` prop names. The address bar selects the surface (ADR-0255), so this page holds no tab state. Mirrors the
  * client Secrets/Settings pattern on the tenant-level nested endpoints, wiring the shared
  * {@link SecretsManager}/{@link SettingsManager}, and shows the tenant's usage ledger (ADR-0199) through
- * {@link TenantUsageTable}. Owns only tab state; the tenant id comes from the active scope, so the boundary stays
- * structural (a tenant administrator can never address another tenant).
+ * {@link TenantUsageTable}. The tenant id comes from the active scope, so the boundary stays structural (a tenant
+ * administrator can never address another tenant).
  */
-export function TenantDetailPage({ tenantId }: TenantDetailPageProps) {
-  const [surface, setSurface] = useState<TenantSurface>('secrets');
-
+export function TenantDetailPage({ tenantId, surface }: TenantDetailPageProps) {
   return (
     <>
       <Stack sx={{ mb: 2 }}>
@@ -46,15 +48,6 @@ export function TenantDetailPage({ tenantId }: TenantDetailPageProps) {
           {tenantId}
         </Typography>
       </Stack>
-      <Tabs
-        value={surface}
-        onChange={(_event, value: TenantSurface) => setSurface(value)}
-        sx={{ mb: 2 }}
-      >
-        <Tab value="secrets" label="Secrets" data-testid="tenant-detail-tab-secrets" />
-        <Tab value="settings" label="Settings" data-testid="tenant-detail-tab-settings" />
-        <Tab value="usage" label="Usage" data-testid="tenant-detail-tab-usage" />
-      </Tabs>
       {surface === 'secrets' && <TenantSecretsTab tenantId={tenantId} />}
       {surface === 'settings' && <TenantSettingsTab tenantId={tenantId} />}
       {surface === 'usage' && <TenantUsageTab tenantId={tenantId} />}
@@ -62,7 +55,7 @@ export function TenantDetailPage({ tenantId }: TenantDetailPageProps) {
   );
 }
 
-function TenantSecretsTab({ tenantId }: TenantDetailPageProps) {
+function TenantSecretsTab({ tenantId }: TenantTabProps) {
   const { data, isLoading, error } = useListTenantSecretsQuery({ tenantId });
   const [createSecret, { isLoading: isCreating }] = useCreateTenantSecretMutation();
   const [deleteSecret, { isLoading: isDeleting }] = useDeleteTenantSecretMutation();
@@ -83,7 +76,7 @@ function TenantSecretsTab({ tenantId }: TenantDetailPageProps) {
   );
 }
 
-function TenantSettingsTab({ tenantId }: TenantDetailPageProps) {
+function TenantSettingsTab({ tenantId }: TenantTabProps) {
   const { data: settings, isLoading, error } = useGetTenantSettingsQuery({ tenantId });
   const { data: effective } = useGetTenantEffectiveSettingsQuery({ tenantId });
   const [updateSettings, { isLoading: isSaving }] = useUpdateTenantSettingsMutation();
@@ -106,7 +99,7 @@ function TenantSettingsTab({ tenantId }: TenantDetailPageProps) {
  * The tenant's usage ledger for a range of UTC days. An empty bound is left to the server, which defaults the range to
  * the last 30 days and refuses one longer than 366 days; the effective range is echoed back and shown.
  */
-function TenantUsageTab({ tenantId }: TenantDetailPageProps) {
+function TenantUsageTab({ tenantId }: TenantTabProps) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const { data, isFetching, error } = useGetTenantUsageQuery({

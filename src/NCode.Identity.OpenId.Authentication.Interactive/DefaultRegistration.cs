@@ -60,10 +60,10 @@ public static class DefaultRegistration
         /// bound from the <c>InteractiveAuthentication</c> configuration section and may be further configured through
         /// <paramref name="configureOptions"/>; a relative bundle path is resolved against the content root. Its
         /// endpoints register as an <see cref="InteractiveAuthenticationEndpointGroup"/> discovered by
-        /// <c>MapEndpointGroups</c> alongside the protocol endpoints, and those endpoints also serve the bundle's files
-        /// beneath the tenant route, so no middleware is added to the pipeline. The cookie scheme is registered as a
-        /// named scheme and does not
-        /// itself set the host's default authentication scheme. Credential verification is deferred to a registered
+        /// <c>MapEndpointGroups</c> alongside the protocol endpoints, and a second group serves the bundle's
+        /// content-hashed files beneath the tenant route without resolving the tenant, so no middleware is added to
+        /// the pipeline. The cookie scheme is registered as a named scheme and does not itself set the host's default
+        /// authentication scheme. Credential verification is deferred to a registered
         /// <see cref="IInteractiveCredentialVerifier"/>, which the host must supply separately.
         /// </summary>
         /// <remarks>
@@ -144,6 +144,10 @@ public static class DefaultRegistration
 
             // The surface's endpoints flow through the same MapEndpointGroups discovery as every other endpoint.
             builder.AddEndpointGroup<InteractiveAuthenticationEndpointGroup>();
+
+            // The bundle's content-hashed files are served beneath the tenant route by a group that resolves no tenant
+            // (ADR-0254).
+            builder.AddEndpointGroup<InteractiveBundleAssetEndpointGroup>();
 
             // Replace the core no-op consent-challenge handler with one that redirects to the interactive consent page.
             serviceCollection.Replace(

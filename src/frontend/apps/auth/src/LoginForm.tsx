@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -7,6 +8,7 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { ANTIFORGERY_FIELD, LOGIN_ACTION, resolveSurfacePath } from './params.js';
+import { writeCarriedValue } from './serverPage.js';
 
 export type LoginFormProps = {
   /** The validated local return URL the server redirects to after a successful sign-in. */
@@ -17,6 +19,12 @@ export type LoginFormProps = {
   readonly errorMessage?: string | null;
   /** The product/tenant display name shown in the heading. */
   readonly productName?: string;
+  /**
+   * The field values typed or autofilled into the server-rendered form before the bundle mounted, by field id.
+   */
+  readonly carriedValues?: Readonly<Record<string, string>>;
+  /** The id of the field that had focus before the bundle mounted, which keeps it. */
+  readonly focusedFieldId?: string | null;
 };
 
 /**
@@ -29,7 +37,22 @@ export function LoginForm({
   antiforgeryToken,
   errorMessage,
   productName,
+  carriedValues,
+  focusedFieldId,
 }: LoginFormProps) {
+  const carriedUsername = carriedValues?.['username'];
+  const carriedPassword = carriedValues?.['password'];
+  // A carried value is written to the DOM property, never to React's `defaultValue`, which would put a password in
+  // the `value` attribute (ADR-0253).
+  const carryUsername = useCallback(
+    (input: HTMLInputElement | null) => writeCarriedValue(input, carriedUsername),
+    [carriedUsername],
+  );
+  const carryPassword = useCallback(
+    (input: HTMLInputElement | null) => writeCarriedValue(input, carriedPassword),
+    [carriedPassword],
+  );
+
   return (
     <Box
       sx={{
@@ -62,7 +85,8 @@ export function LoginForm({
               name="username"
               label="Username"
               autoComplete="username"
-              autoFocus
+              autoFocus={focusedFieldId !== 'password'}
+              inputRef={carryUsername}
               required
               fullWidth
             />
@@ -72,6 +96,8 @@ export function LoginForm({
               label="Password"
               type="password"
               autoComplete="current-password"
+              autoFocus={focusedFieldId === 'password'}
+              inputRef={carryPassword}
               required
               fullWidth
             />

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
 import { resolveRoute, type RouteContext } from './routes.js';
+import { EMPTY_SERVER_PAGE } from './serverPage.js';
 
 const baseContext: RouteContext = {
   pathname: '/account/login',
@@ -155,5 +156,28 @@ describe('resolveRoute', () => {
   it('keeps the default titles when the branding has no display name', () => {
     renderRoute({ ...baseContext, branding: { primaryColor: '#1565c0' } });
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+  });
+
+  it('redraws the authorization error the server page reports, whatever the path', () => {
+    const { container } = renderRoute({
+      ...baseContext,
+      pathname: '/oauth2/authorize',
+      serverPage: {
+        ...EMPTY_SERVER_PAGE,
+        authorizationError: { code: 'invalid_client', description: null },
+      },
+    });
+
+    expect(container.querySelector('#authorization-error')).not.toBeNull();
+    expect(container.querySelector('#username')).toBeNull();
+  });
+
+  it("carries the server page's typed username into the login surface", () => {
+    const { container } = renderRoute({
+      ...baseContext,
+      serverPage: { ...EMPTY_SERVER_PAGE, fieldValues: { username: 'alice' } },
+    });
+
+    expect(container.querySelector<HTMLInputElement>('#username')?.value).toBe('alice');
   });
 });

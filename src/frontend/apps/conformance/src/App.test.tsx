@@ -5,6 +5,9 @@ import { AppThemeProvider } from '@ncode/ui';
 import { createAppStore, runtimeConfigLoaded, type AppStore } from '@ncode/store';
 import type { RuntimeConfig } from '@ncode/config';
 import { App } from './App.js';
+// The dashboard is a lazily loaded chunk. Loading its module first lets the lazy component resolve from the module
+// cache, so the test waits for the dashboard's render rather than a cold transform of its chunk.
+import './containers/ConformanceDashboard.js';
 import { loadDiscovery } from './discovery.js';
 
 // The dashboard loads discovery on mount; keep the shell test off the network.

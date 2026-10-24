@@ -164,13 +164,13 @@ public sealed class InteractiveBundleReaderTests : IDisposable
     #region TryGetAsset Tests
 
     [Fact]
-    public void TryGetAsset_WhenTheBundleHasTheFile_ReturnsIt()
+    public void TryGetAsset_WhenTheAssetsDirectoryHasTheFile_ReturnsIt()
     {
         Directory.CreateDirectory(Path.Combine(BundleRoot.FullName, "assets"));
         File.WriteAllText(Path.Combine(BundleRoot.FullName, "assets", "index.js"), "x");
         using var reader = CreateReader(BundleRoot.FullName);
 
-        var file = reader.TryGetAsset("assets/index.js");
+        var file = reader.TryGetAsset("index.js");
 
         Assert.NotNull(file);
         Assert.Equal("index.js", file.Name);
@@ -178,16 +178,17 @@ public sealed class InteractiveBundleReaderTests : IDisposable
 
     [Theory]
     [InlineData("")]
-    [InlineData("assets")]
-    [InlineData("assets/missing.js")]
-    [InlineData("../outside.js")]
+    [InlineData("missing.js")]
+    [InlineData("../index.html")]
+    [InlineData("../../outside.js")]
     [InlineData(".hidden")]
-    public void TryGetAsset_WhenThePathNamesNoFileOfTheBundle_ReturnsNull(string assetPath)
+    public void TryGetAsset_WhenThePathNamesNoFileOfTheAssetsDirectory_ReturnsNull(string assetPath)
     {
         // The bundle is nested, so the file outside it is still cleaned up with the test's directory.
         var bundleRootPath = Path.Combine(BundleRoot.FullName, "dist");
         Directory.CreateDirectory(Path.Combine(bundleRootPath, "assets"));
-        File.WriteAllText(Path.Combine(bundleRootPath, ".hidden"), "x");
+        File.WriteAllText(Path.Combine(bundleRootPath, "index.html"), IndexHtml);
+        File.WriteAllText(Path.Combine(bundleRootPath, "assets", ".hidden"), "x");
         File.WriteAllText(Path.Combine(BundleRoot.FullName, "outside.js"), "x");
         using var reader = CreateReader(bundleRootPath);
 
@@ -201,7 +202,7 @@ public sealed class InteractiveBundleReaderTests : IDisposable
     {
         using var reader = CreateReader(null);
 
-        var file = reader.TryGetAsset("index.html");
+        var file = reader.TryGetAsset("index.js");
 
         Assert.Null(file);
     }
@@ -211,12 +212,12 @@ public sealed class InteractiveBundleReaderTests : IDisposable
     {
         var bundleRootPath = Path.Combine(BundleRoot.FullName, "dist");
         using var reader = CreateReader(bundleRootPath);
-        Assert.Null(reader.TryGetAsset("index.html"));
+        Assert.Null(reader.TryGetAsset("index.js"));
 
-        Directory.CreateDirectory(bundleRootPath);
-        File.WriteAllText(Path.Combine(bundleRootPath, "index.html"), IndexHtml);
+        Directory.CreateDirectory(Path.Combine(bundleRootPath, "assets"));
+        File.WriteAllText(Path.Combine(bundleRootPath, "assets", "index.js"), "x");
 
-        Assert.NotNull(reader.TryGetAsset("index.html"));
+        Assert.NotNull(reader.TryGetAsset("index.js"));
     }
 
     #endregion

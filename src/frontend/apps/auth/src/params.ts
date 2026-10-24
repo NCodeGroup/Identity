@@ -31,9 +31,6 @@ export const ACCOUNT_PATH = './';
 /** The surface JSON endpoint returning the current end-user's session for the account page. */
 export const ME_ENDPOINT = 'me';
 
-/** The surface JSON endpoint returning the tenant's branding, which the bundle themes itself with before it renders. */
-export const BRANDING_ENDPOINT = 'branding';
-
 /** The self-service "authorized applications" page, where the end-user reviews and revokes granted access. */
 export const APPLICATIONS_PATH = 'applications';
 

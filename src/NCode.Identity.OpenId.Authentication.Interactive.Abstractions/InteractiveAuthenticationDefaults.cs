@@ -53,12 +53,6 @@ public static class InteractiveAuthenticationDefaults
     public const string MePath = "/account/me";
 
     /// <summary>
-    /// The request path of the JSON endpoint that returns the tenant's branding tokens, which the bundle themes itself
-    /// with before it renders.
-    /// </summary>
-    public const string BrandingPath = "/account/branding";
-
-    /// <summary>
     /// The request path of the login page the cookie scheme's <c>LoginPath</c> redirects a challenge to.
     /// </summary>
     public const string LoginPath = "/account/login";

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Plugin, PluginOption } from 'vite';
+import { ASYNC_UTIL_TIMEOUT_MS } from '@ncode/test-support';
 import {
+  BROWSER_TEST_TIMEOUT_MS,
   CHUNK_SIZE_LIMIT_KB,
   defineBackendServedSurfaceConfig,
   defineStandaloneSurfaceConfig,
@@ -31,6 +33,7 @@ afterEach(() => {
 
 const expectedBuild = {
   outDir: 'dist',
+  assetsDir: 'assets',
   sourcemap: true,
   chunkSizeWarningLimit: CHUNK_SIZE_LIMIT_KB,
   rolldownOptions: {
@@ -153,8 +156,12 @@ describe('testGates', () => {
     const test = testGates({ environment: 'jsdom', coverage: floors });
 
     expect(test.environment).toBe('jsdom');
-    expect(test.testTimeout).toBe(15_000);
+    expect(test.testTimeout).toBe(BROWSER_TEST_TIMEOUT_MS);
     expect(test.globals).toBe(true);
+  });
+
+  it('leaves room for three Testing Library waits before a browser test times out', () => {
+    expect(BROWSER_TEST_TIMEOUT_MS).toBeGreaterThanOrEqual(3 * ASYNC_UTIL_TIMEOUT_MS);
   });
 
   it('copies the floors rather than sharing the caller object', () => {

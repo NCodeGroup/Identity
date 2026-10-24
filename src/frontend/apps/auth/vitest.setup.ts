@@ -1,9 +1,14 @@
 import '@testing-library/jest-dom/vitest';
+import { configure } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
-import { failOnConsole } from '@ncode/test-support';
+import { configureAsyncUtilTimeout, failOnConsole } from '@ncode/test-support';
 
 // Warnings-as-errors for tests: any console.error/console.warn fails the test that logged it (ADR-0151).
 failOnConsole({ beforeEach, afterEach });
+
+// Every Testing Library wait gets the one deliberate timeout (see "Testing Library and test timeouts" in the frontend
+// README).
+configureAsyncUtilTimeout(configure);
 
 // The host serves every page with its base set to the surface beneath the tenant (ADR-0193); the tests run at the
 // surface of a tenant served at the root.

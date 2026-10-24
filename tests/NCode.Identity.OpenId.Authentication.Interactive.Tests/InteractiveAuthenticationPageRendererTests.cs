@@ -29,6 +29,9 @@ public class InteractiveAuthenticationPageRendererTests
 
     private const string SurfaceBase = "/acme/account/";
 
+    private static InteractiveBranding AcmeBranding { get; } =
+        new("Acme", null, null, null, "dark");
+
     #region RenderLoginPage Tests
 
     [Fact]
@@ -39,6 +42,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: null,
             surfaceBase: SurfaceBase,
+            branding: null,
             returnUrl: "/connect/authorize",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "token-123",
@@ -70,6 +74,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: null,
             surfaceBase: SurfaceBase,
+            branding: null,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -89,6 +94,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: null,
             surfaceBase: SurfaceBase,
+            branding: null,
             returnUrl: "\"><script>alert(1)</script>",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -107,6 +113,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: InteractiveBundleShell.TryCreate(BundleShell),
             surfaceBase: SurfaceBase,
+            branding: null,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -128,6 +135,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: InteractiveBundleShell.TryCreate(BundleShell),
             surfaceBase: SurfaceBase,
+            branding: null,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -157,6 +165,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: null,
             surfaceBase: SurfaceBase,
+            branding: null,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -171,6 +180,76 @@ public class InteractiveAuthenticationPageRendererTests
         );
     }
 
+    [Fact]
+    public void RenderLoginPage_WhenBundlePresent_EmbedsTheBrandingAfterTheBase()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: InteractiveBundleShell.TryCreate(BundleShell),
+            surfaceBase: SurfaceBase,
+            branding: AcmeBranding,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            errorMessage: null
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.StartsWith(
+            "<!doctype html><html><head><base href=\"/acme/account/\" />"
+                + "<script type=\"application/json\" id=\"branding\">{\"displayName\":\"Acme\",\"mode\":\"dark\"}</script>"
+                + "<title>t</title></head>",
+            html,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenTheBrandingHoldsMarkup_EscapesItInsideTheDataBlock()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: InteractiveBundleShell.TryCreate(BundleShell),
+            surfaceBase: SurfaceBase,
+            branding: new InteractiveBranding(
+                "</script><script>alert(1)</script>",
+                null,
+                null,
+                null,
+                null
+            ),
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            errorMessage: null
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.DoesNotContain("</script><script>alert(1)", html, StringComparison.Ordinal);
+        Assert.Contains("\\u003C/script\\u003E", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RenderLoginPage_WhenBundleIsAbsent_EmbedsNoBranding()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell: null,
+            surfaceBase: SurfaceBase,
+            branding: AcmeBranding,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            errorMessage: null
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.DoesNotContain("id=\"branding\"", html, StringComparison.Ordinal);
+    }
+
     #endregion
 
     #region RenderConsentPage Tests
@@ -183,6 +262,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: null,
             surfaceBase: SurfaceBase,
+            branding: null,
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -205,6 +285,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: null,
             surfaceBase: SurfaceBase,
+            branding: null,
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -242,6 +323,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: null,
             surfaceBase: SurfaceBase,
+            branding: null,
             errorCode: "unauthorized_client",
             errorDescription: "The specified 'redirect_uri' is not valid for the associated 'client_id'."
         );
@@ -266,6 +348,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: null,
             surfaceBase: SurfaceBase,
+            branding: null,
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -287,6 +370,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: null,
             surfaceBase: SurfaceBase,
+            branding: null,
             errorCode: "\"><script>alert(1)</script>",
             errorDescription: null
         );
@@ -303,6 +387,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: InteractiveBundleShell.TryCreate(BundleShell),
             surfaceBase: SurfaceBase,
+            branding: null,
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -321,6 +406,7 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             shell: null,
             surfaceBase: "/a&b/account/",
+            branding: null,
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -344,12 +430,32 @@ public class InteractiveAuthenticationPageRendererTests
         InteractiveAuthenticationPageRenderer.RenderBundlePage(
             writer,
             InteractiveBundleShell.TryCreate(BundleShell)!,
-            SurfaceBase
+            SurfaceBase,
+            branding: null
         );
 
         Assert.Equal(
             "<!doctype html><html><head><base href=\"/acme/account/\" /><title>t</title></head><body>"
                 + "<div id=\"root\"></div><script src=\"./app.js\"></script></body></html>",
+            writer.WrittenSpan.ToString()
+        );
+    }
+
+    [Fact]
+    public void RenderBundlePage_WhenBrandingIsGiven_EmbedsItAfterTheBase()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderBundlePage(
+            writer,
+            InteractiveBundleShell.TryCreate(BundleShell)!,
+            SurfaceBase,
+            AcmeBranding
+        );
+
+        Assert.Equal(
+            "<!doctype html><html><head><base href=\"/acme/account/\" />"
+                + "<script type=\"application/json\" id=\"branding\">{\"displayName\":\"Acme\",\"mode\":\"dark\"}</script>"
+                + "<title>t</title></head><body><div id=\"root\"></div><script src=\"./app.js\"></script></body></html>",
             writer.WrittenSpan.ToString()
         );
     }

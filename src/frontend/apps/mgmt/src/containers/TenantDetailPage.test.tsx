@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
 import type { RuntimeConfig } from '@ncode/config';
 import { TenantDetailPage } from './TenantDetailPage.js';
+import type { TenantOwnSurface } from '../routes.js';
 
 const runtime: RuntimeConfig = {
   apiBaseUrl: 'https://api.test',
@@ -14,7 +15,7 @@ const runtime: RuntimeConfig = {
   features: {},
 };
 
-function renderPage() {
+function renderPage(surface: TenantOwnSurface = 'secrets') {
   const store = createAppStore({
     config: { runtime },
     auth: {
@@ -27,7 +28,7 @@ function renderPage() {
   });
   return render(
     <Provider store={store}>
-      <TenantDetailPage tenantId="acme" />
+      <TenantDetailPage tenantId="acme" surface={surface} />
     </Provider>,
   );
 }
@@ -192,8 +193,7 @@ describe('TenantDetailPage', () => {
       throw new Error(`Unexpected ${method} ${url}`);
     });
 
-    renderPage();
-    fireEvent.click(await screen.findByTestId('tenant-detail-tab-settings'));
+    renderPage('settings');
 
     const editor = await screen.findByTestId('settings-json');
     fireEvent.change(editor, { target: { value: '{"a": 2}' } });
@@ -244,8 +244,7 @@ describe('TenantDetailPage', () => {
       throw new Error(`Unexpected ${method} ${url}`);
     });
 
-    renderPage();
-    fireEvent.click(await screen.findByTestId('tenant-detail-tab-usage'));
+    renderPage('usage');
 
     expect(await screen.findByTestId('usage-row-2026-10-21')).toHaveTextContent('2026-10-21427');
     expect(screen.getByTestId('usage-range')).toHaveTextContent('2026-09-21 to 2026-10-21');
@@ -292,8 +291,7 @@ describe('TenantDetailPage', () => {
       throw new Error(`Unexpected ${method} ${url}`);
     });
 
-    renderPage();
-    fireEvent.click(await screen.findByTestId('tenant-detail-tab-usage'));
+    renderPage('usage');
 
     expect(await screen.findByTestId('data-error')).toBeInTheDocument();
   });

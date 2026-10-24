@@ -35,7 +35,6 @@ const NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChange
 static readonly NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.CookieSchemeName -> string!
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames
-const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.BrandingPath = "/account/branding" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingColorMode = "branding_color_mode" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingDisplayName = "branding_display_name" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingLogoUri = "branding_logo_uri" -> string!

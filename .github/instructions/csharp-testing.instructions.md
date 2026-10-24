@@ -386,6 +386,11 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   (`TestCrls` for extensions the builder cannot write), signed by a CA whose key usage includes `CrlSign`. Unit tests
   stub `IHttpClientFactory`; integration tests set `HostApplicationFactory.CertificateRevocationListResponder` before
   the first request.
+- 👁 **Test a contract with an artifact the .NET gate does not build through a fact the workflow that builds it
+  runs.** The Definition of Done installs no Node, so `InteractiveBundleShellTests` reads the built `apps/auth`
+  `index.html` under `[BuiltAuthBundleFact]`, which skips unless `NCODE_AUTH_BUNDLE_INDEX` names it. Frontend CI sets
+  the variable after `pnpm run build`. Locally, run `pnpm exec vite build` in `src/frontend/apps/auth` and set the
+  variable to the absolute path of `dist/index.html`.
 - 👁 **Validate new tests in Release before running `dod.ps1`.** The gate builds and tests in **Release**, where
   `Debug.Assert` and `#if DEBUG` blocks disappear; run `dotnet test <proj> --configuration Release` first to catch
   Debug-vs-Release differences fast (a `#if DEBUG` auth bypass, a stripped assertion).

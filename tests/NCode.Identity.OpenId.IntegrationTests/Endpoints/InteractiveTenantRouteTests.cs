@@ -211,10 +211,56 @@ public class InteractiveTenantRouteTests
         }
     }
 
+    [Fact]
+    public async Task GetAsset_WhenTheTenantIsUnknown_ServesTheFileWithoutResolvingTheTenant()
+    {
+        var bundleRoot = CreateBundle();
+        try
+        {
+            using var factory = CreatePathFactory(bundleRoot.FullName);
+            using var client = CreateClient(factory);
+
+            using var response = await client.GetAsync("/nobody/account/assets/app.js");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(BundleScript, await response.Content.ReadAsStringAsync());
+        }
+        finally
+        {
+            bundleRoot.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GetAsset_WhenTheFileIsServed_LetsTheBrowserKeepItForAYear()
+    {
+        var bundleRoot = CreateBundle();
+        try
+        {
+            using var factory = CreatePathFactory(bundleRoot.FullName);
+            await SeedTenantAsync(factory, "acme");
+            using var client = CreateClient(factory);
+
+            using var response = await client.GetAsync("/acme/account/assets/app.js");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var cacheControl = response.Headers.CacheControl;
+            Assert.NotNull(cacheControl);
+            Assert.True(cacheControl.Public);
+            Assert.Equal(TimeSpan.FromDays(365), cacheControl.MaxAge);
+            Assert.Contains(cacheControl.Extensions, extension => extension.Name == "immutable");
+        }
+        finally
+        {
+            bundleRoot.Delete(recursive: true);
+        }
+    }
+
     [Theory]
     [InlineData("/account/assets/app.js")]
     [InlineData("/acme/account/assets/missing.js")]
     [InlineData("/acme/account/assets")]
+    [InlineData("/acme/account/index.html")]
     public async Task GetAsset_WhenThePathNamesNoFileOfTheTenantsBundle_ReturnsNotFound(string path)
     {
         var bundleRoot = CreateBundle();
@@ -227,6 +273,7 @@ public class InteractiveTenantRouteTests
             using var response = await client.GetAsync(path);
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.Null(response.Headers.CacheControl);
         }
         finally
         {
@@ -301,35 +348,94 @@ public class InteractiveTenantRouteTests
     #region Branding Tests
 
     [Fact]
-    public async Task GetBranding_WhenTenantIsSelectedByPath_ReturnsThatTenantsBranding()
+    public async Task GetLogin_WhenBundlePresent_EmbedsTheTenantsBranding()
     {
-        await using var factory = CreatePathFactory();
-        await SeedTenantAsync(
-            factory,
-            "acme",
-            new Dictionary<string, object>
-            {
-                [InteractiveSettingNames.BrandingDisplayName] = "Acme",
-                [InteractiveSettingNames.BrandingPrimaryColor] = "#1565c0",
-                [InteractiveSettingNames.BrandingColorMode] = "dark",
-            }
-        );
-        await SeedTenantAsync(factory, "beta");
-        using var client = factory.CreateClient(
-            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
-        );
+        var bundleRoot = CreateBundle();
+        try
+        {
+            await using var factory = CreatePathFactory(bundleRoot.FullName);
+            await SeedTenantAsync(
+                factory,
+                "acme",
+                new Dictionary<string, object>
+                {
+                    [InteractiveSettingNames.BrandingDisplayName] = "Acme",
+                    [InteractiveSettingNames.BrandingPrimaryColor] = "#1565c0",
+                    [InteractiveSettingNames.BrandingColorMode] = "dark",
+                }
+            );
+            await SeedTenantAsync(factory, "beta");
+            using var client = CreateClient(factory);
 
-        using var acmeResponse = await client.GetAsync("/acme/account/branding");
-        using var betaResponse = await client.GetAsync("/beta/account/branding");
+            using var acmeResponse = await client.GetAsync("/acme/account/login");
+            using var betaResponse = await client.GetAsync("/beta/account/login");
 
-        Assert.Equal(HttpStatusCode.OK, acmeResponse.StatusCode);
-        Assert.Equal("no-cache", acmeResponse.Headers.CacheControl?.ToString());
-        Assert.Equal(
-            "{\"displayName\":\"Acme\",\"primaryColor\":\"#1565c0\",\"mode\":\"dark\"}",
-            await acmeResponse.Content.ReadAsStringAsync()
-        );
-        Assert.Equal(HttpStatusCode.OK, betaResponse.StatusCode);
-        Assert.Equal("{}", await betaResponse.Content.ReadAsStringAsync());
+            Assert.Equal(HttpStatusCode.OK, acmeResponse.StatusCode);
+            // The embedded branding is as fresh as the page: every page that issues antiforgery tokens is sent
+            // no-cache, no-store (ADR-0253).
+            Assert.True(acmeResponse.Headers.CacheControl?.NoStore);
+            Assert.True(acmeResponse.Headers.CacheControl?.NoCache);
+            Assert.Contains(
+                "<script type=\"application/json\" id=\"branding\">"
+                    + "{\"displayName\":\"Acme\",\"primaryColor\":\"#1565c0\",\"mode\":\"dark\"}</script>",
+                await acmeResponse.Content.ReadAsStringAsync(),
+                StringComparison.Ordinal
+            );
+            Assert.Equal(HttpStatusCode.OK, betaResponse.StatusCode);
+            Assert.Contains(
+                "<script type=\"application/json\" id=\"branding\">{}</script>",
+                await betaResponse.Content.ReadAsStringAsync(),
+                StringComparison.Ordinal
+            );
+        }
+        finally
+        {
+            bundleRoot.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GetAuthorize_WhenTheErrorPageIsServedWithTheBundle_EmbedsTheTenantsBranding()
+    {
+        var bundleRoot = CreateBundle();
+        try
+        {
+            await using var factory = CreatePathFactory(bundleRoot.FullName);
+            await SeedTenantAsync(
+                factory,
+                "acme",
+                new Dictionary<string, object>
+                {
+                    [InteractiveSettingNames.BrandingDisplayName] = "Acme",
+                }
+            );
+            using var client = CreateClient(factory);
+
+            using var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                $"/acme/oauth2/authorize?{OpenIdConstants.Parameters.ClientId}=unknown-client"
+            );
+            request.Headers.Accept.ParseAdd("text/html");
+            using var response = await client.SendAsync(request);
+
+            var html = await response.Content.ReadAsStringAsync();
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(
+                "<base href=\"/acme/account/\" /><script type=\"application/json\" id=\"branding\">"
+                    + "{\"displayName\":\"Acme\"}</script>",
+                html,
+                StringComparison.Ordinal
+            );
+            Assert.Contains(
+                $"data-error-code=\"{OpenIdConstants.ErrorCodes.InvalidClient}\"",
+                html,
+                StringComparison.Ordinal
+            );
+        }
+        finally
+        {
+            bundleRoot.Delete(recursive: true);
+        }
     }
 
     #endregion

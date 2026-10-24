@@ -1,6 +1,8 @@
 # 174. The management console's URL is its navigation state
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0255](0255-each-tenant-surface-of-the-management-console-has-its-own-address.md):
+  the tenant's own secrets, settings, and usage are separate surfaces)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

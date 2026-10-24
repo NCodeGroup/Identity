@@ -24,8 +24,8 @@ namespace NCode.Identity.OpenId.Management.Logging;
 /// <summary>
 /// Provides source-generated, strongly-typed log messages for the <c>NCode.Identity.OpenId.Management</c> package:
 /// the expected client-input failures that map to a <c>4xx</c> response, whose exception detail reaches operators
-/// without being exposed to the caller, and the stored settings documents a settings write cannot read and does not
-/// check.
+/// without being exposed to the caller, the stored settings documents a settings write cannot read and does not
+/// check, and the stored documents a management request cannot honor.
 /// </summary>
 [ExcludeFromCodeCoverage]
 internal static partial class Log
@@ -96,6 +96,18 @@ internal static partial class Log
     internal static partial void ServerSettingsUnreadable(
         this ILogger logger,
         string serverId,
+        string documentError
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.StoredSettingsUnreadable,
+        Level = LogLevel.Warning,
+        Message = "The stored settings document of {ScopeName} '{OwnerId}' cannot be honored, so a management request was answered 409: {DocumentError}"
+    )]
+    internal static partial void StoredSettingsUnreadable(
+        this ILogger logger,
+        string scopeName,
+        string ownerId,
         string documentError
     );
 }

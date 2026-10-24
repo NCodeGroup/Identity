@@ -901,8 +901,12 @@ internal class ResourceServerApiEndpointHandler(
     /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves at runtime (server baseline
     /// merged with the tenant's — expanded with the ceilings of the security profiles it selects — and then the resource
     /// server's persisted overrides). Every document is read through the <see cref="IEffectiveSettingsResolver"/>
-    /// (ADR-0204); a resource server selects no security profile, so its document adds none (ADR-0149).
+    /// (ADR-0204); a resource server selects no security profile, so its document adds none (ADR-0149). A document that
+    /// cannot be honored fails naming its owner.
     /// </summary>
+    /// <exception cref="UnreadableSettingsException">The resource server's document, the tenant's or the server's
+    /// cannot be honored.</exception>
+    // See ADR-0245.
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeResourceServerSettingsAsync(
         string tenantId,
         PersistedResourceServer resourceServer,
@@ -919,14 +923,16 @@ internal class ResourceServerApiEndpointHandler(
         }
 
         var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
-        var tenantEffective = EffectiveSettingsResolver.Resolve(
+        var tenantEffective = EffectiveSettingsResolver.ResolveStored(
             serverEffective,
             OpenIdSettingScopes.Tenant,
+            tenantId,
             tenantSettings.Value
         );
-        return EffectiveSettingsResolver.Resolve(
+        return EffectiveSettingsResolver.ResolveStored(
             tenantEffective,
             OpenIdSettingScopes.ResourceServer,
+            resourceServer.ResourceServerId,
             resourceServer.Settings.Value
         );
     }
@@ -1065,24 +1071,29 @@ internal class ResourceServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var effectiveSettings = await MergeResourceServerSettingsAsync(
-            tenantId,
-            resourceServer,
-            storeManager,
-            cancellationToken
-        );
-        if (effectiveSettings is null)
-        {
-            return TypedResults.NotFound();
-        }
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
+
+        // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
+        // document that cannot be honored, and the stored document's token is not the effective view's.
+        // A null projection is the absent tenant, answered 404. See ADR-0245.
         return await ProcessGetAsync(
             httpContext,
-            effectiveSettings,
+            resourceServer.Settings.Value,
             node,
             Operations.Read,
-            settings => ToResourceServerEffectiveSettingsResource(resourceServer, settings)
+            async (_, token) =>
+            {
+                var effectiveSettings = await MergeResourceServerSettingsAsync(
+                    tenantId,
+                    resourceServer,
+                    storeManager,
+                    token
+                );
+                return effectiveSettings is null
+                    ? null
+                    : ToResourceServerEffectiveSettingsResource(resourceServer, effectiveSettings);
+            },
+            cancellationToken
         );
     }
 

@@ -542,6 +542,33 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         Assert.IsType<NotFound>(result);
     }
 
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_WhenTheStoredDocumentCannotBeHonored_ThrowsNamingTheServer()
+    {
+        SetupStore();
+        MockServerStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSettings("settings-ct", EmptyObject()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveServerAsync(It.IsAny<JsonElement>(), It.IsAny<CancellationToken>())
+            )
+            .ThrowsAsync(new JsonException("boom"))
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var exception = await Assert.ThrowsAsync<UnreadableSettingsException>(async () =>
+            await Handler.GetEffectiveSettingsAsync(httpContext, ServerId, CancellationToken.None)
+        );
+
+        Assert.Equal(OpenIdSettingScopes.Server, exception.ScopeName);
+        Assert.Equal(ServerId, exception.OwnerId);
+        Assert.Equal("boom", exception.DocumentError);
+    }
+
     private static ISettingCollection CreateSettingCollection(params Setting[] settings)
     {
         var list = settings.ToList();

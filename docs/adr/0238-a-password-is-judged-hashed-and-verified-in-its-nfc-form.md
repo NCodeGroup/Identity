@@ -1,6 +1,8 @@
 # 238. A password is judged, hashed and verified in its NFC form
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0243](0243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md): the adapter and
+  the host's own pages hash and verify through NormalizingPasswordHasher<TUser>)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -62,10 +64,11 @@ validator judges a password the server sets.**
    casting the scope's `IUserStore<TUser>`; a store that is not one throws `NotSupportedException`. A create hashes,
    stores the hash and calls `CreateAsync(user)`. A reset hashes, stores the hash and calls
    `UpdateSecurityStampAsync(user)`, which rotates the security stamp and saves the user. A verification asks the user
-   manager's hasher about the NFC form and then about the submitted form, and replaces the hash as item 4 says. The
-   adapter never calls `CreateAsync(user, password)`, `ResetPasswordAsync`, `GeneratePasswordResetTokenAsync`,
-   `AddPasswordAsync`, `ChangePasswordAsync` or `CheckPasswordAsync`, so no `IPasswordValidator<TUser>` runs on a path
-   of the server, and the host's own pages keep their validators.
+   manager's hasher, a `NormalizingPasswordHasher<TUser>` that verifies the NFC form and then the submitted form
+   ([ADR-0243](0243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md)), and replaces
+   the hash as item 4 says. The adapter never calls `CreateAsync(user, password)`, `ResetPasswordAsync`,
+   `GeneratePasswordResetTokenAsync`, `AddPasswordAsync`, `ChangePasswordAsync` or `CheckPasswordAsync`, so no
+   `IPasswordValidator<TUser>` runs on a path of the server, and the host's own pages keep their validators.
 
 ## Options considered
 
@@ -82,15 +85,17 @@ validator judges a password the server sets.**
 - **Removing the password validators of ASP.NET Core Identity from the container, or translating their refusal into
   `400`.** Rejected: it changes the host's own pages, and it keeps composition rules in the way of a password that the
   policy accepts.
-- **Decorating the host's `IPasswordHasher<TUser>` so that its own pages normalize as well.** Deferred (backlog
-  `R108`): it depends on the order of the host's registrations.
+- **Decorating the host's `IPasswordHasher<TUser>` so that its own pages normalize as well.** Adopted by
+  [ADR-0243](0243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md), which wraps the
+  host's registration whatever its order.
 
 ## Consequences
 
 - Another composition of the same characters verifies at the sign-in, the password grant and the change of a password.
 - The policy refuses a password whose NFC form is too short, even when the submitted form is long enough.
-- A host's own ASP.NET Core Identity pages verify the password as typed, so an end user who types a password that is
-  not in NFC cannot sign in there once the server has stored or rehashed an NFC hash (backlog `R108`).
+- A host's own ASP.NET Core Identity pages hash and verify the NFC form as well, so an end user signs in there and at
+  the server with any composition of the password
+  ([ADR-0243](0243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md)).
 - .NET does not normalize in globalization-invariant mode, where a password is hashed as submitted, and the reference
   image (`noble-chiseled-extra`) carries ICU.
 - **Breaking:** an `IPasswordHasher` hashes and verifies the NFC form of the bytes it is given, with the fallback to the

@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-0241](0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md): a settings write logs
-  a stored document it cannot read and does not count it as a violation the change introduces)
+  a stored document it cannot read and does not count it as a violation the change introduces; and by
+  [ADR-0245](0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md): the report
+  answers 409 when the tenant's or the server's own document cannot be honored)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -73,6 +75,9 @@ API lists it on demand.**
 - A write to the settings of the server or of a tenant logs a stored document that cannot be honored and does not
   count it as a violation the change introduces, so the document does not fail the write, and this report still
   lists it ([ADR-0241](0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md)).
+- When the tenant's or the server's own document cannot be honored, the report answers `409` with a problem that names
+  that document
+  ([ADR-0245](0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)).
 - This implements backlog `R87`.
 
 ## References

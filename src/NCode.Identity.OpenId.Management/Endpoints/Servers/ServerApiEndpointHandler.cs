@@ -531,19 +531,51 @@ internal class ServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var effectiveSettings = await EffectiveSettingsResolver.ResolveServerAsync(
-            serverSettings.Value,
-            cancellationToken
-        );
-
-        // Authorize like the raw settings read (against the persisted settings); the body is the resolved view.
+        // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
+        // document that cannot be honored, and the stored document's token is not the effective view's.
+        // The authorization is against the persisted settings, like the raw settings read. See ADR-0245.
         return await ProcessGetAsync(
             httpContext,
-            effectiveSettings,
+            serverSettings.Value,
             authorizationResource: serverSettings,
             Operations.Read,
-            settings => ToServerEffectiveSettingsResource(serverId, settings)
+            async (settings, token) =>
+            {
+                var effectiveSettings = await ResolveStoredServerSettingsAsync(
+                    serverId,
+                    settings,
+                    token
+                );
+                return ToServerEffectiveSettingsResource(serverId, effectiveSettings);
+            },
+            cancellationToken
         );
+    }
+
+    /// <summary>
+    /// Resolves the effective settings of the server's committed settings document and names the server when the
+    /// document cannot be honored by the settings vocabulary.
+    /// </summary>
+    /// <param name="serverId">The identifier of the OpenID Server that owns the settings document.</param>
+    /// <param name="settings">The server's committed settings document.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The server's effective settings.</returns>
+    /// <exception cref="UnreadableSettingsException">The document cannot be honored.</exception>
+    // See ADR-0245.
+    private async ValueTask<IReadOnlySettingCollection> ResolveStoredServerSettingsAsync(
+        string serverId,
+        JsonElement settings,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            return await EffectiveSettingsResolver.ResolveServerAsync(settings, cancellationToken);
+        }
+        catch (JsonException exception)
+        {
+            throw new UnreadableSettingsException(OpenIdSettingScopes.Server, serverId, exception);
+        }
     }
 
     /// <summary>

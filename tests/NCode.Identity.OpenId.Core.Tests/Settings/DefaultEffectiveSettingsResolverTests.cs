@@ -97,6 +97,61 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
 
     #endregion
 
+    #region ResolveStored Tests
+
+    [Fact]
+    public void ResolveStored_MergesTheScopeSettingsOntoTheParent()
+    {
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        IReadOnlyCollection<Setting> expanded = new List<Setting>();
+        SetupExpand(OpenIdSettingScopes.Tenant, "foo", jsonOptions, expanded);
+        var effective = CreateLooseMock<ISettingCollection>().Object;
+        var mockParent = CreateStrictMock<IReadOnlySettingCollection>();
+        mockParent.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
+
+        var result = Resolver.ResolveStored(
+            mockParent.Object,
+            OpenIdSettingScopes.Tenant,
+            "tenant-1",
+            CreateDocument("foo")
+        );
+
+        Assert.Same(effective, result);
+    }
+
+    [Fact]
+    public void ResolveStored_WhenTheDocumentCannotBeHonored_ThrowsNamingTheOwner()
+    {
+        const string documentError =
+            "The settings are invalid: 'it_retired_setting' is not a registered setting.";
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        var cause = new JsonException(documentError);
+        SetupExpandThrows(OpenIdSettingScopes.Tenant, "foo", jsonOptions, cause);
+        var parent = CreateStrictMock<IReadOnlySettingCollection>().Object;
+
+        var exception = Assert.Throws<UnreadableSettingsException>(() =>
+            Resolver.ResolveStored(
+                parent,
+                OpenIdSettingScopes.Tenant,
+                "tenant-1",
+                CreateDocument("foo")
+            )
+        );
+
+        Assert.Equal(OpenIdSettingScopes.Tenant, exception.ScopeName);
+        Assert.Equal("tenant-1", exception.OwnerId);
+        Assert.Equal(documentError, exception.DocumentError);
+        Assert.Same(cause, exception.InnerException);
+        Assert.Equal(
+            "The stored settings document of tenant 'tenant-1' cannot be honored: " + documentError,
+            exception.Message
+        );
+    }
+
+    #endregion
+
     #region ResolveServerAsync Tests
 
     [Fact]
@@ -148,6 +203,44 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         var result = await Resolver.ResolveServerAsync(CancellationToken.None);
 
         Assert.Same(effective, result);
+    }
+
+    [Fact]
+    public async Task ResolveServerAsync_WhenTheCommittedDocumentCannotBeHonored_ThrowsNamingTheServer()
+    {
+        // The server's polled settings provider is strict with no setup, and so is its Merge: neither is reached.
+        const string documentError = "boom";
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        SetupExpandThrows(
+            OpenIdSettingScopes.Server,
+            "committed",
+            jsonOptions,
+            new JsonException(documentError)
+        );
+        var configured = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        var mockServer = SetupServer(configured);
+        mockServer.SetupGet(x => x.ServerId).Returns(ServerId).Verifiable();
+        var mockServerStore = SetupServerStore();
+        mockServerStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new PersistedServerSettings
+                {
+                    ServerId = ServerId,
+                    ConcurrencyToken = "token",
+                    Value = CreateDocument("committed"),
+                }
+            )
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<UnreadableSettingsException>(async () =>
+            await Resolver.ResolveServerAsync(CancellationToken.None)
+        );
+
+        Assert.Equal(OpenIdSettingScopes.Server, exception.ScopeName);
+        Assert.Equal(ServerId, exception.OwnerId);
+        Assert.Equal(documentError, exception.DocumentError);
     }
 
     [Fact]
@@ -209,6 +302,23 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
                 )
             )
             .Returns(expanded)
+            .Verifiable();
+
+    private void SetupExpandThrows(
+        string scopeName,
+        string propertyName,
+        JsonSerializerOptions jsonOptions,
+        JsonException exception
+    ) =>
+        MockSecurityProfileCatalog
+            .Setup(x =>
+                x.Expand(
+                    It.Is<JsonElement>(e => HasProperty(e, propertyName)),
+                    scopeName,
+                    jsonOptions
+                )
+            )
+            .Throws(exception)
             .Verifiable();
 
     private Mock<OpenIdServer> SetupServer(IReadOnlySettingCollection configuredSettings)

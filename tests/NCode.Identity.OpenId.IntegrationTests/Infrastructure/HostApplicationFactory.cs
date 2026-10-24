@@ -1106,6 +1106,33 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     }
 
     /// <summary>
+    /// Replaces the settings document that the store holds for the tenant. It writes through the store, without the
+    /// management API's checks and without evicting the tenant that the host materialized, so a management request
+    /// reads a document the settings vocabulary may not honor while the caller's token still validates.
+    /// </summary>
+    /// <param name="settings">The tenant's settings document.</param>
+    public async Task ReplaceTenantSettingsAsync(IReadOnlyDictionary<string, object> settings)
+    {
+        using var scope = Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        var storeManagerFactory = serviceProvider.GetRequiredService<IStoreManagerFactory>();
+        await using var storeManager = await storeManagerFactory.CreateAsync(
+            CancellationToken.None
+        );
+        var tenantStore = storeManager.GetStore<ITenantStore>();
+        var tenantSettings =
+            await tenantStore.GetSettingsOrDefaultAsync(TenantId, CancellationToken.None)
+            ?? throw new InvalidOperationException(
+                "The tenant is not persisted yet; serve a request first."
+            );
+
+        tenantSettings.Value = System.Text.Json.JsonSerializer.SerializeToElement(settings);
+        await tenantStore.UpdateSettingsAsync(tenantSettings, CancellationToken.None);
+        await storeManager.SaveChangesAsync(CancellationToken.None);
+    }
+
+    /// <summary>
     /// Creates an HTTP client that calls the management API as the given client: it obtains a
     /// <c>client_credentials</c> access token with the <c>read:clients</c> scope, then sends it as a bearer token.
     /// </summary>

@@ -66,6 +66,27 @@ public interface IEffectiveSettingsResolver
     );
 
     /// <summary>
+    /// Merges the settings document that a store holds for an owner of a scope (a tenant, a client or a resource
+    /// server) onto its parent's effective settings, and names the document when it cannot be honored.
+    /// </summary>
+    /// <param name="parentSettings">The effective settings of the scope's parent (the server for a tenant, the tenant
+    /// for a client or resource server).</param>
+    /// <param name="scopeName">The name of the registered scope whose settings document <paramref name="settings"/>
+    /// is.</param>
+    /// <param name="ownerId">The identifier of the tenant, client or resource server that owns the document.</param>
+    /// <param name="settings">The owner's settings document as the store holds it.</param>
+    /// <returns>The effective settings of the owner.</returns>
+    /// <exception cref="UnreadableSettingsException">The document cannot be honored; the exception names the scope
+    /// and the owner.</exception>
+    // See ADR-0245.
+    IReadOnlySettingCollection ResolveStored(
+        IReadOnlySettingCollection parentSettings,
+        string scopeName,
+        string ownerId,
+        JsonElement settings
+    );
+
+    /// <summary>
     /// Resolves a proposed server settings document: the server's configured settings merged with the supplied
     /// document.
     /// </summary>
@@ -85,7 +106,8 @@ public interface IEffectiveSettingsResolver
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> for the operation.</param>
     /// <returns>The effective settings of the server as committed.</returns>
-    /// <exception cref="JsonException">The committed document cannot be honored, including a
-    /// <c>security_profiles</c> value that names no registered profile.</exception>
+    /// <exception cref="UnreadableSettingsException">The committed document cannot be honored, including a
+    /// <c>security_profiles</c> value that names no registered profile; the exception names the server.</exception>
+    // See ADR-0245.
     ValueTask<IReadOnlySettingCollection> ResolveServerAsync(CancellationToken cancellationToken);
 }

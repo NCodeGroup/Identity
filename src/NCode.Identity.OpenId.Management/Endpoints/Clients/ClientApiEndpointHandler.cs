@@ -238,7 +238,8 @@ internal class ClientApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the tenant's
     /// settings are absent.</returns>
-    // See ADR-0204.
+    /// <exception cref="UnreadableSettingsException">The tenant's document or the server's cannot be honored.</exception>
+    // See ADR-0204 and ADR-0245.
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeTenantSettingsAsync(
         string tenantId,
         IStoreManager storeManager,
@@ -254,9 +255,10 @@ internal class ClientApiEndpointHandler(
         }
 
         var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
-        return EffectiveSettingsResolver.Resolve(
+        return EffectiveSettingsResolver.ResolveStored(
             serverEffective,
             OpenIdSettingScopes.Tenant,
+            tenantId,
             tenantSettings.Value
         );
     }
@@ -267,17 +269,21 @@ internal class ClientApiEndpointHandler(
     /// The tenant's effective view is reconstructed by id (see <see cref="MergeTenantSettingsAsync"/>), so the preview
     /// is independent of the request's resolved tenant. The client's settings are resolved through the
     /// <see cref="IEffectiveSettingsResolver"/>, so they are expanded with the ceilings of the security profiles they
-    /// select, as they are at runtime.
+    /// select, as they are at runtime. A document that cannot be honored fails naming its owner.
     /// </summary>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
+    /// <param name="clientId">The identifier of the OpenID Client that owns the settings document.</param>
     /// <param name="clientSettings">The client's settings document to merge.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the owning tenant's
     /// settings are absent.</returns>
-    // See ADR-0204.
+    /// <exception cref="UnreadableSettingsException">The client's document, the tenant's or the server's cannot be
+    /// honored.</exception>
+    // See ADR-0204 and ADR-0245.
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeClientSettingsAsync(
         string tenantId,
+        string clientId,
         JsonElement clientSettings,
         IStoreManager storeManager,
         CancellationToken cancellationToken
@@ -290,9 +296,10 @@ internal class ClientApiEndpointHandler(
         );
         return tenantEffective is null
             ? null
-            : EffectiveSettingsResolver.Resolve(
+            : EffectiveSettingsResolver.ResolveStored(
                 tenantEffective,
                 OpenIdSettingScopes.Client,
+                clientId,
                 clientSettings
             );
     }
@@ -827,24 +834,30 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var effectiveSettings = await MergeClientSettingsAsync(
-            tenantId,
-            client.Settings.Value,
-            storeManager,
-            cancellationToken
-        );
-        if (effectiveSettings is null)
-        {
-            return TypedResults.NotFound();
-        }
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
+        // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
+        // document that cannot be honored, and the stored document's token is not the effective view's.
+        // A null projection is the absent tenant, answered 404. See ADR-0245.
         return await ProcessGetAsync(
             httpContext,
-            effectiveSettings,
+            client.Settings.Value,
             node,
             Operations.Read,
-            settings => ToClientEffectiveSettingsResource(client, settings)
+            async (settings, token) =>
+            {
+                var effectiveSettings = await MergeClientSettingsAsync(
+                    tenantId,
+                    clientId,
+                    settings,
+                    storeManager,
+                    token
+                );
+                return effectiveSettings is null
+                    ? null
+                    : ToClientEffectiveSettingsResource(client, effectiveSettings);
+            },
+            cancellationToken
         );
     }
 

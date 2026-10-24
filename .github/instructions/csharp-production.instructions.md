@@ -681,6 +681,15 @@ rationale.
   `412`. See
   [ADR-0208](../../docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) and
   [ADR-0214](../../docs/adr/0214-a-management-write-that-loses-a-race-is-answered-412.md).
+- 👁 **A stored settings document that cannot be honored is answered `409` once, by the management route group.** A
+  management request resolves a document a store holds with
+  `IEffectiveSettingsResolver.ResolveStored(parent, scopeName, ownerId, document)`, and the server's committed one with
+  `ResolveServerAsync`; both throw `UnreadableSettingsException` naming the scope and the owner, and
+  `UnreadableSettingsEndpointFilter` answers it with a `409` problem (`settingsScope`, `ownerId`, `documentError`), so
+  no handler catches it. Resolve only after authorization (a read resolves in the `mapperAsync` of `ProcessGetAsync`),
+  and keep `Resolve` for a proposed document and for a write that replaces the document it cannot read
+  ([ADR-0241](../../docs/adr/0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md),
+  [ADR-0245](../../docs/adr/0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)).
 - 👁 **A revocation wins a lost race.** Revoke grants through `IPersistedGrantService` (`SetRevokedOnceAsync`,
   `RevokeWhereAsync`, `RevokeByRefreshTokenLineageAsync`), which read again in a new unit of work and retry, never
   through `IGrantStore.RevokeWhereAsync` and a save of your own; a revocation does not depend on what its caller read,
@@ -740,25 +749,32 @@ rationale.
   is a registered `IPasswordBlocklist`, never a check in one caller, and a store's own password validators are not the
   policy
   ([ADR-0236](../../docs/adr/0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md)).
-- 👁 **Every password verification goes through `IPasswordAttemptLimiter`.** Ask `IsLimitReachedAsync` before the store
-  verifies, with the user name the store holds for the submitted one (`GetByUserNameOrDefaultAsync`, or the submitted
-  name when no account has it), and answer a reached limit exactly as a wrong password, without verifying; after a
-  failed verification call `RecordFailureAsync` with `CancellationToken.None`; after a verified password, or a password
-  an administrator sets, call `ResetAsync`, last when other effects such as ending sessions must not depend on the
-  counter store. A count of a run of events that ends is cleared with `IExpiringCounterSet.RemoveAsync`
-  ([ADR-0237](../../docs/adr/0237-failed-password-attempts-are-limited-per-account.md)).
+- 👁 **Every password verification goes through `IPasswordAttemptLimiter`, inside the store's one lookup.** Pass
+  the `IsRefusedAsync` of a `PasswordAttemptGate`, which asks `IsLimitReachedAsync`, as the `isRefusedAsync` of
+  `ILocalAccountStore.VerifyCredentialAsync`, and answer the result of its `Enforce`, which fails a store that never
+  asked and refuses a result verified after a refusal: the store looks the account up once, asks it about the user
+  name the account holds (or the submitted name when none has it), and verifies a refused password against its dummy
+  hash, so a refusal costs and answers what a wrong password does. Call `RecordFailureAsync` with
+  `CancellationToken.None` and the result's `UserName` for every result that is not verified, a refusal included; after
+  a verified password, or a password an administrator sets, call `ResetAsync`, last when other effects such as ending
+  sessions must not depend on the counter store. Never look the account up a second time to name the count. A count of
+  a run of events that ends is cleared with `IExpiringCounterSet.RemoveAsync`
+  ([ADR-0237](../../docs/adr/0237-failed-password-attempts-are-limited-per-account.md),
+  [ADR-0244](../../docs/adr/0244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md)).
 - 👁 **A password is judged, hashed and verified in its Unicode Normalization Form C (NFC), and a failed verification
   takes as long whether or not the account exists.** `DefaultPasswordPolicy` judges the NFC form and every
   `IPasswordHasher` hashes and verifies it, verifying the submitted form as a fallback that reports
-  `SuccessRehashNeeded`; a store that hashes through another API, such as the ASP.NET Core Identity adapter, normalizes
-  with `NormalizationForm.FormC` itself and keeps the same fallback. When a store holds no hash it may verify (no
-  account has the user name, the account has no password or is locked out, or the stored hash cannot be read), it
-  verifies the submitted password against a dummy hash of the current parameters
-  (`IPasswordHasher.DummyPasswordHash`) through the same code path and refuses it whatever the result. A store never
-  sets a password through an API that runs the host's password validators
+  `SuccessRehashNeeded`; the ASP.NET Core Identity adapter hashes and verifies only through
+  `NormalizingPasswordHasher<TUser>`, which `AddAspNetIdentityLocalAccountStore<TUser>()` wraps around the host's
+  `IPasswordHasher<TUser>` registration whatever its order, so the host's own pages hash and verify the same form. When
+  a store holds no hash it may verify (no account has the user name, the account has no password or is locked out, the
+  stored hash cannot be read, or the password is refused at the attempt limit), it verifies the submitted password
+  against a dummy hash of the current parameters (`IPasswordHasher.DummyPasswordHash`) through the same code path and
+  refuses it whatever the result. A store never sets a password through an API that runs the host's password validators
   (`UserManager<TUser>.CreateAsync(user, password)`, `ResetPasswordAsync`); it hashes and stores the hash itself
   ([ADR-0238](../../docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md),
-  [ADR-0239](../../docs/adr/0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md)).
+  [ADR-0239](../../docs/adr/0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md),
+  [ADR-0243](../../docs/adr/0243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md)).
 - 👁 **A write that a background loop retries is idempotent.** A save can commit and still fail at its caller (a lost
   acknowledgement, a timeout, a cancelled shutdown). Give the write an identity that the store records in the same
   unit of work, and skip a write whose identity is already there: the usage ledger's per-replica batch checkpoint,

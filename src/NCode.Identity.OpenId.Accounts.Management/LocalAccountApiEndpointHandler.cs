@@ -867,7 +867,8 @@ internal class LocalAccountApiEndpointHandler(
     }
 
     // Judges a password an administrator sets by the addressed tenant's effective settings, resolved from its stored
-    // document so the tenant need not be served. See ADR-0236.
+    // document so the tenant need not be served. A document that cannot be honored is answered 409 by the management
+    // route group. See ADR-0236 and ADR-0245.
     private async ValueTask<ManagementError?> ValidatePasswordAsync(
         IStoreManager storeManager,
         string tenantId,
@@ -889,9 +890,10 @@ internal class LocalAccountApiEndpointHandler(
         }
 
         var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
-        var tenantSettings = EffectiveSettingsResolver.Resolve(
+        var tenantSettings = EffectiveSettingsResolver.ResolveStored(
             serverSettings,
             OpenIdSettingScopes.Tenant,
+            tenantId,
             tenant.Settings.Value
         );
 

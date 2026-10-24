@@ -836,18 +836,22 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var effectiveSettings = await MergeTenantSettingsAsync(
-            tenantSettings.Value,
-            cancellationToken
-        );
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+
+        // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
+        // document that cannot be honored, and the stored document's token is not the effective view's.
+        // See ADR-0245.
         return await ProcessGetAsync(
             httpContext,
-            effectiveSettings,
+            tenantSettings.Value,
             node,
             Operations.Read,
-            settings => ToTenantEffectiveSettingsResource(tenantId, settings)
+            async (settings, token) =>
+            {
+                var effectiveSettings = await MergeTenantSettingsAsync(tenantId, settings, token);
+                return ToTenantEffectiveSettingsResource(tenantId, effectiveSettings);
+            },
+            cancellationToken
         );
     }
 
@@ -855,20 +859,25 @@ internal class TenantApiEndpointHandler(
     /// Merges a tenant's persisted settings onto the server's effective settings through the
     /// <see cref="IEffectiveSettingsResolver"/>, producing the same effective <see cref="IReadOnlySettingCollection"/>
     /// the authorization server resolves for the tenant at runtime — including the ceilings of the security profiles the
-    /// tenant selects (ADR-0204).
+    /// tenant selects (ADR-0204). A document that cannot be honored fails naming the tenant.
     /// </summary>
+    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the settings document.</param>
     /// <param name="tenantSettings">The tenant's settings document to merge.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>.</returns>
+    /// <exception cref="UnreadableSettingsException">The tenant's document, or the server's, cannot be honored.</exception>
+    // See ADR-0245.
     internal virtual async ValueTask<IReadOnlySettingCollection> MergeTenantSettingsAsync(
+        string tenantId,
         JsonElement tenantSettings,
         CancellationToken cancellationToken
     )
     {
         var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
-        return EffectiveSettingsResolver.Resolve(
+        return EffectiveSettingsResolver.ResolveStored(
             serverEffective,
             OpenIdSettingScopes.Tenant,
+            tenantId,
             tenantSettings
         );
     }

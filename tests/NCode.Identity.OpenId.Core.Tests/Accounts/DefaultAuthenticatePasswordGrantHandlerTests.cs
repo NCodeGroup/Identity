@@ -104,33 +104,11 @@ public class DefaultAuthenticatePasswordGrantHandlerTests : BaseTests
             .Verifiable();
     }
 
-    private void SetupLookup(string submitted, PersistedLocalAccount? found) =>
-        MockLocalAccountStore
-            .Setup(x => x.GetByUserNameOrDefaultAsync(submitted, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(found)
+    private void SetupSaveChanges() =>
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
             .Verifiable();
-
-    private void SetupVerification(PersistedLocalAccount? verified)
-    {
-        MockLocalAccountStore
-            .Setup(x =>
-                x.VerifyCredentialAsync(
-                    UserName,
-                    It.IsAny<ReadOnlyMemory<byte>>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(verified)
-            .Verifiable();
-
-        if (verified is not null)
-        {
-            MockStoreManager
-                .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-                .Returns(ValueTask.CompletedTask)
-                .Verifiable();
-        }
-    }
 
     private void SetupTenant()
     {
@@ -170,12 +148,44 @@ public class DefaultAuthenticatePasswordGrantHandlerTests : BaseTests
     #region HandleAsync Tests
 
     [Fact]
-    public async Task HandleAsync_WhenTheAttemptLimitIsReached_FailsWithoutVerifying()
+    public async Task HandleAsync_WhenTheAttemptLimitIsReached_RecordsAFailureAndAuditsTheLimit()
     {
         var command = CreateCommand();
         SetupStoreManager();
-        SetupLookup(UserName, found: null);
         SetupLimit(isReached: true);
+        LocalAccountStoreSetup.SetupVerification(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            Account(isEnabled: true)
+        );
+        MockPasswordAttemptLimiter
+            .Setup(x => x.RecordFailureAsync(MockContext.Object, UserName, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupAudit(DefaultAuthenticatePasswordGrantHandler.AttemptLimitReachedReason);
+
+        var disposition = await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.False(disposition.IsAuthenticated);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheStoreVerifiesARefusedPassword_RecordsAFailureAndAuditsTheLimit()
+    {
+        var command = CreateCommand();
+        SetupStoreManager();
+        SetupLimit(isReached: true);
+        LocalAccountStoreSetup.SetupVerificationIgnoringARefusal(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            Account(isEnabled: true)
+        );
+        MockPasswordAttemptLimiter
+            .Setup(x => x.RecordFailureAsync(MockContext.Object, UserName, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
         SetupAudit(DefaultAuthenticatePasswordGrantHandler.AttemptLimitReachedReason);
 
         var disposition = await Handler.HandleAsync(command, CancellationToken.None);
@@ -188,8 +198,17 @@ public class DefaultAuthenticatePasswordGrantHandlerTests : BaseTests
     {
         var command = CreateCommand(UserName + " ");
         SetupStoreManager();
-        SetupLookup(UserName + " ", Account(isEnabled: true));
         SetupLimit(isReached: true);
+        LocalAccountStoreSetup.SetupVerification(
+            MockLocalAccountStore,
+            UserName + " ",
+            UserName,
+            Account(isEnabled: true)
+        );
+        MockPasswordAttemptLimiter
+            .Setup(x => x.RecordFailureAsync(MockContext.Object, UserName, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
         SetupAudit(
             DefaultAuthenticatePasswordGrantHandler.AttemptLimitReachedReason,
             UserName + " "
@@ -206,9 +225,13 @@ public class DefaultAuthenticatePasswordGrantHandlerTests : BaseTests
         using var cancellationSource = new CancellationTokenSource();
         var command = CreateCommand();
         SetupStoreManager();
-        SetupLookup(UserName, found: null);
         SetupLimit(isReached: false);
-        SetupVerification(verified: null);
+        LocalAccountStoreSetup.SetupVerification(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            verified: null
+        );
         MockPasswordAttemptLimiter
             .Setup(x => x.RecordFailureAsync(MockContext.Object, UserName, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
@@ -225,9 +248,14 @@ public class DefaultAuthenticatePasswordGrantHandlerTests : BaseTests
     {
         var command = CreateCommand();
         SetupStoreManager();
-        SetupLookup(UserName, Account(isEnabled: false));
         SetupLimit(isReached: false);
-        SetupVerification(Account(isEnabled: false));
+        LocalAccountStoreSetup.SetupVerification(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            Account(isEnabled: false)
+        );
+        SetupSaveChanges();
         SetupTenant();
         MockPasswordAttemptLimiter
             .Setup(x => x.ResetAsync(TenantId, UserName, It.IsAny<CancellationToken>()))

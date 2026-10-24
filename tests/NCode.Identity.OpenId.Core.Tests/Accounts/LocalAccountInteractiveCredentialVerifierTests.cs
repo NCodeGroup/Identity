@@ -90,24 +90,6 @@ public class LocalAccountInteractiveCredentialVerifierTests : BaseTests
             .Verifiable();
     }
 
-    private void SetupLookup(string submitted, PersistedLocalAccount? found) =>
-        MockLocalAccountStore
-            .Setup(x => x.GetByUserNameOrDefaultAsync(submitted, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(found)
-            .Verifiable();
-
-    private void SetupVerification(PersistedLocalAccount? verified) =>
-        MockLocalAccountStore
-            .Setup(x =>
-                x.VerifyCredentialAsync(
-                    UserName,
-                    It.IsAny<ReadOnlyMemory<byte>>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(verified)
-            .Verifiable();
-
     private void SetupPrincipalBuild()
     {
         MockStoreManager
@@ -163,11 +145,20 @@ public class LocalAccountInteractiveCredentialVerifierTests : BaseTests
     #region VerifyCredentialAsync Tests
 
     [Fact]
-    public async Task VerifyCredentialAsync_WhenTheAttemptLimitIsReached_ReturnsNullWithoutVerifying()
+    public async Task VerifyCredentialAsync_WhenTheAttemptLimitIsReached_RecordsAFailureAndReturnsNull()
     {
         SetupStoreManager();
-        SetupLookup(UserName, found: null);
         SetupLimit(isReached: true);
+        LocalAccountStoreSetup.SetupVerification(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            Account()
+        );
+        MockPasswordAttemptLimiter
+            .Setup(x => x.RecordFailureAsync(MockContext.Object, UserName, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         var principal = await Verifier.VerifyCredentialAsync(
             MockContext.Object,
@@ -180,11 +171,67 @@ public class LocalAccountInteractiveCredentialVerifierTests : BaseTests
     }
 
     [Fact]
+    public async Task VerifyCredentialAsync_WhenTheStoreVerifiesARefusedPassword_RecordsAFailureAndReturnsNull()
+    {
+        SetupStoreManager();
+        SetupLimit(isReached: true);
+        LocalAccountStoreSetup.SetupVerificationIgnoringARefusal(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            Account()
+        );
+        MockPasswordAttemptLimiter
+            .Setup(x => x.RecordFailureAsync(MockContext.Object, UserName, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var principal = await Verifier.VerifyCredentialAsync(
+            MockContext.Object,
+            UserName,
+            Password,
+            CancellationToken.None
+        );
+
+        Assert.Null(principal);
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenTheStoreDoesNotAskTheGate_Throws()
+    {
+        SetupStoreManager();
+        LocalAccountStoreSetup.SetupVerificationWithoutTheGate(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            Account()
+        );
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Verifier.VerifyCredentialAsync(
+                MockContext.Object,
+                UserName,
+                Password,
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
     public async Task VerifyCredentialAsync_WhenTheStoreMatchesAnotherSpelling_CountsTheStoredUserName()
     {
         SetupStoreManager();
-        SetupLookup(UserName + " ", Account());
         SetupLimit(isReached: true);
+        LocalAccountStoreSetup.SetupVerification(
+            MockLocalAccountStore,
+            UserName + " ",
+            UserName,
+            Account()
+        );
+        MockPasswordAttemptLimiter
+            .Setup(x => x.RecordFailureAsync(MockContext.Object, UserName, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         var principal = await Verifier.VerifyCredentialAsync(
             MockContext.Object,
@@ -201,9 +248,13 @@ public class LocalAccountInteractiveCredentialVerifierTests : BaseTests
     {
         using var cancellationSource = new CancellationTokenSource();
         SetupStoreManager();
-        SetupLookup(UserName, found: null);
         SetupLimit(isReached: false);
-        SetupVerification(verified: null);
+        LocalAccountStoreSetup.SetupVerification(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            verified: null
+        );
         MockPasswordAttemptLimiter
             .Setup(x => x.RecordFailureAsync(MockContext.Object, UserName, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
@@ -223,9 +274,13 @@ public class LocalAccountInteractiveCredentialVerifierTests : BaseTests
     public async Task VerifyCredentialAsync_WhenThePasswordIsRight_ClearsTheFailedAttempts()
     {
         SetupStoreManager();
-        SetupLookup(UserName, Account());
         SetupLimit(isReached: false);
-        SetupVerification(Account());
+        LocalAccountStoreSetup.SetupVerification(
+            MockLocalAccountStore,
+            UserName,
+            UserName,
+            Account()
+        );
         SetupPrincipalBuild();
         MockPasswordAttemptLimiter
             .Setup(x => x.ResetAsync(TenantId, UserName, It.IsAny<CancellationToken>()))

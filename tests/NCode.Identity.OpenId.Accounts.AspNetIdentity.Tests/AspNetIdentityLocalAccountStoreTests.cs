@@ -42,6 +42,11 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
     private static readonly byte[] DecomposedPasswordBytes = "cafe\u0301-correct-horse"u8.ToArray();
     private static readonly Claim RoleClaim = new("role", "admin");
 
+    private static readonly Func<string, CancellationToken, ValueTask<bool>> NotRefused = static (
+        _,
+        _
+    ) => ValueTask.FromResult(false);
+
     private readonly MockRepository _mocks = new(MockBehavior.Strict);
 
     public void Dispose() => _mocks.Verify();
@@ -53,16 +58,21 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         Mock<UserManager<IdentityUser>> UserManager
     ) CreateStore(
         IPasswordHasher<IdentityUser>? passwordHasher = null,
-        IUserStore<IdentityUser>? userStore = null
+        IUserStore<IdentityUser>? userStore = null,
+        bool normalizesPasswords = true
     )
     {
         // UserManager's constructor needs only a user store and the password hasher (index 2); the remaining
-        // dependencies are unused by this adapter.
+        // dependencies are unused by this adapter. The adapter requires the user manager's hasher to normalize.
+        IPasswordHasher<IdentityUser>? userManagerHasher =
+            normalizesPasswords && passwordHasher is not null
+                ? new NormalizingPasswordHasher<IdentityUser>(passwordHasher)
+                : passwordHasher;
         object?[] constructorArguments =
         [
             Mock.Of<IUserStore<IdentityUser>>(),
             null,
-            passwordHasher,
+            userManagerHasher,
             null,
             null,
             null,
@@ -194,10 +204,11 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         var result = await store.VerifyCredentialAsync(
             UserName,
             PasswordBytes,
+            NotRefused,
             CancellationToken.None
         );
 
-        Assert.Null(result);
+        Assert.Null(result.Account);
     }
 
     [Fact]
@@ -221,10 +232,11 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         var result = await store.VerifyCredentialAsync(
             UserName,
             PasswordBytes,
+            NotRefused,
             CancellationToken.None
         );
 
-        Assert.Null(result);
+        Assert.Null(result.Account);
     }
 
     [Fact]
@@ -250,10 +262,11 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         var result = await store.VerifyCredentialAsync(
             UserName,
             PasswordBytes,
+            NotRefused,
             CancellationToken.None
         );
 
-        Assert.Null(result);
+        Assert.Null(result.Account);
     }
 
     [Fact]
@@ -278,17 +291,18 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         var result = await store.VerifyCredentialAsync(
             UserName,
             PasswordBytes,
+            NotRefused,
             CancellationToken.None
         );
 
-        Assert.NotNull(result);
-        Assert.Equal(LocalAccountId, result.LocalAccountId);
-        Assert.Equal(string.Empty, result.TenantId);
-        Assert.Equal(UserName, result.UserName);
-        Assert.True(result.IsEnabled);
-        Assert.Equal(SecurityStamp, result.SecurityStamp);
-        Assert.Equal(ConcurrencyToken, result.ConcurrencyToken);
-        var claim = Assert.Single(result.Claims);
+        Assert.True(result.IsVerified);
+        Assert.Equal(LocalAccountId, result.Account.LocalAccountId);
+        Assert.Equal(string.Empty, result.Account.TenantId);
+        Assert.Equal(UserName, result.Account.UserName);
+        Assert.True(result.Account.IsEnabled);
+        Assert.Equal(SecurityStamp, result.Account.SecurityStamp);
+        Assert.Equal(ConcurrencyToken, result.Account.ConcurrencyToken);
+        var claim = Assert.Single(result.Account.Claims);
         Assert.Equal("role", claim.Type);
         Assert.Equal("admin", claim.Value);
     }
@@ -318,10 +332,11 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         var result = await store.VerifyCredentialAsync(
             UserName,
             PasswordBytes,
+            NotRefused,
             CancellationToken.None
         );
 
-        Assert.Null(result);
+        Assert.Null(result.Account);
     }
 
     [Fact]
@@ -349,10 +364,11 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         var result = await store.VerifyCredentialAsync(
             UserName,
             PasswordBytes,
+            NotRefused,
             CancellationToken.None
         );
 
-        Assert.Null(result);
+        Assert.Null(result.Account);
     }
 
     [Fact]
@@ -377,10 +393,11 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         var result = await store.VerifyCredentialAsync(
             UserName,
             DecomposedPasswordBytes,
+            NotRefused,
             CancellationToken.None
         );
 
-        Assert.NotNull(result);
+        Assert.True(result.IsVerified);
     }
 
     [Fact]
@@ -423,10 +440,11 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         var result = await store.VerifyCredentialAsync(
             UserName,
             DecomposedPasswordBytes,
+            NotRefused,
             CancellationToken.None
         );
 
-        Assert.NotNull(result);
+        Assert.True(result.IsVerified);
     }
 
     [Fact]
@@ -456,10 +474,11 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         var result = await store.VerifyCredentialAsync(
             UserName,
             DecomposedPasswordBytes,
+            NotRefused,
             CancellationToken.None
         );
 
-        Assert.Null(result);
+        Assert.Null(result.Account);
     }
 
     [Fact]
@@ -498,10 +517,11 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         var result = await store.VerifyCredentialAsync(
             UserName,
             PasswordBytes,
+            NotRefused,
             CancellationToken.None
         );
 
-        Assert.NotNull(result);
+        Assert.True(result.IsVerified);
     }
 
     [Fact]
@@ -539,10 +559,108 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
         var result = await store.VerifyCredentialAsync(
             UserName,
             DecomposedPasswordBytes,
+            NotRefused,
             CancellationToken.None
         );
 
-        Assert.Null(result);
+        Assert.Null(result.Account);
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenTheGateRefuses_VerifiesTheDummyHashInsteadOfTheStoredHash()
+    {
+        var passwordHasher = CreatePasswordHasher();
+        var passwordStore = CreatePasswordStore();
+        var (store, userManager) = CreateStore(passwordHasher.Object, passwordStore.Object);
+        SetupDummyPasswordHash(passwordHasher);
+        var user = CreateUser();
+        userManager.Setup(x => x.FindByNameAsync(UserName)).ReturnsAsync(user).Verifiable();
+        userManager.SetupGet(x => x.SupportsUserLockout).Returns(true).Verifiable();
+        userManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(false).Verifiable();
+        passwordStore
+            .Setup(x => x.GetPasswordHashAsync(user, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(StoredPasswordHash)
+            .Verifiable();
+        passwordHasher
+            .Setup(x =>
+                x.VerifyHashedPassword(It.IsAny<IdentityUser>(), DummyPasswordHash, Password)
+            )
+            .Returns(PasswordVerificationResult.Success)
+            .Verifiable(Times.Once());
+
+        var result = await store.VerifyCredentialAsync(
+            UserName,
+            PasswordBytes,
+            static (_, _) => ValueTask.FromResult(true),
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsRefused);
+        Assert.Null(result.Account);
+        Assert.Equal(UserName, result.UserName);
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenTheStoreMatchesAnotherSpelling_AsksTheGateAboutTheStoredUserName()
+    {
+        const string submittedUserName = UserName + " ";
+        var passwordHasher = CreatePasswordHasher();
+        var passwordStore = CreatePasswordStore();
+        var (store, userManager) = CreateStore(passwordHasher.Object, passwordStore.Object);
+        SetupDummyPasswordHash(passwordHasher);
+        var user = CreateUser();
+        userManager
+            .Setup(x => x.FindByNameAsync(submittedUserName))
+            .ReturnsAsync(user)
+            .Verifiable();
+        userManager.SetupGet(x => x.SupportsUserLockout).Returns(true).Verifiable();
+        userManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(false).Verifiable();
+        passwordStore
+            .Setup(x => x.GetPasswordHashAsync(user, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(StoredPasswordHash)
+            .Verifiable();
+        passwordHasher
+            .Setup(x => x.VerifyHashedPassword(user, StoredPasswordHash, Password))
+            .Returns(PasswordVerificationResult.Failed)
+            .Verifiable();
+        var askedUserNames = new List<string>();
+
+        var result = await store.VerifyCredentialAsync(
+            submittedUserName,
+            PasswordBytes,
+            (userName, _) =>
+            {
+                askedUserNames.Add(userName);
+                return ValueTask.FromResult(false);
+            },
+            CancellationToken.None
+        );
+
+        Assert.Equal(UserName, Assert.Single(askedUserNames));
+        Assert.Equal(UserName, result.UserName);
+        Assert.False(result.IsRefused);
+        Assert.Null(result.Account);
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenTheUserManagersHasherDoesNotNormalize_Throws()
+    {
+        var passwordHasher = CreatePasswordHasher();
+        var passwordStore = CreatePasswordStore();
+        var (store, _) = CreateStore(
+            passwordHasher.Object,
+            passwordStore.Object,
+            normalizesPasswords: false
+        );
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await store.VerifyCredentialAsync(
+                UserName,
+                PasswordBytes,
+                NotRefused,
+                CancellationToken.None
+            )
+        );
     }
 
     #endregion
@@ -660,6 +778,35 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task AddAsync_WhenAPasswordIsGivenAndTheUserManagersHasherDoesNotNormalize_Throws()
+    {
+        var passwordHasher = CreatePasswordHasher();
+        var passwordStore = CreatePasswordStore();
+        var (store, _) = CreateStore(
+            passwordHasher.Object,
+            passwordStore.Object,
+            normalizesPasswords: false
+        );
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await store.AddAsync(CreateAccount(), PasswordBytes, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task AddAsync_WhenNoPasswordIsGivenAndTheUserManagersHasherDoesNotNormalize_CreatesTheUser()
+    {
+        var passwordHasher = CreatePasswordHasher();
+        var (store, userManager) = CreateStore(passwordHasher.Object, normalizesPasswords: false);
+        userManager
+            .Setup(x => x.CreateAsync(It.IsAny<IdentityUser>()))
+            .ReturnsAsync(IdentityResult.Success)
+            .Verifiable();
+
+        await store.AddAsync(CreateAccount(), password: null, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task AddAsync_WhenCreateFails_Throws()
     {
         var (store, userManager) = CreateStore();
@@ -774,6 +921,22 @@ public sealed class AspNetIdentityLocalAccountStoreTests : IDisposable
             LocalAccountId,
             DecomposedPasswordBytes,
             CancellationToken.None
+        );
+    }
+
+    [Fact]
+    public async Task SetPasswordAsync_WhenTheUserManagersHasherDoesNotNormalize_Throws()
+    {
+        var passwordHasher = CreatePasswordHasher();
+        var passwordStore = CreatePasswordStore();
+        var (store, _) = CreateStore(
+            passwordHasher.Object,
+            passwordStore.Object,
+            normalizesPasswords: false
+        );
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await store.SetPasswordAsync(LocalAccountId, PasswordBytes, CancellationToken.None)
         );
     }
 

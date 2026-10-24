@@ -645,14 +645,13 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEffectiveSettingsAsync_WhenUnauthenticated_ReturnsUnauthorized()
+    public async Task GetEffectiveSettingsAsync_WhenUnauthenticated_ReturnsUnauthorizedWithoutResolvingTheSettings()
     {
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct"))
             .Verifiable();
-        SetupEffectiveSettingsResolver(CreateSettingCollection());
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContextWithEnvironment(authenticated: false);
@@ -676,9 +675,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.Resolve(
+                x.ResolveStored(
                     serverSettings.Object,
                     OpenIdSettingScopes.Tenant,
+                    TenantId,
                     It.IsAny<JsonElement>()
                 )
             )

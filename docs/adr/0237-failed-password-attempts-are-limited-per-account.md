@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (amended by
   [ADR-0239](0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md): a password is
-  verified in the same time whether or not an account has the user name)
+  verified in the same time whether or not an account has the user name; and by
+  [ADR-0244](0244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md): the verification's own
+  lookup names the counted user name, and a password refused at the limit is verified against the dummy hash and
+  counted)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -42,21 +45,23 @@ of its first failure ends, with exactly the answer that a wrong password gets.**
 2. **One counter holds the failures of one account.** The key is `password-attempts:{tenantId}:{digest}`, built by
    `ExpiringKeys.Create`, where the digest is the SHA-256 of the length-prefixed UTF-8 bytes of the folded user name, so
    the shared state holds no user name. The folding is `Normalize(NormalizationForm.FormKC)`, then `ToUpperInvariant()`,
-   then `ToLowerInvariant()`. The caller passes the user name that the store holds for the submitted one, which it looks
-   up with `ILocalAccountStore.GetByUserNameOrDefaultAsync`, or the submitted name when no account has it. The store
-   compares names in its database, whose collation can match spellings that differ in .NET, such as a trailing space
-   under a padding collation or an accent under an accent-insensitive one, so every spelling that matches an account
-   shares that account's count. The folding gives the spellings of a name that no account has one count as well: the
-   Entity Framework store lower-cases a name, and ASP.NET Core Identity composes and upper-cases it.
+   then `ToLowerInvariant()`. The store passes the user name that it holds for the submitted one, which the lookup of
+   the verification itself finds, or the submitted name when no account has it
+   ([ADR-0244](0244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md)). The store compares names
+   in its database, whose collation can match spellings that differ in .NET, such as a trailing space under a padding
+   collation or an accent under an accent-insensitive one, so every spelling that matches an account shares that
+   account's count. The folding gives the spellings of a name that no account has one count as well: the Entity
+   Framework store lower-cases a name, and ASP.NET Core Identity composes and upper-cases it.
 3. **The limit is read before the verification, and a failure is counted after it.** `IsLimitReachedAsync` reads the
    counter with `GetAsync`, and the limit is reached when the count is at least `password_failed_attempts_limit`. The
-   caller then refuses the password without verifying it, so the store never sees the password, and answers as it
-   answers a wrong password: the sign-in redirects to the login page with `invalid_credentials`, the password grant
-   answers its failed authentication, and the change reports `invalid_current_password`. After a failed verification,
+   store then verifies the password against its dummy hash instead of the account's hash, and the caller answers as it
+   answers a wrong password ([ADR-0244](0244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md)):
+   the sign-in redirects to the login page with `invalid_credentials`, the password grant answers its failed
+   authentication, and the change reports `invalid_current_password`. After a failed verification, a refusal included,
    `RecordFailureAsync` calls `IncrementAsync` with an expiry of the current time plus
    `password_failed_attempts_window`. The counter set starts a counter at one with that expiry and leaves the expiry of
    a live counter unchanged ([ADR-0196](0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)), so the
-   window starts at the first failure, and a refused password is not counted and does not extend it. The refusal lasts
+   window starts at the first failure, and a refused password is counted and does not extend it. The refusal lasts
    until the window ends.
 4. **Two tenant settings set the limit.** Both apply to tenants and neither is discoverable
    ([ADR-0140](0140-setting-values-are-validated-against-their-domain.md)).
@@ -120,8 +125,9 @@ of its first failure ends, with exactly the answer that a wrong password gets.**
   limit within each window. A reset by an administrator clears the count, and an end user waits at most one window.
 - Concurrent attempts can exceed the limit by the number in flight, because the count is read before the verification
   and incremented after it.
-- A sign-in costs one lookup of the account by its user name, one read of the counter and, after a verified password,
-  one removal of it, which is a round trip to the shared state when a deployment uses Valkey.
+- A sign-in costs the one lookup of the account that its verification makes, one read of the counter, and one increment
+  or, after a verified password, one removal of it, each a round trip to the shared state when a deployment uses
+  Valkey.
 - A guesser that invents user names creates a counter for each of them, and each expires with its window.
 - **Breaking:** `IExpiringCounterSet` gains `RemoveAsync`, which a custom adapter implements, and
   `IPasswordAttemptLimiter` is added.

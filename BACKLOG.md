@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S21`     | `S20`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R108`    | `R107`     |
+| `R` — Review findings                 | `R109`    | `R108`     |
 
 ---
 
@@ -591,6 +591,14 @@ _None remaining._
   Verify the submitted password against a fixed dummy hash of the current parameters when there is no stored hash. Touch
   points: `LocalAccountStore.VerifyCredentialAsync`, `AspNetIdentityLocalAccountStore.VerifyCredentialAsync`,
   `DefaultPasswordHasher`, ADR-0237.
+- **`R108` — Make the outbound-HTTP telemetry test immune to other tests' requests.**
+  `TelemetryRegistrationTests.AddOpenTelemetryMetrics_WhenMetricsAreRecorded_CollectsTheFamilyAndBoundsOutboundHttp`
+  asserts that every `http.client.request.duration` point carries exactly one tag, `http.request.method`. The
+  `System.Net.Http` meter is process-wide, so a real request from a test running in parallel adds points, and
+  `TelemetryRegistration` deliberately keeps the bounded tags `error.type`, `url.scheme` and the like. A cancelled
+  outbound `POST` therefore failed the Definition of Done once and passed on its re-run. Assert instead that no point
+  carries a tag outside the bounded set (in particular no `server.address` or `server.port`), and that the test's own
+  `GET` point carries only `http.request.method`. Touch point: `TelemetryRegistrationTests.cs:118-160`.
 
 ### Refactor
 

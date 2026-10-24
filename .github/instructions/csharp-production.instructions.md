@@ -1074,6 +1074,8 @@ organization) live in [`csharp-testing.instructions.md`](csharp-testing.instruct
 
 - ✅ Versioning is stamped by **Nerdbank.GitVersioning** (single root [`version.json`](../../version.json)), **lockstep**
   across the family. `AssemblyVersion` is pinned to `major` precision so patches/minors are drop-in within a major.
+  Every workflow that builds or tests a .NET project checks out the full history (`fetch-depth: 0`): the version is
+  computed from commit height, and the build fails on the shallow clone `actions/checkout` makes by default.
   See [ADR-0003](../../docs/adr/0003-central-package-management-and-lockstep-versioning.md).
 - ✅ Packages are **source-linked to GitHub** and ship a portable symbol package (`.snupkg`) so consumers can step into
   the exact released source. See [ADR-0007](../../docs/adr/0007-provenance-sourcelink-and-symbols.md).

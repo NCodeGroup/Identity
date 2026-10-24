@@ -59,6 +59,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # The built-bundle step runs `dotnet test`, and Nerdbank.GitVersioning computes the version from commit
+          # height and FAILS on a shallow clone, which is the actions/checkout default. The full history is required.
+          fetch-depth: 0
 
       # The Node major is pinned once, in src/frontend/.node-version, which is the same file NVS selects locally and the
       # Aspire AppHost reads (ADR-0152), so CI runs the runtime a developer machine runs.

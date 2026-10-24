@@ -69,6 +69,12 @@ jobs:
           refuse --set secretProtection.local.keySecret=
           refuse --set secretProtection.rootKeyProvider=aws-kms
           refuse --set secretProtection.rootKeyProvider=aws-kms --set secretProtection.awsKms.keyArn=not-an-arn
+          refuse --set secretProtection.rootKeyProvider=azure-key-vault
+          refuse --set secretProtection.rootKeyProvider=azure-key-vault --set secretProtection.azureKeyVault.keyId=https://contoso.vault.azure.net/secrets/root
+          refuse --set secretProtection.rootKeyProvider=azure-key-vault --set secretProtection.azureKeyVault.keyId=https://contoso.vault.azure.net/keys/root --set secretProtection.azureKeyVault.workloadIdentity.clientId=00000000-0000-0000-0000-000000000000
+          refuse --set secretProtection.rootKeyProvider=google-cloud-kms
+          refuse --set secretProtection.rootKeyProvider=google-cloud-kms --set secretProtection.googleCloudKms.keyName=projects/p/locations/global/keyRings/r/cryptoKeys/k/cryptoKeyVersions/1
+          refuse --set secretProtection.rootKeyProvider=google-cloud-kms --set secretProtection.googleCloudKms.keyName=projects/p/locations/global/keyRings/r/cryptoKeys/k --set secretProtection.googleCloudKms.workloadIdentityFederation.provider=not-a-provider
           refuse --set secretProtection.recovery.publicKeyConfigMap=
           refuse --set tenantResolution.staticSingle.issuer=
           refuse --set tenantResolution.staticSingle.issuer=http://id.example.com

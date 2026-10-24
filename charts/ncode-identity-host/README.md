@@ -49,6 +49,13 @@ Rendering fails, before anything is applied, when:
   is empty;
 - `secretProtection.rootKeyProvider` is `aws-kms`, in any environment, and `secretProtection.awsKms.keyArn` is empty or
   is not the ARN of a KMS key or alias;
+- `secretProtection.rootKeyProvider` is `azure-key-vault`, in any environment, and
+  `secretProtection.azureKeyVault.keyId` is empty or is not the identifier of a Key Vault or Managed HSM key, or only
+  one of `secretProtection.azureKeyVault.workloadIdentity.tenantId` and `clientId` is set;
+- `secretProtection.rootKeyProvider` is `google-cloud-kms`, in any environment, and
+  `secretProtection.googleCloudKms.keyName` is empty or is not the resource name of a Cloud KMS crypto key, or
+  `secretProtection.googleCloudKms.workloadIdentityFederation.provider` is set and is not the resource name of a
+  workload identity pool provider;
 - `environment` is `Production`, `secretProtection.recovery.publicKeyConfigMap` is empty, and
   `secretProtection.recovery.disabled` is not `true`, because losing the root key would then lose every stored secret;
 - `replicaCount` is above 1 without `valkey.existingSecret`, because replicas share single-use state through Valkey;
@@ -85,6 +92,11 @@ choice:
   but anyone who can read the Secret can read the key.
 - `aws-kms`: a key in AWS KMS, which never leaves it. The host reaches it with web identity federation, so no AWS
   credential is stored in the cluster; see [AWS KMS](#aws-kms).
+- `azure-key-vault`: an RSA key in Azure Key Vault or Managed HSM, which never leaves it. The host reaches it with
+  workload identity federation, so no Azure credential is stored in the cluster; see
+  [Azure Key Vault](#azure-key-vault).
+- `google-cloud-kms`: a key in Google Cloud KMS, which never leaves it. The host reaches it with workload identity
+  federation, so no Google Cloud credential is stored in the cluster; see [Google Cloud KMS](#google-cloud-kms).
 
 Whichever provider you choose, also create the recovery key below, or set `secretProtection.recovery.disabled=true` to
 accept that losing the root key loses every stored secret.
@@ -187,6 +199,95 @@ mounts a projected service-account token (audience `secretProtection.awsKms.webI
 `/var/run/secrets/tokens/aws/token`, and sets `AWS_ROLE_ARN`, `AWS_WEB_IDENTITY_TOKEN_FILE`, and `AWS_ROLE_SESSION_NAME`
 (the release's full name). It does this only for the `aws-kms` provider, so a pod that uses another provider never
 carries AWS credentials. The pod still does not mount the default service-account token.
+
+### Azure Key Vault
+
+The root key is an RSA key in Azure Key Vault or Managed HSM. The host reaches it with workload identity federation: the
+chart projects a service-account token into the pod, and Azure.Identity exchanges it with Microsoft Entra ID for a
+short-lived token of a managed identity or app registration, so nothing is stored. The host calls only the key's wrap
+and unwrap operations, with `RSA-OAEP-256`. Key Vault's RSA-OAEP binds no context, so unlike AWS KMS the call carries no
+encryption context; each master key's key-check value binds it to its owner instead. Set it up once per deployment:
+
+1. **Create the key.** An RSA key of 3072 bits or more, in a vault or Managed HSM with purge protection on. An
+   `RSA-HSM` key in a Premium vault, or a key in a Managed HSM, is recommended. A key identifier without a version wraps
+   with the key's current version, and every wrapped key records its version, so rotating the key in Key Vault keeps
+   older master keys unwrappable as long as their versions stay enabled.
+2. **Check that the cluster's issuer is publicly discoverable**, with the `curl` check in step 2 of
+   [AWS KMS](#aws-kms). Microsoft Entra ID fetches the issuer's discovery document and signing keys itself.
+3. **Create the identity the host uses**: a user-assigned managed identity or an app registration. Give it a federated
+   identity credential with the cluster's issuer, the subject `system:serviceaccount:<namespace>:<service account>`,
+   and the audience `api://AzureADTokenExchange`. The service account is `serviceAccount.name`, or the release's full
+   name when that is empty.
+4. **Allow the identity to use the one key.** Assign it the role "Key Vault Crypto Service Encryption User" on the key
+   only, not on the vault. For a key in a Managed HSM, assign instead the Managed HSM local role "Managed HSM Crypto
+   Service Encryption User" at the key's scope.
+
+Then set `secretProtection.rootKeyProvider=azure-key-vault`,
+`secretProtection.azureKeyVault.keyId=https://<vault>.vault.azure.net/keys/ncode-identity-root`,
+`secretProtection.azureKeyVault.workloadIdentity.tenantId=<tenant ID>`, and
+`secretProtection.azureKeyVault.workloadIdentity.clientId=<client ID>`; `ci/azure-key-vault-values.yaml` shows a
+release. The chart sets `SecretProtection__RootKeyProviders__AzureKeyVault__KeyId`. When `clientId` is set, it also
+mounts a projected service-account token (audience `secretProtection.azureKeyVault.workloadIdentity.audience`, default
+`api://AzureADTokenExchange`, valid for `tokenExpirationSeconds`, at least 600) read-only at
+`/var/run/secrets/tokens/azure/token`, and sets `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_FEDERATED_TOKEN_FILE`, and
+`AZURE_TOKEN_CREDENTIALS=WorkloadIdentityCredential`, so Azure.Identity tries exactly that one credential. It does this
+only for the `azure-key-vault` provider, so a pod that uses another provider never carries Azure credentials. When the
+cluster supplies Azure credentials itself, leave `workloadIdentity` empty: the chart then sets only the key identifier.
+
+### Google Cloud KMS
+
+The root key is a symmetric key in Google Cloud KMS. The host reaches it with workload identity federation: the chart
+projects a service-account token into the pod, and Application Default Credentials exchange it with Google STS for a
+short-lived access token, so nothing is stored. The host calls only `Encrypt` and `Decrypt`, binds each wrap to its
+owner through additional authenticated data, and checks CRC32C checksums on every request and response. Set it up once
+per deployment:
+
+1. **Create the key.** A symmetric key (purpose `ENCRYPT_DECRYPT`) with the `HSM` protection level and yearly automatic
+   rotation.
+2. **Create a workload identity pool and an OIDC provider that trusts the cluster.** Give the provider the cluster's
+   issuer and its signing keys, uploaded as a JWKS file, so Google never fetches them and the issuer need not be
+   public. Map `google.subject` to the token's `sub`, and keep the provider's default allowed audience,
+   `https://iam.googleapis.com/` followed by the provider's resource name, which is the audience of the token the chart
+   projects:
+
+   ```bash
+   ISSUER=$(kubectl get --raw /.well-known/openid-configuration | jq -r .issuer)
+   kubectl get --raw /openid/v1/jwks > jwks.json
+   gcloud iam workload-identity-pools create ncode-identity --location=global
+   gcloud iam workload-identity-pools providers create-oidc cluster --location=global \
+     --workload-identity-pool=ncode-identity --issuer-uri="$ISSUER" --jwk-json-path=jwks.json \
+     --attribute-mapping=google.subject=assertion.sub
+   ```
+
+   The provider trusts only the keys uploaded to it, so monitor the cluster's JWKS for changes and upload it again when
+   it changes.
+3. **Allow the host's service account to use the one key.** Its federated principal is
+
+   ```text
+   principal://iam.googleapis.com/projects/<project number>/locations/global/workloadIdentityPools/<pool>/subject/system:serviceaccount:<namespace>:<service account>
+   ```
+
+   where the service account is `serviceAccount.name`, or the release's full name when that is empty. Then either:
+
+   - grant that principal `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the key, and leave `serviceAccountEmail`
+     empty; or
+   - grant that principal `roles/iam.workloadIdentityUser` on a Google service account, grant
+     `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the key to `serviceAccount:<email>`, and set `serviceAccountEmail`
+     to that email. The host then impersonates the service account.
+
+Then set `secretProtection.rootKeyProvider=google-cloud-kms`,
+`secretProtection.googleCloudKms.keyName=projects/<project>/locations/<location>/keyRings/<ring>/cryptoKeys/<key>`,
+and `secretProtection.googleCloudKms.workloadIdentityFederation.provider` to the provider's resource name,
+`projects/<project number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>`;
+`ci/google-cloud-kms-values.yaml` shows a release that impersonates a service account. The chart sets
+`SecretProtection__RootKeyProviders__GoogleCloudKms__KeyName`. When `provider` is set, it also renders a ConfigMap,
+`<release full name>-google-cloud`, holding an `external_account` credential configuration, and projects it together
+with a service-account token (audience `https://iam.googleapis.com/<provider>`, valid for `tokenExpirationSeconds`, at
+least 600) read-only at `/var/run/secrets/tokens/google`. It sets `GOOGLE_APPLICATION_CREDENTIALS` to
+`/var/run/secrets/tokens/google/credential-configuration.json`, and annotates the pod with the configuration's
+checksum, so a change restarts it. It does this only for the `google-cloud-kms` provider, so a pod that uses another
+provider never carries Google Cloud credentials. On GKE with Workload Identity Federation for GKE, which supplies
+credentials itself, leave `provider` empty: the chart then sets only the key name.
 
 ### A key the master key cannot decrypt
 

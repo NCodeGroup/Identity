@@ -1,0 +1,17 @@
+# A production release whose root key is in Azure Key Vault, reached through workload identity federation.
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  existingSecret: identity-database
+secretProtection:
+  rootKeyProvider: azure-key-vault
+  azureKeyVault:
+    keyId: https://contoso.vault.azure.net/keys/ncode-identity-root
+    workloadIdentity:
+      tenantId: 11111111-2222-3333-4444-555555555555
+      clientId: 66666666-7777-8888-9999-000000000000
+  recovery:
+    publicKeyConfigMap: identity-recovery-key

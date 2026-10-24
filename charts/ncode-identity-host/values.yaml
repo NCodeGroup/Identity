@@ -68,7 +68,7 @@ valkey:
 # Stored secrets and the Data Protection key ring are encrypted under a root key held outside the database; see "Secret
 # protection" in the chart's README.
 secretProtection:
-  # Required in Production: local, or aws-kms once its values are set.
+  # Required in Production: local, aws-kms, azure-key-vault or google-cloud-kms once its values are set.
   rootKeyProvider: ""
   local:
     # Secret holding the root key under the key 'key' (base64url, 32 bytes).
@@ -82,6 +82,26 @@ secretProtection:
       # IAM role the host's service account assumes through the cluster's IAM OIDC identity provider.
       roleArn: ""
       audience: sts.amazonaws.com
+      tokenExpirationSeconds: 3600
+  azureKeyVault:
+    # Identifier of the RSA key in Key Vault or Managed HSM: https://<vault>.vault.azure.net/keys/<name>.
+    keyId: ""
+    workloadIdentity:
+      # Entra tenant of the identity whose federated credential trusts the host's service account.
+      tenantId: ""
+      # Client ID of the identity whose federated credential trusts the host's service account.
+      clientId: ""
+      audience: api://AzureADTokenExchange
+      tokenExpirationSeconds: 3600
+  googleCloudKms:
+    # Resource name of the crypto key: projects/<project>/locations/<location>/keyRings/<ring>/cryptoKeys/<key>.
+    keyName: ""
+    workloadIdentityFederation:
+      # Workload identity pool provider:
+      # projects/<project number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>.
+      provider: ""
+      # Service account to impersonate; empty when the key grants its role to the federated principal.
+      serviceAccountEmail: ""
       tokenExpirationSeconds: 3600
   recovery:
     # ConfigMap holding the recovery public key under the key 'recovery-public.pem'.

@@ -458,27 +458,10 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   - `secret-protection rewrap-recovery` rewraps only the recovery copies (new recovery key pair).
   - The recovery private key is read from a file mounted for the Job only, never from configuration.
 
-- **`S15` — More root key providers.** Google Cloud KMS, Azure Key Vault, Infisical KMS, OpenBao/Vault Transit and
-  PKCS#11 packages, each an `IRootKeyProvider` with its own options section.
-  - Google Cloud KMS:
-    - Package `NCode.Identity.Secrets.Persistence.GoogleCloudKms` (`Google.Cloud.Kms.V1`), provider name
-      `google-cloud-kms`, options `SecretProtection:RootKeyProviders:GoogleCloudKms:KeyName` (the crypto key resource
-      name `projects/<p>/locations/<l>/keyRings/<r>/cryptoKeys/<k>`, validated by a strategy-owned
-      `IValidateOptions`).
-    - `EncryptAsync` / `DecryptAsync` with `AdditionalAuthenticatedData` = the root context; `KeyId` = the response's
-      key version name; decrypt names the crypto key (the version cut off). `RpcException` with `InvalidArgument` →
-      `CryptographicException`; everything else propagates (as the AWS KMS provider does).
-    - Credentials: Application Default Credentials reading an `external_account` credential configuration whose
-      `credential_source.file` is a projected service-account token; the workload identity provider holds the
-      cluster's **uploaded** JWKS, so neither the issuer nor the API server must be public. The chart mounts the token
-      and the credential ConfigMap and sets `GOOGLE_APPLICATION_CREDENTIALS`. A monitor must alert when the cluster's
-      JWKS changes.
-    - Cost: about $0.06 per active key version per month and $0.03 per 10,000 operations (verify).
-  - Azure Key Vault: `Azure.Security.KeyVault.Keys`
-    `CryptographyClient.WrapKeyAsync(KeyWrapAlgorithm.RsaOaep256, key)` / `UnwrapKeyAsync`; `KeyId` = the key version
-    URI. No associated data (the key check binds the row). Credentials: `WorkloadIdentityCredential` (Entra needs a
-    publicly discoverable issuer) or a client certificate. Cost: Standard $0.03 per 10,000 operations; Premium HSM keys
-    $1–5 per key per month.
+- **`S15` — More root key providers.** Google Cloud KMS (`google-cloud-kms`) and Azure Key Vault (`azure-key-vault`)
+  are implemented ([ADR-0260](docs/adr/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)).
+  Remaining: Infisical KMS, OpenBao/Vault Transit and PKCS#11 packages, each an `IRootKeyProvider` with its own
+  options section.
   - Infisical KMS, OpenBao/Vault Transit and PKCS#11: Infisical: REST encrypt/decrypt with an `aes-256-gcm` KMS key;
     machine identity through Universal Auth (stored credential) or Kubernetes Auth (needs API-server reachability).
     OpenBao Transit: `encrypt`/`decrypt` with `context` on a derived key, Kubernetes auth in-cluster. PKCS#11:
@@ -530,7 +513,9 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   OpenSSL supports ML-KEM.
   - Add recovery wrap format `r2`: hybrid ML-KEM-768 + X25519 key encapsulation feeding HKDF, then AES-256-GCM over the
     master key. Requires `System.Security.Cryptography.MLKem` support in the container images' OpenSSL (3.5+). Keep
-    RSA-OAEP until then; the root and master layers are symmetric and already quantum-resistant.
+    RSA-OAEP until then; the master layer, and the `local`, `aws-kms` and `google-cloud-kms` roots, are symmetric and
+    already quantum-resistant; an `azure-key-vault` root is RSA and is not (ADR-0260), so a post-quantum root on Azure
+    needs a Managed HSM AES key.
 
 ## Tooling & agent customization (group `X`)
 

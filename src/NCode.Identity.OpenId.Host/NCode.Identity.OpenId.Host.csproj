@@ -19,6 +19,8 @@
         <ProjectReference Include="..\NCode.Identity.OpenId.Host.Database\NCode.Identity.OpenId.Host.Database.csproj" />
         <ProjectReference Include="..\NCode.Identity.SharedState.Valkey\NCode.Identity.SharedState.Valkey.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets.Persistence.AwsKms\NCode.Identity.Secrets.Persistence.AwsKms.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets.Persistence.AzureKeyVault\NCode.Identity.Secrets.Persistence.AzureKeyVault.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets.Persistence.GoogleCloudKms\NCode.Identity.Secrets.Persistence.GoogleCloudKms.csproj" />
     </ItemGroup>
 
     <ItemGroup>

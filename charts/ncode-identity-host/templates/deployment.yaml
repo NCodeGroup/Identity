@@ -4,6 +4,11 @@
 {{- $awsWebIdentityRoot := "/var/run/secrets/tokens/aws" }}
 {{- /* A pod that does not use AWS KMS never carries AWS credentials, whatever the web identity values say. */}}
 {{- $awsWebIdentity := and (eq .Values.secretProtection.rootKeyProvider "aws-kms") .Values.secretProtection.awsKms.webIdentity.roleArn }}
+{{- $azureWorkloadIdentityRoot := "/var/run/secrets/tokens/azure" }}
+{{- /* A pod that does not use Azure Key Vault never carries Azure credentials, whatever the workload identity values say. */}}
+{{- $azureWorkloadIdentity := and (eq .Values.secretProtection.rootKeyProvider "azure-key-vault") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
+{{- $googleCloudCredentials := include "identity-host.googleCloudCredentialConfiguration" . }}
+{{- $googleCloudTokenRoot := "/var/run/secrets/tokens/google" }}
 {{- $probeHost := include "identity-host.probeHost" . }}
 apiVersion: apps/v1
 kind: Deployment
@@ -37,9 +42,15 @@ spec:
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.podAnnotations }}
+      {{- if or .Values.podAnnotations $googleCloudCredentials }}
       annotations:
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if $googleCloudCredentials }}
+        # A changed configuration restarts the pods, which read it only at start.
+        checksum/google-cloud-credentials: {{ sha256sum $googleCloudCredentials | quote }}
+        {{- end }}
       {{- end }}
     spec:
       serviceAccountName: {{ include "identity-host.serviceAccountName" . }}
@@ -138,6 +149,32 @@ spec:
             - name: AWS_ROLE_SESSION_NAME
               value: {{ include "identity-host.fullname" . | quote }}
             {{- end }}
+            {{- if eq .Values.secretProtection.rootKeyProvider "azure-key-vault" }}
+            - name: SecretProtection__RootKeyProviders__AzureKeyVault__KeyId
+              value: {{ .Values.secretProtection.azureKeyVault.keyId | quote }}
+            {{- end }}
+            {{- if $azureWorkloadIdentity }}
+            # Azure.Identity exchanges the projected token for an Entra token of this identity, and tries no other
+            # credential.
+            - name: AZURE_TENANT_ID
+              value: {{ .Values.secretProtection.azureKeyVault.workloadIdentity.tenantId | quote }}
+            - name: AZURE_CLIENT_ID
+              value: {{ .Values.secretProtection.azureKeyVault.workloadIdentity.clientId | quote }}
+            - name: AZURE_FEDERATED_TOKEN_FILE
+              value: {{ printf "%s/token" $azureWorkloadIdentityRoot }}
+            - name: AZURE_TOKEN_CREDENTIALS
+              value: WorkloadIdentityCredential
+            {{- end }}
+            {{- if eq .Values.secretProtection.rootKeyProvider "google-cloud-kms" }}
+            - name: SecretProtection__RootKeyProviders__GoogleCloudKms__KeyName
+              value: {{ .Values.secretProtection.googleCloudKms.keyName | quote }}
+            {{- end }}
+            {{- if $googleCloudCredentials }}
+            # Application Default Credentials read this configuration, which exchanges the projected token with Google
+            # STS.
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: {{ printf "%s/credential-configuration.json" $googleCloudTokenRoot }}
+            {{- end }}
             {{- if .Values.secretProtection.recovery.publicKeyConfigMap }}
             - name: SecretProtection__Recovery__PublicKeyPath
               value: {{ printf "%s/recovery/recovery-public.pem" $secretProtectionRoot }}
@@ -213,6 +250,16 @@ spec:
               mountPath: {{ $awsWebIdentityRoot }}
               readOnly: true
             {{- end }}
+            {{- if $azureWorkloadIdentity }}
+            - name: azure-workload-identity
+              mountPath: {{ $azureWorkloadIdentityRoot }}
+              readOnly: true
+            {{- end }}
+            {{- if $googleCloudCredentials }}
+            - name: google-cloud-credentials
+              mountPath: {{ $googleCloudTokenRoot }}
+              readOnly: true
+            {{- end }}
             {{- if .Values.secretProtection.recovery.publicKeyConfigMap }}
             - name: secret-protection-recovery
               mountPath: {{ printf "%s/recovery" $secretProtectionRoot }}
@@ -246,6 +293,31 @@ spec:
                   audience: {{ .Values.secretProtection.awsKms.webIdentity.audience | quote }}
                   expirationSeconds: {{ .Values.secretProtection.awsKms.webIdentity.tokenExpirationSeconds }}
                   path: token
+        {{- end }}
+        {{- if $azureWorkloadIdentity }}
+        # The pod does not mount the default service account token, so this one is projected explicitly, for Azure only.
+        - name: azure-workload-identity
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: {{ .Values.secretProtection.azureKeyVault.workloadIdentity.audience | quote }}
+                  expirationSeconds: {{ .Values.secretProtection.azureKeyVault.workloadIdentity.tokenExpirationSeconds }}
+                  path: token
+        {{- end }}
+        {{- if $googleCloudCredentials }}
+        # The token and the configuration that exchanges it, projected together, for Google Cloud only.
+        - name: google-cloud-credentials
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: {{ printf "https://iam.googleapis.com/%s" .Values.secretProtection.googleCloudKms.workloadIdentityFederation.provider | quote }}
+                  expirationSeconds: {{ .Values.secretProtection.googleCloudKms.workloadIdentityFederation.tokenExpirationSeconds }}
+                  path: token
+              - configMap:
+                  name: {{ include "identity-host.fullname" . }}-google-cloud
+                  items:
+                    - key: credential-configuration.json
+                      path: credential-configuration.json
         {{- end }}
         {{- with .Values.secretProtection.recovery.publicKeyConfigMap }}
         - name: secret-protection-recovery

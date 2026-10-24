@@ -89,8 +89,8 @@ scheme is otherwise unchanged; after that point the apex is permanent.
 
 ## Consequences
 
-- Customers' load tests share hardware with every tenant's production, so per-tenant rate limits and quotas (`F45`)
-  are a launch prerequisite.
+- Customers' load tests share hardware with every tenant's production, so per-tenant rate limits and quotas (`F45`,
+  `F79`) are a launch prerequisite.
 - Per-tenant mTLS alias hosts need host-strategy routing for the alias authority (`F47`), in-app chain validation
   (`F43`), and Traefik's forwarded-chain format (`F44`).
 - The lab is cheaper and differs from production (OKE Basic, arm64, in-cluster CloudNativePG vs. managed Kubernetes,

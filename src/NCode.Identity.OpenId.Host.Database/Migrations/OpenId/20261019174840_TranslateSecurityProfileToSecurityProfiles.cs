@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ContractMigration(
+        "Shipped before any release, so no running release reads 'security_profile' (ADR-0148, ADR-0025)."
+    )]
     public partial class TranslateSecurityProfileToSecurityProfiles : Migration
     {
         // Every table that stores a settings document (ADR-0139: a stored document that names a retired setting fails

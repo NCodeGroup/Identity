@@ -30,7 +30,12 @@ namespace NCode.Identity.OpenId.Accounts.AspNetIdentity;
 /// Adapts an ASP.NET Core Identity <see cref="UserManager{TUser}"/> to the backing-store-agnostic
 /// <see cref="ILocalAccountStore"/> seam, so a host already running ASP.NET Core Identity exposes its users as local
 /// accounts (enabling the resource-owner password grant and the local-account management endpoints) with no change to
-/// the OpenID runtime. Credential hashing, security stamps, and concurrency are owned by the <see cref="UserManager{TUser}"/>.
+/// the OpenID runtime. It hashes and verifies a password only through the user manager's
+/// <see cref="NormalizingPasswordHasher{TUser}"/>, so it and the host's own ASP.NET Core Identity pages hash and verify
+/// a password's NFC form, and stores the hash through the user store, so no password validator of ASP.NET Core Identity
+/// judges a password the password policy accepted; security stamps and concurrency are owned by the
+/// <see cref="UserManager{TUser}"/>. It verifies a password against a dummy hash when it holds no hash it may verify,
+/// so a failed verification takes as long whether or not the user exists.
 /// </summary>
 /// <remarks>
 /// ASP.NET Core Identity users are global (tenant-independent), so <see cref="PersistedLocalAccount.TenantId"/> is mapped
@@ -41,12 +46,14 @@ namespace NCode.Identity.OpenId.Accounts.AspNetIdentity;
 /// <typeparam name="TUser">The ASP.NET Core Identity user type.</typeparam>
 internal sealed class AspNetIdentityLocalAccountStore<TUser>(
     IServiceScopeFactory serviceScopeFactory,
-    IStoreProvider storeProvider
+    IStoreProvider storeProvider,
+    AspNetIdentityDummyPasswordHash<TUser> dummyPasswordHash
 ) : ILocalAccountStore
     where TUser : IdentityUser, new()
 {
     private IServiceScopeFactory ServiceScopeFactory { get; } = serviceScopeFactory;
     private IStoreProvider StoreProvider { get; } = storeProvider;
+    private AspNetIdentityDummyPasswordHash<TUser> DummyPasswordHash { get; } = dummyPasswordHash;
 
     /// <inheritdoc />
     public object? GetService(Type serviceType) => StoreProvider.GetService(serviceType);
@@ -75,10 +82,21 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
             EmailConfirmed = account.EmailVerified,
         };
 
-        var result = password is { } value
-            ? await userManager.CreateAsync(user, DecodePassword(value))
-            : await userManager.CreateAsync(user);
-        ThrowIfFailed(result, "create the local account");
+        if (password is { } value)
+        {
+            var passwordStore = GetPasswordStore(scope.ServiceProvider);
+            var passwordHasher = GetPasswordHasher(userManager);
+            var submitted = DecodePassword(value);
+            await SetPasswordHashAsync(
+                passwordHasher,
+                passwordStore,
+                user,
+                submitted,
+                cancellationToken
+            );
+        }
+
+        ThrowIfFailed(await userManager.CreateAsync(user), "create the local account");
 
         foreach (var claim in account.Claims)
         {
@@ -135,46 +153,94 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
     {
         await using var scope = ServiceScopeFactory.CreateAsyncScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<TUser>>();
+        var passwordStore = GetPasswordStore(scope.ServiceProvider);
+        var passwordHasher = GetPasswordHasher(userManager);
 
         var user = await GetRequiredUserAsync(userManager, localAccountId);
 
-        // Resetting through a generated token rotates the security stamp, invalidating prior sessions and tokens.
-        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var submitted = DecodePassword(password);
+        await SetPasswordHashAsync(
+            passwordHasher,
+            passwordStore,
+            user,
+            submitted,
+            cancellationToken
+        );
+
+        // Rotating the security stamp, which also saves the user, invalidates the sessions and tokens issued before the
+        // reset.
         ThrowIfFailed(
-            await userManager.ResetPasswordAsync(user, token, DecodePassword(password)),
+            await userManager.UpdateSecurityStampAsync(user),
             "reset the local-account password"
         );
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedLocalAccount?> VerifyCredentialAsync(
+    public async ValueTask<LocalAccountVerificationResult> VerifyCredentialAsync(
         string userName,
         ReadOnlyMemory<byte> password,
+        Func<string, CancellationToken, ValueTask<bool>> isRefusedAsync,
         CancellationToken cancellationToken
     )
     {
         await using var scope = ServiceScopeFactory.CreateAsyncScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<TUser>>();
+        var serviceProvider = scope.ServiceProvider;
+        var userManager = serviceProvider.GetRequiredService<UserManager<TUser>>();
+        var passwordStore = GetPasswordStore(serviceProvider);
+        var passwordHasher = GetPasswordHasher(userManager);
+
+        // Made before the user is looked up, so the first verification costs the same whichever user name it names.
+        var dummyPasswordHash = DummyPasswordHash.GetOrCreate(passwordHasher);
+
+        var submitted = DecodePassword(password);
 
         var user = await userManager.FindByNameAsync(userName);
-        if (user is null)
+        var storedHash = user is null
+            ? null
+            : await GetVerifiablePasswordHashAsync(
+                userManager,
+                passwordStore,
+                user,
+                cancellationToken
+            );
+
+        // The limit counts the user name the user holds, and a refused password is verified against the dummy hash, so
+        // a refusal costs what a wrong password costs. See ADR-0244.
+        var countedUserName = user?.UserName ?? userName;
+        var isRefused = await isRefusedAsync(countedUserName, cancellationToken);
+        var passwordHash = isRefused ? null : storedHash;
+
+        // An unknown user name, a locked-out user and a user without a password are verified against the dummy hash, so
+        // a wrong password takes as long for them as for a user whose hash is verified. See ADR-0239.
+        var verifiedUser = user ?? new TUser();
+        var verifiedHash = passwordHash ?? dummyPasswordHash;
+        var result = passwordHasher.VerifyHashedPassword(verifiedUser, verifiedHash, submitted);
+        if (user is null || passwordHash is null || result == PasswordVerificationResult.Failed)
         {
-            return null;
+            return new LocalAccountVerificationResult
+            {
+                UserName = countedUserName,
+                IsRefused = isRefused,
+            };
         }
 
-        var isEnabled =
-            !userManager.SupportsUserLockout || !await userManager.IsLockedOutAsync(user);
-        if (!isEnabled)
+        if (result == PasswordVerificationResult.SuccessRehashNeeded)
         {
-            return null;
+            await SetPasswordHashAsync(
+                passwordHasher,
+                passwordStore,
+                user,
+                submitted,
+                cancellationToken
+            );
+
+            // The credential is unchanged, so the security stamp is kept; when the user validators refuse the update,
+            // the stored hash, which still verifies, stays.
+            _ = await userManager.UpdateAsync(user);
         }
 
-        if (!await userManager.CheckPasswordAsync(user, DecodePassword(password)))
-        {
-            return null;
-        }
-
-        return await MapAsync(userManager, user);
+        var account = await MapAsync(userManager, user);
+        return new LocalAccountVerificationResult { UserName = countedUserName, Account = account };
     }
 
     /// <inheritdoc />
@@ -362,6 +428,54 @@ internal sealed class AspNetIdentityLocalAccountStore<TUser>(
         ?? throw new InvalidOperationException(
             $"A local account with '{localAccountId}' was not found."
         );
+
+    private static IUserPasswordStore<TUser> GetPasswordStore(IServiceProvider serviceProvider) =>
+        serviceProvider.GetRequiredService<IUserStore<TUser>>() as IUserPasswordStore<TUser>
+        ?? throw new NotSupportedException(
+            "The configured ASP.NET Core Identity store does not store passwords, which a local account's password requires."
+        );
+
+    private static NormalizingPasswordHasher<TUser> GetPasswordHasher(
+        UserManager<TUser> userManager
+    ) =>
+        userManager.PasswordHasher as NormalizingPasswordHasher<TUser>
+        ?? throw new InvalidOperationException(
+            $"The password hasher of UserManager<{typeof(TUser).Name}> is not a NormalizingPasswordHasher, so it would not hash and verify the NFC form of a password. Register the host's IPasswordHasher<TUser> before AddAspNetIdentityLocalAccountStore, or wrap it in NormalizingPasswordHasher<TUser>."
+        );
+
+    private static async ValueTask SetPasswordHashAsync(
+        NormalizingPasswordHasher<TUser> passwordHasher,
+        IUserPasswordStore<TUser> passwordStore,
+        TUser user,
+        string password,
+        CancellationToken cancellationToken
+    )
+    {
+        // The hash is made with the user manager's normalizing hasher and stored through the user store, so no password
+        // validator of ASP.NET Core Identity judges a password the password policy accepted. See ADR-0238 and ADR-0243.
+        var passwordHash = passwordHasher.HashPassword(user, password);
+        await passwordStore.SetPasswordHashAsync(user, passwordHash, cancellationToken);
+    }
+
+    private static async ValueTask<string?> GetVerifiablePasswordHashAsync(
+        UserManager<TUser> userManager,
+        IUserPasswordStore<TUser> passwordStore,
+        TUser user,
+        CancellationToken cancellationToken
+    )
+    {
+        // A locked-out user's password is not verified: the lockout defends against guessing, so a correct password must
+        // not be told apart from a wrong one. See ADR-0229.
+        if (userManager.SupportsUserLockout && await userManager.IsLockedOutAsync(user))
+        {
+            return null;
+        }
+
+        // An empty hash is no password, as in the Entity Framework store; the host's hasher would refuse it without the
+        // work of a verification. See ADR-0239.
+        var passwordHash = await passwordStore.GetPasswordHashAsync(user, cancellationToken);
+        return string.IsNullOrEmpty(passwordHash) ? null : passwordHash;
+    }
 
     // ASP.NET Core Identity's credential API is string-based, so the credential is decoded to a string only here.
     private static string DecodePassword(ReadOnlyMemory<byte> password) =>

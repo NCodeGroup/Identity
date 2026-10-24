@@ -21,7 +21,6 @@ using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
-using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Models;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 using NCode.Identity.OpenId.Authentication.Subject;
@@ -47,7 +46,7 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IAuthorizationRequest authorizationRequest,
-        ClientRedirectContext clientRedirectContext,
+        AuthorizationResponseDelivery delivery,
         CancellationToken cancellationToken
     )
     {
@@ -57,7 +56,7 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
                 openIdContext,
                 openIdClient,
                 authorizationRequest,
-                clientRedirectContext,
+                delivery,
                 cancellationToken
             );
         }
@@ -68,9 +67,13 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
         catch (Exception exception)
         {
             var errorFactory = openIdContext.ErrorFactory;
-            var (redirectUri, responseMode, state) = clientRedirectContext;
-            var openIdError = GetOpenIdError(errorFactory, exception, state);
-            var httpResult = new AuthorizationResult(redirectUri, responseMode, openIdError);
+            var openIdError = GetOpenIdError(errorFactory, exception, delivery.State);
+            var httpResult = new AuthorizationResult(
+                openIdContext,
+                openIdClient,
+                delivery,
+                openIdError
+            );
             return ReadOnlyEndpointDisposition.Handled(httpResult);
         }
     }
@@ -94,29 +97,23 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IAuthorizationRequest authorizationRequest,
-        ClientRedirectContext clientRedirectContext,
+        AuthorizationResponseDelivery delivery,
         CancellationToken cancellationToken
     )
     {
         var mediator = openIdContext.Mediator;
-        var redirectUri = clientRedirectContext.RedirectUri;
 
         // Errors produced by the AuthenticateCommand / AuthorizeCommand already have their state stamped by their
         // post-processors; the two errors created inline below (prompt=none login_required, no-consent-surface
-        // interaction_required) bypass that pipeline, so echo the request's state onto them here (OIDC Core 3.1.2.6).
-        var state = authorizationRequest.State;
-
-        // the request object may have changed the response mode
-        var requestObject = authorizationRequest.OriginalRequestObject;
-        var effectiveResponseMode = !string.IsNullOrEmpty(requestObject?.ResponseMode)
-            ? requestObject.ResponseMode
-            : clientRedirectContext.ResponseMode;
+        // interaction_required) bypass that pipeline, so echo the delivery's state onto them here (OIDC Core 3.1.2.6).
+        var state = delivery.State;
 
         await mediator.SendAsync(
             new ValidateAuthorizationRequestCommand(
                 openIdContext,
                 openIdClient,
-                authorizationRequest
+                authorizationRequest,
+                delivery
             ),
             cancellationToken
         );
@@ -133,8 +130,9 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
         {
             return ReadOnlyEndpointDisposition.Handled(
                 new AuthorizationResult(
-                    redirectUri,
-                    effectiveResponseMode,
+                    openIdContext,
+                    openIdClient,
+                    delivery,
                     authenticateSubjectDisposition.Error
                 )
             );
@@ -148,8 +146,9 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
             {
                 return ReadOnlyEndpointDisposition.Handled(
                     new AuthorizationResult(
-                        redirectUri,
-                        effectiveResponseMode,
+                        openIdContext,
+                        openIdClient,
+                        delivery,
                         openIdContext.ErrorFactory.LoginRequired().WithState(state)
                     )
                 );
@@ -182,8 +181,9 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
         {
             return ReadOnlyEndpointDisposition.Handled(
                 new AuthorizationResult(
-                    redirectUri,
-                    effectiveResponseMode,
+                    openIdContext,
+                    openIdClient,
+                    delivery,
                     authorizeSubjectDisposition.Error
                 )
             );
@@ -216,8 +216,9 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
             // obtain consent and the client is told interaction is required.
             return ReadOnlyEndpointDisposition.Handled(
                 new AuthorizationResult(
-                    redirectUri,
-                    effectiveResponseMode,
+                    openIdContext,
+                    openIdClient,
+                    delivery,
                     openIdContext.ErrorFactory.InteractionRequired().WithState(state)
                 )
             );
@@ -237,7 +238,7 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
         );
 
         return ReadOnlyEndpointDisposition.Handled(
-            new AuthorizationResult(redirectUri, effectiveResponseMode, authorizationTicket)
+            new AuthorizationResult(openIdContext, openIdClient, delivery, authorizationTicket)
         );
     }
 

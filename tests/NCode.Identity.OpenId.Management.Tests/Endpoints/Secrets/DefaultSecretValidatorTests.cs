@@ -22,7 +22,10 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
@@ -302,6 +305,147 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    #endregion
+
+    #region ValidateUpdate Tests
+
+    private static PersistedSecret CreateRsaKey() =>
+        new()
+        {
+            SecretId = "key-1",
+            ConcurrencyToken = "secret-ct",
+            Use = "sig",
+            Algorithm = "PS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            SecretType = SecretTypes.Rsa,
+            SecretEncoding = SecretEncodings.Spki,
+            KeySizeBits = 2048,
+            EncodedValue = "encoded",
+        };
+
+    private static UpdateSecretRequest CreateUpdateRequest(string? use, string? algorithm) =>
+        new()
+        {
+            Use = use,
+            Algorithm = algorithm,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(2),
+        };
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("sig", null)]
+    [InlineData("sig", "PS256")]
+    [InlineData("enc", "RSA-OAEP-256")]
+    [InlineData(null, "RS256")]
+    public void ValidateUpdate_WhenMetadataFitsTheKey_ReturnsNull(string? use, string? algorithm)
+    {
+        var error = Validator.ValidateUpdate(CreateRsaKey(), CreateUpdateRequest(use, algorithm));
+
+        Assert.Null(error);
+    }
+
+    [Theory]
+    [InlineData("both", null)]
+    [InlineData("sig", "ES256")]
+    [InlineData("sig", "RSA-OAEP-256")]
+    [InlineData("enc", "PS256")]
+    [InlineData("sig", "HS256")]
+    [InlineData(null, "not-an-algorithm")]
+    public void ValidateUpdate_WhenMetadataDoesNotFitTheKey_ReturnsBadRequest(
+        string? use,
+        string? algorithm
+    )
+    {
+        var error = Validator.ValidateUpdate(CreateRsaKey(), CreateUpdateRequest(use, algorithm));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenSecretTypeIsUnknown_ReturnsBadRequest()
+    {
+        var secret = CreateRsaKey();
+        secret = new PersistedSecret
+        {
+            SecretId = secret.SecretId,
+            ConcurrencyToken = secret.ConcurrencyToken,
+            Use = secret.Use,
+            Algorithm = secret.Algorithm,
+            CreatedWhen = secret.CreatedWhen,
+            ExpiresWhen = secret.ExpiresWhen,
+            SecretType = "unknown",
+            SecretEncoding = secret.SecretEncoding,
+            KeySizeBits = secret.KeySizeBits,
+            EncodedValue = secret.EncodedValue,
+        };
+
+        var error = Validator.ValidateUpdate(secret, CreateUpdateRequest("sig", "PS256"));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    #endregion
+
+    #region ValidateImport Tests
+
+    private static ImportSecretRequest CreateImportRequest(string secretType, string format) =>
+        new()
+        {
+            SecretType = secretType,
+            Format = format,
+            KeyMaterial = "material",
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+        };
+
+    [Theory]
+    [InlineData(SecretTypes.Rsa, SecretKeyImportFormats.Jwk)]
+    [InlineData(SecretTypes.Rsa, SecretKeyImportFormats.Pem)]
+    [InlineData(SecretTypes.Ecc, SecretKeyImportFormats.Certificate)]
+    public void ValidateImport_WhenTheSecretTypeImportsTheFormat_ReturnsNull(
+        string secretType,
+        string format
+    )
+    {
+        var error = Validator.ValidateImport(CreateImportRequest(secretType, format));
+
+        Assert.Null(error);
+    }
+
+    [Theory]
+    [InlineData("JWK")]
+    [InlineData("openssh")]
+    [InlineData("")]
+    public void ValidateImport_WhenTheSecretTypeDoesNotImportTheFormat_ReturnsBadRequestListingItsFormats(
+        string format
+    )
+    {
+        var error = Validator.ValidateImport(CreateImportRequest(SecretTypes.Rsa, format));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Contains($"'{format}'", error.Detail, StringComparison.Ordinal);
+        Assert.Contains("'jwk', 'pem', 'certificate'", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(SecretTypes.Symmetric)]
+    [InlineData("unknown")]
+    public void ValidateImport_WhenTheSecretTypeImportsNoPublicKey_ReturnsBadRequest(
+        string secretType
+    )
+    {
+        var error = Validator.ValidateImport(
+            CreateImportRequest(secretType, SecretKeyImportFormats.Jwk)
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Contains($"'{secretType}'", error.Detail, StringComparison.Ordinal);
     }
 
     #endregion

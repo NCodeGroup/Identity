@@ -3,3 +3,9 @@
 
 # Per-run exported result zips from run-test-plan.py --export-dir.
 .results/
+
+# run-conformance.ps1 -Fapi1Advanced: the FAPI 1.0 Advanced clients' generated keys and certificates, and the suite
+# configurations that carry them. Private keys are generated at run time and never committed.
+.fapi1-keys/
+fapi1-advanced-*.json
+!fapi1-advanced-*.template.json

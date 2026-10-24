@@ -6,6 +6,7 @@ export type {
   CreateScopeRequest,
   CreateSecretRequest,
   CreatedSecretResource,
+  RotateSecretRequest,
   CreateInitialAccessTokenRequest,
   CreatedInitialAccessTokenResource,
   CreateServerRequest,
@@ -28,6 +29,8 @@ export type {
   TenantAddressFailure,
   TenantAddressResource,
   TenantResource,
+  TenantUsageEntry,
+  TenantUsageResource,
   UpdateClientFields,
   UpdateResourceServerFields,
   UpdateScopeRequest,
@@ -43,10 +46,20 @@ export {
   type SettingsPatchOperation,
 } from './jsonPatch.js';
 export {
+  ownerApiPath,
+  ownerEffectiveTagId,
+  ownerScope,
+  ownerTagId,
+  type ClientOwner,
+  type ManagementOwner,
+} from './owner.js';
+export {
   GLOBAL_SCOPE,
   isGlobalScope,
+  LIST_TAG,
   scopeApiPrefix,
   scopeKey,
+  scopeTagId,
   tenantScope,
   type ManagementScope,
 } from './scope.js';

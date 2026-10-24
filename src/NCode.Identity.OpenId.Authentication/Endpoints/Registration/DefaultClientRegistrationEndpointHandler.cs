@@ -41,6 +41,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Json;
 using NCode.Persistence.Stores;
@@ -59,20 +60,22 @@ internal class DefaultClientRegistrationEndpointHandler(
     ISecretGenerator secretGenerator,
     IClientKeyImporter clientKeyImporter,
     ISecretSerializer secretSerializer,
+    ISecretProtectorProvider secretProtectorProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     IStoreManagerFactory storeManagerFactory,
     IPersistedGrantService persistedGrantService,
     IInitialAccessTokenValidator initialAccessTokenValidator,
     ISectorIdentifierValidator sectorIdentifierValidator,
     IClientScopeService clientScopeService,
-    ISettingSerializer settingSerializer
+    ISettingSerializer settingSerializer,
+    IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
+    IClientCoherenceValidator clientCoherenceValidator
 ) : IEndpointProvider
 {
     private const int ClientSecretKeySizeBits = 256;
 
     // The request-object metadata (OpenID Connect Dynamic Client Registration 1.0 §2) is stored as the client's own
     // algorithm lists, each narrowed to the one registered value, which the authorization endpoint enforces (ADR-0155).
-    private const string RequestObjectSigningAlgMetadata = "request_object_signing_alg";
     private const string RequestObjectEncryptionAlgMetadata = "request_object_encryption_alg";
     private const string RequestObjectEncryptionEncMetadata = "request_object_encryption_enc";
 
@@ -81,13 +84,6 @@ internal class DefaultClientRegistrationEndpointHandler(
         OpenIdConstants.GrantTypes.AuthorizationCode,
     ];
     private static readonly string[] DefaultResponseTypes = [OpenIdConstants.ResponseTypes.Code];
-
-    private static readonly string[] SupportedTokenEndpointAuthMethods =
-    [
-        OpenIdConstants.ClientAuthenticationMethods.None,
-        OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
-        OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
-    ];
 
     private static readonly string[] SupportedSubjectTypes =
     [
@@ -101,6 +97,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
@@ -110,6 +107,9 @@ internal class DefaultClientRegistrationEndpointHandler(
         sectorIdentifierValidator;
     private IClientScopeService ClientScopeService { get; } = clientScopeService;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
+    private IClientAuthenticationMethodCatalog ClientAuthenticationMethodCatalog { get; } =
+        clientAuthenticationMethodCatalog;
+    private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -201,7 +201,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                 .AsHttpResult();
         }
 
-        var authorized = await AuthorizeRegistrationAsync(
+        var (authorized, token, initialAccessToken) = await AuthorizeRegistrationAsync(
             openIdContext,
             httpContext,
             cancellationToken
@@ -258,20 +258,37 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
-        var supportError =
-            ValidateSupportedMetadata(errorFactory, tenantSettings, resolved)
-            ?? ValidateAlgorithmMetadata(errorFactory, tenantSettings, request);
-        if (supportError is not null)
+        var coherenceError = ValidateCoherence(errorFactory, tenantSettings, settingsJson);
+        if (coherenceError is not null)
         {
-            return supportError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
+            return coherenceError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
         }
 
         var isConfidential =
             resolved.TokenEndpointAuthMethod != OpenIdConstants.ClientAuthenticationMethods.None;
 
-        var secretsError = BuildClientSecrets(
+        var resourceServerId = initialAccessToken?.ResourceServerId;
+        var bindingError = ValidateResourceServerBinding(
+            errorFactory,
             request,
-            isConfidential,
+            isBound: resourceServerId is not null,
+            isConfidential
+        );
+        if (bindingError is not null)
+        {
+            return bindingError;
+        }
+
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(tenantId),
+            [],
+            cancellationToken
+        );
+
+        var secretsError = BuildClientSecrets(
+            protector,
+            request,
+            IssuesClientSecret(resolved.TokenEndpointAuthMethod),
             createdWhen,
             errorFactory,
             out var secrets,
@@ -288,6 +305,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             ClientId = clientId,
             ConcurrencyToken = string.Empty,
             IsDisabled = false,
+            ResourceServerId = resourceServerId,
             Settings = new PersistedClientSettings
             {
                 TenantId = tenantId,
@@ -306,6 +324,39 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         await using (var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken))
         {
+            if (
+                resourceServerId is not null
+                && !await CanBindResourceServerAsync(
+                    storeManager,
+                    tenantId,
+                    resourceServerId,
+                    cancellationToken
+                )
+            )
+            {
+                return errorFactory
+                    .InvalidToken()
+                    .WithStatusCode(StatusCodes.Status401Unauthorized)
+                    .AsHttpResult();
+            }
+
+            // The token is spent only after every check has passed, so a refused request leaves it usable; a store
+            // failure after the spend leaves it spent (fails closed) (ADR-0192).
+            if (
+                token is not null
+                && !await InitialAccessTokenValidator.TryConsumeAsync(
+                    openIdContext,
+                    token,
+                    cancellationToken
+                )
+            )
+            {
+                return errorFactory
+                    .InvalidToken()
+                    .WithStatusCode(StatusCodes.Status401Unauthorized)
+                    .AsHttpResult();
+            }
+
             var store = storeManager.GetStore<IClientStore>();
             await store.AddAsync(client, cancellationToken);
             await storeManager.SaveChangesAsync(cancellationToken);
@@ -426,9 +477,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                 cancellationToken
             ),
             var method when method == HttpMethods.Delete => await DeleteClientAsync(
-                httpContext,
                 clientId,
-                grantId,
                 cancellationToken
             ),
             _ => TypedResults.StatusCode(StatusCodes.Status405MethodNotAllowed),
@@ -519,12 +568,10 @@ internal class DefaultClientRegistrationEndpointHandler(
         }
 
         var tenantSettings = openIdContext.Tenant.SettingsProvider.Collection;
-        var supportError =
-            ValidateSupportedMetadata(errorFactory, tenantSettings, resolved)
-            ?? ValidateAlgorithmMetadata(errorFactory, tenantSettings, request);
-        if (supportError is not null)
+        var coherenceError = ValidateCoherence(errorFactory, tenantSettings, settingsJson);
+        if (coherenceError is not null)
         {
-            return supportError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
+            return coherenceError.WithStatusCode(StatusCodes.Status400BadRequest).AsHttpResult();
         }
 
         var keysError = ImportRegisteredKeys(
@@ -544,6 +591,18 @@ internal class DefaultClientRegistrationEndpointHandler(
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (client is null)
             return TypedResults.NotFound();
+
+        var bindingError = ValidateResourceServerBinding(
+            errorFactory,
+            request,
+            isBound: client.ResourceServerId is not null,
+            isConfidential: resolved.TokenEndpointAuthMethod
+                != OpenIdConstants.ClientAuthenticationMethods.None
+        );
+        if (bindingError is not null)
+        {
+            return bindingError;
+        }
 
         client.Settings.Value = settingsJson;
 
@@ -602,14 +661,10 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     private async ValueTask<IResult> DeleteClientAsync(
-        HttpContext httpContext,
         string clientId,
-        PersistedGrantId registrationGrantId,
         CancellationToken cancellationToken
     )
     {
-        var openIdContext = httpContext.GetOpenIdContext();
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -617,51 +672,99 @@ internal class DefaultClientRegistrationEndpointHandler(
         if (client is null)
             return TypedResults.NotFound();
 
-        // A client cannot be removed while it still owns secrets, so remove its dependents first.
-        var clientSecrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
-        if (clientSecrets is not null)
-        {
-            foreach (var secret in clientSecrets.Value)
-            {
-                await store.RemoveSecretAsync(clientId, secret.SecretId, cancellationToken);
-            }
-        }
-
+        // The store removes the client's keys and grants with it, its registration access token included. See ADR-0212.
         await store.RemoveAsync(clientId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
-
-        await PersistedGrantService.SetRevokedOnceAsync(
-            openIdContext,
-            registrationGrantId,
-            TimeProvider.GetUtcNow(),
-            cancellationToken
-        );
 
         return TypedResults.NoContent();
     }
 
-    private async ValueTask<bool> AuthorizeRegistrationAsync(
+    // A presented initial access token is always validated, even where anonymous registration is allowed, so a token
+    // scoped to a resource server binds the client it registers and an invalid token is never silently ignored
+    // (ADR-0192).
+    private async ValueTask<(
+        bool IsAuthorized,
+        string? Token,
+        InitialAccessTokenGrant? InitialAccessToken
+    )> AuthorizeRegistrationAsync(
         OpenIdContext openIdContext,
         HttpContext httpContext,
         CancellationToken cancellationToken
     )
     {
-        var allowAnonymous = openIdContext.Tenant.SettingsProvider.Collection.GetValue(
-            OpenIdSettingKeys.RegistrationEndpointAllowAnonymous
-        );
-
-        if (allowAnonymous)
-            return true;
-
         var token = GetBearerToken(httpContext);
         if (token is null)
-            return false;
+        {
+            var allowAnonymous = openIdContext.Tenant.SettingsProvider.Collection.GetValue(
+                OpenIdSettingKeys.RegistrationEndpointAllowAnonymous
+            );
 
-        return await InitialAccessTokenValidator.ValidateAsync(
+            return (allowAnonymous, null, null);
+        }
+
+        var grant = await InitialAccessTokenValidator.ValidateAsync(
             openIdContext,
             token,
             cancellationToken
         );
+
+        return (grant is not null, token, grant);
+    }
+
+    // A client registered with a token scoped to a resource server is bound to it, so the resource server must still
+    // exist in the tenant and must not be a system resource server when the client registers (ADR-0168, ADR-0192).
+    private static async ValueTask<bool> CanBindResourceServerAsync(
+        IStoreManager storeManager,
+        string tenantId,
+        string resourceServerId,
+        CancellationToken cancellationToken
+    )
+    {
+        var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
+        var resourceServer = await resourceServerStore.GetOrDefaultAsync(
+            resourceServerId,
+            cancellationToken
+        );
+
+        return resourceServer is { IsSystem: false }
+            && string.Equals(resourceServer.TenantId, tenantId, StringComparison.Ordinal);
+    }
+
+    // A resource-server client introspects for its resource server, which requires a confidential client, and only a
+    // resource-server client receives a JWT introspection response, so only it registers how that response is protected
+    // (RFC 9701 §6, ADR-0168, ADR-0192).
+    private static IResult? ValidateResourceServerBinding(
+        IOpenIdErrorFactory errorFactory,
+        RegisterClientRequest request,
+        bool isBound,
+        bool isConfidential
+    )
+    {
+        string? description = null;
+        if (isBound && !isConfidential)
+        {
+            description =
+                "A client bound to a resource server must be confidential; 'token_endpoint_auth_method' cannot be 'none'.";
+        }
+        else if (
+            !isBound
+            && (
+                request.IntrospectionSignedResponseAlg is not null
+                || request.IntrospectionEncryptedResponseAlg is not null
+                || request.IntrospectionEncryptedResponseEnc is not null
+            )
+        )
+        {
+            description =
+                "Only a client bound to a resource server receives JWT introspection responses, so only it registers the 'introspection_*_response_*' metadata.";
+        }
+
+        return description is null
+            ? null
+            : errorFactory
+                .InvalidRequest(description, OpenIdConstants.ErrorCodes.InvalidClientMetadata)
+                .WithStatusCode(StatusCodes.Status400BadRequest)
+                .AsHttpResult();
     }
 
     private static async ValueTask<RegisterClientRequest?> ReadRequestOrDefaultAsync(
@@ -708,10 +811,12 @@ internal class DefaultClientRegistrationEndpointHandler(
             request.TokenEndpointAuthMethod
             ?? OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
 
-        if (!SupportedTokenEndpointAuthMethods.Contains(tokenEndpointAuthMethod))
+        // The method vocabulary is open: the settings validation accepts every method a registered method descriptor
+        // names, and the tenant's effective token_endpoint_auth_methods_supported narrows it (ValidateCoherence).
+        if (string.IsNullOrEmpty(tokenEndpointAuthMethod))
         {
             return errorFactory.InvalidRequest(
-                $"The 'token_endpoint_auth_method' value '{tokenEndpointAuthMethod}' is not supported.",
+                "The 'token_endpoint_auth_method' value must be a non-empty string.",
                 OpenIdConstants.ErrorCodes.InvalidClientMetadata
             );
         }
@@ -784,7 +889,9 @@ internal class DefaultClientRegistrationEndpointHandler(
             );
         }
 
-        var keysError = ValidateKeyMetadata(errorFactory, request);
+        var keysError =
+            ValidateKeyMetadata(errorFactory, request)
+            ?? ValidateAuthenticationMetadata(errorFactory, request, tokenEndpointAuthMethod);
         if (keysError is not null)
         {
             return keysError;
@@ -882,80 +989,42 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that the tenant supports the resolved client-authentication method and every resolved grant type and
-    /// response type, returning an <c>invalid_client_metadata</c> error (RFC 7591 §3.2.2) for the first value it does
-    /// not support, or <see langword="null"/> when it supports them all; an unset list is unrestricted. The endpoints
-    /// refuse a value the tenant does not support — a client whose registered method the tenant's
-    /// <c>token_endpoint_auth_methods_supported</c> excludes cannot authenticate at all — so registering it would report
-    /// a capability the client can never use.
+    /// Verifies that the settings of the client being registered satisfy every registered
+    /// <see cref="IClientCoherenceRule"/>, including the values the client's own lists register: the validator
+    /// resolves the client's settings document onto the tenant's effective settings as the runtime resolves it, so the
+    /// tenant's ceilings (and those of the security profiles it selects) decide which values the client may register.
+    /// Returns an <c>invalid_redirect_uri</c> error (RFC 7591 §3.2.2) when a redirect URI is refused, else an
+    /// <c>invalid_client_metadata</c> error, or <see langword="null"/> when the client settings are coherent.
     /// </summary>
     /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
-    /// <param name="tenantSettings">The settings of the tenant the client registers with.</param>
-    /// <param name="resolved">The resolved client metadata.</param>
-    /// <returns>The error, or <see langword="null"/> when the tenant supports every value.</returns>
-    // See ADR-0141 and ADR-0145.
-    internal virtual IOpenIdError? ValidateSupportedMetadata(
+    /// <param name="tenantSettings">The effective settings of the tenant the client registers with.</param>
+    /// <param name="settingsJson">The client's settings document.</param>
+    /// <returns>The error, or <see langword="null"/> when the client settings are coherent.</returns>
+    // See ADR-0206.
+    internal virtual IOpenIdError? ValidateCoherence(
         IOpenIdErrorFactory errorFactory,
         IReadOnlySettingCollection tenantSettings,
-        ResolvedMetadata resolved
+        JsonElement settingsJson
     )
     {
-        if (
-            tenantSettings.TryGetValue(
-                OpenIdSettingKeys.TokenEndpointAuthMethodsSupported,
-                out var tokenEndpointAuthMethodsSupported
-            )
-            && !tokenEndpointAuthMethodsSupported.Contains(
-                resolved.TokenEndpointAuthMethod,
-                StringComparer.Ordinal
-            )
-        )
+        var violations = ClientCoherenceValidator.Validate(tenantSettings, settingsJson);
+        if (violations.Count == 0)
         {
-            return errorFactory.InvalidRequest(
-                $"The 'token_endpoint_auth_method' value '{resolved.TokenEndpointAuthMethod}' is not supported.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
-            );
+            return null;
         }
 
-        if (
-            tenantSettings.TryGetValue(
-                OpenIdSettingKeys.GrantTypesSupported,
-                out var grantTypesSupported
+        var description = string.Join(" ", violations.Select(violation => violation.Description));
+        var code = violations.Any(violation =>
+            string.Equals(
+                violation.SettingName,
+                OpenIdSettingNames.RedirectUris,
+                StringComparison.Ordinal
             )
         )
-        {
-            var unsupportedGrantType = resolved.GrantTypes.FirstOrDefault(grantType =>
-                !grantTypesSupported.Contains(grantType, StringComparer.Ordinal)
-            );
-            if (unsupportedGrantType is not null)
-            {
-                return errorFactory.InvalidRequest(
-                    $"The 'grant_types' value '{unsupportedGrantType}' is not supported.",
-                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
-                );
-            }
-        }
+            ? OpenIdConstants.ErrorCodes.InvalidRedirectUri
+            : OpenIdConstants.ErrorCodes.InvalidClientMetadata;
 
-        if (
-            tenantSettings.TryGetValue(
-                OpenIdSettingKeys.ResponseTypesSupported,
-                out var responseTypesSupported
-            )
-        )
-        {
-            var unsupportedResponseType = resolved.ResponseTypes.FirstOrDefault(responseType =>
-                !responseTypesSupported.Contains(responseType, StringComparer.Ordinal)
-            );
-            if (unsupportedResponseType is not null)
-            {
-                return errorFactory.InvalidRequest(
-                    $"The 'response_types' value '{unsupportedResponseType}' is not supported.",
-                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
-                );
-            }
-        }
-
-        return null;
+        return errorFactory.InvalidRequest(description, code);
     }
 
     /// <summary>
@@ -995,6 +1064,18 @@ internal class DefaultClientRegistrationEndpointHandler(
                 request.UserInfoEncryptedResponseEnc
             ),
             (
+                OpenIdSettingNames.IntrospectionEncryptedResponseAlg,
+                request.IntrospectionEncryptedResponseAlg,
+                OpenIdSettingNames.IntrospectionEncryptedResponseEnc,
+                request.IntrospectionEncryptedResponseEnc
+            ),
+            (
+                OpenIdSettingNames.AuthorizationEncryptedResponseAlg,
+                request.AuthorizationEncryptedResponseAlg,
+                OpenIdSettingNames.AuthorizationEncryptedResponseEnc,
+                request.AuthorizationEncryptedResponseEnc
+            ),
+            (
                 RequestObjectEncryptionAlgMetadata,
                 request.RequestObjectEncryptionAlg,
                 RequestObjectEncryptionEncMetadata,
@@ -1016,7 +1097,9 @@ internal class DefaultClientRegistrationEndpointHandler(
         // A response is encrypted to a public key the client publishes; without one it could never be delivered.
         var registersEncryptedResponse =
             !string.IsNullOrEmpty(request.IdTokenEncryptedResponseAlg)
-            || !string.IsNullOrEmpty(request.UserInfoEncryptedResponseAlg);
+            || !string.IsNullOrEmpty(request.UserInfoEncryptedResponseAlg)
+            || !string.IsNullOrEmpty(request.IntrospectionEncryptedResponseAlg)
+            || !string.IsNullOrEmpty(request.AuthorizationEncryptedResponseAlg);
         if (registersEncryptedResponse && !hasJwks && !hasJwksUri)
         {
             return InvalidClientMetadata(
@@ -1029,125 +1112,104 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that the tenant permits the algorithms a registration requests for the responses addressed to the client
-    /// and for its request objects, and that a client of a tenant that requires encrypted ID tokens registers an
-    /// encryption algorithm for them. An omitted <c>id_token_signed_response_alg</c> is the tenant's effective default
-    /// (<c>RS256</c> unless the server or tenant sets another). Returns an <c>invalid_client_metadata</c> error, or
-    /// <see langword="null"/> when the tenant permits them all; an unset list is unrestricted.
+    /// Verifies that a registration request carries what its client-authentication method verifies against (RFC 8705
+    /// §2, RFC 7523 §2.2): the public keys in <c>jwks</c> or <c>jwks_uri</c> for <c>private_key_jwt</c>; those keys,
+    /// with a registered certificate when given by value, for <c>self_signed_tls_client_auth</c>; and exactly one
+    /// <c>tls_client_auth_*</c> certificate identity for <c>tls_client_auth</c>, which is refused for any other method.
+    /// A registering client never supplies trust anchors: a <c>tls_client_auth</c> certificate chains to the tenant's
+    /// anchors, and with none configured the method fails closed (ADR-0173). Returns an <c>invalid_client_metadata</c>
+    /// error, or <see langword="null"/> when the metadata is consistent.
     /// </summary>
     /// <param name="errorFactory">The <see cref="IOpenIdErrorFactory"/> that creates the error.</param>
-    /// <param name="tenantSettings">The settings of the tenant the client registers with.</param>
     /// <param name="request">The registration request.</param>
-    /// <returns>The error, or <see langword="null"/> when the tenant permits every algorithm.</returns>
-    // See ADR-0155.
-    internal virtual IOpenIdError? ValidateAlgorithmMetadata(
+    /// <param name="tokenEndpointAuthMethod">The client-authentication method the client registers.</param>
+    /// <returns>The error, or <see langword="null"/> when the metadata is consistent.</returns>
+    // See ADR-0145.
+    internal virtual IOpenIdError? ValidateAuthenticationMetadata(
         IOpenIdErrorFactory errorFactory,
-        IReadOnlySettingCollection tenantSettings,
-        RegisterClientRequest request
+        RegisterClientRequest request,
+        string tokenEndpointAuthMethod
     )
     {
-        var idTokenSignedResponseAlg =
-            request.IdTokenSignedResponseAlg
-            ?? (
-                tenantSettings.TryGetValue(
-                    OpenIdSettingKeys.IdTokenSignedResponseAlg,
-                    out var defaultAlg
-                )
-                    ? defaultAlg
-                    : null
-            );
+        var hasJwks = request.Jwks is { ValueKind: JsonValueKind.Object };
+        var hasJwksUri = !string.IsNullOrEmpty(request.JwksUri);
+        var hasCertificate =
+            request.Jwks is { ValueKind: JsonValueKind.Object } jwks && HasCertificate(jwks);
 
-        (string Name, string? Value, SettingKey<IReadOnlyCollection<string>> Permitted)[] checks =
+        string?[] identities =
         [
-            (
-                OpenIdSettingNames.IdTokenSignedResponseAlg,
-                idTokenSignedResponseAlg,
-                OpenIdSettingKeys.IdTokenSigningAlgValuesSupported
-            ),
-            (
-                OpenIdSettingNames.IdTokenEncryptedResponseAlg,
-                request.IdTokenEncryptedResponseAlg,
-                OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported
-            ),
-            (
-                OpenIdSettingNames.IdTokenEncryptedResponseEnc,
-                request.IdTokenEncryptedResponseEnc,
-                OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported
-            ),
-            (
-                OpenIdSettingNames.UserInfoSignedResponseAlg,
-                request.UserInfoSignedResponseAlg,
-                OpenIdSettingKeys.UserInfoSigningAlgValuesSupported
-            ),
-            (
-                OpenIdSettingNames.UserInfoEncryptedResponseAlg,
-                request.UserInfoEncryptedResponseAlg,
-                OpenIdSettingKeys.UserInfoEncryptionAlgValuesSupported
-            ),
-            (
-                OpenIdSettingNames.UserInfoEncryptedResponseEnc,
-                request.UserInfoEncryptedResponseEnc,
-                OpenIdSettingKeys.UserInfoEncryptionEncValuesSupported
-            ),
-            (
-                RequestObjectSigningAlgMetadata,
-                request.RequestObjectSigningAlg,
-                OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported
-            ),
-            (
-                RequestObjectEncryptionAlgMetadata,
-                request.RequestObjectEncryptionAlg,
-                OpenIdSettingKeys.RequestObjectEncryptionAlgValuesSupported
-            ),
-            (
-                RequestObjectEncryptionEncMetadata,
-                request.RequestObjectEncryptionEnc,
-                OpenIdSettingKeys.RequestObjectEncryptionEncValuesSupported
-            ),
+            request.TlsClientAuthSubjectDn,
+            request.TlsClientAuthSanDns,
+            request.TlsClientAuthSanUri,
+            request.TlsClientAuthSanIp,
+            request.TlsClientAuthSanEmail,
         ];
+        var identityCount = identities.Count(identity => !string.IsNullOrEmpty(identity));
 
-        foreach (var (name, value, permittedKey) in checks)
+        switch (tokenEndpointAuthMethod)
         {
-            if (
-                !string.IsNullOrEmpty(value)
-                && tenantSettings.TryGetValue(permittedKey, out var permitted)
-                && !permitted.Contains(value, StringComparer.Ordinal)
-            )
-            {
+            case OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt
+                when !hasJwks && !hasJwksUri:
                 return InvalidClientMetadata(
                     errorFactory,
-                    $"The '{name}' value '{value}' is not supported."
+                    "The 'private_key_jwt' method requires the client's public keys in 'jwks' or 'jwks_uri'."
                 );
-            }
-        }
 
-        var idTokenEncryptedResponseAlg =
-            request.IdTokenEncryptedResponseAlg
-            ?? (
-                tenantSettings.TryGetValue(
-                    OpenIdSettingKeys.IdTokenEncryptedResponseAlg,
-                    out var defaultEncryptionAlg
-                )
-                    ? defaultEncryptionAlg
-                    : null
-            );
-        if (
-            string.IsNullOrEmpty(idTokenEncryptedResponseAlg)
-            && tenantSettings.TryGetValue(
-                OpenIdSettingKeys.IdTokenEncryptionRequired,
-                out var required
-            )
-            && required
-        )
-        {
-            return InvalidClientMetadata(
-                errorFactory,
-                $"The tenant requires encrypted ID tokens, so '{OpenIdSettingNames.IdTokenEncryptedResponseAlg}' is required."
-            );
+            case OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+                when !hasJwks && !hasJwksUri:
+                return InvalidClientMetadata(
+                    errorFactory,
+                    "The 'self_signed_tls_client_auth' method requires the client's certificates in 'jwks' or 'jwks_uri'."
+                );
+
+            case OpenIdConstants.ClientAuthenticationMethods.SelfSignedTlsClientAuth
+                when hasJwks && !hasCertificate:
+                return InvalidClientMetadata(
+                    errorFactory,
+                    "The 'self_signed_tls_client_auth' method requires a 'jwks' key with an 'x5c' certificate."
+                );
+
+            case OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth when identityCount != 1:
+                return InvalidClientMetadata(
+                    errorFactory,
+                    "The 'tls_client_auth' method requires exactly one of 'tls_client_auth_subject_dn', "
+                        + "'tls_client_auth_san_dns', 'tls_client_auth_san_uri', 'tls_client_auth_san_ip', or "
+                        + "'tls_client_auth_san_email'."
+                );
+
+            case not OpenIdConstants.ClientAuthenticationMethods.TlsClientAuth
+                when identityCount != 0:
+                return InvalidClientMetadata(
+                    errorFactory,
+                    "The 'tls_client_auth_*' parameters apply only to the 'tls_client_auth' method."
+                );
         }
 
         return null;
     }
+
+    private static bool HasCertificate(JsonElement jwks) =>
+        jwks.TryGetProperty("keys", out var keys)
+        && keys.ValueKind == JsonValueKind.Array
+        && keys.EnumerateArray()
+            .Any(key =>
+                key.ValueKind == JsonValueKind.Object
+                && key.TryGetProperty("x5c", out var x5c)
+                && x5c.ValueKind == JsonValueKind.Array
+                && x5c.GetArrayLength() > 0
+            );
+
+    /// <summary>
+    /// Determines whether the registration issues a <c>client_secret</c> to a client that registers the specified
+    /// client-authentication method: the client is issued one when the method's descriptor requires a client secret;
+    /// a method that is not registered receives none.
+    /// </summary>
+    /// <param name="tokenEndpointAuthMethod">The client-authentication method the client registers.</param>
+    /// <returns><see langword="true"/> when the client is issued a <c>client_secret</c>.</returns>
+    // See ADR-0145 and ADR-0207.
+    internal virtual bool IssuesClientSecret(string tokenEndpointAuthMethod) =>
+        ClientAuthenticationMethodCatalog.TryGet(tokenEndpointAuthMethod, out var descriptor)
+        && descriptor.RequiresClientSecret;
 
     private static IOpenIdError InvalidClientMetadata(
         IOpenIdErrorFactory errorFactory,
@@ -1194,13 +1256,15 @@ internal class DefaultClientRegistrationEndpointHandler(
     }
 
     /// <summary>
-    /// Builds the new client's secrets: a generated symmetric secret for a confidential client, plus the public keys of
-    /// the <c>jwks</c> set the client registers by value, imported under the client-key policy. Returns an error result
-    /// when the set is refused; otherwise <see langword="null"/> with the secrets and one-time client secret.
+    /// Builds the new client's secrets: a generated symmetric secret for a client whose method verifies one, protected
+    /// under the tenant's master key by the given protector, plus the public keys of the <c>jwks</c> set the client
+    /// registers by value, imported under the client-key policy. Returns an error result when the set is refused;
+    /// otherwise <see langword="null"/> with the secrets and one-time client secret.
     /// </summary>
     private IResult? BuildClientSecrets(
+        ISecretProtector protector,
         RegisterClientRequest request,
-        bool isConfidential,
+        bool issuesClientSecret,
         DateTimeOffset createdWhen,
         IOpenIdErrorFactory errorFactory,
         out List<PersistedSecret> secrets,
@@ -1210,13 +1274,14 @@ internal class DefaultClientRegistrationEndpointHandler(
         secrets = [];
         clientSecret = null;
 
-        if (isConfidential)
+        if (issuesClientSecret)
         {
             // A client_secret is an opaque string the client later presents verbatim. GenerateSharedSecret stores it
             // as the UTF-8 bytes client authentication compares against (see CommonClientAuthenticationHandler.
             // IsSecretEqual), unlike GenerateSecret's raw-byte crypto-key material whose base64url reveal never
             // round-trips back to the stored bytes.
             var generated = SecretGenerator.GenerateSharedSecret(
+                protector,
                 new GenerateSecretRequest
                 {
                     SecretId = CryptoService.GenerateResourceId(),
@@ -1366,6 +1431,30 @@ internal class DefaultClientRegistrationEndpointHandler(
         SetIfPresent(settings, OpenIdSettingNames.TosUri, request.TosUri);
         SetIfPresent(settings, OpenIdSettingNames.PolicyUri, request.PolicyUri);
         SetIfPresent(settings, OpenIdSettingNames.JwksUri, request.JwksUri);
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.TlsClientAuthSubjectDn,
+            request.TlsClientAuthSubjectDn
+        );
+        SetIfPresent(settings, OpenIdSettingNames.TlsClientAuthSanDns, request.TlsClientAuthSanDns);
+        SetIfPresent(settings, OpenIdSettingNames.TlsClientAuthSanUri, request.TlsClientAuthSanUri);
+        SetIfPresent(settings, OpenIdSettingNames.TlsClientAuthSanIp, request.TlsClientAuthSanIp);
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.TlsClientAuthSanEmail,
+            request.TlsClientAuthSanEmail
+        );
+
+        // The RFC 8705 §3.4 member is the client's requirement. ValidateCoherence refuses it when the tenant does not
+        // support binding.
+        if (request.TlsClientCertificateBoundAccessTokens is { } bound)
+            settings[OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens] = bound;
+
+        // The RFC 9449 §5.2 member is the client's requirement. ValidateCoherence refuses it when the tenant permits
+        // no DPoP proof algorithm.
+        if (request.DPoPBoundAccessTokens is { } dpopBound)
+            settings[OpenIdSettingNames.RequireDPoPBoundAccessTokens] = dpopBound;
+
         SetIfPresent(settings, OpenIdSettingNames.SoftwareId, request.SoftwareId);
         SetIfPresent(settings, OpenIdSettingNames.SoftwareVersion, request.SoftwareVersion);
 
@@ -1402,6 +1491,36 @@ internal class DefaultClientRegistrationEndpointHandler(
             OpenIdSettingNames.UserInfoEncryptedResponseEnc,
             request.UserInfoEncryptedResponseEnc
         );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.IntrospectionSignedResponseAlg,
+            request.IntrospectionSignedResponseAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.IntrospectionEncryptedResponseAlg,
+            request.IntrospectionEncryptedResponseAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.IntrospectionEncryptedResponseEnc,
+            request.IntrospectionEncryptedResponseEnc
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.AuthorizationSignedResponseAlg,
+            request.AuthorizationSignedResponseAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.AuthorizationEncryptedResponseAlg,
+            request.AuthorizationEncryptedResponseAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.AuthorizationEncryptedResponseEnc,
+            request.AuthorizationEncryptedResponseEnc
+        );
 
         SetListIfPresent(
             settings,
@@ -1418,6 +1537,29 @@ internal class DefaultClientRegistrationEndpointHandler(
             OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported,
             request.RequestObjectEncryptionEnc
         );
+
+        SetListIfPresent(
+            settings,
+            OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported,
+            request.TokenEndpointAuthSigningAlg
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.BackchannelTokenDeliveryMode,
+            request.BackchannelTokenDeliveryMode
+        );
+        SetIfPresent(
+            settings,
+            OpenIdSettingNames.ClientNotificationEndpoint,
+            request.BackchannelClientNotificationEndpoint
+        );
+        SetListIfPresent(
+            settings,
+            OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported,
+            request.BackchannelAuthenticationRequestSigningAlg
+        );
+        if (request.BackchannelUserCodeParameter is { } userCodeParameter)
+            settings[OpenIdSettingNames.BackchannelUserCodeParameterSupported] = userCodeParameter;
 
         return settings;
     }
@@ -1445,7 +1587,13 @@ internal class DefaultClientRegistrationEndpointHandler(
                 ? null
                 : string.Join(OpenIdConstants.ParameterSeparatorString, orderedScopes);
 
-        return ToResponse(client) with
+        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+            SecretOwner.ForTenant(client.TenantId),
+            client.Secrets.Value,
+            cancellationToken
+        );
+
+        return ToResponse(client, protector) with
         {
             Scope = scope,
         };
@@ -1453,16 +1601,21 @@ internal class DefaultClientRegistrationEndpointHandler(
 
     /// <summary>
     /// Reconstructs the registered metadata of a client information response from a persisted client: the metadata
-    /// from its settings document, and the <c>jwks</c> set from the public keys stored for it.
+    /// from its settings document, and the <c>jwks</c> set from the public keys stored for it, which the given
+    /// protector opens.
     /// </summary>
-    internal virtual RegisterClientResponse ToResponse(PersistedClient client)
+    internal virtual RegisterClientResponse ToResponse(
+        PersistedClient client,
+        ISecretProtector protector
+    )
     {
         var settings = ToJsonObject(client.Settings.Value);
-        var jwks = ExportPublicKeys(client.Secrets.Value);
+        var jwks = ExportPublicKeys(protector, client.Secrets.Value);
 
         return new RegisterClientResponse
         {
             ClientId = client.ClientId,
+            ResourceServerId = client.ResourceServerId,
             RedirectUris = ReadStringArray(settings, OpenIdSettingNames.RedirectUris),
             GrantTypes = ReadStringArray(settings, OpenIdSettingNames.GrantTypesSupported),
             ResponseTypes = ReadStringArray(settings, OpenIdSettingNames.ResponseTypesSupported),
@@ -1479,6 +1632,22 @@ internal class DefaultClientRegistrationEndpointHandler(
             TosUri = ReadString(settings, OpenIdSettingNames.TosUri),
             PolicyUri = ReadString(settings, OpenIdSettingNames.PolicyUri),
             JwksUri = ReadString(settings, OpenIdSettingNames.JwksUri),
+            TlsClientAuthSubjectDn = ReadString(
+                settings,
+                OpenIdSettingNames.TlsClientAuthSubjectDn
+            ),
+            TlsClientAuthSanDns = ReadString(settings, OpenIdSettingNames.TlsClientAuthSanDns),
+            TlsClientAuthSanUri = ReadString(settings, OpenIdSettingNames.TlsClientAuthSanUri),
+            TlsClientAuthSanIp = ReadString(settings, OpenIdSettingNames.TlsClientAuthSanIp),
+            TlsClientAuthSanEmail = ReadString(settings, OpenIdSettingNames.TlsClientAuthSanEmail),
+            TlsClientCertificateBoundAccessTokens = ReadBoolean(
+                settings,
+                OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens
+            ),
+            DPoPBoundAccessTokens = ReadBoolean(
+                settings,
+                OpenIdSettingNames.RequireDPoPBoundAccessTokens
+            ),
             Jwks = jwks,
             SoftwareId = ReadString(settings, OpenIdSettingNames.SoftwareId),
             SoftwareVersion = ReadString(settings, OpenIdSettingNames.SoftwareVersion),
@@ -1506,6 +1675,30 @@ internal class DefaultClientRegistrationEndpointHandler(
                 settings,
                 OpenIdSettingNames.UserInfoEncryptedResponseEnc
             ),
+            IntrospectionSignedResponseAlg = ReadString(
+                settings,
+                OpenIdSettingNames.IntrospectionSignedResponseAlg
+            ),
+            IntrospectionEncryptedResponseAlg = ReadString(
+                settings,
+                OpenIdSettingNames.IntrospectionEncryptedResponseAlg
+            ),
+            IntrospectionEncryptedResponseEnc = ReadString(
+                settings,
+                OpenIdSettingNames.IntrospectionEncryptedResponseEnc
+            ),
+            AuthorizationSignedResponseAlg = ReadString(
+                settings,
+                OpenIdSettingNames.AuthorizationSignedResponseAlg
+            ),
+            AuthorizationEncryptedResponseAlg = ReadString(
+                settings,
+                OpenIdSettingNames.AuthorizationEncryptedResponseAlg
+            ),
+            AuthorizationEncryptedResponseEnc = ReadString(
+                settings,
+                OpenIdSettingNames.AuthorizationEncryptedResponseEnc
+            ),
             RequestObjectSigningAlg = ReadSingleValue(
                 settings,
                 OpenIdSettingNames.RequestObjectSigningAlgValuesSupported
@@ -1518,6 +1711,26 @@ internal class DefaultClientRegistrationEndpointHandler(
                 settings,
                 OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported
             ),
+            TokenEndpointAuthSigningAlg = ReadSingleValue(
+                settings,
+                OpenIdSettingNames.TokenEndpointAuthSigningAlgValuesSupported
+            ),
+            BackchannelTokenDeliveryMode = ReadString(
+                settings,
+                OpenIdSettingNames.BackchannelTokenDeliveryMode
+            ),
+            BackchannelClientNotificationEndpoint = ReadString(
+                settings,
+                OpenIdSettingNames.ClientNotificationEndpoint
+            ),
+            BackchannelAuthenticationRequestSigningAlg = ReadSingleValue(
+                settings,
+                OpenIdSettingNames.BackchannelAuthenticationRequestSigningAlgValuesSupported
+            ),
+            BackchannelUserCodeParameter = ReadBoolean(
+                settings,
+                OpenIdSettingNames.BackchannelUserCodeParameterSupported
+            ),
         };
     }
 
@@ -1527,7 +1740,10 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// not part of the set and is never deserialized here.
     /// </summary>
     // See ADR-0161.
-    private JsonElement? ExportPublicKeys(IEnumerable<PersistedSecret> secrets)
+    private JsonElement? ExportPublicKeys(
+        ISecretProtector protector,
+        IEnumerable<PersistedSecret> secrets
+    )
     {
         var keys = new List<JsonWebKey>();
         foreach (var secret in secrets)
@@ -1540,7 +1756,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                 continue;
             }
 
-            var secretKey = SecretSerializer.DeserializeSecret(secret);
+            var secretKey = SecretSerializer.DeserializeSecret(protector, secret);
             var exported = descriptor.ExportPublicKey(secretKey);
             if (exported is not null)
                 keys.Add(exported.Jwk);
@@ -1600,6 +1816,14 @@ internal class DefaultClientRegistrationEndpointHandler(
 
         return values;
     }
+
+    private static bool? ReadBoolean(JsonObject settings, string key) =>
+        settings[key]?.GetValueKind() switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            _ => null,
+        };
 
     private static string? ReadString(JsonObject settings, string key)
     {

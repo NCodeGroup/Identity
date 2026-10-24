@@ -1,9 +1,17 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
 import type { RuntimeConfig } from '@ncode/config';
 import { App } from './App.js';
+// Each surface is a lazily loaded chunk (ADR-0175). Loading the modules first lets each lazy surface resolve from the
+// module cache, so a test waits for the surface's data and render rather than a cold transform of its chunk.
+import './containers/ClientsPage.js';
+import './containers/GrantsPage.js';
+import './containers/ResourceServersPage.js';
+import './containers/ServersPage.js';
+import './containers/TenantDetailPage.js';
+import './containers/TenantsPage.js';
 
 const runtime: RuntimeConfig = {
   apiBaseUrl: 'https://api.test',
@@ -45,6 +53,7 @@ const acmeTenant = {
   tenantId: 'acme',
   displayName: 'Acme',
   issuer: null,
+  mtlsEndpointAliasAuthority: null,
   isDisabled: false,
   concurrencyToken: 'c',
 };
@@ -52,6 +61,7 @@ const acmeTenant = {
 describe('App (global ↔ tenant boundary)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    window.history.replaceState(null, '', '/');
   });
 
   it('browses tenants globally, then crosses into a tenant scope', async () => {
@@ -77,6 +87,7 @@ describe('App (global ↔ tenant boundary)', () => {
               tenantId: 'acme',
               displayName: 'Acme',
               issuer: null,
+              mtlsEndpointAliasAuthority: null,
               isDisabled: false,
               concurrencyToken: 'c',
             },
@@ -136,6 +147,7 @@ describe('App (global ↔ tenant boundary)', () => {
               tenantId: 'acme',
               displayName: 'Acme',
               issuer: null,
+              mtlsEndpointAliasAuthority: null,
               isDisabled: false,
               concurrencyToken: 'c',
             },
@@ -243,8 +255,9 @@ describe('App (global ↔ tenant boundary)', () => {
     fireEvent.click(screen.getByTestId('tenant-tab-grants'));
     expect(await screen.findByText('No grants match the current filter.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('tenant-tab-tenant'));
+    fireEvent.click(screen.getByTestId('tenant-tab-secrets'));
     expect(await screen.findByText('This tenant has no secrets yet.')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/tenants/acme/secrets');
 
     // Leaving and re-entering a tenant starts again on its clients, not the last surface visited.
     fireEvent.click(screen.getByTestId('exit-tenant'));
@@ -255,6 +268,110 @@ describe('App (global ↔ tenant boundary)', () => {
     const requestedUrls = fetchMock.mock.calls.map(([input]) => (input as Request).url);
     expect(requestedUrls.some((url) => url.includes('/api/tenants/acme/grants'))).toBe(true);
     expect(requestedUrls).toContain('https://api.test/api/tenants/acme/secrets');
+  });
+});
+
+describe('App (routing)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    window.history.replaceState(null, '', '/');
+  });
+
+  function stubTenantApi() {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.includes('/api/tenants/acme/grants')) {
+          return jsonResponse({ items: [] });
+        }
+        if (url.endsWith('/api/tenants/acme/clients')) {
+          return jsonResponse({ items: [] });
+        }
+        if (url.endsWith('/api/servers')) {
+          return jsonResponse({ items: [] });
+        }
+        if (url.endsWith('/api/tenants')) {
+          return jsonResponse({ items: [acmeTenant] });
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+  }
+
+  it('rewrites the bare origin to the global tenant list', async () => {
+    stubTenantApi();
+
+    renderApp();
+
+    expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/tenants');
+  });
+
+  it('opens a deep link on its tenant scope and surface', async () => {
+    stubTenantApi();
+    window.history.replaceState(null, '', '/tenants/acme/grants');
+
+    renderApp();
+
+    expect(await screen.findByText('No grants match the current filter.')).toBeInTheDocument();
+    expect(screen.getByTestId('scope-badge')).toHaveTextContent('acme');
+  });
+
+  it("opens a deep link on one of the tenant's own surfaces", async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.endsWith('/api/tenants/acme/usage')) {
+          return jsonResponse({
+            tenantId: 'acme',
+            from: '2026-09-21',
+            to: '2026-10-21',
+            entries: [],
+          });
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+    window.history.replaceState(null, '', '/tenants/acme/usage');
+
+    renderApp();
+
+    expect(await screen.findByText('No usage recorded in this range.')).toBeInTheDocument();
+    expect(screen.getByTestId('scope-badge')).toHaveTextContent('acme');
+    expect(screen.getByRole('tab', { name: 'Usage' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('records each navigation in the address bar and restores it on back', async () => {
+    stubTenantApi();
+
+    renderApp();
+    fireEvent.click(await screen.findByTestId('tenant-row-acme'));
+    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/tenants/acme/clients');
+
+    fireEvent.click(screen.getByTestId('tenant-tab-grants'));
+    expect(await screen.findByText('No grants match the current filter.')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/tenants/acme/grants');
+
+    act(() => window.history.back());
+    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/tenants/acme/clients');
+  });
+
+  it('crosses back to the global scope when the history leaves the tenant', async () => {
+    stubTenantApi();
+    window.history.replaceState(null, '', '/servers');
+    window.history.pushState(null, '', '/tenants/acme/clients');
+
+    renderApp();
+    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+
+    act(() => window.history.back());
+
+    await waitFor(() => expect(screen.getByTestId('scope-badge')).toHaveTextContent('Global'));
+    expect(screen.queryByTestId('exit-tenant')).not.toBeInTheDocument();
   });
 });
 
@@ -280,7 +397,12 @@ describe('App (sign-out)', () => {
     const assignMock = vi.fn();
     Object.defineProperty(window, 'location', {
       configurable: true,
-      value: { origin: 'https://ui.test', href: 'https://ui.test/', assign: assignMock },
+      value: {
+        origin: 'https://ui.test',
+        href: 'https://ui.test/tenants',
+        pathname: '/tenants',
+        assign: assignMock,
+      },
     });
 
     const store = createAppStore({
@@ -333,7 +455,12 @@ describe('App (sign-out)', () => {
     const assign = vi.fn();
     Object.defineProperty(window, 'location', {
       configurable: true,
-      value: { origin: 'https://ui.test', href: 'https://ui.test/', assign },
+      value: {
+        origin: 'https://ui.test',
+        href: 'https://ui.test/tenants',
+        pathname: '/tenants',
+        assign,
+      },
     });
     const store = createAppStore({
       config: { runtime: preloadedRuntime },

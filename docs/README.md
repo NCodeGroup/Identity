@@ -7,6 +7,11 @@ Project documentation for the **NCode.Identity** library family.
 Architecturally significant decisions are captured as ADRs under [`adr/`](./adr). See the
 [ADR index](./adr/README.md) for the list and the process we follow.
 
+## Metrics
+
+[`metrics.md`](./metrics.md) catalogs every meter, instrument, and attribute the family emits, and how a host collects
+them.
+
 ## Hosting
 
 [`hosting-analysis.md`](./hosting-analysis.md) compares entry-level hosting vendors (Kubernetes, load balancer,
@@ -19,4 +24,4 @@ hosted platform from scratch — accounts, the infrastructure repository, creden
 
 [`backend-for-frontend.md`](./backend-for-frontend.md) is the proposed design for a Backend for Frontend (BFF) library
 — browser cookie sessions with server-side token custody per RFC 10017 — contrasting it with the bearer-token pattern
-(backlog `F78`).
+(backlog `F84`).

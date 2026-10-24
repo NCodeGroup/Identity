@@ -83,5 +83,17 @@ internal class TenantResolutionOptionsValidator : IValidateOptions<TenantResolut
                     + $"{TenantAddressRules.IssuerRequirement}."
             );
         }
+
+        var rootAlias = root.MtlsEndpointAliasAuthority;
+        if (
+            !string.IsNullOrEmpty(rootAlias)
+            && !TenantAddressRules.TryParseMtlsEndpointAliasAuthority(rootAlias, out _)
+        )
+        {
+            failures.Add(
+                $"{prefix}:{nameof(root.MtlsEndpointAliasAuthority)} '{rootAlias}' must be "
+                    + $"{TenantAddressRules.MtlsEndpointAliasAuthorityRequirement}."
+            );
+        }
     }
 }

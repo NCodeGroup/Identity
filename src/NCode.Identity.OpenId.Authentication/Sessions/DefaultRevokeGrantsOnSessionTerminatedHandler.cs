@@ -16,26 +16,26 @@
 
 #endregion
 
-using NCode.Identity.Jose.Extensions;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
+using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Sessions;
 
 /// <summary>
 /// Handles <see cref="OnSessionTerminatedCommand"/> by revoking the terminated session's grants (which includes the
 /// session grant itself, since it carries its own <c>sid</c>), or every grant the subject holds when the termination
-/// is subject-wide (such as a global sign-out). Runs at high priority so revocation happens before notification side
-/// effects.
+/// is subject-wide (such as a global sign-out). The revocation reads the grants again and retries when it loses a
+/// concurrency race. Runs at high priority so revocation happens before notification side effects.
 /// </summary>
 internal class DefaultRevokeGrantsOnSessionTerminatedHandler(
     TimeProvider timeProvider,
-    IStoreManagerFactory storeManagerFactory
+    IPersistedGrantService persistedGrantService
 ) : ICommandHandler<OnSessionTerminatedCommand>, ISupportMediatorPriority
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -46,7 +46,7 @@ internal class DefaultRevokeGrantsOnSessionTerminatedHandler(
         CancellationToken cancellationToken
     )
     {
-        var (_, termination) = command;
+        var (openIdContext, termination) = command;
 
         // Session-scoped when a sid is present (leaving the subject's other sessions intact); otherwise subject-wide.
         GrantFilter filter;
@@ -65,9 +65,11 @@ internal class DefaultRevokeGrantsOnSessionTerminatedHandler(
 
         var revokedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var grantStore = storeManager.GetStore<IGrantStore>();
-        await grantStore.RevokeWhereAsync(filter, revokedWhen, cancellationToken);
-        await storeManager.SaveChangesAsync(cancellationToken);
+        await PersistedGrantService.RevokeWhereAsync(
+            openIdContext,
+            filter,
+            revokedWhen,
+            cancellationToken
+        );
     }
 }

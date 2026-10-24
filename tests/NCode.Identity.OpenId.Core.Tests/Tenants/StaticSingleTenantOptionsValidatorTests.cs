@@ -62,6 +62,58 @@ public sealed class StaticSingleTenantOptionsValidatorTests
     }
 
     [Fact]
+    public void Validate_WhenRootMtlsEndpointAliasAuthorityIsConfigured_FailsBecauseItIsNeverHonored()
+    {
+        var options = Selected(new StaticSingleTenantOptions { Issuer = "https://op.example" });
+        options.Root.MtlsEndpointAliasAuthority = "https://mtls.example";
+
+        var failures = Failures(options);
+
+        Assert.Contains(
+            "Root:MtlsEndpointAliasAuthority has no effect",
+            failures,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenMtlsEndpointAliasAuthorityIsNotAnOrigin_Fails()
+    {
+        var failures = Failures(
+            Selected(
+                new StaticSingleTenantOptions
+                {
+                    Issuer = "https://op.example",
+                    MtlsEndpointAliasAuthority = "https://mtls.op.example/path",
+                }
+            )
+        );
+
+        Assert.Contains(
+            "StaticSingle:MtlsEndpointAliasAuthority 'https://mtls.op.example/path' must be",
+            failures,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenMtlsEndpointAliasAuthorityIsAnOrigin_Succeeds()
+    {
+        var result = Validator.Validate(
+            name: null,
+            Selected(
+                new StaticSingleTenantOptions
+                {
+                    Issuer = "https://op.example",
+                    MtlsEndpointAliasAuthority = "https://mtls.op.example",
+                }
+            )
+        );
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
     public void Validate_WhenAnotherStrategyIsSelected_Skips()
     {
         // A layered configuration may carry another strategy's options; only the selected strategy's are in force.

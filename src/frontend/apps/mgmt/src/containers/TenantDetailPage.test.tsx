@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
 import type { RuntimeConfig } from '@ncode/config';
 import { TenantDetailPage } from './TenantDetailPage.js';
+import type { TenantOwnSurface } from '../routes.js';
 
 const runtime: RuntimeConfig = {
   apiBaseUrl: 'https://api.test',
@@ -14,7 +15,7 @@ const runtime: RuntimeConfig = {
   features: {},
 };
 
-function renderPage() {
+function renderPage(surface: TenantOwnSurface = 'secrets') {
   const store = createAppStore({
     config: { runtime },
     auth: {
@@ -27,7 +28,7 @@ function renderPage() {
   });
   return render(
     <Provider store={store}>
-      <TenantDetailPage tenantId="acme" />
+      <TenantDetailPage tenantId="acme" surface={surface} />
     </Provider>,
   );
 }
@@ -192,8 +193,7 @@ describe('TenantDetailPage', () => {
       throw new Error(`Unexpected ${method} ${url}`);
     });
 
-    renderPage();
-    fireEvent.click(await screen.findByTestId('tenant-detail-tab-settings'));
+    renderPage('settings');
 
     const editor = await screen.findByTestId('settings-json');
     fireEvent.change(editor, { target: { value: '{"a": 2}' } });
@@ -204,5 +204,95 @@ describe('TenantDetailPage', () => {
       expect(patch?.url).toBe('https://api.test/api/tenants/acme/settings');
       expect(JSON.parse(patch?.body ?? '[]')).toEqual([{ op: 'replace', path: '/a', value: 2 }]);
     });
+  });
+
+  it('shows the tenant usage ledger on the usage tab and narrows it to a chosen range', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/api/tenants/acme/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
+      }
+      if (url.includes('/api/tenants/acme/usage?from=2026-10-21&to=2026-10-21')) {
+        return jsonResponse({
+          tenantId: 'acme',
+          from: '2026-10-21',
+          to: '2026-10-21',
+          entries: [{ day: '2026-10-21', meter: 'requests', count: 3 }],
+        });
+      }
+      if (url.includes('/api/tenants/acme/usage?from=2026-10-21')) {
+        return jsonResponse({
+          tenantId: 'acme',
+          from: '2026-10-21',
+          to: '2026-10-21',
+          entries: [],
+        });
+      }
+      if (url.endsWith('/api/tenants/acme/usage')) {
+        return jsonResponse({
+          tenantId: 'acme',
+          from: '2026-09-21',
+          to: '2026-10-21',
+          entries: [
+            { day: '2026-10-21', meter: 'requests', count: 42 },
+            { day: '2026-10-21', meter: 'token_requests', count: 7 },
+          ],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage('usage');
+
+    expect(await screen.findByTestId('usage-row-2026-10-21')).toHaveTextContent('2026-10-21427');
+    expect(screen.getByTestId('usage-range')).toHaveTextContent('2026-09-21 to 2026-10-21');
+
+    fireEvent.change(screen.getByTestId('usage-from'), { target: { value: '2026-10-21' } });
+
+    expect(await screen.findByTestId('data-empty')).toHaveTextContent(
+      'No usage recorded in this range.',
+    );
+    expect(
+      calls.some((c) => c.url === 'https://api.test/api/tenants/acme/usage?from=2026-10-21'),
+    ).toBe(true);
+
+    fireEvent.change(screen.getByTestId('usage-to'), { target: { value: '2026-10-21' } });
+
+    expect(await screen.findByTestId('usage-row-2026-10-21')).toHaveTextContent('2026-10-213');
+    expect(
+      calls.some(
+        (c) => c.url === 'https://api.test/api/tenants/acme/usage?from=2026-10-21&to=2026-10-21',
+      ),
+    ).toBe(true);
+  });
+
+  it('shows the server refusal of an invalid usage range', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/api/tenants/acme/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
+      }
+      if (url.includes('/api/tenants/acme/usage')) {
+        return jsonResponse(
+          {
+            title: 'One or more validation errors occurred.',
+            status: 400,
+            errors: {
+              from: ["The range must run forward from 'from' to 'to' and span at most 366 days."],
+            },
+          },
+          400,
+        );
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage('usage');
+
+    expect(await screen.findByTestId('data-error')).toBeInTheDocument();
   });
 });

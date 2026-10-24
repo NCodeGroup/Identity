@@ -111,11 +111,9 @@ internal class DefaultDiscoverMetadataHandler(
         var httpContext = openIdContext.Http;
         var routeValues = new { };
 
-        // RFC 8705 §5: when a mutual-TLS alias authority is configured, discoverable endpoints are mirrored under an
+        // RFC 8705 §5: when the tenant has a mutual-TLS alias authority, discoverable endpoints are mirrored under an
         // mtls_endpoint_aliases object with their authority rewritten, so mTLS clients target the separate host.
-        var mtlsAuthority = openIdContext.Tenant.SettingsProvider.Collection.GetValue(
-            OpenIdSettingKeys.MtlsEndpointAliasAuthority
-        );
+        var mtlsAuthority = openIdContext.Tenant.MtlsEndpointAliasAuthority;
         var mtlsAliases = string.IsNullOrEmpty(mtlsAuthority)
             ? null
             : new Dictionary<string, object>(StringComparer.Ordinal);
@@ -152,6 +150,7 @@ internal class DefaultDiscoverMetadataHandler(
 
             if (
                 mtlsAliases is not null
+                && !string.IsNullOrEmpty(mtlsAuthority)
                 && TryRewriteAuthority(endpointUrl, mtlsAuthority) is { } aliasUrl
             )
                 mtlsAliases[endpointName] = aliasUrl;

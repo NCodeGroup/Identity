@@ -17,7 +17,9 @@
 
 #endregion
 
+using System.Buffers;
 using System.Globalization;
+using System.Security.Cryptography;
 
 // ASPIRE ORCHESTRATION-ONLY HOST (ADR-0071): a flat resource graph that is the single one-stop entry to build, run,
 // and debug the whole local stack (the OpenID host + the frontend apps) with deterministic startup ordering.
@@ -34,11 +36,18 @@ var builder = DistributedApplication.CreateBuilder(args);
 // it through NVS and installs the pinned pnpm beside it, once per clone).
 EnsurePinnedNodeOnPath(Path.Combine(builder.AppHostDirectory, "..", "frontend"));
 
+// Every OP instance started below shares the one dev database, so they must all unwrap the same master keys: they are
+// handed the same development root key, as a key file (ADR-0235). The key is generated once per machine, outside the
+// repository, so no root key is ever committed.
+var rootKeyPath = EnsureDevelopmentRootKey();
+
 // The dev database is Postgres in a container (ADR-0073). WithDataVolume gives it a STABLE, named volume so data
 // survives restarts (persistent by default); the matching build/dev-db-reset.ps1 removes exactly this volume for an
 // on-demand purge. Aspire auto-detects the container runtime (Docker or Podman), so the graph is portable across dev
-// machines. `openiddb` is the single database holding the OpenID data, the seeded signing key, and the developer
-// DataProtection key ring — one purge resets all three together.
+// machines. `openiddb` is the single database holding the OpenID data, the seeded signing key, the developer
+// DataProtection key ring, and the tenants' master keys — one purge resets all of them together. The master keys are
+// wrapped by the per-machine development root key above, which lives outside the database, so the reset keeps it and
+// a fresh database simply gets new master keys under it.
 var postgres = builder.AddPostgres("postgres").WithDataVolume("ncode-identity-openiddb-data");
 var openIdDb = postgres.AddDatabase("openiddb");
 
@@ -60,14 +69,17 @@ var migrations = builder
 // the fixed dev endpoints (https://localhost:5001, http://localhost:5000) the rest of the stack is pinned to — the
 // tenant's issuer (pinned by the same profile), the browser-published bootstrap document, the seeded SPA redirect URIs,
 // and the developer CORS origins all assume those ports. WithHttpHealthCheck gates dependents on the app being HEALTHY
-// (its /health returns 200 once Kestrel is listening), not merely "process started", which is what deterministically
+// (its /health/ready returns 200 once Kestrel is listening and the database answers), not merely "process started", which is what deterministically
 // removes the UI-before-API race.
 // WithReference injects the 'openiddb' connection string; WaitForCompletion holds the api until migrations succeed.
+// The SecretProtection__ variables select the `local` root key provider and point it at the development root key file.
 var api = builder
     .AddProject<Projects.NCode_Identity_OpenId_Host>("api")
-    .WithHttpHealthCheck("/health")
+    .WithHttpHealthCheck("/health/ready")
     .WithReference(openIdDb)
     .WithReference(valkey)
+    .WithEnvironment("SecretProtection__RootKeyProvider", "local")
+    .WithEnvironment("SecretProtection__RootKeyProviders__Local__KeyPath", rootKeyPath)
     .WaitFor(valkey)
     .WaitForCompletion(migrations)
     .WithExternalHttpEndpoints();
@@ -82,15 +94,17 @@ var api = builder
 // cross-origin, and serves its own `conformance` tenant: every tenant is published under its own stored issuer
 // (ADR-0165), so the two instances cannot share the `default` tenant in the shared database — the launch profile pins
 // this one's issuer to https://localhost:5003. WaitForCompletion(migrations) holds it until the shared schema is
-// applied.
+// applied. It gets the same development root key as the `api`, because both unwrap the master keys in the one database.
 var conformanceApi = builder
     .AddProject<Projects.NCode_Identity_OpenId_Host>(
         "conformanceapi",
         launchProfileName: "ConformanceAspire"
     )
-    .WithHttpHealthCheck("/health")
+    .WithHttpHealthCheck("/health/ready")
     .WithReference(openIdDb)
     .WithReference(valkey)
+    .WithEnvironment("SecretProtection__RootKeyProvider", "local")
+    .WithEnvironment("SecretProtection__RootKeyProviders__Local__KeyPath", rootKeyPath)
     .WaitFor(valkey)
     .WaitForCompletion(migrations)
     .WithExternalHttpEndpoints();
@@ -218,4 +232,90 @@ static void EnsurePinnedNodeOnPath(string frontendDirectory)
         return;
 
     Environment.SetEnvironmentVariable("PATH", $"{nodeDir}{Path.PathSeparator}{path}");
+}
+
+// Every OP instance that shares the dev database must unwrap the same master keys, and the key stays out of the
+// repository (ADR-0235): the first AppHost run on a machine writes a random 32-byte root key, base64url encoded, to
+// LocalApplicationData and every later run reuses it. The key is written to a temporary file and moved into place, so a
+// crash never leaves a partial key under the final name; an empty file left by an older run is replaced. The key only
+// ever exists as bytes, zeroed once written — never as a string.
+static string EnsureDevelopmentRootKey()
+{
+    var directory = Path.Combine(
+        Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData,
+            Environment.SpecialFolderOption.Create
+        ),
+        "NCode.Identity",
+        "LocalDev"
+    );
+    Directory.CreateDirectory(directory);
+
+    var path = Path.Combine(directory, "root-key");
+    if (File.Exists(path))
+    {
+        // An empty file can only be left by an interrupted in-place write of an older run.
+        if (new FileInfo(path).Length == 0)
+            File.Delete(path);
+        else
+            return path;
+    }
+
+    var temporaryPath = Path.Combine(directory, $"root-key.{Guid.NewGuid():N}.tmp");
+
+    Span<byte> key = stackalloc byte[32];
+    Span<byte> text = stackalloc byte[43];
+    try
+    {
+        RandomNumberGenerator.Fill(key);
+
+        var status = System.Buffers.Text.Base64Url.EncodeToUtf8(key, text, out _, out var written);
+        if (status != OperationStatus.Done)
+            throw new InvalidOperationException(
+                $"Encoding the development root key failed with status {status}."
+            );
+
+        // The temporary name is unique, so CreateNew only guards against a stray file of the same name.
+        var options = new FileStreamOptions
+        {
+            Mode = FileMode.CreateNew,
+            Access = FileAccess.Write,
+            Share = FileShare.None,
+        };
+        if (!OperatingSystem.IsWindows())
+            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+
+        using (var stream = new FileStream(temporaryPath, options))
+        {
+            stream.Write(text[..written]);
+            stream.Flush(flushToDisk: true);
+        }
+
+        // Move never overwrites: when another AppHost moved its key into place first, that key is the one to use.
+        try
+        {
+            File.Move(temporaryPath, path, overwrite: false);
+        }
+        catch (IOException) when (File.Exists(path))
+        {
+            return path;
+        }
+
+        return path;
+    }
+    finally
+    {
+        CryptographicOperations.ZeroMemory(key);
+        CryptographicOperations.ZeroMemory(text);
+
+        try
+        {
+            if (File.Exists(temporaryPath))
+                File.Delete(temporaryPath);
+        }
+        catch (IOException)
+        {
+            // Cleanup is best-effort and must not hide the real outcome.
+        }
+    }
 }

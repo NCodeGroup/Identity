@@ -13,11 +13,11 @@
 name: .NET CI
 
 on:
+  # A pull request into main gates every branch, and a push gates only main. A push trigger on other branches would
+  # run the whole gate a second time for each commit of a branch with a pull request. Run a branch that has no pull
+  # request yet with workflow_dispatch, or open a draft pull request.
   push:
-    # Every branch is gated on push. Bot branches are the one exception: they always carry an open pull request, so a
-    # push trigger here would run the whole gate a second time against the same tree — four checks on one Dependabot
-    # pull request instead of two. Human branches keep their push run, because a branch may have no pull request yet.
-    branches-ignore: ['dependabot/**']
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:

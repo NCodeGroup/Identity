@@ -22,6 +22,7 @@ const runtime: RuntimeConfig = {
 
 const rsaSecret: SecretResource = {
   secretId: 's-rsa',
+  keyId: 'rsa-kid',
   concurrencyToken: 'sc1',
   use: 'sig',
   algorithm: 'RS256',
@@ -34,6 +35,7 @@ const rsaSecret: SecretResource = {
 const symmetricSecret: SecretResource = {
   ...rsaSecret,
   secretId: 's-sym',
+  keyId: 's-sym',
   use: null,
   algorithm: null,
   secretType: 'symmetric',
@@ -306,6 +308,71 @@ describe('SecretsManager', () => {
 
       await waitFor(() => expect(screen.queryByTestId('confirm-accept')).not.toBeInTheDocument());
       expect(onDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('rotate', () => {
+    it('offers rotation only for the shared secret types the server discovers', async () => {
+      await renderManager({ onRotate: vi.fn<NonNullable<SecretsManagerProps['onRotate']>>() });
+
+      expect(screen.getByTestId('secret-rotate-s-sym')).toBeInTheDocument();
+      expect(screen.queryByTestId('secret-rotate-s-rsa')).not.toBeInTheDocument();
+    });
+
+    it('offers no rotation when the owner cannot rotate its secrets', async () => {
+      await renderManager();
+
+      expect(screen.queryByTestId('secret-rotate-s-sym')).not.toBeInTheDocument();
+    });
+
+    it('rotates a secret after confirmation and reveals the replacement once', async () => {
+      const onRotate = vi
+        .fn<NonNullable<SecretsManagerProps['onRotate']>>()
+        .mockResolvedValue(created);
+      await renderManager({ onRotate });
+
+      fireEvent.click(screen.getByTestId('secret-rotate-s-sym'));
+      expect(screen.getByRole('dialog', { name: 'Rotate secret' })).toHaveTextContent(
+        'Replace secret “s-sym” with a new one that expires in a year?',
+      );
+      fireEvent.click(screen.getByTestId('confirm-accept'));
+
+      expect(await screen.findByTestId('reveal-secret-material')).toHaveTextContent(
+        'one-time-material',
+      );
+      expect(screen.getByTestId('reveal-secret-id')).toHaveTextContent('s-new');
+      expect(onRotate).toHaveBeenCalledTimes(1);
+      const [secretId, body] = onRotate.mock.calls[0]!;
+      expect(secretId).toBe('s-sym');
+      expect(new Date(body.expiresWhen).getFullYear()).toBe(new Date().getFullYear() + 1);
+    });
+
+    it('discards the rotate dialog on cancel without rotating', async () => {
+      const onRotate = vi.fn<NonNullable<SecretsManagerProps['onRotate']>>();
+      await renderManager({ onRotate });
+
+      fireEvent.click(screen.getByTestId('secret-rotate-s-sym'));
+      fireEvent.click(screen.getByTestId('confirm-cancel'));
+
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Rotate secret' })).not.toBeInTheDocument(),
+      );
+      expect(onRotate).not.toHaveBeenCalled();
+    });
+
+    it('keeps the rotate dialog open with the server problem detail when the rotation is rejected', async () => {
+      const onRotate = vi
+        .fn<NonNullable<SecretsManagerProps['onRotate']>>()
+        .mockRejectedValue({ status: 400, data: { detail: 'The secret cannot be rotated.' } });
+      await renderManager({ onRotate });
+
+      fireEvent.click(screen.getByTestId('secret-rotate-s-sym'));
+      fireEvent.click(screen.getByTestId('confirm-accept'));
+
+      expect(await screen.findByTestId('confirm-error')).toHaveTextContent(
+        'The secret cannot be rotated.',
+      );
+      expect(screen.queryByTestId('reveal-secret-material')).not.toBeInTheDocument();
     });
   });
 

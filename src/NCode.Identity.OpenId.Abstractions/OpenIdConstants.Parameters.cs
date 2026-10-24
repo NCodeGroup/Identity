@@ -301,6 +301,12 @@ public static partial class OpenIdConstants
         public const string Request = "request";
 
         /// <summary>
+        /// Contains the name of the <c>response</c> parameter: the JWT that carries a JWT-secured authorization response
+        /// (JARM §2.3).
+        /// </summary>
+        public const string Response = "response";
+
+        /// <summary>
         /// Contains the name of <c>request_id</c> parameter.
         /// </summary>
         public const string RequestId = "request_id";

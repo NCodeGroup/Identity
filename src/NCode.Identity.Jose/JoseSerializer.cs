@@ -120,7 +120,7 @@ internal partial class JoseSerializer(
     private static JsonElement DeserializeHeader(ReadOnlySpan<char> encodedHeader)
     {
         using var _ = DecodeBase64Url(encodedHeader, isSensitive: false, out var utf8Json);
-        return JsonSerializer.Deserialize<JsonElement>(utf8Json);
+        return JsonElement.Parse(utf8Json);
     }
 
     /// <inheritdoc />

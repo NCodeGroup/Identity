@@ -34,8 +34,8 @@ https://host.docker.internal:5001` makes the discovery `issuer` byte-match the o
   issuer — in the shared Postgres.
 - **Reuses the conformance tenant/seed (`T4`) and the interactive UI (`T2`).** `ASPNETCORE_ENVIRONMENT =
 Conformance` loads `appsettings.Conformance.json` (the `ConformanceSeed` section → `AddConformanceSeed`),
-  and `InteractiveAuthentication__BundleRootPath` serves the `apps/auth` login/consent bundle under
-  `/account/*`.
+  and `InteractiveAuthentication__BundleRootPath` serves the `apps/auth` login/consent bundle under the
+  tenant's `/account/*`.
 
 Run it with `dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance` (the
 full orchestration script that also brings the suite up/down is `T1` Phase D, not T3).

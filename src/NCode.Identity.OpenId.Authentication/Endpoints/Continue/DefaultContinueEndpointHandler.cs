@@ -55,7 +55,8 @@ internal class DefaultContinueEndpointHandler(
             )
             .WithName(OpenIdConstants.EndpointNames.Continue)
             .WithTags(OpenIdConstants.EndpointTags.OpenId)
-            .WithOpenIdDiscoverable(false);
+            .WithOpenIdDiscoverable(false)
+            .WithOpenIdFrontChannel();
 
     /// <summary>
     /// Continue a paused authorization flow.

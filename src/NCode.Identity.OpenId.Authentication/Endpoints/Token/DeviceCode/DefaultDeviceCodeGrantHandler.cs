@@ -17,8 +17,8 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Persistence;
@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
+using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.DeviceCode;
 
@@ -88,6 +89,18 @@ internal class DefaultDeviceCodeGrantHandler(
 
         var persistedGrant = persistedGrantOrNull.Value;
 
+        // A device code is redeemed only by the client it was issued to (RFC 8628 §3.4). See ADR-0225.
+        if (
+            !string.Equals(
+                persistedGrant.Payload.ClientId,
+                openIdClient.ClientId,
+                StringComparison.Ordinal
+            )
+        )
+            return errorFactory
+                .InvalidGrant("The provided device code was issued to a different client.")
+                .WithStatusCode(StatusCodes.Status400BadRequest);
+
         if (persistedGrant.Status == PersistedGrantStatus.Expired)
             return Error(
                 errorFactory,
@@ -128,6 +141,7 @@ internal class DefaultDeviceCodeGrantHandler(
                     errorFactory,
                     tokenRequest,
                     deviceCodeGrantId,
+                    payload,
                     proofOfPossessionBinding,
                     cancellationToken
                 );
@@ -154,13 +168,10 @@ internal class DefaultDeviceCodeGrantHandler(
         var tooFast =
             payload.LastPolledWhen is { } lastPolledWhen && utcNow - lastPolledWhen < interval;
 
-        await PersistedGrantService.UpdatePayloadAsync(
+        await PersistedGrantService.UpdatePayloadAsync<DeviceCodeGrant>(
             openIdContext,
             deviceCodeGrantId,
-            payload with
-            {
-                LastPolledWhen = utcNow,
-            },
+            stored => RecordPoll(stored, utcNow),
             cancellationToken
         );
 
@@ -177,16 +188,42 @@ internal class DefaultDeviceCodeGrantHandler(
             );
     }
 
+    private static PersistedGrantUpdate<DeviceCodeGrant>? RecordPoll(
+        PersistedGrant<DeviceCodeGrant> stored,
+        DateTimeOffset utcNow
+    )
+    {
+        // An approval that lands between this poll's read and its write stands. See ADR-0222.
+        if (stored.Payload.Status != DeviceAuthorizationStatus.Pending)
+            return null;
+
+        return new PersistedGrantUpdate<DeviceCodeGrant>
+        {
+            Payload = stored.Payload with { LastPolledWhen = utcNow },
+        };
+    }
+
     private async ValueTask<IOpenIdResponse> HandleApprovedAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         IOpenIdErrorFactory errorFactory,
         ITokenRequest tokenRequest,
         PersistedGrantId deviceCodeGrantId,
+        DeviceCodeGrant payload,
         ProofOfPossessionBinding proofOfPossessionBinding,
         CancellationToken cancellationToken
     )
     {
+        // The subject that approved the request is validated before the device code is spent, so a refused subject
+        // leaves it unspent. See ADR-0225.
+        var validateCommand = new ValidateTokenGrantCommand<DeviceCodeGrant>(
+            openIdContext,
+            openIdClient,
+            tokenRequest,
+            payload
+        );
+        await openIdContext.Mediator.SendAsync(validateCommand, cancellationToken);
+
         // Claim the approved request exactly once so a device_code is redeemed for tokens a single time.
         var consumedOrNull = await PersistedGrantService.ConsumeOnceOrDefault<DeviceCodeGrant>(
             openIdContext,
@@ -199,13 +236,13 @@ internal class DefaultDeviceCodeGrantHandler(
                 .InvalidGrant("The provided device code has already been redeemed.")
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 
-        var payload = consumedOrNull.Value.Payload;
+        var consumedPayload = consumedOrNull.Value.Payload;
 
         return await CreateTokenResponseAsync(
             openIdContext,
             openIdClient,
             tokenRequest,
-            payload,
+            consumedPayload,
             proofOfPossessionBinding,
             cancellationToken
         );

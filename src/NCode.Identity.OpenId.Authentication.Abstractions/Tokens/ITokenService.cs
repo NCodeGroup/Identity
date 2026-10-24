@@ -18,6 +18,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 
@@ -48,7 +49,9 @@ public interface ITokenService
     );
 
     /// <summary>
-    /// Generates an ID token.
+    /// Generates an ID token. An implementation protects it with the credentials <see cref="IClientJwtCredentialSelector"/>
+    /// selects for the client and <see cref="ClientJwtProtectionSettings.IdToken"/>, so the ID token is signed and
+    /// encrypted exactly as the client registered.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
@@ -73,6 +76,48 @@ public interface ITokenService
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="SecurityToken"/>
     /// that represents newly generated the refresh token.</returns>
     ValueTask<SecurityToken> CreateRefreshTokenAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        CreateSecurityTokenRequest tokenRequest,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Generates a refresh token that replaces a presented one. The presented token's grant is revoked and the
+    /// replacement grant is stored in the same unit of work, so the replacement token exists only if this call spent
+    /// the presented token. The replacement token joins the rotation family named by
+    /// <see cref="CreateSecurityTokenRequest.RefreshTokenLineageId"/>.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
+    /// <param name="presentedGrantId">The <see cref="PersistedGrantId"/> of the refresh token that the client presented and that the replacement token replaces.</param>
+    /// <param name="tokenRequest">The <see cref="CreateSecurityTokenRequest"/> that contains the information required to generate the refresh token.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="SecurityToken"/>
+    /// that represents the replacement refresh token, or <c>null</c> when the presented token is no longer active
+    /// because a concurrent request rotated or revoked it first, in which case nothing is stored or audited.</returns>
+    ValueTask<SecurityToken?> RotateRefreshTokenAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        PersistedGrantId presentedGrantId,
+        CreateSecurityTokenRequest tokenRequest,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Generates another refresh token in the rotation family named by
+    /// <see cref="CreateSecurityTokenRequest.RefreshTokenLineageId"/>, for a client that presents a rotated refresh
+    /// token again within its reuse interval. The token is stored only while a grant of the family is still active.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current HTTP request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> that represents the client application.</param>
+    /// <param name="tokenRequest">The <see cref="CreateSecurityTokenRequest"/> that contains the information required to generate the refresh token.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="SecurityToken"/>
+    /// that represents the refresh token, or <c>null</c> when no grant of the family is active, in which case nothing
+    /// is stored or audited.</returns>
+    /// <exception cref="ArgumentException">The request names no refresh-token rotation family.</exception>
+    ValueTask<SecurityToken?> ReissueRefreshTokenAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         CreateSecurityTokenRequest tokenRequest,

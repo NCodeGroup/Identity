@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using System.Text;
 using Moq;
 using NCode.Identity.Cryptography;
@@ -47,12 +48,12 @@ public class DefaultSubjectIdentifierServiceTests : BaseTests
             .Setup(x =>
                 x.HashValue(
                     It.IsAny<string>(),
-                    HashAlgorithmType.Sha256,
-                    BinaryEncodingType.Base64Url,
+                    HashAlgorithmName.SHA256,
+                    BinaryEncodings.Base64Url,
                     It.IsAny<Encoding?>()
                 )
             )
-            .Returns((string data, HashAlgorithmType _, BinaryEncodingType _, Encoding? _) => data);
+            .Returns((string data, HashAlgorithmName _, string _, Encoding? _) => data);
         Service = new DefaultSubjectIdentifierService(MockCryptoService.Object);
     }
 

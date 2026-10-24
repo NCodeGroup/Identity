@@ -18,6 +18,7 @@
 
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
@@ -28,11 +29,14 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 internal interface ISecretPublicKeyConverter
 {
     /// <summary>
-    /// Converts the specified persisted secret into its <see cref="PublicKeyResource"/>, or returns <c>null</c> when
-    /// the secret is symmetric and therefore has no public key material.
+    /// Converts the specified persisted secret into its <see cref="PublicKeyResource"/>, unprotecting its key
+    /// material with the specified <paramref name="protector"/>, or returns <c>null</c> when the secret is symmetric
+    /// and therefore has no public key material.
     /// </summary>
+    /// <param name="protector">The <see cref="ISecretProtector"/> of the owner that the secret belongs to.</param>
     /// <param name="secret">The persisted secret to convert.</param>
     /// <returns>The <see cref="PublicKeyResource"/> for an asymmetric secret, or <c>null</c> when the secret has no
     /// public key material.</returns>
-    PublicKeyResource? Convert(PersistedSecret secret);
+    // See ADR-0235.
+    PublicKeyResource? Convert(ISecretProtector protector, PersistedSecret secret);
 }

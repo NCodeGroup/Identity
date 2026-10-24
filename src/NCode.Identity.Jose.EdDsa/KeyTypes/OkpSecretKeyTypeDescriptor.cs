@@ -67,7 +67,8 @@ public sealed class OkpSecretKeyTypeDescriptor(
     public bool SupportsPublicKeyExport => true;
 
     /// <inheritdoc />
-    public bool SupportsPublicKeyImport => true;
+    public IReadOnlyCollection<string> PublicKeyImportFormats { get; } =
+    [SecretKeyImportFormats.Jwk, SecretKeyImportFormats.Pem];
 
     /// <inheritdoc />
     public string? ValidateGeneration(SecretKeyGenerationParameters parameters) =>
@@ -117,8 +118,8 @@ public sealed class OkpSecretKeyTypeDescriptor(
     {
         var (curve, publicKey) = parameters.Format switch
         {
-            SecretKeyImportFormat.Jwk => ParseJwkPublicKey(parameters.KeyMaterial),
-            SecretKeyImportFormat.Pem => ParsePemPublicKey(parameters.KeyMaterial),
+            SecretKeyImportFormats.Jwk => ParseJwkPublicKey(parameters.KeyMaterial),
+            SecretKeyImportFormats.Pem => ParsePemPublicKey(parameters.KeyMaterial),
             _ => throw new ArgumentException(
                 $"The import format '{parameters.Format}' is not supported for OKP keys.",
                 nameof(parameters)

@@ -179,13 +179,13 @@ public class AdditionalParameterParserTests : BaseTests
     }
 
     [Fact]
-    public void UriParser_GetStringValues_ReturnsAbsoluteUri()
+    public void UriParser_GetStringValues_ReturnsTheUriAsWritten()
     {
         var parser = new OpenIdUriParser();
-        var uri = new Uri("https://example.com/path");
+        var uri = new Uri("myapp://callback");
 
         Assert.Equal(
-            uri.AbsoluteUri,
+            "myapp://callback",
             parser.GetStringValues(_environment, _allowMissingDescriptor, uri)
         );
     }

@@ -55,7 +55,11 @@ tenant's policy for that kind of token. A system resource server never holds key
 3. **The ID-token policy.** Signature algorithms come from `id_token_signing_alg_values_supported`, `typ` is `JWT`, and
    `iss` is the tenant's issuer. No decryption keys are named: an ID token is encrypted only to its client's public key,
    so an encrypted ID token is rejected. The lifetime is checked for an ID token, but not for an `id_token_hint`, which
-   OpenID Connect RP-Initiated Logout §2 allows to be expired.
+   OpenID Connect RP-Initiated Logout §2 allows to be expired. That section also lets a relying party re-encrypt the
+   signed ID token to the server, so a hint — and only a hint — is decrypted with the tenant's keys under the tenant's
+   `id_token_encryption_alg_values_supported` and `id_token_encryption_enc_values_supported`, with no compression; the
+   enclosed ID token's checks are unchanged. The tenant's JSON Web Key Set already publishes the public keys a relying
+   party encrypts to, as it does for request objects; a tenant without an encryption key accepts only a signed hint.
 4. **Token exchange picks the policy by subject-token type** (amends
    [ADR-0101](0101-oauth-token-exchange-rfc8693.md)):
    - `access_token` uses the access-token policy;
@@ -81,8 +85,8 @@ tenant's policy for that kind of token. A system resource server never holds key
   reader is not always the party the token was protected for (UserInfo reads tokens issued to any client). The tenant's
   lists are the union bound every issued token lies within.
 - **Decrypt ID tokens with the tenant's keys.** Rejected: an ID token is never encrypted to the server, so a decryption
-  key would only widen what the validator accepts. A client that re-encrypts its `id_token_hint` to the server is a
-  separate feature (backlog `F76`).
+  key would only widen what the validator accepts. Only an `id_token_hint`, which its client may re-encrypt to the
+  server, is decrypted.
 - **Strip keys from system resource servers when they are seeded.** Rejected: it is a data migration that a deploy can
   race, and the management API would still accept new keys. Ignoring them at issuance and refusing them at write time is
   enforced where the decision is made.
@@ -99,8 +103,8 @@ tenant's policy for that kind of token. A system resource server never holds key
   response or a logout token.
 - A token encrypted to a resource server's own key is read only where that resource server's keys are supplied — at
   introspection by that resource server. Token exchange cannot exchange it; it was meant for that resource server alone.
-- Moving management-API authentication to the control-plane tenant (backlog `F75`) passes that tenant's context to the
-  seam; the seam needs no change.
+- The management API authenticates against the control-plane tenant by passing that tenant's context to the seam,
+  which needed no change ([ADR-0191](0191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
 - **Breaking:** the new `IIssuedTokenValidator` and `AccessTokenValidationOptions`; `ResolvedResourceServer` requires
   `IsSystem` and `Scopes`; the management API returns `409` for a secret written to a system resource server; the
   retired `AccessTokenValidationError` log event's ID is not reused.

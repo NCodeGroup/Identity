@@ -44,8 +44,17 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
     {
         var mockCatalog = CreateStrictMock<ISecurityProfileCatalog>();
         mockCatalog
-            .Setup(x => x.Expand(It.IsAny<IReadOnlyCollection<Setting>>()))
-            .Returns((IReadOnlyCollection<Setting> settings) => settings)
+            .Setup(x =>
+                x.Expand(
+                    It.IsAny<IReadOnlyCollection<Setting>>(),
+                    OpenIdSettingScopes.Server,
+                    It.IsAny<IReadOnlyCollection<Setting>>()
+                )
+            )
+            .Returns(
+                (IReadOnlyCollection<Setting> settings, string _, IReadOnlyCollection<Setting> _) =>
+                    settings
+            )
             .Verifiable();
 
         return CreateDataSource(configuration, logger, mockCatalog.Object);
@@ -122,9 +131,28 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
     public void Collection_IsTheServerSettingsExpandedWithTheProfilesTheySelect()
     {
         IReadOnlyCollection<Setting> expanded = [];
+        IReadOnlyCollection<Setting>? capturedScope = null;
+        IReadOnlyCollection<Setting>? capturedBaseline = null;
         var mockCatalog = CreateStrictMock<ISecurityProfileCatalog>();
         mockCatalog
-            .Setup(x => x.Expand(It.IsAny<IReadOnlyCollection<Setting>>()))
+            .Setup(x =>
+                x.Expand(
+                    It.IsAny<IReadOnlyCollection<Setting>>(),
+                    OpenIdSettingScopes.Server,
+                    It.IsAny<IReadOnlyCollection<Setting>>()
+                )
+            )
+            .Callback(
+                (
+                    IReadOnlyCollection<Setting> scope,
+                    string _,
+                    IReadOnlyCollection<Setting> baseline
+                ) =>
+                {
+                    capturedScope = scope;
+                    capturedBaseline = baseline;
+                }
+            )
             .Returns(expanded)
             .Verifiable();
 
@@ -135,6 +163,9 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
         );
 
         Assert.Same(expanded, dataSource.Collection);
+        Assert.NotNull(capturedScope);
+        Assert.NotNull(capturedBaseline);
+        Assert.NotSame(capturedBaseline, capturedScope);
     }
 
     #endregion
@@ -156,7 +187,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
         configuration.Reload();
 
         Assert.NotSame(initialCollection, dataSource.Collection);
-        Assert.Equal(2, CreatedCollectionCount);
+        Assert.Equal(4, CreatedCollectionCount);
         Assert.True(changeToken.HasChanged);
     }
 
@@ -190,7 +221,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
         configuration.Reload();
 
         Assert.Same(initialCollection, dataSource.Collection);
-        Assert.Equal(1, CreatedCollectionCount);
+        Assert.Equal(2, CreatedCollectionCount);
         Assert.False(changeToken.HasChanged);
     }
 

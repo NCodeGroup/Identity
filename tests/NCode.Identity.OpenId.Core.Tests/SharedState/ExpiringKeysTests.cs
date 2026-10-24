@@ -32,12 +32,12 @@ public sealed class ExpiringKeysTests
     #region Create Tests
 
     [Fact]
-    public void Create_PrefixesThePurposeAndTenantToTheDigest()
+    public void Create_PrefixesThePurposeAndTheTenantHashTagToTheDigest()
     {
         var key = ExpiringKeys.Create("purpose", "tenant-1", "a", "b");
 
-        Assert.StartsWith("purpose:tenant-1:", key, StringComparison.Ordinal);
-        Assert.Equal("purpose:tenant-1:".Length + DigestLength, key.Length);
+        Assert.StartsWith("purpose:{tenant-1}:", key, StringComparison.Ordinal);
+        Assert.Equal("purpose:{tenant-1}:".Length + DigestLength, key.Length);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class ExpiringKeysTests
 
         var key = ExpiringKeys.Create("purpose", "tenant-1", Component);
 
-        Assert.Equal($"purpose:tenant-1:{Base64Url.Encode(SHA256.HashData(input))}", key);
+        Assert.Equal($"purpose:{{tenant-1}}:{Base64Url.Encode(SHA256.HashData(input))}", key);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public sealed class ExpiringKeysTests
     {
         var key = ExpiringKeys.Create("purpose", "tenant-1", new string('x', 100_000));
 
-        Assert.Equal("purpose:tenant-1:".Length + DigestLength, key.Length);
+        Assert.Equal("purpose:{tenant-1}:".Length + DigestLength, key.Length);
     }
 
     #endregion

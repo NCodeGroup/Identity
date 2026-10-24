@@ -47,6 +47,23 @@ public interface IOpenIdContextFactory
     );
 
     /// <summary>
+    /// Creates an <see cref="OpenIdContext"/> whose tenant is the control-plane tenant, which authenticates the management
+    /// API whatever tenant the request addresses, and publishes it on the request like
+    /// <see cref="CreateForRequestAsync"/>.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> associated with the current request.</param>
+    /// <param name="mediator">The <see cref="IMediator"/> instance that is scoped with the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly created
+    /// <see cref="OpenIdContext"/> instance.</returns>
+    ValueTask<OpenIdContext> CreateForControlPlaneAsync(
+        HttpContext httpContext,
+        IMediator mediator,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Creates an <see cref="OpenIdContext"/> whose tenant is the one addressed by an explicit identifier, decoupled
     /// from the request's own tenant-resolution strategy. Unlike <see cref="CreateForRequestAsync"/>, the returned
     /// context is <b>not</b> published on the request (it does not replace the ambient <see cref="OpenIdContext"/>); the
@@ -64,6 +81,25 @@ public interface IOpenIdContextFactory
         HttpContext httpContext,
         string tenantId,
         IMediator mediator,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Creates an <see cref="OpenIdContext"/> for the tenant addressed by its identifier, for work that runs outside any
+    /// request, such as a background pass. Its <see cref="HttpContext"/> carries only the services of
+    /// <paramref name="serviceProvider"/> (no endpoint, connection, or user) and its <see cref="IMediator"/> is resolved
+    /// from them. The caller owns the context and disposes it before the scope that <paramref name="serviceProvider"/>
+    /// belongs to. An unknown or disabled tenant fails as it does for <see cref="CreateForTenantAsync"/>.
+    /// </summary>
+    /// <param name="serviceProvider">The <see cref="IServiceProvider"/> whose services the context carries.</param>
+    /// <param name="tenantId">The identifier of the tenant the context is created for.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the
+    /// asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly created
+    /// <see cref="OpenIdContext"/> instance, which the caller owns and must dispose.</returns>
+    ValueTask<OpenIdContext> CreateForBackgroundAsync(
+        IServiceProvider serviceProvider,
+        string tenantId,
         CancellationToken cancellationToken
     );
 }

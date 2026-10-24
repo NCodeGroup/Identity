@@ -47,7 +47,13 @@
       Include="Microsoft.Extensions.DependencyInjection.Abstractions"
       Version="10.0.13"
     />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="10.11.0" />
+    <PackageVersion
+      Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore"
+      Version="10.0.13"
+    />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.13" />
@@ -90,6 +96,31 @@
     <PackageVersion Include="StackExchange.Redis" Version="3.4.5" />
   </ItemGroup>
 
+  <!-- Root key provider (NCode.Identity.Secrets.Persistence.AwsKms only). AWSSDK.SecurityToken is loaded by the AWS SDK
+       at runtime to exchange a web identity token for credentials. -->
+  <ItemGroup>
+    <PackageVersion Include="AWSSDK.KeyManagementService" Version="4.0.100.20" />
+    <PackageVersion Include="AWSSDK.SecurityToken" Version="4.0.101.6" />
+  </ItemGroup>
+
+  <!-- Root key provider (NCode.Identity.Secrets.Persistence.AzureKeyVault only). -->
+  <ItemGroup>
+    <PackageVersion Include="Azure.Identity" Version="1.21.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.10.2" />
+  </ItemGroup>
+
+  <!-- Root key provider (NCode.Identity.Secrets.Persistence.GoogleCloudKms only). -->
+  <ItemGroup>
+    <PackageVersion Include="Google.Cloud.Kms.V1" Version="3.27.0" />
+  </ItemGroup>
+
+  <!-- Metrics export (NCode.Identity.Server only; the library packages depend only on System.Diagnostics.Metrics).
+       See ADR-0197. -->
+  <ItemGroup>
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.20.1" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.1" />
+  </ItemGroup>
+
   <!-- Host-only helpers -->
   <ItemGroup>
     <PackageVersion Include="Humanizer.Core" Version="3.0.10" />
@@ -116,6 +147,7 @@
   <!-- Test stack -->
   <ItemGroup>
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.13" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />

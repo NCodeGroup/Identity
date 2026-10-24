@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { GLOBAL_SCOPE, isGlobalScope, scopeApiPrefix, scopeKey, tenantScope } from './scope.js';
+import {
+  GLOBAL_SCOPE,
+  isGlobalScope,
+  LIST_TAG,
+  scopeApiPrefix,
+  scopeKey,
+  scopeTagId,
+  tenantScope,
+} from './scope.js';
 
 describe('tenantScope', () => {
   it('builds a tenant scope', () => {
@@ -42,5 +50,28 @@ describe('scopeApiPrefix', () => {
 
   it('url-encodes the tenant id to prevent path escape', () => {
     expect(scopeApiPrefix(tenantScope('a/b'))).toBe('api/tenants/a%2Fb');
+  });
+});
+
+describe('scopeTagId', () => {
+  it('prefixes a global tag with the global scope', () => {
+    expect(scopeTagId(GLOBAL_SCOPE, LIST_TAG)).toBe('global:LIST');
+  });
+
+  it('prefixes a tenant tag with its tenant', () => {
+    expect(scopeTagId(tenantScope('acme'), 'client:web')).toBe('tenant:acme:client:web');
+  });
+
+  it('gives the same resource id a different tag in every scope', () => {
+    const ids = [GLOBAL_SCOPE, tenantScope('acme'), tenantScope('other')].map((scope) =>
+      scopeTagId(scope, 'web'),
+    );
+
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it('url-encodes the tenant id so it cannot run into the resource id', () => {
+    expect(scopeTagId(tenantScope('a:b'), 'c')).toBe('tenant:a%3Ab:c');
+    expect(scopeTagId(tenantScope('a:b'), 'c')).not.toBe(scopeTagId(tenantScope('a'), 'b:c'));
   });
 });

@@ -34,6 +34,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
@@ -57,9 +58,10 @@ public sealed class DefaultOpenIdTenantFactoryTests
             mocks.Create<IReadOnlySettingCollectionProviderFactory>().Object,
             mocks.Create<ISettingSerializer>().Object,
             mocks.Create<ISecretSerializer>().Object,
+            mocks.Create<ISecretProtectorProvider>().Object,
             mocks.Create<ISecretKeyCollectionProviderFactory>().Object,
             mocks.Create<ICollectionDataSourceFactory>().Object,
-            mocks.Create<ISecurityProfileCatalog>().Object
+            mocks.Create<IEffectiveSettingsResolver>().Object
         );
 
     #region CreateTenantForRequestAsync Tests
@@ -150,6 +152,103 @@ public sealed class DefaultOpenIdTenantFactoryTests
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await factory.CreateTenantForRequestAsync(
+                httpContext,
+                Mock.Of<OpenIdEnvironment>(),
+                Mock.Of<OpenIdServer>(),
+                Mock.Of<IPropertyBag>(),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Same(seeded, exception);
+        mocks.Verify();
+    }
+
+    #endregion
+
+    #region CreateControlPlaneTenantAsync Tests
+
+    [Fact]
+    public async Task CreateControlPlaneTenantAsync_WhenCached_ReturnsTheCachedTenantWithoutReadingTheStore()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+
+        var tenantResolver = mocks.Create<ITenantResolver>();
+        var tenantCache = mocks.Create<IOpenIdTenantCache>();
+
+        // The strict resolver has no ResolveControlPlaneTenantAsync setup, so a store read fails the test.
+        tenantResolver.Setup(x => x.GetControlPlaneTenantId()).Returns("root").Verifiable();
+
+        var cachedTenant = Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == "root");
+        await using var cachedLease = cachedTenant.AsSharedReference();
+
+        tenantCache
+            .Setup(x =>
+                x.TryGetAsync("root", It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(cachedLease.AddReference())
+            .Verifiable();
+
+        var factory = CreateFactory(mocks, tenantResolver.Object, tenantCache.Object);
+
+        await using var result = await factory.CreateControlPlaneTenantAsync(
+            new DefaultHttpContext(),
+            Mock.Of<OpenIdEnvironment>(),
+            Mock.Of<OpenIdServer>(),
+            Mock.Of<IPropertyBag>(),
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsActive);
+        Assert.Equal("root", result.Value.TenantId);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task CreateControlPlaneTenantAsync_WhenCacheMisses_SeedsTheControlPlaneTenant()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+
+        var tenantResolver = mocks.Create<ITenantResolver>();
+        var tenantCache = mocks.Create<IOpenIdTenantCache>();
+        var provisioner = mocks.Create<ITenantProvisioner>();
+
+        tenantResolver.Setup(x => x.GetControlPlaneTenantId()).Returns("root").Verifiable();
+        tenantResolver
+            .Setup(x =>
+                x.ResolveControlPlaneTenantAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreatePersistedTenant("https://op.example/root", tenantId: "root"))
+            .Verifiable();
+        tenantCache
+            .Setup(x =>
+                x.TryGetAsync("root", It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(default(AsyncSharedReferenceLease<OpenIdTenant>))
+            .Verifiable();
+
+        // The seed is the point of the test; failing it stops the materialization before the collaborators this test
+        // does not stub.
+        var seeded = new InvalidOperationException("seeded");
+        provisioner
+            .Setup(x => x.SeedAsync("root", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(seeded)
+            .Verifiable();
+
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = new ServiceCollection()
+                .AddSingleton(provisioner.Object)
+                .BuildServiceProvider(),
+        };
+
+        var factory = CreateFactory(mocks, tenantResolver.Object, tenantCache.Object);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await factory.CreateControlPlaneTenantAsync(
                 httpContext,
                 Mock.Of<OpenIdEnvironment>(),
                 Mock.Of<OpenIdServer>(),
@@ -293,25 +392,73 @@ public sealed class DefaultOpenIdTenantFactoryTests
     #region GetTenantSecretsAsync Tests
 
     [Fact]
-    public async Task GetTenantSecretsAsync_WhenAKeyCannotBeUnprotected_FailsNamingTheTenantAndTheKeyRing()
+    public async Task GetTenantSecretsAsync_WhenAKeyCannotBeUnprotected_FailsNamingTheTenantAndTheMasterKey()
     {
         var mocks = new MockRepository(MockBehavior.Strict);
         var persistedTenant = CreatePersistedTenant("https://op.example/acme");
-        var keyRingFailure = new CryptographicException("The key was not found in the key ring.");
+        var protector = mocks.Create<ISecretProtector>().Object;
+        var secretProtectorProvider = mocks.Create<ISecretProtectorProvider>();
+        secretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant("acme"),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+        var masterKeyFailure = new CryptographicException("The master key was not found.");
         var secretSerializer = mocks.Create<ISecretSerializer>();
         secretSerializer
-            .Setup(x => x.DeserializeSecrets(persistedTenant.Secrets.Value))
-            .Throws(keyRingFailure)
+            .Setup(x => x.DeserializeSecrets(protector, persistedTenant.Secrets.Value))
+            .Throws(masterKeyFailure)
             .Verifiable();
-        var factory = new TestableTenantFactory(mocks, secretSerializer.Object);
+        var factory = new TestableTenantFactory(
+            mocks,
+            secretSerializer.Object,
+            secretProtectorProvider.Object
+        );
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await factory.InvokeGetTenantSecretsAsync(persistedTenant)
         );
 
         Assert.Contains("tenant with id 'acme'", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("Data Protection key ring", exception.Message, StringComparison.Ordinal);
-        Assert.Same(keyRingFailure, exception.InnerException);
+        Assert.Contains("master key", exception.Message, StringComparison.Ordinal);
+        Assert.Same(masterKeyFailure, exception.InnerException);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task GetTenantSecretsAsync_WhenTheMasterKeyCannotBeLoaded_FailsNamingTheTenantAndTheMasterKey()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var persistedTenant = CreatePersistedTenant("https://op.example/acme");
+        var masterKeyFailure = new CryptographicException("The master key was not found.");
+        var secretProtectorProvider = mocks.Create<ISecretProtectorProvider>();
+        secretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant("acme"),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(masterKeyFailure)
+            .Verifiable();
+        var factory = new TestableTenantFactory(
+            mocks,
+            secretProtectorProvider: secretProtectorProvider.Object
+        );
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await factory.InvokeGetTenantSecretsAsync(persistedTenant)
+        );
+
+        Assert.Contains("tenant with id 'acme'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("master key", exception.Message, StringComparison.Ordinal);
+        Assert.Same(masterKeyFailure, exception.InnerException);
         mocks.Verify();
     }
 
@@ -328,23 +475,26 @@ public sealed class DefaultOpenIdTenantFactoryTests
         return httpContext;
     }
 
-    private static PersistedTenant CreatePersistedTenant(string? issuer) =>
+    private static PersistedTenant CreatePersistedTenant(
+        string? issuer,
+        string tenantId = "acme"
+    ) =>
         new()
         {
-            TenantId = "acme",
+            TenantId = tenantId,
             Issuer = issuer,
             ConcurrencyToken = "token",
             IsDisabled = false,
-            DisplayName = "acme",
+            DisplayName = tenantId,
             Settings = new PersistedTenantSettings
             {
-                TenantId = "acme",
+                TenantId = tenantId,
                 ConcurrencyToken = "token",
                 Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
             },
             Secrets = new PersistedTenantSecrets
             {
-                TenantId = "acme",
+                TenantId = tenantId,
                 ConcurrencyToken = "token",
                 Value = [],
             },
@@ -352,7 +502,8 @@ public sealed class DefaultOpenIdTenantFactoryTests
 
     private sealed class TestableTenantFactory(
         MockRepository mocks,
-        ISecretSerializer? secretSerializer = null
+        ISecretSerializer? secretSerializer = null,
+        ISecretProtectorProvider? secretProtectorProvider = null
     )
         : DefaultOpenIdTenantFactory(
             mocks.Create<ITenantResolver>().Object,
@@ -362,9 +513,10 @@ public sealed class DefaultOpenIdTenantFactoryTests
             mocks.Create<IReadOnlySettingCollectionProviderFactory>().Object,
             mocks.Create<ISettingSerializer>().Object,
             secretSerializer ?? mocks.Create<ISecretSerializer>().Object,
+            secretProtectorProvider ?? mocks.Create<ISecretProtectorProvider>().Object,
             mocks.Create<ISecretKeyCollectionProviderFactory>().Object,
             mocks.Create<ICollectionDataSourceFactory>().Object,
-            mocks.Create<ISecurityProfileCatalog>().Object
+            mocks.Create<IEffectiveSettingsResolver>().Object
         )
     {
         public ValueTask<

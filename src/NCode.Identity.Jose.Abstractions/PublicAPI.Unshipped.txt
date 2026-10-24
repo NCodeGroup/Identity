@@ -274,16 +274,6 @@ NCode.Identity.Jose.Exceptions.JoseInvalidSignatureException
 NCode.Identity.Jose.Exceptions.JoseInvalidSignatureException.JoseInvalidSignatureException() -> void
 NCode.Identity.Jose.Exceptions.JoseInvalidSignatureException.JoseInvalidSignatureException(string! message) -> void
 NCode.Identity.Jose.Exceptions.JoseInvalidSignatureException.JoseInvalidSignatureException(string! message, System.Exception! inner) -> void
-NCode.Identity.Jose.Extensions.DateTimeExtensions
-NCode.Identity.Jose.Extensions.DateTimeExtensions.extension(System.DateTime)
-NCode.Identity.Jose.Extensions.DateTimeExtensions.extension(System.DateTime).WithPrecisionInSeconds() -> System.DateTime
-NCode.Identity.Jose.Extensions.DateTimeOffsetExtensions
-NCode.Identity.Jose.Extensions.DateTimeOffsetExtensions.extension(System.DateTimeOffset)
-NCode.Identity.Jose.Extensions.DateTimeOffsetExtensions.extension(System.DateTimeOffset).WithPrecisionInSeconds() -> System.DateTimeOffset
-NCode.Identity.Jose.Extensions.TimeProviderExtensions
-NCode.Identity.Jose.Extensions.TimeProviderExtensions.extension(System.TimeProvider!)
-NCode.Identity.Jose.Extensions.TimeProviderExtensions.extension(System.TimeProvider!).GetTimestampWithPrecisionInSeconds() -> long
-NCode.Identity.Jose.Extensions.TimeProviderExtensions.extension(System.TimeProvider!).GetUtcNowWithPrecisionInSeconds() -> System.DateTimeOffset
 NCode.Identity.Jose.IJoseSerializer
 NCode.Identity.Jose.IJoseSerializer.CreateEncoder(NCode.Identity.Jose.JoseEncryptionOptions! encryptionOptions) -> NCode.Identity.Jose.JoseEncoder!
 NCode.Identity.Jose.IJoseSerializer.CreateEncoder(NCode.Identity.Jose.JoseSigningOptions! signingOptions) -> NCode.Identity.Jose.JoseEncoder!
@@ -391,3 +381,47 @@ override NCode.Identity.Jose.JsonJwt.ToString() -> string!
 static NCode.Identity.Jose.JoseTokenTypes.AreSame(string? left, string? right) -> bool
 static NCode.Identity.Jose.JoseTokenTypes.Normalize(string! tokenType) -> string!
 virtual NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.SupportsKeyWrapping.get -> bool
+const NCode.Identity.Jose.JoseClaimNames.Payload.Ath = "ath" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.Htm = "htm" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.Htu = "htu" -> string!
+NCode.Identity.Jose.DPoP.DPoPProof
+NCode.Identity.Jose.DPoP.DPoPProof.Algorithm.get -> string!
+NCode.Identity.Jose.DPoP.DPoPProof.Algorithm.init -> void
+NCode.Identity.Jose.DPoP.DPoPProof.DPoPProof() -> void
+NCode.Identity.Jose.DPoP.DPoPProof.IssuedAt.get -> System.DateTimeOffset
+NCode.Identity.Jose.DPoP.DPoPProof.IssuedAt.init -> void
+NCode.Identity.Jose.DPoP.DPoPProof.Jti.get -> string!
+NCode.Identity.Jose.DPoP.DPoPProof.Jti.init -> void
+NCode.Identity.Jose.DPoP.DPoPProof.JwkThumbprint.get -> string!
+NCode.Identity.Jose.DPoP.DPoPProof.JwkThumbprint.init -> void
+NCode.Identity.Jose.DPoP.DPoPProof.Nonce.get -> string?
+NCode.Identity.Jose.DPoP.DPoPProof.Nonce.init -> void
+NCode.Identity.Jose.DPoP.DPoPProof.PublicKey.get -> NCode.Identity.Jwk.JsonWebKey!
+NCode.Identity.Jose.DPoP.DPoPProof.PublicKey.init -> void
+NCode.Identity.Jose.DPoP.DPoPProofCreationOptions
+NCode.Identity.Jose.DPoP.DPoPProofCreationOptions.AccessToken.get -> string?
+NCode.Identity.Jose.DPoP.DPoPProofCreationOptions.AccessToken.init -> void
+NCode.Identity.Jose.DPoP.DPoPProofCreationOptions.DPoPProofCreationOptions() -> void
+NCode.Identity.Jose.DPoP.DPoPProofCreationOptions.HttpMethod.get -> string!
+NCode.Identity.Jose.DPoP.DPoPProofCreationOptions.HttpMethod.init -> void
+NCode.Identity.Jose.DPoP.DPoPProofCreationOptions.HttpUri.get -> string!
+NCode.Identity.Jose.DPoP.DPoPProofCreationOptions.HttpUri.init -> void
+NCode.Identity.Jose.DPoP.DPoPProofCreationOptions.Nonce.get -> string?
+NCode.Identity.Jose.DPoP.DPoPProofCreationOptions.Nonce.init -> void
+NCode.Identity.Jose.DPoP.DPoPProofCreationOptions.SigningCredentials.get -> NCode.Identity.Jose.Credentials.JoseSigningCredentials!
+NCode.Identity.Jose.DPoP.DPoPProofCreationOptions.SigningCredentials.init -> void
+NCode.Identity.Jose.DPoP.DPoPProofValidationParameters
+NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.AccessToken.get -> string?
+NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.AccessToken.init -> void
+NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.AllowedAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.AllowedAlgorithms.init -> void
+NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.DPoPProofValidationParameters() -> void
+NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.HttpMethod.get -> string!
+NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.HttpMethod.init -> void
+NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.HttpUri.get -> string!
+NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.HttpUri.init -> void
+NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.Lifetime.get -> System.TimeSpan
+NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.Lifetime.init -> void
+NCode.Identity.Jose.DPoP.IDPoPProofService
+NCode.Identity.Jose.DPoP.IDPoPProofService.CreateProof(NCode.Identity.Jose.DPoP.DPoPProofCreationOptions! options) -> string!
+NCode.Identity.Jose.DPoP.IDPoPProofService.TryValidateProof(string! proofJwt, NCode.Identity.Jose.DPoP.DPoPProofValidationParameters! parameters, out NCode.Identity.Jose.DPoP.DPoPProof? proof, out string? error) -> bool

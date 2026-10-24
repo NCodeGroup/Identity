@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
@@ -82,8 +83,8 @@ internal class DefaultSubjectIdentifierService(ICryptoService cryptoService)
 
         return CryptoService.HashValue(
             composed,
-            HashAlgorithmType.Sha256,
-            BinaryEncodingType.Base64Url
+            HashAlgorithmName.SHA256,
+            BinaryEncodings.Base64Url
         );
     }
 

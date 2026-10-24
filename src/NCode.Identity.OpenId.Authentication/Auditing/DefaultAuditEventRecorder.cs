@@ -20,7 +20,6 @@ using System.Diagnostics;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
@@ -137,6 +136,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
     public ValueTask RecordClientAuthenticationFailedAsync(
         OpenIdContext openIdContext,
         string clientId,
+        string authenticationMethod,
         string? reason,
         CancellationToken cancellationToken
     )
@@ -149,6 +149,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             TenantId = openIdContext.Tenant.TenantId,
             Source = openIdContext.EndpointName,
             ClientId = clientId,
+            AuthenticationMethod = authenticationMethod,
             Outcome = AuditOutcome.Failure,
             Reason = reason,
         };
@@ -224,6 +225,29 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
     }
 
     /// <inheritdoc />
+    public ValueTask RecordRefreshTokenRetryAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        string? subjectId,
+        CancellationToken cancellationToken
+    )
+    {
+        var auditEvent = new RefreshTokenRetryAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = TimeProvider.GetUtcNow(),
+            CorrelationId = Activity.Current?.Id,
+            TenantId = openIdContext.Tenant.TenantId,
+            Source = openIdContext.EndpointName,
+            SubjectId = subjectId,
+            ClientId = openIdClient.ClientId,
+            Outcome = AuditOutcome.Success,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public ValueTask RecordOpenIdErrorAsync(
         OpenIdContext openIdContext,
         IOpenIdError error,
@@ -281,7 +305,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
     /// <inheritdoc />
     public ValueTask RecordSessionTerminatedAsync(
         OpenIdContext openIdContext,
-        SessionTerminationReason reason,
+        string reason,
         string? subjectId,
         string? sessionId,
         CancellationToken cancellationToken
@@ -296,7 +320,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
             Source = openIdContext.EndpointName,
             SubjectId = subjectId,
             Outcome = AuditOutcome.Success,
-            Reason = reason.ToString(),
+            Reason = reason,
             SessionId = sessionId,
             TerminationReason = reason,
         };

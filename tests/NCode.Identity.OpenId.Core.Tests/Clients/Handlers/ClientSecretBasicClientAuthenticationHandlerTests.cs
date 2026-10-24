@@ -26,6 +26,9 @@ namespace NCode.Identity.OpenId.Core.Tests.Clients.Handlers;
 
 public class ClientSecretBasicClientAuthenticationHandlerTests : ClientAuthenticationHandlerTestBase
 {
+    protected override string AuthenticationMethod =>
+        OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic;
+
     #region Scaffolding
 
     private ClientSecretBasicClientAuthenticationHandler CreateHandler() =>

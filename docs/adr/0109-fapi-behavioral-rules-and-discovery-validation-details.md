@@ -111,7 +111,21 @@ redirect status to the spec-required 303 unconditionally (it is correct for ever
   setting name/key.
 - The latent bug where `clock_skew` was ignored by JWT validation is fixed, so operators who configured a non-default
   `clock_skew` now have it honored for client assertions and request objects.
-- Not implemented here (backlog `F16` follow-up): an explicit "no CORS on the authorization endpoint" guard
-  (FAPI §5.2.3). The repository ships only a development-only, explicit-origin CORS policy that is not applied to the
-  authorization endpoint in production, so there is no current exposure; a defense-in-depth guard that asserts no CORS
-  policy can ever attach to the front-channel endpoints remains a low-priority hardening item.
+- Amendment (2026-10-21): no CORS on the front-channel endpoints (FAPI 2.0 Security Profile §5.3.2.1). The repository
+  ships only a development-only, explicit-origin CORS policy, so a production host had no exposure; in Development,
+  though, `UseDeveloperCors` applied that policy to every endpoint, and `/oauth2/authorize`, `/oauth2/continue`,
+  `/oauth2/end_session`, and the interactive surface answered the local Vite origins with `Access-Control-Allow-Origin`.
+  Those endpoints now carry `IOpenIdEndpointFrontChannelMetadata` (`WithOpenIdFrontChannel()`), and `UseDeveloperCors`
+  branches the CORS middleware so it runs only for an endpoint without it. A host that adds its own CORS middleware
+  honors the same metadata. The marker is deliberately not `DisableCorsAttribute`: that is CORS metadata, and the
+  endpoint middleware throws for an endpoint that carries it when no CORS middleware ran — every request in a
+  production host that adds none (caught in review of a first attempt). The metadata is open: any endpoint, including
+  one a consumer maps, opts in the same way. A CORS preflight needs one more step: routing sends a preflight only to
+  an endpoint that accepts one and otherwise selects its own 405 endpoint, which carries no metadata, so the CORS
+  middleware answered it. `WithOpenIdFrontChannel()` therefore also marks the endpoint's `HttpMethodMetadata` as
+  accepting a preflight and wraps its request delegate to refuse one with `405` and an `Allow` header, as routing did,
+  in every host. A preflight for a method the path does not map then selects no endpoint at all (routing adds no 405
+  endpoint for a preflight, so production now answers it `404`), and `UseDeveloperCors` applies no policy to a
+  preflight without an endpoint either. `FrontChannelCorsTests` asserts the front-channel endpoints answer an allowed
+  origin's request and preflight (mapped or unmapped method) with no CORS headers, discovery and the token endpoint's
+  preflight still get them, and no front-channel endpoint carries CORS metadata.

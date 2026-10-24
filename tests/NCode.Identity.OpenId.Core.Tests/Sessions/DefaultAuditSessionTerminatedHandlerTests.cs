@@ -41,14 +41,14 @@ public class DefaultAuditSessionTerminatedHandlerTests : BaseTests
         var context = Mock.Of<OpenIdContext>();
         var command = new OnSessionTerminatedCommand(
             context,
-            new SessionTermination(SessionTerminationReason.IdleTimeout, "subject-1", "sid-1", [])
+            new SessionTermination(SessionTerminationReasons.IdleTimeout, "subject-1", "sid-1", [])
         );
 
         MockAuditEventRecorder
             .Setup(x =>
                 x.RecordSessionTerminatedAsync(
                     context,
-                    SessionTerminationReason.IdleTimeout,
+                    SessionTerminationReasons.IdleTimeout,
                     "subject-1",
                     "sid-1",
                     It.IsAny<CancellationToken>()

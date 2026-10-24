@@ -148,7 +148,7 @@ public interface IAuthorizationRequest
     /// <summary>
     /// Gets the <c>redirect_uri</c> parameter.
     /// </summary>
-    Uri RedirectUri { get; }
+    string RedirectUri { get; }
 
     /// <summary>
     /// Gets the <c>resource</c> parameter (RFC 8707 Resource Indicators) identifying the resource servers (audiences)
@@ -157,9 +157,10 @@ public interface IAuthorizationRequest
     IReadOnlyList<string> Resources { get; }
 
     /// <summary>
-    /// Gets the <c>response_mode</c> parameter.
+    /// Gets the requested <c>response_mode</c> parameter, or <c>null</c> when none is requested. The effective
+    /// response mode is the handler of the request's <c>AuthorizationResponseDelivery</c>.
     /// </summary>
-    string ResponseMode { get; }
+    string? ResponseMode { get; }
 
     /// <summary>
     /// Gets the <c>response_type</c> parameter: the response-type names of the requested response type, whose order

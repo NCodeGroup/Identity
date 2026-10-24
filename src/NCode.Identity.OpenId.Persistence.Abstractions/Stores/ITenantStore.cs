@@ -27,6 +27,7 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 /// <summary>
 /// Provides an abstraction for a store which persists <see cref="PersistedTenant"/> instances.
 /// </summary>
+// See ADR-0169 (a tenant's keys and its system resources are part of the tenant and are removed with it).
 [PublicAPI]
 public interface ITenantStore : IStore<PersistedTenant>
 {
@@ -39,6 +40,23 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
     /// <see cref="PersistedTenant"/> instances and the cursor for the next page.</returns>
     ValueTask<PagedResult<PersistedTenant>> GetPageAsync(
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Gets a single page of every tenant's <see cref="PersistedTenantSettings"/> document ordered by the tenant's
+    /// identifier, using keyset (cursor) pagination.
+    /// </summary>
+    /// <remarks>
+    /// The settings are read without the tenant's secrets and without change tracking, for a pass over every tenant's
+    /// settings.
+    /// </remarks>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
+    /// <see cref="PersistedTenantSettings"/> instances and the cursor for the next page.</returns>
+    ValueTask<PagedResult<PersistedTenantSettings>> GetSettingsPageAsync(
         PageRequest page,
         CancellationToken cancellationToken
     );
@@ -72,18 +90,36 @@ public interface ITenantStore : IStore<PersistedTenant>
     );
 
     /// <summary>
-    /// Attempts to get a <see cref="PersistedTenant"/> instance from the store whose issuer has the specified host.
+    /// Attempts to get a <see cref="PersistedTenant"/> instance from the store whose issuer or mutual-TLS endpoint-alias
+    /// authority has the specified host.
     /// </summary>
     /// <remarks>
-    /// The host is derived from the tenant's issuer rather than stored independently, so the value routed on cannot
-    /// drift from the identity published to clients. More than one tenant may share a host (path-based tenants do), so
-    /// a host-based deployment is responsible for keeping its issuer hosts distinct.
+    /// Both hosts are derived from the tenant's addresses rather than stored independently, so the value routed on cannot
+    /// drift from the identity and aliases published to clients. More than one tenant may share a host (path-based
+    /// tenants do), so a host-based deployment is responsible for keeping its hosts distinct; when more than one tenant
+    /// holds the host, none is returned, so an ambiguous host never routes to an arbitrary tenant.
     /// </remarks>
-    /// <param name="host">The issuer host of the <see cref="PersistedTenant"/> instance to retrieve.</param>
+    /// <param name="host">The issuer or alias host of the <see cref="PersistedTenant"/> instance to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="PersistedTenant"/> instance matching the specified entity if it exists.</returns>
-    ValueTask<PersistedTenant?> GetOrDefaultByIssuerHostAsync(
+    /// <see cref="PersistedTenant"/> instance that alone holds the host, if any.</returns>
+    ValueTask<PersistedTenant?> GetOrDefaultByHostAsync(
+        string host,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Gets the identifiers of every tenant whose issuer or mutual-TLS endpoint-alias authority has the specified host.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="GetOrDefaultByHostAsync"/> routes, so it returns no tenant when a host is ambiguous. This method reports
+    /// every holder instead, so that validating a tenant's address still sees a conflict that is already stored.
+    /// </remarks>
+    /// <param name="host">The issuer or alias host to look up.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the identifiers of the
+    /// tenants that hold the host.</returns>
+    ValueTask<IReadOnlyList<string>> ListTenantIdsByHostAsync(
         string host,
         CancellationToken cancellationToken
     );
@@ -204,23 +240,56 @@ public interface ITenantStore : IStore<PersistedTenant>
     );
 
     /// <summary>
-    /// Removes an OpenId Tenant from the store. The removal is rejected while the tenant still has dependent
-    /// child resources (any clients or secrets); those dependents must be removed first.
+    /// Removes an OpenId Tenant and everything it owns from the store. The removal is rejected while the tenant still
+    /// has clients or resource servers created in it, which must be removed first.
     /// </summary>
+    /// <remarks>
+    /// Everything else is removed in the same unit of work: the tenant's secrets, its system resource servers with
+    /// their scopes and secrets, its role assignments, and the data of its end users: their local accounts, federated
+    /// principals and identities, sessions, and other grants. Its usage is kept so its last days can still be billed.
+    /// Removing a tenant retires its identifier and its issuer in the same unit of work, so neither is reissued.
+    /// Changing a tenant's issuer through <c>UpdateAsync</c> likewise retires the issuer it gave up.
+    /// </remarks>
     /// <param name="tenantId">The identifier of the OpenId Tenant to remove.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
     /// if the tenant was removed; otherwise <c>false</c> when no matching tenant existed.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the tenant still has dependent child resources.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the tenant still has clients or resource servers.</exception>
+    // See ADR-0189 and ADR-0212.
     ValueTask<bool> RemoveAsync(string tenantId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Determines whether an OpenId Tenant still has dependent child resources (any clients or secrets) that
-    /// would block its removal.
+    /// Determines whether an OpenId Tenant still has dependents (its clients, or the resource servers created in it)
+    /// that would block its removal. Everything else the tenant owns, its end users' data included, is part of the
+    /// tenant and is not a dependent.
     /// </summary>
     /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
-    /// when the tenant has dependent child resources; otherwise <c>false</c> (including when no such tenant exists).</returns>
+    /// when the tenant has dependents; otherwise <c>false</c> (including when no such tenant exists).</returns>
     ValueTask<bool> HasDependentsAsync(string tenantId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Determines whether the specified tenant identifier belonged to a deleted tenant. A tenant identifier is never
+    /// reissued (ADR-0189).
+    /// </summary>
+    /// <param name="tenantId">The tenant identifier to look up.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when a
+    /// deleted tenant had the identifier; otherwise <c>false</c>.</returns>
+    ValueTask<bool> IsTenantIdRetiredAsync(string tenantId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the identifier of the tenant that gave up the specified issuer, by changing its issuer or by being deleted.
+    /// Relying parties that trusted the issuer would trust any tenant that took it, so only that tenant can take it back
+    /// (ADR-0189).
+    /// </summary>
+    /// <param name="issuer">The issuer to look up.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the identifier of
+    /// the tenant that held the issuer, or <c>null</c> when no tenant has given it up.</returns>
+    ValueTask<string?> GetRetiredIssuerHolderOrDefaultAsync(
+        string issuer,
+        CancellationToken cancellationToken
+    );
 }

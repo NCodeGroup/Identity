@@ -15,6 +15,8 @@ export type TenantResource = {
   readonly tenantId: string;
   readonly concurrencyToken: string;
   readonly issuer: string | null;
+  /** The https origin of the tenant's RFC 8705 mutual-TLS endpoint aliases, or `null` when it has none. */
+  readonly mtlsEndpointAliasAuthority: string | null;
   readonly isDisabled: boolean;
   readonly displayName: string;
 };
@@ -22,11 +24,13 @@ export type TenantResource = {
 /**
  * Mirror of `CreateTenantRequest`. The tenant id is chosen by its creator and cannot change: 1 to 63
  * lowercase letters, digits, or hyphens that starts and ends with a letter or digit. `settings` is
- * the initial JSON settings object (empty by default; settings have their own PATCH endpoint).
+ * the initial JSON settings object (empty by default; settings have their own PATCH endpoint). A `null`
+ * issuer or mTLS endpoint alias takes the one the server's tenant strategy derives for the tenant.
  */
 export type CreateTenantRequest = {
   readonly tenantId: string;
   readonly issuer: string | null;
+  readonly mtlsEndpointAliasAuthority: string | null;
   readonly displayName: string;
   readonly isDisabled: boolean;
   readonly settings: Readonly<Record<string, unknown>>;
@@ -35,10 +39,12 @@ export type CreateTenantRequest = {
 /**
  * The mutable tenant metadata a JSON Patch may modify (mirror of `UpdateTenantRequest`). The store
  * turns this into a `replace`-only JSON Patch document; keys match the server's wire property names.
- * A `null` issuer restores the one the server's tenant strategy derives for the tenant.
+ * A `null` issuer or mTLS endpoint alias restores the one the server's tenant strategy derives for the
+ * tenant.
  */
 export type UpdateTenantFields = {
   readonly issuer: string | null;
+  readonly mtlsEndpointAliasAuthority: string | null;
   readonly displayName: string;
   readonly isDisabled: boolean;
 };
@@ -51,8 +57,8 @@ export type TenantAddressFailure = {
 };
 
 /**
- * Mirror of `TenantAddressResource`: the preview of a tenant's address (its id and issuer) before it
- * is created or its issuer changes, judged by the same rules as the write itself.
+ * Mirror of `TenantAddressResource`: the preview of a tenant's address (its id, issuer, and mTLS
+ * endpoint alias) before it is created or either changes, judged by the same rules as the write itself.
  */
 export type TenantAddressResource = {
   readonly tenantId: string;
@@ -60,6 +66,10 @@ export type TenantAddressResource = {
   readonly issuer: string | null;
   /** Whether {@link TenantAddressResource.issuer} is the one the tenant strategy derives. */
   readonly isIssuerDerived: boolean;
+  /** The proposed mTLS endpoint alias, else the tenant's current one, else the one its strategy derives; or `null`. */
+  readonly mtlsEndpointAliasAuthority: string | null;
+  /** Whether {@link TenantAddressResource.mtlsEndpointAliasAuthority} is the one the tenant strategy derives. */
+  readonly isMtlsEndpointAliasAuthorityDerived: boolean;
   /** Whether a tenant with the id already exists, so a new tenant cannot take it. */
   readonly exists: boolean;
   readonly failures: readonly TenantAddressFailure[];
@@ -215,6 +225,8 @@ export type GrantRevocationResult = {
  */
 export type SecretResource = {
   readonly secretId: string;
+  /** The key identifier (`kid`) the key is selected by: the one it was imported with, or `secretId` when none. */
+  readonly keyId: string;
   readonly concurrencyToken: string;
   readonly use: string | null;
   readonly algorithm: string | null;
@@ -243,6 +255,14 @@ export type CreateSecretRequest = {
   readonly curve?: string | null;
   readonly use: string | null;
   readonly algorithm: string | null;
+  readonly expiresWhen: string;
+};
+
+/**
+ * Mirror of `RotateSecretRequest`. The server generates a replacement of the rotated client secret's type, size,
+ * use, and algorithm; `expiresWhen` is the replacement's ISO-8601 expiry. See ADR-0183.
+ */
+export type RotateSecretRequest = {
   readonly expiresWhen: string;
 };
 
@@ -334,26 +354,51 @@ export type EffectiveSettingsResource = {
 };
 
 /**
+ * Mirror of `TenantUsageEntry` — one row of the durable usage ledger (ADR-0199): a tenant's `count` of a `meter` (an
+ * open vocabulary, e.g. `requests` or `token_requests`) on a UTC calendar `day` (`YYYY-MM-DD` on the wire).
+ */
+export type TenantUsageEntry = {
+  readonly day: string;
+  readonly meter: string;
+  readonly count: number;
+};
+
+/**
+ * Mirror of `TenantUsageResource` — a tenant's usage ledger for the inclusive range of UTC days `from`..`to`
+ * (`YYYY-MM-DD`), ordered by day then meter. The server defaults the range to the last 30 days and caps it at 366.
+ */
+export type TenantUsageResource = {
+  readonly tenantId: string;
+  readonly from: string;
+  readonly to: string;
+  readonly entries: readonly TenantUsageEntry[];
+};
+
+/**
  * Mirror of `CreateInitialAccessTokenRequest` (RFC 7591). Mints a token that authorizes its bearer to register a new
  * client at the protected dynamic client registration endpoint. `description` is an optional administrative note;
- * `lifetimeSeconds` is an optional positive lifetime (`null` means the token does not expire).
+ * `lifetimeSeconds` is an optional lifetime (`null` means a one-day lifetime; at most 30 days). `resourceServerId`
+ * scopes the token to a resource server, so the client it registers is bound to it and introspects for it (ADR-0192).
  */
 export type CreateInitialAccessTokenRequest = {
   readonly description: string | null;
   readonly lifetimeSeconds: number | null;
+  readonly resourceServerId?: string | null;
 };
 
 /**
  * Mirror of `CreatedInitialAccessTokenResource` — the mint response. The `initialAccessToken` plaintext is revealed
  * exactly once here and never again (the grant store persists only its salted hash, like ADR-0050 secret material).
- * `grantId` addresses the backing grant for later revocation; `expiresWhen` is `null` for a non-expiring token.
- * Timestamps are ISO-8601 strings on the wire.
+ * `grantId` addresses the backing grant for later revocation; `expiresWhen` is when the single-use token expires.
+ * `resourceServerId` is the resource server the token is scoped to, if any. Timestamps are ISO-8601 strings on the
+ * wire.
  */
 export type CreatedInitialAccessTokenResource = {
   readonly initialAccessToken: string;
   readonly grantId: string;
   readonly tenantId: string;
   readonly description: string | null;
+  readonly resourceServerId?: string | null;
   readonly createdWhen: string;
   readonly expiresWhen: string | null;
 };

@@ -38,21 +38,18 @@ public static class DefaultRegistration
     /// </summary>
     internal const string HealthCheckName = "valkey";
 
-    /// <summary>
-    /// The tag of the health checks that decide whether a replica is ready to serve requests.
-    /// </summary>
-    internal const string ReadinessTag = "ready";
-
     /// <param name="builder">The shared-state-library builder returned by <c>AddSharedStateServices</c>.</param>
     extension(IServiceBuilder<SharedStateLibrary> builder)
     {
         /// <summary>
-        /// Registers the Valkey <see cref="IExpiringKeySet"/> adapter, in place of any adapter registered before it,
-        /// when the <c>ConnectionStrings:valkey</c> connection string is configured, so every replica of the deployment
-        /// shares one set of keys. The <c>Valkey</c> section binds <see cref="ValkeyOptions"/> strictly. A
+        /// Registers the Valkey <see cref="IExpiringKeySet"/>, <see cref="IExpiringCounterSet"/>, and
+        /// <see cref="IReplicaBroadcaster"/> adapters, in place of any adapters registered before them, when the
+        /// <c>ConnectionStrings:valkey</c> connection string is configured, so every replica of the deployment shares
+        /// one set of keys, one set of counters, and one broadcast channel per name. A hosted service subscribes the
+        /// replica's <see cref="IReplicaBroadcastHandler"/> handlers at startup. The <c>Valkey</c> section binds <see cref="ValkeyOptions"/> strictly. A
         /// <c>valkey</c> health check, tagged <c>ready</c>, reports whether the server answers. Without the connection
-        /// string the call registers nothing and the adapter registered before it stays in force — the in-process
-        /// adapter, correct only for a single replica.
+        /// string the call registers nothing and the adapters registered before it stay in force — the in-process
+        /// adapters, correct only for a single replica.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> holding the connection string and the <c>Valkey</c> section.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
@@ -91,7 +88,9 @@ public static class DefaultRegistration
                 .Configure(options => section.BindStrictly(options))
                 .ValidateOnStart();
 
+            serviceCollection.AddMetrics();
             serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddSingleton<ValkeySharedStateMetrics>();
             serviceCollection.TryAddSingleton<IValkeyConnection>(_ => new DefaultValkeyConnection(
                 configurationOptions
             ));
@@ -99,9 +98,16 @@ public static class DefaultRegistration
             serviceCollection.RemoveAll<IExpiringKeySet>();
             serviceCollection.AddSingleton<IExpiringKeySet, ValkeyExpiringKeySet>();
 
+            serviceCollection.RemoveAll<IExpiringCounterSet>();
+            serviceCollection.AddSingleton<IExpiringCounterSet, ValkeyExpiringCounterSet>();
+
+            serviceCollection.RemoveAll<IReplicaBroadcaster>();
+            serviceCollection.AddSingleton<IReplicaBroadcaster, ValkeyReplicaBroadcaster>();
+            serviceCollection.AddHostedService<ValkeyReplicaBroadcastSubscriber>();
+
             serviceCollection
                 .AddHealthChecks()
-                .AddCheck<ValkeyHealthCheck>(HealthCheckName, tags: [ReadinessTag]);
+                .AddCheck<ValkeyHealthCheck>(HealthCheckName, tags: [HealthCheckTags.Readiness]);
 
             return builder;
         }

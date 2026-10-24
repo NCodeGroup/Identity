@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
 import type { RuntimeConfig } from '@ncode/config';
@@ -45,6 +45,24 @@ const grant = {
 };
 
 const otherGrant = { ...grant, grantId: 'g-2', subjectId: 'user-2', clientId: 'cli' };
+
+function resourceServer(
+  resourceServerId: string,
+  name: string,
+  identifier: string,
+  isSystem: boolean,
+) {
+  return {
+    tenantId: 'acme',
+    resourceServerId,
+    identifier,
+    concurrencyToken: 'c-1',
+    name,
+    isSystem,
+    isDisabled: false,
+    scopes: [],
+  };
+}
 
 type Call = { readonly url: string; readonly method: string; readonly body: string };
 
@@ -451,5 +469,58 @@ describe('GrantsPage (initial access tokens)', () => {
 
     await waitFor(() => expect(screen.queryByTestId('iat-form-submit')).not.toBeInTheDocument());
     expect(calls.every((c) => c.method === 'GET')).toBe(true);
+  });
+
+  it('loads resource servers only while minting and scopes the token to the chosen one', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.includes('/api/tenants/acme/resource-servers') && method === 'GET') {
+        return jsonResponse({
+          items: [
+            resourceServer('rs-system', 'Management API', 'urn:ncode:management', true),
+            resourceServer('rs-orders', 'Orders', 'https://orders.example', false),
+          ],
+        });
+      }
+      if (url.includes('/api/tenants/acme/grants/initial-access-tokens') && method === 'POST') {
+        return jsonResponse(
+          {
+            initialAccessToken: 'iat-scoped',
+            grantId: 'g-iat',
+            tenantId: 'acme',
+            description: null,
+            resourceServerId: 'rs-orders',
+            createdWhen: '2026-01-01T00:00:00Z',
+            expiresWhen: null,
+          },
+          201,
+        );
+      }
+      if (url.includes('/api/tenants/acme/grants') && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    expect(await screen.findByTestId('data-empty')).toBeInTheDocument();
+    expect(calls.some((c) => c.url.includes('/resource-servers'))).toBe(false);
+
+    fireEvent.click(screen.getByTestId('mint-initial-access-token'));
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: /Resource server/ }));
+    expect(
+      within(screen.getByRole('listbox'))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['None', 'Orders (https://orders.example)']);
+    fireEvent.click(screen.getByRole('option', { name: 'Orders (https://orders.example)' }));
+    fireEvent.click(screen.getByTestId('iat-form-submit'));
+
+    expect(await screen.findByTestId('reveal-iat-resource-server')).toHaveTextContent('Orders');
+    const post = calls.find((c) => c.method === 'POST');
+    expect(JSON.parse(post?.body ?? '{}')).toEqual({
+      description: null,
+      lifetimeSeconds: null,
+      resourceServerId: 'rs-orders',
+    });
   });
 });

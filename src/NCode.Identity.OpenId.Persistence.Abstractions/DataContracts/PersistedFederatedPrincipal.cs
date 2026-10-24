@@ -61,6 +61,13 @@ public sealed class PersistedFederatedPrincipal : ISupportTenantId, ISupportConc
     /// </summary>
     public JsonElement SystemMetadata { get; set; } = JsonElements.EmptyObject;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether an administrator blocked the principal, which refuses every token
+    /// request for it whatever connection it signs in through. A principal is not blocked unless an administrator
+    /// blocks it.
+    /// </summary>
+    public bool IsBlocked { get; set; }
+
     /// <inheritdoc />
     [MaxLength(MaxLengths.ConcurrencyToken)]
     public required string ConcurrencyToken { get; set; }

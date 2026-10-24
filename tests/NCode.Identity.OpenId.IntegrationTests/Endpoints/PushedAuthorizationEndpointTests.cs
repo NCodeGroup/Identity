@@ -20,6 +20,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
+using NCode.Identity.OpenId.Settings;
 using Xunit;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Endpoints;
@@ -35,11 +36,16 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
 
     private static FormUrlEncodedContent BuildAuthorizationForm(
         IEnumerable<KeyValuePair<string, string>> extra
+    ) => BuildAuthorizationForm(ClientId, extra);
+
+    private static FormUrlEncodedContent BuildAuthorizationForm(
+        string clientId,
+        IEnumerable<KeyValuePair<string, string>> extra
     )
     {
         var values = new List<KeyValuePair<string, string>>
         {
-            new("client_id", ClientId),
+            new("client_id", clientId),
             new("redirect_uri", RedirectUri),
             new("response_type", "code"),
             new("scope", "openid"),
@@ -99,6 +105,82 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal("invalid_request", document.RootElement.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task PostPar_WhenTheResponseModeIsNotListed_ReturnsInvalidRequest()
+    {
+        const string clientId = "it-par-mode-not-listed";
+        await Factory.SeedPublicClientWithSettingsAsync(
+            clientId,
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.ResponseModesSupported] = new[]
+                {
+                    OpenIdConstants.ResponseModes.Query,
+                },
+            },
+            RedirectUri
+        );
+
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var form = BuildAuthorizationForm(
+            clientId,
+            [
+                new KeyValuePair<string, string>(
+                    "response_mode",
+                    OpenIdConstants.ResponseModes.Fragment
+                ),
+            ]
+        );
+        using var response = await client.PostAsync("/oauth2/par", form);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.InvalidRequest,
+            document.RootElement.GetProperty("error").GetString()
+        );
+    }
+
+    [Fact]
+    public async Task PostPar_WhenTheJwtSecuredResponseCannotBeSigned_ReturnsServerError()
+    {
+        const string clientId = "it-par-unsignable";
+        await Factory.SeedPublicClientWithSettingsAsync(
+            clientId,
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.AuthorizationSigningAlgValuesSupported] = new[] { "PS256" },
+                [OpenIdSettingNames.AuthorizationSignedResponseAlg] = "RS256",
+            },
+            RedirectUri
+        );
+
+        var client = Factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var form = BuildAuthorizationForm(
+            clientId,
+            [
+                new KeyValuePair<string, string>(
+                    "response_mode",
+                    OpenIdConstants.ResponseModes.QueryJwt
+                ),
+            ]
+        );
+        using var response = await client.PostAsync("/oauth2/par", form);
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.ServerError,
+            document.RootElement.GetProperty("error").GetString()
+        );
     }
 
     [Fact]

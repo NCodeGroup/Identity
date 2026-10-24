@@ -105,7 +105,7 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
             .Returns(TimeSpan.FromSeconds(5));
 
         MockCryptoService
-            .Setup(x => x.GenerateKey(32, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns("device-code-value");
         MockUserCodeGenerator.Setup(x => x.Generate(8)).Returns("ABCD-1234");
         MockUserCodeGenerator.Setup(x => x.Normalize("ABCD-1234")).Returns("ABCD1234");
@@ -266,7 +266,7 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
             .Returns(TimeSpan.FromSeconds(5));
 
         MockCryptoService
-            .Setup(x => x.GenerateKey(32, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns("device-code-value");
         MockUserCodeGenerator.Setup(x => x.Generate(8)).Returns("ABCD-1234");
         MockUserCodeGenerator.Setup(x => x.Normalize("ABCD-1234")).Returns("ABCD1234");
@@ -376,7 +376,7 @@ public class DefaultCreateDeviceAuthorizationRequestHandlerTests : BaseTests
             .Returns(TimeSpan.FromSeconds(5));
 
         MockCryptoService
-            .Setup(x => x.GenerateKey(32, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns("device-code-value");
         MockUserCodeGenerator.Setup(x => x.Generate(8)).Returns("ABCD-1234");
         MockUserCodeGenerator.Setup(x => x.Normalize("ABCD-1234")).Returns("ABCD1234");

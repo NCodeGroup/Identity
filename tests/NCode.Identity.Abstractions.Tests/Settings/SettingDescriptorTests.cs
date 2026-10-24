@@ -157,6 +157,89 @@ public class SettingDescriptorTests
 
     #endregion
 
+    #region HasMeetMerge Property Tests
+
+    [Fact]
+    public void HasMeetMerge_WhenMergedWithMinAndOrIntersect_ReturnsTrue()
+    {
+        var min = new SettingDescriptor<TimeSpan>
+        {
+            Name = "min",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Min,
+        };
+        var and = new SettingDescriptor<bool>
+        {
+            Name = "and",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.And,
+        };
+        var intersect = new SettingDescriptor<IReadOnlyCollection<string>>
+        {
+            Name = "intersect",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Intersect,
+        };
+
+        Assert.True(min.HasMeetMerge);
+        Assert.True(and.HasMeetMerge);
+        Assert.True(intersect.HasMeetMerge);
+    }
+
+    [Fact]
+    public void HasMeetMerge_WhenMergedWithMaxOrOrUnion_ReturnsFalse()
+    {
+        var max = new SettingDescriptor<TimeSpan>
+        {
+            Name = "max",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Max,
+        };
+        var or = new SettingDescriptor<bool>
+        {
+            Name = "or",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Or,
+        };
+        var union = new SettingDescriptor<IReadOnlyCollection<string>>
+        {
+            Name = "union",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Union,
+        };
+
+        Assert.False(max.HasMeetMerge);
+        Assert.False(or.HasMeetMerge);
+        Assert.False(union.HasMeetMerge);
+        Assert.True(max.HasLatticeMerge);
+        Assert.True(or.HasLatticeMerge);
+        Assert.True(union.HasLatticeMerge);
+    }
+
+    [Fact]
+    public void HasMeetMerge_WhenMergedWithAProjectionOrAnotherFunction_ReturnsFalse()
+    {
+        var replace = new SettingDescriptor<string>
+        {
+            Name = "replace",
+            AppliesTo = ["client"],
+            OnMerge = SettingMerge.Replace,
+        };
+        var byDefault = new SettingDescriptor<bool> { Name = "default", AppliesTo = ["client"] };
+        var custom = new SettingDescriptor<TimeSpan>
+        {
+            Name = "custom",
+            AppliesTo = ["client"],
+            OnMerge = (current, other) => SettingMerge.Min(current, other),
+        };
+
+        Assert.False(replace.HasMeetMerge);
+        Assert.False(byDefault.HasMeetMerge);
+        Assert.False(custom.HasMeetMerge);
+    }
+
+    #endregion
+
     #region Default Property Tests
 
     [Fact]
@@ -372,6 +455,56 @@ public class SettingDescriptorTests
         };
 
         Assert.True(descriptor.IsDiscoverable);
+    }
+
+    #endregion
+
+    #region RetiredReason Property Tests
+
+    [Fact]
+    public void RetiredReason_WhenUnset_IsNull()
+    {
+        var descriptor = new SettingDescriptor<string> { Name = "a", AppliesTo = [] };
+
+        Assert.Null(descriptor.RetiredReason);
+    }
+
+    [Fact]
+    public void RetiredReason_WhenSet_ReturnsIt()
+    {
+        var descriptor = new SettingDescriptor<string>
+        {
+            Name = "a",
+            AppliesTo = [],
+            RetiredReason = "Use 'b'.",
+        };
+
+        Assert.Equal("Use 'b'.", descriptor.RetiredReason);
+    }
+
+    #endregion
+
+    #region IsRetired Property Tests
+
+    [Fact]
+    public void IsRetired_WhenRetiredReasonIsUnset_ReturnsFalse()
+    {
+        var descriptor = new SettingDescriptor<string> { Name = "a", AppliesTo = [] };
+
+        Assert.False(descriptor.IsRetired);
+    }
+
+    [Fact]
+    public void IsRetired_WhenRetiredReasonIsSet_ReturnsTrue()
+    {
+        var descriptor = new SettingDescriptor<string>
+        {
+            Name = "a",
+            AppliesTo = [],
+            RetiredReason = "Use 'b'.",
+        };
+
+        Assert.True(descriptor.IsRetired);
     }
 
     #endregion

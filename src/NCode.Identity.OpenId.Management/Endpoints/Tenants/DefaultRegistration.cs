@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
@@ -35,6 +36,10 @@ internal static class DefaultRegistration
         {
             builder.AddEndpoint<TenantApiEndpointHandler>();
             builder.ServiceCollection.TryAddSingleton<ITenantValidator, DefaultTenantValidator>();
+            builder.ServiceCollection.TryAddSingleton<
+                ITenantClientCoherenceChecker,
+                DefaultTenantClientCoherenceChecker
+            >();
         }
     }
 }

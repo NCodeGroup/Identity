@@ -42,7 +42,9 @@ internal class DefaultDiscoveryEndpointHandler : IEndpointProvider
             .Produces<DiscoveryResult>(StatusCodes.Status200OK)
             // 'discovery_endpoint' is not a standard OIDC Discovery / RFC 8414 metadata parameter, so the discovery
             // document must not advertise itself (the OP conformance suite flags it as an unexpected parameter).
-            .WithOpenIdDiscoverable(false);
+            .WithOpenIdDiscoverable(false)
+            // Public metadata any anonymous caller may fetch is not the tenant's metered usage (ADR-0198).
+            .WithOpenIdMetered(false);
 
     /// <summary>
     /// OpenID Connect discovery document.

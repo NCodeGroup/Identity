@@ -127,7 +127,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
         );
 
         MockCryptoService
-            .Setup(x => x.GenerateKey(It.IsAny<int>(), It.IsAny<BinaryEncodingType>()))
+            .Setup(x => x.GenerateKey(It.IsAny<int>(), It.IsAny<string>()))
             .Returns("token-id")
             .Verifiable();
 
@@ -148,7 +148,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
         );
 
         MockCryptoService
-            .Setup(x => x.GenerateKey(It.IsAny<int>(), It.IsAny<BinaryEncodingType>()))
+            .Setup(x => x.GenerateKey(It.IsAny<int>(), It.IsAny<string>()))
             .Returns("token-id")
             .Verifiable();
 

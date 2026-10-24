@@ -40,7 +40,9 @@ internal class DefaultOpenIdEnvironmentFactory(
     private EphemeralDataProtectionProvider EphemeralDataProtectionProvider { get; } =
         new(loggerFactory);
 
-    private OpenIdOptions Options { get; } = optionsAccessor.Value;
+    // Read on use: Value runs the OpenIdOptions validators, which construct the client-authentication handlers, which depend on this factory (ADR-0204).
+    private IOptions<OpenIdOptions> OptionsAccessor { get; } = optionsAccessor;
+    private OpenIdOptions Options => OptionsAccessor.Value;
     private IDataProtectionProvider DataProtectionProvider { get; } = dataProtectionProvider;
     private IKnownParameterCollectionProvider KnownParameterCollectionProvider { get; } =
         knownParameterCollectionProvider;

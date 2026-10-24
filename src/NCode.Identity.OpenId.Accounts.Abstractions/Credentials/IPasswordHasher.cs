@@ -28,11 +28,23 @@ namespace NCode.Identity.OpenId.Accounts.Credentials;
 /// <remarks>
 /// The password is accepted as a <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;byte&gt;</see> of its UTF-8 bytes so the
 /// sensitive material stays in a caller-owned, zeroable buffer and never becomes a managed <see cref="string"/>. The
-/// operations are synchronous because password hashing is CPU-bound work with no I/O.
+/// operations are synchronous because password hashing is CPU-bound work with no I/O. An implementation hashes and
+/// verifies the Unicode Normalization Form C (NFC) of the password, so the same characters typed with another
+/// composition verify. When the NFC form does not verify and differs from the bytes given, it verifies the bytes as
+/// given and reports <see cref="PasswordVerificationResult.SuccessRehashNeeded"/> on a match, so a stored hash of the
+/// submitted form is replaced. A stored hash it cannot read fails after the work of verifying
+/// <see cref="DummyPasswordHash"/>.
 /// </remarks>
 [PublicAPI]
 public interface IPasswordHasher
 {
+    /// <summary>
+    /// Gets a hash, in the format and with the current parameters of <see cref="HashPassword"/>, that no known password
+    /// matches. A store verifies a submitted password against it when it holds no hash it may verify for the submitted
+    /// user name, so a failed verification takes as long whether or not an account has that user name.
+    /// </summary>
+    string DummyPasswordHash { get; }
+
     /// <summary>
     /// Hashes the specified password, returning a self-describing hash string (carrying the algorithm and parameters)
     /// suitable for storage.

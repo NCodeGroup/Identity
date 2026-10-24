@@ -155,12 +155,48 @@ public abstract class ManagementApiEndpointHandler
     /// <typeparam name="TValue">The type of the value being processed.</typeparam>
     /// <typeparam name="TResponse">The type of the response representation.</typeparam>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
-    protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue, TResponse>(
+    protected internal virtual ValueTask<IResult> ProcessGetAsync<TValue, TResponse>(
         HttpContext httpContext,
         TValue? valueOrNull,
         object? authorizationResource,
         IAuthorizationRequirement authorizationRequirement,
         Func<TValue, TResponse> mapper
+    ) =>
+        ProcessGetAsync(
+            httpContext,
+            valueOrNull,
+            authorizationResource,
+            authorizationRequirement,
+            (value, _) => ValueTask.FromResult(mapper(value)),
+            CancellationToken.None
+        );
+
+    /// <summary>
+    /// Processes an HTTP <c>GET</c> request for the specified value, authorizing against a separately-supplied
+    /// resource (such as the owning resource node) while mapping and returning the value. Emits an <c>ETag</c> and
+    /// honors <c>If-None-Match</c> when the value supports a concurrency token. When <paramref name="mapperAsync"/>
+    /// returns <c>null</c>, the mapped sub-resource is treated as absent and the request returns <c>404 Not Found</c>
+    /// (for example, a symmetric secret has no public key to project). The mapper runs only after authorization
+    /// succeeds, so it may do work an unauthorized caller must not cause (such as loading key material).
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="valueOrNull">The value to map and return, or <c>null</c> when not found.</param>
+    /// <param name="authorizationResource">The resource to authorize against, or <c>null</c> to authorize against the
+    /// value itself.</param>
+    /// <param name="authorizationRequirement">The <see cref="IAuthorizationRequirement"/> to evaluate.</param>
+    /// <param name="mapperAsync">A function that asynchronously maps the value to the response representation, or
+    /// returns <c>null</c> to report the mapped sub-resource as absent. It runs only after authorization succeeds.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <typeparam name="TValue">The type of the value being processed.</typeparam>
+    /// <typeparam name="TResponse">The type of the response representation.</typeparam>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue, TResponse>(
+        HttpContext httpContext,
+        TValue? valueOrNull,
+        object? authorizationResource,
+        IAuthorizationRequirement authorizationRequirement,
+        Func<TValue, CancellationToken, ValueTask<TResponse>> mapperAsync,
+        CancellationToken cancellationToken
     )
     {
         if (valueOrNull is null)
@@ -179,7 +215,7 @@ public abstract class ManagementApiEndpointHandler
         if (authorizationResult.Succeeded)
         {
             // Project first so an absent sub-resource short-circuits to 404 before emitting an ETag or a 304.
-            var response = mapper(valueOrNull);
+            var response = await mapperAsync(valueOrNull, cancellationToken);
             if (response is null)
             {
                 // A null projection signals an absent sub-resource (e.g. a symmetric secret has no public key).

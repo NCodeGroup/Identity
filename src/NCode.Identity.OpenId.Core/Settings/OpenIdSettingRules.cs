@@ -92,13 +92,14 @@ internal static class OpenIdSettingRules
         );
 
     /// <summary>
-    /// Gets the rule for a <c>response_mode</c> value.
+    /// Gets the rule for a <c>response_mode</c> value: a non-empty name with no whitespace. Response modes are an open
+    /// vocabulary — a package adds one by registering its handler — so the rule cannot list them; a request whose
+    /// response mode no registered handler serves is refused at the authorization endpoint (ADR-0150, ADR-0201).
     /// </summary>
     public static SettingRule<string> ResponseMode() =>
-        SettingRules.OneOf(
-            OpenIdConstants.ResponseModes.Query,
-            OpenIdConstants.ResponseModes.Fragment,
-            OpenIdConstants.ResponseModes.FormPost
+        SettingRules.Must<string>(
+            "a response mode such as 'query' or 'form_post.jwt': a non-empty value with no whitespace",
+            IsToken
         );
 
     /// <summary>
@@ -148,6 +149,21 @@ internal static class OpenIdSettingRules
             OpenIdConstants.RefreshTokenReusePolicy.None,
             OpenIdConstants.RefreshTokenReusePolicy.RevokeAll
         );
+
+    /// <summary>
+    /// Gets the rule for a refresh token rotation policy: <c>unbound</c> or <c>always</c>.
+    /// </summary>
+    public static SettingRule<string> RefreshTokenRotationPolicy() =>
+        SettingRules.OneOf(
+            OpenIdConstants.RefreshTokenRotationPolicy.Unbound,
+            OpenIdConstants.RefreshTokenRotationPolicy.Always
+        );
+
+    /// <summary>
+    /// Gets the rule for a refresh token reuse interval: from zero, which turns it off, to one minute.
+    /// </summary>
+    public static SettingRule<TimeSpan> RefreshTokenReuseInterval() =>
+        SettingRules.Between(TimeSpan.Zero, TimeSpan.FromSeconds(60));
 
     /// <summary>
     /// Gets the rule for a grant type: a grant type the server names, or an absolute URI, which is how RFC 6749 §4.5
@@ -248,24 +264,6 @@ internal static class OpenIdSettingRules
         );
 
     /// <summary>
-    /// Gets the rule for the scheme and authority under which the mutual-TLS endpoint aliases are published: an
-    /// <c>https</c> origin with no path, query, fragment, or user information.
-    /// </summary>
-    public static SettingRule<string> HttpsOrigin() =>
-        SettingRules.Must<string>(
-            "an https origin such as 'https://mtls.example.com'",
-            value =>
-                TryParseAbsoluteUri(value, out var uri)
-                && IsHttpsScheme(uri)
-                && uri.UserInfo.Length == 0
-                && string.Equals(
-                    uri.GetLeftPart(UriPartial.Authority),
-                    value.TrimEnd('/'),
-                    StringComparison.OrdinalIgnoreCase
-                )
-        );
-
-    /// <summary>
     /// Gets the rule for a media type that is compared verbatim with a response's content type: a <c>type/subtype</c>
     /// with no parameters.
     /// </summary>
@@ -282,8 +280,29 @@ internal static class OpenIdSettingRules
     /// </summary>
     public static SettingRule<string> DistinguishedName() =>
         SettingRules.Must<string>(
-            "an X.500 distinguished name such as 'CN=client, O=Example'",
+            "an RFC 4514 distinguished name such as 'CN=client,O=Example'",
             IsDistinguishedName
+        );
+
+    /// <summary>
+    /// Gets the rule for a <c>tls_client_auth</c> trust anchor: exactly one PEM-encoded X.509 certificate whose basic
+    /// constraints mark it as a certification authority.
+    /// </summary>
+    public static SettingRule<string> CaCertificatePem() =>
+        SettingRules.Must<string>(
+            "a single PEM-encoded X.509 CA certificate ('-----BEGIN CERTIFICATE-----')",
+            IsCaCertificatePem
+        );
+
+    /// <summary>
+    /// Gets the rule for how a <c>tls_client_auth</c> certificate chain's revocation status is checked:
+    /// <c>online</c>, <c>online_soft_fail</c> or <c>none</c>.
+    /// </summary>
+    public static SettingRule<string> ClientCertificateRevocationMode() =>
+        SettingRules.OneOf(
+            OpenIdConstants.ClientCertificateRevocationMode.Online,
+            OpenIdConstants.ClientCertificateRevocationMode.OnlineSoftFail,
+            OpenIdConstants.ClientCertificateRevocationMode.None
         );
 
     /// <summary>
@@ -377,19 +396,28 @@ internal static class OpenIdSettingRules
         return Uri.CheckHostName(name) == UriHostNameType.Dns;
     }
 
-    private static bool IsDistinguishedName(string value)
+    private static bool IsCaCertificatePem(string value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return false;
-
+        var certificates = new X509Certificate2Collection();
         try
         {
-            _ = new X500DistinguishedName(value);
-            return true;
+            certificates.ImportFromPem(value);
+            return certificates is [var certificate]
+                && certificate
+                    .Extensions.OfType<X509BasicConstraintsExtension>()
+                    .Any(extension => extension.CertificateAuthority);
         }
         catch (CryptographicException)
         {
             return false;
         }
+        finally
+        {
+            foreach (var certificate in certificates)
+                certificate.Dispose();
+        }
     }
+
+    private static bool IsDistinguishedName(string value) =>
+        NCode.Identity.OpenId.ClientCertificates.DistinguishedName.TryParse(value, out _);
 }

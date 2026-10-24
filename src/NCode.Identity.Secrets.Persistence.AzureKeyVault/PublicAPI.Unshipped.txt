@@ -1,0 +1,9 @@
+#nullable enable
+const NCode.Identity.Secrets.Persistence.AzureKeyVault.Options.AzureKeyVaultRootKeyOptions.DefaultSectionName = "SecretProtection:RootKeyProviders:AzureKeyVault" -> string!
+NCode.Identity.Secrets.Persistence.AzureKeyVault.DefaultRegistration
+NCode.Identity.Secrets.Persistence.AzureKeyVault.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!)
+NCode.Identity.Secrets.Persistence.AzureKeyVault.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!).AddAzureKeyVaultRootKeyProvider(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
+NCode.Identity.Secrets.Persistence.AzureKeyVault.Options.AzureKeyVaultRootKeyOptions
+NCode.Identity.Secrets.Persistence.AzureKeyVault.Options.AzureKeyVaultRootKeyOptions.AzureKeyVaultRootKeyOptions() -> void
+NCode.Identity.Secrets.Persistence.AzureKeyVault.Options.AzureKeyVaultRootKeyOptions.KeyId.get -> string?
+NCode.Identity.Secrets.Persistence.AzureKeyVault.Options.AzureKeyVaultRootKeyOptions.KeyId.set -> void

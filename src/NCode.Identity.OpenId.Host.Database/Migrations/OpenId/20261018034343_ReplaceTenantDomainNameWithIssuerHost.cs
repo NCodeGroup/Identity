@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ContractMigration(
+        "Shipped before any release, so no running release reads Tenants.DomainName (ADR-0129, ADR-0025)."
+    )]
     public partial class ReplaceTenantDomainNameWithIssuerHost : Migration
     {
         /// <inheritdoc />

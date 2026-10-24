@@ -75,12 +75,13 @@ NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.SecretId.init -> vo
 NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.Use.get -> string?
 NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest.Use.init -> void
 NCode.Identity.Secrets.Persistence.ISecretGenerator
-NCode.Identity.Secrets.Persistence.ISecretGenerator.GenerateSecret(NCode.Identity.Secrets.Persistence.GenerateSecretRequest! request) -> NCode.Identity.Secrets.Persistence.GeneratedSecret!
-NCode.Identity.Secrets.Persistence.ISecretGenerator.GenerateSharedSecret(NCode.Identity.Secrets.Persistence.GenerateSecretRequest! request) -> NCode.Identity.Secrets.Persistence.GeneratedSecret!
-NCode.Identity.Secrets.Persistence.ISecretGenerator.ImportSharedSecret(NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest! request, System.ReadOnlySpan<byte> secretValue) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
+NCode.Identity.Secrets.Persistence.ISecretGenerator.GenerateSecret(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, NCode.Identity.Secrets.Persistence.GenerateSecretRequest! request) -> NCode.Identity.Secrets.Persistence.GeneratedSecret!
+NCode.Identity.Secrets.Persistence.ISecretGenerator.GenerateSharedSecret(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, NCode.Identity.Secrets.Persistence.GenerateSecretRequest! request) -> NCode.Identity.Secrets.Persistence.GeneratedSecret!
+NCode.Identity.Secrets.Persistence.ISecretGenerator.ImportSharedSecret(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, NCode.Identity.Secrets.Persistence.ImportSharedSecretRequest! request, System.ReadOnlySpan<byte> secretValue) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
 NCode.Identity.Secrets.Persistence.ISecretSerializer
-NCode.Identity.Secrets.Persistence.ISecretSerializer.DeserializeSecret(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret) -> NCode.Identity.Secrets.Keys.SecretKey!
-NCode.Identity.Secrets.Persistence.ISecretSerializer.DeserializeSecrets(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! persistedSecrets) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!
+NCode.Identity.Secrets.Persistence.ISecretSerializer.DeserializePublicSecret(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret) -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Secrets.Persistence.ISecretSerializer.DeserializeSecret(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret) -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Secrets.Persistence.ISecretSerializer.DeserializeSecrets(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector! protector, System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! persistedSecrets) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.KeyId.get -> string?
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.KeyId.init -> void
 NCode.Identity.Secrets.Persistence.SecretMaxLengths
@@ -100,7 +101,7 @@ NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.CreatedWhen.get -> Sys
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.CreatedWhen.init -> void
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.ExpiresWhen.init -> void
-NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Format.get -> NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormat
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Format.get -> string!
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Format.init -> void
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.KeyMaterial.get -> string!
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.KeyMaterial.init -> void
@@ -111,3 +112,106 @@ NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.SecretType.get -> stri
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.SecretType.init -> void
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Use.get -> string?
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Use.init -> void
+const NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.DefaultSectionName = "SecretProtection" -> string!
+const NCode.Identity.Secrets.Persistence.Protection.RootKeyProviderNames.AwsKms = "aws-kms" -> string!
+const NCode.Identity.Secrets.Persistence.Protection.RootKeyProviderNames.AzureKeyVault = "azure-key-vault" -> string!
+const NCode.Identity.Secrets.Persistence.Protection.RootKeyProviderNames.Ephemeral = "ephemeral" -> string!
+const NCode.Identity.Secrets.Persistence.Protection.RootKeyProviderNames.GoogleCloudKms = "google-cloud-kms" -> string!
+const NCode.Identity.Secrets.Persistence.Protection.RootKeyProviderNames.Local = "local" -> string!
+const NCode.Identity.Secrets.Persistence.Protection.SecretOwnerTypes.Server = "server" -> string!
+const NCode.Identity.Secrets.Persistence.Protection.SecretOwnerTypes.Tenant = "tenant" -> string!
+const NCode.Identity.Secrets.Persistence.Protection.SecretProtectionPurposes.DataProtectionKeyRing = "data-protection-key-ring" -> string!
+const NCode.Identity.Secrets.Persistence.Protection.SecretProtectionPurposes.PersistedSecret = "persisted-secret" -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.ConcurrencyToken.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.ConcurrencyToken.set -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.CreatedWhen.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.KeyCheck.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.KeyCheck.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.KeyId.get -> System.Guid
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.KeyId.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.OwnerId.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.OwnerId.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.OwnerType.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.OwnerType.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.PersistedMasterKey() -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RecoveryKeyId.get -> string?
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RecoveryKeyId.set -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RecoveryWrappedKey.get -> string?
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RecoveryWrappedKey.set -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RetiredWhen.get -> System.DateTimeOffset?
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RetiredWhen.set -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RootKeyId.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RootKeyId.set -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RootKeyProvider.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RootKeyProvider.set -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RootWrappedKey.get -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RootWrappedKey.set -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.Version.get -> int
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.Version.init -> void
+NCode.Identity.Secrets.Persistence.Options.RecoveryKeyOptions
+NCode.Identity.Secrets.Persistence.Options.RecoveryKeyOptions.Disabled.get -> bool
+NCode.Identity.Secrets.Persistence.Options.RecoveryKeyOptions.Disabled.set -> void
+NCode.Identity.Secrets.Persistence.Options.RecoveryKeyOptions.PublicKeyPath.get -> string?
+NCode.Identity.Secrets.Persistence.Options.RecoveryKeyOptions.PublicKeyPath.set -> void
+NCode.Identity.Secrets.Persistence.Options.RecoveryKeyOptions.RecoveryKeyOptions() -> void
+NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions
+NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.Recovery.get -> NCode.Identity.Secrets.Persistence.Options.RecoveryKeyOptions!
+NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.Recovery.set -> void
+NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.RootKeyProvider.get -> string?
+NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.RootKeyProvider.set -> void
+NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.SecretProtectionOptions() -> void
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyStore
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyStore.FindActiveAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey?>
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyStore.FindByKeyIdsAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Collections.Generic.IReadOnlyCollection<System.Guid>! keyIds, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey!>!>
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyStore.GetLatestVersionAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyStore.ListAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey!>!>
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyStore.RemoveAllAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+NCode.Identity.Secrets.Persistence.Protection.IRootKeyProvider
+NCode.Identity.Secrets.Persistence.Protection.IRootKeyProvider.ProviderName.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.IRootKeyProvider.UnwrapAsync(NCode.Identity.Secrets.Persistence.Protection.RootWrappedKey! wrappedKey, System.ReadOnlyMemory<byte> context, System.Memory<byte> destination, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+NCode.Identity.Secrets.Persistence.Protection.IRootKeyProvider.WrapAsync(System.ReadOnlyMemory<byte> key, System.ReadOnlyMemory<byte> context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.RootWrappedKey!>
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtector
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtector.GetMaxPlaintextLength(int protectedLength) -> int
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtector.GetProtectedLength(int plaintextLength) -> int
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtector.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtector.Protect<TWriter>(System.ReadOnlySpan<byte> plaintext, NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext context, ref TWriter destination) -> void
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtector.Unprotect<TWriter>(System.ReadOnlySpan<char> protectedValue, NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext context, ref TWriter destination) -> void
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider.Evict(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner) -> void
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider.EvictAll() -> void
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider.GetProtectorAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Collections.Generic.IReadOnlyCollection<string!>! protectedValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.ISecretProtector!>
+NCode.Identity.Secrets.Persistence.Protection.RootKeyProviderNames
+NCode.Identity.Secrets.Persistence.Protection.RootWrappedKey
+NCode.Identity.Secrets.Persistence.Protection.RootWrappedKey.Ciphertext.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.RootWrappedKey.Ciphertext.init -> void
+NCode.Identity.Secrets.Persistence.Protection.RootWrappedKey.KeyId.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.RootWrappedKey.KeyId.init -> void
+NCode.Identity.Secrets.Persistence.Protection.RootWrappedKey.ProviderName.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.RootWrappedKey.ProviderName.init -> void
+NCode.Identity.Secrets.Persistence.Protection.RootWrappedKey.RootWrappedKey() -> void
+NCode.Identity.Secrets.Persistence.Protection.SecretOwner
+NCode.Identity.Secrets.Persistence.Protection.SecretOwner.Normalize() -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
+NCode.Identity.Secrets.Persistence.Protection.SecretOwner.OwnerId.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.SecretOwner.OwnerType.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.SecretOwner.SecretOwner() -> void
+NCode.Identity.Secrets.Persistence.Protection.SecretOwner.SecretOwner(string! ownerType, string! ownerId) -> void
+NCode.Identity.Secrets.Persistence.Protection.SecretOwnerTypes
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext.ItemId.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext.Purpose.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext.SecretProtectionContext() -> void
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext.SecretProtectionContext(string! purpose, string! itemId) -> void
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectionPurposes
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectorExtensions
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectorExtensions.extension(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector!)
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectorExtensions.extension(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector!).ProtectToString(System.ReadOnlySpan<byte> plaintext, NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext context) -> string!
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectorProviderExtensions
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectorProviderExtensions.extension(NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider!)
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectorProviderExtensions.extension(NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider!).GetProtectorForSecretsAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! secrets, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.ISecretProtector!>
+override NCode.Identity.Secrets.Persistence.Protection.SecretOwner.ToString() -> string!
+static NCode.Identity.Secrets.Persistence.Protection.SecretOwner.ForServer(string! serverId) -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
+static NCode.Identity.Secrets.Persistence.Protection.SecretOwner.ForTenant(string! tenantId) -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
+static NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext.ForPersistedSecret(string! secretId) -> NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext

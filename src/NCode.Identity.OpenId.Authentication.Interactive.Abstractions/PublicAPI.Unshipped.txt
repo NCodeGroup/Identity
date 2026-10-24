@@ -1,11 +1,17 @@
 #nullable enable
 NCode.Identity.OpenId.Authentication.Interactive.IInteractiveCredentialVerifier
 NCode.Identity.OpenId.Authentication.Interactive.IInteractiveCredentialVerifier.VerifyCredentialAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! username, string! password, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsPrincipal?>
+NCode.Identity.OpenId.Authentication.Interactive.IInteractivePasswordChanger
+NCode.Identity.OpenId.Authentication.Interactive.IInteractivePasswordChanger.ChangePasswordAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Security.Claims.ClaimsPrincipal! principal, string! currentPassword, string! newPassword, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeResult!>
+NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeResult
+NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeResult.Error.get -> string?
+NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeResult.IsChanged.get -> bool
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.BundleRootPath.get -> string?
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.BundleRootPath.set -> void
 NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationOptions.InteractiveAuthenticationOptions() -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeErrors
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.AntiforgeryTokenCookieName = "XSRF-TOKEN" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.AccountPath = "/account" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.ApplicationsListPath = "/account/applications/list" -> string!
@@ -17,8 +23,29 @@ const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthentication
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.LoginPath = "/account/login" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.LogoutPath = "/account/logout" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.MePath = "/account/me" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.PasswordPath = "/account/password" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.SessionsPath = "/account/sessions" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.SessionsListPath = "/account/sessions/list" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.SessionsRevokePath = "/account/sessions/revoke" -> string!
 const NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.SessionsRevokeAllPath = "/account/sessions/revoke-all" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeErrors.InvalidCurrentPassword = "invalid_current_password" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeErrors.InvalidRequest = "invalid_request" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeErrors.NotSupported = "not_supported" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeErrors.PasswordMismatch = "password_mismatch" -> string!
 static readonly NCode.Identity.OpenId.Authentication.Interactive.InteractiveAuthenticationDefaults.CookieSchemeName -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingColorMode = "branding_color_mode" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingDisplayName = "branding_display_name" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingLogoUri = "branding_logo_uri" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingPrimaryColor = "branding_primary_color" -> string!
+const NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingNames.BrandingSecondaryColor = "branding_secondary_color" -> string!
+static NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeResult.Changed.get -> NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeResult!
+static NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeResult.CurrentPasswordInvalid.get -> NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeResult!
+static NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeResult.NotSupported.get -> NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeResult!
+static NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeResult.Refused(string! error) -> NCode.Identity.OpenId.Authentication.Interactive.InteractivePasswordChangeResult!
+static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingColorMode.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingDisplayName.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingLogoUri.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingPrimaryColor.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingSecondaryColor.get -> NCode.Identity.Settings.SettingKey<string!>

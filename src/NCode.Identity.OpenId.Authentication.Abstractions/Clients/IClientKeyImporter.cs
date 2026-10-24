@@ -25,13 +25,14 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
-/// Imports a client's public keys under one policy at every point they enter the server: the JSON Web Key Set a client
-/// registers by value at dynamic client registration, the JSON Web Key Set a client publishes at its <c>jwks_uri</c>,
-/// and a single key registered for a client through the management API. A client key is a public key of a registered
-/// key type, carries no private or symmetric material, declares a <c>use</c>, <c>key_ops</c>, and <c>alg</c> that agree
-/// with each other and with the key, and has a <c>kid</c> that is unique among the client's keys.
+/// Imports public keys under one policy at every point they enter the server: the JSON Web Key Set a client registers
+/// by value at dynamic client registration, the JSON Web Key Set a client publishes at its <c>jwks_uri</c>, and a
+/// single key imported through the management API for a client, a tenant, a server, or a resource server. An imported
+/// key is a public key of a registered key type, carries no private or symmetric material, declares a <c>use</c>,
+/// <c>key_ops</c>, and <c>alg</c> that agree with each other and with the key, and has a <c>kid</c> that is unique
+/// among its owner's keys.
 /// </summary>
-// See ADR-0161.
+// See ADR-0161 and ADR-0186.
 [PublicAPI]
 public interface IClientKeyImporter
 {
@@ -72,10 +73,11 @@ public interface IClientKeyImporter
     );
 
     /// <summary>
-    /// Imports a single public key registered for a client in any supported format. A key supplied as a JSON Web Key
-    /// keeps the <c>kid</c>, <c>use</c>, and <c>alg</c> it declares, which the request may repeat but not contradict; a
-    /// key supplied in another format is identified by <see cref="SecretKeyImportRequest.KeyId"/>, or by its secret
-    /// identifier when that is unset. Uniqueness of the <c>kid</c> among the client's other keys is the caller's to
+    /// Imports a single public key in any supported format, for a client or for any other owner of keys the management
+    /// API imports into: a tenant, a server, or a resource server. A key supplied as a JSON Web Key keeps the
+    /// <c>kid</c>, <c>use</c>, and <c>alg</c> it declares, which the request may repeat but not contradict; a key
+    /// supplied in another format is identified by <see cref="SecretKeyImportRequest.KeyId"/>, or by its secret
+    /// identifier when that is unset. Uniqueness of the <c>kid</c> among the owner's other keys is the caller's to
     /// check, since only the caller knows them.
     /// </summary>
     /// <param name="request">The key material and the metadata to import it with.</param>

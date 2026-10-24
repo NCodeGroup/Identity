@@ -5,20 +5,11 @@ import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
-import type { ManagementScope, ResourceServerResource } from '@ncode/api';
-import {
-  useCreateResourceServerSecretMutation,
-  useDeleteResourceServerSecretMutation,
-  useGetResourceServerEffectiveSettingsQuery,
-  useGetResourceServerSettingsQuery,
-  useLazyGetResourceServerSecretPublicKeyQuery,
-  useListResourceServerSecretsQuery,
-  useUpdateResourceServerSettingsMutation,
-} from '@ncode/store';
+import type { ManagementOwner, ManagementScope, ResourceServerResource } from '@ncode/api';
 import { ClientsPage } from './ClientsPage.js';
+import { OwnerSecretsTab } from './OwnerSecretsTab.js';
+import { OwnerSettingsTab } from './OwnerSettingsTab.js';
 import { ResourceServerScopesPage } from './ResourceServerScopesPage.js';
-import { SecretsManager } from './SecretsManager.js';
-import { SettingsManager } from './SettingsManager.js';
 
 export type ResourceServerDetailPageProps = {
   readonly scope: ManagementScope;
@@ -33,10 +24,10 @@ type ResourceServerSurface = 'scopes' | 'clients' | 'secrets' | 'settings';
  * it, its secrets, and its settings. The parent
  * {@link import('./ResourceServersPage.js').ResourceServersPage} supplies the resource server and owns
  * the drill-in selection. Scopes reuse the embedded {@link ResourceServerScopesPage} and clients the
- * embedded {@link ClientsPage}; secrets/settings reuse the shared {@link SecretsManager}/
- * {@link SettingsManager} (one-time reveal per ADR-0050 and a top-level JSON Patch diff), wired to the
- * resource server's nested endpoints. A system resource server is read by the server itself, so it
- * holds no keys and no client acts for it: those tabs are not offered. Owns only tab state.
+ * embedded {@link ClientsPage}; secrets/settings reuse the owner-generic {@link OwnerSecretsTab}/
+ * {@link OwnerSettingsTab} (one-time reveal per ADR-0050 and a top-level JSON Patch diff). A system
+ * resource server is read by the server itself, so it holds no keys and no client acts for it: those
+ * tabs are not offered. Owns only tab state.
  */
 export function ResourceServerDetailPage({
   scope,
@@ -45,6 +36,11 @@ export function ResourceServerDetailPage({
 }: ResourceServerDetailPageProps) {
   const [surface, setSurface] = useState<ResourceServerSurface>('scopes');
   const isSystem = resourceServer.isSystem;
+  const owner: ManagementOwner = {
+    kind: 'resource-server',
+    scope,
+    resourceServerId: resourceServer.resourceServerId,
+  };
 
   return (
     <>
@@ -84,68 +80,10 @@ export function ResourceServerDetailPage({
       ) : surface === 'clients' ? (
         <ClientsPage scope={scope} resourceServerId={resourceServer.resourceServerId} embedded />
       ) : surface === 'secrets' ? (
-        <ResourceServerSecretsTab
-          scope={scope}
-          resourceServerId={resourceServer.resourceServerId}
-        />
+        <OwnerSecretsTab owner={owner} ownerLabel="resource server" />
       ) : (
-        <ResourceServerSettingsTab
-          scope={scope}
-          resourceServerId={resourceServer.resourceServerId}
-        />
+        <OwnerSettingsTab owner={owner} />
       )}
     </>
-  );
-}
-
-type ResourceServerTabProps = {
-  readonly scope: ManagementScope;
-  readonly resourceServerId: string;
-};
-
-function ResourceServerSecretsTab({ scope, resourceServerId }: ResourceServerTabProps) {
-  const { data, isLoading, error } = useListResourceServerSecretsQuery({ scope, resourceServerId });
-  const [createSecret, { isLoading: isCreating }] = useCreateResourceServerSecretMutation();
-  const [deleteSecret, { isLoading: isDeleting }] = useDeleteResourceServerSecretMutation();
-  const [getPublicKey] = useLazyGetResourceServerSecretPublicKeyQuery();
-
-  return (
-    <SecretsManager
-      ownerLabel="resource server"
-      secrets={data?.secrets ?? []}
-      isLoading={isLoading}
-      loadError={Boolean(error)}
-      isCreating={isCreating}
-      isDeleting={isDeleting}
-      onCreate={(body) => createSecret({ scope, resourceServerId, body }).unwrap()}
-      onDelete={(secretId) => deleteSecret({ scope, resourceServerId, secretId }).unwrap()}
-      onExportPublicKey={(secretId) => getPublicKey({ scope, resourceServerId, secretId }).unwrap()}
-    />
-  );
-}
-
-function ResourceServerSettingsTab({ scope, resourceServerId }: ResourceServerTabProps) {
-  const {
-    data: settings,
-    isLoading,
-    error,
-  } = useGetResourceServerSettingsQuery({ scope, resourceServerId });
-  const { data: effective } = useGetResourceServerEffectiveSettingsQuery({
-    scope,
-    resourceServerId,
-  });
-  const [updateSettings, { isLoading: isSaving }] = useUpdateResourceServerSettingsMutation();
-
-  return (
-    <SettingsManager
-      settings={settings}
-      effective={effective}
-      isLoading={isLoading}
-      loadError={Boolean(error)}
-      isSaving={isSaving}
-      onSave={({ concurrencyToken, original, desired }) =>
-        updateSettings({ scope, resourceServerId, concurrencyToken, original, desired }).unwrap()
-      }
-    />
   );
 }

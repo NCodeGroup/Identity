@@ -121,8 +121,8 @@ internal abstract class CommonClientAuthenticationHandler(
                         or InvalidOperationException
             )
         {
-            // A stored credential could not be deserialized (for example a secret protected by a
-            // data-protection key that is no longer available); surface it as invalid_client with a diagnostic.
+            // A stored credential could not be deserialized (for example a secret protected by a master key or root
+            // key that is no longer available); surface it as invalid_client with a diagnostic.
             Logger.ClientAuthenticationCredentialDeserializationFailed(clientId, exception);
             return await FailAsync(
                 openIdContext,
@@ -227,6 +227,7 @@ internal abstract class CommonClientAuthenticationHandler(
         await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
             openIdContext,
             clientId,
+            AuthenticationMethod,
             reason,
             cancellationToken
         );

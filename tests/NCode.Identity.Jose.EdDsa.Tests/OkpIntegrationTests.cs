@@ -150,7 +150,7 @@ public class OkpIntegrationTests
 
         var publicKey = ImportPublicKey(
             descriptor,
-            SecretKeyImportFormat.Jwk,
+            SecretKeyImportFormats.Jwk,
             System.Text.Json.JsonSerializer.Serialize(exported.Jwk)
         );
 
@@ -174,7 +174,7 @@ public class OkpIntegrationTests
         var exported = descriptor.ExportPublicKey(privateKey);
         Assert.NotNull(exported);
 
-        var publicKey = ImportPublicKey(descriptor, SecretKeyImportFormat.Pem, exported.Pem);
+        var publicKey = ImportPublicKey(descriptor, SecretKeyImportFormats.Pem, exported.Pem);
 
         Assert.False(publicKey.HasPrivateKey);
         Assert.True(algorithm.Verify(publicKey, message, signature));
@@ -193,7 +193,7 @@ public class OkpIntegrationTests
         Assert.NotNull(exported);
         var publicKey = ImportPublicKey(
             descriptor,
-            SecretKeyImportFormat.Jwk,
+            SecretKeyImportFormats.Jwk,
             System.Text.Json.JsonSerializer.Serialize(exported.Jwk)
         );
 
@@ -226,7 +226,7 @@ public class OkpIntegrationTests
 
         var parameters = new SecretKeyImportParameters
         {
-            Format = SecretKeyImportFormat.Jwk,
+            Format = SecretKeyImportFormats.Jwk,
             KeyMaterial = members.ToJsonString(),
         };
 
@@ -237,7 +237,7 @@ public class OkpIntegrationTests
 
     private static OkpSecretKey ImportPublicKey(
         OkpSecretKeyTypeDescriptor descriptor,
-        SecretKeyImportFormat format,
+        string format,
         string keyMaterial
     )
     {

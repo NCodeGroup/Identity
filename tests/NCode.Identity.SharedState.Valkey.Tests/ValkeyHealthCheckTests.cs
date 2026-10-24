@@ -45,7 +45,7 @@ public sealed class ValkeyHealthCheckTests : BaseTests
                 DefaultRegistration.HealthCheckName,
                 HealthCheck,
                 HealthStatus.Degraded,
-                [DefaultRegistration.ReadinessTag]
+                [HealthCheckTags.Readiness]
             ),
         };
 

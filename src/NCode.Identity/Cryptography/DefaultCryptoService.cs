@@ -17,39 +17,68 @@
 
 #endregion
 
+using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using NCode.Buffers;
 using NCode.Disposables;
-using NCode.Encoders;
-using NCode.Identity.Jose.Algorithms;
 
 namespace NCode.Identity.Cryptography;
 
 /// <summary>
 /// Provides a default implementation for the <see cref="ICryptoService"/> abstraction.
 /// </summary>
+/// <remarks>
+/// Encodings are the registered <see cref="IBinaryEncoder"/> strategies, resolved by name; hash algorithms are the
+/// framework's <see cref="HashAlgorithmName"/> names, computed by <see cref="CryptographicOperations"/> (ADR-0150).
+/// </remarks>
 internal class DefaultCryptoService : ICryptoService
 {
     private const int MaxStackAlloc = 512 >> 3;
+
+    private FrozenDictionary<string, IBinaryEncoder> BinaryEncoders { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultCryptoService"/> class.
+    /// </summary>
+    /// <param name="binaryEncoders">The registered encoders, each under a distinct name.</param>
+    /// <exception cref="InvalidOperationException">Two encoders are registered under the same name.</exception>
+    public DefaultCryptoService(IEnumerable<IBinaryEncoder> binaryEncoders)
+    {
+        var encoders = new Dictionary<string, IBinaryEncoder>(StringComparer.Ordinal);
+        foreach (var encoder in binaryEncoders)
+        {
+            if (!encoders.TryAdd(encoder.Name, encoder))
+            {
+                throw new InvalidOperationException(
+                    $"The binary encoding '{encoder.Name}' is registered more than once."
+                );
+            }
+        }
+
+        BinaryEncoders = encoders.ToFrozenDictionary(StringComparer.Ordinal);
+    }
+
+    private IBinaryEncoder GetBinaryEncoder(string binaryEncoding) =>
+        BinaryEncoders.TryGetValue(binaryEncoding, out var encoder)
+            ? encoder
+            : throw new ArgumentException(
+                $"The binary encoding '{binaryEncoding}' is not registered.",
+                nameof(binaryEncoding)
+            );
 
     /// <inheritdoc />
     public void GenerateBytes(Span<byte> destination) => RandomNumberGenerator.Fill(destination);
 
     /// <inheritdoc />
-    public string EncodeBinary(ReadOnlySpan<byte> data, BinaryEncodingType binaryEncodingType) =>
-        binaryEncodingType switch
-        {
-            BinaryEncodingType.Base64Url => Base64Url.Encode(data),
-            BinaryEncodingType.Base64 => Convert.ToBase64String(data),
-            BinaryEncodingType.Hex => Convert.ToHexString(data),
-            _ => throw new ArgumentException("Unsupported encoding", nameof(binaryEncodingType)),
-        };
+    public string EncodeBinary(ReadOnlySpan<byte> data, string binaryEncoding) =>
+        GetBinaryEncoder(binaryEncoding).Encode(data);
 
     /// <inheritdoc />
-    public string GenerateKey(int byteLength, BinaryEncodingType binaryEncodingType)
+    public string GenerateKey(int byteLength, string binaryEncoding)
     {
+        var encoder = GetBinaryEncoder(binaryEncoding);
         var lease = Disposable.Empty;
         try
         {
@@ -67,7 +96,7 @@ internal class DefaultCryptoService : ICryptoService
 
             GenerateBytes(bytes);
 
-            return EncodeBinary(bytes, binaryEncodingType);
+            return encoder.Encode(bytes);
         }
         finally
         {
@@ -75,56 +104,32 @@ internal class DefaultCryptoService : ICryptoService
         }
     }
 
-    private static HashFunctionDelegate GetHashFunction(HashAlgorithmType hashAlgorithmType) =>
-        hashAlgorithmType switch
-        {
-            HashAlgorithmType.Sha1 => SHA1.TryHashData,
-            HashAlgorithmType.Sha256 => SHA256.TryHashData,
-            HashAlgorithmType.Sha512 => SHA512.TryHashData,
-            _ => throw new ArgumentException("Unsupported algorithm", nameof(hashAlgorithmType)),
-        };
-
     /// <inheritdoc />
     public string HashValue(
         ReadOnlySpan<byte> data,
-        HashAlgorithmType hashAlgorithmType,
-        BinaryEncodingType binaryEncodingType
+        HashAlgorithmName hashAlgorithm,
+        string binaryEncoding
     )
     {
-        var tryComputeHash = GetHashFunction(hashAlgorithmType);
+        var encoder = GetBinaryEncoder(binaryEncoding);
 
-        var lease = Disposable.Empty;
-        try
-        {
-            // ReSharper disable once UseCollectionExpression
-            Span<byte> hashBytes = stackalloc byte[0];
-
-            var hashByteLength = (int)hashAlgorithmType;
-            if (hashByteLength <= MaxStackAlloc)
-            {
-                hashBytes = stackalloc byte[hashByteLength];
-            }
-            else
-            {
-                lease = BufferFactory.Rent(hashByteLength, isSensitive: false, out hashBytes);
-            }
-
-            var result = tryComputeHash(data, hashBytes, out var bytesWritten);
-            Debug.Assert(result && bytesWritten == hashByteLength);
-
-            return EncodeBinary(hashBytes, binaryEncodingType);
-        }
-        finally
-        {
-            lease.Dispose();
-        }
+        // A buffer the size of a SHA-512 digest fits every framework hash; a longer digest falls back to the heap.
+        Span<byte> hashBytes = stackalloc byte[MaxStackAlloc];
+        return CryptographicOperations.TryHashData(
+            hashAlgorithm,
+            data,
+            hashBytes,
+            out var bytesWritten
+        )
+            ? encoder.Encode(hashBytes[..bytesWritten])
+            : encoder.Encode(CryptographicOperations.HashData(hashAlgorithm, data));
     }
 
     /// <inheritdoc />
     public string HashValue(
         string data,
-        HashAlgorithmType hashAlgorithmType,
-        BinaryEncodingType binaryEncodingType,
+        HashAlgorithmName hashAlgorithm,
+        string binaryEncoding,
         Encoding? encoding = null
     )
     {
@@ -148,7 +153,7 @@ internal class DefaultCryptoService : ICryptoService
             var bytesWritten = effectiveEncoding.GetBytes(data, dataBytes);
             Debug.Assert(bytesWritten == dataByteLength);
 
-            return HashValue(dataBytes, hashAlgorithmType, binaryEncodingType);
+            return HashValue(dataBytes, hashAlgorithm, binaryEncoding);
         }
         finally
         {

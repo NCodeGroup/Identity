@@ -5,6 +5,9 @@ import { AppThemeProvider } from '@ncode/ui';
 import { createAppStore, runtimeConfigLoaded, type AppStore } from '@ncode/store';
 import type { RuntimeConfig } from '@ncode/config';
 import { App } from './App.js';
+// The explorer is a lazily loaded chunk. Loading its module first lets the lazy component resolve from the module
+// cache, so the test waits for the explorer's render rather than a cold transform of its chunk.
+import './containers/FlowExplorer.js';
 
 const runtime: RuntimeConfig = {
   apiBaseUrl: 'https://op.test',
@@ -27,15 +30,16 @@ function renderApp(store: AppStore) {
 }
 
 describe('Playground App', () => {
-  it('renders the explorer once runtime config is loaded', () => {
+  it('renders the explorer once runtime config is loaded', async () => {
     const store = createAppStore();
     store.dispatch(runtimeConfigLoaded(runtime));
 
-    const { getByRole, getByTestId, getByText } = renderApp(store);
+    const { getByRole, getByTestId, getByText, findByTestId } = renderApp(store);
 
     expect(getByRole('heading', { name: 'NCode.Identity · Playground' })).toBeInTheDocument();
     expect(getByText('https://op.test')).toBeInTheDocument();
-    expect(getByTestId('begin')).toBeInTheDocument();
+    // The explorer is a lazily loaded chunk.
+    expect(await findByTestId('begin')).toBeInTheDocument();
     expect(getByTestId('client-id')).toHaveValue('playground-spa');
   });
 

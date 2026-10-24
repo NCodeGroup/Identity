@@ -1,6 +1,9 @@
 # 59. Device Authorization Grant (RFC 8628) over the persisted-grant store
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0225](0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md): a device code is redeemed only by its
+  client and for a subject that passes subject validation, and the verification endpoint checks the session of its
+  cookie)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

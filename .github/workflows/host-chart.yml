@@ -1,0 +1,123 @@
+# Host chart — lints and renders the Helm chart of NCode.Identity.OpenId.Host (ADR-0179).
+#
+# The chart encodes the host's configuration surface, so it changes with the host and is checked on every change: each
+# values file under ci/ must lint strictly and render, and each release the chart must refuse — the host would refuse
+# it, or its replicas would not share state — must fail to render. The pre-deploy migration Job must render unless
+# disabled (ADR-0180). Publishing the chart belongs to the release workflow.
+name: Host chart
+
+on:
+  # A push gates only main, because a pull request already gates every other branch (see ci.yml).
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# See the note in ci.yml: on main the group includes the SHA so every trunk commit keeps its own verdict.
+concurrency:
+  group: host-chart-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'head' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  check:
+    name: Lint and render the host chart
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      CHART: charts/ncode-identity-host
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # A third-party action, so it is pinned to a commit; Dependabot moves the pin and its version comment together.
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+
+      - name: Lint and render each supported release
+        run: |
+          for values in "$CHART"/ci/*-values.yaml; do
+            echo "::group::$values"
+            helm lint --strict "$CHART" --values "$values"
+            helm template release "$CHART" --values "$values" > /dev/null
+            echo "::endgroup::"
+          done
+
+      - name: Refuse each unsafe release
+        run: |
+          base="$CHART/ci/single-replica-values.yaml"
+          refuse() {
+            if helm template release "$CHART" --values "$base" "$@" > /dev/null 2>&1; then
+              echo "::error::The chart rendered a release it must refuse: $*"
+              exit 1
+            fi
+          }
+          refuse --set replicaCount=2
+          refuse --set 'allowedHosts={*}'
+          refuse --set-json 'allowedHosts=[]'
+          refuse --set 'allowedHosts={*.example.com}'
+          refuse --set database.existingSecret=
+          refuse --set secretProtection.rootKeyProvider=
+          refuse --set secretProtection.rootKeyProvider=ephemeral
+          refuse --set secretProtection.local.keySecret=
+          refuse --set secretProtection.rootKeyProvider=aws-kms
+          refuse --set secretProtection.rootKeyProvider=aws-kms --set secretProtection.awsKms.keyArn=not-an-arn
+          refuse --set secretProtection.rootKeyProvider=azure-key-vault
+          refuse --set secretProtection.rootKeyProvider=azure-key-vault --set secretProtection.azureKeyVault.keyId=https://contoso.vault.azure.net/secrets/root
+          refuse --set secretProtection.rootKeyProvider=azure-key-vault --set secretProtection.azureKeyVault.keyId=https://contoso.vault.azure.net/keys/root --set secretProtection.azureKeyVault.workloadIdentity.clientId=00000000-0000-0000-0000-000000000000
+          refuse --set secretProtection.rootKeyProvider=google-cloud-kms
+          refuse --set secretProtection.rootKeyProvider=google-cloud-kms --set secretProtection.googleCloudKms.keyName=projects/p/locations/global/keyRings/r/cryptoKeys/k/cryptoKeyVersions/1
+          refuse --set secretProtection.rootKeyProvider=google-cloud-kms --set secretProtection.googleCloudKms.keyName=projects/p/locations/global/keyRings/r/cryptoKeys/k --set secretProtection.googleCloudKms.workloadIdentityFederation.provider=not-a-provider
+          refuse --set secretProtection.recovery.publicKeyConfigMap=
+          refuse --set tenantResolution.staticSingle.issuer=
+          refuse --set tenantResolution.staticSingle.issuer=http://id.example.com
+          refuse --set unknownSetting=true
+
+      - name: Migrate before the rollout unless disabled
+        run: |
+          base="$CHART/ci/single-replica-values.yaml"
+          if ! helm template release "$CHART" --values "$base" | grep -q 'helm.sh/hook: pre-install,pre-upgrade'; then
+            echo "::error::The chart rendered no pre-deploy migration Job."
+            exit 1
+          fi
+          if helm template release "$CHART" --values "$base" --set migrations.enabled=false | grep -q 'helm.sh/hook'; then
+            echo "::error::The chart rendered a migration Job with migrations.enabled=false."
+            exit 1
+          fi
+
+      - name: Give the migration Job the host's extra settings and a valid name
+        run: |
+          base="$CHART/ci/single-replica-values.yaml"
+          job=$(helm template release "$CHART" --values "$base" --show-only templates/migration-job.yaml \
+            --set-json 'extraEnv=[{"name":"PGSSLMODE","value":"verify-full"}]' \
+            --set-json 'extraVolumes=[{"name":"pg-ca","secret":{"secretName":"pg-ca"}}]' \
+            --set-json 'extraVolumeMounts=[{"name":"pg-ca","mountPath":"/etc/pg-ca"}]')
+          # fsGroup lets the non-root worker read a mounted secret, as it lets the host.
+          for expected in 'name: PGSSLMODE' 'mountPath: /etc/pg-ca' 'secretName: pg-ca' 'fsGroup: 1654'; do
+            if ! grep -q "$expected" <<< "$job"; then
+              echo "::error::The migration Job lacks the host's extra setting or volume: $expected"
+              exit 1
+            fi
+          done
+          # Kubernetes copies the Job's name into a label value, which is limited to 63 characters.
+          name=$(helm template a-fifty-three-character-release-name-for-the-job-test "$CHART" --values "$base" \
+            --show-only templates/migration-job.yaml | awk '/^  name:/ { print $2; exit }')
+          if [ "${#name}" -gt 63 ]; then
+            echo "::error::The migration Job name '$name' is longer than 63 characters."
+            exit 1
+          fi
+
+      - name: Never run two replicas at once without Valkey
+        run: |
+          if ! helm template release "$CHART" --values "$CHART/ci/single-replica-values.yaml" \
+            --show-only templates/deployment.yaml | grep -q 'type: Recreate'; then
+            echo "::error::A release without Valkey must use the Recreate strategy."
+            exit 1
+          fi

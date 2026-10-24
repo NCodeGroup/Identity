@@ -56,6 +56,9 @@ internal class DynamicByHostTenantStrategy(
     protected override string? IssuerTemplate => Options.IssuerTemplate;
 
     /// <inheritdoc />
+    protected override string? MtlsEndpointAliasTemplate => Options.MtlsEndpointAliasTemplate;
+
+    /// <inheritdoc />
     /// <remarks>
     /// A request to the host of the root tenant's issuer finds the root tenant even on a fresh deployment: it is created
     /// on demand.
@@ -87,58 +90,117 @@ internal class DynamicByHostTenantStrategy(
 
     /// <inheritdoc />
     /// <remarks>
-    /// A tenant is reached only through the host of its issuer, so it needs an issuer, the configured host pattern must
-    /// map that host to itself, and no other tenant may hold it — a request to a shared host could not tell the tenants
-    /// apart.
+    /// A tenant is reached only through the host of its issuer — and of its mutual-TLS endpoint-alias authority, when it
+    /// has one — so it needs an issuer, the configured host pattern must map each of those hosts to itself, and no other
+    /// tenant may hold either of them as its issuer host or its alias host: a request to a shared host could not tell the
+    /// tenants apart.
     /// </remarks>
-    // See ADR-0129 (host uniqueness is a rule of the host strategy, not the schema) and ADR-0160.
+    // See ADR-0129 (host uniqueness is a rule of the host strategy, not the schema), ADR-0160, and ADR-0195.
     public override async ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
         string tenantId,
         Uri? issuer,
+        Uri? mtlsEndpointAliasAuthority,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
         var failures = new List<TenantValidationFailure>(
-            await base.ValidateTenantAsync(tenantId, issuer, storeManager, cancellationToken)
+            await base.ValidateTenantAsync(
+                tenantId,
+                issuer,
+                mtlsEndpointAliasAuthority,
+                storeManager,
+                cancellationToken
+            )
         );
 
-        if (issuer is null)
-            return failures;
+        if (issuer is not null)
+        {
+            await ValidateHostAsync(
+                tenantId,
+                issuer.Host,
+                "issuer host",
+                storeManager,
+                failures,
+                cancellationToken
+            );
+        }
 
-        var issuerHost = issuer.Host;
-        var mappedHost = TenantAddressRules.MapToIssuerHost(IssuerHostRegex, issuerHost);
-        if (!string.Equals(mappedHost, issuerHost, StringComparison.OrdinalIgnoreCase))
+        if (mtlsEndpointAliasAuthority is not null)
+        {
+            var aliasHost = mtlsEndpointAliasAuthority.Host;
+            if (
+                issuer is not null
+                && string.Equals(aliasHost, issuer.Host, StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                failures.Add(
+                    new TenantValidationFailure
+                    {
+                        Detail =
+                            $"The mTLS endpoint alias host '{aliasHost}' must differ from the issuer host: the alias "
+                            + "exists to serve the tenant's endpoints on a host of its own.",
+                    }
+                );
+            }
+            else
+            {
+                await ValidateHostAsync(
+                    tenantId,
+                    aliasHost,
+                    "mTLS endpoint alias host",
+                    storeManager,
+                    failures,
+                    cancellationToken
+                );
+            }
+        }
+
+        return failures;
+    }
+
+    private async ValueTask ValidateHostAsync(
+        string tenantId,
+        string host,
+        string hostKind,
+        IStoreManager storeManager,
+        List<TenantValidationFailure> failures,
+        CancellationToken cancellationToken
+    )
+    {
+        var mappedHost = TenantAddressRules.MapToIssuerHost(IssuerHostRegex, host);
+        if (!string.Equals(mappedHost, host, StringComparison.OrdinalIgnoreCase))
         {
             failures.Add(
                 new TenantValidationFailure
                 {
                     Detail =
-                        $"The issuer host '{issuerHost}' does not reach the tenant: the configured host pattern maps "
-                        + $"it to '{mappedHost}'.",
+                        $"The {hostKind} '{host}' does not reach the tenant: the configured host pattern maps it to "
+                        + $"'{mappedHost}'.",
                 }
             );
         }
 
+        // The lookup matches issuer hosts and alias hosts alike, so a host is judged against both kinds at once. It
+        // lists every holder rather than routing, so a host that is already ambiguous is still reported as taken.
         var store = storeManager.GetStore<ITenantStore>();
-        var holder = await store.GetOrDefaultByIssuerHostAsync(issuerHost, cancellationToken);
+        var holders = await store.ListTenantIdsByHostAsync(host, cancellationToken);
         if (
-            holder is not null
-            && !string.Equals(holder.TenantId, tenantId, StringComparison.OrdinalIgnoreCase)
+            holders.Any(holder =>
+                !string.Equals(holder, tenantId, StringComparison.OrdinalIgnoreCase)
+            )
         )
         {
             failures.Add(
                 new TenantValidationFailure
                 {
                     Detail =
-                        $"Another tenant already has an issuer on the host '{issuerHost}', and tenants served by "
-                        + "host must each have a host of their own.",
+                        $"Another tenant already serves the host '{host}', and tenants served by host must each have "
+                        + "hosts of their own.",
                     IsConflict = true,
                 }
             );
         }
-
-        return failures;
     }
 
     private async ValueTask<bool> IsRootIssuerHostAsync(
@@ -161,6 +223,6 @@ internal class DynamicByHostTenantStrategy(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        return await store.GetOrDefaultByIssuerHostAsync(issuerHost, cancellationToken);
+        return await store.GetOrDefaultByHostAsync(issuerHost, cancellationToken);
     }
 }

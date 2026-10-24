@@ -17,7 +17,7 @@ NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.KeyClrType.get -> 
 NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.KeyType.get -> string!
 NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.OkpSecretKeyTypeDescriptor(NCode.Extensions.DataProtection.IDataProtectorFactory<NCode.Identity.Secrets.Keys.SecretKey!>! dataProtectorFactory) -> void
 NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
-NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.SupportsPublicKeyImport.get -> bool
+NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.PublicKeyImportFormats.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.ValidateGeneration(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters) -> string?
 abstract NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey.ExportPrivateKey<TWriter>(ref TWriter destination) -> void
 abstract NCode.Identity.Jose.EdDsa.Keys.OkpSecretKey.HasPrivateKey.get -> bool

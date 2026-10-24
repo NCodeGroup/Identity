@@ -63,7 +63,7 @@ public sealed class ManagementResourceServerSeedHandlerTests
             .ReturnsAsync((PersistedResourceServer?)null)
             .Verifiable();
         crypto
-            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
             .Returns("generated-rs-id")
             .Verifiable();
 

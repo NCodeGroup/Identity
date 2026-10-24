@@ -8,7 +8,9 @@
   registered method, `client_secret_basic` by default, never empty; security-profile domain amended by
   [ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md): `security_profiles` is a list whose every
   value names a registered profile; extended by [ADR-0149](0149-settings-declare-the-scopes-they-apply-to.md): the same
-  entry points also reject a setting at a scope that never reads it)
+  entry points also reject a setting at a scope that never reads it; client-authentication-method domain amended by
+  [ADR-0207](0207-client-authentication-methods-are-named-by-registered-descriptors.md): the names of the registered
+  method descriptors)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 
@@ -51,9 +53,9 @@ ADR-0139: name, type, and domain are checked together, at the same entry points,
    rules are pure functions over values with no services.
 2. **A domain defined by registered strategies consults them.**
    - `security_profile` is empty or the name of a registered `ISecurityProfile`.
-   - `token_endpoint_auth_method` is empty or, like every value of `token_endpoint_auth_methods_supported`, the method
-     of a registered client-authentication handler. Both descriptors therefore live in the authentication slice, which
-     owns the handlers.
+   - `token_endpoint_auth_method` is empty or, like every value of `token_endpoint_auth_methods_supported`, the name of
+     a registered client-authentication method descriptor, which the authentication slice registers beside each handler
+     ([ADR-0207](0207-client-authentication-methods-are-named-by-registered-descriptors.md)).
    - Every algorithm list names registered algorithms of its kind (signature, key management, content encryption,
      compression), never `none` or `dir`. The advertised defaults and the accepted values come from one classification,
      so they cannot drift apart.

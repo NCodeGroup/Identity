@@ -54,6 +54,9 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         new ConfidentialClientRequirement(),
         // A client_assertion may only target the issuer identifier (FAPI 2.0 §5.3.2.1).
         new IssuerOnlyAssertionAudienceRequirement(),
+        // A request object is addressed to the issuer, which no client setting may replace (FAPI 2.0 Message Signing
+        // §5.3.1).
+        new IssuerOnlyRequestObjectAudienceRequirement(),
     ];
 
     /// <inheritdoc />
@@ -68,6 +71,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         ceiling.Set(OpenIdSettingKeys.AccessTokenSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(OpenIdSettingKeys.UserInfoSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported, SigningAlgorithms);
+        ceiling.Set(OpenIdSettingKeys.AuthorizationSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(OpenIdSettingKeys.RequestObjectSigningAlgValuesSupported, SigningAlgorithms);
         ceiling.Set(
             OpenIdSettingKeys.TokenEndpointAuthSigningAlgValuesSupported,
@@ -89,6 +93,10 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         ceiling.Set(OpenIdSettingKeys.RequireCodeChallenge, true);
         ceiling.Set(OpenIdSettingKeys.RequirePushedAuthorizationRequests, true);
 
+        // FAPI 2.0 §5.3.2.1 Note 1: a server that rotates refresh tokens lets the client retry with the rotated token
+        // (Or floor), so a client whose refresh tokens rotate needs a reuse interval (ADR-0217).
+        ceiling.Set(OpenIdSettingKeys.RefreshTokenRotationRetryRequired, true);
+
         // Short-lived authorization code and PAR request_uri (Min ceilings can only be shortened by a child).
         ceiling.Set(OpenIdSettingKeys.AuthorizationCodeLifetime, TimeSpan.FromSeconds(60));
         ceiling.Set(OpenIdSettingKeys.PushedAuthorizationRequestLifetime, TimeSpan.FromSeconds(90));
@@ -100,5 +108,50 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         // Pin the client-assertion lifetime at the secure default (Min ceiling) so raising the server-wide value for
         // other clients never extends to a FAPI client (ADR-0124).
         ceiling.Set(OpenIdSettingKeys.ClientAssertionMaxLifetime, TimeSpan.FromMinutes(5));
+
+        // A request object carries 'nbf' and 'exp', at most 60 minutes apart (FAPI 2.0 Message Signing §5.3.1,
+        // FAPI 1.0 Advanced §5.2.2); pinned so raising the server-wide values never extends to a FAPI client (ADR-0187).
+        ceiling.Set(OpenIdSettingKeys.RequestObjectMaxLifetime, TimeSpan.FromMinutes(60));
+        ceiling.Set(OpenIdSettingKeys.RequestObjectNotBeforeRequired, true);
+
+        // FAPI 2.0 §5.3.2.2-8: no http redirect URI except a native client's loopback redirect (RFC 8252 §7.3);
+        // private-use schemes stay permitted (ADR-0203).
+        ceiling.Set(
+            OpenIdSettingKeys.RedirectUriKindsSupported,
+            (IReadOnlyCollection<string>)
+                [
+                    OpenIdConstants.RedirectUriKinds.Https,
+                    OpenIdConstants.RedirectUriKinds.Loopback,
+                    OpenIdConstants.RedirectUriKinds.PrivateUse,
+                ]
+        );
+    }
+
+    /// <inheritdoc />
+    public void ApplyDefaultSettings(ISecurityProfileDefaultsBuilder defaults)
+    {
+        // The protocol default for both signed responses is RS256, which the signing ceilings above exclude, so a client
+        // that registers no algorithm would fail at issuance; PS256 is the compliant default, and a client may still
+        // register ES256 or EdDSA (ADR-0148, ADR-0155).
+        defaults.Set(
+            OpenIdSettingKeys.IdTokenSignedResponseAlg,
+            AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
+        );
+        defaults.Set(
+            OpenIdSettingKeys.IntrospectionSignedResponseAlg,
+            AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
+        );
+        defaults.Set(
+            OpenIdSettingKeys.AuthorizationSignedResponseAlg,
+            AlgorithmCodes.DigitalSignature.RsaSsaPssSha256
+        );
+
+        // FAPI 2.0 §5.3.2.1-9 forbids rotating the sender-constrained refresh tokens of its confidential clients except
+        // in extraordinary circumstances, so a server-wide 'always' is not inherited; the scope that selects the profile
+        // may still choose 'always' (ADR-0216).
+        defaults.Set(
+            OpenIdSettingKeys.RefreshTokenRotationPolicy,
+            OpenIdConstants.RefreshTokenRotationPolicy.Unbound
+        );
     }
 }

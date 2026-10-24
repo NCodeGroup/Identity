@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (client keys amended by
   [ADR-0161](0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md): a client's key is
-  imported under one client-key policy, keeps its own `kid`, and registration no longer stores the `jwks` document)
+  imported under one client-key policy, keeps its own `kid`, and registration no longer stores the `jwks` document;
+  import formats amended by [ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md): a format is an open name
+  each key type declares, see decision 6)
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
 
@@ -78,6 +80,17 @@ axis so public keys round-trip cohesively.**
       fetch + cache + SSRF guard remains deferred** to `F16` Phase 0 — this ADR covers static import only.
     - **Capabilities** (`GET /api/capabilities`, [ADR-0067](0067-secret-type-capability-catalog-and-capabilities-discovery.md))
       advertises the supported import formats per secret type.
+
+6. **An import format is an open name, and each key type declares the formats it parses.** `jwk`, `pem`, and
+   `certificate` are the built-in `SecretKeyImportFormats` names, not the members of a closed enum: a key type a
+   package registers may parse PKCS #12, an OpenSSH public key, or a key-vault reference, so the format set is open
+   ([ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md)). `ISecretKeyTypeDescriptor.PublicKeyImportFormats`
+   lists the names a type's `ImportPublicKeyMaterial` accepts and is empty for a type that imports nothing, such as
+   `symmetric`. Every entry point checks the requested name against that list — the management validator, the
+   importer, and the client-key importer — and rejects an unlisted name with a message that lists the type's formats.
+   Names compare ordinally, so `JWK` is not `jwk`. RSA and ECC accept all three built-in names; OKP and AKP accept
+   `jwk` and `pem`, since they have no certificate form here. The capabilities flag `supportsPublicKeyImport` is true
+   when the list is not empty.
 
 ## Options considered
 

@@ -45,9 +45,10 @@ and fnm honor it, so each repo selects its own Node (nvm reads only `.nvmrc`). `
 major as the floor — it is also what makes Turborepo's cache miss when the runtime changes — and `@types/node` tracks
 that major, not the newest release
 ([ADR-0147](../../docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Moving to a
-new major changes `.node-version`, `engines.node`, and the `@types/node` ranges together. With
-NVS: `nvs auto on` switches automatically on `cd`; it only lasts for the current shell, so persist it in your shell
-profile:
+new major changes `.node-version`, `engines.node`, the `@types/node` ranges, and the Node image of the host
+[`Dockerfile`](../NCode.Identity.OpenId.Host/Dockerfile) together; the `Host image` workflow checks that image's
+major. With NVS: `nvs auto on` switches automatically on `cd`; it only lasts for the current shell, so persist it in
+your shell profile:
 
 ```powershell
 # pwsh — $PROFILE.CurrentUserAllHosts (profile.ps1; covers the terminal and the VS Code PowerShell host)
@@ -72,7 +73,7 @@ src/frontend/
     ui/       @ncode/ui      — MUI design system + stateless components + Storybook
     shell/    @ncode/shell   — stateful app-shell containers shared by the surfaces (the runtime-config BootstrapGate)
     conformance-core/ @ncode/conformance-core — framework-free conformance logic (discovery, audit, spec-coverage, probes)
-    test-support/ @ncode/test-support — test-only Vitest support shared by every workspace (the console guard)
+    test-support/ @ncode/test-support — test-only Vitest support shared by every workspace (the console guard and the Testing Library wait timeout)
     vite-config/  @ncode/vite-config — the Vite/Vitest preset every workspace builds and tests from
   apps/
     mgmt/     @ncode/app-mgmt — Management console (first surface)
@@ -103,8 +104,10 @@ src/frontend/
    `/config/bootstrap.json` + the OP's `/.well-known/openid-configuration`.
 6. **The global vs tenant security boundary is first-class** — distinct browsing contexts, cache tags,
    and authorization gating, never one list with a filter.
-7. **Branding is a runtime seam.** `@ncode/ui` themes from runtime `BrandingConfig`; per-tenant
-   branding is additive later through the same discovery channel.
+7. **Branding is a runtime seam.** `@ncode/ui` themes from runtime `BrandingConfig`. The interactive
+   surface (`apps/auth`) reads its tenant's branding from the JSON block the host embeds in every page it
+   serves with the bundle (`<script type="application/json" id="branding">`, `BRANDING_ELEMENT_ID`), parses
+   it with `parseBrandingConfig`, and mounts at once over the server-rendered page (ADR-0194, ADR-0253).
 8. **`type` over `interface`, always.** All declarations — DTOs, props, unions — use `type` aliases,
    standardizing on the single most capable mechanism (unions, intersections, mapped/conditional
    types) rather than mixing the two.
@@ -166,7 +169,10 @@ served:
 - **Backend-served SPAs** — served by the .NET host from a static `dist` (e.g. `apps/auth`, which the
   Playground serves through the interactive-login endpoint) — use **`vite build --watch`**. This keeps
   `dist` continuously rebuilt so a browser refresh shows edits. (There is no HMR dev server because the
-  .NET host, not Vite, serves these bundles.) Their config is `defineBackendServedSurfaceConfig({ base, coverage })`.
+  .NET host, not Vite, serves these bundles.) Their config is `defineBackendServedSurfaceConfig({ coverage })`, which
+  builds with a relative base: the host serves the bundle beneath each tenant's route and sets the document's
+  `<base href>` there. The host serves only the bundle's `assets` directory, its content-hashed files, and marks them
+  immutable, so the preset pins `build.assetsDir` to `assets` (ADR-0254).
 - **Standalone SPAs** — served directly by Vite on their own port (e.g. `apps/mgmt`) — use **`vite`**,
   a full HMR dev server. Their config is `defineStandaloneSurfaceConfig({ port, bootstrapHost, coverage })`, which pins
   the port with `strictPort` (the surface's redirect URI, CORS origin, and AppHost endpoint all assume it) and proxies
@@ -214,9 +220,10 @@ unfinished load and starts over.
 
 `NCode.Identity.Server` binds the `Frontend` configuration section and registers the endpoint through the
 single `IIdentityServerBuilder.AddFrontendBootstrap(configuration)` seam — the host's existing
-`MapEndpointGroups()` call then publishes it (API base, issuer, client id, scopes, feature flags, branding),
-falling back to the serving request's own origin for the API base and issuer when they are unset — so a
-single-origin host needs no configuration.
+`MapEndpointGroups()` call then publishes it (API base, issuer, client id, scopes, feature flags, branding). An unset
+issuer is the issuer of the tenant that serves the surface — never the request's origin — and an unset API base is the
+serving request's own origin, so a single-origin host needs no configuration
+([ADR-0182](../../docs/adr/0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md)).
 
 - **Backend-served bundles** (e.g. `apps/auth`, served by the OpenID Provider host) fetch the document
   straight from their serving host.
@@ -256,7 +263,7 @@ Pick **`Aspire: Full stack (F5)`** in the Run and Debug view (or press F5) — a
 as one resource graph: the Playground OP host (`api`), the interactive-login build-watcher (`auth`), the
 Management console Vite dev server (`mgmt`), the flow-explorer Vite dev server (`playground`, :5174), and the
 conformance-dashboard Vite dev server (`conformance`, :5175). Aspire gates each UI resource on the API being
-**healthy** (`WaitFor` + `/health`), so the browser UIs no longer race the API, and its **dashboard** is one place
+**healthy** (`WaitFor` + `/health/ready`), so the browser UIs no longer race the API, and its **dashboard** is one place
 for ordered startup, logs, and traces.
 
 One-time setup (**required** before the first launch, and again whenever dependencies or the pinned Node/pnpm change):
@@ -314,12 +321,38 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   read `input instanceof Request ? input.url : String(input)` and return a real `Response`
   (`new Response(JSON.stringify(body), { status, headers })`) — a plain object lacks `.clone()`, which
   `fetchBaseQuery` calls.
-- **jsdom test timeout.** The preset gives every browser-simulating suite `testTimeout: 15_000` instead of Vitest's
-  5 s default. A jsdom test that renders a full MUI screen spends seconds in the first render (theme and emotion setup),
-  and v8 coverage instrumentation — which CI always collects (`pnpm run test:report`) — slows it further on a shared
-  runner: CI measured 2.7–7.1 s for single tests across the jsdom suites, so the default failed them intermittently. The
-  timeout is a hang guard, not a performance assertion; the `environment: 'node'` suites (milliseconds per test) keep
-  the default.
+- **Testing Library and test timeouts.** Every jsdom workspace's `vitest.setup.ts` calls
+  `configureAsyncUtilTimeout(configure)`, which gives each `findBy…` and `waitFor` `ASYNC_UTIL_TIMEOUT_MS` (10 s) from
+  `@ncode/test-support` in place of Testing Library's 1 s default. The preset gives every browser-simulating suite
+  `BROWSER_TEST_TIMEOUT_MS` (30 s), at least three waits, instead of Vitest's 5 s default, so a stuck wait fails with
+  Testing Library's DOM report rather than a bare test timeout. A jsdom test that renders a full MUI screen spends
+  seconds in the first render (theme and emotion setup), and v8 coverage instrumentation — which CI always collects
+  (`pnpm run test:report`) — slows it further on a shared runner: CI measured 2.7–7.1 s for single tests across the
+  jsdom suites, so the defaults failed them intermittently. Both are hang guards, not performance assertions; the
+  `environment: 'node'` suites (milliseconds per test) keep Vitest's 5 s default.
+- **A test waits for an outcome, never for the runner.** A test file imports a lazily loaded surface's module before it
+  renders the surface, so `React.lazy` resolves from the module cache instead of waiting on a cold transform of the
+  chunk. A debounced input takes its delay as a prop that tests set to `0` (`TenantsPage`'s `addressPreviewDelayMs`),
+  so a test never waits out a real debounce. A test awaits the request mock or the settled UI, never a duration.
+  Testing Library's `waitFor` recognizes only Jest's fake timers, so Vitest's fake timers stall it and MUI transitions
+  and are not an option (backlog `R111`).
+- **The interactive bundle mounts over the page the host rendered.** `mountSurface`
+  ([`apps/auth/src/mount.tsx`](apps/auth/src/mount.tsx)) runs when the bundle's module runs and fetches nothing: it
+  reads the `#branding` block and the page's state with `readServerPage`
+  ([`apps/auth/src/serverPage.ts`](apps/auth/src/serverPage.ts)), which holds the values of the text, email and password
+  inputs by id, the `scope` checkboxes the end-user cleared, the id of the focused input, and the authorization error
+  (`#authorization-error`, its `data-error-code`, `#authorization-error-description`), then calls
+  `createRoot(container).render(...)`. Hydration does not apply, because the host's markup is not React's output.
+  `writeCarriedValue` carries a value into an input from a stable ref callback: it assigns the DOM `value` property,
+  never the attribute that React's `defaultValue` writes, so a carried password stays out of the markup. Never call
+  `flushSync` here (`@eslint-react/dom-no-flush-sync` is an error); a root's first render is not time-sliced, so it
+  is not needed (ADR-0253).
+- **The interactive bundle carries the page's Content-Security-Policy nonce.** `defineBackendServedSurfaceConfig` sets
+  Vite's `html.cspNonce` to `CSP_NONCE_PLACEHOLDER`, so the build writes `nonce="__NCODE_CSP_NONCE__"` on every script
+  and modulepreload link and on a `<meta property="csp-nonce">`; the host writes the response's nonce in its place, and
+  `mountSurface` reads it with `readCspNonce` and gives it to the emotion cache, so MUI's `<style>` elements are
+  allowed. A browser hides the `nonce` attribute once the page is parsed, so read the `nonce` property; jsdom has no
+  such property, so a test assigns `meta.nonce` itself (ADR-0256).
 - **jsdom + undici cross-realm `AbortSignal`.** Under `environment: 'jsdom'`, `fetch`/`Request`/`Response`
   stay Node's (undici) globals while jsdom overrides `AbortController`/`AbortSignal`. `fetchBaseQuery`
   builds `new Request(url, { signal })` from the global (jsdom) `AbortController`, and undici's `Request`
@@ -359,6 +392,12 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   the resource still has dependents). Invalidate both the `LIST` tag and the per-id tag so the scoped
   caches reconcile. Server failures are RFC 7807 Problem Details; surface them through
   [`apiErrorMessage`](packages/store/src/apiError.ts) rather than re-deriving messages in each container.
+- **A resource every owner has is one endpoint per operation, keyed by a `ManagementOwner`.** Secrets and settings
+  belong to the server, a tenant, or a client or resource server in a scope; `@ncode/api`'s
+  [`owner.ts`](packages/api/src/owner.ts) builds each owner's API path (`ownerApiPath`) and cache tags (`ownerTagId`,
+  `ownerEffectiveTagId`), and `@ncode/store` defines `listSecrets`, `getSettings` and the rest once. A new owner kind is
+  a member of `ManagementOwner`, never another set of endpoints; the detail pages render `OwnerSecretsTab` and
+  `OwnerSettingsTab` (ADR-0257).
 - **A query that checks live input shows its result only while the result describes that input.** RTK Query keeps
   returning the previous `data` while a query for new arguments loads, and a debounced input lags the field it reads,
   so a preview of the old input would be shown as the current one. Compare the hook's `originalArgs` with the input as

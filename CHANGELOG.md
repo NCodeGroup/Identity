@@ -10,6 +10,567 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The in-process dispatcher is configured from `OpenId:InProcessJobDispatcher`.** `AddConfiguration` binds
+  `InProcessJobDispatcherOptions` (`QueueCapacity`, `FullMode`, `MaxConcurrentJobs`) strictly from the OpenID section's
+  `InProcessJobDispatcher` subsection, which `InProcessJobDispatcherOptions.SectionName` names, and the host refuses to
+  start on an unknown key, a capacity or concurrency below 1, or a `FullMode` that names no member of
+  `BoundedChannelFullMode`; each failure names its key
+  ([ADR-0242](docs/adr/0242-the-in-process-dispatcher-is-configured-under-the-openid-section.md), backlog `R103`).
+
+- **The management API lists a tenant's incoherent clients.** `GET api/tenants/{tenantId}/incoherent-clients` checks a
+  page of the tenant's stored clients (`cursor`, `limit` up to 100) against the tenant's effective settings and returns
+  each client they make incoherent with every violation (`settingName`, `value`, `governingSettingName`,
+  `description`), or the `documentError` of a settings document that cannot be honored; a page can list no client while
+  `continuationToken` remains. `IClientCoherenceReporter` finds them for the API and for the reconciliation's report,
+  and `IncoherentClient`, `IncoherentClientResource` and `ClientCoherenceViolationResource` describe them
+  ([ADR-0233](docs/adr/0233-the-management-api-lists-a-tenants-incoherent-clients.md), backlog `R87`).
+
+- **An end user can change their password.** The self-service page `account/password` takes the current password and
+  a new one; a change ends every other session of the principal with `password_changed`, which sends back-channel
+  logout, revokes every grant issued under no session, and keeps the current session and the consents. "Sign out
+  everywhere else" also revokes the grants issued under no session. A credential backend offers the change by
+  registering `IInteractivePasswordChanger`, as the local accounts do. **Breaking:** `IInteractivePasswordChanger`,
+  `InteractivePasswordChangeResult`, `InteractiveAuthenticationDefaults.PasswordPath`,
+  `SessionTerminationReasons.PasswordChanged` and `GrantFilter.WithoutSession` are added
+  ([ADR-0230](docs/adr/0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md), backlog `R99`).
+
+- **Secret protection key hierarchy** ([ADR-0235](docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+  Stored private and symmetric secrets are AES-256-GCM envelopes (`nce1.`) under a fresh data key, wrapped by an
+  HKDF-derived purpose key of the owner's master key (the server or the tenant), which is wrapped by a root key held by a
+  root key provider (`ephemeral`, `local`, or a registered one) and, optionally, by an offline recovery RSA key. New
+  public contracts: `ISecretProtectorProvider`, `ISecretProtector`, `IRootKeyProvider`, `IMasterKeyStore`,
+  `SecretOwner`, `SecretProtectionOptions`. New `MasterKeys` table (migration `AddMasterKeys`). Implements backlog `S9`.
+
+- **Protect your own data.** `ISecretProtector` is buffer-first (writes into caller-supplied `IBufferWriter<T>`s,
+  with `GetProtectedLength` for sizing, and a `ProtectToString` helper for text columns), so applications protect any
+  sensitive value under a tenant's or the server's master key with a namespaced purpose.
+
+- `ManagementApiEndpointHandler.ProcessGetAsync` has an overload whose asynchronous mapper runs only after authorization
+  succeeds; the secret public-key endpoints use it, so a caller who may not read a secret never loads its owner's master
+  keys.
+
+- **`NCode.Identity.Secrets.Persistence.AwsKms`** — an AWS KMS root key provider (`AddAwsKmsRootKeyProvider`,
+  section `SecretProtection:RootKeyProviders:AwsKms`, key or alias ARN) that binds each wrap to its owner through the
+  KMS encryption context and takes credentials from the AWS SDK's default chain; wired into the reference host and
+  the Helm chart, which federates the pod's service-account token with AWS (`secretProtection.awsKms`) only when
+  `aws-kms` is selected, and refuses a malformed key ARN.
+
+- **`NCode.Identity.Secrets.Persistence.GoogleCloudKms`** and **`NCode.Identity.Secrets.Persistence.AzureKeyVault`** —
+  a Google Cloud KMS root key provider (`google-cloud-kms`, `AddGoogleCloudKmsRootKeyProvider`, crypto key resource
+  name in `SecretProtection:RootKeyProviders:GoogleCloudKms:KeyName`) that binds each wrap to its owner through the
+  additional authenticated data and checks CRC32C checksums on every request and response, and an Azure Key Vault root
+  key provider (`azure-key-vault`, `AddAzureKeyVaultRootKeyProvider`, key identifier in
+  `SecretProtection:RootKeyProviders:AzureKeyVault:KeyId`) that wraps with `RSA-OAEP-256` and refuses an RSA key under
+  3072 bits. Both take keyless credentials from their SDK's default chain (Application Default Credentials,
+  `DefaultAzureCredential`), never from configuration; wired into the reference host and the Helm chart, whose
+  `secretProtection.googleCloudKms` / `secretProtection.azureKeyVault` values mount workload identity credentials only
+  for the selected provider and refuse a malformed key name, key identifier or workload identity pool provider
+  ([ADR-0260](docs/adr/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md), backlog `S15`).
+
+- **An administrator can block any end user.** `POST api/tenants/{tenantId}/principals/{principalId}/block` blocks a
+  principal whatever its connections, `POST api/tenants/{tenantId}/principals/{principalId}/unblock` lifts the block,
+  and `GET api/tenants/{tenantId}/principals/{principalId}` reports it. Blocking terminates every session of the
+  principal with `user_blocked`, which revokes its grants and sends back-channel logout, and keeps its consents; every
+  grant refuses a blocked principal with `access_denied`, and the authorization request and the interactive sign-in
+  refuse it with `access_denied` (backlog `R98`). The change is audited as `PrincipalChangedAuditEvent` (resource type
+  `principal`). **Breaking:** `PersistedFederatedPrincipal.IsBlocked`, `FederatedPrincipalEntity.IsBlocked`,
+  `SessionTerminationReasons.UserBlocked`, `OpenIdConstants.EndpointTags.Principals` and
+  `ManagementResourceTypes.Principal` are added, and the `AddFederatedPrincipalIsBlocked` migration adds a column to the
+  federated principals table
+  ([ADR-0226](docs/adr/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  backlog `R93`).
+
+- **`token.refresh.retry` audits a rotated refresh token retried within its reuse interval.** When the retry is
+  answered with another refresh token of its rotation family, `RefreshTokenRetryAuditEvent` is published with outcome
+  `success`, so an operator can tell a client's retry from a rotation and from a reuse (`token.refresh.replay`); a
+  refused retry publishes none. **Breaking:** `IAuditEventRecorder.RecordRefreshTokenRetryAsync` is a member a custom
+  recorder implements
+  ([ADR-0217](docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), backlog `R84`).
+
+- **The grant retention and the usage ledger are configured through `OpenId:GrantRetention` and
+  `OpenId:TenantUsage`.** `AddConfiguration` binds `GrantRetentionOptions` (`Retention`, `PruneInterval`) and
+  `TenantUsageOptions` (`FlushInterval`, `Retention`) strictly and validates them when the host starts;
+  `GrantRetentionOptions.SectionName` and `TenantUsageOptions.SectionName` name the subsections
+  ([ADR-0221](docs/adr/0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md),
+  backlog `R83`).
+
+- **The host refuses to start with an interval or a lifetime that a timer cannot run.** The server's and the tenants'
+  settings and secrets refresh intervals, `OpenId:Server:ReconciliationLeaseDuration`,
+  `OpenId:Tenant:TenantCacheLifetime`, `GrantRetentionOptions.PruneInterval` and `TenantUsageOptions.FlushInterval`
+  must be between one millisecond and 4,294,967,294 milliseconds (about 49.7 days), and a retention must not be
+  negative; the error names the option and its configuration key. `NCode.Time.TimerPeriod` states the range
+  ([ADR-0221](docs/adr/0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md),
+  backlog `R86`).
+
+- **A client whose refresh tokens rotate under the FAPI 2.0 profile must be able to retry a rotation.** The client
+  setting `refresh_token_rotation_retry_required` (`false` by default; a child scope cannot un-require it) is required
+  by the FAPI 2.0 security profile, and the coherence rule `RefreshTokenRotationRetryCoherenceRule` refuses a client
+  that requires it while its refresh tokens rotate (`refresh_token_rotation_policy` `always`, or `unbound` for a public
+  client) and its `refresh_token_reuse_interval` is zero (FAPI 2.0 §5.3.2.1)
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md),
+  [ADR-0217](docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), backlog `R81`).
+
+- **A server settings write takes effect at once on every replica.** After the server settings PATCH commits, the
+  replica that handled it reads the committed document again before it answers and announces the change on the
+  `server-settings-changed` replica broadcast channel, so every replica that receives the announcement reads it again.
+  `OpenIdServer.RefreshSettingsAsync` reads the document on demand, and the poll
+  (`OpenId:Server:SettingsPeriodicRefreshInterval`, 5 minutes) is the fallback for a replica that missed the
+  announcement
+  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R57`).
+
+- **Every tenant and stored client is reconciled with the server's effective settings when they change.** Each replica
+  runs `ServerSettingsReconciliationService`, which reacts to a management write, a configuration reload, and a
+  deployment that changes the server's effective settings. One replica, holding a lease in the shared state for
+  `OpenId:Server:ReconciliationLeaseDuration` (10 minutes by default), sends `ReconcileServerSettingsCommand`:
+  `TenantKeyReconciliationHandler` seeds every tenant that holds keys but lacks one its settings use, and
+  `ClientCoherenceReportHandler` logs every stored client that the settings make incoherent, the bootstrap
+  administrator included. `PersistedServer.ReconciledSettingsFingerprint`, which the
+  `AddServerReconciledSettingsFingerprint` migration adds, records what was reconciled, so a pass that a restart
+  interrupted runs again and a start that changes nothing runs none
+  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R61`
+  and `R72`).
+
+- **A replica that may have missed a broadcast drops what the message would have invalidated.**
+  `IReplicaBroadcastHandler.HandleMissedMessagesAsync` is called by the Valkey subscriber once it subscribes a channel
+  and whenever its connection is restored. The tenant handler evicts every cached tenant through
+  `IOpenIdTenantCache.ClearAsync`, and the server handler reads the server's settings again
+  ([ADR-0205](docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md),
+  [ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R58`).
+
+- **`refresh_token_reuse_interval` lets a client retry a refresh with its rotated refresh token.** The interval is off
+  by default and at most 60 seconds. A rotated refresh token that is presented within the interval is answered as the
+  rotation was, and the retry receives a new refresh token in the same rotation family, so a client that lost the
+  response, or two tabs that refresh at once, keep their session. A rotation marks the spent grant consumed, and the
+  revocation endpoint revokes the whole family of a refresh token.
+  `IPersistedGrantService.AddToRefreshTokenLineageOrDefault`, `ITokenService.ReissueRefreshTokenAsync`, and
+  `IGrantStore.GetActiveByRefreshTokenLineageAsync` store and read the branch
+  ([ADR-0217](docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), backlog `R79`).
+
+- **Grants are removed after a retention period.** `GrantPruneService` runs hourly in every replica and removes, in
+  bounded batches, the grants that expired or were revoked more than `GrantRetentionOptions.Retention` ago (14 days by
+  default), so the grants table holds live grants and those that ended within the retention.
+  `IGrantStore.RemoveEndedBeforeAsync` stages one batch for removal, and the `AddGrantRevokedWhenIndex` migration
+  indexes `Grants.RevokedWhen`
+  ([ADR-0218](docs/adr/0218-ended-grants-are-removed-after-a-retention-period.md), backlog `R76`).
+
+- **`ClientCoherenceContext` gives a coherence rule the settings a client registers and its effective settings, and
+  three more built-in rules read it.** `IClientCoherenceRule.FindViolations` receives the client's own settings
+  document as written, without its tenant's settings and without any security profile's ceilings and defaults, beside
+  the effective settings that result, so a rule sees a value that a ceiling dropped.
+  `ClientCoherenceViolation.Missing` reports a required value that is absent. `RegisteredValueCoherenceRule` reports a
+  value that a client lists, or a `true` that it registers, that an `Intersect` or `And` ceiling drops from its
+  effective settings. `IdTokenEncryptionCoherenceRule` reports a client that must encrypt its ID tokens and registers
+  no `id_token_encrypted_response_alg`. `BackchannelTokenDeliveryCoherenceRule` reports a client that has no
+  `client_notification_endpoint` while its delivery mode is not `poll`, and a client that may use the CIBA grant while
+  `backchannel_token_delivery_modes_supported` excludes its delivery mode
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R62`).
+
+- **Dynamic client registration reads and reports `dpop_bound_access_tokens`, and
+  `DPoPBoundAccessTokenCoherenceRule` checks the requirement.** The RFC 9449 §5.2 client metadata member is the client's
+  requirement `require_dpop_bound_access_tokens`, as `tls_client_certificate_bound_access_tokens` is the requirement
+  `require_tls_client_certificate_bound_access_tokens`. The rule reports a client that requires DPoP-bound access
+  tokens while its effective `dpop_signing_alg_values_supported` is set and empty, because that list is how a server
+  advertises DPoP support (RFC 9449 §5.1), so no proof could be accepted
+  ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md),
+  [ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R65`).
+
+- **`StoreConcurrencyException` reports a lost optimistic-concurrency race.** The store manager throws it from
+  `SaveChangesAsync` when another unit of work changed an entity after it was read, and a store throws it when the
+  concurrency token that its caller presents differs from the stored one. A caller handles a lost race without a
+  reference to Entity Framework, and a store that is not built on it reports a lost race the same way
+  ([ADR-0208](docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), backlog `R66`).
+
+- **`DistinguishedName` matches a distinguished name as RFC 4517 `distinguishedNameMatch` does.**
+  `DistinguishedName.TryParse` reads an RFC 4514 string and what an operator pastes: whitespace around `=`, `,`, and
+  `+`, RFC 2253 quoted values, `\` escapes, `\XX` UTF-8 hex escapes, and `#` hex BER values. An attribute type is a
+  keyword from a closed table, a dotted OID, or `OID.` followed by a dotted OID. `DistinguishedName.FromX500` reads a
+  certificate's name, and `Matches` compares two names: the RDN count and order are equal, a multi-valued RDN is a set,
+  and a character-string value is compared after NFKC normalization, deletion of the characters that map to nothing,
+  whitespace collapse, and case folding, while any other value is compared by its exact encoding. The
+  `tls_client_auth_subject_dn` setting rule, the `tls_client_auth` handler, and the CRL issuer check use it
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R18`).
+
+- **`IClientCertificateRevocationChecker` and `ClientCertificateRevocationStatus`.** `CheckAsync` answers whether an
+  issuer revoked a certificate with `Good`, `Revoked`, or `Unknown`, and `Unknown` is the zero value, so a checker that
+  cannot tell fails closed. The chain validator asks it about every element of a chain except the trust anchor, and the
+  chain passes only when every answer is `Good`. The default is registered with `TryAddSingleton`, so a host replaces
+  it, for example to check OCSP. The default reads the certificate's `http` and `https` CRL distribution points,
+  fetches each CRL through the named client `NCode.Identity.OpenId.ClientCertificateRevocation`, accepts only a current
+  DER CRL that the issuing certificate signed, and caches it until its `nextUpdate` or one hour. It answers `Unknown`
+  for a certificate with no usable CRL, such as an OCSP-only PKI or a delta, partitioned, or indirect CRL
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R16`, `R64`).
+
+- **`require_tls_client_certificate_bound_access_tokens` is a client's requirement that its access tokens be bound to
+  its certificate.** As `require_dpop_bound_access_tokens` is separate from the server's advertised
+  `dpop_signing_alg_values_supported`, the requirement is separate from the advertised support,
+  `tls_client_certificate_bound_access_tokens` (RFC 8705 §3.3). It applies to clients, and a server or tenant may set
+  it as a default for every client. It merges with `Or`, defaults to `false`, and is not advertised. The token endpoint
+  binds the certificate only for a client whose requirement is `true`, and a client that requires binding and presents
+  no certificate is refused with `invalid_request`. Dynamic client registration reads and reports the RFC 8705 §3.4
+  client metadata `tls_client_certificate_bound_access_tokens` as the requirement. A coherence rule,
+  `CertificateBoundAccessTokenCoherenceRule`, reports a client that requires binding while its effective support is
+  `false`
+  ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md),
+  [ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R42`).
+
+- **`IInitialAccessTokenValidator.TryConsumeAsync` spends an initial access token, and
+  `PersistedGrant<TPayload>.ConsumedWhen` records when a grant was spent.** Dynamic registration spends the token once
+  every check has passed, immediately before the client is stored, and refuses with `401` `invalid_token`, storing
+  nothing, a token that cannot be spent. `ValidateAsync` answers `null` for a grant whose `ConsumedWhen` is set. The
+  default spends the grant row, whose concurrency token makes the spend atomic across replicas. **Breaking:** a
+  replacement validator implements `TryConsumeAsync` and returns `false` when the token no longer authorizes
+  registration
+  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md),
+  [ADR-0063](docs/adr/0063-dynamic-client-registration.md), backlog `R17`).
+
+- **Client coherence rules.** `IClientCoherenceRule` names the settings it reads and reports each value a client
+  registers that an effective setting does not permit as a `ClientCoherenceViolation`, and `IClientCoherenceValidator`
+  runs every registered rule over a client's effective settings and tells a caller whether a change touches a setting a
+  rule reads. The four built-in rules check a client's response algorithms, its redirect URI kinds, its token endpoint
+  authentication method, and a required certificate-bound access token against the server's support for it, and a
+  package adds a rule by registering it with `TryAddEnumerable`
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R40`).
+
+- **Client-authentication method descriptors.** `ClientAuthenticationMethodDescriptor` names a method and says whether
+  it requires a client secret. A package contributes one through
+  `ICollectionDataSource<ClientAuthenticationMethodDescriptor>`, and `IClientAuthenticationMethodCatalog` lists the
+  registered names and finds a descriptor without constructing a handler
+  ([ADR-0207](docs/adr/0207-client-authentication-methods-are-named-by-registered-descriptors.md), backlog `R60`).
+
+- **`IEffectiveSettingsResolver` resolves a scope's effective settings in one place.** Each caller used to rebuild the
+  merge of the server's settings, a tenant's document, and a client's or resource server's document, with the security
+  profiles' ceilings and defaults. The registrable resolver does it: `ReadScopeSettings` and `Resolve` read a scope's
+  document and merge it onto its parent's effective settings, and the two `ResolveServerAsync` overloads resolve a
+  proposed or the committed server document onto the configured settings. Its default is registered with
+  `TryAddSingleton`, so a host replaces it
+  ([ADR-0204](docs/adr/0204-a-scopes-effective-settings-are-resolved-by-one-service.md), backlog `R39`).
+
+- **`IReplicaBroadcaster` and `IReplicaBroadcastHandler` announce a change to every replica.** A replica publishes a
+  message on a channel, and every replica's handlers for that channel receive it, the publisher's included. Delivery is
+  best effort, at most once, and unordered, so a handler is idempotent, and a handler's failure is logged and never
+  reaches the publisher. `AddInProcessReplicaBroadcaster()` is the default, and `AddIdentityServer` registers it. The
+  Valkey adapter publishes with `PUBLISH` and `SUBSCRIBE` on the key prefix plus the channel, so its access-control
+  user needs both commands. The `tenant-changed` channel evicts a changed tenant on every replica
+  ([ADR-0205](docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md), backlog `R49`).
+
+- **`ServerSettingsChangedCommand`.** The server settings PATCH sends it after it commits, carrying the previous and the
+  new document. Its default handler reads the document again on this replica and announces the change to every replica,
+  and the reconciliation of the server's settings then seeds each tenant that holds keys but lacks one its lists name,
+  outside the request ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md),
+  [ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R50`).
+
+- **`ITenantStore.GetSettingsPageAsync` and `IClientStore.GetSettingsPageAsync`.** Each reads a page of settings
+  documents without their secrets and without change tracking, for a pass over every tenant or client (backlog `R21`).
+
+- **Redirect URI kinds, which a client's settings narrow.** The new `redirect_uri_kinds_supported` setting lists the
+  kinds of redirect URI a client may register and use. It applies to tenants and clients, merges with `Intersect`,
+  is not advertised, and permits every kind while unset. A kind is a registered `IRedirectUriKind`, judged through
+  `IRedirectUriKindCatalog`, so a package adds one by registering it. The built-in kinds, named in
+  `OpenIdConstants.RedirectUriKinds`, sort a redirect URI into at most one: `https`, `loopback` (an `http` URI whose
+  host is `127.0.0.1` or `[::1]`, RFC 8252 §7.3), `http` (any other `http` URI, `localhost` included), and
+  `private_use` (a reverse-domain scheme such as `com.example.app`, RFC 8252 §7.1)
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R53`).
+
+- **`IOpenIdEndpointMeteredMetadata` and `WithOpenIdMetered(bool)` mark whether an endpoint is the tenant's metered
+  usage.** A metered endpoint's requests spend the daily request quota and are recorded in the usage ledger; an
+  endpoint without the metadata is metered. A package that adds a public metadata endpoint opts it out with
+  `WithOpenIdMetered(false)`.
+
+- **`HealthCheckTags.Readiness`.** `NCode.Identity.Abstractions` publishes the tag (`"ready"`) of every health check
+  that decides whether a replica can serve requests. The Valkey adapter tags its check with it and the reference host's
+  `/health/ready` endpoint runs the checks that carry it, so a package that adds a readiness check uses the constant
+  instead of repeating the string.
+
+- **FAPI 1.0 Advanced conformance harness.** `build/conformance/run-conformance.ps1 -Fapi1Advanced` runs the
+  conformance suite's `fapi1-advanced-final-test-plan` with `private_key_jwt` and `self_signed_tls_client_auth`
+  clients, pushed authorization requests, and plain and JARM responses. It generates each client's key and self-signed
+  certificate on first use into a gitignored folder, so no private key is committed
+  ([ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+  - `ConformanceClientSeed` gains `Jwks`, the public key set a client registers by value, and `SecurityProfiles`. A
+    client with a key set and no secret is seeded with exactly the keys the client-key policy imports, and a key set
+    the policy refuses stops the seeding with an error naming the client.
+  - The reference host receives mutual-TLS client certificates when it terminates TLS itself: its HTTPS defaults
+    accept any client certificate an endpoint requests (`Kestrel:EndpointDefaults:ClientCertificateMode`), and the OP
+    validates it against the client it authenticates. It is inert while no endpoint requests a certificate. A host
+    that terminates TLS itself and serves mutual-TLS clients does the same in its own `ConfigureHttpsDefaults`.
+- **FAPI 1.0 Advanced security profile (`fapi1-advanced`).** A tenant or client that selects it through
+  `security_profiles` gets the following ceilings:
+  - `code` with a JWT-secured (JARM) response mode, or `code id_token` once the tenant lists it;
+  - PAR, PKCE `S256`, and signed request objects that carry `nbf`, live at most 60 minutes, and are addressed to the
+    issuer;
+  - access tokens bound to the client's certificate through mutual TLS;
+  - `private_key_jwt`, `tls_client_auth`, or `self_signed_tls_client_auth` client authentication, with public clients
+    refused;
+  - PS256 or ES256 signing only, with PS256 the default for ID tokens, introspection, and authorization responses;
+  - authorization codes that live at most 60 seconds and PAR `request_uri`s at most 90.
+
+  A request for plain `code` without a `.jwt` response mode is refused with `invalid_request`.
+  `AuthorizationRequestProfileContext` now carries the composed `IAuthorizationRequest` for request-time requirements.
+  The spec-coverage matrix gains a `profile-fapi1-advanced` row. See
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md).
+
+- **JWT-secured authorization responses (JARM).** The authorization endpoint serves the `query.jwt`, `fragment.jwt`,
+  `form_post.jwt`, and `jwt` response modes. They deliver the response, an error included, as one JWT in the `response`
+  parameter. The JWT is issued by the tenant, addressed to the client, and expires after 5 minutes. It is signed with
+  the client's new `authorization_signed_response_alg` (default `RS256`, `PS256` under `fapi2`) and encrypted when the
+  client registers `authorization_encrypted_response_alg`/`_enc`. Discovery advertises the modes and the new
+  `authorization_signing_alg_values_supported` and `authorization_encryption_alg_values_supported`/`_enc_values_supported`
+  ceilings, and Dynamic Client Registration accepts and reports the client metadata. `jwt` resolves to `fragment.jwt`
+  when the response type returns a token, and `query.jwt` is refused for such a response type. See ADR-0201.
+
+- **Response modes are an open vocabulary.** The authorization result executor delivers each response through the
+  `IAuthorizationResponseModeHandler` registered for its response mode instead of a fixed switch, so a package adds a
+  response mode by registering a handler. The `response_mode` setting rule accepts any whitespace-free name, and a
+  request whose response mode no handler serves is refused with `400` and no redirect. `AuthorizationResult` now
+  carries the request's `OpenIdContext` and `OpenIdClient`. See ADR-0201.
+
+- **No CORS on the front-channel endpoints.** The authorization, continue, and end-session endpoints and the
+  interactive login/consent surface carry the new `IOpenIdEndpointFrontChannelMetadata` (`WithOpenIdFrontChannel()`),
+  and `UseDeveloperCors` applies the developer policy only to endpoints without it, so in Development they no longer
+  answer a cross-origin request with `Access-Control-Allow-Origin` (FAPI 2.0 Security Profile §5.3.2.1). The marker
+  also makes routing send a CORS preflight to the endpoint itself, which refuses it with `405` and no CORS headers,
+  instead of to routing's metadata-less 405 endpoint, which the CORS middleware answered; `UseDeveloperCors` also
+  answers no preflight that selects no endpoint, such as one for a method a front-channel path does not map. A host
+  that adds its own CORS middleware should skip both. See the ADR-0109 amendment.
+
+- **Strong client-authentication methods at Dynamic Client Registration.** A self-registered client can register
+  `private_key_jwt`, `client_secret_jwt`, `tls_client_auth`, or `self_signed_tls_client_auth`: registration accepts
+  every method the tenant's effective `token_endpoint_auth_methods_supported` permits instead of a fixed list, so a
+  `fapi2` tenant refuses `client_secret_*` when the client registers. `private_key_jwt` and
+  `self_signed_tls_client_auth` require `jwks` or `jwks_uri` (a `jwks` by value with an `x5c` certificate for the
+  latter); `tls_client_auth` requires exactly one new `tls_client_auth_*` identity parameter, which the read and update
+  responses report. Only the `client_secret_*` methods are issued a `client_secret`. See the ADR-0145 amendment.
+
+- **Billed overage past a daily quota.** A plan tier can admit requests past its daily quota and bill them instead of
+  refusing at the quota: `quota_tenant_requests_overage_per_day` and `quota_tenant_token_requests_overage_per_day` set
+  how many more requests (or confidential clients' token requests) are served past the matching quota in a UTC day.
+  Unset or `0` refuses at the quota as before; a set allowance is also the hard ceiling, past which the tenant is
+  refused until midnight UTC. Like the quotas, a server-scope allowance is every tenant's default and caps a
+  tenant-scope one. Each request admitted past a quota is recorded in the usage ledger under the new meters
+  `requests_overage` and `token_requests_overage`, which the usage report and the admin UI's Usage tab show with the
+  others, and is counted in `ncode.identity.rate_limiting.requests` with the result `overage`. See
+  [ADR-0200](docs/adr/0200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md).
+- **Per-tenant usage ledger.** Every tenant's daily usage is recorded durably for billing and customer reports in a new
+  `TenantUsage` table (migration `AddTenantUsage`), one row per tenant, UTC day, and meter: `requests` (requests
+  admitted by the rate limits and the daily quota) and `token_requests` (confidential clients' token requests admitted
+  by the token quota). The meter vocabulary is open: a package records its own through `ITenantUsageRecorder`. Each
+  replica counts in memory and adds to the ledger every minute (`TenantUsageOptions.FlushInterval`), and the ledger
+  keeps 400 days (`TenantUsageOptions.Retention`). `GET /api/tenants/{tenantId}/usage?from=&to=` reads a tenant's
+  usage for up to 366 days, the last 30 by default; the admin UI shows it on the tenant page's **Usage** tab, a column
+  per meter with a total row, over a chosen UTC date range. See
+  [ADR-0199](docs/adr/0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md).
+- **Per-tenant daily quotas.** Two tenant settings bound a tenant's consumption per UTC calendar day for plan tiers:
+  `quota_tenant_requests_per_day` (requests to its protocol endpoints, judged after the per-minute rate limits) and
+  `quota_tenant_token_requests_per_day` (token requests from confidential clients, judged at the token endpoint after
+  client authentication, so a caller that knows only a public `client_id` cannot spend it). A request over a quota is
+  refused with `429 Too Many Requests`, `temporarily_unavailable`, and `Retry-After` until midnight UTC. Both are
+  unlimited when unset and merged with `Min`, so the server's value caps every tenant. They are counted in the shared
+  `IExpiringCounterSet` and reported under the rate-limiting partitions `daily_requests` and `daily_token_requests`.
+  `IRequestRateLimiter` gains `AcquireForTokenRequestAsync`. See
+  [ADR-0198](docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md).
+- **Protocol-endpoint metrics.** The protocol endpoints tag ASP.NET Core's `http.server.request.duration` with
+  `ncode.identity.openid.endpoint` (the endpoint's registered name, stable when routes or tenant routing change),
+  `ncode.identity.openid.error` (the OAuth error code of every error response, including the rate limiter's `429` and an
+  authorization error redirected to the client), and, on token requests that reach grant-handler selection,
+  `ncode.identity.openid.grant_type` (a registered grant type, else `_OTHER`); the attribute
+  names are constants on `OpenIdMetricAttributes`. `NCode.Identity.OpenId.Authentication` owns the meter
+  `OpenIdAuthenticationMetrics.MeterName` and the counter `ncode.identity.rate_limiting.requests` (`{request}`) by
+  `ncode.identity.rate_limiting.partition` and `ncode.identity.rate_limiting.result` (`admitted`, `rejected`,
+  `store_unavailable`). `NCode.Identity.SharedState.Valkey` owns the meter `ValkeyMetrics.MeterName` and the histogram
+  `ncode.identity.shared_state.operation.duration` (`s`) of each Valkey round trip by operation, adapter, and
+  `error.type`. An event adds bounded attributes to `ncode.identity.events.published` by implementing
+  `ISupportMetricAttributes`: `TokenIssuedAuditEvent` adds `ncode.identity.token.type` and
+  `ClientAuthenticationFailedAuditEvent` adds `ncode.identity.client_authentication.method`. `NCode.Identity.Server`
+  adds `AddOpenTelemetryMetrics(configuration)`, which the reference host calls: the family's meters, ASP.NET Core,
+  Kestrel, `System.Net.Http` (bounded attributes only), and the runtime, exported over OTLP when
+  `OTEL_EXPORTER_OTLP_ENDPOINT` is set; the exporter is added to the metrics pipeline only, so logs and traces stay the
+  host's choice. Every meter comes from `IMeterFactory`. The catalog is
+  [`docs/metrics.md`](docs/metrics.md) ([ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md),
+  backlog `F80`).
+- **Per-tenant rate limits.** Three settings limit the requests per minute a tenant's protocol endpoints serve:
+  `rate_limit_tenant_per_minute` (every request), `rate_limit_address_per_minute` (one remote address, an IPv6 address
+  counted by its `/64`), and `rate_limit_client_per_minute` (one authenticated confidential client, set on the tenant or
+  the client). Each is unset (unlimited)
+  by default and merges with `Min`, so a tenant or client can only lower the limit above it. The limiter counts in the
+  shared `IExpiringCounterSet` with a two-window sliding estimate, so the limits hold across replicas that share Valkey.
+  A refused request is answered `429 Too Many Requests` with `temporarily_unavailable`, `Retry-After`, and
+  `Cache-Control: no-store`, and is neither handled nor audited. A counter store that fails admits the request and logs
+  a warning ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), backlog
+  `F45`).
+- **A shared expiring counter set for rate limiting.** `NCode.Identity.SharedState.Abstractions` adds
+  `IExpiringCounterSet`: `IncrementAsync(key, expiresWhen)` atomically increments a counter that spans one fixed window
+  and returns its count, and `GetAsync(key)` reads a count. `AddInProcessExpiringCounterSet` registers the in-process
+  default, which `AddIdentityServer` now registers beside the in-process key set, and `AddValkey` replaces it with a
+  Valkey adapter that runs `INCR` and `PEXPIRE` as one script, so every replica counts against one counter. It is the
+  foundation of per-tenant rate limiting
+  ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), backlog `F45`).
+
+- **The management console shows and edits a tenant's mTLS endpoint alias (RFC 8705 §5).** The `@ncode/api` mirrors
+  carry `mtlsEndpointAliasAuthority` on `TenantResource`, `CreateTenantRequest`, and `UpdateTenantFields`, and
+  `TenantAddressResource` gains it with `isMtlsEndpointAliasAuthorityDerived`. The store's `getTenantAddress` takes an
+  optional `mtlsEndpointAliasAuthority`. The tenant dialog edits the alias beside the issuer and shows the derived
+  default as its hint and placeholder, the tenant table shows it in its own column, and `TenantsPage` previews a
+  proposed alias, re-judges an existing tenant's address only when its issuer or alias changes, and sends the alias on
+  create and update, where an empty alias restores the derived one
+  ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), backlog `U25`).
+- **A tenant's mTLS endpoint alias takes a derived default, as its issuer does (RFC 8705 §5).** The new
+  `DynamicByHost:MtlsEndpointAliasTemplate` (for example `https://{tenantId}.mtls.example`) gives every tenant written
+  without an alias its expansion, and `Root:MtlsEndpointAliasAuthority` and `StaticSingle:MtlsEndpointAliasAuthority`
+  configure the root and static tenants' alias beside their issuers. `ITenantStrategy` and `ITenantResolver` gain
+  `GetDefaultMtlsEndpointAliasAuthorityAsync`. Management create and update, and the provisioner, store the derived alias
+  so a later template change never moves a tenant, and an update that clears the alias restores the derived one. The
+  template is checked at startup: an `https` origin template with `{tenantId}` in its host, whose host the host pattern
+  maps to itself and which differs from the issuer template's host. The address preview
+  (`GET /tenants/{tenantId}/address`) takes an optional `mtlsEndpointAliasAuthority` and returns the effective
+  `MtlsEndpointAliasAuthority` and `IsMtlsEndpointAliasAuthorityDerived` on `TenantAddressResource`
+  ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), backlog `F78`).
+- **A tenant's mTLS endpoint-alias host routes to the tenant (RFC 8705 §5).** The alias is now the tenant property
+  `PersistedTenant.MtlsEndpointAliasAuthority` (an `https` origin), exposed as `OpenIdTenant.MtlsEndpointAliasAuthority`,
+  and discovery builds `mtls_endpoint_aliases` from it. The host strategy routes a request to a tenant by its issuer host
+  or its alias host, through `ITenantStore.GetOrDefaultByHostAsync` (renamed from `GetOrDefaultByIssuerHostAsync`), which
+  resolves no tenant when more than one matches; validation lists every holder through the new
+  `ITenantStore.ListTenantIdsByHostAsync`. Validation judges both hosts: the alias must be an `https` origin, the
+  host pattern must map its host back to the tenant, it must differ from the issuer host, and no other tenant may serve
+  it. `ITenantResolver.ValidateTenantAsync` and `ITenantStrategy.ValidateTenantAsync` take the alias beside the issuer.
+  The management API carries `mtlsEndpointAliasAuthority` on tenant create, update, and read. **Breaking:** the
+  `mtls_endpoint_alias_authority` setting (and `OpenIdSettingNames`/`OpenIdSettingKeys.MtlsEndpointAliasAuthority`) is
+  removed; the `PromoteMtlsEndpointAliasAuthority` migration moves each stored value into the new
+  `MtlsEndpointAliasAuthority` and derived, indexed `NormalizedMtlsEndpointAliasHost` columns. Design and rationale:
+  [ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md).
+- **A tenant brands its login, consent, and account pages.** The interactive surface registers the tenant settings
+  `branding_display_name`, `branding_logo_uri` (absolute `https`), `branding_primary_color` and
+  `branding_secondary_color` (hexadecimal), and `branding_color_mode` (`light` or `dark`). It serves them at
+  `GET {tenant}/account/branding`, in the bootstrap document's `branding` shape. The `apps/auth` bundle loads them
+  before it renders: it themes the surface with the colors and mode, draws the logo, and titles the login and account
+  pages with the display name. A failed load keeps the default theme. `@ncode/config` exports `parseBrandingConfig`,
+  which the bootstrap parser now uses too, so a malformed branding token is dropped instead of trusted. New public API:
+  `InteractiveSettingNames`, `InteractiveSettingKeys`, and `InteractiveAuthenticationDefaults.BrandingPath`. See
+  [ADR-0194](docs/adr/0194-a-tenant-brands-its-interactive-surface-through-settings.md).
+- **The interactive surface is served under the tenant route.** The login, consent, logout, and account endpoints
+  share the protocol endpoints' tenant route, so interactive flows work under `DynamicByPath` at
+  `/{tenantId}/account/*`. Every redirect the surface issues, the consent challenge, and the cookie scheme's login
+  challenge are tenant-relative. The server-rendered forms post to page-relative `login` and `consent`. The session
+  cookie is scoped to the tenant's path, so tenants that share an origin keep separate sessions. Path scoping is not an
+  isolation boundary within an origin; select tenants by host when they must be isolated. The surface's endpoints also
+  serve the `apps/auth` bundle's files beneath the tenant route, with `ETag` and `Last-Modified` validators, and every
+  page they serve sets `<base href="{tenant path}/account/">`. The bundle builds with a relative base and resolves its
+  API and page paths against `document.baseURI`, so one build works beneath any tenant. **Breaking:**
+  `UseInteractiveAuthentication()` is removed (the host adds no middleware for the bundle), and
+  `defineBackendServedSurfaceConfig` in `@ncode/vite-config` no longer takes a `base`. See
+  [ADR-0193](docs/adr/0193-the-interactive-surface-is-served-under-the-tenant-route.md).
+- **The Management console scopes an initial access token to a resource server.** The Grants page's mint dialog
+  offers an optional picker of the tenant's non-system resource servers, loaded while the dialog is open. It sends the
+  choice as `resourceServerId`, and the one-time reveal names the resource server the registered client will be bound
+  to. See [ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md).
+- **Dynamic client registration creates a client that introspects for a resource server.**
+  `POST api/tenants/{tenantId}/grants/initial-access-tokens` accepts a `resourceServerId` that scopes the token to a
+  resource server. The same checks apply as when the management API binds a client: the resource server exists in the
+  tenant, is not a system resource server, and the caller may update it. A client registered with a scoped token is
+  bound to that resource server, must be confidential, and cannot be made public by an RFC 7592 update. A bound client
+  registers `introspection_signed_response_alg` and `introspection_encrypted_response_{alg,enc}` (RFC 9701 §6), which an
+  ordinary client is refused. The client information response reports the binding as `resource_server_id`.
+  **Breaking:**
+  `IInitialAccessTokenValidator.ValidateAsync` returns the token's `InitialAccessTokenGrant` (or `null`) instead of a
+  `bool`, and the registration endpoint validates a presented initial access token even when anonymous registration is
+  allowed. See
+  [ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md).
+- **Every key the management API reports carries its `kid`.** `SecretResource` and `CreatedSecretResource` have a
+  required `KeyId`: the `kid` the key was imported with, or its secret identifier when it has none. The `@ncode/api`
+  contract mirrors it, and the admin console's secret tables show it in a **Key ID** column. See
+  [ADR-0186](docs/adr/0186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md).
+- **The Definition of Done fails a migration that would break the previous release.** `ExpandOnlyRuleTests`, in the new
+  `NCode.Identity.OpenId.Host.Database.Tests` project, reads the `Up` operations of every host migration and fails one
+  that drops or renames a schema, table, column, or sequence; adds a required column without a default; makes a column
+  required without a default; changes a column's type; or shortens it. A deliberate contract step carries
+  `[ContractMigration("why")]`, and the test also fails a marker on a migration that only expands. The existing
+  `ReplaceTenantDomainNameWithIssuerHost` migration, which shipped before any release, carries the marker. See
+  [ADR-0184](docs/adr/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md).
+- **The Management console rotates a client secret.** A client's shared secrets — the secret types the capabilities
+  document reports as not asymmetric — carry a rotate action. After confirmation it replaces the secret with one that
+  expires a year out and reveals the replacement once, as create does (`rotateClientSecret` in `@ncode/store`,
+  `RotateSecretRequest` in `@ncode/api`). Backlog `U23` is complete
+  ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)).
+- **A client secret is rotated in one call.** `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate`
+  generates a replacement shared secret with the rotated secret's type, size, `use`, and `alg` and the expiry the
+  request names (`RotateSecretRequest`), adds it and removes the rotated secret in one change, and returns the
+  replacement's `CreatedSecretResource` — the only place its material appears. The caller must be allowed to create a
+  secret for the client and to delete the rotated one; `If-Match` is honored, and a key answers `400`. The rotated
+  secret stops being accepted at once; a client that needs an overlap still creates and deletes in two calls. Backlog
+  `S1` is complete ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)).
+- **The end-session endpoint accepts an `id_token_hint` the client re-encrypted to the server.** OpenID Connect
+  RP-Initiated Logout 1.0 §2 lets a relying party that received an encrypted ID token re-encrypt the signed token to
+  the OP. The hint is decrypted with the tenant's keys under the tenant's advertised `id_token_encryption_*` lists,
+  and the enclosed ID token is checked as before. A tenant without an encryption key still accepts only a signed hint,
+  and an ID token presented anywhere else is never decrypted. Backlog `F76` is complete
+  ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md)).
+- **Dynamic client registration accepts the token endpoint and CIBA metadata.** A client registers
+  `token_endpoint_auth_signing_alg` (OpenID Connect Dynamic Client Registration 1.0 §2) and
+  `backchannel_token_delivery_mode`, `backchannel_client_notification_endpoint`,
+  `backchannel_authentication_request_signing_alg`, and `backchannel_user_code_parameter` (CIBA Core 1.0 §4), and the
+  client information response reports them. Each algorithm narrows the client's own list to it, under the tenant's
+  ceiling. A `ping` or `push` client must register an https notification endpoint, and a client may claim the
+  `user_code` parameter only where the tenant supports it; otherwise registration answers `invalid_client_metadata`.
+  `backchannel_user_code_parameter_supported` now also applies to clients, where the registered flag is stored. Backlog
+  `F66` is complete
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+- **A replacement token service can protect ID tokens as the client registered.** `IClientJwtCredentialSelector`,
+  `ClientJwtCredentials`, and `ClientJwtProtectionSettings` are public in
+  `NCode.Identity.OpenId.Authentication.Abstractions` (namespace unchanged). Every issuer of a JWT addressed to a client
+  resolves the selector, and a deployment can register its own before `AddIdentityServer()`. Backlog `F69` is complete
+  ([ADR-0181](docs/adr/0181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md)).
+- **The host's chart migrates the database before each rollout.** The host image now also carries the migration worker
+  in `/app/migrations`, and the chart runs it as a Helm `pre-install` and `pre-upgrade` Job. A failed migration fails
+  the release before any pod is replaced. The Job runs restricted like the server, and
+  `migrations.database.existingSecret` gives it a connection with schema rights that the server does not need. Set
+  `migrations.enabled=false` to apply migrations another way. Every migration must keep the previous release working:
+  add first, drop or rename in a later release. The chart's pods now carry `app.kubernetes.io/component: server`, so
+  the Service and PodDisruptionBudget never select the Job. Backlog `F46` is complete
+  ([ADR-0180](docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)).
+- **The host has a Helm chart.** `charts/ncode-identity-host` deploys `NCode.Identity.OpenId.Host` under the
+  restricted Pod Security Standard: non-root, read-only root filesystem, no capabilities, and no service-account token.
+  The startup and liveness probes call `/health/live` and the readiness probe calls `/health/ready`, each sending an
+  allowed `Host` header. A `preStop` sleep drains each pod before shutdown. The chart also ships a PodDisruptionBudget
+  and an optional `Ingress`. The database, Valkey, and key-protection certificates are referenced as existing Secrets,
+  never passed as values. Rendering fails for a release the host would refuse to start, for more than one replica
+  without Valkey, and for unknown values. Without Valkey, updates never run two replicas at once. The new `Host chart`
+  CI workflow lints the chart, renders each example release, and checks that each unsafe release is refused.
+  ([ADR-0179](docs/adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md))
+
+- **The host ships a production container image.** `src/NCode.Identity.OpenId.Host/Dockerfile` builds the host on
+  the chiseled `aspnet:10.0-noble-chiseled-extra` runtime. The image has no shell, runs as the non-root `app` user
+  (UID 1654), and listens on port 8080. It builds the `apps/auth` interactive bundle and serves it from `/app/auth`, so
+  the container renders login and consent. The SDK and Node stages cross-build on the build platform, so the image
+  builds for `linux/amd64` and `linux/arm64` without emulation, and the new `Host image` CI workflow builds both. The
+  build context is an allow-list, and the Node major is a required `NODE_VERSION` build argument read from
+  `src/frontend/.node-version`. **Breaking:** the image no longer exposes ports 80 and 443.
+  ([ADR-0178](docs/adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md))
+
+- **The JOSE library creates and validates DPoP proofs.** `IDPoPProofService`, registered by `AddJoseLibrary()`,
+  signs a `dpop+jwt` proof (RFC 9449) with any asymmetric `JoseSigningCredentials`. The proof embeds the public `jwk`
+  and carries the `htm`, `htu`, `jti`, `iat`, and optional `ath` and `nonce` claims. `TryValidateProof` checks the
+  structure, the `typ`, the absence of a `crit` header, an allow-listed asymmetric `alg` that matches the `jwk` key
+  type, the signature, the HTTP binding, `ath`, and `iat` freshness. It returns the `jkt` thumbprint, `jti`, and
+  `nonce`. The `jwk` is imported through the registered key types and verified by the registered signature algorithms,
+  so `EdDSA` proofs (Ed25519 and Ed448) work once the opt-in EdDSA package is registered. The OpenId DPoP validator
+  consumes the service and keeps the server-nonce challenge and the replay cache. **Breaking:**
+  `OpenIdConstants.DPoP.ProofJwtType`, `.HttpMethodClaim`, `.HttpUriClaim`, and `.AccessTokenHashClaim` are removed in
+  favor of `JoseTokenTypes.DPoPJwt` and the new `JoseClaimNames.Payload.Htm`, `.Htu`, and `.Ath`.
+  ([ADR-0176](docs/adr/0176-dpop-proofs-are-a-jose-building-block.md))
+
+- **The management console's address bar names its scope and surface.** The console routes by scope and surface:
+  `/tenants` and `/servers` in the global scope, and `/tenants/{tenantId}/clients`, `…/resource-servers`, `…/grants`,
+  and `…/settings` within a tenant. A tenant view can be bookmarked, shared, and reloaded, back and forward move
+  between surfaces and scopes, and a deep link that lands on the sign-in screen returns to the same page once signed
+  in. The management scope is derived from the route. **Breaking:** the tenant's secrets and settings tab is now
+  "Settings" (`tenant-tab-settings`), and a host that serves the console must answer every console path with
+  `index.html`. ([ADR-0174](docs/adr/0174-the-management-consoles-url-is-its-navigation-state.md))
+
+- **`self_signed_tls_client_auth` matches the certificates in a client's JSON Web Key Set.** Importing a JSON Web Key
+  keeps the first certificate of its `x5c` (RFC 7517 §4.7) after checking that it carries the key's public key, so a
+  client that registers its keys as `jwks` or publishes them at a `jwks_uri` authenticates with a certificate listed
+  there (RFC 8705 §2.2). A key whose `x5c` is empty, malformed, or carries another key is refused.
+  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md))
+
 - **Local and Copilot workflow formats are intentionally supported together (`X1` closed).** Keep the Local prompts
   and Copilot skills; no bulk prompt migration is needed. A new first Definition-of-Done stage checks every pair's
   name, description, and ordered workflow body, with fixture tests proving that missing adapters, drift, and unsupported
@@ -146,6 +707,458 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **Breaking (frontend): the management console reaches every owner's secrets and settings through one endpoint per
+  operation.** `@ncode/store` exposes `useListSecretsQuery`, `useCreateSecretMutation`, `useDeleteSecretMutation`,
+  `useRotateSecretMutation`, `useLazyGetSecretPublicKeyQuery`, `useGetSettingsQuery`, `useGetEffectiveSettingsQuery` and
+  `useUpdateSettingsMutation`, each taking a `ManagementOwner` from `@ncode/api`, in place of a hook per owner type, and
+  `OwnerSecretsTab` and `OwnerSettingsTab` serve every detail page
+  ([ADR-0257](docs/adr/0257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),
+  backlog `R45`).
+
+- **The `apps/auth` bundle's files are cached for a year and served without resolving the tenant.** The host serves
+  only the bundle's content-hashed `assets` directory, at `GET|HEAD {tenant}/account/assets/{**asset}`, with
+  `Cache-Control: public, max-age=31536000, immutable` and its `ETag` and `Last-Modified` validators, from a route
+  group that resolves no tenant, so a returning browser loads the bundle without a request. Other files of the
+  bundle's directory, such as `index.html`, are not served, and `@ncode/vite-config` pins `build.assetsDir` to
+  `assets`
+  ([ADR-0254](docs/adr/0254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md),
+  backlog `R30`).
+
+- **The host embeds a tenant's branding in the page, and `GET {tenant}/account/branding` is removed.** Every page
+  served with the `apps/auth` bundle carries the tenant's branding in a `<script type="application/json"
+  id="branding">` block after its `<base>`, and the bundle themes itself from it without a request.
+  `InteractiveAuthenticationDefaults.BrandingPath` is removed
+  ([ADR-0253](docs/adr/0253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), backlog
+  `R20`).
+
+- **Each of a tenant's own surfaces in the management console has its own address.** The tenant's secrets,
+  settings, and usage are tenant surfaces at `/tenants/{tenantId}/secrets`, `/settings`, and `/usage`, each with its
+  own tab, so they can be bookmarked, shared, and restored with back and forward
+  ([ADR-0255](docs/adr/0255-each-tenant-surface-of-the-management-console-has-its-own-address.md), backlog `R45`).
+
+- **A migration classifies its data change, and a constraint added to an existing table is a contract step.**
+  `ExpandOnlyRule.Check(Migration)` judges each host migration: one that runs raw SQL or changes seed data carries
+  `[ExpandMigration("why")]` (added) when the release still serving reads every row it writes, or
+  `[ContractMigration("why")]` when it does not, and every existing migration is classified. The rule also reports a
+  column made required even with a default, a removed default, a narrowed precision or scale, a unique index, unique
+  constraint, primary key, check constraint or foreign key added to an existing table, and a foreign key that restricts
+  deleting rows of an existing table
+  ([ADR-0250](docs/adr/0250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md),
+  backlog `R14`).
+
+- **Breaking: a retired setting stays registered until a later release removes it.** `SettingDescriptor.RetiredReason`
+  and `IsRetired` retire a setting: reads ignore it, `ValidateSettings` and the configuration reader refuse it, and
+  `ISettingSerializer.ValidateSettingsUpdate`, a member that every implementation adds, accepts it only with its stored
+  value or removed; the management API's settings updates validate through it. `mtls_endpoint_alias_authority` is
+  retired: `PromoteMtlsEndpointAliasAuthority` copies each tenant's value and keeps the setting for the previous
+  release, and its `Down` writes the alias back
+  ([ADR-0251](docs/adr/0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md), backlog `R15`).
+
+- **Breaking: rate limits and quotas are registered descriptors judged in one round trip per stage.** Each limit is a
+  `RateLimitDescriptor` (name, stage, order, window, sliding or fixed, limit and overage settings, metered only, usage
+  meters, partition selector) contributed through `ICollectionDataSource<RateLimitDescriptor>`; the five built-ins
+  (`RateLimitPartitions`) keep their settings and behavior.
+  `IRequestRateLimiter.AcquireAsync(stage, RateLimitContext, CancellationToken)` and `RateLimitDecision` are public in
+  `NCode.Identity.OpenId.Authentication.Abstractions`, so a package judges a stage of its own (`RateLimitStages`); the
+  limiter marks a refused request, and `RateLimitEndpointFilter` records the usage meters once the endpoint has run.
+  `IExpiringCounterSet.IncrementUntilExceededAsync` counts a stage's limits in one call (one Valkey script, measured as
+  `counter.increment_until_exceeded`), and every implementation of the port implements it. Shared-state keys carry the
+  tenant in braces as a hash tag, so counters and replay records in flight across the upgrade start over. The
+  `QuotaExceeded` log event (2044) is retired, and `RateLimitExceeded` names the window
+  ([ADR-0246](docs/adr/0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md), backlog
+  `R41`).
+
+- **The host image writes one-line JSON logs.** The image sets `Logging__Console__FormatterName=json`,
+  `Logging__Console__FormatterOptions__UseUtcTimestamp=true` and
+  `Logging__Console__FormatterOptions__TimestampFormat=O`, so every entry, the migration worker's included, is one JSON
+  object on one line with a UTC timestamp; `Logging__Console__FormatterName=simple` restores text
+  ([ADR-0248](docs/adr/0248-the-host-image-writes-one-line-json-logs.md), backlog `R74`).
+
+- **Breaking: a client value that a ceiling lowers is incoherent.** `RegisteredValueCoherenceRule` checks every
+  setting a client registers whose merge is a meet (`Min`, `And` or `Intersect`, which the added abstract
+  `SettingDescriptor.HasMeetMerge` states), so a lifetime, timeout, size or rate above what the tenant, the server or a
+  selected security profile permits is refused at registration and at a management write, a tenant or server write
+  that would lower it below a client's value is refused, and the reconciliation and the incoherent-client report list
+  it: `The 'access_token_lifetime' value '01:00:00' exceeds the effective 'access_token_lifetime' value '00:05:00'.` A
+  value that a ceiling already lowers blocks no write that moves that ceiling, because a write matches a violation
+  that predates it without its description. A floor (`Max`, `Or`, `Union`) is never reported
+  ([ADR-0240](docs/adr/0240-a-client-value-that-a-ceiling-lowers-is-incoherent.md), backlog `R71`).
+
+- **The in-process dispatcher runs jobs concurrently.** Up to `InProcessJobDispatcherOptions.MaxConcurrentJobs` jobs
+  (16 by default) run at once, so a delivery that waits on an unreachable endpoint holds one worker while the jobs
+  behind it run on the others. `MaxConcurrentJobs` and `QueueCapacity` must be at least 1, which the host checks when it
+  starts ([ADR-0232](docs/adr/0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md),
+  backlog `R85`).
+
+- **Breaking: a reconciliation of the server's settings reaches only the tenants its change affects.**
+  `PersistedServer.ReconciledSettings` records the effective settings every tenant and client was reconciled against
+  (the `AddServerReconciledSettings` migration adds the `Servers.ReconciledSettingsJson` column), and
+  `ReconcileServerSettingsCommand.PreviousSettings` carries them to the handlers: `TenantKeyReconciliationHandler` reads
+  the keys only of a tenant that uses an algorithm it did not use before, and `ClientCoherenceReportHandler` checks the
+  clients only of a tenant whose effective settings changed in a setting a coherence rule reads.
+  `IServerStore.UpdateReconciledSettingsAsync` records the fingerprint and the settings and takes the place of
+  `UpdateReconciledSettingsFingerprintAsync`, and `IServerStore.UpdateSettingsAsync` keeps the recorded settings unless
+  the settings of an earlier change were never reconciled
+  ([ADR-0234](docs/adr/0234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md),
+  backlog `R88`).
+
+- **Breaking:** `ISecretSerializer` and `ISecretGenerator` take an `ISecretProtector`; `ISecretSerializer` gains
+  `DeserializePublicSecret`. Imported public keys (`spki`, `x509`) are stored as plain base64url.
+
+- **Breaking:** the Data Protection key ring is encrypted under the server master key; configure the `SecretProtection`
+  section instead of `DataProtection:KeyProtection`, and the chart's `secretProtection` values instead of
+  `keyProtection` (the chart's schema, render-time refusals and CI releases change with it).
+
+- **Breaking (data):** values protected by the old scheme are not readable. In Development, unreadable tenant keys are
+  pruned and re-provisioned automatically; reissue client secrets or reset the local database.
+
+- **Local development:** the LocalDev AppHost generates one development root key per machine (in local application
+  data, never in the repository) and gives it to both OP instances that share the development database; a Development
+  host started any other way uses the ephemeral root key.
+
+- Deleting a tenant deletes its master keys.
+
+- **Breaking: a session's lifetimes are required, and a listed session always reports when it ends.**
+  `CreateSessionRequest.AbsoluteLifetime` and `CreateSessionRequest.IdleTimeout` are required positive `TimeSpan`s and
+  `CreateSessionRequest.Lifetime` is removed; `SessionGrant.AbsoluteExpiresWhen` records the absolute end;
+  `IPersistedGrantService.UpdatePayloadAndExpirationAsync` is a member a custom implementation implements; and
+  `SessionInfo.ExpiresWhen`, `SessionResource.ExpiresWhen` and `expiresWhen` of `/account/sessions/list` are the time
+  the session ends unless it is used again, never `null`
+  ([ADR-0220](docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), backlog `R80`).
+
+- **Breaking: a cached tenant expires 15 minutes after it is materialized, however often it is used.**
+  `OpenIdTenantOptions.TenantCacheLifetime` (`OpenId:Tenant:TenantCacheLifetime`) is an absolute lifetime that
+  replaces the 4-hour sliding `TenantCacheExpiration`, so a replica that missed a tenant's change announcement serves
+  the tenant at most that long
+  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R58`).
+
+- **Breaking: `OpenIdServer.RefreshSettingsAsync`, `IOpenIdTenantCache.ClearAsync`,
+  `IReplicaBroadcastHandler.HandleMissedMessagesAsync`, and `IServerStore.UpdateReconciledSettingsFingerprintAsync`
+  are members a custom implementation implements**, and `IServerStore.UpdateSettingsAsync` clears the server's
+  `ReconciledSettingsFingerprint` in the same unit of work
+  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R57`,
+  `R58` and `R61`).
+
+- **The tenant re-seed after a server settings change is part of the reconciliation, not a job on `IJobDispatcher`.**
+  It also runs after a configuration reload and a deployment, it holds no dispatcher worker, and it evicts only the
+  tenants that hold keys but lack one their settings use. `NCode.Identity.OpenId.Core` does not reference
+  `NCode.Identity.Dispatch.Abstractions`
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md),
+  [ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R61`).
+
+- **Breaking: refresh-token rotation goes through `ITokenService.RotateRefreshTokenAsync`, which stores the successor
+  with `IPersistedGrantService.ReplaceOnceOrDefault`; `IPersistedGrantService.TryRevokeOnceAsync` spends a token that
+  has no successor.** A custom implementation implements the three members
+  ([ADR-0211](docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md), backlog `R69`).
+
+- **Breaking: deleting a client removes everything that exists for it, and `IClientStore.HasDependentsAsync` is
+  removed.** `IClientStore.RemoveAsync` removes its secrets, grants to resource servers, consents, and the grants issued
+  to it in the same unit of work; the management API and RFC 7592 deregistration answer `204` whatever the client holds
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R59`).
+
+- **Breaking: `ITenantUsageStore.RemoveBeforeAsync(day, limit, cancellationToken)` removes a bounded batch when the unit
+  of work is saved,** and the flush service prunes in batches of 256 entries
+  ([ADR-0213](docs/adr/0213-the-usage-ledger-is-pruned-in-bounded-batches.md), backlog `R73`).
+
+- **Breaking: `ITenantUsageStore.AddAsync` adds a numbered batch of one replica's usage, and the ledger adds each batch
+  once.** `AddAsync(replicaId, batchNumber, usage, cancellationToken)` takes the identifier the replica drew when it
+  started and the number of the batch, from one, in the order the replica adds its batches. It adds the counts and
+  records the number as the replica's last added batch in the same unit of work, and a batch numbered at or below the
+  last added one changes nothing, so a batch that a replica retries is added once. An empty `usage` and a `batchNumber`
+  below one throw `ArgumentOutOfRangeException`. A store implementer skips such a batch, records the number with the
+  counts, and removes the checkpoints of the replicas whose latest usage day is before the day in `RemoveBeforeAsync`,
+  which still returns the count of usage entries removed. The Entity Framework store keeps the checkpoint in
+  `TenantUsageCheckpointEntity`, and a deployment applies the migration `AddTenantUsageCheckpoints`, which creates the
+  `TenantUsageCheckpoints` table
+  ([ADR-0209](docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), backlog `R25`).
+
+- **The reference hosts write logs to standard output only.** `NCode.Identity.OpenId.Host` and
+  `NCode.Identity.OpenId.Host.MigrationService` register the console and EventSource logging providers on every
+  platform, and not the debug provider or, on Windows, the Event Log provider that the default builders add. The
+  console writes to standard output in the format that `Logging:Console:FormatterName` selects, and EventSource writes
+  nothing until `dotnet-monitor` or `dotnet-trace` attaches. A reference host writes nothing to the Windows Event Log,
+  and a deployment that needs another sink, such as the Event Log of a Windows service, adds it in its own composition
+  root ([ADR-0210](docs/adr/0210-the-reference-hosts-log-to-standard-output.md), backlog `R54`).
+
+- **Breaking: a coherence rule reads a `ClientCoherenceContext`, and the validator resolves a client's settings
+  itself.** `IClientCoherenceRule.FindViolations(ClientCoherenceContext)` takes the client's registered and effective
+  settings, and `IClientCoherenceValidator.Validate(tenantSettings, clientSettings)` is the one way to check a client:
+  it reads the registered settings from the client's settings document and resolves the effective settings onto its
+  tenant's, so every caller gives every rule the same two views. `ClientCoherenceViolation` names the setting that
+  governs a value as `GoverningSettingName`, because a setting that requires a companion is not a ceiling, and carries
+  a `Description` that every caller reports. A custom rule implements the new `FindViolations`, and a caller passes the
+  tenant's settings and the client's settings document to `Validate`
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R62`).
+
+- **Dynamic registration keeps no relation check of its own, and its error descriptions name client settings.** The
+  checks of the supported metadata, the algorithms, and the backchannel metadata are coherence rules, so
+  `ValidateCoherence` is its only relation check. A description names `grant_types_supported`, not `grant_types`, and
+  the error codes are unchanged: `invalid_redirect_uri` for `redirect_uris`, else `invalid_client_metadata`
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R62`).
+
+- **Every configuration seeder checks the client it creates, and a validation problem lists at most ten errors per
+  setting.** The bootstrap administrator, developer, and conformance seeders run the coherence validator on a client
+  they create and throw an `InvalidOperationException` that names the client and lists its violations; the bootstrap
+  seeder checks before it imports the secret, and a client that exists is left as it is. A management validation
+  problem lists the first ten errors of each setting, in order, and adds `Errors not listed for '<name>': <n>.` for the
+  rest, so a change that makes many clients incoherent answers a bounded response
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R63`).
+
+- **Breaking: every `ISecurityProfileCatalog.Expand` overload names its scope, and a profile's default applies only
+  within it.** `Expand(scopeSettings, scopeName)` and `Expand(scopeSettings, scopeName, baselineSettings)` take the
+  name of the scope whose settings they expand, `OpenIdSettingScopes.Server` at the server's root, as the overload that
+  takes a settings document does, and an unregistered scope name is refused with an `ArgumentException`. A profile's
+  default applies only to a setting that applies within that scope, so a server or a tenant that selects
+  `fapi1-advanced` supplies `tls_client_certificate_bound_access_tokens` and a client that alone selects it does not.
+  Ceilings merge at every scope, because a bound only narrows. A caller passes its scope name
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md),
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R68`).
+
+- **Breaking: `require_dpop_bound_access_tokens` is the client's requirement for DPoP-bound access tokens.** The
+  setting is named `require_` plus the RFC 9449 §5.2 client metadata member `dpop_bound_access_tokens`, as the
+  certificate-bound requirement is named for its RFC 8705 §3.4 member, and `OpenIdSettingNames` and `OpenIdSettingKeys`
+  carry it as `RequireDPoPBoundAccessTokens`. It applies to clients, merges with `Or`, defaults to `false`, and is not
+  advertised. The migration `RenameDPoPRequirement` moves a stored `require_dpop` in a server, tenant, or client
+  settings document to the new key. A server configuration value is not translated, because configuration is not
+  stored data: a deployment that sets `OpenId:Server:Settings:require_dpop` renames the key to
+  `OpenId:Server:Settings:require_dpop_bound_access_tokens`, or the configuration cannot be honored, because the old
+  name is not a registered setting
+  ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md), backlog `R65`).
+
+- **Breaking: an Entity Framework store reports a stale token as `StoreConcurrencyException`.**
+  `IStoreManager.SaveChangesAsync` and the concurrency-token check of every store throw the store-neutral exception,
+  not `DbUpdateConcurrencyException`. A caller that catches the Entity Framework type around a store method or around
+  `SaveChangesAsync` catches `StoreConcurrencyException` instead, and a caller that saves through a `DbContext`
+  directly still receives Entity Framework's type
+  ([ADR-0208](docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), backlog `R66`).
+
+- **Breaking: `tls_client_certificate_bound_access_tokens` is the server's and a tenant's advertised support only.** The
+  setting keeps its RFC 8705 §3.3 discovery name, applies to tenants, merges with `Replace`, and does not force a client
+  to bind its tokens. A client's `require_tls_client_certificate_bound_access_tokens` does. The `fapi1-advanced`
+  profile sets that requirement as a ceiling and the support as a default (FAPI 1.0 Advanced §5.2.2-6 requires mutual
+  TLS support). The migration `SeparateCertificateBindingRequirement` translates stored settings documents: a client's
+  value moves to the requirement, and a server or tenant document whose support is `true` also gets the requirement,
+  because that value had required every client below it to bind. A server configuration value is not translated,
+  because configuration is not stored data: a deployment that sets `tls_client_certificate_bound_access_tokens` to
+  `true` under `OpenId:Server:Settings` to make every client bind its tokens also sets
+  `require_tls_client_certificate_bound_access_tokens` to `true` there, or those clients receive bearer tokens
+  ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md),
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R42`).
+
+- **Breaking: the `offline` revocation mode is retired.** `tls_client_auth_revocation_mode` is `online` (the default) or
+  `none`, because the server retrieves revocation data itself and the platform chain engine retrieves nothing. The same
+  migration translates a stored `offline` to `online`. A PKI that publishes OCSP responses and no CRL sets `none` or
+  replaces `IClientCertificateRevocationChecker`
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R16`).
+
+- **Breaking: every initial access token has a lifetime of at most 30 days.** `lifetimeSeconds` is optional, defaults
+  to one day, and a value outside 1 to 2 592 000 (30 days) is refused with `400`. `CreatedInitialAccessTokenResource`
+  carries `ExpiresWhen` as a `DateTimeOffset`, not a `DateTimeOffset?`, for a scoped and an unscoped token alike. A
+  token that an earlier release minted without a lifetime authorizes no registration; an administrator mints a new one
+  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md), backlog
+  `R17`).
+
+- **Every entry point checks a client through the coherence validator.** Dynamic registration, the management API, and
+  the conformance seed apply the same rules. A tenant or server settings change that narrows
+  `redirect_uri_kinds_supported`, selects `fapi2` or `fapi1-advanced`, or narrows
+  `token_endpoint_auth_methods_supported` is refused while a client registers a value it would exclude. Registration
+  error codes are unchanged, and their descriptions are uniform
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R40`, `R55`).
+
+- **Breaking: a client-authentication handler needs a descriptor.** The host does not compose when the handlers and the
+  descriptors differ, and options validation constructs no handler
+  ([ADR-0207](docs/adr/0207-client-authentication-methods-are-named-by-registered-descriptors.md), backlog `R60`).
+
+- **Breaking:** every copy of the effective-settings merge routes through `IEffectiveSettingsResolver`. The
+  `DefaultOpenIdTenantFactory` and `EphemeralOpenIdTenantFactory` constructors take it instead of
+  `ISecurityProfileCatalog`. Seeds and management previews read the server's committed settings rather than this
+  replica's 5-minute poll of them
+  ([ADR-0204](docs/adr/0204-a-scopes-effective-settings-are-resolved-by-one-service.md), backlog `R39`).
+  A custom `ITenantStore` or `IClientStore` must implement the new `GetSettingsPageAsync`.
+
+- **Deleting a tenant removes its keys, its system resource servers, and its role assignments.** They are deleted with
+  the tenant in one unit of work, so only a client or a resource server the tenant did not seed blocks the delete with
+  `409` ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), backlog `R51`).
+
+- **Breaking:** `redirect_uri` is carried as the string the client wrote, never as a `Uri`.
+  `OpenIdCommonParameters.RedirectUri` is a `KnownParameter<string>`, and `IBaseAuthorizationRequestValues`,
+  `IAuthorizationRequest`, `ITokenRequest`, and `AuthorizationResponseDelivery` expose `RedirectUri` as a string.
+  `UriParser` writes a parsed `Uri` parameter as its original string rather than `AbsoluteUri`
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R52`).
+
+- **Breaking:** response modes resolve through one provider, and a handler declares its traits.
+  `IAuthorizationResponseModeHandler` gains `SecuredResponseMode`, the plain mode whose JWT-secured form the handler
+  delivers, and `DeliversInQuery`, whether it returns the response in the query; neither has a default, and nothing is
+  inferred from a handler's name, so a package that registers its own handler declares both. The internal
+  `IAuthorizationResponseModeProvider` is composed once and refuses to start with a duplicate `ResponseMode`, two
+  handlers that secure one mode, a `SecuredResponseMode` that names no registered handler, or a handler named `jwt`.
+  `jwt`, the one shorthand JARM defines, resolves to the handler that secures the response type's default mode, and a
+  handler that `DeliversInQuery` is refused for a response type that returns a token
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), backlog
+  `R37`).
+
+- **Breaking:** the authorization response is addressed through one public `AuthorizationResponseDelivery`, which
+  replaces `ClientRedirectContext`. The new internal `IAuthorizationResponseDeliveryResolver` derives it once per
+  request, from the redirect URI, the response mode handler, the `state`, and the credentials that secure a JWT
+  response, and the authorization endpoint, the PAR endpoint, the continuation, validation, the security profiles, and
+  the result share it rather than derive it again. `IAuthorizationRequestProcessor.ProcessRequestAsync` takes the
+  delivery, `ValidateAuthorizationRequestCommand` and `AuthorizationRequestProfileContext` carry it as `Delivery`, and
+  `AuthorizationResult` requires its `OpenIdContext`, `OpenIdClient`, and delivery, drops `RedirectUri` and
+  `ResponseMode`, and is delivered by `result.Delivery.ResponseModeHandler`. `IAuthorizationRequest.ResponseMode` is
+  now the value the request asked for, possibly `null`, and `ResponseTypeValues.ResolveResponseMode` is removed. The
+  outer parameters of a request that carries a request object follow one table, `RequestObjectParameterPolicy.Rules`:
+  the object must carry `response_type`, `scope`, `redirect_uri`, and `client_id`, an outer `response_type`,
+  `redirect_uri`, or `client_id` must equal the object's, with `redirect_uri` compared as written, and an outer `scope`
+  is ignored. The PAR endpoint now derives the delivery when a request is pushed (RFC 9126 §2.1), so it refuses a
+  `redirect_uri` the client has not registered at push time rather than at the authorization endpoint
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md),
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R38`, `R47`).
+
+- **A JWT-secured authorization response lives for the client's `authorization_response_lifetime`.** The new
+  client-scoped setting is a `TimeSpan` that defaults to 5 minutes, accepts 1 second to 10 minutes (JARM §2.1), merges
+  with `Min` so a tenant can only lower it. It replaces the fixed 5 minutes the response JWT's `exp` used
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), backlog
+  `R47`).
+
+- **CI runs once per commit of a pull request.** The workflows ran for both the push to a branch and its pull request,
+  so each check appeared twice. A push now runs CI only on `main`; any other branch is checked through its pull request
+  or by running the workflow by hand.
+
+- **Breaking:** a request object's parameters are the only parameters of an authorization request (RFC 9101 §6.3). A
+  parameter sent only outside the request object, such as `response_mode` or `nonce`, is now ignored instead of being
+  merged in, so an unsigned parameter can no longer change a signed request. The outer `response_type` and `scope`
+  are still used when the object omits them. A request object must now carry `redirect_uri` and a `client_id` that
+  names the requesting client. An outer `client_id`, `response_type`, or `redirect_uri` is optional, but one that is
+  sent must equal the object's value, or the request is refused as `invalid_request_object`. A pushed authorization
+  request may therefore carry only `request` and client authentication (RFC 9126 §3): the authorization endpoint
+  verifies the object before it redirects, takes `redirect_uri`, `response_mode`, and `state` from it, and returns an
+  error raised before then without redirecting.
+  See [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md).
+
+- **Breaking:** the event metric `ncode.identity.events.published` is recorded through a meter created from
+  `IMeterFactory`, whose name moves from `DefaultEventMetricsHandler.MeterName` to `EventMetrics.MeterName`
+  (`NCode.Identity.Events`, unchanged), and its attributes are renamed from `event.type`, `audit.action`, and
+  `audit.outcome` to `ncode.identity.event.type`, `ncode.identity.audit.action`, and `ncode.identity.audit.outcome`.
+  `DefaultEventMetricsHandler` is no longer `IDisposable`.
+- **Breaking:** `IAuditEventRecorder.RecordClientAuthenticationFailedAsync` takes the attempted `authenticationMethod`,
+  and `ClientAuthenticationFailedAuditEvent` requires `AuthenticationMethod`.
+- **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
+  settings onto the server's and provisions a configured algorithm only when one of the tenant's effective algorithm
+  lists names it — by default the ID token, UserInfo, introspection, and access-token signing lists and the
+  request-object and access-token encryption lists. `OpenIdTenantKeyProvisioningOptions` gains `AlgorithmSettings`
+  (`OpenId:Tenant:KeyProvisioning:AlgorithmSettings`), which names those lists; a package that signs or decrypts with
+  the tenant's keys under another setting adds its name. A `fapi2` tenant no longer holds and publishes an RS256 key it
+  never signs with. A key the tenant already holds is kept
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)).
+- **The server-rendered pages stream into the response without building a document string.** The login, consent, and
+  error pages and the `form_post` authorization response render into a pooled `Sequence<char>` that is transcoded
+  straight into `HttpResponse.BodyWriter`. The bundle's `index.html` is split once per version at its
+  `<div id="root"></div>` mount point, so each page writes the cached head, its form, and the cached tail rather than
+  replacing the mount point in a combined document. The renderer's page methods take an `IBufferWriter<char>` and the
+  split `InteractiveBundleShell` instead of returning a string.
+- **The interactive pages read the bundle's `index.html` once.** `InteractiveBundleReader` caches the bundle index the
+  login, consent, and error pages inject their forms into, rather than reading it from disk on every request. Each
+  request compares the file's last-write time and length with the cached copy's, so a rebuilt bundle is still picked up
+  without a restart, including on bind-mounted and network file systems where change notifications are unreliable.
+- **A security profile supplies compliant defaults.** `ISecurityProfile` gains `ApplyDefaultSettings`, through which a
+  profile contributes overridable defaults with the new `ISecurityProfileDefaultsBuilder`; the builder accepts only a
+  setting that does not merge with a lattice operation. The catalog places a profile's defaults beneath the settings of
+  the scope that selects it, so that scope and every scope below it may still set another value. When several selected
+  profiles default one setting, the first in ordinal order supplies it. FAPI 2.0 now defaults
+  `id_token_signed_response_alg` and `introspection_signed_response_alg` to `PS256`. A client under the profile that
+  registers no algorithm is therefore signed with an algorithm the profile permits, rather than with `RS256`, which the
+  profile excludes, and no longer fails at issuance
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)).
+- **The management API rejects a client algorithm its effective settings do not permit.** Client create and settings
+  update merge the client's document onto its tenant's effective settings, as the runtime does. They then answer `400`
+  with a validation problem naming the setting when a registered ID token, UserInfo, or introspection signing or
+  encryption algorithm is outside its effective `*_values_supported` list. The default `A128CBC-HS256` of a registered
+  encryption without an `enc` is checked the same way. A tenant settings update checks every client of the tenant, and
+  a server settings update every client of every tenant; each answers `400`, naming the list and the client, when the
+  change excludes an algorithm a client registers, and a mismatch the change does not introduce is not reported. A
+  mismatch is reported when the settings are written instead of failing every issuance with `server_error`
+  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)). **Breaking:**
+  `OpenIdServer` gains the abstract `ConfiguredSettingsProvider` — the settings the server derives from its defaults
+  and the host's configuration, onto which its persisted settings document is merged.
+- **Hash algorithms and binary encodings are open vocabularies.** The `HashAlgorithmType` and `BinaryEncodingType`
+  enums are removed. `ICryptoService.HashValue` takes the framework's `HashAlgorithmName` and computes the digest with
+  `CryptographicOperations`, so SHA-384 and SHA-3 are available. Encodings are named: `BinaryEncodings` holds
+  `base64url`, `base64`, and `hex`, each the name of a registered `IBinaryEncoder`, and `EncodeBinary`, `GenerateKey`,
+  and `HashValue` take the name as a `string`. `AddIdentityLibrary` registers the three built-in encoders; a package adds
+  one, such as Base32, by registering another. An unregistered or duplicate encoding name is rejected. Hashed and
+  encoded output is unchanged
+  ([ADR-0190](docs/adr/0190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md),
+  [ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)).
+
+- **A secret import format is an open name that each key type declares.** The `SecretKeyImportFormat` enum is replaced
+  by `SecretKeyImportFormats`, a static class of `const string` names: `jwk`, `pem`, and `certificate`.
+  `SecretKeyImportParameters.Format` and `SecretKeyImportRequest.Format` are a `string`, and
+  `ISecretKeyTypeDescriptor.SupportsPublicKeyImport` is replaced by `PublicKeyImportFormats`, the names the type
+  imports, so a registered key type can bring a format such as PKCS #12. The management `POST …/secrets/import`
+  endpoints, the secret importer, and client-key import reject a format the secret type does not list, and the `400`
+  message lists the type's formats. The `format` member now compares ordinally, so `JWK` is rejected; OKP and AKP keys
+  accept `jwk` and `pem`. The capabilities `supportsPublicKeyImport` field is unchanged
+  ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md),
+  [ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)).
+
+- **A session's termination reason is an open vocabulary.** The `SessionTerminationReason` enum is replaced by
+  `SessionTerminationReasons`, a static class of `const string` names: `logout`, `idle_timeout`, `absolute_expiry`,
+  `concurrent_session_limit`, `administrative_revocation`, `global_sign_out`, and `user_initiated`. `ISessionService`,
+  `IAuditEventRecorder.RecordSessionTerminatedAsync`, `SessionTermination.Reason`, and
+  `SessionTerminatedAuditEvent.TerminationReason` take and carry a `string`, so an extension can end a session for its
+  own reason, such as a password change. The `session.terminated` audit event's `reason` is now the name, for example
+  `global_sign_out` instead of `GlobalSignOut`
+  ([ADR-0098](docs/adr/0098-session-lifecycle-termination-seam.md),
+  [ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)).
+
+- **The whole-second time helpers move to the new dependency-free `NCode.Time` package.** `DateTimeExtensions`,
+  `DateTimeOffsetExtensions`, and `TimeProviderExtensions` (`WithPrecisionInSeconds`, `GetUtcNowWithPrecisionInSeconds`,
+  `GetTimestampWithPrecisionInSeconds`) leave `NCode.Identity.Jose.Abstractions` and the `NCode.Identity.Jose.Extensions`
+  namespace for namespace `NCode.Time`, so the abstractions package holds no logic. Replace
+  `using NCode.Identity.Jose.Extensions;` with `using NCode.Time;` and reference `NCode.Time`. Backlog `D11` is
+  complete ([ADR-0188](docs/adr/0188-general-time-helpers-live-in-a-dependency-free-package.md)).
+
+- **Tenant, server, and resource-server keys are imported and updated under the client-key policy.** Their import
+  endpoints use `IClientKeyImporter.TryImportKey`, so a JSON Web Key keeps its `kid`, a key whose `use`, `key_ops`, or
+  `alg` contradicts it is refused with a `400` that says why, and a `kid` already used by another of the owner's keys is
+  a `409 Conflict`. Their update endpoints check `use` and `alg` against the key through the new
+  `ISecretValidator.ValidateUpdate`, as the client endpoint does, and keep the key's `kid`. `IClientKeyImporter` and its
+  error messages no longer describe the policy as client-only. See
+  [ADR-0186](docs/adr/0186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md).
+- **Coverage measures hand-written code, and the job summary and Codecov agree.** The full Definition of Done collects
+  .NET coverage with `build/coverage.runsettings`, which leaves out source-generator output under `obj/`, the
+  scaffolded EF Core migrations, and `[GeneratedCode]` members. The reference host stays in scope because it ships.
+  `codecov.yml` counts a partially covered line as a hit, as ReportGenerator does, so the job summary and Codecov report
+  the same figure from the same lines. See
+  [ADR-0185](docs/adr/0185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md).
+- **The reference host separates liveness from readiness.** `/health` becomes two endpoints. `/health/live` runs no
+  checks and reports only that the process answers, so a dependency outage never makes Kubernetes restart a replica.
+  `/health/ready` runs every check tagged `ready` and returns `503` while any of them fails, which takes the replica out
+  of rotation until its dependencies return. Those checks are the database (`AddDbContextCheck<OpenIdDbContext>`,
+  registered with the `openiddb` connection string) and Valkey when configured. The Aspire orchestrator gates
+  dependents on `/health/ready`. **Breaking:** `/health` is no longer mapped.
+
+- **Every frontend bundle splits into vendor and surface chunks, and an oversized chunk fails the build.** The shared
+  Vite preset splits React, MUI with emotion, Redux, and every other package into their own vendor chunks, and each
+  app lazy-loads its route-level containers, so no chunk exceeds 500 kB after minification. The preset's
+  `failOnOversizedChunks` plugin fails `pnpm build` when a chunk exceeds the build's `chunkSizeWarningLimit` instead of
+  only warning. ([ADR-0175](docs/adr/0175-bundles-split-into-vendor-and-surface-chunks-and-an-oversized-chunk-fails-the-build.md))
+
+- **A forwarded client certificate is decoded by a registered format, and every format reads the whole chain the
+  client presented.** Traefik's `passTLSClientCert` (`pem: true`) forwards the chain as comma-separated base64 DER in
+  `X-Forwarded-Tls-Client-Cert`, which failed to parse. `Base64Der` now reads a comma-separated list, the client's own
+  certificate first; `Pem` and `UrlEncodedPem` read several PEM blocks; and `EnvoyXfcc` reads `Chain` as well as
+  `Cert`, honoring quoted values. The resolver returns a `PresentedClientCertificate`: the client's certificate and the
+  other certificates it sent, as untrusted `Intermediates` for chain building. Formats are an open vocabulary: each is
+  an `IClientCertificateHeaderDecoder` registered under a `Format` name (the known names are
+  `ClientCertificateHeaderFormats`), so a package supports another proxy by registering a decoder, and the host refuses
+  to start when `OpenId:MutualTls:Format` names no registered decoder. The certificate is resolved once per request.
+  **Breaking:** `MutualTlsClientCertificateFormat` is removed and `MutualTlsForwardingOptions.Format` is a string with
+  the same names; `IClientCertificateResolver` and `MutualTlsForwardingOptions` move to
+  `NCode.Identity.OpenId.Authentication.ClientCertificates`, registered by `AddClientCertificateServices()`; and
+  `ResolveCertificateAsync` takes an `OpenIdContext` and returns a `PresentedClientCertificate`. See
+  [ADR-0172](docs/adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md).
 
 - **Introspection reports a token only to the party that consumes it.** An access token is reported active only to a
   client acting for a resource server in the token's audience, with `aud` reduced to that resource server and `scope`
@@ -708,7 +1721,333 @@ change to the public API is a **major** version bump.
   `AccessTokenConfirmationMethodsSupported`. No stored document needs migrating.
   ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md))
 
+### Removed
+
+- `KeyRingProtectionOptions`, `KeyRingCertificateOptions` and certificate key-ring protection
+  (supersedes ADR-0177).
+
 ### Security
+
+- **Client-certificate revocation is checked through OCSP and every CRL form.** The default
+  `IClientCertificateRevocationChecker` asks each registered `IClientCertificateRevocationSource` in registration
+  order until one answers `Good` or `Revoked`. The `ocsp` source queries the responders that the certificate's
+  authority information access names (RFC 6960 with the RFC 5019 profile: a SHA-1 `CertID`, no nonce, GET up to 255
+  characters and POST beyond), accepts a response signed by the issuer or by a responder it issued with
+  `id-kp-OCSPSigning`, checks a responder without `id-pkix-ocsp-nocheck` through its CRLs, and caches a response until
+  its `nextUpdate`. The `crl` source follows RFC 5280 §6.3.3: partitioned lists (`reasons`, `onlySomeReasons`),
+  indirect lists (`cRLIssuer`, `indirectCRL`, `certificateIssuer`), delta lists (`freshestCRL`, `deltaCRLIndicator`),
+  `removeFromCRL`, and a list signed by another key whose certificate chains to the same trust anchor and is not
+  revoked. A parsed list is cached per location and verified by each check, and a responder location that fails is
+  remembered for `FailureCacheDuration`. **Breaking:** `IClientCertificateRevocationChecker.CheckAsync` takes a
+  `ClientCertificateRevocationContext` (`Certificate`, `Issuer`, `TrustAnchor`, `Intermediates`, `Depth`), and
+  `IClientCertificateRevocationSource` and `ClientCertificateRevocationSourceNames` are added. Log events 2050 and 2061
+  keep their IDs, but their messages name any revocation source and record the location as `Location` instead of
+  `CrlUri`
+  ([ADR-0259](docs/adr/0259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md), backlog `R64`).
+
+- **The server sends `Strict-Transport-Security` on every HTTPS response outside Development.**
+  `AddStrictTransportSecurity` binds `StrictTransportSecurityOptions` strictly from the `StrictTransportSecurity`
+  section (`Enabled`, `MaxAge`, `IncludeSubDomains`, `Preload`, `ExcludedHosts`) and validates it when the host starts,
+  and `UseStrictTransportSecurity`, which the reference host calls right after `UseReverseProxy`, adds the header to
+  every response to a request that arrived over HTTPS, directly or through a trusted proxy. The default is
+  `max-age=31536000; includeSubDomains`; `Preload` requires `IncludeSubDomains` and a `MaxAge` of at least 365 days;
+  `localhost`, `127.0.0.1` and `[::1]` never receive it. A deployment whose TLS-terminating proxy sends the header sets
+  `StrictTransportSecurity:Enabled` to `false`
+  ([ADR-0258](docs/adr/0258-the-server-sends-strict-transport-security-outside-development.md), backlog `R113`).
+
+- **Every page the server writes has a strict Content-Security-Policy and cannot be framed, except the
+  `check_session_iframe` and, by its client's origin, the `form_post` response.**
+  `HttpResponse.SetHtmlPageSecurity(HtmlPageSecurityPolicy)` writes each page's policy (`default-src 'none'`,
+  `base-uri` and `form-action` `'none'` unless the page lists them, `frame-ancestors 'none'`) with
+  `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin` and `no-store`;
+  `ContentSecurityPolicyDirective`, `ContentSecurityPolicyDirectives` and `ContentSecurityPolicySources` build it. The
+  interactive pages run only the `apps/auth` scripts and styles that carry the response's nonce, including a page
+  served to a browser that already holds the antiforgery cookie; the `form_post` response runs only its own script and
+  may be framed only by its redirect URI's origin; the front-channel logout page frames only the clients' logout
+  origins; the `check_session_iframe` runs only its script and stays embeddable. **Breaking:** a bundle served from
+  `InteractiveAuthentication:BundleRootPath` runs its scripts only when its build writes the nonce placeholder
+  (`@ncode/vite-config`'s `CSP_NONCE_PLACEHOLDER`)
+  ([ADR-0256](docs/adr/0256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),
+  backlog `R112`).
+
+- **Client-certificate revocation retrieval is shared and remembers failures; RSA-PSS lists verify; soft-fail is
+  opt-in.** `ClientCertificateRevocationOptions` from `OpenId:ClientCertificateRevocation` (`FetchTimeout`,
+  `MaxResponseSizeBytes`, `MaxCacheDuration`, `FailureCacheDuration`) is validated when the host starts; concurrent
+  checks of a list share one retrieval; a retrieval that yields no usable list is not repeated for
+  `FailureCacheDuration`; a list signed with RSASSA-PSS verifies; `tls_client_auth_revocation_mode` accepts
+  `online_soft_fail`, which refuses a revoked certificate and accepts an unknown status with a warning; `online` is the
+  default
+  ([ADR-0252](docs/adr/0252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
+  backlog `R64`).
+
+- **A Data Protection key the server's master key cannot decrypt stops the host.** `DataProtectionKeyRingGate` checks
+  the live keys after the server's protector loads and before Data Protection loads its key ring, and the host names
+  each undecryptable key instead of letting Data Protection write a default key over them; a Development host revokes
+  the key and logs a warning. `DataProtectionKeyRing:RevokedKeyIds` (`DataProtectionKeyRingOptions`) revokes keys by ID,
+  and `AddConfiguration` registers Data Protection
+  ([ADR-0247](docs/adr/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md), backlog `R48`).
+
+- **The host image's base images are pinned by digest and tracked by Dependabot.** Every `FROM` of the Dockerfile names
+  its tag and the digest of its multi-architecture index, a weekly `docker` Dependabot stream moves the digests, and the
+  `Host image` workflow checks the Node major against `.node-version`. **Breaking:** the Dockerfile takes no
+  `NODE_VERSION` or `DOTNET_VERSION` build argument
+  ([ADR-0249](docs/adr/0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md), backlog
+  `R35`).
+
+- **Every password a local account is given meets the password policy.** The management API's create and reset, the
+  self-service change and the developer and conformance seeders judge the password with `IPasswordPolicy` against the
+  tenant's settings: at least `password_min_length` characters (15 by default, never below 8, counted as Unicode code
+  points), at most `password_max_length` (128 by default, never below 64), no composition rules, and not on a
+  blocklist — the bundled list of 46,483 common passwords and the account's own user name or email; a deployment adds a
+  breached-password checker by registering an `IPasswordBlocklist`. The management API answers a refused password
+  `400`; the change page shows `password_too_short`, `password_too_long` or `password_blocklisted` with guidance. The
+  developer seed's administrator password is `dev-admin-password`. **Breaking:** `InteractivePasswordChangeResult` is a
+  class carrying the page's error code (`InteractivePasswordChangeErrors`), and `IPasswordPolicy`, `IPasswordBlocklist`,
+  `PasswordPolicyContext`, `PasswordPolicyResult` and `PasswordPolicyErrors` are added
+  ([ADR-0236](docs/adr/0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md), backlog `R101`).
+
+- **Failed password attempts are limited per account.** The interactive sign-in, the password grant and the
+  self-service change count failed passwords per account in `IExpiringCounterSet`; once
+  `password_failed_attempts_limit` failures (10 by default, at most 100) fall within `password_failed_attempts_window`
+  of the first (15 minutes by default), every password for the account is refused with the answer a wrong password
+  gets until the window ends. A verified password, and a password an administrator sets, clear the count.
+  **Breaking:** `IExpiringCounterSet` gains `RemoveAsync`, and `IPasswordAttemptLimiter` is added
+  ([ADR-0237](docs/adr/0237-failed-password-attempts-are-limited-per-account.md), backlog `R102`).
+
+- **A password is judged, hashed and verified in its NFC form.** The policy counts the code points of a password's
+  Unicode Normalization Form C (NFC) and its blocklists see that form, and the stores hash and verify it, so a password
+  typed with another composition of the same characters, such as `e` and a combining accent for `é`, verifies; a stored
+  hash of the password as submitted still verifies and is replaced by a hash of the NFC form. **Breaking:** an
+  `IPasswordHasher` hashes and verifies the NFC form of the bytes it is given
+  ([ADR-0238](docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md), backlog `R106`).
+
+- **A wrong password takes as long whether or not an account has the user name.** When no account has the user name,
+  the account has no password, the ASP.NET Core Identity user is locked out, or the default hasher cannot read the
+  stored hash, the store verifies the password against a dummy hash of the current parameters and refuses it, so a
+  wrong password costs the same hash verifications whether or not the account exists. **Breaking:** `IPasswordHasher`
+  gains `DummyPasswordHash`
+  ([ADR-0239](docs/adr/0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md), backlog
+  `R107`).
+
+- **A password refused at the attempt limit costs what a wrong one costs.** `ILocalAccountStore.VerifyCredentialAsync`
+  looks the account up once and asks its caller's `isRefusedAsync` about the user name the account holds; the sign-in,
+  the password grant and the self-service change ask `IPasswordAttemptLimiter.IsLimitReachedAsync` through a gate that
+  enforces its answer whatever the store returns, so a password refused at the limit is verified against the dummy hash
+  and counted as a failed attempt, and neither the answer nor the work tells whether an account has the user name under
+  any spelling a database collation matches. **Breaking:** `VerifyCredentialAsync` takes `isRefusedAsync` and returns
+  `LocalAccountVerificationResult` (`UserName`, `Account`, `IsRefused`, `IsVerified`), and a store that never calls
+  `isRefusedAsync` fails every verification
+  ([ADR-0244](docs/adr/0244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md), backlog `R109`).
+
+- **A blocked or disabled end user cannot sign in, and the client is answered `access_denied`.** The interactive
+  sign-in validates the end user's standing before it creates a session, so a blocked principal or a disabled local
+  account gets neither a session nor a cookie: a sign-in that resumes an authorization request answers it with
+  `access_denied` at the client's redirect URI, and any other sign-in shows the refusal on the login page. The
+  authorization request answers a signed-in end user whose standing is refused with `access_denied` for every
+  `prompt`, a consent denial answers the request with `access_denied`, and the self-service pages serve a cookie
+  only while the session it names is active. **Breaking:** `ValidateSubjectStandingCommand` is added and the
+  blocked-principal and local-account checks handle it (every subject validation still applies them),
+  `IContinueProvider.RefuseAsync` and `IContinueRefusalService` are added, and
+  `ILocalAccountStore.VerifyCredentialAsync` returns the disabled account of a valid credential
+  ([ADR-0229](docs/adr/0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md), backlog
+  `R98`).
+
+- A database dump or backup no longer reveals secret material without the root key. Production refuses the ephemeral
+  root key provider, an inline local root key (whatever provider is selected), and running without a recovery-key
+  decision, reporting them with every other production-safety finding (the failure now reads "setting(s) are unsafe
+  for a production deployment").
+
+- **Every grant that issues tokens for a subject validates it.** The device-code grant, the CIBA grant (at the token
+  endpoint, and at the approval for every delivery mode) and the token-exchange grant send
+  `ValidateSubjectAuthenticationCommand`, the device-code and CIBA grants before they spend their credential, so a
+  disabled, deleted or blocked end user is refused with `access_denied`, and a refused CIBA approval denies the request.
+  A device code and an `auth_req_id` are redeemed only by the client they were issued to (`invalid_grant`). The device
+  verification endpoint checks the server-side session of its cookie and asks for a new login when it has ended.
+  **Breaking:** `ValidateSubjectAuthenticationCommand.OpenIdRequest` is nullable (`null` outside a protocol request
+  skips the request's `max_age`, `acr_values` and `claims` checks), and `ICibaRequestService.ApproveAsync` returns
+  `false` for a refused approving subject
+  ([ADR-0225](docs/adr/0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md), backlog `R92`).
+
+- **An administrator's password reset ends the account's sessions.** After the reset commits, every session of the
+  account's principal is terminated with `password_reset`: its grants and refresh tokens are revoked, its relying
+  parties receive back-channel logout, and its consents are kept. **Breaking:**
+  `SessionTerminationReasons.PasswordReset` is added
+  ([ADR-0226](docs/adr/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
+  backlog `R94`).
+
+- **Deleting or disabling a local account ends its sessions, and every token request checks the account.** Disabling an
+  account terminates its principal's sessions with `account_disabled`, and deleting it terminates them with
+  `account_deleted` before it removes anything: every grant of the principal is revoked, its relying parties receive
+  back-channel logout, and each termination is audited. A deleted principal is erased with its consents and grants, and
+  a disabled account keeps its consents. The local-account capability refuses a subject whose account is disabled or
+  gone with `access_denied` at the authorization request and at the authorization-code, refresh-token and password
+  grants, whichever connection the subject signed in through. **Breaking:**
+  `SessionTerminationReasons.AccountDeleted` and `AccountDisabled` are added, `IFederatedPrincipalStore.RemoveAsync`
+  erases the principal's consents and grants, and `NCode.Identity.OpenId.Accounts.Management` references
+  `NCode.Identity.OpenId.Authentication.Abstractions`
+  ([ADR-0224](docs/adr/0224-deleting-or-disabling-an-account-ends-its-sessions.md), backlog `R89`).
+
+- **A session that ends while no request uses it is terminated within a minute.** One replica in each
+  `OpenId:EndedSessionTermination:Interval` (one minute by default) revokes the grants issued under each session that
+  ended unused, sends back-channel logout to its relying parties (`idle_timeout` or `absolute_expiry`), and audits the
+  termination, once: a request and the pass that find the same ended session terminate it once. The claim revokes the
+  grants issued under the session in one unit of work, so a failure after it leaves no token of the session active. A
+  session that the release before the session bounds stored without an expiry is terminated too. The grant prune keeps
+  a session until it is terminated and removes it one retention after. **Breaking:**
+  `IPersistedGrantService.SetRevokedOnceAsync` returns `bool`, `IGrantStore.RemoveEndedBeforeAsync` takes the grant
+  types that end by revocation, `IGrantStore.GetUnrevokedExpiredPageAsync`,
+  `IPersistedGrantService.RevokeSessionOnceAsync`, `ISessionService.TerminateIfEndedAsync`,
+  `IOpenIdContextFactory.CreateForBackgroundAsync` and `IMaterializedServerAccessor` are added, and the
+  `AddGrantTypeRevokedWhenExpiresWhenIndex` migration adds an index to the grants table
+  ([ADR-0223](docs/adr/0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md), backlog `R90`).
+
+- **Every end-user session ends.** `session_absolute_lifetime` defaults to 30 days and accepts one second to 365 days,
+  and `session_idle_timeout` defaults to 3 days and accepts one second to 100 days; a zero value is refused. A session's
+  grant expires at the end of its idle window or, if earlier, at its absolute end, and each renewal of the window moves
+  the expiry, so the grant prune removes an abandoned session after the retention. An authorize request that finds an
+  ended session terminates it with `absolute_expiry` or `idle_timeout`, which revokes the grants issued under it and
+  notifies its relying parties. The `BoundEndUserSessions` migration removes the stored values of both settings that the
+  domains refuse and gives every unrevoked session grant without an expiry one 30 days after it was created
+  ([ADR-0220](docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), backlog `R80`).
+
+- **A public client's refresh token is rotated unless it is sender-constrained.** `refresh_token_rotation_policy`
+  (`unbound`, the default, or `always`) replaces `refresh_token_rotation_enabled`. `unbound` rotates a refresh token
+  that is bound neither to a proof-of-possession key nor to client authentication, and `always` rotates every refresh
+  token. No setting turns off the rotation of a public client's unbound refresh token (RFC 9700 §4.14.2), and the FAPI
+  2.0 security profile defaults a client to `unbound`. **Breaking:** the `refresh_token_rotation_enabled` setting and
+  `OpenIdSettingNames`/`OpenIdSettingKeys.RefreshTokenRotationEnabled` are removed, and the
+  `RenameRefreshTokenRotationSetting` migration rewrites stored settings documents (`true` becomes `always`, `false` is
+  removed). The policy merges by replacement, so a tenant's `always` is a default that a client's own `unbound`
+  replaces; a public client's unbound token rotates whatever the policy
+  ([ADR-0216](docs/adr/0216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md), backlog `R77`).
+
+- **A refresh token that two requests present at once is spent once, and the other request is answered as a reuse.**
+  With rotation on, the presented token is revoked and its successor stored in one unit of work before any token is
+  issued. The losing request receives `invalid_grant` and the `token.refresh.replay` audit event, and under
+  `refresh_token_reuse_policy` `revoke_all` (the default) the whole rotation family is revoked, the winner's new token
+  included (RFC 9700 §4.14.2)
+  ([ADR-0211](docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md), backlog `R69`).
+
+- **Deleting a tenant erases the data of its end users.** Its local accounts and their claims, federated principals and
+  identities, sessions and other grants are removed with it; the `409` for its clients and resource servers is
+  unchanged and its usage is kept
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R59`).
+
+- **Revocation data is fetched only through the outbound-request guard.** The platform chain engine retrieves nothing:
+  certificate downloads are disabled and its own revocation check is off (`X509RevocationMode.NoCheck`), so no AIA, CRL,
+  or OCSP URL in a presented certificate is fetched by the platform. The server fetches a CRL itself through the named
+  client `NCode.Identity.OpenId.ClientCertificateRevocation`, whose connections go through `IOutboundHttpForgeryGuard`,
+  which follows no redirect, and which times out after 5 seconds and reads at most 10 MiB, so a certificate cannot
+  direct the server to an internal address. A CRL that is not DER, not current, not issued and signed by the issuing
+  certificate, or not understood is `Unknown`, which the chain validator refuses
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R16`).
+
+- **An initial access token authorizes one registration.** Every token, scoped or not, is spent by the registration it
+  authorizes and expires within 30 days, so a leaked token registers at most one client, and only until it expires. A
+  token that is spent, expired, or revoked is refused with `401` `invalid_token`. A registration that an earlier check
+  refuses leaves the token unspent, and a failure storing the client after the spend leaves it spent
+  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md),
+  [ADR-0063](docs/adr/0063-dynamic-client-registration.md), backlog `R17`).
+
+- **A private-use redirect URI must be a reverse domain name, and a URI of no kind is never permitted.** A
+  `private_use` URI has a scheme of at least two non-empty labels, such as `com.example.app`, so `javascript:`, `data:`,
+  `ws:`, `file:`, and `myapp:` are no redirect target, even with `redirect_uri_kinds_supported` unset
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R56`).
+
+- **The end-session redirect checks the post-logout URI's kind and escapes its `Location`.** A
+  `post_logout_redirect_uri` is refused like an unregistered one when `redirect_uri_kinds_supported` excludes its kind,
+  and the `Location` header is escaped as an authorization response's is
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R56`).
+
+- **A redirect URI is delivered and compared exactly as written.** A parked continuation and a stored authorization
+  code carried `myapp://callback` as `myapp://callback/` with a lower-cased host, the response went to the form a
+  `UriBuilder` produced, and the token endpoint accepted a `redirect_uri` that differed in the case of its host or in
+  its user information. The response now goes to the string the client sent, each registered query parameter reaches
+  the client as registered, and only a character a header value cannot carry as written (a non-ASCII character, RFC
+  3987 §3.1, or an ASCII control character or space) is percent-encoded in the `Location` header. The token endpoint
+  compares `redirect_uri` ordinally with the authorization request's value (RFC 6749 §4.1.3) and refuses any other with
+  `invalid_grant` ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R52`).
+
+- **The FAPI profiles refuse an `http` redirect URI.** `fapi1-advanced` caps `redirect_uri_kinds_supported` at
+  `https` (FAPI 1.0 Part 1 §5.2.2-20 and §7.5), and `fapi2` at `https`, `loopback`, and `private_use` (FAPI 2.0
+  §5.3.2.2-8), so `http` is left only for a native client's loopback redirect under `fapi2`. Dynamic client
+  registration refuses a redirect URI the tenant's settings exclude with `invalid_redirect_uri`, the management API
+  refuses one the client's effective settings exclude with a validation problem on `redirect_uris`, and the
+  conformance seed stops the host. The authorization and PAR endpoints refuse such a redirect URI with
+  `invalid_request` and a `400` that is not redirected
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md),
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R53`).
+
+- **A redirect URI is matched exactly, and only a registered loopback URI may vary its port.** The requested
+  `redirect_uri` is compared ordinally, as written, to the client's registered strings, and more than one value is
+  refused (RFC 9700 §4.1.3, OAuth 2.1). It used to ignore the query and to accept any loopback URI the client had not
+  registered, and the response writer passed on the query parameters the request supplied; the query that reaches the
+  client is now the registered one (RFC 6749 §3.1.2). A client must register the exact URIs it sends.
+  `allow_loopback_redirect` keeps its name and its default of `true`, but its meaning narrows to RFC 8252 §7.3: a
+  registered `http://127.0.0.1` or `http://[::1]` URI may be requested with another port, and `localhost` gets no
+  flexibility. The `fapi1-advanced` profile sets a ceiling of `false` for it (FAPI 1.0 Part 1 §5.2.2-20), so a client
+  under it registers the exact port; `fapi2` sets none. An unregistered URI is still refused with
+  `unauthorized_client` and no redirect
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md),
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R11`).
+
+- **A retired tenant identifier or issuer is never reissued.** Deleting a tenant retires its identifier and its issuer,
+  and changing a tenant's issuer retires the previous one, so a new tenant can no longer take an identity that relying
+  parties trust. The tenant store records them in the new `RetiredTenants` and `RetiredIssuers` tables, in the same
+  unit of work as the delete or update. `ITenantResolver.ValidateTenantAsync` reports a retired identifier, or an issuer
+  another tenant gave up, as a conflict: the management API answers `409 Conflict` on create and update, and the
+  address preview lists it. Only the tenant that gave up an issuer can take it back. `ITenantStore` adds
+  `IsTenantIdRetiredAsync` and `GetRetiredIssuerHolderOrDefaultAsync`. The host database's
+  `RetireTenantIdentifiersAndIssuers` migration adds the two tables
+  ([ADR-0189](docs/adr/0189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)).
+- **A signed request object is short-lived and addressed to the issuer.** The authorization endpoint (`request` /
+  `request_uri`) and the CIBA backchannel endpoint refuse a request object valid for longer than the new client-scoped
+  `request_object_max_lifetime` setting, which defaults to 60 minutes as a `Min` ceiling. The authorization endpoint
+  now always validates `aud`, against the tenant's issuer unless `request_object_expected_audience` is set, so a
+  client that omitted `aud` must add it. The new `request_object_nbf_required` setting (`Or` merge, default `false`)
+  makes `nbf` mandatory. The FAPI 2.0 profile pins both, at 60 minutes and `true`. A CIBA signed authentication request
+  must carry `iat`, `nbf`, `exp`, and `jti` (CIBA Core §7.1.1), and the CIBA loader now uses the client's
+  `clock_skew` instead of the JWT library's 5-minute default. `TokenLifetimeRequirement` and
+  `ValidateTokenLifeTimeOptions` gain `RequireNotBefore` and `RequireIssuedAt`. See
+  [ADR-0187](docs/adr/0187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md).
+
+- **The frontend bootstrap document's issuer is the serving tenant's, never the request's.** With `Frontend:Issuer`
+  unset, `/config/bootstrap.json` published the request's `scheme://host` as the issuer, so a forged or proxied
+  `Host` sent the bundle to an authority the operator never configured. It now publishes the stored issuer of the
+  tenant that serves the surface: the `StaticSingle` tenant, or the root tenant under the dynamic strategies. Before
+  that tenant is provisioned, it publishes its strategy's default issuer. When neither exists, the endpoint answers
+  `500` rather than guess. The API base still defaults to the serving origin, which is where the management API is,
+  and the response is `Cache-Control: no-store`. `Frontend:Issuer` and `Frontend:ApiBaseUrl` remain overrides.
+  Backlog `F74` is complete
+  ([ADR-0182](docs/adr/0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md)).
+
+- **The Data Protection key ring is encrypted at rest, and a Production host refuses an unprotected one.** The host
+  persists the key ring to the same database as the secrets it unprotects, so a database dump held both. In
+  Production, `AddProductionSafety` now refuses to start, as the host starts, when the key ring has no repository or
+  no `IXmlEncryptor`. Any encryptor satisfies it: a certificate, `ProtectKeysWithAzureKeyVault` or another key
+  management service, or a custom one. `AddConfiguration` binds the new `DataProtection:KeyProtection` section
+  (`KeyRingProtectionOptions`). A `Certificate` there, either PEM with a separate (optionally encrypted) private key or
+  PKCS#12, with an RSA key, protects every new key. `PreviousCertificates` keep older keys readable through a rotation.
+  **Breaking:** a Production deployment without key ring protection no longer starts.
+  ([ADR-0177](docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md))
+
+- **`tls_client_auth` validates the presented certificate's chain in the server and fails closed.** The handler
+  matched only the subject and trusted the TLS terminator to have validated the chain, so a proxy that only requested
+  a certificate let a self-signed certificate carrying a client's registered subject authenticate as that client. The
+  chain is now built against the tenant- or client-scoped `tls_client_auth_trust_anchors` (PEM CA certificates; a
+  self-issued one is an anchor, any other an intermediate) with custom root trust, the forwarded intermediates as
+  untrusted hints, the `clientAuth` extended key usage, validity, and `tls_client_auth_revocation_mode` (`online` by
+  default, `offline`, or `none`). The replaceable `IClientCertificateChainValidator` performs the check, and a failure
+  is audited as `client_certificate_untrusted`. **Breaking:** a `tls_client_auth` client with no trust anchors no
+  longer authenticates, and a PKI that publishes no revocation data must set `tls_client_auth_revocation_mode` to
+  `none`. ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md))
+
+- **Behind a proxy, a forwarded certificate that cannot be decoded fails the request, and the connection's certificate
+  is never taken for the client's.** An undecodable forwarded value was read as no certificate, after which the resolver
+  fell back to the certificate on the connection — at most the proxy's own on a re-encrypting hop. When a forwarded
+  header is configured it is now the only source: an absent header is no certificate, and a value the configured format
+  cannot decode is `invalid_request` with a warning naming the header and the format.
+  ([ADR-0172](docs/adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md))
 
 - **Any authenticated client could introspect any token.** A client could introspect another client's refresh token or
   any access token, including its own encrypted ones, and read what encryption hides from it. Introspection now
@@ -790,6 +2129,348 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A client assertion whose header or payload is not a JSON object is answered with `400` `invalid_client`.** A
+  `client_assertion` whose header or payload decoded to a JSON array, string, or number raised an unhandled exception
+  and a `500`; the JWT-bearer handlers now treat it like any other malformed assertion.
+
+- **The login page keeps what the end-user typed when the `apps/auth` bundle loads.** The bundle mounts as soon as
+  its script runs and starts from the page the host rendered: the values typed or autofilled into its text and
+  password fields, the field that had focus, and the consent scopes the end-user cleared carry into its forms, and a
+  carried password is written to the input's `value` property, never to an attribute. The authorization error page
+  served with the bundle shows its error instead of a login form
+  ([ADR-0253](docs/adr/0253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), backlog
+  `R20`).
+
+- **A host's own ASP.NET Core Identity pages verify the password the adapter stores.**
+  `AddAspNetIdentityLocalAccountStore<TUser>()` wraps the host's `IPasswordHasher<TUser>` registration, made before or
+  after the call, in the public `NormalizingPasswordHasher<TUser>`, which hashes and verifies a password's NFC form and
+  verifies the typed form as a fallback that asks for a rehash, so the adapter and the host's pages accept every
+  composition of a password. **Breaking:** a host that registers its `IPasswordHasher<TUser>` after the call, or
+  replaces `UserManager<TUser>.PasswordHasher`, wraps it in `NormalizingPasswordHasher<TUser>`, because the adapter
+  throws an `InvalidOperationException` instead of hashing or verifying through a hasher that does not normalize
+  ([ADR-0243](docs/adr/0243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md), backlog
+  `R108`).
+
+- **A management request answers `409` for a stored settings document it cannot honor.** The effective-settings reads,
+  a client's create and settings update, the incoherent-client report, a local account's create and password reset,
+  and a tenant settings write whose server document cannot be honored answer `409 Conflict` with a problem whose
+  `settingsScope`, `ownerId` and `documentError` name the document, only after authorization, and log
+  `StoredSettingsUnreadable` (event ID 3009); a settings write that replaces the document repairs it. **Breaking:**
+  `IEffectiveSettingsResolver` gains `ResolveStored`, and it and `ResolveServerAsync(CancellationToken)` throw
+  `UnreadableSettingsException`, a `JsonException` that names the document
+  ([ADR-0245](docs/adr/0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md),
+  backlog `R110`).
+
+- **A settings write passes a stored document that cannot be honored.** A server or tenant settings write does not
+  fail with `500` when a stored client's or tenant's settings document names a setting, a value or a scope the settings
+  vocabulary rejects: the write logs the document (`ClientSettingsUnreadable`, `TenantSettingsUnreadable`, event IDs
+  3006 and 3007) and does not count it as a violation the change introduces, and a write that replaces such a document
+  of its own checks no client and logs it (`ServerSettingsUnreadable`, 3008, or `TenantSettingsUnreadable`), so the
+  management API can repair it; the incoherent-client report still lists the client
+  ([ADR-0241](docs/adr/0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md), backlog `R104`).
+
+- **The ASP.NET Core Identity adapter stores a password the password policy accepts.** It hashes a password with the
+  user manager's password hasher and stores the hash through `IUserPasswordStore<TUser>`, creating the user with
+  `CreateAsync(user)` and rotating the security stamp on a reset, so ASP.NET Core Identity's password validators, whose
+  default composition rules NIST SP 800-63B forbids, cannot refuse a password the policy accepted with `500`; a
+  transparent rehash keeps the security stamp
+  ([ADR-0238](docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md), backlog `R105`).
+
+- **A dispatched job whose handler times out is retried, and the host keeps running.** A handler's
+  `OperationCanceledException` that does not come from the host stopping, such as the `TaskCanceledException` of an
+  `HttpClient` timeout during a back-channel logout or CIBA delivery, fails the attempt and retries the job with
+  back-off; it does not end the dispatcher's worker or stop the host. A job whose handlers fail is retried once per
+  attempt, however many of them failed, and a handler that cannot be resolved fails the attempt
+  ([ADR-0232](docs/adr/0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md), backlog `R85`).
+
+- **A replayed authorization code terminates its session through the termination seam.** A second redemption of a
+  redeemed code terminates the code's session with `authorization_code_replay`, so its grants are revoked, its relying
+  parties receive back-channel logout and the termination is audited; a code that expired unused terminates nothing.
+  **Breaking:** `SessionTerminationReasons.AuthorizationCodeReplay` is added
+  ([ADR-0228](docs/adr/0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md),
+  backlog `R96`).
+
+- **A terminated session notifies every client it lists when it is claimed.**
+  `IPersistedGrantService.RevokeSessionOnceAsync` returns the session grant as the call revoked it, and every
+  termination notifies the clients that grant lists, so a client that an ID token issued under the session added after
+  an earlier read receives back-channel logout. A subject-wide termination also claims a session that ended and awaits
+  the background termination. **Breaking:** `RevokeSessionOnceAsync<TPayload>` returns `PersistedGrant<TPayload>?`
+  ([ADR-0228](docs/adr/0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md),
+  backlog `R97`).
+
+- **A ping or push client is told that its CIBA request was denied.** A denial, also of an approval whose subject is
+  refused, sends the ping notification, after which the token endpoint answers `access_denied`, or the push error
+  payload with `error=access_denied`; only the call that decided the request notifies the client
+  ([ADR-0231](docs/adr/0231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md), backlog `R100`).
+
+- **A session is terminated at most once on every path.** `ISessionService.RevokeAsync`, `RevokeAllAsync` and
+  `RevokeAllExceptAsync`, the eviction at the concurrent-session limit and RP-initiated logout claim each session with
+  `IPersistedGrantService.RevokeSessionOnceAsync` before they dispatch its termination, so a session that two paths end
+  at once notifies its relying parties and is audited once, and the claim revokes the grants issued under it in one unit
+  of work. `RevokeAllAsync` revokes every grant of the subject before it dispatches, and the sessions management API
+  reports the sessions the request terminated. **Breaking:** `ISessionService.RevokeAsync` returns `bool`, and
+  `RevokeAllAsync` and `RevokeAllExceptAsync` return the number of sessions the call terminated
+  ([ADR-0227](docs/adr/0227-a-session-is-terminated-at-most-once-on-every-path.md), backlog `R95`).
+
+- **A change to a grant's payload loses no concurrent write.** The touch of a session, the addition of a client to it,
+  and the polls and decisions of the device-code and CIBA grants apply their change to the grant as stored and read
+  again when another write lands first, so a client that a concurrent request added to a session stays, a poll leaves an
+  approval that landed before its write, and only the CIBA approval that decided the request delivers. **Breaking:**
+  `IPersistedGrantService.UpdatePayloadAndExpirationAsync` and the overload of `UpdatePayloadAsync` that takes a payload
+  are removed, `UpdatePayloadAsync` takes the function that computes the change, `PersistedGrantUpdate<TPayload>` is
+  added, and `ISessionService.AddClientAsync` reports whether this call added the client
+  ([ADR-0222](docs/adr/0222-a-grants-payload-is-changed-by-a-read-modify-write.md), backlog `R91`).
+
+- **Listing a subject's sessions failed for every stored session.** The listing deserialized the versioned payload
+  envelope of a stored session as the payload, so the active-sessions page, the management sessions API, sign-out
+  everywhere and the concurrent-session limit failed for any subject with a session. The payload is read through
+  `IPersistedPayloadSerializer`
+  ([ADR-0220](docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), backlog `R80`).
+
+- **Deleting a local account left its principal's role assignments, ownership included.** Removing a federated
+  principal removes every role assignment it holds, in every tenant, in the same unit of work, and deleting a tenant
+  removes the assignments its principals hold in other tenants
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R82`).
+
+- **A revocation wins a concurrency race.** The revocation endpoint, the device user code, logout and session eviction,
+  the replay of an authorization code, and the management revocations read the grants again in a new unit of work and
+  retry when another write changed a grant first, so a concurrent write such as a sliding-expiration update does not
+  leave a grant active or reach the caller as `500` or `412`. **Breaking:** `IPersistedGrantService.RevokeWhereAsync`
+  replaces `RevokeBySessionAsync`, `GrantFilter.GrantId` is added, and
+  `DefaultRevokeGrantsOnSessionTerminatedHandler` revokes through `IPersistedGrantService`
+  ([ADR-0215](docs/adr/0215-a-revocation-wins-a-concurrency-race.md), backlog `R78`).
+
+- **Deleting a client or a resource server removes the role assignments at its node.** The assignments of every role,
+  ownership included, are removed in the same unit of work, also when a dynamically registered client is deregistered.
+  The built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values, so a store that removes a resource finds
+  the assignments at its node
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R75`).
+
+- **Deleting a client that held grants, consents or resource-server grants, deregistering a dynamically registered
+  client, or deleting a tenant whose users had signed in failed with a foreign-key violation (`500` on PostgreSQL).**
+  The removal takes what exists for the owner in the same unit of work
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R59`).
+
+- **A management write that lost a concurrency race reached its client as `500`;** it is answered
+  `412 Precondition Failed`
+  ([ADR-0214](docs/adr/0214-a-management-write-that-loses-a-race-is-answered-412.md), backlog `R70`).
+
+- **The usage ledger was never pruned on EF InMemory, and the failure was logged at every flush.** The prune removes
+  bounded batches through the change tracker, which every provider supports
+  ([ADR-0213](docs/adr/0213-the-usage-ledger-is-pruned-in-bounded-batches.md), backlog `R73`).
+
+- **A refresh that extended a sliding expiration at the same moment as another could reach its client as `500`.** The
+  update keeps the other request's change
+  ([ADR-0211](docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md), backlog `R69`).
+
+- **A usage batch whose save committed but reported a failure was added to the ledger twice.** A save can commit and
+  still fail at its caller, for example when the connection drops after the commit, and the flush then added the same
+  batch again, so a tenant's billed usage was overcounted. A replica numbers its batches, and the ledger skips a batch
+  that its replica already added
+  ([ADR-0209](docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), backlog `R25`).
+
+- **A host stopped twice at once could dispose its services under the usage ledger's final flush.** The stop that
+  returned first let its caller dispose the service provider while the other stop's flush was still adding usage, and
+  the flush failed. The final flush runs once and every stop waits for it, the usage it cannot add is logged as
+  discarded (event 2051), and the stop does not throw
+  ([ADR-0209](docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), backlog `R54`).
+
+- **A value that a client registers in a list, and that its tenant or a security profile excludes, was accepted and
+  failed at the client's next request.** The effective list omitted the value silently, and nothing compared it with
+  what the client registered. `RegisteredValueCoherenceRule` reports it, so the management API and the seeders refuse
+  such a client, and a tenant or server change that would drop such a value is refused while a client registers it
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R62`).
+
+- **A client that alone selected `fapi1-advanced` replaced its tenant's certificate-binding support.** The profile's
+  default for `tls_client_certificate_bound_access_tokens` applied at every scope that selected the profile, including a
+  client, where the setting does not apply. A default applies only within its scope, so the client takes its tenant's
+  support, and `CertificateBoundAccessTokenCoherenceRule` reports the client while that support is off
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md), backlog `R68`).
+
+- **A concurrent second spend of a single-use grant reached its client as `500`.** Of two requests that spent one
+  authorization code, device code, CIBA request, pushed authorization request, initial access token, or `state` of a
+  paused authorization flow at the same moment, the one that lost the race on the grant row's concurrency token failed
+  with an unhandled exception. `ConsumeOnceOrDefault` answers it as a second spend: `invalid_grant` for an authorization
+  code, a device code, and a CIBA request, `invalid_request_uri` for a pushed request, `401` `invalid_token` for an
+  initial access token, and `400` for the `state` of a paused authorization flow at the continue endpoint
+  ([ADR-0208](docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), backlog `R66`).
+
+- **A `tls_client_auth` client whose certificate subject was encoded differently from its registered subject DN could
+  not authenticate.** The handler compared DER bytes, so the same name written as a `UTF8String` or a
+  `PrintableString`, in another case, or with other spacing did not match. The subject DN matches across string
+  encodings, case, and spacing, and the `tls_client_auth_subject_dn` setting rule accepts the RFC 4514 forms an
+  operator pastes. **Breaking:** a stored `tls_client_auth_subject_dn` written with `;` separators or in the
+  `/C=US/O=Example` form does not parse, matches no certificate, and is refused by the setting rule; rewrite it as an
+  RFC 4514 string such as `CN=client,O=Example`
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R18`).
+
+- **A security profile selected in the server's configuration supplied no defaults at the server root.** The root wrote
+  every setting's descriptor default into the collection that holds the configuration, and a profile's default sits
+  beneath a scope's own settings, so it never took effect there. The root's descriptor defaults, computed supported
+  values, and default-settings providers are a baseline beneath the configuration, and
+  `ISecurityProfileCatalog.Expand(scopeSettings, baselineSettings)` layers them: the configuration replaces the
+  baseline, a profile's default replaces the baseline but never a configured value, and a ceiling bounds both. So
+  `fapi1-advanced` advertises certificate-bound access token support, and the FAPI profiles' `PS256` signed-response
+  defaults apply, when the server's configuration selects the profile
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md), backlog `R42`).
+
+- **A server settings PATCH loaded every tenant and client with their secrets, even for an unrelated change.** It now
+  walks the clients only when a setting that the client response-algorithm rule reads changed, and it reads tenants and
+  clients as untracked projections without their secrets (backlog `R21`).
+
+- **A management write evicted the tenant only on its own replica.** Every other replica kept serving its cached tenant,
+  disabled, deleted, or moved, until the entry expired. The write now announces the change, and every replica evicts the
+  tenant ([ADR-0205](docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md), backlog `R49`).
+
+- **A server settings change that permitted a configured algorithm left running tenants without its key.** A
+  background job now re-seeds each tenant that newly names the algorithm, so the key is provisioned without a restart
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), backlog `R50`).
+
+- **A tenant with provisioned keys could not be deleted.** The delete answered `409` because the tenant's own secrets
+  and system resource servers blocked it
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), backlog `R51`).
+
+- **`response_modes_supported` was checked inconsistently.** When the setting is set, the authorization endpoint now
+  requires both the response mode as the request wrote it, so `jwt` itself must be listed, and the mode it resolves to
+  to be listed, for an explicit and a default mode alike. The check runs once, when the delivery is derived, and the
+  request validator no longer repeats it. A response mode that is not listed is refused with `invalid_request` and a
+  `400`, and is not redirected
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), backlog
+  `R22`).
+
+- **A JWT-secured (JARM) response the server could not sign was refused only after the user had signed in.** The
+  credentials that sign the response are now selected when the delivery is derived, before authentication and before a
+  code is issued. A client with no signing credential, or a selector that fails, is refused with `server_error` and a
+  `500` that is not redirected, instead of failing when the response was written
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), backlog
+  `R23`).
+
+- **A tenant whose settings later permitted a configured algorithm advertised it without a key until every replica
+  restarted.** Every management write to a tenant (its record, its settings, a secret, or its deletion) now sends a
+  `TenantChangedCommand` after it commits. The default handler evicts the tenant from the replica's tenant cache, so the
+  change takes effect there at once, and after a settings change seeds the tenant again, so the key is provisioned
+  before the write returns. `Ephemeral` developer mode now keeps one key per tenant for the life of the process, so the
+  eviction does not invalidate issued tokens. **Breaking:** `IOpenIdTenantCache` gains `RemoveAsync`.
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md))
+- **A tenant that signs JWT-secured authorization responses (JARM) with an algorithm none of its other lists names
+  was provisioned no key for it.** `OpenId:Tenant:KeyProvisioning:AlgorithmSettings` now names
+  `authorization_signing_alg_values_supported` by default, so the JARM list provisions its keys as the ID token and
+  access token lists do (ADR-0169).
+
+- **An unreachable Valkey server cost every request about 5 s per rate limit judged, and logged a warning with a
+  stack trace each time.** The rate limiter now bounds each counter call to 100 ms and, after a failure, stops calling
+  the store for 10 s, admitting every request uncounted (`store_unavailable`) before trying it again. The failure that
+  opens the pause logs one warning and the answer that ends it logs one information message (new event
+  `RateLimitStoreRecovered`), so an outage is logged once per replica. Valkey stays a readiness dependency, since
+  single-use state fails closed without it (ADR-0196).
+
+- **A client's `request_object_expected_audience` replaced the issuer as the audience a request object must name,
+  even under a FAPI profile.** The setting is client-scoped and replace-merged, so no ceiling could cap it. The
+  `fapi1-advanced` and `fapi2` profiles now compose `IssuerOnlyRequestObjectAudienceRequirement`, which refuses a
+  request object from a client that sets it with `invalid_request_object` (ADR-0187, ADR-0202).
+
+- **An authorization request with a request object still read `scope` and `response_type` from the unsigned outer
+  query when the object omitted them.** Only the object's values are now used (RFC 9101 §6.3, FAPI 1.0 Advanced
+  §5.2.2-10): an object without `response_type` or `scope` is refused with `invalid_request_object`, an outer
+  `response_type` must still match the object's, and an outer `scope` is ignored (ADR-0202).
+
+- **An authorization error raised after the request object was verified used the outer, unsigned `state` and
+  `response_mode`.** When a request carried `redirect_uri` outside its request object, a later error went back without
+  the object's `state` and, for `response_mode=jwt` only in the object, unsigned (RFC 6749 §4.1.2.1). Once the object
+  is verified, the authorization endpoint now takes `state` and `response_mode` from it for every later response,
+  errors included (RFC 9101 §6.3, ADR-0202).
+
+- **Every management API request read the control-plane tenant from the store before checking the tenant cache.**
+  `ITenantStrategy` and `ITenantResolver` gain `GetControlPlaneTenantId()`, which names the control-plane tenant from
+  configuration, and `CreateControlPlaneTenantAsync` probes the cache with it first, reading the store only on a miss
+  (ADR-0191).
+
+- **The `fapi1-advanced` security profile accepted an authorization request without `nonce` or `state`.** It now
+  refuses, with `invalid_request`, a request for the `openid` scope without `nonce` and any other request without
+  `state` (FAPI 1.0 Advanced §5.2.2.2–3, ADR-0202).
+
+- **Anonymous requests for discovery and the JSON Web Key Set spent a tenant's daily request quota.** Anyone could
+  spend the quota, run up its billable overage, and then have the tenant's clients refused until midnight UTC. The two
+  endpoints are no longer metered: they count only against the per-minute rate limits, and are not recorded as
+  `requests` usage (ADR-0198, ADR-0199, ADR-0200).
+
+- **Requests refused by the per-client rate limit or the token quota were recorded as usage, including overage.** The
+  request filter now records a request once its endpoint has run, and skips one that any limit refused with `429`, so
+  only served requests are billed (ADR-0199 §2).
+
+- **Pruning the tenant usage ledger loaded every expired entry into memory.** `ITenantUsageStore.RemoveBeforeAsync`
+  now removes them with one set-based delete, which takes effect immediately rather than when the unit of work is
+  saved.
+
+- **A JWT signed with a certificate key was checked against the certificate's validity in the host's local time.**
+  The certificate-lifetime check compared the certificate's local-time validity with the UTC clock, so on a host
+  outside UTC a client assertion, request object, or CIBA request signed with an expired certificate could still pass,
+  or a current one fail. Validity is now compared in UTC. A client key registered or published with an `x5c`
+  certificate is now subject to this check, which ADR-0161 records.
+
+- **Dynamic registration accepted a response-encryption `alg` whose default `enc` the tenant does not permit.** A
+  client registering `id_token_encrypted_response_alg`, `userinfo_encrypted_response_alg`,
+  `introspection_encrypted_response_alg`, or `authorization_encrypted_response_alg` without the matching `enc` gets the
+  default `enc` (the tenant's, normally `A128CBC-HS256`). Registration now refuses it with `invalid_client_metadata`
+  when the tenant's supported `enc` values exclude that default, rather than registering a client whose responses
+  cannot be encrypted.
+
+- **The host chart's migration Job ignored the host's extra settings and volumes.** `extraEnv`, `extraEnvFrom`,
+  `extraVolumes`, and `extraVolumeMounts` reached only the host's pods, so a setup whose database connection needs a
+  CA bundle or SSL setting failed every install at the migration Job. The Job now receives them too, and runs with
+  the host's `fsGroup` so its non-root user can read a mounted secret. Both pod specs now share their security
+  contexts, image pull secrets, and scheduling constraints through `_helpers.tpl`.
+
+- **The host chart's migration Job name could exceed 63 characters.** A long release name made the `-migrations`
+  suffix push the name past the label-value limit Kubernetes copies it into. The name is now shortened to fit.
+
+- **A release without Valkey could briefly run two replicas.** The rolling update with `maxSurge: 0` started the new
+  pod as soon as the old one began terminating. The chart now uses the `Recreate` strategy without Valkey, which waits
+  for the old pod to terminate
+  ([ADR-0179](docs/adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
+
+- **A tenant usage query near the first representable day returned `500`.** `GET /api/tenants/{tenantId}/usage` with
+  a `to` less than 30 days after `0001-01-01` and no `from` threw while computing the default range. It now returns a
+  `400` validation problem.
+
+- **The host chart suggested a key-protection certificate that cert-manager renews in place.** A renewal written
+  into the same Secret replaces the only certificate that can unwrap the existing Data Protection keys, so after the
+  next restart the key ring could not be read. The chart's README now documents hand rotation through
+  `keyProtection.previousCertificateSecrets` and warns against in-place renewal
+  ([ADR-0177](docs/adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)).
+
+- **Deleting the root tenant broke every tenant.** A deleted tenant identifier is never reissued, so the root tenant —
+  or the static single-tenant strategy's tenant — could not be created again, and every request that needed it failed.
+  `DELETE /api/tenants/{tenantId}` now answers `409 Conflict` for a tenant the deployment requires. `ITenantStrategy`
+  and `ITenantResolver` gain `IsRequiredTenant`, so a custom strategy can name the tenants it requires
+  ([ADR-0189](docs/adr/0189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)).
+
+- **The multi-architecture host image build failed in restore.** The `amd64` and `arm64` builds
+  shared the NuGet cache mount concurrently, so one read a package the other was still extracting (`Could not find
+  file '/root/.nuget/packages/…'`). The Dockerfile now locks the cache mount, so the two publishes take turns.
+
+- **The management API authenticated callers against the tenant the request addressed.** Under `DynamicByPath` a
+  collection route such as `POST /api/tenants` had no tenant to resolve, and `/api/tenants/{tenantId}/…` validated the
+  caller's token with the target tenant rather than the tenant that issued it; under `DynamicByHost` the
+  `manage.<apex>` host is no tenant's host, so every call returned `404`. The management API now authenticates every
+  caller against the control-plane tenant — the root tenant, or a static strategy's own tenant — whatever host or path
+  it is reached on, and the route's `tenantId` only scopes the data. `ITenantStrategy` and `ITenantResolver` gain
+  `ResolveControlPlaneTenantAsync`, `IOpenIdTenantFactory` gains `CreateControlPlaneTenantAsync`, and
+  `IOpenIdContextFactory` gains `CreateForControlPlaneAsync`
+  ([ADR-0191](docs/adr/0191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
+
+- **A `form_post` response delivered url-encoded values.** The `form_post` page url-encoded each hidden field's value,
+  but the browser form-urlencodes the fields again when it submits the form, so a client received a `state` holding a
+  space, `=`, `/`, or `+` as its escaped form (`%3D`, `+`, …) rather than the value it sent. Each value — and the form's
+  action — is now HTML-encoded only, as the OAuth 2.0 Form Post Response Mode specification intends, and a parameter
+  with several values posts one field per value.
+
+- **A management console change refetched the caches of every other scope.** The Management API's cache tags shared
+  their ids across the global scope and every tenant, so creating a client in one tenant also refetched the global
+  client list and every other tenant's, and a secret or setting change refetched the same-named resource in other
+  scopes. Every tag id now names the scope that owns the resource (`scopeTagId` in `@ncode/api`), so a mutation
+  refetches only its own scope's caches, as [ADR-0064](docs/adr/0064-frontend-presentation-platform.md) intends.
 
 - **The server rejected the access tokens it encrypted.** A client or resource server that required encrypted access
   tokens received tokens that UserInfo, the management API, introspection, and token exchange could not read, because

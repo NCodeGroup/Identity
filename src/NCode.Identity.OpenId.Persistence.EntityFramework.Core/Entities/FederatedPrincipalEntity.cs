@@ -84,6 +84,11 @@ public sealed class FederatedPrincipalEntity : ISupportTenantEntity, ISupportCon
     /// </summary>
     public required JsonElement SystemMetadataJson { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether an administrator blocked the principal.
+    /// </summary>
+    public required bool IsBlocked { get; set; }
+
     /// <inheritdoc />
     [Unicode(false)]
     [MaxLength(MaxLengths.ConcurrencyToken)]

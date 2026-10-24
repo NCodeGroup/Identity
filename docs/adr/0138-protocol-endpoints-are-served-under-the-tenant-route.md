@@ -70,9 +70,10 @@ base address exactly.**
 - A configured tenant path is honored: the endpoints, the discovery document, and the issuer all agree on it, and a
   static issuer that does not end with the path stops the host instead of publishing an unusable discovery document.
 - The path strategy serves its protocol endpoints under `/{tenantId}`. The interactive login and consent surface is
-  mounted at absolute routes with a fixed cookie login path, so interactive flows under the path strategy are not yet
-  supported (backlog `F50`). A tenant written through the management API is held to the same rule: its issuer must end
-  with its tenant route ([ADR-0160](0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)).
+  served under the same route, and its session cookie is scoped to the tenant's path
+  ([ADR-0193](0193-the-interactive-surface-is-served-under-the-tenant-route.md)). A tenant written through the
+  management API is held to the same rule: its issuer must end with its tenant route
+  ([ADR-0160](0160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)).
 - Management endpoints keep their fixed `/api` prefix; they carry their own `{tenantId}` segment and do not resolve a
   protocol tenant ([ADR-0042](0042-management-api-route-driven-tenant-scope.md)).
 

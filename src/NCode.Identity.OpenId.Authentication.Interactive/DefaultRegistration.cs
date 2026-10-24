@@ -17,12 +17,17 @@
 #endregion
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Registration;
 using NCode.Registration.AspNetCore;
@@ -55,9 +60,10 @@ public static class DefaultRegistration
         /// bound from the <c>InteractiveAuthentication</c> configuration section and may be further configured through
         /// <paramref name="configureOptions"/>; a relative bundle path is resolved against the content root. Its
         /// endpoints register as an <see cref="InteractiveAuthenticationEndpointGroup"/> discovered by
-        /// <c>MapEndpointGroups</c> alongside the protocol endpoints; apply the static-asset middleware to the pipeline
-        /// with <c>UseInteractiveAuthentication</c>. The cookie scheme is registered as a named scheme and does not
-        /// itself set the host's default authentication scheme. Credential verification is deferred to a registered
+        /// <c>MapEndpointGroups</c> alongside the protocol endpoints, and a second group serves the bundle's
+        /// content-hashed files beneath the tenant route without resolving the tenant, so no middleware is added to
+        /// the pipeline. The cookie scheme is registered as a named scheme and does not itself set the host's default
+        /// authentication scheme. Credential verification is deferred to a registered
         /// <see cref="IInteractiveCredentialVerifier"/>, which the host must supply separately.
         /// </summary>
         /// <remarks>
@@ -110,6 +116,22 @@ public static class DefaultRegistration
                 .ValidateOnStart();
 
             serviceCollection.TryAddSingleton<InteractiveBundleReader>();
+            serviceCollection.TryAddSingleton<InteractiveSurfacePaths>();
+
+            // A credential backend that holds passwords replaces this default, which reports that no change is
+            // supported.
+            serviceCollection.TryAddSingleton<
+                IInteractivePasswordChanger,
+                DefaultInteractivePasswordChanger
+            >();
+
+            // The branding settings join the descriptor catalog only where the surface that shows them is registered.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<SettingDescriptor>,
+                    InteractiveSettingDescriptorDataSource
+                >()
+            );
 
             // The content-negotiation seam in OpenIdResult selects this formatter when an interactive browser
             // explicitly requests text/html, rendering a non-redirectable authorization error as a styled HTML page.
@@ -122,6 +144,10 @@ public static class DefaultRegistration
 
             // The surface's endpoints flow through the same MapEndpointGroups discovery as every other endpoint.
             builder.AddEndpointGroup<InteractiveAuthenticationEndpointGroup>();
+
+            // The bundle's content-hashed files are served beneath the tenant route by a group that resolves no tenant
+            // (ADR-0254).
+            builder.AddEndpointGroup<InteractiveBundleAssetEndpointGroup>();
 
             // Replace the core no-op consent-challenge handler with one that redirects to the interactive consent page.
             serviceCollection.Replace(
@@ -150,8 +176,49 @@ public static class DefaultRegistration
                     }
                 );
 
+            // The surface is served under the tenant route (ADR-0193): the session cookie is scoped to the tenant's
+            // path, and a challenge redirects to the login page of the tenant that issued it.
+            serviceCollection
+                .AddOptions<CookieAuthenticationOptions>(
+                    InteractiveAuthenticationDefaults.CookieSchemeName
+                )
+                .Configure<InteractiveSurfacePaths>(
+                    (cookie, surfacePaths) =>
+                    {
+                        cookie.CookieManager = new InteractiveSessionCookieManager(surfacePaths);
+                        var redirectToLogin = cookie.Events.OnRedirectToLogin;
+                        cookie.Events.OnRedirectToLogin = context =>
+                        {
+                            context.RedirectUri = BuildLoginRedirectUri(context, surfacePaths);
+                            return redirectToLogin(context);
+                        };
+                    }
+                );
+
             return builder;
         }
+    }
+
+    // Mirrors the cookie handler's own login redirect — an absolute URI whose return URL is the challenge's redirect URI,
+    // or the challenged request itself — with the login page of the request's tenant in place of a fixed login path.
+    private static string BuildLoginRedirectUri(
+        RedirectContext<CookieAuthenticationOptions> context,
+        InteractiveSurfacePaths surfacePaths
+    )
+    {
+        var request = context.Request;
+        var returnUrl = context.Properties.RedirectUri;
+        if (string.IsNullOrEmpty(returnUrl))
+        {
+            returnUrl = request.PathBase + request.Path + request.QueryString;
+        }
+
+        var loginPath = surfacePaths.GetSurfacePath(
+            context.HttpContext,
+            InteractiveAuthenticationDefaults.LoginPath
+        );
+        var query = QueryString.Create(context.Options.ReturnUrlParameter, returnUrl);
+        return $"{request.Scheme}://{request.Host}{loginPath}{query}";
     }
 
     private static string? ResolveBundleRootPath(string? bundleRootPath, string contentRootPath) =>

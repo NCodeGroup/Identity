@@ -38,7 +38,8 @@ public sealed record SessionTerminatedAuditEvent : AuditEvent
     public required string? SessionId { get; init; }
 
     /// <summary>
-    /// Gets the reason the session was terminated.
+    /// Gets the reason the session was terminated: one of <see cref="SessionTerminationReasons"/> or an extension's own
+    /// name.
     /// </summary>
-    public required SessionTerminationReason TerminationReason { get; init; }
+    public required string TerminationReason { get; init; }
 }

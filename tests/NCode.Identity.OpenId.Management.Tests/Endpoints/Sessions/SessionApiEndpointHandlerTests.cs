@@ -127,7 +127,7 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
             sessionId,
             SubjectId,
             DateTimeOffset.UnixEpoch,
-            ExpiresWhen: null,
+            ExpiresWhen: DateTimeOffset.UnixEpoch.AddDays(3),
             new SessionGrant
             {
                 AuthTime = DateTimeOffset.UnixEpoch,
@@ -229,24 +229,14 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
         SetupTenantContext();
         MockSessionService
             .Setup(x =>
-                x.GetSessionsAsync(
-                    It.IsAny<OpenIdContext>(),
-                    SubjectId,
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync([CreateSession("s1"), CreateSession("s2")])
-            .Verifiable();
-        MockSessionService
-            .Setup(x =>
                 x.RevokeAllAsync(
                     It.IsAny<OpenIdContext>(),
                     SubjectId,
-                    SessionTerminationReason.AdministrativeRevocation,
+                    SessionTerminationReasons.AdministrativeRevocation,
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(2)
             .Verifiable();
         MockManagementAuditRecorder
             .Setup(x =>
@@ -274,6 +264,50 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
         var json = Assert.IsType<JsonHttpResult<SessionRevocationResult>>(result);
         Assert.NotNull(json.Value);
         Assert.Equal(2, json.Value.Revoked);
+    }
+
+    [Fact]
+    public async Task RevokeSessionsAsync_WhenAnotherCallerTerminatedTheSessions_ReportsNone()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupTenantContext();
+        MockSessionService
+            .Setup(x =>
+                x.RevokeAllAsync(
+                    It.IsAny<OpenIdContext>(),
+                    SubjectId,
+                    SessionTerminationReasons.AdministrativeRevocation,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(0)
+            .Verifiable();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordSessionsRevokedAsync(
+                    It.IsAny<HttpContext>(),
+                    TenantId,
+                    SubjectId,
+                    null,
+                    0,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RevokeSessionsAsync(
+            httpContext,
+            TenantId,
+            SubjectId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SessionRevocationResult>>(result);
+        Assert.NotNull(json.Value);
+        Assert.Equal(0, json.Value.Revoked);
     }
 
     #endregion
@@ -339,11 +373,11 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
                 x.RevokeAsync(
                     It.IsAny<OpenIdContext>(),
                     "s1",
-                    SessionTerminationReason.AdministrativeRevocation,
+                    SessionTerminationReasons.AdministrativeRevocation,
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
         MockManagementAuditRecorder
             .Setup(x =>
@@ -353,6 +387,68 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
                     SubjectId,
                     "s1",
                     1,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RevokeSessionAsync(
+            httpContext,
+            TenantId,
+            "s1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task RevokeSessionAsync_WhenAnotherCallerTerminatedItFirst_AuditsNoRevocation()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupTenantContext();
+        MockSessionService
+            .Setup(x =>
+                x.GetOrDefaultAsync(It.IsAny<OpenIdContext>(), "s1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(
+                new PersistedGrant<SessionGrant>
+                {
+                    TenantId = TenantId,
+                    ClientId = null,
+                    SubjectId = SubjectId,
+                    SessionId = "s1",
+                    Payload = new SessionGrant
+                    {
+                        AuthTime = DateTimeOffset.UnixEpoch,
+                        ClientIds = [],
+                        LastActivityWhen = DateTimeOffset.UnixEpoch,
+                    },
+                }
+            )
+            .Verifiable();
+        MockSessionService
+            .Setup(x =>
+                x.RevokeAsync(
+                    It.IsAny<OpenIdContext>(),
+                    "s1",
+                    SessionTerminationReasons.AdministrativeRevocation,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordSessionsRevokedAsync(
+                    It.IsAny<HttpContext>(),
+                    TenantId,
+                    SubjectId,
+                    "s1",
+                    0,
                     It.IsAny<CancellationToken>()
                 )
             )

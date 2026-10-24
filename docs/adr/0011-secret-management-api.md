@@ -1,6 +1,11 @@
 # 0011. Secret management: server-side key generation, no material on the surface
 
-- **Status:** Accepted (create-response reveal refined by [ADR-0050](0050-secret-material-revealed-once-on-create.md))
+- **Status:** Accepted (create-response reveal refined by [ADR-0050](0050-secret-material-revealed-once-on-create.md);
+  client-secret rotation added by [ADR-0183](0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md);
+  client deletion amended by [ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md): a client is removed with its
+  secrets, grants, and consents; the protection of stored secrets amended by
+  [ADR-0235](0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the owner's master
+  key protects them, in place of a Data Protection key ring)
 - **Date:** 2026-09-29
 - **Deciders:** NCode.Identity maintainers
 
@@ -80,8 +85,8 @@ carries a `// Future:` note rather than an implementation.
 - The common, safe path (operator asks the server to mint a key) works end-to-end with no private key
   material crossing the API boundary in either direction.
 - `SecretResource` stays metadata-only; there is still no public API that returns `EncodedValue`.
-- Rotation is create-new + delete-old, which is auditable but requires two calls; a future convenience
-  "rotate" endpoint can wrap it.
+- Rotation is create-new + delete-old, which is auditable but requires two calls; a client secret is also rotated
+  in one call ([ADR-0183](0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)).
 - BYOK is a known follow-up; the DTO and store are shaped so import is an additive change, not a
   breaking one.
 - `ISecretGenerator` is new public surface in `NCode.Identity.Secrets.Persistence(.Abstractions)` and is
@@ -123,11 +128,12 @@ These endpoints share the secret endpoints' authorization, concurrency, and (fro
   own mutable metadata (e.g. `isDisabled`, tenant `domainName`/`displayName`), guarded by an optional
   `If-Match`. There is **no server update endpoint**: `PersistedServer` has no mutable top-level fields — its
   mutable state lives entirely in its settings and secrets sub-resources, which have their own endpoints.
-- **Delete** (`DELETE api/servers/{serverId}`, `DELETE api/tenants/{tenantId}`, `DELETE api/clients/{clientId}`)
-  is **dependency-guarded**. The entity validator rejects the delete with `409 Conflict` while the owner
-  still has dependents (a tenant with clients or tenant-secrets, a client with client-secrets, a server with
-  server-secrets), so removal is only ever a leaf operation. The store's `RemoveAsync` re-checks the same
-  invariant, so the guard holds even if a caller bypasses the endpoint.
+- **Delete** (`DELETE api/servers/{serverId}`, `DELETE api/tenants/{tenantId}`) is **dependency-guarded**. The entity
+  validator rejects the delete with `409 Conflict` while the owner still has dependents (a tenant with clients or
+  resource servers it did not seed; its own secrets are removed with it, ADR-0169; a server with server-secrets), so
+  removal is only ever a leaf operation. The store's `RemoveAsync` re-checks the same invariant, so the guard holds
+  even if a caller bypasses the endpoint. `DELETE api/clients/{clientId}` is not guarded: the client is removed with its
+  secrets, grants, and consents ([ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md)).
 
 All owner operations authorize the loaded/constructed entity exactly like the secret operations: tenant and
 client entities are tenant-scoped (`ISupportTenantId` / `TenantOwnedResource`), servers stay `GlobalAdmin`-only.

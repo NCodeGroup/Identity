@@ -19,16 +19,19 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
-/// The route group for the interactive login/consent/account surface. An empty prefix preserves each endpoint's
-/// absolute route (for example <c>/account/login</c>) while still grouping them so the shared
+/// The route group for the interactive login/consent/account surface. Like the protocol group, its prefix is the tenant
+/// route (ADR-0138, ADR-0193), so the surface is served beneath the tenant it signs in to (for example
+/// <c>/{tenantId}/account/login</c> under the path strategy), and the shared
 /// <see cref="OpenIdEnvironmentEndpointFilter"/> — which materializes the request environment and opens the resolved
-/// tenant's ambient scope the credential verifier reads — applies only to these endpoints. Unlike the protocol group,
+/// tenant's ambient scope the credential verifier reads — resolves the same tenant the protocol endpoints do. Unlike the protocol group,
 /// it adds no exception filter: the interactive endpoints render HTML pages and redirects, not OpenID error responses.
 /// It mirrors the protocol endpoints' registration so the surface flows through the same
 /// <c>MapEndpointGroups</c> discovery as every other endpoint instead of a bespoke mapping call.
@@ -44,9 +47,8 @@ internal sealed class InteractiveAuthenticationEndpointGroup : IEndpointGroup
     public string Name => GroupName;
 
     /// <inheritdoc />
-    // Not yet under the tenant route: the cookie login path and the bundle's assets are fixed (backlog F50).
     public RoutePattern GetPrefix(IServiceProvider serviceProvider) =>
-        RoutePatternFactory.Parse(string.Empty);
+        serviceProvider.GetRequiredService<ITenantResolver>().GetTenantRoute();
 
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group) =>

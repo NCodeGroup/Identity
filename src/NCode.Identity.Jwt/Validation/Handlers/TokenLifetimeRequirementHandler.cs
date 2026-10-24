@@ -19,8 +19,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using NCode.Identity.Jose;
-using NCode.Identity.Jose.Extensions;
 using NCode.Json;
+using NCode.Time;
 
 namespace NCode.Identity.Jwt.Validation;
 
@@ -71,6 +71,18 @@ internal sealed class TokenLifetimeRequirementHandler
         if (!TryGetOptionalNumericDate(payload, JoseClaimNames.Payload.Exp, out var expires))
         {
             failureReason = "The token's 'exp' claim is not a valid NumericDate.";
+            return true;
+        }
+
+        if (notBefore is null && requirement.RequireNotBefore)
+        {
+            failureReason = "The token is missing a not-before time.";
+            return true;
+        }
+
+        if (issuedAt is null && requirement.RequireIssuedAt)
+        {
+            failureReason = "The token is missing an issued-at time.";
             return true;
         }
 

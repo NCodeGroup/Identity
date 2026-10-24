@@ -16,36 +16,30 @@
 
 #endregion
 
-using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.DataProtection;
+using NCode.Buffers;
 using NCode.Encoders;
-using NCode.Extensions.DataProtection;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.Secrets.Persistence;
 
 /// <summary>
 /// Provides a default implementation of the <see cref="ISecretGenerator"/> abstraction that generates key
-/// material server-side and data-protects it using the same protector <see cref="DefaultSecretSerializer"/>
-/// uses to unprotect it. The per-type generation logic is delegated to the registered
-/// <see cref="ISecretKeyTypeDescriptor"/> for the requested key type.
+/// material server-side and protects it under the owner's master key through an <see cref="ISecretProtector"/>. The
+/// per-type generation logic is delegated to the registered <see cref="ISecretKeyTypeDescriptor"/> for the requested
+/// key type.
 /// </summary>
 // See ADR-0067.
-internal class DefaultSecretGenerator(
-    IDataProtectorFactory<PersistedSecret> dataProtectorFactory,
-    ISecretKeyTypeCatalog secretKeyTypeCatalog
-) : ISecretGenerator
+internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog) : ISecretGenerator
 {
-    private IDataProtector DataProtector { get; } = dataProtectorFactory.CreateDataProtector();
-
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
     /// <inheritdoc />
-    public GeneratedSecret GenerateSecret(GenerateSecretRequest request)
+    public GeneratedSecret GenerateSecret(ISecretProtector protector, GenerateSecretRequest request)
     {
         if (!SecretKeyTypeCatalog.TryGet(request.SecretType, out var descriptor))
         {
@@ -60,7 +54,11 @@ internal class DefaultSecretGenerator(
                 KeySizeBits = request.KeySizeBits,
                 Curve = request.Curve,
             },
-            Protect
+            bytes =>
+                protector.ProtectToString(
+                    bytes,
+                    SecretProtectionContext.ForPersistedSecret(request.SecretId)
+                )
         );
 
         var secret = new PersistedSecret
@@ -80,7 +78,10 @@ internal class DefaultSecretGenerator(
     }
 
     /// <inheritdoc />
-    public GeneratedSecret GenerateSharedSecret(GenerateSecretRequest request)
+    public GeneratedSecret GenerateSharedSecret(
+        ISecretProtector protector,
+        GenerateSecretRequest request
+    )
     {
         if (request.SecretType != SecretTypes.Symmetric)
         {
@@ -100,9 +101,22 @@ internal class DefaultSecretGenerator(
         // The opaque secret string is what an external party holds and later presents; its UTF-8 bytes are stored as
         // the symmetric key material so a UTF-8 comparison of the presented secret against the stored material matches.
         var entropyByteLength = request.KeySizeBits >> 3;
-        var entropy = new byte[entropyByteLength];
+        using var entropyLease = BufferFactory.Rent(
+            entropyByteLength,
+            isSensitive: true,
+            out Span<byte> entropy
+        );
         RandomNumberGenerator.Fill(entropy);
+
+        // The one-time reveal returned to the caller, a wire-boundary string.
         var secretMaterial = Base64Url.Encode(entropy);
+
+        using var utf8Lease = BufferFactory.Rent(
+            Encoding.UTF8.GetByteCount(secretMaterial),
+            isSensitive: true,
+            out Span<byte> utf8
+        );
+        Encoding.UTF8.GetBytes(secretMaterial, utf8);
 
         var secret = CreateSharedSecret(
             request.SecretId,
@@ -110,7 +124,12 @@ internal class DefaultSecretGenerator(
             request.Algorithm,
             request.CreatedWhen,
             request.ExpiresWhen,
-            Encoding.UTF8.GetBytes(secretMaterial)
+            utf8,
+            bytes =>
+                protector.ProtectToString(
+                    bytes,
+                    SecretProtectionContext.ForPersistedSecret(request.SecretId)
+                )
         );
 
         return new GeneratedSecret { Secret = secret, SecretMaterial = secretMaterial };
@@ -118,6 +137,7 @@ internal class DefaultSecretGenerator(
 
     /// <inheritdoc />
     public PersistedSecret ImportSharedSecret(
+        ISecretProtector protector,
         ImportSharedSecretRequest request,
         ReadOnlySpan<byte> secretValue
     )
@@ -136,20 +156,26 @@ internal class DefaultSecretGenerator(
             request.Algorithm,
             request.CreatedWhen,
             request.ExpiresWhen,
-            secretValue
+            secretValue,
+            bytes =>
+                protector.ProtectToString(
+                    bytes,
+                    SecretProtectionContext.ForPersistedSecret(request.SecretId)
+                )
         );
     }
 
     // The single correct-by-default construction of a shared-secret PersistedSecret (ADR-0110): a symmetric_raw secret
     // whose stored key material is exactly the supplied UTF-8 octets of the opaque string, shared by GenerateSharedSecret
     // (random value) and ImportSharedSecret (caller-supplied value) so the stored shape cannot drift between them.
-    private PersistedSecret CreateSharedSecret(
+    private static PersistedSecret CreateSharedSecret(
         string secretId,
         string? use,
         string? algorithm,
         DateTimeOffset createdWhen,
         DateTimeOffset expiresWhen,
-        ReadOnlySpan<byte> utf8SecretBytes
+        ReadOnlySpan<byte> utf8SecretBytes,
+        SecretKeyMaterialProtector protect
     )
     {
         return new PersistedSecret
@@ -162,14 +188,7 @@ internal class DefaultSecretGenerator(
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = SecretEncodings.SymmetricRaw,
             KeySizeBits = utf8SecretBytes.Length * 8,
-            EncodedValue = Protect(utf8SecretBytes),
+            EncodedValue = protect(utf8SecretBytes),
         };
-    }
-
-    private string Protect(ReadOnlySpan<byte> privateKeyBytes)
-    {
-        var writer = new ArrayBufferWriter<byte>();
-        DataProtector.ProtectSpan(privateKeyBytes, ref writer);
-        return Base64Url.Encode(writer.WrittenSpan);
     }
 }

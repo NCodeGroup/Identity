@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization.Results;
@@ -40,13 +41,15 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.PushedAuthorization;
 /// </summary>
 internal class DefaultPushedAuthorizationRequestEndpointHandler(
     IClientAuthenticationService clientAuthenticationService,
-    IPushedAuthorizationRequestService pushedAuthorizationRequestService
+    IPushedAuthorizationRequestService pushedAuthorizationRequestService,
+    IAuthorizationResponseDeliveryResolver deliveryResolver
 ) : IEndpointProvider
 {
     private IClientAuthenticationService ClientAuthenticationService { get; } =
         clientAuthenticationService;
     private IPushedAuthorizationRequestService PushedAuthorizationRequestService { get; } =
         pushedAuthorizationRequestService;
+    private IAuthorizationResponseDeliveryResolver DeliveryResolver { get; } = deliveryResolver;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>
@@ -141,11 +144,20 @@ internal class DefaultPushedAuthorizationRequestEndpointHandler(
             cancellationToken
         );
 
+        // RFC 9126 §2.1: the pushed request is checked as the authorization endpoint would check it, including where its response would be delivered.
+        var delivery = await DeliveryResolver.ResolveAsync(
+            openIdContext,
+            openIdClient,
+            authorizationRequest,
+            cancellationToken
+        );
+
         await mediator.SendAsync(
             new ValidateAuthorizationRequestCommand(
                 openIdContext,
                 openIdClient,
-                authorizationRequest
+                authorizationRequest,
+                delivery
             ),
             cancellationToken
         );

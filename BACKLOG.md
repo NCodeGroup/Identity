@@ -73,12 +73,13 @@ entry and/or ADR that closed it.
 
 | Group                                 | Next free | High-water |
 | ------------------------------------- | --------- | ---------- |
-| `D` — Deferred, intentionally not-yet | `D17`     | `D16`      |
-| `F` — Feature gaps                    | `F79`     | `F78`      |
+| `D` — Deferred, intentionally not-yet | `D19`     | `D18`      |
+| `F` — Feature gaps                    | `F85`     | `F84`      |
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
-| `U` — Frontend presentation platform  | `U24`     | `U23`      |
-| `S` — Secrets management              | `S13`     | `S12`      |
-| `X` — Tooling & agent customization   | `X5`      | `X4`       |
+| `U` — Frontend presentation platform  | `U27`     | `U26`      |
+| `S` — Secrets management              | `S21`     | `S20`      |
+| `X` — Tooling & agent customization   | `X6`      | `X5`       |
+| `R` — Review findings                 | `R114`    | `R113`     |
 
 ---
 
@@ -103,35 +104,11 @@ entry and/or ADR that closed it.
   until a concrete need justifies the persistence/migration (or broker/scheduler) operational cost. Touch points:
   implement `NCode.Identity.Dispatch.IJobDispatcher` in a new adapter package and register it before
   `AddInProcessJobDispatcher` (or omit that call).
-- **`D11` — Time/date extension methods carry logic inside the `*.Abstractions` package.**
-  `NCode.Identity.Jose.Abstractions/Extensions/` still holds `DateTimeExtensions`, `DateTimeOffsetExtensions`, and
-  `TimeProviderExtensions` — each a C# 14 `extension(...)` member with a real method body (`WithPrecisionInSeconds`,
-  `GetUtcNowWithPrecisionInSeconds`, `GetTimestampWithPrecisionInSeconds`) — which violates the house rule that
-  `*.Abstractions` packages hold only dumb DTOs / POCOs / interfaces / contracts (no logic). This is the same violation
-  the now-closed `D9` fixed for the dictionary accessor, but these are **general time/date helpers**, not JSON, so they
-  cannot follow `D9` into `NCode.Json`; they need a different non-abstractions home (a general NCode utility library).
-  They are consumed by ~28 OpenId handler files via `using NCode.Identity.Jose.Extensions;`
-  (`GetUtcNowWithPrecisionInSeconds`), so the relocation is a larger cross-cutting change best done as its own focused
-  pass. Touch points: `src/NCode.Identity.Jose.Abstractions/Extensions/DateTimeExtensions.cs`,
-  `src/NCode.Identity.Jose.Abstractions/Extensions/DateTimeOffsetExtensions.cs`,
-  `src/NCode.Identity.Jose.Abstractions/Extensions/TimeProviderExtensions.cs`, and every
-  `NCode.Identity.Jose.Extensions` consumer.
-
-- **`D15` — Re-evaluate the existing public enums against the open-vocabulary rule.** Vocabularies are open unless
-  provably closed ([ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)), and the public enums
-  predate the three-part test. Several look open: `SessionTerminationReason` (carried to consumer handlers; an extension
-  can end a session for its own reason — risk, password change, account disabled), `MutualTlsClientCertificateFormat`
-  (each proxy, load balancer, or mesh forwards the certificate its own way; a decoder registered by name would let a
-  deployment add one), `SecretKeyImportFormat` (PKCS #12, OpenSSH, or a key-vault reference), `PersistedGrantStatus`
-  (persisted; a lifecycle a grant type may extend), and `HashAlgorithmType` / `BinaryEncodingType` (closed only because
-  the implementation is a `switch`). `AlgorithmType`, `RequestObjectSource`, `TenantPlane`, `SerializationFormat`,
-  `DeveloperKeyMode`, the `ObjectJson*Handling` mirrors, and the operation outcomes (`PasswordVerificationResult`,
-  `OutboundHttpReadResult`, `OwnerRemovalResult`) appear to pass. Apply the test to each and convert the ones that fail
-  to names plus registered strategies, with data migrations for any persisted value. Touch points: the enum files under
-  `src/**/` and their `switch` consumers.
 - **`D16` — Resume Dependabot version updates.** Version updates are paused: every ecosystem in
-  [`.github/dependabot.yml`](.github/dependabot.yml) sets `open-pull-requests-limit: 0`, because while the family is
-  refactored heavily ahead of its first release a weekly bump is mostly churn against code that is about to move.
+  [`.github/dependabot.yml`](.github/dependabot.yml) except `docker` sets `open-pull-requests-limit: 0`, because
+  while the family is refactored heavily ahead of its first release a weekly bump is mostly churn against code that is
+  about to move. The `docker` ecosystem stays on, because the host image's base images are pinned by digest and a
+  stale digest misses security fixes ([ADR-0249](docs/adr/0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)).
   Vulnerabilities are still handled. Dependabot alerts are on, and the "Dependabot security updates" repository
   setting opens a pull request, grouped per ecosystem, whenever a published advisory affects a dependency. Security
   updates bypass both the npm cooldown and pnpm's `minimumReleaseAge`
@@ -142,6 +119,25 @@ entry and/or ADR that closed it.
   catch-up: land the frontend toolchain the way
   [ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md) describes, and
   hold any major that cannot land yet with an `ignore` rule and a backlog item. Touch point: `.github/dependabot.yml`.
+- **`D17` — Remove the retired `mtls_endpoint_alias_authority` setting.** `PromoteMtlsEndpointAliasAuthority` copies
+  each tenant's alias into its `MtlsEndpointAliasAuthority` column and leaves the setting in the stored document for the
+  previous release, and the setting stays registered as retired
+  ([ADR-0251](docs/adr/0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md)). In the first
+  release after the one that ships that migration, add a `[ContractMigration]` that removes the key from every settings
+  table and gives each rewritten row a new `SettingsConcurrencyToken`, and delete the retired descriptor. Not before:
+  the previous release still reads the key. Touch points: `NCode.Identity.OpenId.Host.Database` migrations,
+  `DefaultSettingDescriptorDataSource`.
+- **`D18` — Let configuration order and select the client-certificate revocation sources.** The default checker asks
+  every registered `IClientCertificateRevocationSource` in registration order, `ocsp` then `crl`
+  ([ADR-0259](docs/adr/0259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md)), so a
+  deployment whose OCSP responder the server cannot reach pays one `FetchTimeout` per responder in each
+  `FailureCacheDuration` before the CRLs answer, and skips OCSP only by replacing the checker. A configured order
+  (`OpenId:ClientCertificateRevocation:Sources`) must be validated when the host starts without constructing the
+  sources, which read the options it would validate, so it needs registered source descriptors and a catalog, as
+  client-authentication methods have
+  ([ADR-0207](docs/adr/0207-client-authentication-methods-are-named-by-registered-descriptors.md)). Deferred until a
+  deployment needs it. Touch points: `DefaultClientCertificateRevocationChecker`, `ClientCertificateRevocationOptions`,
+  `AddClientCertificateServices`.
 
 ## Feature gaps — not yet implemented (group `F`)
 
@@ -153,105 +149,6 @@ entry and/or ADR that closed it.
   [ADR-0055](docs/adr/0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md).)
   Touch points: `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/UserInfo/Handlers/`.
-- **`F16` — FAPI (Financial-grade API) readiness epic.** An umbrella tracking the work to make the OP certifiable
-  against the OpenID Foundation **FAPI** security profiles ([FAPI 1.0 Advanced](https://openid.net/specs/openid-financial-api-part-2-1_0.html),
-  [FAPI 2.0](https://openid.net/specs/fapi-security-profile-2_0.html)).
-
-    **Target decision (2026-10-14).** **FAPI 2.0 is the primary certification target**; it is the modern, formally-analyzed
-    profile and matches the repo's secure-by-default posture (code-only authorization responses, PAR, PKCE `S256`,
-    sender-constrained tokens). **FAPI 1.0 Advanced is a separate future item** — it mandates hybrid `code id_token`
-    flows, front-channel ID tokens, `s_hash` detached signatures, and JARM, which conflict with the posture forbidding
-    hybrid/front-channel-token flows. Scope decisions: deliver **both** `private_key_jwt` **and** mTLS client auth; client
-    **`jwks_uri` is the primary** public-key onboarding path with **BYOK static import secondary** (`S3`); the FAPI
-    constraints are enforced via a **named security-profile mechanism** (a `security_profiles` setting that tightens the
-    merged setting ceilings and feeds discovery, per [ADR-0038](docs/adr/0038-setting-merge-lattice-duals.md) /
-    [ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)); **JARM is deferred** to its own item (not required
-    by FAPI 2.0, which reduces the authorization response to `code`+`iss`).
-
-    **Already implemented (FAPI 2.0 building blocks).** Sender-constrained tokens — DPoP + mTLS with `dpop_jkt`
-    authorization-code binding (`F7`, [ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md)); PAR +
-    `require_pushed_authorization_requests` ([ADR-0089](docs/adr/0089-pushed-authorization-requests.md)); JAR signed
-    request objects (inline `request` + remote `request_uri`); asymmetric-only token signing `PS256`/`ES256`
-    ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)); PKCE `S256` enforcement and
-    `response_type=code` secure default ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)); RFC 9207
-    `iss` authorization-response parameter (the ticket carries `Issuer` and the OP advertises
-    `authorization_response_iss_parameter_supported`); resource indicators RFC 8707
-    ([ADR-0078](docs/adr/0078-resource-indicators-rfc-8707.md)); reused-authorization-code rejection. **Strong client
-    authentication `private_key_jwt` + `client_secret_jwt`** is **done**
-    ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)), and the **verify-only public-key `SecretKey`
-    primitive** that `private_key_jwt` needs is **done** ([ADR-0103](docs/adr/0103-public-only-asymmetric-secret-keys.md)).
-    **Client public-key onboarding** is **done**: inline JWK Set import at registration
-    ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md)) and **runtime `jwks_uri` resolution** via the
-    `IClientKeyResolver` seam, consumed by the `client_assertion` handlers and the JAR loader, with the
-    `sector_identifier_uri` SSRF floor generalized into a shared, injectable, additive-deny-extensible
-    `IOutboundHttpForgeryGuard` now applied to every outbound client-URL fetch (including the previously-unguarded JAR
-    `request_uri` fetch) ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)).
-    **mTLS client authentication** is **done**: `tls_client_auth` (subject-DN / SAN match) + `self_signed_tls_client_auth`
-    (registered-certificate thumbprint match), gated by the client's `token_endpoint_auth_method`, reusing
-    `IClientCertificateResolver` and auto-advertised in `token_endpoint_auth_methods_supported`
-    ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)).
-    **The FAPI security-profile mechanism** is **done**: a `security_profiles` setting selecting `fapi2`, resolved through an
-    extensible **profile registry** (`ISecurityProfileCatalog` over `ISecurityProfile` definitions) that injects the
-    FAPI 2.0 ceilings into the merge lattice (algorithms `PS256`/`ES256`/`EdDSA`, strong-client-auth-only,
-    `response_type=code`, PKCE `S256`, require PKCE + PAR, short code/PAR lifetimes, a ≤ 60s `clock_skew` ceiling, and a
-    pinned five-minute `client_assertion_max_lifetime` ceiling ([ADR-0124](docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md))),
-    plus permitted-`token_endpoint_auth_methods_supported` enforcement in the client-auth service (rejecting weak/public
-    auth under `fapi2`) ([ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
-    **The FAPI behavioral rules and discovery/validation details** are **done**
-    ([ADR-0109](docs/adr/0109-fapi-behavioral-rules-and-discovery-validation-details.md)): the rules that cannot be
-    expressed as a setting ceiling are modeled as composable **requirement objects** a profile composes and the catalog
-    runs per enforcement phase — a confidential-client rule (public clients rejected at the authorization endpoint), a
-    sender-constrained-access-token rule (DPoP **or** mTLS required at the token endpoint), and an issuer-only
-    `client_assertion` audience rule — so a new requirement kind or a whole new profile is additive. The OP also
-    advertises `authorization_response_iss_parameter_supported` (RFC 9207), uses **303 See Other** for the authorization
-    response (FAPI §5.2.2 / OAuth 2.1), honors the operator-configured `clock_skew` when validating signed request
-    objects / client assertions (rejecting an `iat` or `nbf` beyond it, FAPI 2.0 §5.3.2.1), and enforces single-use
-    authorization codes with an exact-matched, required `redirect_uri`.
-
-    **Remaining work.** The OP-side FAPI 2.0 implementation is **complete** (the building blocks plus the security-profile
-    mechanism, behavioral rules, and discovery/validation details above); what is left is conformance wiring and one
-    independent registration feature.
-    - **Conformance wiring — handed to the conformance track (`T1` / `T6`).** The FAPI 2.0 conformance pieces are owned
-      by the conformance work-stream (the spec-coverage harness and headless probe runner), not this OP item: flip the
-      `apps/conformance` `coverage.ts` FAPI rows (today they already classify from discovery — `profile-fapi2` reports
-      `implemented` once PAR + a sender-constraining mechanism + PKCE `S256` are advertised, which the OP now does); add a
-      FAPI-2.0 seed client (`security_profiles` = `[fapi2]`, `private_key_jwt`) to `AddConformanceSeed` (this first needs the
-      conformance seed model extended — `ConformanceClientSeed` is secret-only today, with no asymmetric-key /
-      `security_profiles` fields); and wire the OpenID Foundation FAPI 2.0 test plan into `T1` and the `T6` matrix.
-    - **OP-side follow-up — accept non-secret `token_endpoint_auth_method` values at Dynamic Client Registration.**
-      Extend DCR so `private_key_jwt`, `client_secret_jwt`, `tls_client_auth`, and `self_signed_tls_client_auth` are
-      accepted — the DCR `SupportedTokenEndpointAuthMethods` allow-list currently lists only the secret-based + `none`
-      methods, and a client authenticates only with the method it registers
-      ([ADR-0145](docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md)), so a dynamically registered
-      client cannot use an advertised strong-auth method at all and must be provisioned through the management API —
-      and project the `tls_client_auth_*` metadata from the registration request. An asymmetric method needs its key
-      material at registration (`jwks` / `jwks_uri` for `private_key_jwt` and `self_signed_tls_client_auth`), and only
-      the secret-based methods (`client_secret_*`) are issued a `client_secret`.
-    - **Deferred hardening — disable CORS on the authorization endpoint (FAPI §5.2.3).** No current exposure: the
-      repository ships only a development-only, explicit-origin CORS policy that is not applied to the authorization
-      endpoint in production. Add a defense-in-depth guard that asserts no CORS policy can ever attach to the
-      front-channel endpoints (low priority).
-
-    **Spun-out items (record when starting):** a **JARM + authorization response-mode extensibility seam** work item (the
-    response modes are a hardcoded switch in `DefaultAuthorizationResultExecutor` today); **FAPI 1.0 Advanced**; and **S3**
-    BYOK static public-key import (secondary to `jwks_uri`).
-
-- **`F27` — JARM (JWT Secured Authorization Response Mode) + response-mode extensibility seam.** Signed/encrypted
-  authorization responses (`query.jwt`, `fragment.jwt`, `form_post.jwt`, `jwt`). **Not required by FAPI 2.0** (which
-  reduces the response to `code`+`iss`), so this was spun out of `F16`; it **is** required by FAPI 1.0 Advanced and is
-  independently useful. Current state: the inbound JAR half (RFC 9101 request objects) is fully implemented, but
-  **outbound** response modes are a hardcoded switch (`query` / `fragment` / `form_post`) in
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Results/DefaultAuthorizationResultExecutor.cs` with
-  **no extensibility point** (unlike token grants' `ITokenGrantHandler` strategy collection). Deliverables: **(a)** a
-  response-mode strategy seam (e.g. `IAuthorizationResponseMode`) replacing the switch; **(b)** a JWT-composition
-  service (sign with the tenant key, optionally encrypt with the client key) that wraps the response ticket
-  (`code`/`state`/`iss`/…) as JWT claims before serialization; **(c)** the `query.jwt`/`fragment.jwt`/`form_post.jwt`/
-  `jwt` response-mode constants (`OpenIdConstants.ResponseModes`); **(d)** discovery settings
-  `authorization_signing_alg_values_supported` (+ `_encryption_alg_`/`_enc_values_supported`) and the `.jwt` entries in
-  `response_modes_supported`. The `apps/conformance` `coverage.ts` `sec-jarm` row flips to `verified` once the signing
-  alg / `.jwt` modes are advertised. Touch points: `DefaultAuthorizationResultExecutor`,
-  `OpenIdConstants.ResponseModes`, `IAuthorizationTicket`, `DefaultSettingsProvider` (`response_modes_supported`),
-  `DefaultSettingDescriptorDataSource`. Needs its own ADR.
 - **`F26` — Enterprise connections / identity brokering (external upstream IdP federation).** Compete with Auth0/Okta
   "enterprise connections" by letting a tenant federate to external/enterprise identity providers — **OIDC** (EntraID,
   Ping, Okta, Auth0, Google), **SAML 2.0**, and **WS-Fed/ADFS** — and map the upstream identity onto the existing
@@ -304,17 +201,6 @@ entry and/or ADR that closed it.
     [`src/NCode.Identity.Secrets.Abstractions/Keys`](src/NCode.Identity.Secrets.Abstractions/Keys) /
     [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets) (new `OKP` key type).
 
-- **`F32` — DPoP sender-constrained proof-of-possession (RFC 9449), JOSE building block.** The highest-value modern,
-  non-algorithm JOSE addition and the OAuth 2.1 / FAPI 2.0 direction. Add a first-class capability to **create and
-  verify `dpop+jwt` proofs**: the `typ: dpop+jwt` header with an embedded public `jwk`, the `htm`/`htu`/`jti`/`iat`
-  claims, the `ath` access-token hash, the `nonce` challenge/replay flow, and the `jkt` (JWK SHA-256 thumbprint)
-  confirmation that binds a token to the proof key. This is the JOSE primitive the OpenId authentication stack then
-  consumes to issue and validate DPoP-bound access/refresh tokens; it complements the shipped `private_key_jwt`
-  client-authentication work ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)). The `F33` JWK thumbprint
-  (`jkt`) it needs is delivered. Touch points: [`src/NCode.Identity.Jose`](src/NCode.Identity.Jose),
-  [`src/NCode.Identity.Jose.Abstractions`](src/NCode.Identity.Jose.Abstractions),
-  [`src/NCode.Identity.OpenId.Authentication`](src/NCode.Identity.OpenId.Authentication). Capture the design in an ADR.
-
 - **`F34` — SD-JWT + SD-JWT VC (selective disclosure).** The hottest bleeding-edge JOSE area (verifiable credentials,
   EUDI wallet). Issuer signs over salted-hash claim digests; the holder discloses a chosen subset plus a key-binding
   JWT. Builds additively on the existing JWS encoder: salted disclosure generation/parsing, the `_sd` / `_sd_alg`
@@ -336,97 +222,13 @@ entry and/or ADR that closed it.
   [`src/NCode.Identity.Jose/Algorithms/KeyManagement`](src/NCode.Identity.Jose/Algorithms/KeyManagement),
   [`src/NCode.Identity.Jose.Abstractions/Algorithms`](src/NCode.Identity.Jose.Abstractions/Algorithms).
 
-- **`F40` — Harden signed request objects: lifetime, audience, and explicit typing (JAR, CIBA, FAPI Message
-  Signing).** Signed request objects —
-  the authorization endpoint's inline `request` / `request_uri` (RFC 9101) and CIBA signed authentication requests —
-  have their `nbf` / `iat` / `exp` validated (and `exp` required) but no lifetime cap, so a pre-generated request object
-  stays usable until an arbitrarily distant `exp`. FAPI 1.0 Advanced and FAPI 2.0 Message Signing
-  require a request object to carry `nbf` and `exp`, with `exp` no more than 60 minutes after `nbf` and `nbf` no more
-  than 60 minutes in the past; CIBA Core §7.1.1 requires `iat`, `nbf`, `exp`, and `jti` on a signed authentication
-  request. The general `TokenLifetimeRequirement.MaxLifetime` cap built for `F39`
-  ([ADR-0124](docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md)) provides the lifetime half: add a
-  `request_object_max_lifetime` setting (`Min` ceiling, pinned by the FAPI profile), require the claims each profile
-  demands (`nbf`, and CIBA's `iat` / `jti`) in both loaders, and decide the default. The authorization endpoint also
-  checks a request object's `aud` only when `request_object_expected_audience` is set, although RFC 9101 §4 expects the
-  issuer and FAPI 2.0 Message Signing requires it; validate `aud` against the issuer by default, and decide whether to
-  require the explicit `typ` `oauth-authz-req+jwt` (RFC 9101 §10.8) so a request object cannot be confused with another
-  JWT the client signs. The CIBA loader also still validates with the JWT library's default 5-minute clock skew rather
-  than the client's `clock_skew` setting; align it with the JAR loader in the same pass. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultLoadAuthorizationRequestHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/BackchannelAuthentication/Handlers/DefaultLoadBackchannelAuthenticationRequestHandler.cs`,
-  `OpenIdSettingKeys`, `Fapi2SecurityProfile`.
-
-- **`F43` — Validate `tls_client_auth` certificate chains in the server against configured trust anchors.**
-  `tls_client_auth` ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)) assumes the TLS terminator already
-  PKI-validated the certificate; the handler only matches subject DN / SAN. That forces the proxy to
-  `RequireAndVerifyClientCert` against a CA bundle, which (a) rejects `self_signed_tls_client_auth` certificates on the
-  same host, (b) cannot select a per-tenant CA when tenants share a hostname (TLS options bind per SNI, before the tenant
-  is known), and (c) becomes an **authentication bypass** if the proxy only requests the certificate
-  (`RequireAnyClientCert`) — a self-signed certificate carrying the registered subject DN would match. Add
-  tenant/client-scoped trust-anchor settings (CA bundle, optional intermediates from the forwarded chain, revocation
-  policy) and build the chain with `X509Chain` (custom root trust, `clientAuth` EKU, validity) before the identity match,
-  so the proxy only needs to request and forward the certificate. Found during the
-  [hosting analysis](docs/hosting-analysis.md#8-traefik-mtls-and-tenant-pki). Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/TlsClientAuthClientAuthenticationHandler.cs`,
-  `MutualTlsClientAuthenticationHandler`, `IClientCertificateResolver` (surface the chain), `OpenIdSettingKeys`. Capture
-  the design in an ADR.
-
-- **`F44` — Accept Traefik's `X-Forwarded-Tls-Client-Cert` encoding.** Traefik's `passTLSClientCert` (`pem: true`)
-  forwards each certificate as base64 DER (PEM delimiters and newlines stripped) and comma-separates the chain when the
-  client presents one. `MutualTlsClientCertificateFormat.Base64Der` decodes a single certificate only, so a presented
-  chain fails to parse and `DefaultClientCertificateResolver` silently falls back to "no certificate". Make the base64-DER
-  format list-aware (leaf first; expose the rest as intermediates for `F43`) or add a dedicated format. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Tokens/ProofOfPossession/DefaultClientCertificateResolver.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Tokens/MutualTlsClientCertificateFormat.cs`.
-
-- **`F45` — Per-tenant rate limits and quotas.** Customers run their dev, test, and prod environments as separate
-  tenants on the one production platform ([hosting analysis](docs/hosting-analysis.md#environment-model)), so a
-  customer's load test against a `-dev` tenant shares hardware with every other tenant's production. Nothing limits a
-  tenant's request rate today. Add tenant-partitioned rate limiting (ASP.NET Core rate limiting, partitioned by the
-  resolved tenant and, within it, by client) with limits as tenant settings bounded by the merge lattice, a shared store
-  (Valkey) so limits hold across replicas, and RFC 6585 `429` + `Retry-After` responses; consider per-tenant quotas
-  (requests/day, token issuances) for plan tiers. Capture the design in an ADR.
-
-- **`F46` — Kubernetes deployment artifacts for the host.** `NCode.Identity.OpenId.Host` is the deployable
-  ([ADR-0130](docs/adr/0130-distinct-names-for-host-local-dev-orchestrator-and-library.md)); it already trusts forwarded
-  headers only from configured proxies (`ReverseProxy:KnownNetworks` — set it to the cluster's pod CIDR) and refuses
-  development-only settings in Production (`AddProductionSafety`). Still missing for a rolling deployment behind
-  Traefik: the [`Dockerfile`](src/NCode.Identity.OpenId.Host/Dockerfile) is development-shaped (copies the whole repo,
-  exposes 80/443 although .NET listens on 8080, runs as root, amd64 only) and never builds the `apps/auth` interactive
-  bundle — `InteractiveAuthentication:BundleRootPath` is set only in `launchSettings.json` — so the container cannot
-  render login or consent; `/health` runs only the `valkey` check (tagged `ready`), so readiness (database, Valkey) is not
-  separated from liveness; no Helm chart (probes, `preStop` drain, PodDisruptionBudget, restricted security context,
-  the `valkey` connection string required when `replicas > 1` — ADR-0164 leaves that rule to the chart); and
-  `Host.MigrationService` (which has no image) should run as a pre-deploy Job with expand/contract schema changes so a
-  rolling update never breaks the running version. The production-safety gate should also refuse an unprotected Data
-  Protection key ring (`S10`); a served tenant without an issuer already fails closed
-  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)). Plus the
-  OpenTofu modules, bootstrap stack, and GitHub
-  Actions workflows in the public `NCodeGroup/identity-platform` repository
-  ([ADR-0132](docs/adr/0132-platform-infrastructure-as-code-is-public-on-github.md); see the
-  [hosting analysis](docs/hosting-analysis.md#11-iac-and-delivery)). Touch points:
-  `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.OpenId.Host/Dockerfile`,
-  `src/NCode.Identity.OpenId.Host.MigrationService`, `src/NCode.Identity.Server/ProductionSafety`,
-  `src/frontend/apps/auth`.
-
-- **`F47` — Route a tenant's mTLS endpoint-alias host.** `mtls_endpoint_alias_authority` publishes the RFC 8705 §5
-  `mtls_endpoint_aliases` on a separate authority (for example `https://acme.mtls.example`), but `DynamicByHost` routes
-  only on the host component of the tenant's issuer
-  ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)), so a request to the alias host
-  resolves no tenant. Multi-tenant mTLS on per-tenant hostnames therefore cannot work today. Derive the alias host into
-  the routing lookup the same way as the issuer host (never independently writable), decide whether the alias authority
-  becomes a first-class tenant property like the issuer — if so, give the host strategy an alias template beside its
-  issuer template (`https://{tenantId}.mtls.example`) whose expansion is persisted and judged like the issuer
-  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)) — and enforce
-  host uniqueness across issuer and alias hosts under
-  the host strategy. Found during the [hosting analysis](docs/hosting-analysis.md#domain-and-dns--nidentityio). Touch
-  points: `src/NCode.Identity.OpenId.Core/Tenants/Strategies/DynamicByHostTenantStrategy.cs`, the tenant store's
-  issuer-host index, `DefaultDiscoverMetadataHandler`, `TenantAddressRules`.
-
 - **`F48` — Publish the deployment artifacts the platform runs.** Per
   [ADR-0133](docs/adr/0133-we-ship-and-run-the-same-deployment-artifacts.md), the hosted platform consumes only the
-  artifacts offered to self-hosters. Deliver: the host's Helm chart in this repository (built on `F46`), released with
-  the host image as a signed OCI chart on GHCR with provenance and chart tests; in `NCodeGroup/identity-platform`, the
+  artifacts offered to self-hosters. Deliver: the host's Helm chart in this repository
+  ([`charts/ncode-identity-host`](charts/ncode-identity-host), built on `F46`), released with the host image as a signed
+  OCI chart on GHCR with provenance and chart tests, both tagged with the version Nerdbank.GitVersioning computes and
+  stamped into `Chart.yaml` (the image build has no `.git`, so the assembly version inside comes from `version.json`
+  alone); in `NCodeGroup/identity-platform`, the
   layered building blocks — OpenTofu component modules (`modules/`: Cloudflare zone and email routing, AWS state backend,
   backup bucket and GitHub OIDC, Akamai LKE and Postgres, OCI OKE, Flux bootstrap), in-cluster components
   (`kubernetes/components/`: Traefik, cert-manager, Valkey, `identity`), and the `akamai` and `oci` stacks that compose
@@ -448,160 +250,11 @@ entry and/or ADR that closed it.
   July 15, 2026). Next: the rest of `live/global` (DNS records — including the lab's, so the lab never holds a zone
   token — and zone settings) and `live/lab` on OCI OKE; each root that manages AWS resources adds exactly those
   permissions to its apply role, which today can reach only its state and secrets. Beyond this item, the lab needs
-  `F46`, and a Valkey instance (the shared-state adapter `F49` delivered) to run more than one replica; tenant signing
+  a Valkey instance (the shared-state adapter `F49` delivered) to run more than one replica; tenant signing
   keys are provisioned on first use ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)).
   Workload images and charts get build-provenance attestations and signatures that Flux verifies before the first
   production rollout.
-
-- **`F50` — Serve the interactive login and consent surface under the tenant route.** The protocol endpoints are served
-  under the tenant route ([ADR-0138](docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md)), but the
-  interactive surface is still mounted at absolute routes (`/account/*`) with a fixed cookie `LoginPath`, a single
-  cookie, and its bundle's static assets at the root. A static or host-selected tenant does not notice, but under
-  `DynamicByPath` the surface's environment filter has no `{tenantId}` to resolve, so interactive flows fail — and
-  path tenants sharing an origin would share one session cookie, which must not happen. Mount the surface's group under
-  the tenant route, make the login and logout redirects tenant-relative, scope the cookie (name or path) per tenant,
-  serve the bundle beneath the tenant route, and have the `apps/auth` bundle derive its API base from its own location.
-  Touch points: `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointGroup.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationApplicationBuilderExtensions.cs`,
-  `src/frontend/apps/auth`. Capture the design in an ADR.
-
-- **`F66` — Accept the remaining algorithm and CIBA metadata at dynamic client registration.** Registration accepts the
-  ID token, UserInfo, and request-object algorithm metadata
-  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)) but not
-  `token_endpoint_auth_signing_alg` (OpenID Connect Dynamic Client Registration 1.0 §2) or the CIBA registration
-  metadata (`backchannel_token_delivery_mode`, `backchannel_client_notification_endpoint`,
-  `backchannel_authentication_request_signing_alg`, `backchannel_user_code_parameter`, CIBA Core §4), so a dynamically
-  registered client cannot narrow its assertion algorithm or use CIBA at all and must be provisioned through the
-  management API. Map each algorithm to a single-element client list as `request_object_signing_alg` is, validate it
-  against the tenant's ceiling, and report it in the client information response. Pairs with the `F16` follow-up that
-  accepts the non-secret `token_endpoint_auth_method` values. Touch points:
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`.
-
-- **`F68` — Check a client's registered response algorithms when its settings are written, and let a security profile
-  supply compliant defaults.** A client's `id_token_signed_response_alg` and its other registered response algorithms
-  must be in its effective `*_values_supported` lists
-  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)). Dynamic client
-  registration checks them, but the management API, the seeders, and configuration do not, so a mismatch surfaces only
-  when issuance fails with `server_error`. The common case is a security profile: the FAPI 2.0 ceiling excludes the
-  registration default `RS256`, so every client under it needs an explicit `id_token_signed_response_alg`, and a profile
-  can contribute only lattice-merged ceilings, not a default
-  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md)). Validate the registered values
-  against the client's effective ceilings wherever a client's or its tenant's settings are written, and let a profile
-  contribute overridable defaults (for example `PS256`) that its own ceiling then bounds. Touch points:
-  `src/NCode.Identity.OpenId.Abstractions/Settings/ISecurityProfile.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Settings/Fapi2SecurityProfile.cs`, the management client and tenant
-  endpoints.
-
-- **`F69` — Expose the client JWT credential selector beside `ITokenService`.** A replacement `ITokenService` must
-  protect ID tokens exactly as the client registered
-  ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), but
-  `IClientJwtCredentialSelector`, `ClientJwtCredentials`, and `ClientJwtProtectionSettings` are internal to
-  `NCode.Identity.OpenId.Authentication`, so a replacement can only reimplement that policy or skip it — the gap
-  `IAccessTokenPolicyService` closes for access tokens
-  ([ADR-0158](docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)). Move the
-  interface and its models to `NCode.Identity.OpenId.Authentication.Abstractions` as a public seam with the internal
-  default, so every issuer of a client-addressed JWT (ID token, logout token, UserInfo response, JWT introspection
-  response) resolves the same selector. Touch points: `src/NCode.Identity.OpenId.Authentication/Clients/IClientJwtCredentialSelector.cs`,
-  `ClientJwtCredentials.cs`, `ClientJwtProtectionSettings.cs` (which now carries an `Introspection` entry,
-  [ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)), and the
-  Authentication.Abstractions public API.
-
-- **`F70` — Never reissue a retired tenant name or issuer.** A tenant is named by its creator
-  ([ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md)), and its issuer is its identity in every token it
-  mints ([ADR-0129](docs/adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)). Deleting a tenant frees
-  both, so a new tenant can take the name `acme` — and with it an issuer that relying parties configured to trust the old
-  tenant: they fetch the new tenant's JWKS and accept its tokens. Auth0 never reuses a deleted tenant's name. Keep a
-  tombstone of every retired tenant identifier and normalized issuer, reject both when a tenant is created or its issuer
-  changes (`409`), and decide whether an operator can release a retired issuer explicitly, with an audit record. A
-  retired issuer is rejected for a derived issuer too: the template default is judged by the same
-  `ITenantResolver.ValidateTenantAsync`, and the address preview reports it.
-  Touch points: `ITenantStore` and `TenantStore` (a tombstone entity and migration),
-  `src/NCode.Identity.OpenId.Core/Tenants/DefaultTenantResolver.cs` (`ValidateTenantAsync`),
-  `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/DefaultTenantValidator.cs`, `TenantApiEndpointHandler`
-  (`DeleteTenantAsync`, `GetAddressAsync`).
-
-- **`F72` — Match `self_signed_tls_client_auth` against the certificates in a client's JSON Web Key Set.** RFC 8705
-  §2.2 lets a client register its self-signed certificates through `jwks` or `jwks_uri`, as the `x5c` of its keys. The
-  handler matches the presented certificate against the client's keys resolved through `IClientKeyResolver`
-  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)), but a key
-  imported from a JSON Web Key is a bare public key — its `x5c` chain is dropped — so a client that publishes its keys at
-  a `jwks_uri`, or registers them as a `jwks`, cannot authenticate with `self_signed_tls_client_auth`; only a
-  certificate imported through the management API matches. Import the leaf certificate of a key's `x5c` in the
-  key-type descriptors' JSON Web Key import, after checking that it carries the key's public key, so a registered or
-  published certificate is matched by thumbprint. Touch points:
-  `src/NCode.Identity.Secrets/KeyTypes/AsymmetricSecretKeyTypeDescriptor.cs` (JSON Web Key import),
-  `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientKeyImporter.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/SelfSignedTlsClientAuthClientAuthenticationHandler.cs`.
-
-- **`F73` — Apply the key policy to every secret owner in the management API, and report a key's `kid`.** A client's
-  keys are imported and updated under one policy
-  ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)), but the
-  tenant, server, and resource-server secret endpoints keep their earlier checks: an imported key's `use` and `alg` are
-  not checked against each other or the key, an update can give a key an `alg` its type does not accept, and a JSON Web
-  Key's `kid` is discarded in favor of the secret identifier. Check those imports and updates with the same
-  key-to-algorithm rule (`IAlgorithmCollection.ValidateKeyAlgorithm`), keep a JSON Web Key's `kid` (unique among the
-  owner's keys), and report every key's `kid` (its `KeyId`, or its secret identifier) in the management
-  `SecretResource` and the admin console's secret tables, which show only the secret identifier. Touch points:
-  `src/NCode.Identity.OpenId.Management/Endpoints/{Tenants,Servers,ResourceServers}/*ApiEndpointHandler.cs`,
-  `src/NCode.Identity.OpenId.Management.Abstractions/Contracts/Secrets/SecretResource.cs`, and the `@ncode/api`
-  contracts and secret tables in `src/frontend`.
-
-- **`F74` — Derive the frontend bootstrap document's issuer and API base from the tenant, not the request.** Every
-  served tenant's issuer is now its stored, validated origin and nothing else derives one from the request
-  ([ADR-0165](docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), but
-  `/config/bootstrap.json` still defaults `issuer` and `apiBaseUrl` to the serving request's `scheme://host`
-  (`FrontendBootstrapOptions`, [ADR-0064](docs/adr/0064-frontend-presentation-platform.md)). That
-  is a second, unvalidated source of the same value: under a forged or proxied `Host` (or a shared cache in front of
-  the host) the bundle discovers the wrong authority, and under `DynamicByHost` the console served at
-  `manage.<apex>` needs the root tenant's issuer (`https://auth.<apex>`), which the request origin is not. Default the
-  issuer to the issuer of the tenant that serves the surface (the root tenant's for the console), and the API base to
-  the configured management origin; keep explicit options as overrides. Touch points:
-  `src/NCode.Identity.Server/Frontend/FrontendBootstrapEndpointProvider.cs`, `FrontendBootstrapOptions.cs`,
-  `FrontendBootstrapDocument.cs`, `ITenantResolver.GetDefaultIssuerAsync`.
-
-- **`F75` — Authenticate the management API against the control plane, not the tenant the request resolves.** The
-  management `/api` surface materializes its OpenID context through `CreateForRequestAsync`, so the tenant that
-  validates the caller's access token is whichever tenant the protocol strategy resolves from the request. That holds
-  under `StaticSingle`, but under `DynamicByPath` a collection route such as `POST /api/tenants` has no `tenantId`
-  route value and fails, and `/api/tenants/{tenantId}/…` authenticates the caller against the target tenant rather
-  than the tenant that issued the token; under `DynamicByHost` the management host `manage.<apex>`
-  ([ADR-0131](docs/adr/0131-hosted-platform-environment-model-and-hostname-scheme.md)) is no tenant's host, so every
-  call is `404`. The
-  management plane should authenticate against a configured authenticating tenant — the root (control-plane) tenant
-  by default ([ADR-0024](docs/adr/0024-control-plane-and-per-tenant-planes.md),
-  [ADR-0042](docs/adr/0042-management-api-route-driven-tenant-scope.md)) — independent of the protocol strategy, and
-  the route's `tenantId` should only scope the data. Capture the design in an ADR and cover every strategy with
-  integration tests. The access token itself is validated through `IIssuedTokenValidator` against the `OpenIdContext`
-  it is given ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md)), so passing the
-  authenticating tenant's context is enough; the seam needs no change. Touch points:
-  `src/NCode.Identity.OpenId.Management/Endpoints/ManagementEnvironmentEndpointFilter.cs`, `IOpenIdContextFactory`,
-  `TenantScopeEndpointFilter`, `OwnershipHandler`,
-  `src/NCode.Identity.OpenId.Authentication/Tokens/Handlers/DefaultAuthenticateAccessTokenHandler.cs`.
-
-- **`F76` — Accept an `id_token_hint` the client re-encrypted to the server.** OpenID Connect RP-Initiated Logout 1.0
-  §2 lets a relying party that received an encrypted ID token re-encrypt it to the OP's public key before passing it as
-  `id_token_hint`. The server validates a hint under the ID-token policy, which names no decryption keys because an ID
-  token is encrypted only to its client
-  ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md)), so a re-encrypted hint is
-  rejected and logout proceeds without one. Accept a hint encrypted to the tenant's encryption keys under the tenant's
-  advertised `id_token_encryption_*` lists, keep the enclosed ID token's checks unchanged, and decide whether the OP
-  advertises the keys a relying party re-encrypts to. Touch points:
-  `src/NCode.Identity.OpenId.Authentication/Tokens/DefaultIssuedTokenValidator.cs` (`ValidateIdTokenHintAsync`),
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/EndSession/Handlers/DefaultResolveEndSessionSubjectHandler.cs`.
-
-- **`F77` — Register a resource-server client through dynamic client registration.** A resource server introspects
-  through a client bound to it, and the binding is set only through the management API, by a caller allowed to update
-  that resource server ([ADR-0168](docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
-  RFC 9701 §3 allows the authorization server to register resource servers dynamically, which a deployment that
-  provisions APIs automatically would need. Define how a registration request names its resource server and how the
-  registrant proves it may act for it — an initial access token scoped to that resource server is the likely shape —
-  register the `introspection_*_response_alg` metadata, and report the binding in the client information response.
-  Touch points: `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Abstractions/Endpoints/Registration/`.
-
-- **`F78` — Backend for Frontend (BFF) library: cookie sessions with server-side token custody.** The family ships no
+- **`F84` — Backend for Frontend (BFF) library: cookie sessions with server-side token custody.** The family ships no
   relying-party library, and a browser frontend can use the OP only as a public client that holds its tokens in
   script-reachable memory — the shape [RFC 10017](https://www.rfc-editor.org/rfc/rfc10017) (BCP 212) discourages. Build
   the BFF designed in [`docs/backend-for-frontend.md`](docs/backend-for-frontend.md): a confidential client
@@ -619,8 +272,9 @@ entry and/or ADR that closed it.
 ## Conformance & interop testing (group `T`)
 
 - **`T1` (subsumes `T6`) — Independent OIDC/OAuth conformance validation via the OpenID Foundation Conformance Suite,
-  delivered through the in-house spec-coverage harness (remaining: nightly CI).** An independent, spec-author-maintained
-  oracle to catch misreadings our own integration tests share, driven by an **in-house measurement harness** (the
+  delivered through the in-house spec-coverage harness (remaining: nightly CI, the FAPI 2.0 plan, and the FAPI 1.0 Advanced plan's first end-to-end run).** An independent,
+  spec-author-maintained oracle to catch misreadings our own integration tests share, driven by an **in-house
+  measurement harness** (the
   spec-coverage matrix + the headless probe-runner pre-flight) **and** the committed automation
   ([`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1)) that drives the external certified
   suite. Everything runs **locally in Docker** against the OpenID host over `host.docker.internal:5001` — nothing is
@@ -635,7 +289,21 @@ failures, 0 warnings`); the **Basic OP** (browser-driven) plan runs end-to-end u
   (opt-in via `-IncludeBrowserPlans`). The harness is a **measurement** surface — it tracks backend gaps, it does not
   implement them. **Remaining:** a **nightly / opt-in CI pipeline** (not `dod.ps1`) that invokes `run-conformance.ps1`
   (Docker + Python 3, no local Java) and publishes the `.results/` zips — deferred until the repo's broader CI bootstrap
-  lands (no `.github/workflows` exists yet). Design and phases are in
+  lands (no `.github/workflows` exists yet); and the **FAPI 2.0 plan** (moved from `F16`, whose OP side is complete):
+  seed the two `fapi2` / `private_key_jwt` clients the plan needs (`ConformanceClientSeed` already carries `Jwks` and
+  `SecurityProfiles`, and `-Fapi1Advanced` shows how to generate their keys), add a FAPI 2.0 plan config to
+  `run-conformance.ps1` (the `private_key_jwt` + DPoP variant avoids passing client certificates through Docker),
+  and run it end to end and commit its baseline. The `coverage.ts` `profile-fapi2` row already classifies from discovery and
+  needs no change. Also the **FAPI 1.0 Advanced plan's first end-to-end run** (moved from `F83`, whose OP side is
+  complete, [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)). The harness is
+  built: `run-conformance.ps1 -Fapi1Advanced` seeds the four `fapi1-*` key-authenticated clients from keys and
+  self-signed certificates it generates into a gitignored folder, launches the OP requesting client certificates, and
+  runs `fapi1-advanced-final-test-plan` with `private_key_jwt` and `mtls` client authentication, the `pushed` request
+  method, and the `jarm` and `plain_response` response modes. It has not yet been run against the suite, because the
+  cloud-agent sandbox that built it cannot reach `gitlab.com`. Remaining: run it on a machine with Docker, triage the
+  verdicts (the suite's container must reach the OP with client certificates), and commit the plan's entries in the
+  `expected-failures.json` / `expected-skips.json`
+  baseline. The `profile-fapi1-advanced` coverage row already classifies from discovery. Design and phases are in
   [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md),
   [`docs/conformance-testing.md`](docs/conformance-testing.md), and
   [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md). Touch points:
@@ -670,29 +338,6 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   `typescript-eslint` widens its peer range to 7, bump every workspace's `typescript` together, drop the Dependabot
   ignore, and keep `pnpm typecheck` (`tsc --noEmit`) and `pnpm lint` green. Touch points: `src/frontend/package.json`
   and each `apps/*` / `packages/*` `package.json`, `.github/dependabot.yml`.
-- **`U19` — Key the Management API cache tags by scope.** [ADR-0064](docs/adr/0064-frontend-presentation-platform.md)
-  makes the global-vs-tenant boundary first-class with distinct cache tags, and the doc comment on `managementApi`
-  promises that a tenant mutation never invalidates the global list and vice versa. The code does not deliver it: the
-  `Client` and `ResourceServer` `LIST` tags are shared by the global scope and every tenant, the `Grant` `LIST` tag by
-  every tenant, and the per-id `Client`/`ResourceServer`/`Secret`/`Settings` tags use the bare resource id, so a
-  mutation in one scope refetches the matching caches of every other scope. RTK Query caches by request arguments, so
-  no data crosses a boundary — the cost is redundant refetches and an invariant that only exists in a comment. Derive
-  each tag id from the scope (for example `tenant:{tenantId}:LIST` / `global:LIST`, and the scope prefix on per-id and
-  `client:`/`tenant:` tags) through one helper beside `scopeApiPrefix`, and extend `managementApi.test.ts`'s
-  invalidation matrix (it already asserts which of 27 cached queries refetch per mutation) to pin cross-scope
-  isolation. Touch points: [`packages/store/src/managementApi.ts`](src/frontend/packages/store/src/managementApi.ts),
-  `packages/api/src/scope.ts`, `packages/store/src/managementApi.test.ts`.
-- **`U20` — Split the standalone SPA bundles below Vite's chunk-size warning.** `pnpm build` warns that `apps/mgmt`,
-  `apps/playground`, and `apps/conformance` each emit a chunk larger than 500 kB after minification — React, MUI,
-  emotion, and Redux all land in one entry chunk. Raising `build.chunkSizeWarningLimit` would only hide it. Split
-  instead: lazy-load the route-level containers (`React.lazy` + `Suspense`) and separate the vendor libraries into their
-  own chunks in the Vite build options, then make a chunk-size warning fail the build so it stays fixed — the
-  build-time counterpart of the test gates in
-  [ADR-0151](docs/adr/0151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md). Every app's build
-  options come from the shared preset
-  ([ADR-0157](docs/adr/0157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)), so the chunking and the
-  failing warning land there once. Touch points:
-  [`packages/vite-config/src/preset.ts`](src/frontend/packages/vite-config/src/preset.ts) and each app's `src/App.tsx`.
 - **`U21` — Move pnpm to its current major once Dependabot supports it.** The workspace pins pnpm 10 in the
   `packageManager` field, the newest major Dependabot officially supports
   ([ADR-0152](docs/adr/0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)). pnpm 12 is
@@ -706,19 +351,12 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   `allowBuilds` list. Touch points: [`src/frontend/package.json`](src/frontend/package.json),
   [`pnpm-workspace.yaml`](src/frontend/pnpm-workspace.yaml), `pnpm-lock.yaml`,
   [`.github/workflows/frontend.yml`](.github/workflows/frontend.yml),
+  [`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml),
   [`build/frontend-install.ps1`](build/frontend-install.ps1), the AppHost's `EnsurePinnedNodeOnPath`.
-- **`U22` — Put the management console's tenant scope in its URL.** The console keeps its active scope (global or one
-  tenant) and surface in React state, so a tenant view cannot be bookmarked, linked, or restored on reload, and the
-  browser's back button leaves the console. Auth0's dashboard addresses a tenant in its route
-  (`manage.auth0.com/dashboard/{region}/{tenant}/…`), and tenant identifiers are readable names
-  ([ADR-0159](docs/adr/0159-a-tenant-is-named-by-its-creator.md)). Route the console by scope and surface (for example
-  `/tenants/{tenantId}/clients`), derive the `ManagementScope` from the route, and keep the global-versus-tenant security
-  boundary of [ADR-0064](docs/adr/0064-frontend-presentation-platform.md) explicit in the route structure. Touch points:
-  [`apps/mgmt/src/App.tsx`](src/frontend/apps/mgmt/src/App.tsx), `packages/api/src/scope.ts`.
-- **`U23` — Serve the management console through the BFF instead of as a browser public client.** The console runs
+- **`U26` — Serve the management console through the BFF instead of as a browser public client.** The console runs
   authorization code + PKCE in JavaScript through `@ncode/auth`, keeps the access and refresh tokens in the Redux store,
   and `@ncode/store` attaches `Authorization: Bearer` to every management API call — so the family's most privileged
-  surface holds tokens any injected script can take. Once `F78` lands, register the console as a confidential BFF
+  surface holds tokens any injected script can take. Once `F84` lands, register the console as a confidential BFF
   client of the root tenant, serve it through the BFF so it calls the management API with the session cookie and the
   anti-forgery header, and retire the console's in-browser token custody (the Playground stays a public client on
   purpose — showing tokens is its job). Decide whether the BFF runs in the OP host process or a separate host
@@ -730,112 +368,182 @@ The platform foundation landed under [`src/frontend`](src/frontend) with the Man
   forwarded API on one origin. Touch points:
   [`apps/mgmt/src/auth.ts`](src/frontend/apps/mgmt/src/auth.ts), `apps/mgmt/src/AuthGate.tsx`,
   `packages/store/src/baseQuery.ts`, `packages/auth/`, `src/NCode.Identity.OpenId.Host/Program.cs`.
-- **`U6` — Per-tenant branding.** `@ncode/ui` themes from a runtime `BrandingConfig` (the seam exists); wire
-  end-to-end per-tenant brand/theme resolution through the discovery channel for customer-facing surfaces.
-- **`U13` — Buffer-writer (pipe) render model for the server-rendered interactive surface.** The server-side HTML
-  renderer `InteractiveAuthenticationPageRenderer` (login, consent, and the `F31` non-redirectable error page) builds
-  each page as a `string` via `StringBuilder` and injects it into the SPA bundle's `#root` with `string.Replace`, then
-  the caller writes it with `HttpResponse.WriteAsync(html, SecureEncoding.UTF8, …)`. This matches the form-post writer
-  (`DefaultAuthorizationResultExecutor.GetFormPostHtml`) but allocates a full form string **and** a full combined-document
-  string per request. The family already has the lower-allocation idiom — `IBufferWriter<char>` / `Sequence<char>` +
-  `SecureEncoding.UTF8` written straight to `HttpResponse.BodyWriter` (`NCode.Buffers`, as `CommonJoseEncoder` /
-  `JoseSerializer` use it). Deliverables: render each page into an `IBufferWriter<char>` (pooled `Sequence<char>`)
-  instead of returning a `string`; split the bundle `index.html` **once** at the `<div id="root"></div>` marker into
-  head/tail `ReadOnlyMemory<char>` slices and write `head → form → tail` segments to the response pipe (no combined
-  document string); apply the same seam to the login, consent, and error renderers **and** the form-post executor so the
-  whole interactive render surface is consistent. Independently, **cache the bundle `index.html`** (it is re-read from
-  disk per request today via `InteractiveBundleReader`, with a file-watcher/`IChangeToken` invalidation for dev
-  hot-reload) — the per-request disk read dominates any string-allocation cost, so this is the larger win. Not hot-path
-  critical for the `F31` error page (a cold error path), but login/consent are warmer and the cohesion/allocation
-  benefit applies surface-wide. Touch points:
-  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationPageRenderer.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveBundleReader.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveOpenIdErrorResponseFormatter.cs`,
-  `src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs`,
-  `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Results/DefaultAuthorizationResultExecutor.cs`.
 
 ## Secrets management (group `S`)
 
 Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md)
 (client-secret material revealed once on create).
 
-- **`S1` — Client-secret rotate endpoint.** Rotation is create-new + delete-old (two calls) per
-  [ADR-0011](docs/adr/0011-secret-management-api.md); ADR-0050 notes a convenience `rotate` would inherit
-  the same one-time reveal. A `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate`
-  returning `CreatedSecretResource` is the natural next increment.
-  Touch points: `src/NCode.Identity.OpenId.Management/Endpoints/Clients/ClientApiEndpointHandler.cs`.
-- **`S5` — Client-secret storage: hash-at-rest vs reversible protection (needs its own ADR).** A client secret
-  is reveal-once and never returned again, so the server only needs to _verify_ a presented value — a
-  one-way hash (OWASP-preferred) is safer than today's reversible data-protected `EncodedValue`. But
-  symmetric secrets used as actual signing keys (`HS256`) require reversible material. The
-  authentication-secret vs signing-key fork deserves an ADR before changing storage.
-  Touch points: `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`,
-  `src/NCode.Identity.Secrets.Persistence/DefaultSecretGenerator.cs`,
-  `src/NCode.Identity.Secrets.Persistence/DefaultSecretSerializer.cs`.
+- **`S5` — Hash client secrets that only need verifying (needs its own ADR).** Client secrets are envelope-encrypted
+  under the tenant master key (ADR-0235) but still reversible. A secret used only for `client_secret_basic` /
+  `client_secret_post` should be stored as a verifier: SHA-256 for server-generated secrets (≥ 256 bits of entropy),
+  PBKDF2 (the `DefaultPasswordHasher` format) for operator-supplied ones. Keep a secret reversible only when its client
+  is registered for `client_secret_jwt`, decided when the secret is issued; switching a client to `client_secret_jwt`
+  then needs a new secret. Touch points: `DefaultSecretGenerator`, `CommonClientAuthenticationHandler`,
+  `ClientSecretJwtClientAuthenticationHandler`, the client management endpoints.
+  - Verification uses `CryptographicOperations.FixedTimeEquals`; the verifier format is self-describing
+    (`$ncode-sha256$…` / the existing PBKDF2 format) so it can evolve.
 
-- **`S7` — HSM / KMS / keyless-signing `SecretKey` providers.** The biggest production-modern gap for the secrets
-  library: back an asymmetric `SecretKey` with an external keystore — Azure Key Vault, AWS KMS, PKCS#11 HSM, TPM 2.0,
-  or Windows CNG — so private material **never leaves the boundary** and sign/unwrap operations are delegated to the
-  provider. Needs a `SecretKey` that exposes operations without exportable material (the verify-only public-key
-  primitive from [ADR-0103](docs/adr/0103-public-only-asymmetric-secret-keys.md) is the shape to generalize) and a
-  provider abstraction the JOSE signature/key-management algorithms call instead of in-process BCL primitives.
-  Touch points: [`src/NCode.Identity.Secrets.Abstractions/Keys`](src/NCode.Identity.Secrets.Abstractions/Keys),
-  [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets),
-  [`src/NCode.Identity.Jose/Algorithms`](src/NCode.Identity.Jose/Algorithms). Capture the design in an ADR.
+- **`S7` — Remote (KMS-resident) signing keys.** Let a tenant opt in to signing keys that never leave a key management
+  service: a public-material `SecretKey` that references the remote key, an asynchronous signing path in the JOSE
+  serializer (the current `TrySign` seam is synchronous), algorithm mapping (PS256 → RSA-PSS SHA-256 with a 32-byte
+  salt; ES256 → ECDSA P-256 SHA-256, converting DER signatures to the 64-byte `r‖s` form JWS requires), cached public
+  keys for JWKS, retry with back-off on throttling. Providers reuse the root key provider packages' clients (ADR-0235).
+  Touch points: `src/NCode.Identity.Secrets.Abstractions/Keys`, `src/NCode.Identity.Jose/Algorithms`.
+  - `RemoteAsymmetricSecretKey : AsymmetricSecretKey` holds the public key and a provider reference; an
+    `IRemoteSigner.SignAsync(keyReference, algorithm, signingInput, ct)` seam; the JOSE serializer's encode path awaits
+    the signer before assembling the JWS (the existing synchronous `TrySign` remains for local keys).
+  - Algorithm mapping: PS256 → Cloud KMS `RSA_SIGN_PSS_2048_SHA256` / AWS `RSASSA_PSS_SHA_256` / Azure `PS256` (salt =
+    32 bytes); ES256 → Cloud KMS `EC_SIGN_P256_SHA256` / AWS `ECDSA_SHA_256` (both return DER — convert to the 64-byte
+    IEEE P1363 `r‖s`) / Azure `ES256` (already `r‖s`). Sign a SHA-256 digest where the service accepts one; Infisical's
+    PSS needs the full message.
+  - Public keys cached for JWKS; per-tenant opt-in setting; throttling handled with jittered back-off; key rollover
+    (`S8`) creates new key versions.
 
 - **`S8` — Key lifecycle / rotation primitives.** First-class signing-key rollover: overlapping validity windows,
   activation/retirement grace periods, automatic rotation, and a published JWKS that reflects active **and** retiring
   keys (so verifiers accept both across a rotation) — analogous to the ASP.NET Core Data Protection key ring. Builds on
-  the delivered `F33` JWK/JWKS types and the `S1` rotate endpoint. The keys every tenant is provisioned with
-  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)) carry no effective lifetime today —
-  nothing enforces a key's expiry, so they are stamped a century out — and rollover is what gives them one; record an
+  the delivered `F33` JWK/JWKS types and the `S1` rotate endpoint; once expiry is enforced, let that endpoint keep
+  the rotated client secret for a grace period
+  ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)). The keys every tenant is
+  provisioned with ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)) carry no effective
+  lifetime today —
+  nothing enforces a key's expiry, so they are stamped a century out — and rollover is what gives them one; retire a
+  provisioned key its tenant's settings no longer use, which provisioning keeps (ADR-0169 decision 9); record an
   audit event when the server generates or retires a key, since provisioning only logs it. Touch points:
   [`src/NCode.Identity.Secrets`](src/NCode.Identity.Secrets),
   `src/NCode.Identity.Secrets.Persistence`, `src/NCode.Identity.OpenId.Core/Tenants/Keys/`. Capture the design in an
   ADR.
 
-- **`S9` — Envelope encryption / hardware-backed protection at rest.** Protect stored reversible secret material with
-  envelope encryption (a KMS/HSM-held root key wrapping per-secret data keys) rather than the single data-protection
-  key today, and allow hardware-backed root keys. Ties into the `S5` hash-at-rest-vs-reversible fork and the `S7`
-  external-keystore providers. Touch points:
-  `src/NCode.Identity.Secrets.Persistence/DefaultSecretSerializer.cs`,
-  `src/NCode.Identity.Secrets.Persistence.Abstractions/DataContracts/PersistedSecret.cs`. Capture the design in an ADR.
+- **`S9` — Envelope encryption / hardware-backed protection at rest.** Implemented, awaiting a green delivery:
+  stored secrets and the Data Protection key ring are encrypted under per-owner master keys wrapped by an external
+  root key (`ephemeral`, `local`, `aws-kms`) —
+  [ADR-0235](docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  [`CHANGELOG.md`](CHANGELOG.md) [Unreleased]. Remaining: every GitHub Actions run for the commit that delivers it
+  to `main` succeeds; then archive this entry. Provisioning the production root key is `S19`.
 
-- **`S10` — Encrypt the Data Protection key ring at rest.** The host persists the ASP.NET Core Data Protection key ring
-  to the same Postgres database as the secrets it protects (`PersistKeysToDbContext<DeveloperDataProtectionDbContext>`,
-  unconditionally and with no `ProtectKeysWith…`), so a database backup or dump contains both the protected secret
-  material and the keys that unprotect it. Production must wrap the ring with a key held outside the database — a cloud
-  KMS / HSM key (Azure Key Vault, OCI Vault) or a certificate from the secret store — the server composition should
-  make that the secure default rather than an opt-in, and `AddProductionSafety` should refuse an unprotected ring.
-  Complements `S9` (envelope encryption of stored secrets) and `S7` (external-keystore providers). Touch points:
-  `src/NCode.Identity.OpenId.Host/Program.cs`, `src/NCode.Identity.Server/IdentityServerBuilder.cs`,
-  `src/NCode.Identity.Server/ProductionSafety`, `src/NCode.Identity.Secrets/DefaultRegistration.cs`.
+- **`S13` — Master key rotation, rekey and status.** Rotate a tenant's or the server's master key (new version active,
+  old retired), broadcast the rotation, rewrap every data key of the owner in a background job, then destroy the
+  retired key. Management API: `GET` and `POST …/encryption-keys/rekey` for tenants and the server (Auth0 parity),
+  scopes `read:encryption_keys` / `update:encryption_keys`, audit events; yearly automatic rotation.
+  - Seam: `IMasterKeyManager` (public, Abstractions) with `GetStatusAsync(SecretOwner, ct)` (versions, created, retired,
+    provider, recovery present — never material) and `RotateAsync(SecretOwner, ct)`.
+  - Rotate: in one unit of work create version n+1 (active) and set `RetiredWhen` on the old key; broadcast
+    `MasterKeyRotated(owner)` through `IReplicaBroadcaster`; every replica calls `Evict(owner)` and, for the server
+    owner, refreshes `ServerSecretProtectorHolder`.
+  - Rewrap job (`NCode.Identity.Dispatch`, delayed about five minutes so replicas converge): for each of the owner's
+    secrets whose envelope names the retired key, unwrap the data key with the old purpose key and wrap it with the new
+    one; the payload is untouched because payload associated data carries an all-zero key id (ADR-0235). Owner's
+    secrets: a tenant's `TenantSecrets`, its clients' and resource servers' secrets; the server's `ServerSecrets`. Write
+    through the owner stores' `UpdateSecretAsync` with concurrency tokens; re-run on conflict.
+  - Data Protection: existing ring keys are not re-encrypted; new ring keys use the new master key, and the retired
+    server key is kept until every ring key it wrapped has expired (Data Protection default lifetime 90 days) plus a
+    grace period.
+  - Destroy: when a verification scan finds no reference, delete the retired row. Backups keep their own copies.
+  - Management API (Auth0 parity with `POST /api/v2/keys/encryption/rekey`):
+    `GET /api/tenants/{tenantId}/encryption-keys`, `POST /api/tenants/{tenantId}/encryption-keys/rekey`, and
+    `/api/servers/{serverId}/…` equivalents; scopes `read:encryption_keys` / `update:encryption_keys`; audit events
+    `master_key_rotated`, `master_key_destroyed`.
+  - Automatic rotation: a hosted timer dispatches a daily job that rotates any active key older than
+    `SecretProtection:MasterKeyRotationPeriod` (default 365 days).
 
-- **`S12` — Tailor each tenant's provisioned keys to the algorithms it can sign with.** Every tenant is provisioned with a
-  persisted key for each algorithm `OpenId:Tenant:KeyProvisioning:Keys` configures — `RS256`, `PS256`, and `ES256` by
-  default ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)). The set is server-wide, so a
-  tenant whose effective signing lists exclude an algorithm still holds and publishes a key for it: a `fapi2` tenant
-  publishes an RS256 key it never signs with. Conversely, a client that registers an algorithm outside the set, such as
-  `ES384`, fails at issuance until a key is imported. Provision per tenant from what its effective
-  `*_signing_alg_values_supported` lists and security profile permit, intersected with the configured set. That needs the
-  tenant's merged settings while it is seeded, which today materialize only after the seed. Decide whether keys a tenant
-  no longer permits are retired, which is `S8`'s lifecycle. Touch points:
-  `src/NCode.Identity.OpenId.Core/Tenants/Keys/` (`TenantKeySeedHandler`, `DefaultTenantKeyPolicy`),
-  `DefaultOpenIdTenantFactory` (the settings it materializes), `ISecurityProfile`.
+- **`S14` — Rewrap and recovery tool.** A host command (run as a Kubernetes Job) that rewraps every master key under
+  the configured root key provider — unwrapping with the provider recorded per row, or with the offline recovery
+  private key — and can rewrap the recovery copies under a new recovery key.
+  - A host verb, run once as a Kubernetes Job from the host image:
+    `secret-protection rewrap [--recovery-private-key <pem>] [--owner <type:id>] [--dry-run]`.
+  - For every `MasterKeys` row: unwrap with the provider named in the row, or with RSA-OAEP-SHA256 and the recovery
+    private key when given; verify the key check; wrap with the configured provider; recompute the recovery wrap under
+    the configured recovery public key; update with the concurrency token. Idempotent; logs counts only.
+  - `secret-protection rewrap-recovery` rewraps only the recovery copies (new recovery key pair).
+  - The recovery private key is read from a file mounted for the Job only, never from configuration.
+
+- **`S15` — More root key providers.** Google Cloud KMS (`google-cloud-kms`) and Azure Key Vault (`azure-key-vault`)
+  are implemented ([ADR-0260](docs/adr/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)).
+  Remaining: Infisical KMS, OpenBao/Vault Transit and PKCS#11 packages, each an `IRootKeyProvider` with its own
+  options section.
+  - Infisical KMS, OpenBao/Vault Transit and PKCS#11: Infisical: REST encrypt/decrypt with an `aes-256-gcm` KMS key;
+    machine identity through Universal Auth (stored credential) or Kubernetes Auth (needs API-server reachability).
+    OpenBao Transit: `encrypt`/`decrypt` with `context` on a derived key, Kubernetes auth in-cluster. PKCS#11:
+    `CKM_AES_GCM` through Pkcs11Interop for on-premises HSMs.
+
+- **`S16` — Per-tenant root keys (bring your own key).** A tenant's master key wrapped by a key the tenant controls, so
+  revoking or destroying it shreds the tenant's data immediately, backups included.
+  - A tenant setting names a root key (provider + key reference) that the provider validates. The tenant's master key
+    is wrapped by that key instead of the deployment root, and gets no operator recovery wrap. Revoking or destroying
+    the tenant's key makes its data unreadable everywhere, backups included. The ring re-validates such keys
+    periodically (for example hourly) so a revocation takes effect within that period.
+
+- **`S17` — Encrypt grant payloads.** `GrantEntity.PayloadJson` (authorization codes, refresh tokens, device and PAR
+  requests) is plaintext; encrypt it under the tenant master key (purpose `grant-payload`).
+  - `DefaultPersistedGrantService` protects `PayloadJson` with the tenant protector, purpose `grant-payload`, item id =
+    the grant's hashed key; reads unprotect. AES-GCM costs microseconds per grant. Clean cutover (pre-release).
+
+- **`S18` — Store the public half of private keys.** Let listing endpoints and registration responses read public keys
+  without unprotecting private ones.
+  - Store the SPKI of every generated asymmetric key in a new `PersistedSecret.PublicKey` (base64url) so the management
+    converters and registration responses export public keys without a protector; then drop the protector plumbing from
+    those paths.
+
+- **`S19` — Provision the AWS KMS root key and the cluster's access to it.** In `identity-platform`: the root key (one
+  more `aws-kms-key` module instance), and — if the cluster's service-account issuer is publicly discoverable — an IAM
+  OIDC identity provider plus a role only the host's service account can assume, allowed `kms:Encrypt` / `kms:Decrypt`
+  on that key with the `ncode-identity:root-context` encryption context. If the issuer is not discoverable (an
+  in-cluster name), IAM Roles Anywhere instead: a trust anchor for a cluster CA, a profile and role, a short-lived
+  workload certificate from cert-manager, and the chart serving it to the SDK (for example the
+  `aws_signing_helper serve` sidecar with `AWS_EC2_METADATA_SERVICE_ENDPOINT`).
+  - OpenTofu: the root key as one more `aws-kms-key` module instance (alias `ncode-identity-root`, role
+    `secret-protection`, `deletion_protection = true`, 30-day deletion window, yearly rotation) in the platform's
+    account.
+  - **Publicly discoverable issuer:** `aws_iam_openid_connect_provider` for the cluster's issuer with client id
+    `sts.amazonaws.com`; `aws_iam_role` whose trust policy allows `sts:AssumeRoleWithWebIdentity` only for
+    `system:serviceaccount:<namespace>:<service account>` and audience `sts.amazonaws.com`; an inline policy allowing
+    `kms:Encrypt` / `kms:Decrypt` on the key ARN only, conditioned on `kms:EncryptionContextKeys` =
+    `ncode-identity:root-context`. Outputs: the alias ARN and role ARN for the chart values.
+  - **Private issuer (an in-cluster name):** IAM Roles Anywhere — `aws_rolesanywhere_trust_anchor` for a cluster CA
+    (cert-manager `CA` issuer whose key stays in the cluster), `aws_rolesanywhere_profile` and a role trusting
+    `rolesanywhere.amazonaws.com` conditioned on the certificate subject; cert-manager issues a short-lived workload
+    certificate; the chart gains an optional `aws_signing_helper serve` sidecar and sets
+    `AWS_EC2_METADATA_SERVICE_ENDPOINT` so the SDK's default chain reads its credentials. No code change in the
+    provider.
+  - Infrastructure bootstrap secrets (database and Valkey passwords, DNS tokens) generated with `random_password` and
+    written to Kubernetes Secrets; OpenTofu state is already encrypted with AWS KMS.
+
+- **`S20` — Post-quantum recovery wrap.** Add a hybrid ML-KEM-768 + X25519 recovery wrap once the container images'
+  OpenSSL supports ML-KEM.
+  - Add recovery wrap format `r2`: hybrid ML-KEM-768 + X25519 key encapsulation feeding HKDF, then AES-256-GCM over the
+    master key. Requires `System.Security.Cryptography.MLKem` support in the container images' OpenSSL (3.5+). Keep
+    RSA-OAEP until then; the master layer, and the `local`, `aws-kms` and `google-cloud-kms` roots, are symmetric and
+    already quantum-resistant; an `azure-key-vault` root is RSA and is not (ADR-0260), so a post-quantum root on Azure
+    needs a Managed HSM AES key.
 
 ## Tooling & agent customization (group `X`)
 
-- **`X4` — Decide the .NET coverage scope.** The merged .NET coverage report
-  ([ADR-0143](docs/adr/0143-ci-presents-test-results-and-coverage-in-github.md)) measures every assembly the tests load,
-  so its overall line figure (≈36% on the first isolated run) is dragged down by code that is not unit-testable library
-  surface: EF Core migrations in `NCode.Identity.OpenId.Host.Database` (0%), the reference host
-  `NCode.Identity.OpenId.Host` (<1%), and source-generator output under `obj/` (OpenAPI XML-comment and `Regex`
-  generators — ReportGenerator also warns that these files "do not exist" because they are build intermediates). Decide
-  what the headline number should measure — exclude generated code (`[GeneratedCode]`, `**/obj/**`, `**/Migrations/**`)
-  and the host/composition assemblies via coverlet `ExcludeByFile`/`Exclude` or ReportGenerator filters, applied
-  identically to the job summary and to Codecov (`codecov.yml` `ignore`) so the two never disagree. They already
-  disagree: on the first CI run (`d02ca805`) the job summary reported 35.8% .NET line coverage over 75,871 coverable
-  lines, while Codecov's `dotnet` flag reported 52.8% over ≈49,600 — Codecov silently drops every report file that is
-  not in the repository (the generated `obj/` sources) and scores partially-covered lines differently. Touch points:
-  [`build/coverage-report.ps1`](build/coverage-report.ps1), [`tests/Directory.Build.props`](tests/Directory.Build.props),
-  [`codecov.yml`](codecov.yml). Coverage thresholds are a separate, later policy decision.
+_No pending items. Completed `X` items are archived in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)._
+
+## Review findings for the feature-gaps branch (group `R`)
+
+A principal-level review of the `copilot/work-through-feature-gaps-frontend` branch against `main` (93 commits, 670
+files) recorded these items. Severity follows the review: **P1** blocks merging the branch, **P2** should follow soon,
+**P3** is hardening, and **Refactor** removes duplicated or convention-based code. Items marked _pre_ already exist on
+`main`; the branch makes them matter. The pull request tracks them as a checklist; when an item is done, move it to
+[`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md) as usual.
+
+### P1 — before the branch merges
+
+_None remaining._
+
+### P2
+
+_None remaining._
+
+### P3
+
+- **`R67` — Run the conformance pre-flight in the FAPI 1.0 Advanced run.** Advertised certificate binding does not
+  force every client to present a certificate (`R42`), so `-Fapi1Advanced` has no reason to skip the pre-flight; update
+  `build/conformance/README.md` with it. Touch points: `build/conformance/run-conformance.ps1` (`Initialize-Fapi1Run`).
+### Refactor
+
+- **`R44` — Key the conformance seed by `client_id`.** Stop passing keys by array position
+  (`run-conformance.ps1:318-321`), generate both FAPI templates from one source, and derive `discoveryUrl` from
+  `$IssuerUrl`.

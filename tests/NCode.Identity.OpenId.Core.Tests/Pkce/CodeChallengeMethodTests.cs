@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Security.Cryptography;
 using Moq;
 using NCode.Buffers;
 using NCode.Identity.Cryptography;
@@ -53,8 +54,8 @@ public sealed class CodeChallengeMethodTests : IDisposable
             .Setup(x =>
                 x.HashValue(
                     "the-verifier",
-                    HashAlgorithmType.Sha256,
-                    BinaryEncodingType.Base64Url,
+                    HashAlgorithmName.SHA256,
+                    BinaryEncodings.Base64Url,
                     SecureEncoding.ASCII
                 )
             )

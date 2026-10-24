@@ -26,14 +26,15 @@ namespace NCode.Identity.Settings;
 /// <summary>
 /// Provides a default implementation of the <see cref="ISettingSerializer"/> abstraction. Each setting is typed by its
 /// registered <see cref="SettingDescriptor"/>; a setting without one is an error rather than an ad-hoc value, so a
-/// misspelled or retired setting name can never be stored or loaded without being honored. A setting must also apply
-/// within the registered scope whose document carries it
-/// (<see cref="ISettingScopeCollection.AppliesWithin(SettingDescriptor, string, out string?)"/>), and a value of the right
-/// type must be in the setting's domain (<see cref="SettingDescriptor.TryValidate"/>), so a setting the scope never
-/// reads, or a value the server would not honor — an unknown security profile, a negative lifetime — is rejected in the
-/// same way.
+/// misspelled or unregistered setting name can never be stored or loaded without being honored. A setting must also
+/// apply within the registered scope whose document carries it
+/// (<see cref="ISettingScopeCollection.AppliesWithin(SettingDescriptor, string, out string?)"/>), and a value of the
+/// right type must be in the setting's domain (<see cref="SettingDescriptor.TryValidate"/>), so a setting the scope
+/// never reads, or a value the server would not honor — an unknown security profile, a negative lifetime — is rejected
+/// in the same way. A retired setting (<see cref="SettingDescriptor.IsRetired"/>) is ignored when a stored document is
+/// read and refused when a document is validated.
 /// </summary>
-// See ADR-0139 (closed vocabulary), ADR-0140 (value domains), and ADR-0149 (scopes).
+// See ADR-0139 (closed vocabulary), ADR-0140 (value domains), ADR-0149 (scopes), and ADR-0251.
 internal class DefaultSettingSerializer(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
     ISettingScopeCollectionProvider settingScopeCollectionProvider
@@ -55,7 +56,7 @@ internal class DefaultSettingSerializer(
         var settings = new List<Setting>();
         var errors = new List<SettingError>();
 
-        ReadSettings(settingsJson, scopeName, jsonOptions, settings, errors);
+        ReadSettings(settingsJson, scopeName, jsonOptions, static (_, _) => true, settings, errors);
 
         if (errors.Count > 0)
         {
@@ -76,15 +77,47 @@ internal class DefaultSettingSerializer(
     {
         var errors = new List<SettingError>();
 
-        ReadSettings(settingsJson, scopeName, jsonOptions, [], errors);
+        ReadSettings(settingsJson, scopeName, jsonOptions, static (_, _) => false, [], errors);
 
         return errors;
     }
+
+    /// <inheritdoc />
+    public IReadOnlyList<SettingError> ValidateSettingsUpdate(
+        JsonElement storedSettingsJson,
+        JsonElement settingsJson,
+        string scopeName,
+        JsonSerializerOptions jsonOptions
+    )
+    {
+        var errors = new List<SettingError>();
+
+        ReadSettings(
+            settingsJson,
+            scopeName,
+            jsonOptions,
+            (name, value) => KeepsStoredValue(storedSettingsJson, name, value),
+            [],
+            errors
+        );
+
+        return errors;
+    }
+
+    private static bool KeepsStoredValue(
+        JsonElement stored,
+        string settingName,
+        JsonElement value
+    ) =>
+        stored.ValueKind == JsonValueKind.Object
+        && stored.TryGetProperty(settingName, out var storedValue)
+        && JsonElement.DeepEquals(storedValue, value);
 
     private void ReadSettings(
         JsonElement settingsJson,
         string scopeName,
         JsonSerializerOptions jsonOptions,
+        Func<string, JsonElement, bool> acceptsRetiredSetting,
         List<Setting> settings,
         List<SettingError> errors
     )
@@ -116,6 +149,22 @@ internal class DefaultSettingSerializer(
                 errors.Add(
                     new SettingError(settingName, $"'{settingName}' is not a registered setting.")
                 );
+                continue;
+            }
+
+            // A retired setting is never read; a validation accepts it only where the caller allows (ADR-0251).
+            if (descriptor.IsRetired)
+            {
+                if (!acceptsRetiredSetting(settingName, jsonProperty.Value))
+                {
+                    errors.Add(
+                        new SettingError(
+                            settingName,
+                            $"The setting '{settingName}' is retired. {descriptor.RetiredReason}"
+                        )
+                    );
+                }
+
                 continue;
             }
 

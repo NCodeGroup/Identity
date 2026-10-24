@@ -42,7 +42,7 @@ public class DefaultResourceOwnershipServiceTests
         var resolver = mocks.Create<IPrincipalResolver>();
 
         crypto
-            .Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
             .Returns("assign-1")
             .Verifiable();
         resolver
@@ -103,7 +103,7 @@ public class DefaultResourceOwnershipServiceTests
         var crypto = mocks.Create<ICryptoService>();
         var resolver = mocks.Create<IPrincipalResolver>();
 
-        crypto.Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url)).Returns("assign-1");
+        crypto.Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url)).Returns("assign-1");
         // The resolver maps the raw upstream subject to a stable, server-owned principal id (ADR-0035).
         resolver
             .Setup(x =>
@@ -216,7 +216,7 @@ public class DefaultResourceOwnershipServiceTests
                 )
             )
             .ReturnsAsync([]);
-        crypto.Setup(x => x.GenerateKey(16, BinaryEncodingType.Base64Url)).Returns("new-assign");
+        crypto.Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url)).Returns("new-assign");
         PersistedRoleAssignment? captured = null;
         store
             .Setup(x =>

@@ -77,13 +77,31 @@ public interface IServerStore : IStore<PersistedServer>
     );
 
     /// <summary>
-    /// Updates the JSON settings for an OpenId Server in the store.
+    /// Updates the JSON settings for an OpenId Server in the store. It clears the server's reconciled settings
+    /// fingerprint, because the settings it was computed from changed, and keeps the reconciled settings for the next
+    /// reconciliation to compare with, unless the fingerprint was already clear: the settings of an earlier change
+    /// were never reconciled.
     /// </summary>
     /// <param name="persistedServerSettings">The <see cref="PersistedServerSettings"/> instance to update.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask UpdateSettingsAsync(
         PersistedServerSettings persistedServerSettings,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records the server's <see cref="PersistedServer.ReconciledSettingsFingerprint"/> and
+    /// <see cref="PersistedServer.ReconciledSettings"/> and nothing else, so the write never overwrites a concurrent
+    /// change to the server. The server's
+    /// <see cref="BasePersistedServerResource.ConcurrencyToken"/> must match the stored one.
+    /// </summary>
+    /// <param name="persistedServer">The <see cref="PersistedServer"/> instance whose reconciled settings fingerprint and reconciled settings are recorded.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    /// <exception cref="StoreConcurrencyException">Thrown when the server's concurrency token does not match the stored one.</exception>
+    ValueTask UpdateReconciledSettingsAsync(
+        PersistedServer persistedServer,
         CancellationToken cancellationToken
     );
 

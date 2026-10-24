@@ -121,6 +121,9 @@ public interface IAuditEventRecorder
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
     /// <param name="clientId">The identifier of the client that failed authentication.</param>
+    /// <param name="authenticationMethod">
+    /// The registered client-authentication method the client attempted, such as <c>private_key_jwt</c>.
+    /// </param>
     /// <param name="reason">A short, non-sensitive reason authentication failed.</param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
@@ -131,6 +134,7 @@ public interface IAuditEventRecorder
     ValueTask RecordClientAuthenticationFailedAsync(
         OpenIdContext openIdContext,
         string clientId,
+        string authenticationMethod,
         string? reason,
         CancellationToken cancellationToken
     );
@@ -195,6 +199,27 @@ public interface IAuditEventRecorder
     );
 
     /// <summary>
+    /// Records that a refresh token that a rotation spent was presented again within the client's reuse
+    /// interval and was answered with another refresh token of its rotation family (a retry), distinct from a
+    /// rotation and from a reuse.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> that presented the refresh token.</param>
+    /// <param name="subjectId">The identifier of the subject the refresh token was issued for, if known.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordRefreshTokenRetryAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        string? subjectId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Records that a protocol endpoint returned an <c>OAuth</c> or <c>OpenID Connect</c> error response.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
@@ -234,7 +259,8 @@ public interface IAuditEventRecorder
     /// Records that a server-side end-user session (or every session a subject holds) was terminated.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
-    /// <param name="reason">The reason the session was terminated.</param>
+    /// <param name="reason">The reason the session was terminated: one of <see cref="SessionTerminationReasons"/> or an
+    /// extension's own name.</param>
     /// <param name="subjectId">The identifier of the subject whose session was terminated, when known.</param>
     /// <param name="sessionId">The opaque session identifier (<c>sid</c>) that was terminated, or <see langword="null"/>
     /// for a subject-wide termination.</param>
@@ -246,7 +272,7 @@ public interface IAuditEventRecorder
     /// </returns>
     ValueTask RecordSessionTerminatedAsync(
         OpenIdContext openIdContext,
-        SessionTerminationReason reason,
+        string reason,
         string? subjectId,
         string? sessionId,
         CancellationToken cancellationToken

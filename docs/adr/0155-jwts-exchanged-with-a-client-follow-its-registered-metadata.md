@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (extended by
   [ADR-0168](0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): a JWT introspection response
-  follows the client's registered introspection metadata)
+  follows the client's registered introspection metadata; extended by [ADR-0181](0181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md): the
+  credential selector is a public seam every issuer of a client-addressed JWT resolves; extended by
+  [ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md): the checks of decision 2 are a
+  registered client coherence rule)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -51,8 +54,16 @@ never compresses.**
    client's effective lists carry its tenant's lists and the ceiling of every security profile it selects
    ([ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md)). A registered value must be in its list.
    Dynamic client registration rejects one that is not with `invalid_client_metadata`, checking the tenant's effective
-   default `id_token_signed_response_alg` as well; issuance checks again, because settings change after registration,
-   and fails with `server_error` rather than choose another algorithm.
+   default `id_token_signed_response_alg` as well. The management API's client create and settings update merge the
+   client's document onto its tenant's effective settings, as the runtime does, and reject a registered ID token,
+   UserInfo, or introspection algorithm — or the default `enc` of a registered encryption — that its list excludes with
+   a validation problem naming the setting. A tenant or server settings write merges each client it governs onto its
+   effective settings before and after the change and rejects it, naming the list, when the change excludes an
+   algorithm a client registers; a mismatch that predates the change is not reported, so it never blocks an unrelated
+   write. A server write merges the current and new documents onto the settings the server derives from its defaults
+   and the host's configuration, which `OpenIdServer.ConfiguredSettingsProvider` exposes, and each tenant's document
+   onto both. Issuance checks again, because settings change after they are written, and fails with
+   `server_error` rather than choose another algorithm.
 3. **One selector protects every JWT addressed to a client.** `IClientJwtCredentialSelector` resolves, for an ID token
    (which a logout token follows, OpenID Connect Back-Channel Logout 1.0 §2.4) or a UserInfo response: the tenant key
    for the registered signature algorithm, and an asymmetric public key from the client's `jwks` or `jwks_uri`
@@ -73,6 +84,8 @@ never compresses.**
    decrypted with the tenant's, under `request_object_signing_alg_values_supported` and
    `request_object_encryption_{alg,enc}_values_supported` read from the client's effective settings; a registered
    `request_object_signing_alg` / `request_object_encryption_alg` / `_enc` narrows the client's list to that one value.
+   A registered `token_endpoint_auth_signing_alg` and `backchannel_authentication_request_signing_alg` narrow the
+   lists named below the same way.
    A signed CIBA request is verified under `backchannel_authentication_request_signing_alg_values_supported`, whose
    domain is asymmetric signatures, and an encrypted one is rejected; a client assertion (`private_key_jwt`,
    `client_secret_jwt`) under `token_endpoint_auth_signing_alg_values_supported`. At these trust boundaries an **unset**
@@ -108,17 +121,31 @@ never compresses.**
   tokens, and UserInfo responses for every client that selects the profile.
 - A client receives an encrypted ID token or UserInfo response it can decrypt, and verifies a signature with the
   algorithm it registered.
-- A tenant whose ceiling excludes `RS256` — the FAPI 2.0 profile's does — sets `id_token_signed_response_alg` for its
-  clients, or each client registers one; otherwise registration is refused and issuance fails with `server_error`
-  (backlog `F68`).
+- A tenant whose ceiling excludes `RS256` sets `id_token_signed_response_alg` for its clients, or each client registers
+  one; otherwise registration and a management write are refused. A security profile supplies a permitted default
+  ([ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md) decision 7), so a client under FAPI 2.0
+  that registers none gets `PS256`. A tenant or server write that narrows a list beneath a client's registered value
+  is refused, at the cost of reading every client the write governs — every client of every tenant for a server
+  write. A seeded client — including one the conformance seeder reads from configuration — registers no response
+  algorithm, so it can only inherit a mismatch from the tenant or server settings above it, which their writes check.
+  A change to the host's configured settings is not checked against clients; issuance remains the backstop.
+- A server or tenant settings change checks clients only when a setting the rule reads changed, and it reads the
+  tenants and clients as untracked, secret-free projections, so a change to an unrelated setting costs no client walk
+  (backlog `R21`).
 - A relying party that called UserInfo with only the end-user's session cookie must present an access token.
+- A dynamically registered client can narrow its assertion algorithm and use CIBA without the management API. Its
+  `backchannel_token_delivery_mode` is checked against the tenant's `backchannel_token_delivery_modes_supported`; its
+  `backchannel_client_notification_endpoint` is stored as its `client_notification_endpoint`, which `ping` and `push`
+  require; and its `backchannel_user_code_parameter` is stored as its own `backchannel_user_code_parameter_supported`,
+  which the tenant's value bounds, so a client claims the parameter only where the tenant supports it.
 - **Breaking:** the six registration settings are new; the seven retired settings are removed;
   `AuthenticateSubjectCommand` authenticates only the session and `AuthenticateResourceRequestCommand` is new;
-  `RegisterClientRequest` and `RegisterClientResponse` gain the response and request-object metadata. A deployment that
+  `RegisterClientRequest` and `RegisterClientResponse` gain the response and request-object metadata, the
+  `token_endpoint_auth_signing_alg`, and the CIBA registration metadata (CIBA Core 1.0 §4). A deployment that
   stores settings documents in its own database applies the same migration there.
 - Follow-ups: request-object audience, typing, and lifetime (backlog `F40`); validating client key material at every
-  entry point (`F65`); the remaining registration metadata (`F66`); the server validating access tokens it encrypted
-  (`F67`); and checking a client's registered response algorithms when its settings are written (`F68`).
+  entry point (`F65`); the server validating access tokens it encrypted
+  (`F67`).
 
 ## References
 
@@ -135,6 +162,7 @@ never compresses.**
   [ADR-0085](0085-ciba-grant.md) and [ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md) (amended: no
   encrypted CIBA requests), [ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.DefaultClientJwtCredentialSelector`, `ClientJwtProtectionSettings`,
+  `NCode.Identity.OpenId.Authentication.Clients.Coherence.ResponseAlgorithmCoherenceRule`,
   `NCode.Identity.OpenId.Authentication.Settings.PermittedAlgorithmExtensions`,
   `NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.DefaultUserInfoEndpointProvider`,
   `NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand`, `DefaultLoadAuthorizationRequestHandler`,

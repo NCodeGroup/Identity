@@ -22,7 +22,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Contexts;
@@ -40,6 +42,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
     private static readonly string[] RequiredAudiences = ["urn:test:resource"];
 
     private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; set; } = null!;
+    private Mock<ISessionService> MockSessionService { get; set; } = null!;
     private Mock<OpenIdContext> MockContext { get; set; } = null!;
 
     #region Scaffolding
@@ -73,6 +76,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             .ReturnsAsync(resolvedPrincipalId ?? subjectId ?? string.Empty);
 
         MockAuditEventRecorder = CreateLooseMock<IAuditEventRecorder>();
+        MockSessionService = CreateStrictMock<ISessionService>();
 
         MockContext.Setup(x => x.GetSubjectId(It.IsAny<ClaimsPrincipal>())).Returns(subjectId);
         MockContext
@@ -82,7 +86,8 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
         return new DefaultAuthenticateSubjectHandler(
             mockFactory.Object,
             mockResolver.Object,
-            MockAuditEventRecorder.Object
+            MockAuditEventRecorder.Object,
+            MockSessionService.Object
         );
     }
 
@@ -126,6 +131,16 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
     private static AuthenticateResult SuccessResult()
     {
         var identity = new ClaimsIdentity("scheme");
+        var principal = new ClaimsPrincipal(identity);
+        return AuthenticateResult.Success(new AuthenticationTicket(principal, "scheme"));
+    }
+
+    private static AuthenticateResult SuccessResultWithSession(string sessionId)
+    {
+        var identity = new ClaimsIdentity(
+            [new Claim(JoseClaimNames.Payload.Sid, sessionId)],
+            "scheme"
+        );
         var principal = new ClaimsPrincipal(identity);
         return AuthenticateResult.Success(new AuthenticationTicket(principal, "scheme"));
     }
@@ -246,6 +261,53 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
 
         Assert.True(result.IsAuthenticated);
         Assert.Equal("principal-99", result.Ticket.Value.PrincipalId);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheCookieSessionHasEnded_ReturnsUndefined()
+    {
+        var (command, mockAuthService, _) = CreateScaffold();
+        SetupAuthenticate(mockAuthService, SuccessResultWithSession("sid-1"));
+
+        var handler = CreateHandler("subject-id");
+        MockSessionService
+            .Setup(x =>
+                x.ValidateAndTouchAsync(
+                    command.OpenIdContext,
+                    "sid-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<bool>(false))
+            .Verifiable();
+
+        var result = await handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsUndefined);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheCookieSessionIsActive_ReturnsAuthenticated()
+    {
+        var (command, mockAuthService, _) = CreateScaffold();
+        SetupAuthenticate(mockAuthService, SuccessResultWithSession("sid-1"));
+
+        var handler = CreateHandler("subject-id");
+        MockSessionService
+            .Setup(x =>
+                x.ValidateAndTouchAsync(
+                    command.OpenIdContext,
+                    "sid-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<bool>(true))
+            .Verifiable();
+
+        var result = await handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsAuthenticated);
+        Assert.Equal("subject-id", result.Ticket.Value.PrincipalId);
     }
 
     #endregion

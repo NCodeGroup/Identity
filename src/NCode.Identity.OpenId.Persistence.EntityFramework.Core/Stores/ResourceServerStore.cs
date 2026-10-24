@@ -427,7 +427,7 @@ internal class ResourceServerStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 "The resource server has been modified by another process. Please reload and try again."
             );
         }
@@ -501,11 +501,27 @@ internal class ResourceServerStore(
             );
         }
 
+        var tenantKey = resourceServerEntity.TenantId;
+        var normalizedResourceServerId = resourceServerEntity.NormalizedResourceServerId;
+
         DbContext.Scopes.RemoveRange(resourceServerEntity.Scopes);
         DbContext.ResourceServerSecrets.RemoveRange(resourceServerEntity.Secrets);
         DbContext.Secrets.RemoveRange(
             resourceServerEntity.Secrets.Select(resourceServerSecret => resourceServerSecret.Secret)
         );
+
+        // The role assignments at the resource server's node are removed with it. See ADR-0212.
+        DbContext.RoleAssignments.RemoveRange(
+            await DbContext
+                .RoleAssignments.IgnoreQueryFilters()
+                .Where(entity =>
+                    entity.TenantId == tenantKey
+                    && entity.ResourceType == OpenIdResourceTypes.ResourceServer
+                    && entity.NormalizedResourceId == normalizedResourceServerId
+                )
+                .ToListAsync(cancellationToken)
+        );
+
         DbContext.ResourceServers.Remove(resourceServerEntity);
     }
 
@@ -622,7 +638,7 @@ internal class ResourceServerStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The settings for the resource server with ResourceServerId='{resourceServerId}' have been modified by another process. Please reload and try again."
             );
         }
@@ -768,7 +784,7 @@ internal class ResourceServerStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The secret with SecretId='{persistedSecret.SecretId}' has been modified by another process. Please reload and try again."
             );
         }

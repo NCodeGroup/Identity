@@ -19,14 +19,14 @@
 
 using System.Buffers;
 using System.Diagnostics;
-using Microsoft.AspNetCore.DataProtection;
+using System.Security.Cryptography;
 using NCode.Buffers;
 using NCode.Encoders;
-using NCode.Extensions.DataProtection;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.Secrets.Persistence;
 
@@ -35,16 +35,46 @@ namespace NCode.Identity.Secrets.Persistence;
 /// that unprotects the stored key material and delegates decoding to the <see cref="ISecretKeyTypeDescriptor"/> for
 /// the secret's type (the single extensibility seam).
 /// </summary>
-internal class DefaultSecretSerializer(
-    ISecretKeyTypeCatalog secretKeyTypeCatalog,
-    IDataProtectorFactory<PersistedSecret> dataProtectorFactory
-) : ISecretSerializer
+// See ADR-0235.
+internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalog)
+    : ISecretSerializer
 {
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
-    private IDataProtector DataProtector { get; } = dataProtectorFactory.CreateDataProtector();
 
     /// <inheritdoc />
     public IReadOnlyCollection<SecretKey> DeserializeSecrets(
+        ISecretProtector protector,
+        IReadOnlyCollection<PersistedSecret> persistedSecrets
+    )
+    {
+        ArgumentNullException.ThrowIfNull(protector);
+
+        return DeserializeSecretsCore(protector, persistedSecrets);
+    }
+
+    /// <inheritdoc />
+    public SecretKey DeserializeSecret(ISecretProtector protector, PersistedSecret persistedSecret)
+    {
+        ArgumentNullException.ThrowIfNull(protector);
+
+        return DeserializeSecretCore(protector, persistedSecret);
+    }
+
+    /// <inheritdoc />
+    public SecretKey DeserializePublicSecret(PersistedSecret persistedSecret)
+    {
+        if (!SecretEncodings.IsPublic(persistedSecret.SecretEncoding))
+        {
+            throw new InvalidOperationException(
+                $"The '{persistedSecret.SecretEncoding}' encoding does not hold public key material."
+            );
+        }
+
+        return DeserializeSecretCore(null, persistedSecret);
+    }
+
+    private SortedSet<SecretKey> DeserializeSecretsCore(
+        ISecretProtector? protector,
         IEnumerable<PersistedSecret> persistedSecrets
     )
     {
@@ -52,14 +82,16 @@ internal class DefaultSecretSerializer(
 
         foreach (var persistedSecret in persistedSecrets)
         {
-            secretKeys.Add(DeserializeSecret(persistedSecret));
+            secretKeys.Add(DeserializeSecretCore(protector, persistedSecret));
         }
 
         return secretKeys;
     }
 
-    /// <inheritdoc />
-    public SecretKey DeserializeSecret(PersistedSecret persistedSecret)
+    private SecretKey DeserializeSecretCore(
+        ISecretProtector? protector,
+        PersistedSecret persistedSecret
+    )
     {
         if (!SecretKeyTypeCatalog.TryGet(persistedSecret.SecretType, out var descriptor))
         {
@@ -76,16 +108,7 @@ internal class DefaultSecretSerializer(
             ExpiresWhen = persistedSecret.ExpiresWhen,
         };
 
-        const bool base64UrlIsSensitive = false;
         const bool keyMaterialIsSensitive = true;
-
-        using var protectedDataWriter = BufferFactory.CreatePooledBufferWriter(
-            base64UrlIsSensitive
-        );
-
-        Base64Url.Decode(persistedSecret.EncodedValue, protectedDataWriter);
-
-        using var protectedDataSpanLease = protectedDataWriter.GetSpanLease(base64UrlIsSensitive);
 
         var keySizeBytes = persistedSecret.KeySizeBits >> 3;
         using var keyMaterialBuffer = BufferFactory.CreatePooledBufferWriter(
@@ -94,7 +117,14 @@ internal class DefaultSecretSerializer(
         );
         IBufferWriter<byte> keyMaterialWriter = keyMaterialBuffer;
 
-        DataProtector.UnprotectSpan(protectedDataSpanLease.Span, ref keyMaterialWriter);
+        if (SecretEncodings.IsPublic(persistedSecret.SecretEncoding))
+        {
+            ReadPublicKeyMaterial(persistedSecret, keyMaterialWriter);
+        }
+        else
+        {
+            ReadPrivateKeyMaterial(protector, persistedSecret, keyMaterialWriter);
+        }
 
         using var keyMaterialSpanLease = keyMaterialBuffer.GetSpanLease(keyMaterialIsSensitive);
 
@@ -107,5 +137,41 @@ internal class DefaultSecretSerializer(
         Debug.Assert(secretKey.KeySizeBits == persistedSecret.KeySizeBits);
 
         return secretKey;
+    }
+
+    // Public key material is stored as plain base64url text.
+    private static void ReadPublicKeyMaterial(
+        PersistedSecret persistedSecret,
+        IBufferWriter<byte> destination
+    ) => Base64Url.Decode(persistedSecret.EncodedValue, destination);
+
+    // Private and symmetric key material is stored as an envelope that is protected by the master key of its owner.
+    private static void ReadPrivateKeyMaterial(
+        ISecretProtector? protector,
+        PersistedSecret persistedSecret,
+        IBufferWriter<byte> destination
+    )
+    {
+        var encodedValue = persistedSecret.EncodedValue;
+
+        if (!encodedValue.StartsWith(SecretProtectionFormat.Prefix, StringComparison.Ordinal))
+        {
+            throw new CryptographicException(
+                $"The secret '{persistedSecret.SecretId}' is not a protected envelope."
+            );
+        }
+
+        if (protector is null)
+        {
+            throw new CryptographicException(
+                $"The secret '{persistedSecret.SecretId}' is protected under a master key and needs a protector to be read."
+            );
+        }
+
+        protector.Unprotect(
+            encodedValue,
+            SecretProtectionContext.ForPersistedSecret(persistedSecret.SecretId),
+            ref destination
+        );
     }
 }

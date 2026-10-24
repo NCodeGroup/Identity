@@ -1,12 +1,17 @@
-import { useMemo } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
 import Container from '@mui/material/Container';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import { useAppSelector } from '@ncode/store';
-import { FlowExplorer } from './containers/FlowExplorer.js';
 import { createFlowDeps } from './flow.js';
+
+// The surface's container is its own chunk, so the shell renders before it loads (ADR-0175).
+const FlowExplorer = lazy(() =>
+  import('./containers/FlowExplorer.js').then((m) => ({ default: m.FlowExplorer })),
+);
 
 /**
  * The Playground shell. Reads the discovered runtime config (guaranteed present by the bootstrap gate), builds the
@@ -40,7 +45,9 @@ export function App() {
           walks the authorization-code + PKCE flow end to end, surfacing every artifact along the
           way.
         </Typography>
-        <FlowExplorer runtime={runtime} deps={deps} />
+        <Suspense fallback={<CircularProgress aria-label="Loading" />}>
+          <FlowExplorer runtime={runtime} deps={deps} />
+        </Suspense>
       </Container>
     </Box>
   );

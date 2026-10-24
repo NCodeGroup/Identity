@@ -45,6 +45,10 @@ internal sealed class DefaultValkeyConnection(ConfigurationOptions configuration
     }
 
     /// <inheritdoc />
+    public async ValueTask<ISubscriber> GetSubscriberAsync(CancellationToken cancellationToken) =>
+        (await Multiplexer.Value.WaitAsync(cancellationToken)).GetSubscriber();
+
+    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         if (!Multiplexer.IsValueCreated)

@@ -19,7 +19,7 @@
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
-        "DeveloperInteractiveSeed__AdminPassword": "dev-password",
+        "DeveloperInteractiveSeed__AdminPassword": "dev-admin-password",
         "BootstrapAdmin__TenantId": "default",
         "OpenId__TenantResolution__StaticSingle__Issuer": "https://localhost:44369"
       }
@@ -35,7 +35,7 @@
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "BootstrapAdmin__ClientSecret": "Ym9vdHN0cmFwLWRldi1zZWNyZXQ",
         "InteractiveAuthentication__BundleRootPath": "../frontend/apps/auth/dist",
-        "DeveloperInteractiveSeed__AdminPassword": "dev-password",
+        "DeveloperInteractiveSeed__AdminPassword": "dev-admin-password",
         "BootstrapAdmin__TenantId": "default",
         "OpenId__TenantResolution__StaticSingle__Issuer": "https://localhost:5001"
       },

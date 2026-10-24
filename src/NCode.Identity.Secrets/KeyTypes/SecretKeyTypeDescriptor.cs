@@ -51,7 +51,7 @@ public abstract class SecretKeyTypeDescriptor : ISecretKeyTypeDescriptor
     public virtual bool SupportsPublicKeyExport => IsAsymmetric;
 
     /// <inheritdoc />
-    public virtual bool SupportsPublicKeyImport => IsAsymmetric;
+    public virtual IReadOnlyCollection<string> PublicKeyImportFormats => [];
 
     /// <inheritdoc />
     public abstract string? ValidateGeneration(SecretKeyGenerationParameters parameters);

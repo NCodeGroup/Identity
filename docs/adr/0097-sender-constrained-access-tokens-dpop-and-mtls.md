@@ -3,7 +3,11 @@
 - **Status:** Accepted (nonce and proof-replay storage amended by
   [ADR-0164](0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md):
   both record into the atomic, tenant-scoped shared-state port, backed by Valkey for several replicas, rather than an
-  `IDistributedCache` the library registers)
+  `IDistributedCache` the library registers; certificate ingestion amended by
+  [ADR-0172](0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md): forwarded formats are registered
+  decoders that read the whole presented chain, and behind a proxy the header is the only certificate source;
+  certificate binding split in place: advertised support and a client's requirement are separate settings; DPoP binding
+  requirement named `require_dpop_bound_access_tokens` and registered as the RFC 9449 §5.2 client metadata)
 - **Date:** 2026-10-14
 - **Deciders:** NCode Group
 
@@ -43,10 +47,10 @@ configuration rather than issuance logic.**
 Concretely:
 
 - **One evaluation, at the token endpoint.** After client authentication and request load, the token endpoint calls
-  `IProofOfPossessionService.EvaluateTokenRequestAsync`, which reads any `DPoP` proof header and (when the client is
-  configured for it) the mutual-TLS certificate, enforces the client's `require_dpop` /
-  `tls_client_certificate_bound_access_tokens` policies, and returns a `ProofOfPossessionBinding` (the `token_type` plus
-  the `TokenConfirmation`). This is a **service**, not a mediator
+  `IProofOfPossessionService.EvaluateTokenRequestAsync`, which reads any `DPoP` proof header and (when the client
+  requires certificate binding) the mutual-TLS certificate, enforces the client's
+  `require_dpop_bound_access_tokens` / `require_tls_client_certificate_bound_access_tokens` policies, and returns a
+  `ProofOfPossessionBinding` (the `token_type` plus the `TokenConfirmation`). This is a **service**, not a mediator
   command ([ADR-0001](0001-mediator-vs-dependency-injection-logic-classes.md)): it is a capability called for an answer.
 
 - **First-class threading, no ambient state.** The binding is passed explicitly to
@@ -61,9 +65,10 @@ Concretely:
   `dpop_signing_alg_values_supported` set (symmetric and `none` are never accepted), verifies the signature with the
   **embedded public JWK** (which must carry no private material), checks `htm`/`htu` against the request, bounds `iat`
   by `dpop_proof_lifetime`, and rejects replays by `jti` through the `IDPoPProofReplayCache` seam. The RFC 7638
-  thumbprint is computed from the canonical JWK and returned as `jkt`. Signature verification is done with the raw
-  `RSA`/`ECDsa` primitives against the JWK's public parameters because the `SecretKey` factory is private-key-oriented;
-  the asymmetric algorithm set this accepts is exactly what the JOSE catalog registers (RSA `RS*`/`PS*`, EC `ES*`).
+  thumbprint is computed from the canonical JWK and returned as `jkt`. The stateless part of this validation — structure,
+  signature, HTTP binding, freshness, and `ath` — is the JOSE `IDPoPProofService` building block, which imports the
+  embedded JWK through the registered key types and verifies with the registered JOSE signature algorithms
+  ([ADR-0176](0176-dpop-proofs-are-a-jose-building-block.md)).
 
 - **Server nonces (RFC 9449 §8)** are supported through the `IDPoPNonceService` seam (default **off** via
   `dpop_nonce_required`); when required and absent/invalid, the server emits `use_dpop_nonce` with a `DPoP-Nonce`
@@ -87,7 +92,58 @@ Concretely:
 
 - **Discovery (secure-by-default, [ADR-0083](0083-secure-by-default-discovery-metadata.md)).**
   `dpop_signing_alg_values_supported` advertises the asymmetric signing set; `tls_client_certificate_bound_access_tokens`
-  defaults to `false` and is advertised `true` only once a deployment has wired certificate forwarding and opted in.
+  states that the server supports certificate-bound access tokens (RFC 8705 §3.3). It defaults to `false` and is
+  advertised `true` only once a deployment has wired certificate forwarding and opted in.
+
+- **Certificate binding is a client requirement the server advertises support for.** As DPoP separates a client's
+  `require_dpop_bound_access_tokens` from the server's advertised `dpop_signing_alg_values_supported`, two settings
+  separate the support from the requirement:
+  - `tls_client_certificate_bound_access_tokens` is the server's support and keeps the RFC 8705 §3.3 discovery name. It
+    applies to tenants, so it is set on the server and on a tenant, merges by `Replace`, defaults to `false`, and is
+    discoverable.
+  - `require_tls_client_certificate_bound_access_tokens` is a client's requirement. It applies to clients, and a server
+    or tenant may set it as a default for every client. It merges by `Or`, so a child cannot lift what a parent
+    requires. It defaults to `false` and is not discoverable. Both requirements are named `require_` plus their RFC
+    client metadata member.
+  - **Issuance binds only on the requirement.** The token endpoint binds the certificate only when the client's
+    effective requirement is `true`. Advertised support never forces a client to bind, and a certificate presented only
+    for `tls_client_auth` does not bind the token, because binding is opt-in as presenting a DPoP proof is. A client
+    that requires binding and presents no certificate is refused with `invalid_request` (RFC 8705 §3.4 leaves that
+    answer to the server).
+  - **Coherence checks the pair.** `CertificateBoundAccessTokenCoherenceRule`
+    ([ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)) reports a client whose
+    requirement is `true` while its effective support is `false`. It covers dynamic registration, the management client
+    API, the conformance seed, and a tenant or server settings change. The runtime does not consult the support.
+  - **Dynamic registration maps the RFC 8705 §3.4 metadata to the requirement.** The client metadata member
+    `tls_client_certificate_bound_access_tokens` sets `require_tls_client_certificate_bound_access_tokens`, and the
+    registration response reports the requirement under that member.
+  - **Breaking:** the migration `SeparateCertificateBindingRequirement` translates stored documents. A client's value
+    moves to the requirement. A server or tenant document whose support is `true` also gets the requirement, because
+    that value had required every client below it to bind, and a translation does not loosen a requirement.
+    A server configuration value is not translated, because configuration is not stored data: a deployment that sets
+    `tls_client_certificate_bound_access_tokens` to `true` under `OpenId:Server:Settings` to make every client bind its
+    tokens also sets `require_tls_client_certificate_bound_access_tokens` to `true` there, or those clients receive
+    bearer tokens.
+  - [ADR-0202](0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md) sets the requirement as a ceiling and
+    the support as a default.
+
+- **DPoP binding is a client requirement too.** The server advertises DPoP support through
+  `dpop_signing_alg_values_supported`, and a client's requirement is its own setting:
+  - `require_dpop_bound_access_tokens` is a client's requirement for DPoP-bound access tokens. It applies to clients,
+    and a server or tenant may set it as a default for every client. It merges by `Or`, so a child cannot lift what a
+    parent requires. It defaults to `false` and is not discoverable.
+  - **Dynamic registration maps the RFC 9449 §5.2 metadata to the requirement.** The client metadata member
+    `dpop_bound_access_tokens` sets `require_dpop_bound_access_tokens`, and the registration response reports the
+    requirement under that member, as it does for `tls_client_certificate_bound_access_tokens`.
+  - **Coherence checks the requirement.** `DPoPBoundAccessTokenCoherenceRule`
+    ([ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)) reports a client whose
+    requirement is `true` while its effective `dpop_signing_alg_values_supported` is set and empty. Support is a
+    non-empty list of proof signing algorithms, so an empty list means that no DPoP proof can be accepted.
+  - **Breaking:** the migration `RenameDPoPRequirement` renames a stored `require_dpop` to
+    `require_dpop_bound_access_tokens` in the server, tenant, and client settings documents. Configuration is not
+    stored data: a deployment that sets `OpenId:Server:Settings:require_dpop` renames it to
+    `OpenId:Server:Settings:require_dpop_bound_access_tokens`, because the server refuses the old name as a setting
+    that is not registered ([ADR-0139](0139-setting-names-are-a-closed-vocabulary.md)). This implements backlog `R65`.
 
 - **Resource-server validation (RFC 9449 §7.1, RFC 8705 §3).** When a bound access token reaches a protected resource
   (the UserInfo endpoint, the management API), `IProofOfPossessionService.ValidateResourceAccessAsync` re-checks the
@@ -107,6 +163,8 @@ Concretely:
 
 - **mTLS endpoint aliases (RFC 8705 §5).** When `mtls_endpoint_alias_authority` is configured, the discovery document
   advertises an `mtls_endpoint_aliases` object whose endpoint URLs are rewritten to the mutual-TLS authority.
+  _Superseded in part by [ADR-0195](0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md): the alias is now
+  the tenant property `MtlsEndpointAliasAuthority`, and the host strategy routes its host; the setting is removed._
 
 ## Consequences
 

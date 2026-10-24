@@ -1,0 +1,18 @@
+apiVersion: v2
+name: ncode-identity-host
+description: >-
+  NCode.Identity.OpenId.Host, the OpenID Connect and OAuth 2.0 server, as a rolling, non-root deployment behind an
+  ingress.
+type: application
+# Released in lockstep with the host image; the release workflow stamps both from version.json.
+version: 0.0.1-alpha
+appVersion: "0.0.1-alpha"
+# The preStop drain uses the sleep lifecycle action, on by default since Kubernetes 1.30.
+kubeVersion: ">=1.30.0-0"
+home: https://github.com/NCodeGroup/Identity
+sources:
+  - https://github.com/NCodeGroup/Identity
+keywords:
+  - openid-connect
+  - oauth2
+  - identity

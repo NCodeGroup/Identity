@@ -24,17 +24,23 @@ namespace NCode.Identity.Server.Tests;
 
 public class FrontendBootstrapDocumentTests
 {
+    private const string TenantIssuer = "https://auth.example";
+
     #region Create Tests
 
     [Fact]
-    public void Create_WhenApiBaseUrlAndIssuerUnset_FallsBackToRequestOrigin()
+    public void Create_WhenApiBaseUrlUnset_FallsBackToRequestOriginAndPublishesTheResolvedIssuer()
     {
         var options = new FrontendBootstrapOptions();
 
-        var document = FrontendBootstrapDocument.Create(options, "https://id.example");
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            TenantIssuer,
+            "https://serving.example"
+        );
 
-        Assert.Equal("https://id.example", document.ApiBaseUrl);
-        Assert.Equal("https://id.example", document.Issuer);
+        Assert.Equal("https://serving.example", document.ApiBaseUrl);
+        Assert.Equal(TenantIssuer, document.Issuer);
     }
 
     [Fact]
@@ -47,7 +53,11 @@ public class FrontendBootstrapDocumentTests
             ClientId = "spa",
         };
 
-        var document = FrontendBootstrapDocument.Create(options, "https://serving.example");
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            "https://issuer.example",
+            "https://serving.example"
+        );
 
         Assert.Equal("https://api.example", document.ApiBaseUrl);
         Assert.Equal("https://issuer.example", document.Issuer);
@@ -59,10 +69,14 @@ public class FrontendBootstrapDocumentTests
     {
         var options = new FrontendBootstrapOptions { ApiBaseUrl = "https://api.example/" };
 
-        var document = FrontendBootstrapDocument.Create(options, "https://serving.example/");
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            "https://issuer.example/",
+            "https://serving.example/"
+        );
 
         Assert.Equal("https://api.example", document.ApiBaseUrl);
-        Assert.Equal("https://serving.example", document.Issuer);
+        Assert.Equal("https://issuer.example", document.Issuer);
     }
 
     [Fact]
@@ -70,7 +84,11 @@ public class FrontendBootstrapDocumentTests
     {
         var options = new FrontendBootstrapOptions { Scopes = [] };
 
-        var document = FrontendBootstrapDocument.Create(options, "https://id.example");
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            TenantIssuer,
+            "https://id.example"
+        );
 
         Assert.Null(document.Scopes);
     }
@@ -80,7 +98,11 @@ public class FrontendBootstrapDocumentTests
     {
         var options = new FrontendBootstrapOptions { Scopes = ["openid", "read:clients"] };
 
-        var document = FrontendBootstrapDocument.Create(options, "https://id.example");
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            TenantIssuer,
+            "https://id.example"
+        );
 
         Assert.Equal(["openid", "read:clients"], document.Scopes);
     }
@@ -90,7 +112,11 @@ public class FrontendBootstrapDocumentTests
     {
         var options = new FrontendBootstrapOptions { Branding = new FrontendBrandingOptions() };
 
-        var document = FrontendBootstrapDocument.Create(options, "https://id.example");
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            TenantIssuer,
+            "https://id.example"
+        );
 
         Assert.Null(document.Branding);
     }
@@ -103,7 +129,11 @@ public class FrontendBootstrapDocumentTests
             Branding = new FrontendBrandingOptions { DisplayName = "Acme", Mode = "dark" },
         };
 
-        var document = FrontendBootstrapDocument.Create(options, "https://id.example");
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            TenantIssuer,
+            "https://id.example"
+        );
 
         Assert.NotNull(document.Branding);
         Assert.Equal("Acme", document.Branding.DisplayName);
@@ -115,7 +145,11 @@ public class FrontendBootstrapDocumentTests
     {
         var options = new FrontendBootstrapOptions { Features = { ["dcr"] = true } };
 
-        var document = FrontendBootstrapDocument.Create(options, "https://id.example");
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            TenantIssuer,
+            "https://id.example"
+        );
 
         Assert.True(document.Features["dcr"]);
     }
@@ -138,6 +172,7 @@ public class FrontendBootstrapDocumentTests
 
         var document = FrontendBootstrapDocument.Create(
             options,
+            TenantIssuer,
             "https://id.example",
             "playground"
         );
@@ -158,6 +193,7 @@ public class FrontendBootstrapDocumentTests
 
         var document = FrontendBootstrapDocument.Create(
             options,
+            TenantIssuer,
             "https://id.example",
             "conformance"
         );
@@ -177,7 +213,12 @@ public class FrontendBootstrapDocumentTests
             },
         };
 
-        var document = FrontendBootstrapDocument.Create(options, "https://id.example", "mgmt");
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            TenantIssuer,
+            "https://id.example",
+            "mgmt"
+        );
 
         Assert.Equal("mgmt-spa", document.ClientId);
     }
@@ -199,6 +240,7 @@ public class FrontendBootstrapDocumentTests
 
         var document = FrontendBootstrapDocument.Create(
             options,
+            TenantIssuer,
             "https://id.example",
             "playground"
         );
@@ -223,6 +265,7 @@ public class FrontendBootstrapDocumentTests
 
         var document = FrontendBootstrapDocument.Create(
             options,
+            TenantIssuer,
             "https://id.example",
             "playground"
         );
@@ -244,14 +287,18 @@ public class FrontendBootstrapDocumentTests
             Features = { ["dcr"] = true },
             Branding = new FrontendBrandingOptions { DisplayName = "Acme", Mode = "light" },
         };
-        var document = FrontendBootstrapDocument.Create(options, "https://id.example");
+        var document = FrontendBootstrapDocument.Create(
+            options,
+            TenantIssuer,
+            "https://id.example"
+        );
 
         var json = JsonSerializer.Serialize(document, JsonSerializerOptions.Web);
         using var parsed = JsonDocument.Parse(json);
         var root = parsed.RootElement;
 
         Assert.Equal("https://id.example", root.GetProperty("apiBaseUrl").GetString());
-        Assert.Equal("https://id.example", root.GetProperty("issuer").GetString());
+        Assert.Equal(TenantIssuer, root.GetProperty("issuer").GetString());
         Assert.Equal("spa", root.GetProperty("clientId").GetString());
         Assert.True(root.GetProperty("features").GetProperty("dcr").GetBoolean());
         Assert.Equal("Acme", root.GetProperty("branding").GetProperty("displayName").GetString());
@@ -264,6 +311,7 @@ public class FrontendBootstrapDocumentTests
     {
         var document = FrontendBootstrapDocument.Create(
             new FrontendBootstrapOptions(),
+            TenantIssuer,
             "https://id.example"
         );
 

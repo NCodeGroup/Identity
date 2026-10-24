@@ -26,11 +26,14 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
 /// The outermost endpoint filter for the management <c>/api</c> surface. It materializes the OpenID request environment
-/// (the server and the request's resolved tenant) and publishes the <see cref="OpenIdContext"/> for endpoints and the
-/// authorization handler to read. It does <b>not</b> open a tenant scope: control-plane endpoints act on unscoped
-/// server/tenant rows, and tenant-bound endpoints open their scope from the route's <c>tenantId</c> via the
-/// <see cref="TenantScopeEndpointFilter"/> on the tenant-plane group.
+/// for the control-plane tenant — the root tenant, or a static strategy's own tenant — whatever tenant the request's host
+/// or path addresses, and publishes the <see cref="OpenIdContext"/> for the authentication filter, endpoints, and the
+/// authorization handler to read; a caller is therefore authenticated by the tenant that issued its token under every
+/// tenant strategy. It does <b>not</b> open a tenant scope: control-plane endpoints act on unscoped server/tenant rows,
+/// and tenant-bound endpoints open their scope from the route's <c>tenantId</c> via the
+/// <see cref="TenantScopeEndpointFilter"/> on the tenant-plane group, so the route's tenant only scopes the data.
 /// </summary>
+// See ADR-0191 (the management API authenticates against the control-plane tenant).
 internal sealed class ManagementEnvironmentEndpointFilter(
     IOpenIdContextFactory openIdContextFactory
 ) : IEndpointFilter
@@ -49,7 +52,7 @@ internal sealed class ManagementEnvironmentEndpointFilter(
         try
         {
             // The factory publishes the context on the request (an IOpenIdContextFeature) for endpoints to retrieve.
-            await OpenIdContextFactory.CreateForRequestAsync(
+            await OpenIdContextFactory.CreateForControlPlaneAsync(
                 httpContext,
                 mediator,
                 httpContext.RequestAborted

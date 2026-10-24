@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ExpandMigration(
+        "The backfill writes only Secrets.SecretEncoding, a column the previous release does not read."
+    )]
     public partial class AddSecretEncoding : Migration
     {
         /// <inheritdoc />

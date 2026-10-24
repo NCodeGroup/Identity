@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Registration.Grants;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Grants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -39,6 +40,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 {
     private const string TenantId = "tenant-1";
     private const string GrantId = "grant-1";
+    private const string ResourceServerId = "rs-1";
 
     private MockRepository MockRepository { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
@@ -276,20 +278,16 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     public async Task RevokeGrantsAsync_WhenAuthorized_RevokesAndReturnsCount()
     {
         SetupAuthorization(AuthorizationResult.Success());
-        SetupStore();
-        MockGrantStore
+        MockPersistedGrantService
             .Setup(x =>
                 x.RevokeWhereAsync(
+                    It.IsAny<OpenIdContext>(),
                     It.Is<GrantFilter>(f => f.SubjectId == "subject-1"),
                     It.IsAny<DateTimeOffset>(),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(3)
-            .Verifiable();
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
+            .Returns(new ValueTask<long>(3L))
             .Verifiable();
 
         MockManagementAuditRecorder
@@ -423,13 +421,16 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetOrDefaultAsync(GrantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(grant)
             .Verifiable();
-        MockGrantStore
-            .Setup(x => x.UpdateAsync(grant, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeWhereAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.Is<GrantFilter>(f => f.GrantId == GrantId),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<long>(1L))
             .Verifiable();
 
         MockManagementAuditRecorder
@@ -456,7 +457,41 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
-        Assert.NotNull(grant.RevokedWhen);
+    }
+
+    [Fact]
+    public async Task RevokeGrantAsync_WhenAConcurrentRequestRevokedItFirst_ReturnsNoContentWithoutAuditing()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+
+        MockGrantStore
+            .Setup(x => x.GetOrDefaultAsync(GrantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateGrant())
+            .Verifiable();
+        MockPersistedGrantService
+            .Setup(x =>
+                x.RevokeWhereAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.Is<GrantFilter>(f => f.GrantId == GrantId),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<long>(0L))
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // No audit scaffold: a strict-mock failure would mean the handler audited a revocation it did not make.
+        var result = await Handler.RevokeGrantAsync(
+            httpContext,
+            TenantId,
+            GrantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
     }
 
     [Fact]
@@ -536,7 +571,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
 
         MockCryptoService
-            .Setup(x => x.GenerateKey(32, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns(token)
             .Verifiable();
 
@@ -565,7 +600,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
                     grantId,
                     It.IsAny<PersistedGrant<InitialAccessTokenGrant>>(),
                     It.IsAny<DateTimeOffset>(),
-                    null,
+                    TimeSpan.FromDays(1),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -610,7 +645,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         Assert.Equal(mintedGrantId, json.Value?.GrantId);
         Assert.Equal(TenantId, json.Value?.TenantId);
         Assert.Equal("ci pipeline", json.Value?.Description);
-        Assert.Null(json.Value?.ExpiresWhen);
+        Assert.Equal(json.Value!.CreatedWhen.AddDays(1), json.Value.ExpiresWhen);
 
         Assert.Equal(PersistedGrantStatus.Active, capturedGrant.Status);
         Assert.Equal(TenantId, capturedGrant.TenantId);
@@ -629,7 +664,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
 
         MockCryptoService
-            .Setup(x => x.GenerateKey(32, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns(token)
             .Verifiable();
 
@@ -692,7 +727,8 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public async Task CreateInitialAccessTokenAsync_WhenLifetimeNotPositive_ReturnsBadRequest(
+    [InlineData(2_592_001)]
+    public async Task CreateInitialAccessTokenAsync_WhenLifetimeOutOfRange_ReturnsBadRequest(
         long lifetimeSeconds
     )
     {
@@ -726,6 +762,118 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    private void SetupResourceServer(string tenantId, bool isSystem)
+    {
+        var mockResourceServerStore = MockRepository.Create<IResourceServerStore>();
+        mockResourceServerStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new PersistedResourceServer
+                {
+                    TenantId = tenantId,
+                    ResourceServerId = ResourceServerId,
+                    Identifier = "https://api.example.com",
+                    ConcurrencyToken = "rs-ct",
+                    Name = "Example API",
+                    IsSystem = isSystem,
+                    IsDisabled = false,
+                    Settings = new PersistedResourceServerSettings
+                    {
+                        TenantId = tenantId,
+                        ResourceServerId = ResourceServerId,
+                        Value = JsonSerializer.SerializeToElement(new { }),
+                    },
+                    Scopes = [],
+                    Secrets = new PersistedResourceServerSecrets
+                    {
+                        TenantId = tenantId,
+                        ResourceServerId = ResourceServerId,
+                        Value = [],
+                    },
+                }
+            )
+            .Verifiable();
+
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<IResourceServerStore>())
+            .Returns(mockResourceServerStore.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+    }
+
+    [Fact]
+    public async Task CreateInitialAccessTokenAsync_WhenResourceServerIsInAnotherTenant_ReturnsBadRequest()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceServer("tenant-2", isSystem: false);
+
+        // No mint scaffold: a strict-mock failure would mean the resource server was not checked.
+        var result = await Handler.CreateInitialAccessTokenAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new CreateInitialAccessTokenRequest { ResourceServerId = ResourceServerId },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateInitialAccessTokenAsync_WhenResourceServerIsSystem_ReturnsBadRequest()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceServer(TenantId, isSystem: true);
+
+        var result = await Handler.CreateInitialAccessTokenAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new CreateInitialAccessTokenRequest { ResourceServerId = ResourceServerId },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateInitialAccessTokenAsync_WhenNotAuthorizedToUpdateResourceServer_ReturnsForbid()
+    {
+        MockAuthorizationService
+            .SetupSequence(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .ReturnsAsync(AuthorizationResult.Failed());
+        SetupResourceServer(TenantId, isSystem: false);
+
+        var result = await Handler.CreateInitialAccessTokenAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new CreateInitialAccessTokenRequest { ResourceServerId = ResourceServerId },
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
+        MockAuthorizationService.Verify(
+            x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource => resource is IResourceNode),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                ),
+            Times.Once
+        );
     }
 
     #endregion

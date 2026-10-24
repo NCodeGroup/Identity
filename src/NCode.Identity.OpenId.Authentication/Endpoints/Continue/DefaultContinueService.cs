@@ -20,10 +20,10 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Cryptography;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Endpoints.Continue.Models;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Continue;
 

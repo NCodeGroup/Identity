@@ -47,11 +47,35 @@ internal sealed class FrontendBootstrapEndpointProvider : IEndpointProvider
             .WithName("frontend_bootstrap_endpoint")
             .AllowAnonymous();
 
-    private static JsonHttpResult<FrontendBootstrapDocument> GetFrontendBootstrap(
+    private static async Task<
+        Results<JsonHttpResult<FrontendBootstrapDocument>, ProblemHttpResult>
+    > GetFrontendBootstrap(
         HttpContext httpContext,
-        IOptions<FrontendBootstrapOptions> optionsAccessor
+        IOptions<FrontendBootstrapOptions> optionsAccessor,
+        FrontendIssuerResolver issuerResolver,
+        CancellationToken cancellationToken
     )
     {
+        var options = optionsAccessor.Value;
+
+        // The issuer is the authority the bundle trusts, so it comes from configuration or the tenant that serves the
+        // surface, never from the request (ADR-0182).
+        var issuer = string.IsNullOrWhiteSpace(options.Issuer)
+            ? await issuerResolver.ResolveIssuerAsync(httpContext, cancellationToken)
+            : options.Issuer;
+
+        if (string.IsNullOrEmpty(issuer))
+        {
+            return TypedResults.Problem(
+                detail: "The frontend's issuer is unknown: the tenant that serves it has no issuer. Configure the "
+                    + "tenant's issuer or 'Frontend:Issuer'.",
+                statusCode: StatusCodes.Status500InternalServerError
+            );
+        }
+
+        // The API base defaults to the serving origin, so no shared cache may serve one host's document for another.
+        httpContext.Response.Headers.CacheControl = "no-store";
+
         var request = httpContext.Request;
         var requestOrigin = $"{request.Scheme}://{request.Host}";
 
@@ -59,7 +83,8 @@ internal sealed class FrontendBootstrapEndpointProvider : IEndpointProvider
         // return that surface's own coordinates (for example, each SPA's public client id); absent, the default is served.
         var surface = request.Query["surface"].ToString();
         var document = FrontendBootstrapDocument.Create(
-            optionsAccessor.Value,
+            options,
+            issuer,
             requestOrigin,
             string.IsNullOrEmpty(surface) ? null : surface
         );

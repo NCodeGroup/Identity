@@ -1,0 +1,40 @@
+# A rolling, highly available release behind an in-cluster ingress, mid-way through a local root key rotation.
+replicaCount: 3
+image:
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+allowedHosts:
+  - id.example.com
+  - id.example.org
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+reverseProxy:
+  knownNetworks:
+    - 10.42.0.0/16
+database:
+  existingSecret: identity-database
+valkey:
+  existingSecret: identity-valkey
+secretProtection:
+  rootKeyProvider: local
+  local:
+    keySecret: identity-root-key
+    previousKeySecrets:
+      - identity-root-key-2026
+  recovery:
+    disabled: true
+ingress:
+  enabled: true
+  className: traefik
+  hosts:
+    - host: id.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: id-example-com-tls
+      hosts:
+        - id.example.com
+extraEnv:
+  - name: Logging__LogLevel__Default
+    value: Warning

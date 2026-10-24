@@ -35,8 +35,9 @@ that consumes it.**
    unchanged. A resource-server client must be confidential, and its resource server enabled; otherwise introspection
    answers `invalid_client`.
 2. **The binding is set once, through the management API.**
-   - `CreateClientRequest.resourceServerId` binds the client; the binding cannot change later, and dynamic client
-     registration cannot create one (backlog `F77`).
+   - `CreateClientRequest.resourceServerId` binds the client, and the binding cannot change later. Dynamic client
+     registration binds a client to the resource server its initial access token is scoped to
+     ([ADR-0192](0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)).
    - The resource server must exist in the client's tenant and must not be a system resource server (`400`).
    - The caller must be authorized to update that resource server (`401` / `403`), since a bound client reads every token
      issued to it.

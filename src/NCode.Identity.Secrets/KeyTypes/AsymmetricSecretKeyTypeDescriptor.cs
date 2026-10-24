@@ -52,15 +52,22 @@ public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secret
     public abstract override string JwkKeyType { get; }
 
     /// <inheritdoc />
+    public override IReadOnlyCollection<string> PublicKeyImportFormats { get; } =
+    [SecretKeyImportFormats.Jwk, SecretKeyImportFormats.Pem, SecretKeyImportFormats.Certificate];
+
+    /// <inheritdoc />
     public override ImportedSecretKeyMaterial ImportPublicKeyMaterial(
         SecretKeyImportParameters parameters,
         SecretKeyMaterialProtector protect
     ) =>
         parameters.Format switch
         {
-            SecretKeyImportFormat.Jwk => ImportJwk(parameters.KeyMaterial, protect),
-            SecretKeyImportFormat.Pem => ImportPem(parameters.KeyMaterial, protect),
-            SecretKeyImportFormat.Certificate => ImportCertificate(parameters.KeyMaterial, protect),
+            SecretKeyImportFormats.Jwk => ImportJwk(parameters.KeyMaterial, protect),
+            SecretKeyImportFormats.Pem => ImportPem(parameters.KeyMaterial, protect),
+            SecretKeyImportFormats.Certificate => ImportCertificate(
+                parameters.KeyMaterial,
+                protect
+            ),
             _ => throw new ArgumentException(
                 $"The import format '{parameters.Format}' is not supported.",
                 nameof(parameters)
@@ -153,7 +160,52 @@ public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secret
             );
 
         var (subjectPublicKeyInfo, keySizeBits) = ParseJwkPublicKey(root);
-        return Spki(subjectPublicKeyInfo, keySizeBits, protect);
+        if (!root.TryGetProperty(JsonWebKeyParameterNames.X509CertificateChain, out _))
+            return Spki(subjectPublicKeyInfo, keySizeBits, protect);
+
+        // The first 'x5c' certificate carries the key (RFC 7517 §4.7); keeping it lets a certificate the client
+        // registered or published be matched by thumbprint (RFC 8705 §2.2). The rest of the chain is not needed.
+        if (jwk.X509CertificateChain is not [var leaf, ..])
+            throw new ArgumentException(
+                "The JWK 'x5c' member must be a non-empty array of base64-encoded certificates.",
+                nameof(keyMaterial)
+            );
+
+        return new ImportedSecretKeyMaterial
+        {
+            ProtectedKeyMaterial = protect(DecodeJwkCertificate(leaf, subjectPublicKeyInfo)),
+            KeySizeBits = keySizeBits,
+            SecretEncoding = SecretEncodings.X509,
+        };
+    }
+
+    private static byte[] DecodeJwkCertificate(string value, byte[] subjectPublicKeyInfo)
+    {
+        X509Certificate2 certificate;
+        try
+        {
+            certificate = X509CertificateLoader.LoadCertificate(Convert.FromBase64String(value));
+        }
+        catch (Exception exception) when (exception is CryptographicException or FormatException)
+        {
+            throw new ArgumentException(
+                "The first certificate of the JWK 'x5c' member is malformed.",
+                nameof(value),
+                exception
+            );
+        }
+
+        using (certificate)
+        {
+            var certificateKey = certificate.PublicKey.ExportSubjectPublicKeyInfo();
+            if (!certificateKey.AsSpan().SequenceEqual(subjectPublicKeyInfo))
+                throw new ArgumentException(
+                    "The first certificate of the JWK 'x5c' member does not carry the JWK's public key.",
+                    nameof(value)
+                );
+
+            return certificate.Export(X509ContentType.Cert);
+        }
     }
 
     private ImportedSecretKeyMaterial ImportPem(

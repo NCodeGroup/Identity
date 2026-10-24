@@ -40,4 +40,14 @@ public sealed record TokenLifetimeRequirement(bool RequireExpirationTime, TimeSp
     /// an unbounded lifetime.
     /// </summary>
     public TimeSpan? MaxLifetime { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the <c>nbf</c> claim is required. The default is <c>false</c>.
+    /// </summary>
+    public bool RequireNotBefore { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the <c>iat</c> claim is required. The default is <c>false</c>.
+    /// </summary>
+    public bool RequireIssuedAt { get; init; }
 }

@@ -37,6 +37,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.EndSession;
 /// </summary>
 internal class DefaultEndSessionEndpointProvider : IEndpointProvider
 {
+    private const string RedirectScript =
+        "window.addEventListener('load',function(){setTimeout(function(){window.location.href=document.getElementById('pl').getAttribute('data-url');},2000);});";
+
+    private static string RedirectScriptSource { get; } =
+        ContentSecurityPolicySources.Sha256(RedirectScript);
+
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>
         endpoints
@@ -50,7 +56,8 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status302Found)
             .DisableAntiforgery()
-            .WithOpenIdDiscoverable();
+            .WithOpenIdDiscoverable()
+            .WithOpenIdFrontChannel();
 
     /// <summary>
     /// End session endpoint (OpenID Connect RP-Initiated Logout).
@@ -90,12 +97,19 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
                 disposition.FrontChannelLogoutUris,
                 disposition.RedirectUri
             );
+            httpContext.Response.SetHtmlPageSecurity(
+                CreateFrontChannelLogoutPolicy(
+                    disposition.FrontChannelLogoutUris,
+                    disposition.RedirectUri
+                )
+            );
             return TypedResults.Content(html, "text/html; charset=utf-8");
         }
 
         if (!string.IsNullOrEmpty(disposition.RedirectUri))
         {
-            return TypedResults.Redirect(disposition.RedirectUri);
+            // See ADR-0203.
+            return TypedResults.Redirect(RedirectLocation.Escape(disposition.RedirectUri));
         }
 
         return TypedResults.Content("You have been logged out.", "text/plain");
@@ -103,7 +117,8 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
 
     // Builds the Front-Channel Logout 1.0 page: a hidden iframe per participating client, then a scripted redirect to
     // the validated post-logout URI (or a plain confirmation when none was supplied). All URIs are registered client
-    // values but are HTML-encoded defensively before they are embedded in the markup.
+    // values but are HTML-encoded defensively before they are embedded in the markup. The page hides its elements with
+    // the hidden attribute rather than a style attribute, so its Content-Security-Policy needs no style source.
     private static string BuildFrontChannelLogoutHtml(
         IReadOnlyList<string> frontChannelLogoutUris,
         string? redirectUri
@@ -118,7 +133,7 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
         foreach (var uri in frontChannelLogoutUris)
         {
             builder
-                .Append("<iframe style=\"display:none\" src=\"")
+                .Append("<iframe hidden src=\"")
                 .Append(encoder.Encode(uri))
                 .Append("\"></iframe>");
         }
@@ -130,11 +145,8 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
             builder
                 .Append("<a id=\"pl\" data-url=\"")
                 .Append(encoder.Encode(redirectUri))
-                .Append("\" style=\"display:none\"></a>")
-                .Append(
-                    "<script>window.addEventListener('load',function(){setTimeout(function(){"
-                        + "window.location.href=document.getElementById('pl').getAttribute('data-url');},2000);});</script>"
-                );
+                .Append("\" hidden></a>")
+                .Append("<script>" + RedirectScript + "</script>");
         }
         else
         {
@@ -143,5 +155,34 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
 
         builder.Append("</body></html>");
         return builder.ToString();
+    }
+
+    // The page may frame only the origins of the logout URIs it renders, and may run only its own redirect script. The
+    // page lists no form-action directive and posts no form, so the strict default applies. See ADR-0256.
+    private static HtmlPageSecurityPolicy CreateFrontChannelLogoutPolicy(
+        IReadOnlyList<string> frontChannelLogoutUris,
+        string? redirectUri
+    )
+    {
+        var frameSources = frontChannelLogoutUris
+            .Select(uri =>
+                Uri.TryCreate(uri, UriKind.Absolute, out var parsed)
+                    ? ContentSecurityPolicySources.Origin(parsed)
+                    : null
+            )
+            .OfType<string>()
+            .Distinct(StringComparer.Ordinal);
+
+        List<ContentSecurityPolicyDirective> directives =
+        [
+            new(ContentSecurityPolicyDirectives.FrameSrc, frameSources),
+        ];
+
+        if (!string.IsNullOrEmpty(redirectUri))
+        {
+            directives.Add(new(ContentSecurityPolicyDirectives.ScriptSrc, RedirectScriptSource));
+        }
+
+        return new HtmlPageSecurityPolicy { Directives = [.. directives] };
     }
 }

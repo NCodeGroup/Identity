@@ -16,7 +16,6 @@
 
 #endregion
 
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Authentication.Sessions;
@@ -24,6 +23,7 @@ using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
+using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers;
 
@@ -65,10 +65,11 @@ internal class DefaultCreateAuthorizationTicketHandler(
             )
         )
         {
+            var clientRedirectUri = new Uri(authorizationRequest.RedirectUri, UriKind.Absolute);
             ticket.SessionState = SessionStateService.CreateSessionState(
                 openIdContext,
                 openIdClient.ClientId,
-                authorizationRequest.RedirectUri
+                clientRedirectUri
             );
         }
 

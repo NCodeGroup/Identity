@@ -1,4 +1,5 @@
 import react from '@vitejs/plugin-react';
+import type { Plugin } from 'vite';
 import type { ViteUserConfig } from 'vitest/config';
 
 // Every workspace's vite.config.ts / vitest.config.ts imports this module, and Vite's config bundler externalizes bare
@@ -45,10 +46,98 @@ export type StandaloneSurfaceConfigOptions = {
 };
 
 export type BackendServedSurfaceConfigOptions = {
-  /** The path the serving host publishes the bundle under; assets resolve from it. */
-  readonly base: string;
   readonly coverage: CoverageFloors;
 };
+
+type BuildConfig = NonNullable<ViteUserConfig['build']>;
+
+/**
+ * The vendor chunks every bundle splits its third-party code into, highest priority first: React, then MUI with its
+ * emotion styling engine, then Redux, then every other package. A vendor chunk changes only when its packages are
+ * upgraded, so it stays cached across application releases, and no chunk carries the whole dependency graph (ADR-0175).
+ */
+export const VENDOR_CHUNKS: readonly { readonly name: string; readonly test: RegExp }[] = [
+  { name: 'react', test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+  { name: 'mui', test: /[\\/]node_modules[\\/](@mui|@emotion)[\\/]/ },
+  {
+    name: 'redux',
+    test: /[\\/]node_modules[\\/](@reduxjs|redux|react-redux|redux-thunk|reselect|immer)[\\/]/,
+  },
+  { name: 'vendor', test: /[\\/]node_modules[\\/]/ },
+];
+
+/** The size, in kB of minified code, above which a chunk fails the build: Vite's chunk-size warning threshold. */
+export const CHUNK_SIZE_LIMIT_KB = 500;
+
+/** An output of a generated bundle, as far as the chunk-size gate reads it: a code chunk or an asset. */
+export type BundleOutput =
+  | { readonly type: 'chunk'; readonly fileName: string; readonly code: string }
+  | { readonly type: 'asset'; readonly fileName: string };
+
+/** The code chunks of a bundle whose minified code exceeds the limit, each with its size in kB. */
+export function oversizedChunks(
+  bundle: Readonly<Record<string, BundleOutput>>,
+  limitKb: number,
+): { readonly fileName: string; readonly sizeKb: number }[] {
+  const oversized: { fileName: string; sizeKb: number }[] = [];
+  for (const output of Object.values(bundle)) {
+    const sizeKb = output.type === 'chunk' ? output.code.length / 1000 : 0;
+    if (sizeKb > limitKb) {
+      oversized.push({ fileName: output.fileName, sizeKb });
+    }
+  }
+  return oversized;
+}
+
+/**
+ * Fails the build when a chunk exceeds the build's `chunkSizeWarningLimit`, the build-time counterpart of the test
+ * gates that treat warnings as errors (ADR-0151). Vite only warns, and a warning in a passing build goes unread.
+ */
+export function failOnOversizedChunks(): Plugin {
+  let limitKb = CHUNK_SIZE_LIMIT_KB;
+  return {
+    name: 'ncode:fail-on-oversized-chunks',
+    apply: 'build',
+    configResolved(config) {
+      limitKb = config.build.chunkSizeWarningLimit;
+    },
+    generateBundle(_options, bundle) {
+      const oversized = oversizedChunks(bundle as Readonly<Record<string, BundleOutput>>, limitKb);
+      if (oversized.length > 0) {
+        const list = oversized.map((c) => `${c.fileName} (${c.sizeKb.toFixed(2)} kB)`).join(', ');
+        this.error(
+          `Chunks larger than ${String(limitKb)} kB after minification: ${list}. Split them — lazy-load the ` +
+            'route-level containers or add a vendor chunk — rather than raising the limit (ADR-0175).',
+        );
+      }
+    },
+  };
+}
+
+/**
+ * The build options every bundle shares: the output and assets directories, source maps, the vendor chunks, and the
+ * chunk-size limit (ADR-0175).
+ */
+function buildOptions(): BuildConfig {
+  return {
+    outDir: 'dist',
+    // The host serves only this directory of a backend-served bundle, as immutable content-hashed files (ADR-0254).
+    assetsDir: 'assets',
+    sourcemap: true,
+    chunkSizeWarningLimit: CHUNK_SIZE_LIMIT_KB,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: VENDOR_CHUNKS.map(({ name, test }, index) => ({
+            name,
+            test,
+            priority: VENDOR_CHUNKS.length - index,
+          })),
+        },
+      },
+    },
+  };
+}
 
 /** The well-known path of the bootstrap document every bundle fetches from its serving host (`@ncode/config`). */
 const BOOTSTRAP_PATH = '/config/bootstrap.json';
@@ -70,6 +159,14 @@ function assertPort(port: number): void {
   }
 }
 
+/**
+ * The test timeout, in milliseconds, of a suite that simulates a browser. It leaves room for at least three Testing
+ * Library waits, each bounded by `ASYNC_UTIL_TIMEOUT_MS` from `@ncode/test-support`, so a test that waits on a few
+ * renders fails with the library's DOM report rather than a bare timeout. The preset names that constant in prose only:
+ * it must not import a workspace package (ADR-0157).
+ */
+export const BROWSER_TEST_TIMEOUT_MS = 30_000;
+
 /** The test gates every workspace holds (ADR-0151), for a workspace's own `test` configuration. */
 export function testGates({ environment, coverage }: TestConfigOptions): TestConfig {
   assertCoverageFloors(coverage);
@@ -77,8 +174,8 @@ export function testGates({ environment, coverage }: TestConfigOptions): TestCon
   return {
     environment,
     // jsdom + MUI renders run for seconds under v8 coverage on shared CI runners, and React Testing Library cleans up
-    // after each test through the global hooks; see "jsdom test timeout" in the frontend README.
-    ...(simulatesBrowser ? { testTimeout: 15_000, globals: true } : {}),
+    // after each test through the global hooks; see "Testing Library and test timeouts" in the frontend README.
+    ...(simulatesBrowser ? { testTimeout: BROWSER_TEST_TIMEOUT_MS, globals: true } : {}),
     setupFiles: ['./vitest.setup.ts'],
     // A test that makes no assertion fails.
     expect: { requireAssertions: true },
@@ -136,7 +233,7 @@ export function defineStandaloneSurfaceConfig({
   assertPort(port);
   return {
     base: '/',
-    plugins: [react()],
+    plugins: [react(), failOnOversizedChunks()],
     server: {
       port,
       strictPort: true,
@@ -149,26 +246,34 @@ export function defineStandaloneSurfaceConfig({
         },
       },
     },
-    build: { outDir: 'dist', sourcemap: true },
+    build: buildOptions(),
     test: testGates({ environment: 'jsdom', coverage }),
   };
 }
 
 /**
+ * The value Vite writes into the `nonce` attribute of every script, modulepreload link and the
+ * `<meta property="csp-nonce">` of a backend-served bundle. The host writes each response's nonce in its place, so
+ * `InteractiveBundleShell.NoncePlaceholder` in the .NET host must stay equal (ADR-0256).
+ */
+export const CSP_NONCE_PLACEHOLDER = '__NCODE_CSP_NONCE__';
+
+/**
  * The configuration of a backend-served surface: a bundle the OpenID Provider host serves from its `dist` folder. It has
- * no dev server; its `dev` script rebuilds `dist` on change instead.
+ * no dev server; its `dev` script rebuilds `dist` on change instead. The bundle is built with a relative base, so it
+ * does not assume where it is mounted: the host serves it beneath each tenant's route and sets the document's
+ * `<base href>` to that location, which the bundle's asset URLs resolve against (ADR-0193). The bundle runs under the
+ * page's Content-Security-Policy nonce, so the build marks its scripts with the placeholder the host replaces
+ * (ADR-0256).
  */
 export function defineBackendServedSurfaceConfig({
-  base,
   coverage,
 }: BackendServedSurfaceConfigOptions): ViteUserConfig {
-  if (!base.startsWith('/') || !base.endsWith('/')) {
-    throw new RangeError(`Base '${base}' must start and end with '/'.`);
-  }
   return {
-    base,
-    plugins: [react()],
-    build: { outDir: 'dist', sourcemap: true },
+    base: './',
+    html: { cspNonce: CSP_NONCE_PLACEHOLDER },
+    plugins: [react(), failOnOversizedChunks()],
+    build: buildOptions(),
     test: testGates({ environment: 'jsdom', coverage }),
   };
 }

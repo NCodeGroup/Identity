@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Authentication;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Ciba;
+using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Messages;
 using NCode.Identity.OpenId.Authentication.Persistence;
@@ -29,10 +30,12 @@ using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
+using NCode.Mediator;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Token.Ciba;
@@ -153,6 +156,60 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             .Verifiable();
     }
 
+    private static void SetupClientId(
+        Mock<OpenIdClient> mockClient,
+        string clientId = "client-1"
+    ) => mockClient.SetupGet(x => x.ClientId).Returns(clientId).Verifiable();
+
+    private Mock<IMediator> SetupMediator(Mock<OpenIdContext> mockContext)
+    {
+        var mockMediator = CreateStrictMock<IMediator>();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+        return mockMediator;
+    }
+
+    private Mock<IMediator> SetupGrantValidation(Mock<OpenIdContext> mockContext)
+    {
+        var mockMediator = SetupMediator(mockContext);
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.IsAny<ValidateTokenGrantCommand<CibaGrant>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        return mockMediator;
+    }
+
+    private Func<PersistedGrantUpdate<CibaGrant>?> SetupPollUpdate(PersistedGrant<CibaGrant> stored)
+    {
+        Func<PersistedGrant<CibaGrant>, PersistedGrantUpdate<CibaGrant>?>? captured = null;
+
+        MockPersistedGrantService
+            .Setup(x =>
+                x.UpdatePayloadAsync<CibaGrant>(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<PersistedGrantId>(),
+                    It.IsAny<Func<PersistedGrant<CibaGrant>, PersistedGrantUpdate<CibaGrant>?>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (
+                    OpenIdContext _,
+                    PersistedGrantId _,
+                    Func<PersistedGrant<CibaGrant>, PersistedGrantUpdate<CibaGrant>?> update,
+                    CancellationToken _
+                ) => captured = update
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        return () => captured?.Invoke(stored);
+    }
+
     #endregion
 
     #region GrantTypes
@@ -204,10 +261,30 @@ public class DefaultCibaGrantHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_WhenIssuedToAnotherClient_ReturnsInvalidGrant()
+    {
+        var (mockContext, mockClient, _, mockTokenRequest, mockError) = CreateScaffold();
+        SetupLookup(CreateGrant(DeviceAuthorizationStatus.Pending));
+        SetupClientId(mockClient, "client-2");
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidGrant, CapturedErrorCode);
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenDenied_ReturnsAccessDeniedError()
     {
         var (mockContext, mockClient, _, mockTokenRequest, mockError) = CreateScaffold();
         SetupLookup(CreateGrant(DeviceAuthorizationStatus.Denied));
+        SetupClientId(mockClient);
 
         var result = await Handler.HandleAsync(
             mockContext.Object,
@@ -226,6 +303,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
     {
         var (mockContext, mockClient, mockSettings, mockTokenRequest, mockError) = CreateScaffold();
         SetupLookup(CreateGrant(DeviceAuthorizationStatus.Pending));
+        SetupClientId(mockClient);
 
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.CibaPollingInterval))
@@ -233,17 +311,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             .Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
-        MockPersistedGrantService
-            .Setup(x =>
-                x.UpdatePayloadAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<PersistedGrantId>(),
-                    It.IsAny<CibaGrant>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(new ValueTask<bool>(true))
-            .Verifiable();
+        var update = SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Pending));
 
         var result = await Handler.HandleAsync(
             mockContext.Object,
@@ -255,13 +323,15 @@ public class DefaultCibaGrantHandlerTests : BaseTests
 
         Assert.Same(mockError.Object, result);
         Assert.Equal(OpenIdConstants.ErrorCodes.AuthorizationPending, CapturedErrorCode);
+        Assert.Equal(UtcNow, update()?.Payload.LastPolledWhen);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenPendingPolledTooFast_ReturnsSlowDown()
+    public async Task HandleAsync_WhenTheRequestIsApprovedBeforeThePollIsRecorded_KeepsTheApproval()
     {
         var (mockContext, mockClient, mockSettings, mockTokenRequest, mockError) = CreateScaffold();
-        SetupLookup(CreateGrant(DeviceAuthorizationStatus.Pending, lastPolledWhen: UtcNow));
+        SetupLookup(CreateGrant(DeviceAuthorizationStatus.Pending));
+        SetupClientId(mockClient);
 
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.CibaPollingInterval))
@@ -269,17 +339,35 @@ public class DefaultCibaGrantHandlerTests : BaseTests
             .Verifiable();
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 
-        MockPersistedGrantService
-            .Setup(x =>
-                x.UpdatePayloadAsync(
-                    It.IsAny<OpenIdContext>(),
-                    It.IsAny<PersistedGrantId>(),
-                    It.IsAny<CibaGrant>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .Returns(new ValueTask<bool>(true))
+        var update = SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Approved));
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+        Assert.Equal(OpenIdConstants.ErrorCodes.AuthorizationPending, CapturedErrorCode);
+        Assert.Null(update());
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenPendingPolledTooFast_ReturnsSlowDown()
+    {
+        var (mockContext, mockClient, mockSettings, mockTokenRequest, mockError) = CreateScaffold();
+        SetupLookup(CreateGrant(DeviceAuthorizationStatus.Pending, lastPolledWhen: UtcNow));
+        SetupClientId(mockClient);
+
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.CibaPollingInterval))
+            .Returns(TimeSpan.FromSeconds(5))
             .Verifiable();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+
+        SetupPollUpdate(CreateGrant(DeviceAuthorizationStatus.Pending));
 
         var result = await Handler.HandleAsync(
             mockContext.Object,
@@ -297,7 +385,14 @@ public class DefaultCibaGrantHandlerTests : BaseTests
     public async Task HandleAsync_WhenApprovedAlreadyConsumed_ReturnsInvalidGrant()
     {
         var (mockContext, mockClient, _, mockTokenRequest, mockError) = CreateScaffold();
-        SetupLookup(CreateGrant(DeviceAuthorizationStatus.Approved));
+        SetupLookup(
+            CreateGrant(
+                DeviceAuthorizationStatus.Approved,
+                subjectAuthentication: CreateSubjectAuthentication()
+            )
+        );
+        SetupClientId(mockClient);
+        SetupGrantValidation(mockContext);
 
         MockPersistedGrantService
             .Setup(x =>
@@ -323,10 +418,53 @@ public class DefaultCibaGrantHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_WhenTheApprovingSubjectIsRefused_ThrowsWithoutSpendingTheAuthReqId()
+    {
+        var (mockContext, mockClient, _, mockTokenRequest, _) = CreateScaffold();
+        SetupLookup(
+            CreateGrant(
+                DeviceAuthorizationStatus.Approved,
+                subjectAuthentication: CreateSubjectAuthentication()
+            )
+        );
+        SetupClientId(mockClient);
+
+        var mockMediator = SetupMediator(mockContext);
+        mockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.IsAny<ValidateTokenGrantCommand<CibaGrant>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                ValueTask.FromException(new OpenIdException(CreateLooseMock<IOpenIdError>().Object))
+            )
+            .Verifiable();
+
+        await Assert.ThrowsAsync<OpenIdException>(async () =>
+            await Handler.HandleAsync(
+                mockContext.Object,
+                mockClient.Object,
+                mockTokenRequest.Object,
+                ProofOfPossessionBinding.Unbound,
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenApproved_ReturnsTokenResponseWithAccessToken()
     {
         var (mockContext, mockClient, _, mockTokenRequest, _) = CreateScaffold();
-        SetupLookup(CreateGrant(DeviceAuthorizationStatus.Approved));
+        SetupLookup(
+            CreateGrant(
+                DeviceAuthorizationStatus.Approved,
+                subjectAuthentication: CreateSubjectAuthentication()
+            )
+        );
+        SetupClientId(mockClient);
+        SetupGrantValidation(mockContext);
 
         MockPersistedGrantService
             .Setup(x =>
@@ -382,6 +520,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
                 deliveryMode: OpenIdConstants.BackchannelTokenDeliveryModes.Push
             )
         );
+        SetupClientId(mockClient);
 
         var result = await Handler.HandleAsync(
             mockContext.Object,

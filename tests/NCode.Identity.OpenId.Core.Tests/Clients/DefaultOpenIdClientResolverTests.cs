@@ -22,7 +22,6 @@ using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Contexts;
-using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -30,6 +29,7 @@ using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -47,7 +47,8 @@ public class DefaultOpenIdClientResolverTests : BaseTests
     private Mock<IClientStore> MockClientStore { get; }
     private Mock<IOpenIdClientFactory> MockClientFactory { get; }
     private Mock<ISecretSerializer> MockSecretSerializer { get; }
-    private Mock<ISecurityProfileCatalog> MockSecurityProfileCatalog { get; }
+    private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
+    private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<OpenIdContext> MockContext { get; }
     private Mock<OpenIdTenant> MockTenant { get; }
     private DefaultHttpContext HttpContext { get; } = new();
@@ -60,7 +61,8 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         MockClientStore = CreateStrictMock<IClientStore>();
         MockClientFactory = CreateStrictMock<IOpenIdClientFactory>();
         MockSecretSerializer = CreateStrictMock<ISecretSerializer>();
-        MockSecurityProfileCatalog = CreateStrictMock<ISecurityProfileCatalog>();
+        MockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
+        MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         MockContext = CreateStrictMock<OpenIdContext>();
         MockTenant = CreateStrictMock<OpenIdTenant>();
 
@@ -80,7 +82,8 @@ public class DefaultOpenIdClientResolverTests : BaseTests
             MockStoreManagerFactory.Object,
             MockClientFactory.Object,
             MockSecretSerializer.Object,
-            MockSecurityProfileCatalog.Object
+            MockSecretProtectorProvider.Object,
+            MockEffectiveSettingsResolver.Object
         );
     }
 
@@ -131,17 +134,11 @@ public class DefaultOpenIdClientResolverTests : BaseTests
     // Building the client expands its settings over the tenant's and deserializes its secrets.
     private OpenIdClient SetupClientCreation(string? expectedResourceServerId)
     {
-        var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
         var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
         var mockTenantSettings = CreateStrictMock<IReadOnlySettingCollection>();
         var effectiveSettings = CreateLooseMock<ISettingCollection>().Object;
         var client = CreateStrictMock<OpenIdClient>().Object;
 
-        MockContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object).Verifiable();
-        mockEnvironment
-            .SetupGet(x => x.JsonSerializerOptions)
-            .Returns(JsonSerializerOptions.Default)
-            .Verifiable();
         MockTenant
             .SetupGet(x => x.SettingsProvider)
             .Returns(mockSettingsProvider.Object)
@@ -150,22 +147,31 @@ public class DefaultOpenIdClientResolverTests : BaseTests
             .SetupGet(x => x.Collection)
             .Returns(mockTenantSettings.Object)
             .Verifiable();
-        MockSecurityProfileCatalog
+        MockEffectiveSettingsResolver
             .Setup(x =>
-                x.Expand(
-                    It.IsAny<JsonElement>(),
+                x.Resolve(
+                    mockTenantSettings.Object,
                     OpenIdSettingScopes.Client,
-                    JsonSerializerOptions.Default
+                    It.IsAny<JsonElement>()
                 )
             )
-            .Returns([])
-            .Verifiable();
-        mockTenantSettings
-            .Setup(x => x.Merge(It.IsAny<IEnumerable<Setting>>()))
             .Returns(effectiveSettings)
             .Verifiable();
+        var protector = CreateStrictMock<ISecretProtector>().Object;
+        MockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
         MockSecretSerializer
-            .Setup(x => x.DeserializeSecrets(It.IsAny<IReadOnlyCollection<PersistedSecret>>()))
+            .Setup(x =>
+                x.DeserializeSecrets(protector, It.IsAny<IReadOnlyCollection<PersistedSecret>>())
+            )
             .Returns(Array.Empty<SecretKey>())
             .Verifiable();
         MockClientFactory

@@ -51,6 +51,9 @@ public static class SettingMerge
             nameof(Union)
         );
 
+    private static FrozenSet<string> MeetOperationNames { get; } =
+        FrozenSet.Create(StringComparer.Ordinal, nameof(Min), nameof(And), nameof(Intersect));
+
     /// <summary>
     /// Determines whether <paramref name="merge"/> is one of the lattice operations of this class — a meet or a join,
     /// which is commutative, associative, and idempotent — rather than a projection or another function.
@@ -65,6 +68,22 @@ public static class SettingMerge
         return merge.Target is null
             && method.DeclaringType == typeof(SettingMerge)
             && LatticeOperationNames.Contains(method.Name);
+    }
+
+    /// <summary>
+    /// Determines whether <paramref name="merge"/> is one of the meets of this class (<see cref="Min{T}"/>,
+    /// <see cref="And"/>, <see cref="Intersect{T}"/>), which never yield a value above either value in the order they
+    /// are defined on, so a parent's value caps every value below it.
+    /// </summary>
+    /// <param name="merge">The merge function to inspect.</param>
+    /// <returns><see langword="true"/> when <paramref name="merge"/> is <see cref="Min{T}"/>, <see cref="And"/>, or
+    /// <see cref="Intersect{T}"/>; otherwise, <see langword="false"/>.</returns>
+    internal static bool IsMeetOperation(Delegate merge)
+    {
+        var method = merge.Method;
+        return merge.Target is null
+            && method.DeclaringType == typeof(SettingMerge)
+            && MeetOperationNames.Contains(method.Name);
     }
 
     /// <summary>

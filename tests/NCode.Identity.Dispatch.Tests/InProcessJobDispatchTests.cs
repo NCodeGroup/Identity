@@ -16,10 +16,13 @@
 
 #endregion
 
+using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Dispatch.InProcess;
+using NCode.Identity.Dispatch.Options;
 using Xunit;
 
 namespace NCode.Identity.Dispatch;
@@ -71,6 +74,60 @@ public class InProcessJobDispatchTests
         }
     }
 
+    private sealed class FailsFirstAttemptHandler(Exception failure)
+        : IDispatchJobHandler<RecordingJob>
+    {
+        public ConcurrentQueue<int> Attempts { get; } = [];
+        public TaskCompletionSource Retried { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public ValueTask HandleAsync(
+            RecordingJob job,
+            DispatchContext context,
+            CancellationToken cancellationToken
+        )
+        {
+            Attempts.Enqueue(context.Attempt);
+
+            if (context.Attempt == 1)
+                return ValueTask.FromException(failure);
+
+            Retried.TrySetResult();
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed record GatedJob : IDispatchJob
+    {
+        public required bool WaitsForRelease { get; init; }
+    }
+
+    private sealed class GatedHandler : IDispatchJobHandler<GatedJob>
+    {
+        public TaskCompletionSource GatedStarted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource UngatedCompleted { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async ValueTask HandleAsync(
+            GatedJob job,
+            DispatchContext context,
+            CancellationToken cancellationToken
+        )
+        {
+            if (!job.WaitsForRelease)
+            {
+                UngatedCompleted.TrySetResult();
+                return;
+            }
+
+            GatedStarted.TrySetResult();
+            await Release.Task.WaitAsync(cancellationToken);
+        }
+    }
+
     private sealed class TestHostApplicationLifetime : IHostApplicationLifetime
     {
         public CancellationToken ApplicationStarted => CancellationToken.None;
@@ -84,7 +141,7 @@ public class InProcessJobDispatchTests
         ServiceProvider Provider,
         JobDispatchWorker Worker,
         IJobDispatcher Dispatcher
-    )> StartAsync(RecordingHandler handler)
+    )> StartAsync(Action<IServiceCollection> registerHandlers, int? maxConcurrentJobs = null)
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
@@ -92,19 +149,55 @@ public class InProcessJobDispatchTests
         serviceCollection.AddSingleton<IHostApplicationLifetime, TestHostApplicationLifetime>();
         serviceCollection.AddSingleton<InProcessJobQueue>();
         serviceCollection.AddSingleton<IJobDispatcher, DefaultInProcessJobDispatcher>();
-        serviceCollection.AddSingleton<IDispatchJobHandler<RecordingJob>>(handler);
+
+        registerHandlers(serviceCollection);
+
+        if (maxConcurrentJobs is { } value)
+        {
+            serviceCollection.Configure<InProcessJobDispatcherOptions>(options =>
+                options.MaxConcurrentJobs = value
+            );
+        }
 
         var provider = serviceCollection.BuildServiceProvider();
 
         var worker = new JobDispatchWorker(
             provider.GetRequiredService<InProcessJobQueue>(),
             provider.GetRequiredService<IServiceScopeFactory>(),
+            provider.GetRequiredService<IOptions<InProcessJobDispatcherOptions>>(),
             provider.GetRequiredService<ILogger<JobDispatchWorker>>()
         );
         await worker.StartAsync(CancellationToken.None);
 
         return (provider, worker, provider.GetRequiredService<IJobDispatcher>());
     }
+
+    private static Task<(
+        ServiceProvider Provider,
+        JobDispatchWorker Worker,
+        IJobDispatcher Dispatcher
+    )> StartAsync<TJob>(
+        IReadOnlyList<IDispatchJobHandler<TJob>> handlers,
+        int? maxConcurrentJobs = null
+    )
+        where TJob : class, IDispatchJob =>
+        StartAsync(
+            serviceCollection =>
+            {
+                foreach (var handler in handlers)
+                {
+                    serviceCollection.AddSingleton<IDispatchJobHandler<TJob>>(handler);
+                }
+            },
+            maxConcurrentJobs
+        );
+
+    private static Task<(
+        ServiceProvider Provider,
+        JobDispatchWorker Worker,
+        IJobDispatcher Dispatcher
+    )> StartAsync<TJob>(IDispatchJobHandler<TJob> handler, int? maxConcurrentJobs = null)
+        where TJob : class, IDispatchJob => StartAsync<TJob>([handler], maxConcurrentJobs);
 
     #region DispatchAsync Tests
 
@@ -171,6 +264,107 @@ public class InProcessJobDispatchTests
         var dispatchId = handler.Attempts[0].DispatchId;
         Assert.NotEqual(Guid.Empty, dispatchId);
         Assert.All(handler.Attempts, context => Assert.Equal(dispatchId, context.DispatchId));
+    }
+
+    [Fact]
+    public async Task DispatchAsync_WhenAJobWaits_RunsTheNextJobAlongsideIt()
+    {
+        var handler = new GatedHandler();
+        var (provider, worker, dispatcher) = await StartAsync(handler, maxConcurrentJobs: 2);
+
+        await dispatcher.DispatchAsync(new GatedJob { WaitsForRelease = true }, FastOptions);
+        await dispatcher.DispatchAsync(new GatedJob { WaitsForRelease = false }, FastOptions);
+        await handler.GatedStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await handler.UngatedCompleted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        handler.Release.TrySetResult();
+        await worker.StopAsync(CancellationToken.None);
+        await provider.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task DispatchAsync_WhenEveryConsumerIsBusy_WaitsForOneToFinish()
+    {
+        var handler = new GatedHandler();
+        var (provider, worker, dispatcher) = await StartAsync(handler, maxConcurrentJobs: 1);
+
+        await dispatcher.DispatchAsync(new GatedJob { WaitsForRelease = true }, FastOptions);
+        await dispatcher.DispatchAsync(new GatedJob { WaitsForRelease = false }, FastOptions);
+        await handler.GatedStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // A short wait that a worker without a limit would not survive.
+        await Assert.ThrowsAsync<TimeoutException>(() =>
+            handler.UngatedCompleted.Task.WaitAsync(TimeSpan.FromMilliseconds(250))
+        );
+
+        handler.Release.TrySetResult();
+        await handler.UngatedCompleted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        await worker.StopAsync(CancellationToken.None);
+        await provider.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task DispatchAsync_WhenAHandlerTimesOut_RetriesTheJob()
+    {
+        var handler = new FailsFirstAttemptHandler(
+            new TaskCanceledException("The request timed out.")
+        );
+        var (provider, worker, dispatcher) = await StartAsync(handler);
+
+        await dispatcher.DispatchAsync(new RecordingJob { Name = "value" }, FastOptions);
+        await handler.Retried.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        await worker.StopAsync(CancellationToken.None);
+        await provider.DisposeAsync();
+
+        Assert.Equal([1, 2], handler.Attempts);
+    }
+
+    [Fact]
+    public async Task DispatchAsync_WhenTwoHandlersFail_RetriesTheJobOnce()
+    {
+        var first = new FailsFirstAttemptHandler(new InvalidOperationException("first"));
+        var second = new FailsFirstAttemptHandler(new InvalidOperationException("second"));
+        var (provider, worker, dispatcher) = await StartAsync<RecordingJob>([first, second]);
+
+        await dispatcher.DispatchAsync(new RecordingJob { Name = "value" }, FastOptions);
+        await first.Retried.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await second.Retried.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // A second retry of the same attempt would arrive within the 5 ms back-off.
+        await Task.Delay(TimeSpan.FromMilliseconds(250));
+
+        await worker.StopAsync(CancellationToken.None);
+        await provider.DisposeAsync();
+
+        Assert.Equal([1, 2], first.Attempts);
+        Assert.Equal([1, 2], second.Attempts);
+    }
+
+    [Fact]
+    public async Task DispatchAsync_WhenAHandlerCannotBeResolved_RetriesTheJob()
+    {
+        var handler = new RecordingHandler(throwTimes: 0);
+        var resolutions = 0;
+        var (provider, worker, dispatcher) = await StartAsync(
+            serviceCollection =>
+                serviceCollection.AddScoped<IDispatchJobHandler<RecordingJob>>(_ =>
+                    Interlocked.Increment(ref resolutions) == 1
+                        ? throw new InvalidOperationException("The handler cannot be resolved.")
+                        : handler
+                ),
+            maxConcurrentJobs: 1
+        );
+
+        await dispatcher.DispatchAsync(new RecordingJob { Name = "value" }, FastOptions);
+        await handler.Succeeded.WaitAsync(TimeSpan.FromSeconds(5));
+
+        await worker.StopAsync(CancellationToken.None);
+        await provider.DisposeAsync();
+
+        // The first attempt failed before any handler ran, and the only consumer survived to run the retry.
+        Assert.Equal([2], handler.Attempts.Select(x => x.Attempt));
     }
 
     #endregion

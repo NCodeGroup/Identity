@@ -93,6 +93,23 @@ public sealed class ResourceServerStoreTests : IDisposable
             },
         };
 
+    private static PersistedRoleAssignment CreateAssignment(
+        string assignmentId,
+        string roleName,
+        string resourceType,
+        string resourceId
+    ) =>
+        new()
+        {
+            TenantId = TenantId,
+            AssignmentId = assignmentId,
+            PrincipalId = "subject-1",
+            RoleName = roleName,
+            ResourceType = resourceType,
+            ResourceId = resourceId,
+            ConcurrencyToken = string.Empty,
+        };
+
     private async Task SeedTenantAsync()
     {
         var tenant = new PersistedTenant
@@ -257,6 +274,43 @@ public sealed class ResourceServerStoreTests : IDisposable
         Assert.Null(reloaded);
     }
 
+    [Fact]
+    public async Task RemoveAsync_RemovesTheRoleAssignmentsAtTheResourceServersNode()
+    {
+        await SeedTenantAsync();
+        await _store.AddAsync(CreateResourceServer(), CancellationToken.None);
+        var roleAssignmentStore = new RoleAssignmentStore(
+            Mock.Of<IStoreProvider>(),
+            _provider.GetRequiredService<IIdGenerator<long>>(),
+            _dbContext
+        );
+        await roleAssignmentStore.AddAsync(
+            CreateAssignment("assign-1", "Owner", "resource_server", "rs-1"),
+            CancellationToken.None
+        );
+        await roleAssignmentStore.AddAsync(
+            CreateAssignment("assign-2", "Owner", "resource_server", "rs-2"),
+            CancellationToken.None
+        );
+        await roleAssignmentStore.AddAsync(
+            CreateAssignment("assign-3", "TenantAdmin", "tenant", TenantId),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        await _store.RemoveAsync(ResourceServerId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var remaining = await _dbContext
+            .RoleAssignments.IgnoreQueryFilters()
+            .Select(entity => entity.AssignmentId)
+            .OrderBy(assignmentId => assignmentId)
+            .ToListAsync();
+        Assert.Equal(["assign-2", "assign-3"], remaining);
+    }
+
     #endregion
 
     #region Settings Sub-Resource Tests
@@ -301,7 +355,7 @@ public sealed class ResourceServerStoreTests : IDisposable
         var settings = loaded.Settings;
         settings.ConcurrencyToken = "stale";
 
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(async () =>
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
             await _store.UpdateSettingsAsync(settings, CancellationToken.None)
         );
     }

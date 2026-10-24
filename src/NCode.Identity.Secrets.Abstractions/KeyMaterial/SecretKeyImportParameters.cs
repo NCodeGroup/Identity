@@ -32,9 +32,10 @@ namespace NCode.Identity.Secrets.KeyMaterial;
 public sealed class SecretKeyImportParameters
 {
     /// <summary>
-    /// Gets the encoding of the supplied <see cref="KeyMaterial"/>.
+    /// Gets the name of the encoding of the supplied <see cref="KeyMaterial"/>, such as a
+    /// <see cref="SecretKeyImportFormats"/> name. Names compare ordinally.
     /// </summary>
-    public required SecretKeyImportFormat Format { get; init; }
+    public required string Format { get; init; }
 
     /// <summary>
     /// Gets the caller-supplied public key material, encoded per <see cref="Format"/> (JWK JSON text, PEM text, or

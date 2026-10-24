@@ -243,6 +243,30 @@ public class DefaultSettingSerializerTests : BaseTests
         );
     }
 
+    [Fact]
+    public void DeserializeSettings_WhenSettingIsRetired_IgnoresIt()
+    {
+        var serializer = CreateSerializer(
+            new SettingDescriptor<string> { Name = "a", AppliesTo = ["client"] },
+            new SettingDescriptor<string>
+            {
+                Name = "old",
+                AppliesTo = ["client"],
+                RetiredReason = "Use 'a'.",
+            }
+        );
+
+        var result = serializer.DeserializeSettings(
+            Parse("""{"a":"value","old":5}"""),
+            "client",
+            _jsonOptions
+        );
+
+        var setting = Assert.Single(result);
+        Assert.Equal("a", setting.Descriptor.Name);
+        Assert.Equal("value", setting.GetValue());
+    }
+
     #endregion
 
     #region ValidateSettings Tests
@@ -480,6 +504,122 @@ public class DefaultSettingSerializerTests : BaseTests
         );
 
         Assert.Equal("scopeName", exception.ParamName);
+    }
+
+    [Fact]
+    public void ValidateSettings_WhenSettingIsRetired_ReportsItWithItsReason()
+    {
+        var serializer = CreateSerializer(
+            new SettingDescriptor<string> { Name = "a", AppliesTo = ["client"] },
+            new SettingDescriptor<string>
+            {
+                Name = "old",
+                AppliesTo = ["client"],
+                RetiredReason = "Use 'a'.",
+            }
+        );
+
+        var errors = serializer.ValidateSettings(Parse("""{"old":"x"}"""), "client", _jsonOptions);
+
+        var error = Assert.Single(errors);
+        Assert.Equal("old", error.SettingName);
+        Assert.Equal("The setting 'old' is retired. Use 'a'.", error.Message);
+    }
+
+    #endregion
+
+    #region ValidateSettingsUpdate Tests
+
+    private DefaultSettingSerializer CreateSerializerWithARetiredSetting() =>
+        CreateSerializer(
+            new SettingDescriptor<string> { Name = "a", AppliesTo = ["client"] },
+            new SettingDescriptor<string>
+            {
+                Name = "old",
+                AppliesTo = ["client"],
+                RetiredReason = "Use 'a'.",
+            }
+        );
+
+    [Fact]
+    public void ValidateSettingsUpdate_WhenARetiredSettingKeepsItsStoredValue_ReturnsEmpty()
+    {
+        var serializer = CreateSerializerWithARetiredSetting();
+
+        var errors = serializer.ValidateSettingsUpdate(
+            Parse("""{"old":"x"}"""),
+            Parse("""{"old":"x","a":"v"}"""),
+            "client",
+            _jsonOptions
+        );
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void ValidateSettingsUpdate_WhenARetiredSettingIsRemoved_ReturnsEmpty()
+    {
+        var serializer = CreateSerializerWithARetiredSetting();
+
+        var errors = serializer.ValidateSettingsUpdate(
+            Parse("""{"old":"x"}"""),
+            Parse("""{"a":"v"}"""),
+            "client",
+            _jsonOptions
+        );
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void ValidateSettingsUpdate_WhenARetiredSettingChanges_ReportsIt()
+    {
+        var serializer = CreateSerializerWithARetiredSetting();
+
+        var errors = serializer.ValidateSettingsUpdate(
+            Parse("""{"old":"x"}"""),
+            Parse("""{"old":"y"}"""),
+            "client",
+            _jsonOptions
+        );
+
+        var error = Assert.Single(errors);
+        Assert.Equal("old", error.SettingName);
+        Assert.Equal("The setting 'old' is retired. Use 'a'.", error.Message);
+    }
+
+    [Fact]
+    public void ValidateSettingsUpdate_WhenARetiredSettingIsAdded_ReportsIt()
+    {
+        var serializer = CreateSerializerWithARetiredSetting();
+
+        var errors = serializer.ValidateSettingsUpdate(
+            Parse("{}"),
+            Parse("""{"old":"x"}"""),
+            "client",
+            _jsonOptions
+        );
+
+        var error = Assert.Single(errors);
+        Assert.Equal("old", error.SettingName);
+        Assert.Equal("The setting 'old' is retired. Use 'a'.", error.Message);
+    }
+
+    [Fact]
+    public void ValidateSettingsUpdate_WhenAnotherSettingCannotBeHonored_ReportsIt()
+    {
+        var serializer = CreateSerializerWithARetiredSetting();
+
+        var errors = serializer.ValidateSettingsUpdate(
+            Parse("{}"),
+            Parse("""{"unknown":1}"""),
+            "client",
+            _jsonOptions
+        );
+
+        var error = Assert.Single(errors);
+        Assert.Equal("unknown", error.SettingName);
+        Assert.Equal("'unknown' is not a registered setting.", error.Message);
     }
 
     #endregion

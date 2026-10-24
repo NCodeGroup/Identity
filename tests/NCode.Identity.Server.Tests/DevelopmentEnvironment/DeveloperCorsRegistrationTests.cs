@@ -19,11 +19,12 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Moq;
+using NCode.Identity.OpenId.Authentication.Endpoints;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;
@@ -119,27 +120,109 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         Assert.Same(app.Object, result);
     }
 
-    [Fact]
-    public void UseDeveloperCors_WhenPolicyRegistered_AddsMiddleware()
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task UseDeveloperCors_WhenPolicyRegistered_AppliesItOnlyToNonFrontChannelEndpoints(
+        bool isFrontChannel,
+        bool expectsAllowOrigin
+    )
     {
         var configuration = new ConfigurationBuilder().Build();
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddDeveloperCors(configuration, CreateEnvironment("Development"));
-        using var serviceProvider = serviceCollection.BuildServiceProvider();
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        var app = CreateStrictMock<IApplicationBuilder>();
-        app.Setup(x => x.ApplicationServices).Returns(serviceProvider).Verifiable();
-        app.Setup(x => x.Use(It.IsAny<Func<RequestDelegate, RequestDelegate>>()))
-            .Returns(app.Object)
-            .Verifiable();
+        var endpointMetadata = isFrontChannel
+            ? new EndpointMetadataCollection(new OpenIdEndpointFrontChannelMetadata())
+            : EndpointMetadataCollection.Empty;
+        var endpoint = new Endpoint(_ => Task.CompletedTask, endpointMetadata, "test");
 
-        var result = app.Object.UseDeveloperCors();
+        var app = new ApplicationBuilder(serviceProvider);
+        app.Use(
+            (context, next) =>
+            {
+                context.SetEndpoint(endpoint);
+                return next(context);
+            }
+        );
+        app.UseDeveloperCors();
+        app.Run(context =>
+            context.GetEndpoint()?.RequestDelegate?.Invoke(context) ?? Task.CompletedTask
+        );
+        var pipeline = app.Build();
 
-        Assert.Same(app.Object, result);
+        var responseFeature = new StartingResponseFeature();
+        var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
+        httpContext.Features.Set<IHttpResponseFeature>(responseFeature);
+        httpContext.Request.Method = HttpMethods.Get;
+        httpContext.Request.Headers.Origin = "http://localhost:5173";
+
+        await pipeline(httpContext);
+        await responseFeature.StartAsync();
+
+        Assert.Equal(
+            expectsAllowOrigin,
+            httpContext.Response.Headers.ContainsKey("Access-Control-Allow-Origin")
+        );
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public async Task UseDeveloperCors_WhenNoEndpoint_AppliesItOnlyToNonPreflightRequests(
+        bool isPreflight,
+        bool expectsAllowOrigin
+    )
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddDeveloperCors(configuration, CreateEnvironment("Development"));
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var app = new ApplicationBuilder(serviceProvider);
+        app.UseDeveloperCors();
+        app.Run(_ => Task.CompletedTask);
+        var pipeline = app.Build();
+
+        var responseFeature = new StartingResponseFeature();
+        var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
+        httpContext.Features.Set<IHttpResponseFeature>(responseFeature);
+        httpContext.Request.Method = isPreflight ? HttpMethods.Options : HttpMethods.Get;
+        httpContext.Request.Headers.Origin = "http://localhost:5173";
+        if (isPreflight)
+        {
+            httpContext.Request.Headers.AccessControlRequestMethod = HttpMethods.Put;
+        }
+
+        await pipeline(httpContext);
+        await responseFeature.StartAsync();
+
+        // A preflight that selects no endpoint may target a front-channel path for a method it does not map.
+        Assert.Equal(
+            expectsAllowOrigin,
+            httpContext.Response.Headers.ContainsKey("Access-Control-Allow-Origin")
+        );
     }
 
     #endregion
+
+    // The CORS middleware writes its headers as the response starts, which DefaultHttpContext never signals.
+    private sealed class StartingResponseFeature : HttpResponseFeature
+    {
+        private readonly List<(Func<object, Task> Callback, object State)> _callbacks = [];
+
+        public override void OnStarting(Func<object, Task> callback, object state) =>
+            _callbacks.Add((callback, state));
+
+        public async Task StartAsync()
+        {
+            foreach (var (callback, state) in _callbacks)
+                await callback(state);
+        }
+    }
 
     private IHostEnvironment CreateEnvironment(string environmentName)
     {

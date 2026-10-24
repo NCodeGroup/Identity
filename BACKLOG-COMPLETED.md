@@ -3463,3 +3463,33 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: a management request that reads a stored tenant or server settings document it cannot honor answers `409
   Conflict` with an RFC 9457 problem naming the document, from one endpoint filter and only after authorization;
   `UnreadableSettingsException` and `IEffectiveSettingsResolver.ResolveStored` carry it (ADR-0245)._
+- **`R35` — Pin container base images by digest and let Dependabot track them.** Touch points:
+  `src/NCode.Identity.OpenId.Host/Dockerfile:17, 28, 60`, `.github/dependabot.yml`.
+  _Closed: every base image of the host image is pinned by digest, the version build arguments are removed, CI checks
+  the Node major against `.node-version`, and Dependabot's `docker` ecosystem tracks the digests (ADR-0249)._
+- **`R41` — Rate-limit policy as data.** One descriptor table for partitions, quotas, and meters, a batched Valkey
+  round trip, and one metrics wrapper in the Valkey adapters.
+  _Closed: every limit and quota is a `RateLimitDescriptor` registered through
+  `ICollectionDataSource<RateLimitDescriptor>` and validated as a whole; `IRequestRateLimiter.AcquireAsync` judges a
+  stage's descriptors in one `IExpiringCounterSet.IncrementUntilExceededAsync` call (one Lua script on Valkey), a
+  request records each usage meter once, every shared-state key carries its tenant as a hash tag, and one wrapper
+  measures every Valkey round trip (ADR-0246)._
+- **`R48` — Refuse to start while a live Data Protection key cannot be decrypted.** Since ADR-0235 the key ring is
+  encrypted under the server master key, and the host unwraps and verifies that key before Data Protection starts, so a
+  wrong or missing root key stops the host before it can write a ring key. What remains: if the server's master key rows
+  are lost and recreated, existing ring keys stay undecryptable while Data Protection writes a new default key. Add a
+  start gate (`ValidateOnStart`, which runs before hosted services) that fails while any live, unrevoked ring key cannot
+  be decrypted, plus a supported way to revoke a key by ID (`IKeyManager.RevokeKey`) for recovery, documented in
+  ADR-0235 and the chart README. Touch points: `NCode.Identity.Server` (`ProductionSafetyRegistration` pattern,
+  `SecretProtection/MasterKeyXmlDecryptor`), ADR-0235.
+  _Closed: `DataProtectionKeyRingGate` runs after the server protector's warmup and before Data Protection starts:
+  outside Development it refuses to start, naming every live key the server cannot decrypt, and in Development it
+  revokes them; `DataProtectionKeyRing:RevokedKeyIds` revokes keys by id (ADR-0247)._
+- **`R74` — Write one-line JSON console logs in container deployments.** The reference hosts log only to standard
+  output (ADR-0210), in the console provider's default `simple` format. That format spreads one entry, and the stack
+  trace of its exception, over several lines, so a container log collector splits it into separate records. Select the
+  `json` formatter (`Logging__Console__FormatterName`) in the container image or the chart's default environment, and
+  keep `simple` for development. Touch points: `src/NCode.Identity.OpenId.Host/Dockerfile`,
+  `charts/ncode-identity-host/values.yaml`, ADR-0210.
+  _Closed: the host image writes one-line JSON console logs with UTC timestamps, and CI checks the setting in the built
+  image (ADR-0248)._

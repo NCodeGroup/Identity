@@ -105,8 +105,10 @@ entry and/or ADR that closed it.
   implement `NCode.Identity.Dispatch.IJobDispatcher` in a new adapter package and register it before
   `AddInProcessJobDispatcher` (or omit that call).
 - **`D16` — Resume Dependabot version updates.** Version updates are paused: every ecosystem in
-  [`.github/dependabot.yml`](.github/dependabot.yml) sets `open-pull-requests-limit: 0`, because while the family is
-  refactored heavily ahead of its first release a weekly bump is mostly churn against code that is about to move.
+  [`.github/dependabot.yml`](.github/dependabot.yml) except `docker` sets `open-pull-requests-limit: 0`, because
+  while the family is refactored heavily ahead of its first release a weekly bump is mostly churn against code that is
+  about to move. The `docker` ecosystem stays on, because the host image's base images are pinned by digest and a
+  stale digest misses security fixes ([ADR-0249](docs/adr/0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)).
   Vulnerabilities are still handled. Dependabot alerts are on, and the "Dependabot security updates" repository
   setting opens a pull request, grouped per ecosystem, whenever a published advisory affects a dependency. Security
   updates bypass both the npm cooldown and pnpm's `minimumReleaseAge`
@@ -552,18 +554,8 @@ _None remaining._
 
 - **`R30` — Serve interactive bundle assets without resolving the tenant.** Touch point:
   `InteractiveAuthenticationEndpointGroup.cs:55`.
-- **`R35` — Pin container base images by digest and let Dependabot track them.** Touch points:
-  `src/NCode.Identity.OpenId.Host/Dockerfile:17, 28, 60`, `.github/dependabot.yml`.
 - **`R36` — Test the bundle-shell split against the built bundle's real `index.html`.** Touch point:
   `InteractiveBundleShell.cs:51-100`.
-- **`R48` — Refuse to start while a live Data Protection key cannot be decrypted.** Since ADR-0235 the key ring is
-  encrypted under the server master key, and the host unwraps and verifies that key before Data Protection starts, so a
-  wrong or missing root key stops the host before it can write a ring key. What remains: if the server's master key rows
-  are lost and recreated, existing ring keys stay undecryptable while Data Protection writes a new default key. Add a
-  start gate (`ValidateOnStart`, which runs before hosted services) that fails while any live, unrevoked ring key cannot
-  be decrypted, plus a supported way to revoke a key by ID (`IKeyManager.RevokeKey`) for recovery, documented in
-  ADR-0235 and the chart README. Touch points: `NCode.Identity.Server` (`ProductionSafetyRegistration` pattern,
-  `SecretProtection/MasterKeyXmlDecryptor`), ADR-0235.
 - **`R64` — Check client-certificate revocation beyond complete CRLs.** The default checker refuses, as Unknown, an
   OCSP-only PKI, delta, partitioned and indirect CRLs, a CRL signed by a key other than the issuing certificate, and
   RSA-PSS or SHA-1 signatures. It also retries an unreachable distribution point on every request (no negative cache,
@@ -571,16 +563,8 @@ _None remaining._
 - **`R67` — Run the conformance pre-flight in the FAPI 1.0 Advanced run.** Advertised certificate binding does not
   force every client to present a certificate (`R42`), so `-Fapi1Advanced` has no reason to skip the pre-flight; update
   `build/conformance/README.md` with it. Touch points: `build/conformance/run-conformance.ps1` (`Initialize-Fapi1Run`).
-- **`R74` — Write one-line JSON console logs in container deployments.** The reference hosts log only to standard
-  output (ADR-0210), in the console provider's default `simple` format. That format spreads one entry, and the stack
-  trace of its exception, over several lines, so a container log collector splits it into separate records. Select the
-  `json` formatter (`Logging__Console__FormatterName`) in the container image or the chart's default environment, and
-  keep `simple` for development. Touch points: `src/NCode.Identity.OpenId.Host/Dockerfile`,
-  `charts/ncode-identity-host/values.yaml`, ADR-0210.
 ### Refactor
 
-- **`R41` — Rate-limit policy as data.** One descriptor table for partitions, quotas, and meters, a batched Valkey
-  round trip, and one metrics wrapper in the Valkey adapters.
 - **`R44` — Key the conformance seed by `client_id`.** Stop passing keys by array position
   (`run-conformance.ps1:318-321`), generate both FAPI templates from one source, and derive `discoveryUrl` from
   `$IssuerUrl`.

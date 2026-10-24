@@ -65,7 +65,10 @@ any step that needs a decision comes back to Opus to be re-planned.
   planning in conversation — select Opus themselves but run in the built-in Agent, which has no handoff buttons:
   continue by picking **Copilot Orchestrator** with Opus and asking it to execute `PLAN.md`.
 - **Copilot CLI:** start on Opus — `copilot --model claude-opus-5.5 --reasoning-effort high` — then `/plan-feature …`,
-  `/orchestrate-plan` (delegates each step to the `plan-executor` agent on `auto`), and `/review-plan-diff`.
+  `/orchestrate-plan` (delegates each step to the `plan-executor` agent on `auto`), and `/review-plan-diff`. When the
+  session's plan offers no `auto` model, `plan-executor` and `Copilot Implementer` both fail to start with "Model 'auto'
+  is not available"; delegate each step to the general-purpose subagent instead (set its model through `/subagents`),
+  which `/orchestrate-plan` allows. Do not edit the generated agents to work around it.
 - **VS Code (session target Copilot):** use the same skills as Copilot CLI. Select **Claude Opus 5.5** in the model
   picker before `/plan-feature …` or `/orchestrate-plan`; a skill runs on the session's model and cannot switch it.
   The orchestrator delegates execution as above. Select **Claude Sonnet 5.5** before `/review-plan-diff`, or the intended

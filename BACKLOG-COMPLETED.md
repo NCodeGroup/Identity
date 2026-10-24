@@ -3394,3 +3394,30 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: a verification without a usable stored hash (an unknown user name, a passwordless, empty or locked-out
   account, a hash the default hasher cannot read) verifies the password against `IPasswordHasher.DummyPasswordHash` of
   the same cost and always refuses (ADR-0239). The attempt-limit lookup before the hasher is `R109`._
+- **`R71` — Report a client value that a `Min` or `Max` ceiling overrides.** `RegisteredValueCoherenceRule` reports a
+  listed value an `Intersect` ceiling drops and a `true` an `And` ceiling turns off, but a client's own lifetime above
+  its tenant's `Min` ceiling is clamped silently. It needs the merge kind of a descriptor, which `SettingDescriptor`
+  exposes only as `HasLatticeMerge`. Touch points: `RegisteredValueCoherenceRule`, `SettingDescriptor`, `SettingMerge`.
+  _Closed: a client value that a meet-merged ceiling lowers (for example an `access_token_lifetime` above its tenant's)
+  is a coherence violation wherever a dropped list value is reported; `SettingDescriptor.HasMeetMerge` tells
+  `RegisteredValueCoherenceRule` which settings can lower a value, and a settings write matches a predating violation by
+  setting, value and governing setting (ADR-0240). `Max`, `Or` and `Union` only raise a value to a floor and are not
+  reported._
+- **`R103` — Bind the in-process dispatcher's options from configuration.** `AddIdentityServer()` registers the
+  in-process dispatcher without configuration, so a host tunes `InProcessJobDispatcherOptions` (`QueueCapacity`,
+  `FullMode`, `MaxConcurrentJobs`, ADR-0232) only in code, and the reference host offers no key for them. Bind one
+  section strictly in `AddConfiguration` and validate it when the host starts. Touch points:
+  `IdentityServerBuilderExtensions.AddConfiguration`, `InProcessJobDispatcherOptions`,
+  `InProcessJobDispatcherOptionsValidator`.
+  _Closed: `OpenId:InProcessJobDispatcher` binds the in-process dispatcher's options strictly and validates them when
+  the host starts; the messages name the configuration key and an undefined `FullMode` is refused (ADR-0242)._
+- **`R104` — Let a settings write pass a stored document that cannot be honored.** The tenant and server settings PATCH
+  resolve every stored tenant document and check stored clients with `IClientCoherenceValidator.Validate`, which throw
+  `JsonException` for a document the current settings vocabulary cannot honor, so one such document fails a server
+  settings write, and a tenant settings write that changes a setting a coherence rule reads, with `500`. Report it as
+  `IClientCoherenceReporter` does (ADR-0233) and do not count it as a violation the change introduces. Touch points:
+  `DefaultTenantClientCoherenceChecker`, `ServerApiEndpointHandler.ValidateClientCoherenceAsync`,
+  `TenantApiEndpointHandler`.
+  _Closed: a settings write is not refused for a stored document it cannot read: the tenant and server walks log it
+  (events 3006-3008) and skip it, the incoherent-client report still lists it, and a server or tenant write may replace
+  its own unreadable document (ADR-0241). Reads that resolve an unreadable document are `R110`._

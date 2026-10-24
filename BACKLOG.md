@@ -561,29 +561,12 @@ _None remaining._
 - **`R67` — Run the conformance pre-flight in the FAPI 1.0 Advanced run.** Advertised certificate binding does not
   force every client to present a certificate (`R42`), so `-Fapi1Advanced` has no reason to skip the pre-flight; update
   `build/conformance/README.md` with it. Touch points: `build/conformance/run-conformance.ps1` (`Initialize-Fapi1Run`).
-- **`R71` — Report a client value that a `Min` or `Max` ceiling overrides.** `RegisteredValueCoherenceRule` reports a
-  listed value an `Intersect` ceiling drops and a `true` an `And` ceiling turns off, but a client's own lifetime above
-  its tenant's `Min` ceiling is clamped silently. It needs the merge kind of a descriptor, which `SettingDescriptor`
-  exposes only as `HasLatticeMerge`. Touch points: `RegisteredValueCoherenceRule`, `SettingDescriptor`, `SettingMerge`.
 - **`R74` — Write one-line JSON console logs in container deployments.** The reference hosts log only to standard
   output (ADR-0210), in the console provider's default `simple` format. That format spreads one entry, and the stack
   trace of its exception, over several lines, so a container log collector splits it into separate records. Select the
   `json` formatter (`Logging__Console__FormatterName`) in the container image or the chart's default environment, and
   keep `simple` for development. Touch points: `src/NCode.Identity.OpenId.Host/Dockerfile`,
   `charts/ncode-identity-host/values.yaml`, ADR-0210.
-- **`R103` — Bind the in-process dispatcher's options from configuration.** `AddIdentityServer()` registers the
-  in-process dispatcher without configuration, so a host tunes `InProcessJobDispatcherOptions` (`QueueCapacity`,
-  `FullMode`, `MaxConcurrentJobs`, ADR-0232) only in code, and the reference host offers no key for them. Bind one
-  section strictly in `AddConfiguration` and validate it when the host starts. Touch points:
-  `IdentityServerBuilderExtensions.AddConfiguration`, `InProcessJobDispatcherOptions`,
-  `InProcessJobDispatcherOptionsValidator`.
-- **`R104` — Let a settings write pass a stored document that cannot be honored.** The tenant and server settings PATCH
-  resolve every stored tenant document and check stored clients with `IClientCoherenceValidator.Validate`, which throw
-  `JsonException` for a document the current settings vocabulary cannot honor, so one such document fails a server
-  settings write, and a tenant settings write that changes a setting a coherence rule reads, with `500`. Report it as
-  `IClientCoherenceReporter` does (ADR-0233) and do not count it as a violation the change introduces. Touch points:
-  `DefaultTenantClientCoherenceChecker`, `ServerApiEndpointHandler.ValidateClientCoherenceAsync`,
-  `TenantApiEndpointHandler`.
 - **`R108` — Let a host's own ASP.NET Core Identity pages verify the password the adapter stores.** The adapter hashes a
   password's NFC form and replaces a stored hash of the submitted form when that form verifies
   ([ADR-0238](docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)), while a host's own pages

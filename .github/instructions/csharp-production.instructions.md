@@ -139,40 +139,41 @@ rationale.
 - 👁 **Extensibility is the default: a vocabulary is open unless it is provably closed.** The family exists to be
   extended — by consumers and by sibling packages — without editing it, so every set of named values (kinds, types,
   modes, scopes, formats, methods, reasons, statuses, plans) is **open** by default and modeled as:
-  - **Names** — `public const string` values in a static class (`OpenIdSettingNames`, `OpenIdSettingScopes`,
-    `OpenIdConstants.GrantTypes`), compared ordinally and documented as the **known** values, never as all of them.
-  - **Registered data or strategies**, when a member carries behavior or relationships (a rule, a parent, an
-    implementation) — a descriptor contributed through `ICollectionDataSource<T>` or a strategy collection from DI
-    ([ADR-0001](../../docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md)), resolved by name through a
-    catalog that validates the whole set when it is composed (duplicate names, dangling references, cycles) — the
-    pattern of `SettingDescriptor`, `SettingScopeDescriptor`, `ISecurityProfile`, and the client-authentication
-    handlers. Input naming an unregistered member is **rejected** (the vocabulary of _registered_ values is closed,
-    [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md)), never ignored.
+    - **Names** — `public const string` values in a static class (`OpenIdSettingNames`, `OpenIdSettingScopes`,
+      `OpenIdConstants.GrantTypes`), compared ordinally and documented as the **known** values, never as all of them.
+    - **Registered data or strategies**, when a member carries behavior or relationships (a rule, a parent, an
+      implementation) — a descriptor contributed through `ICollectionDataSource<T>` or a strategy collection from DI
+      ([ADR-0001](../../docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md)), resolved by name through a
+      catalog that validates the whole set when it is composed (duplicate names, dangling references, cycles) — the
+      pattern of `SettingDescriptor`, `SettingScopeDescriptor`, `ISecurityProfile`, and the client-authentication
+      handlers. Input naming an unregistered member is **rejected** (the vocabulary of _registered_ values is closed,
+      [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md)), never ignored.
 
-  An **`enum` is allowed only when the reviewer can state all three:** (1) the members are fixed by something that
-  cannot grow without this library changing — a finite enumeration of an external spec that the library implements in
-  full (`RequestObjectSource`), the outcome set of one library-owned operation's contract (`PasswordVerificationResult`,
-  `OutboundHttpReadResult`), or a mirror of a framework type (`ObjectJson*Handling`); (2) no consumer, deployment, or
-  sibling package could reasonably need another member — ask **"could a package that is not this one ever need to add
-  one?"**, never "does this package own today's members?"; and (3) a new member would require a change to this library
-  anyway. Whatever the representation:
-  - 🚫 **No `[Flags]` for a vocabulary that may grow** — its bit space and the meaning of every combination are closed.
-  - 🚫 **No relationships among members encoded in code.** A `switch`, a bit mask, or a hard-coded chain describing a
-    vocabulary's hierarchy, compatibility, or order is lock-in even when the names are strings; make the relationship
-    registered data and let the catalog derive it.
-  - 🚫 **No exhaustive `switch` over an open vocabulary to choose behavior** — dispatch to the strategy registered for
-    the name.
-  - 🚫 **No trait inferred from a member's name.** A suffix or prefix test such as `EndsWith(".jwt")` is a
-    hard-coded relationship too. The registered strategy declares the trait
-    (`IAuthorizationResponseModeHandler.SecuredResponseMode`), and the catalog validates it when composed
-    ([ADR-0201](../../docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md)).
-  - A persisted or wire value is its string name, never an ordinal, so an older node that meets a newer member fails
-    closed by name instead of misreading a number.
+    An **`enum` is allowed only when the reviewer can state all three:** (1) the members are fixed by something that
+    cannot grow without this library changing — a finite enumeration of an external spec that the library implements in
+    full (`RequestObjectSource`), the outcome set of one library-owned operation's contract (`PasswordVerificationResult`,
+    `OutboundHttpReadResult`), or a mirror of a framework type (`ObjectJson*Handling`); (2) no consumer, deployment, or
+    sibling package could reasonably need another member — ask **"could a package that is not this one ever need to add
+    one?"**, never "does this package own today's members?"; and (3) a new member would require a change to this library
+    anyway. Whatever the representation:
+    - 🚫 **No `[Flags]` for a vocabulary that may grow** — its bit space and the meaning of every combination are closed.
+    - 🚫 **No relationships among members encoded in code.** A `switch`, a bit mask, or a hard-coded chain describing a
+      vocabulary's hierarchy, compatibility, or order is lock-in even when the names are strings; make the relationship
+      registered data and let the catalog derive it.
+    - 🚫 **No exhaustive `switch` over an open vocabulary to choose behavior** — dispatch to the strategy registered for
+      the name.
+    - 🚫 **No trait inferred from a member's name.** A suffix or prefix test such as `EndsWith(".jwt")` is a
+      hard-coded relationship too. The registered strategy declares the trait
+      (`IAuthorizationResponseModeHandler.SecuredResponseMode`), and the catalog validates it when composed
+      ([ADR-0201](../../docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md)).
+    - A persisted or wire value is its string name, never an ordinal, so an older node that meets a newer member fails
+      closed by name instead of misreading a number.
 
-  The lesson behind the rule: setting scopes were first a `[Flags]` enum of the server, tenant, client, and resource
-  server, with their cascade hard-coded in a `switch`, judged closed because the library owned all four entities — which
-  shut out every extension that stores settings for an entity of its own. They are registered `SettingScopeDescriptor`
-  data. See [ADR-0150](../../docs/adr/0150-vocabularies-are-open-unless-provably-closed.md).
+    The lesson behind the rule: setting scopes were first a `[Flags]` enum of the server, tenant, client, and resource
+    server, with their cascade hard-coded in a `switch`, judged closed because the library owned all four entities — which
+    shut out every extension that stores settings for an entity of its own. They are registered `SettingScopeDescriptor`
+    data. See [ADR-0150](../../docs/adr/0150-vocabularies-are-open-unless-provably-closed.md).
+
 - 👁 **No secret material on the public surface.**
 - 👁 Data / options / context / event types are `sealed`, with `init` / get-only members and **concrete, buffered**
   collections (`List<T>`, not `IList<T>`) — AOT-friendly, cheap to re-enumerate, free of deferred-execution surprises.
@@ -455,7 +456,7 @@ rationale.
   section in the error) and registered with `ValidateOnStart`; a rule the binder cannot express is an
   `IValidateOptions<T>`. A key that maps to no option must stop the host — a misspelled or misplaced key is otherwise
   indistinguishable from an absent one. Bind a whole section rather than reading single keys (`configuration["A:B"]`),
-  which   leave a misspelled sibling unnoticed; bind eagerly only when the value decides what gets registered. A collection
+  which leave a misspelled sibling unnoticed; bind eagerly only when the value decides what gets registered. A collection
   option the binder fills starts **empty**: the binder appends the configured values to an array or list that already
   holds some, so a default set in the initializer can never be narrowed by configuration — apply the default when
   nothing is configured instead. A host's own identifiers are not a library default at all: a collection that would
@@ -1176,7 +1177,7 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   [ADR-0011](../../docs/adr/0011-secret-management-api.md).
 - 👁 **Prefer `Span<byte>` / `ReadOnlyMemory<byte>` / `IBufferWriter<byte>` over `byte[]` for binary and key material.**
   A producer writes into a caller-supplied writer — `void Export…<TWriter>(ref TWriter destination) where TWriter :
-  IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivateKey` /
+IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivateKey` /
   `AsymmetricSecretKey.ExportSubjectPublicKeyInfo`) — instead of returning a freshly-allocated `byte[]`; inputs are
   `ReadOnlySpan<byte>` / `ReadOnlyMemory<byte>`. Rent a pooled writer with
   `BufferFactory.CreatePooledBufferWriter(isSensitive:)` (`NCode.Buffers` over `Nerdbank.Streams`), not a bare
@@ -1230,7 +1231,7 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
 - 👁 **Cryptographic and numeric hot-path primitives are optimized aggressively; readability is secondary there.**
   Inner loops of the math/crypto primitives (field, scalar, and group arithmetic; encoders; constant-time helpers)
   should use every applicable trick — `[MethodImpl(MethodImplOptions.AggressiveInlining |
-  MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-count (e.g. 4/5-limb) loops,
+MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-count (e.g. 4/5-limb) loops,
   `stackalloc`, `MemoryMarshal`/`Unsafe` `ref`-based **zero-copy** reinterpretation (`MemoryMarshal.Cast<byte, T>`,
   `MemoryMarshal.AsBytes`, with a JIT-constant `BitConverter.IsLittleEndian` guard for portability), and bounds-check
   elision — even when the result is dense and harder to read, to minimize allocations and branches. **Two constraints override speed and are never traded away:** (1) constant-time
@@ -1280,7 +1281,7 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
     | `10000`–`10999` | `NCode.Identity`                                    |
     | `11000`–`11999` | `NCode.Registration`                                |
     | `12000`–`12999` | `NCode.Identity.Server`                             |
-    | `13000`–`13999` | `NCode.Identity.OpenId.Host`                  |
+    | `13000`–`13999` | `NCode.Identity.OpenId.Host`                        |
     | `14000`–`14999` | `NCode.Identity.Events`                             |
     | `15000`–`15999` | `NCode.Identity.Dispatch`                           |
     | `16000`–`16999` | `NCode.Identity.SharedState`                        |

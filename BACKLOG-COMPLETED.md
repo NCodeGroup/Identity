@@ -3493,3 +3493,17 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   `charts/ncode-identity-host/values.yaml`, ADR-0210.
   _Closed: the host image writes one-line JSON console logs with UTC timestamps, and CI checks the setting in the built
   image (ADR-0248)._
+- **`R14` — Close the gaps in `ExpandOnlyRule`.** It ignores raw SQL, allows nullable→required with a default (a test
+  asserts it), and misses new unique indexes, foreign keys, and check constraints on existing tables. Touch points:
+  `ExpandOnlyRule.cs:30, 98`, `ExpandOnlyRuleTests.cs:195, 326`.
+  _Closed: the expand-only rule reports a column made required (with or without a default), a removed default, a
+  narrowed precision, and a unique index, constraint or restricting foreign key added to an existing table; raw SQL and
+  seed data must carry `[ExpandMigration("why")]` or `[ContractMigration("why")]`, and `ExpandOnlyRule.Check` judges
+  every host migration, each classified (ADR-0250)._
+- **`R15` — Make `PromoteMtlsEndpointAliasAuthority` safe for the previous release and rollback.** Its SQL removes the
+  settings key the previous release reads, and `Down()` does not restore it. Copy now and remove in a later contract
+  step. Touch point: `20261021021124_PromoteMtlsEndpointAliasAuthority.cs:41-77`.
+  _Closed: a setting can be retired (`SettingDescriptor.RetiredReason`): ignored when read, refused when added,
+  configured or changed, and kept or removed by an update (`ISettingSerializer.ValidateSettingsUpdate`);
+  `PromoteMtlsEndpointAliasAuthority` copies the alias and keeps the key the previous release reads, and `Down` writes
+  it back, null documents included (ADR-0251). Removing the key after a release is deferred item `D17`._

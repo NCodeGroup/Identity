@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Persistence;
 using NCode.Persistence.Stores;
@@ -51,6 +52,9 @@ public static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             var newBuilder = serviceCollection.NewBuilder<LocalAccountLibrary>();
+
+            // See ADR-0239.
+            serviceCollection.TryAddSingleton<AspNetIdentityDummyPasswordHash<TUser>>();
 
             // The store is backing-store-agnostic, so it registers the DbContext-less factory the store manager falls
             // back to; the scoped UserManager is resolved per operation from a fresh scope.

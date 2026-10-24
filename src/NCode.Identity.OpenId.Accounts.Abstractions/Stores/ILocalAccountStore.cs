@@ -36,12 +36,13 @@ namespace NCode.Identity.OpenId.Accounts.Stores;
 public interface ILocalAccountStore : IStore
 {
     /// <summary>
-    /// Adds a new local account to the store, hashing the supplied credential. The store generates the account's
-    /// security stamp.
+    /// Adds a new local account to the store, hashing the Unicode Normalization Form C (NFC) of the supplied password.
+    /// The store generates the account's security stamp.
     /// </summary>
     /// <param name="account">The <see cref="PersistedLocalAccount"/> to add.</param>
-    /// <param name="password">The UTF-8 bytes of the account's initial password, carried in a caller-owned buffer so
-    /// the sensitive material can be zeroed after use; or <c>null</c> for a passwordless account.</param>
+    /// <param name="password">The UTF-8 bytes of the account's initial password as submitted, carried in a
+    /// caller-owned buffer so the sensitive material can be zeroed after use; or <c>null</c> for a passwordless
+    /// account.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask AddAsync(
@@ -61,12 +62,13 @@ public interface ILocalAccountStore : IStore
     ValueTask UpdateAsync(PersistedLocalAccount account, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Replaces the credential of an existing local account, hashing the supplied password and rotating the account's
-    /// security stamp so that outstanding sessions and tokens issued before the reset are invalidated.
+    /// Replaces the credential of an existing local account, hashing the Unicode Normalization Form C (NFC) of the
+    /// supplied password and rotating the account's security stamp so that outstanding sessions and tokens issued
+    /// before the reset are invalidated.
     /// </summary>
     /// <param name="localAccountId">The opaque identifier of the local account whose credential is reset.</param>
-    /// <param name="password">The UTF-8 bytes of the account's new password, carried in a caller-owned buffer so the
-    /// sensitive material can be zeroed after use.</param>
+    /// <param name="password">The UTF-8 bytes of the account's new password as submitted, carried in a caller-owned
+    /// buffer so the sensitive material can be zeroed after use.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask SetPasswordAsync(
@@ -77,12 +79,15 @@ public interface ILocalAccountStore : IStore
 
     /// <summary>
     /// Verifies a username and password credential, returning the account when the credential is valid, whether or not
-    /// the account is enabled, so its caller can tell the end user why it cannot sign in. A store whose disabled state
-    /// is a lockout against guessing refuses such an account without verifying its password. The store performs the
-    /// hash comparison (and may transparently upgrade a stored hash to current parameters on success).
+    /// the account is enabled, so its caller can tell the end user why it cannot sign in. The store verifies the NFC
+    /// form of the password, and the password as submitted when a stored hash was made from it, and may upgrade a
+    /// stored hash to the current parameters on success. When it holds no hash it may verify (no account has the
+    /// username, the account has no password, or its disabled state is a lockout against guessing, whose password is
+    /// not verified) it verifies the password against a dummy hash of the same cost and refuses it, so a failed
+    /// verification takes as long whether or not the account exists.
     /// </summary>
     /// <param name="userName">The username (login handle) presented by the end-user.</param>
-    /// <param name="password">The UTF-8 bytes of the password presented by the end-user, carried in a caller-owned
+    /// <param name="password">The UTF-8 bytes of the password as submitted by the end-user, carried in a caller-owned
     /// buffer so the sensitive material can be zeroed after use.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the authenticated

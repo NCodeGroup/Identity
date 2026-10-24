@@ -33,7 +33,8 @@ public interface IPasswordPolicy
     /// Validates the password that is being set for the account.
     /// </summary>
     /// <param name="context">The <see cref="PasswordPolicyContext"/> of the account the password is set for.</param>
-    /// <param name="password">The password to validate.</param>
+    /// <param name="password">The password as submitted. The default policy judges its Unicode Normalization Form C
+    /// (NFC), the form a store hashes.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> to observe.</param>
     /// <returns>
     /// <see cref="PasswordPolicyResult.Accepted"/> when the password may be set; otherwise, the rejected

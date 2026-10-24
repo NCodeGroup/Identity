@@ -26,6 +26,9 @@ namespace NCode.Identity.OpenId.Core.Tests.Passwords;
 
 public sealed class DefaultPasswordPolicyTests : BaseTests
 {
+    private const string ComposedPassword = "caf\u00E9-lifecycle-password-changed";
+    private const string DecomposedPassword = "cafe\u0301-lifecycle-password-changed";
+
     #region Scaffolding
 
     private PasswordPolicyContext CreateContext()
@@ -90,6 +93,44 @@ public sealed class DefaultPasswordPolicyTests : BaseTests
 
         Assert.True(result.IsRejected);
         Assert.Equal(PasswordPolicyErrors.TooShort, result.Error);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_CountsTheCodePointsOfTheComposedForm()
+    {
+        var context = CreateContext();
+        var policy = new DefaultPasswordPolicy([]);
+        var password = string.Concat(Enumerable.Repeat("e\u0301", 8)).AsMemory();
+
+        var result = await policy.ValidateAsync(context, password, CancellationToken.None);
+
+        Assert.True(result.IsRejected);
+        Assert.Equal(PasswordPolicyErrors.TooShort, result.Error);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_GivesTheBlocklistsTheComposedForm()
+    {
+        var context = CreateContext();
+        var mockBlocklist = CreateStrictMock<IPasswordBlocklist>();
+        mockBlocklist
+            .Setup(x =>
+                x.ContainsAsync(
+                    context,
+                    It.Is<ReadOnlyMemory<char>>(password =>
+                        password.ToString() == ComposedPassword
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+        var policy = new DefaultPasswordPolicy([mockBlocklist.Object]);
+        var password = DecomposedPassword.AsMemory();
+
+        var result = await policy.ValidateAsync(context, password, CancellationToken.None);
+
+        Assert.Same(PasswordPolicyResult.Accepted, result);
     }
 
     [Fact]

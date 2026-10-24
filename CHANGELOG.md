@@ -1652,6 +1652,21 @@ change to the public API is a **major** version bump.
   **Breaking:** `IExpiringCounterSet` gains `RemoveAsync`, and `IPasswordAttemptLimiter` is added
   ([ADR-0237](docs/adr/0237-failed-password-attempts-are-limited-per-account.md), backlog `R102`).
 
+- **A password is judged, hashed and verified in its NFC form.** The policy counts the code points of a password's
+  Unicode Normalization Form C (NFC) and its blocklists see that form, and the stores hash and verify it, so a password
+  typed with another composition of the same characters, such as `e` and a combining accent for `é`, verifies; a stored
+  hash of the password as submitted still verifies and is replaced by a hash of the NFC form. **Breaking:** an
+  `IPasswordHasher` hashes and verifies the NFC form of the bytes it is given
+  ([ADR-0238](docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md), backlog `R106`).
+
+- **A wrong password takes as long whether or not an account has the user name.** When no account has the user name,
+  the account has no password, the ASP.NET Core Identity user is locked out, or the default hasher cannot read the
+  stored hash, the store verifies the password against a dummy hash of the current parameters and refuses it, so a
+  wrong password costs the same hash verifications whether or not the account exists. **Breaking:** `IPasswordHasher`
+  gains `DummyPasswordHash`
+  ([ADR-0239](docs/adr/0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md), backlog
+  `R107`).
+
 - **A blocked or disabled end user cannot sign in, and the client is answered `access_denied`.** The interactive
   sign-in validates the end user's standing before it creates a session, so a blocked principal or a disabled local
   account gets neither a session nor a cookie: a sign-in that resumes an authorization request answers it with
@@ -1942,6 +1957,13 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **The ASP.NET Core Identity adapter stores a password the password policy accepts.** It hashes a password with the
+  user manager's password hasher and stores the hash through `IUserPasswordStore<TUser>`, creating the user with
+  `CreateAsync(user)` and rotating the security stamp on a reset, so ASP.NET Core Identity's password validators, whose
+  default composition rules NIST SP 800-63B forbids, cannot refuse a password the policy accepted with `500`; a
+  transparent rehash keeps the security stamp
+  ([ADR-0238](docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md), backlog `R105`).
 
 - **A dispatched job whose handler times out is retried, and the host keeps running.** A handler's
   `OperationCanceledException` that does not come from the host stopping, such as the `TaskCanceledException` of an

@@ -316,6 +316,18 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   (`passwordpassword` is), so such a test uses a long, unlisted passphrase; `SeedLocalAccountAsync` writes to the store
   and skips the policy. A test of the failed-attempt limit lowers `password_failed_attempts_limit` with
   `SeedTenantSettingsAsync` before the first request (`PasswordAttemptLimitTests`).
+- 👁 **Prove an equal-time verification by recording that the hasher ran, never by measuring time.** Elapsed time is
+  flaky in the parallel gate. Assert that the path without a stored hash verifies the dummy hash: a strict
+  `IPasswordHasher<TUser>` setup for the ASP.NET Core Identity adapter, a recording `IPasswordHasher` fake for the
+  Entity Framework store (Moq cannot match its span arguments), and a recording decorator that a derived
+  `HostApplicationFactory` registers end to end (`PasswordVerificationTimingTests`).
+- 👁 **Test the ASP.NET Core Identity adapter against a real `UserManager<TUser>` as well as a mocked one.** A mocked
+  `UserManager` hides what its own methods do: `CreateAsync(user, password)` runs the password validators, and
+  `CheckPasswordAsync` rehashes and rotates the security stamp.
+  `AspNetIdentityLocalAccountStoreEntityFrameworkTests` composes
+  `AddIdentityCore<IdentityUser>().AddEntityFrameworkStores<IdentityDbContext>()` over EF InMemory with the adapter's
+  own registration. Write a password that is not in NFC with escapes (`"cafe\u0301"`), never as a pasted character an
+  editor may normalize.
 - 👁 **Assert a URI the server must deliver as written on `Headers.Location.OriginalString`.** `HttpClient` parses
   the header into a `Uri`, whose `AbsoluteUri` and `ToString()` normalize it, so such an assertion passes while the
   server sends `myapp://callback/` for `myapp://callback`.

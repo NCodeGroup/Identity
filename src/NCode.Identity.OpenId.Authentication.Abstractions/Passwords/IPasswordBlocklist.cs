@@ -33,7 +33,8 @@ public interface IPasswordBlocklist
     /// Determines whether the password is on the list.
     /// </summary>
     /// <param name="context">The <see cref="PasswordPolicyContext"/> of the account the password is set for.</param>
-    /// <param name="password">The password to check, as a whole.</param>
+    /// <param name="password">The password to check, as a whole. The default policy passes its Unicode
+    /// Normalization Form C (NFC).</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> to observe.</param>
     /// <returns><see langword="true"/> when the password is on the list; otherwise, <see langword="false"/>.</returns>
     ValueTask<bool> ContainsAsync(

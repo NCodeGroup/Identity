@@ -737,6 +737,18 @@ rationale.
   an administrator sets, call `ResetAsync`, last when other effects such as ending sessions must not depend on the
   counter store. A count of a run of events that ends is cleared with `IExpiringCounterSet.RemoveAsync`
   ([ADR-0237](../../docs/adr/0237-failed-password-attempts-are-limited-per-account.md)).
+- 👁 **A password is judged, hashed and verified in its Unicode Normalization Form C (NFC), and a failed verification
+  takes as long whether or not the account exists.** `DefaultPasswordPolicy` judges the NFC form and every
+  `IPasswordHasher` hashes and verifies it, verifying the submitted form as a fallback that reports
+  `SuccessRehashNeeded`; a store that hashes through another API, such as the ASP.NET Core Identity adapter, normalizes
+  with `NormalizationForm.FormC` itself and keeps the same fallback. When a store holds no hash it may verify (no
+  account has the user name, the account has no password or is locked out, or the stored hash cannot be read), it
+  verifies the submitted password against a dummy hash of the current parameters
+  (`IPasswordHasher.DummyPasswordHash`) through the same code path and refuses it whatever the result. A store never
+  sets a password through an API that runs the host's password validators
+  (`UserManager<TUser>.CreateAsync(user, password)`, `ResetPasswordAsync`); it hashes and stores the hash itself
+  ([ADR-0238](../../docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md),
+  [ADR-0239](../../docs/adr/0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md)).
 - 👁 **A write that a background loop retries is idempotent.** A save can commit and still fail at its caller (a lost
   acknowledgement, a timeout, a cancelled shutdown). Give the write an identity that the store records in the same
   unit of work, and skip a write whose identity is already there: the usage ledger's per-replica batch checkpoint,

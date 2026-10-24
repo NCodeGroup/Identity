@@ -1,6 +1,8 @@
 # 236. A password is judged by one policy wherever it is set
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0238](0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md): the policy judges the NFC form of a
+  password, and the ASP.NET Core Identity adapter stores a password without Identity's password validators)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -51,9 +53,11 @@ lists.**
    - `password_max_length` is an `int` between 64 and 4096 that defaults to 128, and merges with `Replace`. 64 is the
      minimum for the maximum.
 3. **The length is counted in Unicode code points over the whole password.** `DefaultPasswordPolicy` counts the runes of
-   the password (`ReadOnlySpan<char>.EnumerateRunes()`), so a surrogate pair is one character. It does not truncate the
-   password, requires no character classes, and does not normalize the password (backlog `R106`). A password with fewer
-   characters than the minimum is `password_too_short`, and one with more than the maximum is `password_too_long`.
+   the password (`ReadOnlySpan<char>.EnumerateRunes()`), so a surrogate pair is one character. It counts the code points
+   of the password's Unicode Normalization Form C
+   ([ADR-0238](0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)), does not truncate the password and
+   requires no character classes. A password with fewer characters than the minimum is `password_too_short`, and one
+   with more than the maximum is `password_too_long`.
 4. **The blocklists are a strategy collection.** `IPasswordBlocklist.ContainsAsync(PasswordPolicyContext,
    ReadOnlyMemory<char> password, CancellationToken)` says whether the whole password is on a list. The registrations
    use `TryAddEnumerable`, and the policy asks each blocklist in registration order after the length checks and refuses
@@ -124,10 +128,9 @@ lists.**
 - The bundled list adds about 450 KB to the Authentication package.
 - The developer seed's administrator password is `dev-admin-password`, because a password of 12 characters fails the
   policy.
-- The ASP.NET Core Identity adapter creates and resets a password through `UserManager`, whose own validators can
-  refuse a password that the policy accepts; the management API then answers `500` (backlog `R105`).
-- Passwords are not normalized, so a password typed with another Unicode composition on another device does not verify
-  (backlog `R106`).
+- The ASP.NET Core Identity adapter stores a password through the user store without Identity's password validators, so
+  the policy is the only judge of a password the server sets there too
+  ([ADR-0238](0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)).
 - **Breaking:**
   - `InteractivePasswordChangeResult` is a sealed class that carries an error code, so a custom
     `IInteractivePasswordChanger` returns its static results or `Refused(code)`.

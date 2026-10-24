@@ -1,6 +1,8 @@
 # 237. Failed password attempts are limited per account
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0239](0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md): a password is
+  verified in the same time whether or not an account has the user name)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -75,9 +77,9 @@ of its first failure ends, with exactly the answer that a wrong password gets.**
    management API clears the count with `CancellationToken.None` as well, because the password is saved.
 7. **A user name that no account has is counted too.** The caller counts it under the name as submitted, so the count,
    the refusal and the answer of the limit are the same for a name that an account has and for one that none has, and
-   the limit reveals nothing about whether an account exists. The limiter's log message never carries a user name. The
-   verification is not timed alike: a store hashes a password only for an account that has one, so a wrong password for
-   a name that no account has is answered sooner (backlog `R107`).
+   the limit reveals nothing about whether an account exists. The limiter's log message never carries a user name. A
+   store verifies the password against a dummy hash when no account has the name, so the verification takes as long as
+   well ([ADR-0239](0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md)).
 8. **`IExpiringCounterSet.RemoveAsync(key, cancellationToken)` removes a counter.** The next increment starts the
    counter again at one with the expiry of that increment, and removing a counter that is absent or expired does
    nothing. The in-process adapter removes the entry from its dictionary, and `ValkeyExpiringCounterSet` runs `DEL` on

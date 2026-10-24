@@ -128,11 +128,12 @@ from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTI
 [`GOVERNANCE.md`](GOVERNANCE.md) for ownership, versioning, and publishing. For a full conventions sweep, run the
 [`/audit-conventions`](.github/prompts/audit-conventions.prompt.md) prompt.
 
-This family is **greenfield and pre-release**: all work lands on the single `main` trunk until it is feature-complete
-([ADR-0125](docs/adr/0125-trunk-based-development-on-main.md)), breaking changes
-are acceptable (prefer a clean cutover over compatibility shims, and expect `PublicAPI.Unshipped.txt` churn), and
-the design follows an **Auth0-parity-plus** philosophy — familiar Auth0 shapes with more flexible, data-driven controls.
-See [ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md). Because of this posture, **default to the
+This family is **greenfield and pre-release**: all work lands on the single `main` trunk through pull requests
+([ADR-0125](docs/adr/0125-trunk-based-development-on-main.md),
+[ADR-0261](docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), breaking changes are
+acceptable (prefer a clean cutover over compatibility shims, and expect `PublicAPI.Unshipped.txt` churn), and the design
+follows an **Auth0-parity-plus** philosophy — familiar Auth0 shapes with more flexible, data-driven controls. See
+[ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md). Because of this posture, **default to the
 best long-term, cohesive design**: when a change forks between a minimal compatibility-preserving patch and the
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
 breakage, and surface a fork for the user only when the options are genuinely equal in quality. Full statement: the

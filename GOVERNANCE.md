@@ -24,12 +24,13 @@ any one host feature.
   features, the public API/surface, or the validation/security posture — anything a consumer could observe) should
   reach agreement on the issue and be recorded as an **ADR** under [`docs/adr/`](docs/adr/) before the pull request.
   Bug fixes, patches, and small changes go straight to a PR that references the issue.
-- `main` is the single trunk. While the family is pre-release it carries **no branch protection at all**: CI reports a
-  verdict on every commit, but nothing blocks a push
-  ([ADR-0125](docs/adr/0125-trunk-based-development-on-main.md)). Work lands on `main` directly, or through a
-  short-lived branch opened when a change warrants review on a pull request. Protection — a required
-  `Definition of Done` status check, and an approval requirement — is adopted at the first stable release, when there
-  are consumers for a broken trunk to hurt.
+- `main` is the single trunk and accepts changes only through a pull request. A repository ruleset requires the pull
+  request, the `Definition of Done`, `Lint, typecheck, test, build`, `Lint and render the host chart` and
+  `Build host image` status checks with the branch up to date with `main`, resolved review threads, and linear history
+  (a squash or rebase merge); it forbids force pushes and deletion, and nobody bypasses it. An approval requirement is
+  added when a second maintainer exists
+  ([ADR-0261](docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md), which supersedes
+  the unprotected trunk of [ADR-0125](docs/adr/0125-trunk-based-development-on-main.md)).
 - The [scripted Definition of Done](build/dod.ps1) must pass — it is the single entrypoint invoked identically by CI
   and locally. See [CONTRIBUTING](CONTRIBUTING.md).
 - Versioning is **lockstep** across the whole family via Nerdbank.GitVersioning (one root `version.json`,

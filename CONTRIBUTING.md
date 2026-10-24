@@ -85,15 +85,16 @@ marked tool-enforced or review-only. The highlights:
 1. Open (or find) a GitHub issue describing the problem or proposal. A change that affects the **public outcome**
    (semantics, public surface, validation/security posture) should reach agreement on the issue — and be recorded as an
    ADR under [`docs/adr/`](docs/adr/) — before the pull request.
-2. Work on `main`, or open a short-lived branch from it when the change warrants review on a pull request. Keep the
-   public surface deliberate; a breaking change to the public API is a **major** version bump.
+2. Work on a short-lived branch from `main`. Keep the public surface deliberate; a breaking change to the public API is
+   a **major** version bump.
 3. Record any consumer-visible change in [`CHANGELOG.md`](CHANGELOG.md) under `## [Unreleased]`.
 4. Ensure `./build/dod.ps1` passes locally before opening a pull request.
-5. Push to `main`, or open a PR against it for review. While pre-release, `main` carries **no branch protection** —
-   CI reports a verdict on every commit but nothing blocks the push, so the gate is the one you run locally
-   (`./build/dod.ps1 -Fast`). See [ADR-0125](docs/adr/0125-trunk-based-development-on-main.md). CI runs on a push to
-   `main` and on a pull request, not on a push to any other branch, so a branch's commits are checked once. To check a
-   branch that has no pull request, open a draft pull request or run the workflows by hand (`workflow_dispatch`).
+5. Push the branch and open a pull request against `main`, as a draft while it is in progress. It merges, by squash or
+   rebase, once the required checks pass on a branch up to date with `main` and every review thread is resolved; no
+   one pushes to `main` directly. See
+   [ADR-0261](docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md). CI runs on a push
+   to `main` and on a pull request, not on a push to any other branch, so a branch's commits are checked once. To check
+   a branch that has no pull request, open a draft pull request or run the workflows by hand (`workflow_dispatch`).
 
 An agent-assisted change of more than a few steps runs as **plan-and-execute**: Claude Opus plans it into `PLAN.md`, a
 lower-cost Copilot model executes one verified step at a time, and Opus re-plans any step that comes back — see

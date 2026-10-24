@@ -129,13 +129,14 @@ public sealed class TelemetryRegistrationTests
         using var familyMeter = new Meter($"NCode.Identity.Tests.{Guid.NewGuid():N}");
         using var httpMeter = new Meter("System.Net.Http");
         using var unrelatedMeter = new Meter($"Unrelated.{Guid.NewGuid():N}");
+        var method = $"TEST-{Guid.NewGuid():N}";
         familyMeter.CreateCounter<long>("family.counter").Add(1);
         unrelatedMeter.CreateCounter<long>("unrelated.counter").Add(1);
         httpMeter
             .CreateHistogram<double>("http.client.request.duration")
             .Record(
                 0.5,
-                new KeyValuePair<string, object?>("http.request.method", "GET"),
+                new KeyValuePair<string, object?>("http.request.method", method),
                 new KeyValuePair<string, object?>("server.address", "client.example"),
                 new KeyValuePair<string, object?>("server.port", 443)
             );
@@ -149,15 +150,27 @@ public sealed class TelemetryRegistrationTests
             .Points.Where(point => point.Name == "http.client.request.duration")
             .ToList();
         Assert.NotEmpty(httpPoints);
+        string[] bounded =
+        [
+            "error.type",
+            "http.connection.state",
+            "http.request.method",
+            "http.response.status_code",
+            "network.protocol.version",
+            "url.scheme",
+        ];
         Assert.All(
             httpPoints,
-            point =>
-            {
-                var tag = Assert.Single(point.Tags);
-                Assert.Equal("http.request.method", tag.Key);
-            }
+            point => Assert.All(point.Tags.Keys, key => Assert.Contains(key, bounded))
         );
-        Assert.Contains(httpPoints, point => point.Tags["http.request.method"] as string == "GET");
+        var own = Assert.Single(
+            httpPoints,
+            point =>
+                point.Tags.TryGetValue("http.request.method", out var value)
+                && value as string == method
+        );
+        var tag = Assert.Single(own.Tags);
+        Assert.Equal("http.request.method", tag.Key);
     }
 
     #endregion

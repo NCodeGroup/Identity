@@ -3421,3 +3421,45 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: a settings write is not refused for a stored document it cannot read: the tenant and server walks log it
   (events 3006-3008) and skip it, the incoherent-client report still lists it, and a server or tenant write may replace
   its own unreadable document (ADR-0241). Reads that resolve an unreadable document are `R110`._
+- **`R108` — Let a host's own ASP.NET Core Identity pages verify the password the adapter stores.** The adapter hashes a
+  password's NFC form and replaces a stored hash of the submitted form when that form verifies
+  ([ADR-0238](docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)), while a host's own pages
+  verify the password as typed through `UserManager<TUser>`, so an end user who types a password that is not in NFC,
+  such as one with a combining accent, cannot sign in there once the server has stored or rehashed an NFC hash. Offer a
+  public `IPasswordHasher<TUser>` decorator that hashes the NFC form and verifies the submitted form as a fallback,
+  document registering it for the host's pages, and let the adapter recognize it. Touch points:
+  `AspNetIdentityLocalAccountStore`, `AddAspNetIdentityLocalAccountStore`, ADR-0238.
+  _Closed: `NormalizingPasswordHasher<TUser>` wraps the host's Identity password hasher in place when the adapter is
+  registered, so the host's own Identity pages and the adapter both hash and verify the NFC form; the adapter refuses a
+  user manager whose hasher is not the normalizing one (ADR-0243)._
+- **`R109` — Make the work before a password verification the same whether or not an account has the user name.** The
+  sign-in and the password grant resolve the user name that the failed-attempt limit counts with
+  `ILocalAccountStore.GetByUserNameOrDefaultAsync` before they verify or refuse
+  ([ADR-0237](docs/adr/0237-failed-password-attempts-are-limited-per-account.md)). That lookup maps the account's claims
+  only when an account has the name, so the ASP.NET Core Identity adapter runs one more database query on that path, and
+  a refusal of the limit runs no hash that would hide it. A database collation that matches spellings the limiter's
+  folding keeps apart, such as a trailing space under a padding collation, gives those spellings one count only when an
+  account has the name, so reaching the limit under one spelling and trying another tells by the time of the answer
+  whether the account exists
+  ([ADR-0239](docs/adr/0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md)). Resolve the
+  counted name with a lookup that reads no claims, and let a refusal of the limit cost what a verification of the dummy
+  hash costs. Touch points: `LocalAccountInteractiveCredentialVerifier`, `DefaultAuthenticatePasswordGrantHandler`,
+  `ILocalAccountStore`, `AspNetIdentityLocalAccountStore`, ADR-0237, ADR-0239.
+  _Closed: `ILocalAccountStore.VerifyCredentialAsync` takes an `isRefusedAsync` gate and returns
+  `LocalAccountVerificationResult`: one lookup, the gate, one verification, so the work before the hash is the same
+  whether or not an account has the name; a password refused at the limit is verified against the dummy hash and
+  counted, and the callers enforce the gate's answer through `PasswordAttemptGate` (ADR-0244)._
+- **`R110` — Answer a management request whose tenant or server settings document cannot be honored.** The
+  management endpoints that resolve a tenant's effective settings — the tenant's, a client's and a resource server's
+  effective settings, a client's create and settings update, and the tenant's incoherent clients (ADR-0233) — resolve
+  the tenant's stored document, which throws `JsonException` when the current settings vocabulary cannot honor it, so
+  each answers `500`, while a tenant settings write can repair the document (ADR-0241). The server's own document fails
+  the same way: while it cannot be honored, every request that resolves the server's settings — the server's effective
+  settings, a tenant settings write and each request above — answers `500` until a server settings write repairs it.
+  Answer with a problem that names the tenant or the server and the reason, as the incoherent-client report names a
+  client's (`DocumentError`). Touch points: `TenantApiEndpointHandler.MergeTenantSettingsAsync`,
+  `TenantApiEndpointHandler.ValidateClientCoherenceAsync`, `ClientApiEndpointHandler.MergeTenantSettingsAsync`,
+  `ResourceServerApiEndpointHandler`, `ServerApiEndpointHandler.GetEffectiveSettingsAsync`, ADR-0233, ADR-0241.
+  _Closed: a management request that reads a stored tenant or server settings document it cannot honor answers `409
+  Conflict` with an RFC 9457 problem naming the document, from one endpoint filter and only after authorization;
+  `UnreadableSettingsException` and `IEffectiveSettingsResolver.ResolveStored` carry it (ADR-0245)._

@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S21`     | `S20`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R111`    | `R110`     |
+| `R` — Review findings                 | `R112`    | `R111`     |
 
 ---
 
@@ -538,6 +538,16 @@ _None remaining._
 - **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
   replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
   `src/frontend/apps/auth/src/main.tsx:12-21`.
+- **`R111` — Make the frontend tests independent of the runner's speed.** On a loaded CI runner three tests failed
+  while waiting for an element and passed when the job ran again: the playground's `App.test.tsx` ("renders the
+  explorer once runtime config is loaded"), the management app's `App.test.tsx` ("browses tenants globally, then
+  crosses into a tenant scope") and `TenantsPage.test.tsx` ("previews the issuer and mTLS endpoint alias a new tenant
+  would be given"), each after about five seconds. A gate that fails on timing alone hides real failures. Find what
+  each test waits for (lazy routes, MUI transitions, debounced queries), make the waits deterministic (fake timers or
+  awaiting the request mock), and set one deliberate `asyncUtilTimeout` and test timeout for the frontend packages.
+  Touch points: `src/frontend/apps/playground/src/App.test.tsx`, `src/frontend/apps/mgmt/src/App.test.tsx`,
+  `src/frontend/apps/mgmt/src/containers/TenantsPage.test.tsx`, the packages' Vitest configuration.
+
 ### P3
 
 - **`R30` — Serve interactive bundle assets without resolving the tenant.** Touch point:
@@ -567,39 +577,6 @@ _None remaining._
   `json` formatter (`Logging__Console__FormatterName`) in the container image or the chart's default environment, and
   keep `simple` for development. Touch points: `src/NCode.Identity.OpenId.Host/Dockerfile`,
   `charts/ncode-identity-host/values.yaml`, ADR-0210.
-- **`R108` — Let a host's own ASP.NET Core Identity pages verify the password the adapter stores.** The adapter hashes a
-  password's NFC form and replaces a stored hash of the submitted form when that form verifies
-  ([ADR-0238](docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md)), while a host's own pages
-  verify the password as typed through `UserManager<TUser>`, so an end user who types a password that is not in NFC,
-  such as one with a combining accent, cannot sign in there once the server has stored or rehashed an NFC hash. Offer a
-  public `IPasswordHasher<TUser>` decorator that hashes the NFC form and verifies the submitted form as a fallback,
-  document registering it for the host's pages, and let the adapter recognize it. Touch points:
-  `AspNetIdentityLocalAccountStore`, `AddAspNetIdentityLocalAccountStore`, ADR-0238.
-- **`R109` — Make the work before a password verification the same whether or not an account has the user name.** The
-  sign-in and the password grant resolve the user name that the failed-attempt limit counts with
-  `ILocalAccountStore.GetByUserNameOrDefaultAsync` before they verify or refuse
-  ([ADR-0237](docs/adr/0237-failed-password-attempts-are-limited-per-account.md)). That lookup maps the account's claims
-  only when an account has the name, so the ASP.NET Core Identity adapter runs one more database query on that path, and
-  a refusal of the limit runs no hash that would hide it. A database collation that matches spellings the limiter's
-  folding keeps apart, such as a trailing space under a padding collation, gives those spellings one count only when an
-  account has the name, so reaching the limit under one spelling and trying another tells by the time of the answer
-  whether the account exists
-  ([ADR-0239](docs/adr/0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md)). Resolve the
-  counted name with a lookup that reads no claims, and let a refusal of the limit cost what a verification of the dummy
-  hash costs. Touch points: `LocalAccountInteractiveCredentialVerifier`, `DefaultAuthenticatePasswordGrantHandler`,
-  `ILocalAccountStore`, `AspNetIdentityLocalAccountStore`, ADR-0237, ADR-0239.
-- **`R110` — Answer a management request whose tenant or server settings document cannot be honored.** The
-  management endpoints that resolve a tenant's effective settings — the tenant's, a client's and a resource server's
-  effective settings, a client's create and settings update, and the tenant's incoherent clients (ADR-0233) — resolve
-  the tenant's stored document, which throws `JsonException` when the current settings vocabulary cannot honor it, so
-  each answers `500`, while a tenant settings write can repair the document (ADR-0241). The server's own document fails
-  the same way: while it cannot be honored, every request that resolves the server's settings — the server's effective
-  settings, a tenant settings write and each request above — answers `500` until a server settings write repairs it.
-  Answer with a problem that names the tenant or the server and the reason, as the incoherent-client report names a
-  client's (`DocumentError`). Touch points: `TenantApiEndpointHandler.MergeTenantSettingsAsync`,
-  `TenantApiEndpointHandler.ValidateClientCoherenceAsync`, `ClientApiEndpointHandler.MergeTenantSettingsAsync`,
-  `ResourceServerApiEndpointHandler`, `ServerApiEndpointHandler.GetEffectiveSettingsAsync`, ADR-0233, ADR-0241.
-
 ### Refactor
 
 - **`R41` — Rate-limit policy as data.** One descriptor table for partitions, quotas, and meters, a batched Valkey

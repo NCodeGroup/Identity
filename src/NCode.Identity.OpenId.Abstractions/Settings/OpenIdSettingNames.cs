@@ -980,7 +980,8 @@ public static class OpenIdSettingNames
 
     /// <summary>
     /// Contains the name of the <c>tls_client_auth_revocation_mode</c> setting: how the revocation status of a
-    /// <c>tls_client_auth</c> client certificate chain is checked (<c>online</c> or <c>none</c>).
+    /// <c>tls_client_auth</c> client certificate chain is checked (<c>online</c>, <c>online_soft_fail</c> or
+    /// <c>none</c>).
     /// </summary>
     public const string TlsClientAuthRevocationMode = "tls_client_auth_revocation_mode";
 

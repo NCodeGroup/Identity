@@ -84,18 +84,29 @@ The previous release keeps serving while the new schema is applied and until the
 rollback returns to it. So every migration must work with the release before it — **expand, then contract**:
 
 - **Expand** in the release that needs the change: add a table, add a nullable column or one with a default, or add an
-  index. Never rename, drop, or tighten anything the previous release reads or writes.
+  index. Never rename, drop, or tighten anything the previous release reads or writes. A unique index, a constraint or a
+  foreign key goes only on a table the same migration creates.
 - **Migrate the data** in code or in a later migration while both shapes are valid.
 - **Contract** only in a later release, once no running version uses the old shape: drop the old column or table, or
   make the new column required.
 
 A rename is an add, a copy, and a later drop: three steps across at least two releases.
 
-The Definition of Done enforces the rule. `ExpandOnlyRuleTests` reads every migration's `Up` operations and fails one
-that drops or renames a table or column, or adds or alters a column in a way the previous release cannot read or write.
-A deliberate contract step carries `[ContractMigration("why")]`, whose reason names the release that stopped reading the
-old shape ([ADR-0184](../../docs/adr/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md)).
-Raw SQL is not checked, so review a data change by hand.
+The Definition of Done enforces the rule. `ExpandOnlyRuleTests` runs `ExpandOnlyRule.Check` over every migration and
+fails one that drops or renames a table or column; adds a required column without a default; makes a column required,
+removes the default of a required column, changes its type, or shortens it or its precision; adds a unique index,
+unique constraint, primary key, check constraint or foreign key to an existing table; or adds a foreign key that
+restricts deleting rows of an existing table. A migration that runs raw SQL or changes seed data says what that does to
+the previous release: `[ExpandMigration("why")]` when that release still reads every row it writes,
+`[ContractMigration("why")]` when it does not. A deliberate contract step carries `[ContractMigration("why")]`, whose
+reason names the release that stopped reading the old shape
+([ADR-0184](../../docs/adr/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
+[ADR-0250](../../docs/adr/0250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md)).
+
+Retiring a setting, or giving its value a home outside the settings documents, is an expansion too: the descriptor stays
+registered with a `RetiredReason`, the migration copies the value and leaves the stored setting, and a later release
+removes both
+([ADR-0251](../../docs/adr/0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md)).
 
 Add a migration after changing the EF model (the `Database` project carries the design-time factories, so it is both
 `--project` and `--startup-project`):

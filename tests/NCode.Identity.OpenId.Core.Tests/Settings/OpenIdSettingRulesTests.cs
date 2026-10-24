@@ -185,6 +185,7 @@ public class OpenIdSettingRulesTests
 
     [Theory]
     [InlineData("online", true)]
+    [InlineData("online_soft_fail", true)]
     [InlineData("offline", false)]
     [InlineData("none", true)]
     [InlineData("Online", false)]

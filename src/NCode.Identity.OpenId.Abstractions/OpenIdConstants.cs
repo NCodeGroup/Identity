@@ -500,8 +500,8 @@ public static partial class OpenIdConstants
 
     /// <summary>
     /// Contains constants for how the revocation status of a <c>tls_client_auth</c> client certificate chain is
-    /// checked. The values are the revocation policy: revocation is either required or not checked. How the status
-    /// is obtained is the replaceable client certificate revocation checker.
+    /// checked. The values are the revocation policy: revocation is required, checked without being required, or not
+    /// checked. How the status is obtained is the replaceable client certificate revocation checker.
     /// </summary>
     public static class ClientCertificateRevocationMode
     {
@@ -511,6 +511,14 @@ public static partial class OpenIdConstants
         /// revocation status cannot be determined is rejected.
         /// </summary>
         public const string Online = "online";
+
+        /// <summary>
+        /// Indicates that every certificate below the trust anchor is checked as for <see cref="Online"/>; a revoked
+        /// certificate is rejected, and one whose revocation status cannot be determined is accepted with a warning,
+        /// so a client keeps authenticating while the revocation source is unreachable — and so does a revoked
+        /// certificate whose source an attacker blocks.
+        /// </summary>
+        public const string OnlineSoftFail = "online_soft_fail";
 
         /// <summary>
         /// Indicates that revocation is not checked, for a PKI that issues short-lived certificates instead of

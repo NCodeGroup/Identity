@@ -73,6 +73,8 @@ internal class DefaultSettingDescriptorDataSource(
     private const int MinUserCodeLength = 8;
     private const int MaxUserCodeLength = 32;
 
+    private const string RetiredMtlsEndpointAliasAuthority = "mtls_endpoint_alias_authority";
+
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;
 
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
@@ -1453,7 +1455,8 @@ internal class DefaultSettingDescriptorDataSource(
 
             // tls_client_auth_revocation_mode: how a tls_client_auth chain's revocation status is checked; the secure
             // default is online, where the server fetches each issuer's CRL through its guarded outbound HTTP client
-            // and rejects a chain whose status cannot be determined. Not advertised. Override (Replace): a child fully
+            // and rejects a chain whose status cannot be determined. online_soft_fail refuses a revoked certificate
+            // and accepts one whose status cannot be determined. Not advertised. Override (Replace): a child fully
             // replaces the parent value.
             yield return new SettingDescriptor<string>
             {
@@ -2230,6 +2233,17 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
+            };
+
+            // mtls_endpoint_alias_authority: retired. A tenant's mTLS endpoint alias is a tenant property; the
+            // descriptor stays registered so a stored document that carries the setting still loads, until a later
+            // release removes the setting from the stored documents (ADR-0195, ADR-0251).
+            yield return new SettingDescriptor<string>
+            {
+                Name = RetiredMtlsEndpointAliasAuthority,
+                AppliesTo = Tenants,
+                RetiredReason =
+                    "A tenant's mTLS endpoint alias is its mtlsEndpointAliasAuthority property, which the management API reads and writes.",
             };
         }
     }

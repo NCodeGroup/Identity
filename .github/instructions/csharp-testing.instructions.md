@@ -188,6 +188,12 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   `DefaultRateLimitDescriptorDataSourceTests`; match the batch with
   `It.Is<IReadOnlyList<ExpiringCounterIncrement>>(x => x.SequenceEqual(expected))`, and build the `RedisValue` arrays a
   Valkey test expects from the same CLR types the adapter passes (`long`, `double`).
+- 👁 **Prove a shared retrieval with a gated stub handler.** The handler awaits a `TaskCompletionSource`: start two
+  calls, release the gate, and assert one request; cancel the first caller and dispose the input it passed to prove that
+  the retrieval runs on its own token and its own copy (`DefaultClientCertificateRevocationCheckerTests`).
+- 👁 **Test a migration rule with synthetic migrations.** Private sealed `Migration` subclasses in the test file,
+  carrying the markers under test, exercise `ExpandOnlyRule.Check` without a database; a theory over the host's real
+  migrations proves that each one is classified (`ExpandOnlyRuleTests`).
 
 ## Persistence & integration tests
 

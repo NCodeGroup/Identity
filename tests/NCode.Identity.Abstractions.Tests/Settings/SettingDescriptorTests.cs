@@ -459,6 +459,56 @@ public class SettingDescriptorTests
 
     #endregion
 
+    #region RetiredReason Property Tests
+
+    [Fact]
+    public void RetiredReason_WhenUnset_IsNull()
+    {
+        var descriptor = new SettingDescriptor<string> { Name = "a", AppliesTo = [] };
+
+        Assert.Null(descriptor.RetiredReason);
+    }
+
+    [Fact]
+    public void RetiredReason_WhenSet_ReturnsIt()
+    {
+        var descriptor = new SettingDescriptor<string>
+        {
+            Name = "a",
+            AppliesTo = [],
+            RetiredReason = "Use 'b'.",
+        };
+
+        Assert.Equal("Use 'b'.", descriptor.RetiredReason);
+    }
+
+    #endregion
+
+    #region IsRetired Property Tests
+
+    [Fact]
+    public void IsRetired_WhenRetiredReasonIsUnset_ReturnsFalse()
+    {
+        var descriptor = new SettingDescriptor<string> { Name = "a", AppliesTo = [] };
+
+        Assert.False(descriptor.IsRetired);
+    }
+
+    [Fact]
+    public void IsRetired_WhenRetiredReasonIsSet_ReturnsTrue()
+    {
+        var descriptor = new SettingDescriptor<string>
+        {
+            Name = "a",
+            AppliesTo = [],
+            RetiredReason = "Use 'b'.",
+        };
+
+        Assert.True(descriptor.IsRetired);
+    }
+
+    #endregion
+
     #region Rule Property Tests
 
     [Fact]

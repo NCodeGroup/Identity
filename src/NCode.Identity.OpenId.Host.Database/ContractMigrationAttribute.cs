@@ -22,8 +22,9 @@ namespace NCode.Identity.OpenId.Host.Database;
 
 /// <summary>
 /// Marks a migration as a deliberate contract step: it drops, renames, or tightens schema that an earlier release
-/// reads, and it ships only once no running release reads that shape any more. A migration without this marker must
-/// only expand the schema, which <see cref="ExpandOnlyRule"/> checks for every migration.
+/// reads, or it changes data so that release fails on or loses a value it reads, and it ships only once no running
+/// release reads that shape any more. A migration with neither marker only expands the schema and changes no data,
+/// which <see cref="ExpandOnlyRule.Check"/> checks for every migration.
 /// </summary>
 // See ADR-0184.
 [PublicAPI]

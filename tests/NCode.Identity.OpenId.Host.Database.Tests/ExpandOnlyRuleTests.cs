@@ -28,6 +28,8 @@ public sealed class ExpandOnlyRuleTests
     private const string MigrationsNamespace = "NCode.Identity.OpenId.Host.Database.Migrations.";
     private const string Table = "Tenants";
     private const string Column = "IssuerHost";
+    private const string ExpandReason = "Backfills a column the previous release does not read.";
+    private const string ContractReason = "No running release reads the dropped column.";
 
     private static AlterColumnOperation CreateAlter(
         Type clrType,
@@ -36,7 +38,8 @@ public sealed class ExpandOnlyRuleTests
         Type oldClrType,
         bool oldIsNullable,
         int? oldMaxLength,
-        object? defaultValue = null
+        object? defaultValue = null,
+        object? oldDefaultValue = null
     ) =>
         new()
         {
@@ -53,6 +56,25 @@ public sealed class ExpandOnlyRuleTests
                 ClrType = oldClrType,
                 IsNullable = oldIsNullable,
                 MaxLength = oldMaxLength,
+                DefaultValue = oldDefaultValue,
+            },
+        };
+
+    private static CreateTableOperation CreateConsentsTable(ReferentialAction onDelete) =>
+        new()
+        {
+            Name = "Consents",
+            ForeignKeys =
+            {
+                new AddForeignKeyOperation
+                {
+                    Table = "Consents",
+                    Name = "FK_Consents_Tenants_TenantId",
+                    Columns = ["TenantId"],
+                    PrincipalTable = Table,
+                    PrincipalColumns = ["Id"],
+                    OnDelete = onDelete,
+                },
             },
         };
 
@@ -182,17 +204,17 @@ public sealed class ExpandOnlyRuleTests
     }
 
     [Fact]
-    public void FindContractingOperations_WhenColumnMadeRequiredWithoutDefault_ReportsIt()
+    public void FindContractingOperations_WhenColumnMadeRequired_ReportsIt()
     {
         var alter = CreateAlter(typeof(string), false, 100, typeof(string), true, 100);
 
         var findings = ExpandOnlyRule.FindContractingOperations([alter]);
 
-        Assert.Equal(["makes column Tenants.IssuerHost required without a default"], findings);
+        Assert.Equal(["makes column Tenants.IssuerHost required"], findings);
     }
 
     [Fact]
-    public void FindContractingOperations_WhenColumnMadeRequiredWithDefault_ReturnsEmpty()
+    public void FindContractingOperations_WhenColumnMadeRequiredWithDefault_ReportsIt()
     {
         var alter = CreateAlter(
             typeof(string),
@@ -206,7 +228,69 @@ public sealed class ExpandOnlyRuleTests
 
         var findings = ExpandOnlyRule.FindContractingOperations([alter]);
 
+        Assert.Equal(["makes column Tenants.IssuerHost required"], findings);
+    }
+
+    [Fact]
+    public void FindContractingOperations_WhenRequiredColumnLosesItsDefault_ReportsIt()
+    {
+        var alter = CreateAlter(
+            typeof(string),
+            false,
+            100,
+            typeof(string),
+            false,
+            100,
+            oldDefaultValue: ""
+        );
+
+        var findings = ExpandOnlyRule.FindContractingOperations([alter]);
+
+        Assert.Equal(["removes the default of required column Tenants.IssuerHost"], findings);
+    }
+
+    [Fact]
+    public void FindContractingOperations_WhenRequiredColumnKeepsItsDefault_ReturnsEmpty()
+    {
+        var alter = CreateAlter(
+            typeof(string),
+            false,
+            100,
+            typeof(string),
+            false,
+            100,
+            defaultValue: "",
+            oldDefaultValue: ""
+        );
+
+        var findings = ExpandOnlyRule.FindContractingOperations([alter]);
+
         Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void FindContractingOperations_WhenPrecisionNarrows_ReportsIt()
+    {
+        var alter = new AlterColumnOperation
+        {
+            Table = Table,
+            Name = Column,
+            ClrType = typeof(decimal),
+            IsNullable = true,
+            Precision = 10,
+            OldColumn = new AddColumnOperation
+            {
+                Table = Table,
+                Name = Column,
+                ClrType = typeof(decimal),
+                IsNullable = true,
+                Precision = 18,
+            },
+        };
+
+        var findings = ExpandOnlyRule.FindContractingOperations([alter]);
+
+        Assert.Equal(["narrows the precision or scale of column Tenants.IssuerHost"], findings);
     }
 
     [Fact]
@@ -252,6 +336,451 @@ public sealed class ExpandOnlyRuleTests
         Assert.Empty(findings);
     }
 
+    [Fact]
+    public void FindContractingOperations_WhenUniqueIndexAddedToExistingTable_ReportsIt()
+    {
+        var findings = ExpandOnlyRule.FindContractingOperations([
+            new CreateIndexOperation
+            {
+                Table = Table,
+                Name = "IX_Tenants_IssuerHost",
+                Columns = [Column],
+                IsUnique = true,
+            },
+        ]);
+
+        Assert.Equal(
+            ["adds unique index IX_Tenants_IssuerHost to existing table Tenants"],
+            findings
+        );
+    }
+
+    [Fact]
+    public void FindContractingOperations_WhenUniqueIndexAddedToTableItCreates_ReturnsEmpty()
+    {
+        var findings = ExpandOnlyRule.FindContractingOperations([
+            new CreateTableOperation { Name = "Keys" },
+            new CreateIndexOperation
+            {
+                Table = "Keys",
+                Name = "IX_Keys_Name",
+                Columns = ["Name"],
+                IsUnique = true,
+            },
+        ]);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void FindContractingOperations_WhenUniqueConstraintAddedToExistingTable_ReportsIt()
+    {
+        var findings = ExpandOnlyRule.FindContractingOperations([
+            new AddUniqueConstraintOperation
+            {
+                Table = Table,
+                Name = "AK_Tenants_IssuerHost",
+                Columns = [Column],
+            },
+        ]);
+
+        Assert.Equal(
+            ["adds unique constraint AK_Tenants_IssuerHost to existing table Tenants"],
+            findings
+        );
+    }
+
+    [Fact]
+    public void FindContractingOperations_WhenPrimaryKeyAddedToExistingTable_ReportsIt()
+    {
+        var findings = ExpandOnlyRule.FindContractingOperations([
+            new AddPrimaryKeyOperation
+            {
+                Table = Table,
+                Name = "PK_Tenants",
+                Columns = ["Id"],
+            },
+        ]);
+
+        Assert.Equal(["adds primary key PK_Tenants to existing table Tenants"], findings);
+    }
+
+    [Fact]
+    public void FindContractingOperations_WhenCheckConstraintAddedToExistingTable_ReportsIt()
+    {
+        var findings = ExpandOnlyRule.FindContractingOperations([
+            new AddCheckConstraintOperation
+            {
+                Table = Table,
+                Name = "CK_Tenants_IssuerHost",
+                Sql = "\"IssuerHost\" <> ''",
+            },
+        ]);
+
+        Assert.Equal(
+            ["adds check constraint CK_Tenants_IssuerHost to existing table Tenants"],
+            findings
+        );
+    }
+
+    [Fact]
+    public void FindContractingOperations_WhenForeignKeyAddedToExistingTable_ReportsIt()
+    {
+        var findings = ExpandOnlyRule.FindContractingOperations([
+            new AddForeignKeyOperation
+            {
+                Table = Table,
+                Name = "FK_Tenants_Servers_ServerId",
+                Columns = ["ServerId"],
+                PrincipalTable = "Servers",
+                PrincipalColumns = ["Id"],
+            },
+        ]);
+
+        Assert.Equal(
+            ["adds foreign key FK_Tenants_Servers_ServerId to existing table Tenants"],
+            findings
+        );
+    }
+
+    [Fact]
+    public void FindContractingOperations_WhenTableItCreatesRestrictsDeletesFromExistingTable_ReportsIt()
+    {
+        var findings = ExpandOnlyRule.FindContractingOperations([
+            CreateConsentsTable(ReferentialAction.Restrict),
+        ]);
+
+        Assert.Equal(
+            [
+                "adds foreign key FK_Consents_Tenants_TenantId, which restricts deleting rows of existing table "
+                    + "Tenants",
+            ],
+            findings
+        );
+    }
+
+    [Fact]
+    public void FindContractingOperations_WhenForeignKeyAddedToTableItCreatesRestrictsDeletesFromExistingTable_ReportsIt()
+    {
+        var findings = ExpandOnlyRule.FindContractingOperations([
+            new CreateTableOperation { Name = "Consents" },
+            new AddForeignKeyOperation
+            {
+                Table = "Consents",
+                Name = "FK_Consents_Tenants_TenantId",
+                Columns = ["TenantId"],
+                PrincipalTable = Table,
+                PrincipalColumns = ["Id"],
+                OnDelete = ReferentialAction.NoAction,
+            },
+        ]);
+
+        Assert.Equal(
+            [
+                "adds foreign key FK_Consents_Tenants_TenantId, which restricts deleting rows of existing table "
+                    + "Tenants",
+            ],
+            findings
+        );
+    }
+
+    [Fact]
+    public void FindContractingOperations_WhenTableItCreatesCascadesFromExistingTable_ReturnsEmpty()
+    {
+        var findings = ExpandOnlyRule.FindContractingOperations([
+            CreateConsentsTable(ReferentialAction.Cascade),
+        ]);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void FindContractingOperations_WhenTablesItCreatesReferenceEachOther_ReturnsEmpty()
+    {
+        var findings = ExpandOnlyRule.FindContractingOperations([
+            new CreateTableOperation { Name = "Keys" },
+            new CreateTableOperation
+            {
+                Name = "KeyVersions",
+                ForeignKeys =
+                {
+                    new AddForeignKeyOperation
+                    {
+                        Table = "KeyVersions",
+                        Name = "FK_KeyVersions_Keys_KeyId",
+                        Columns = ["KeyId"],
+                        PrincipalTable = "Keys",
+                        PrincipalColumns = ["Id"],
+                        OnDelete = ReferentialAction.Restrict,
+                    },
+                },
+            },
+        ]);
+
+        Assert.Empty(findings);
+    }
+
+    #endregion
+
+    #region FindDataChanges Tests
+
+    [Fact]
+    public void FindDataChanges_WhenOperationsIsNull_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => ExpandOnlyRule.FindDataChanges(null!));
+    }
+
+    [Fact]
+    public void FindDataChanges_WhenOnlySchemaChanges_ReturnsEmpty()
+    {
+        MigrationOperation[] operations =
+        [
+            new CreateTableOperation { Name = "Keys" },
+            new AddColumnOperation
+            {
+                Table = Table,
+                Name = Column,
+                ClrType = typeof(string),
+                IsNullable = true,
+            },
+            new CreateIndexOperation
+            {
+                Table = Table,
+                Name = "IX_Tenants_IssuerHost",
+                Columns = [Column],
+            },
+        ];
+
+        var dataChanges = ExpandOnlyRule.FindDataChanges(operations);
+
+        Assert.Empty(dataChanges);
+    }
+
+    [Fact]
+    public void FindDataChanges_WhenSqlRuns_ReportsIt()
+    {
+        var dataChanges = ExpandOnlyRule.FindDataChanges([
+            new SqlOperation { Sql = "UPDATE \"Tenants\" SET \"IssuerHost\" = NULL;" },
+        ]);
+
+        Assert.Equal(["runs raw SQL"], dataChanges);
+    }
+
+    [Fact]
+    public void FindDataChanges_WhenSeedDataChanges_ReportsEachTable()
+    {
+        var dataChanges = ExpandOnlyRule.FindDataChanges([
+            new InsertDataOperation { Table = Table },
+            new UpdateDataOperation { Table = Table },
+            new DeleteDataOperation { Table = Table },
+        ]);
+
+        Assert.Equal(
+            ["inserts data into Tenants", "updates data in Tenants", "deletes data from Tenants"],
+            dataChanges
+        );
+    }
+
+    #endregion
+
+    #region Check Tests
+
+    private sealed class UnmarkedExpansion : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder) =>
+            migrationBuilder.AddColumn<string>(name: Column, table: Table, nullable: true);
+    }
+
+    private sealed class UnmarkedDrop : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder) =>
+            migrationBuilder.DropColumn(name: Column, table: Table);
+    }
+
+    private sealed class UnmarkedSql : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.Sql("UPDATE \"Tenants\" SET \"IssuerHost\" = NULL;");
+            migrationBuilder.Sql("DELETE FROM \"Tenants\" WHERE \"IssuerHost\" IS NULL;");
+        }
+    }
+
+    [ExpandMigration(ExpandReason)]
+    private sealed class ExpandMarkedSql : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder) =>
+            migrationBuilder.Sql("UPDATE \"Tenants\" SET \"IssuerHost\" = NULL;");
+    }
+
+    [ExpandMigration(ExpandReason)]
+    private sealed class ExpandMarkedDrop : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.Sql("UPDATE \"Tenants\" SET \"IssuerHost\" = NULL;");
+            migrationBuilder.DropColumn(name: Column, table: Table);
+        }
+    }
+
+    [ExpandMigration(ExpandReason)]
+    private sealed class ExpandMarkedExpansion : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder) =>
+            migrationBuilder.AddColumn<string>(name: Column, table: Table, nullable: true);
+    }
+
+    [ContractMigration(ContractReason)]
+    private sealed class ContractMarkedSql : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder) =>
+            migrationBuilder.Sql("UPDATE \"Tenants\" SET \"IssuerHost\" = NULL;");
+    }
+
+    [ContractMigration(ContractReason)]
+    private sealed class ContractMarkedExpansion : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder) =>
+            migrationBuilder.AddColumn<string>(name: Column, table: Table, nullable: true);
+    }
+
+    [ContractMigration(" ")]
+    private sealed class ContractMarkedWithoutReason : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder) =>
+            migrationBuilder.DropColumn(name: Column, table: Table);
+    }
+
+    [ExpandMigration(" ")]
+    private sealed class ExpandMarkedWithoutReason : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder) =>
+            migrationBuilder.Sql("UPDATE \"Tenants\" SET \"IssuerHost\" = NULL;");
+    }
+
+    [ExpandMigration(ExpandReason)]
+    [ContractMigration(ContractReason)]
+    private sealed class DoublyMarkedSql : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder) =>
+            migrationBuilder.Sql("UPDATE \"Tenants\" SET \"IssuerHost\" = NULL;");
+    }
+
+    [Fact]
+    public void Check_WhenMigrationIsNull_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => ExpandOnlyRule.Check(null!));
+    }
+
+    [Fact]
+    public void Check_WhenUnmarkedMigrationOnlyExpands_ReturnsEmpty()
+    {
+        var violations = ExpandOnlyRule.Check(new UnmarkedExpansion());
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void Check_WhenUnmarkedMigrationContracts_ReportsIt()
+    {
+        var violations = ExpandOnlyRule.Check(new UnmarkedDrop());
+
+        Assert.Equal(
+            [
+                "It drops column Tenants.IssuerHost, which the previous release still reads; expand in this release "
+                    + "and contract in a later one, or mark a deliberate contract step [ContractMigration].",
+            ],
+            violations
+        );
+    }
+
+    [Fact]
+    public void Check_WhenUnmarkedMigrationChangesData_ReportsIt()
+    {
+        var violations = ExpandOnlyRule.Check(new UnmarkedSql());
+
+        Assert.Equal(
+            [
+                "It runs raw SQL, which the rule cannot classify; mark it [ExpandMigration] when the previous release "
+                    + "still reads every row it writes, or [ContractMigration] when it does not.",
+            ],
+            violations
+        );
+    }
+
+    [Fact]
+    public void Check_WhenExpandMarkedMigrationChangesData_ReturnsEmpty()
+    {
+        var violations = ExpandOnlyRule.Check(new ExpandMarkedSql());
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void Check_WhenExpandMarkedMigrationContracts_ReportsIt()
+    {
+        var violations = ExpandOnlyRule.Check(new ExpandMarkedDrop());
+
+        Assert.Equal(
+            [
+                "It is marked [ExpandMigration] but drops column Tenants.IssuerHost; "
+                    + "mark it [ContractMigration] instead.",
+            ],
+            violations
+        );
+    }
+
+    [Fact]
+    public void Check_WhenExpandMarkedMigrationChangesNoData_ReportsIt()
+    {
+        var violations = ExpandOnlyRule.Check(new ExpandMarkedExpansion());
+
+        Assert.Equal(["It is marked [ExpandMigration] but changes no data."], violations);
+    }
+
+    [Fact]
+    public void Check_WhenContractMarkedMigrationChangesData_ReturnsEmpty()
+    {
+        var violations = ExpandOnlyRule.Check(new ContractMarkedSql());
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void Check_WhenContractMarkedMigrationOnlyExpands_ReportsIt()
+    {
+        var violations = ExpandOnlyRule.Check(new ContractMarkedExpansion());
+
+        Assert.Equal(
+            ["It is marked [ContractMigration] but only expands the schema and changes no data."],
+            violations
+        );
+    }
+
+    [Fact]
+    public void Check_WhenMarkerStatesNoReason_ReportsIt()
+    {
+        var violations = ExpandOnlyRule.Check(new ContractMarkedWithoutReason());
+
+        Assert.Equal(["Its [ContractMigration] marker states no reason."], violations);
+    }
+
+    [Fact]
+    public void Check_WhenExpandMarkerStatesNoReason_ReportsIt()
+    {
+        var violations = ExpandOnlyRule.Check(new ExpandMarkedWithoutReason());
+
+        Assert.Equal(["Its [ExpandMigration] marker states no reason."], violations);
+    }
+
+    [Fact]
+    public void Check_WhenBothMarkers_ReportsIt()
+    {
+        var violations = ExpandOnlyRule.Check(new DoublyMarkedSql());
+
+        Assert.Equal(["It carries both [ExpandMigration] and [ContractMigration]."], violations);
+    }
+
     #endregion
 
     #region Host Migration Tests
@@ -277,9 +806,7 @@ public sealed class ExpandOnlyRuleTests
             )
             .OrderBy(type => type.FullName, StringComparer.Ordinal);
 
-    private static (IReadOnlyList<string> Findings, ContractMigrationAttribute? Marker) Inspect(
-        string migrationName
-    )
+    private static Migration CreateMigration(string migrationName)
     {
         var type = typeof(HostDatabase).Assembly.GetType(
             MigrationsNamespace + migrationName,
@@ -287,8 +814,7 @@ public sealed class ExpandOnlyRuleTests
         )!;
         var migration = (Migration)Activator.CreateInstance(type)!;
         migration.ActiveProvider = "Npgsql.EntityFrameworkCore.PostgreSQL";
-        var findings = ExpandOnlyRule.FindContractingOperations(migration.UpOperations);
-        return (findings, type.GetCustomAttribute<ContractMigrationAttribute>());
+        return migration;
     }
 
     [Fact]
@@ -302,29 +828,16 @@ public sealed class ExpandOnlyRuleTests
 
     [Theory]
     [MemberData(nameof(HostMigrations))]
-    public void HostMigration_WhenNotMarkedAsContractStep_OnlyExpands(string migrationName)
+    public void HostMigration_WhenChecked_KeepsThePreviousReleaseWorking(string migrationName)
     {
-        var (findings, marker) = Inspect(migrationName);
-        if (marker is not null)
-            return;
+        var migration = CreateMigration(migrationName);
+
+        var violations = ExpandOnlyRule.Check(migration);
 
         Assert.True(
-            findings.Count == 0,
-            $"{migrationName} {string.Join("; ", findings)}, which the previous release still reads. Expand in this "
-                + "release and contract in a later one, or mark a deliberate contract step [ContractMigration] (ADR-0180)."
+            violations.Count == 0,
+            $"{migrationName}: {string.Join(" ", violations)} See ADR-0184 and ADR-0250."
         );
-    }
-
-    [Theory]
-    [MemberData(nameof(HostMigrations))]
-    public void HostMigration_WhenMarkedAsContractStep_ContractsAndStatesWhy(string migrationName)
-    {
-        var (findings, marker) = Inspect(migrationName);
-        if (marker is null)
-            return;
-
-        Assert.NotEmpty(findings);
-        Assert.False(string.IsNullOrWhiteSpace(marker.Reason));
     }
 
     #endregion

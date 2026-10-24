@@ -142,6 +142,17 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.ClientCertificateRevocationUnknownAccepted,
+        Level = LogLevel.Warning,
+        Message = "The revocation status of certificate '{Subject}' in the chain presented by client '{ClientId}' could not be determined, and the client's online_soft_fail revocation mode accepts it."
+    )]
+    internal static partial void ClientCertificateRevocationUnknownAccepted(
+        this ILogger logger,
+        string clientId,
+        string subject
+    );
+
+    [LoggerMessage(
         EventId = EventIds.CertificateRevocationListUnavailable,
         Level = LogLevel.Warning,
         Message = "The certificate revocation list at '{CrlUri}' could not be used to check certificate '{Subject}': {Reason}"
@@ -151,6 +162,18 @@ internal static partial class Log
         string crlUri,
         string subject,
         string reason
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.CertificateRevocationListRetrievalSuppressed,
+        Level = LogLevel.Debug,
+        Message = "The certificate revocation list at '{CrlUri}' is not retrieved to check certificate '{Subject}', because a retrieval that failed less than {FailureCacheDuration} ago is remembered."
+    )]
+    internal static partial void CertificateRevocationListRetrievalSuppressed(
+        this ILogger logger,
+        string crlUri,
+        string subject,
+        TimeSpan failureCacheDuration
     );
 
     [LoggerMessage(

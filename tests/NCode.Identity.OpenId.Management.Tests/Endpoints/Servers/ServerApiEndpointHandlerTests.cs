@@ -223,6 +223,34 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             ])
             .Verifiable();
 
+    private void SetupValidSettingsUpdate() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettingsUpdate(
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<JsonElement>(),
+                    "server",
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
+            .Returns([])
+            .Verifiable();
+
+    private void SetupInvalidSettingsUpdate() =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.ValidateSettingsUpdate(
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<JsonElement>(),
+                    "server",
+                    It.IsAny<JsonSerializerOptions>()
+                )
+            )
+            .Returns([
+                new SettingError("tenant_issuer", "'tenant_issuer' is not a registered setting."),
+            ])
+            .Verifiable();
+
     private static void AssertSettingsValidationProblem(IResult result)
     {
         var problem = Assert.IsType<ValidationProblem>(result);
@@ -747,7 +775,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenNoSettingACoherenceRuleReadsChanges_SkipsTheTenantWalk()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
@@ -810,7 +838,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenTheReplacedDocumentCannotBeHonored_WritesWithoutWalkingTheTenants()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
@@ -871,7 +899,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenATenantDocumentCannotBeHonored_ChecksTheOtherTenantsAndWrites()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
@@ -925,7 +953,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenTheChangeExcludesAClientAlgorithm_ReturnsValidationProblem()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         MockServerStore
             .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
@@ -976,7 +1004,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorizedAndNoIfMatch_AppliesPatchAndReturnsNoContent()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
@@ -1015,7 +1043,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_AfterTheWriteCommits_AnnouncesTheServerSettingsChange()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
@@ -1059,7 +1087,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenIfMatchMatches_AppliesPatch()
     {
-        SetupValidSettings();
+        SetupValidSettingsUpdate();
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
@@ -1095,7 +1123,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
     {
-        SetupInvalidSettings();
+        SetupInvalidSettingsUpdate();
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore

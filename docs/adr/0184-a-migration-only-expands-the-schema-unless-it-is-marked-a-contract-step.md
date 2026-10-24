@@ -1,6 +1,8 @@
 # 184. A migration only expands the schema unless it is marked a contract step
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0250](0250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md):
+  data changes are classified, and a constraint added to an existing table contracts)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

@@ -223,6 +223,47 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
     }
 
     [Fact]
+    public void AddConfiguration_WhenClientCertificateRevocationConfigured_BindsIt()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:ClientCertificateRevocation:FetchTimeout"] = "00:00:10",
+                ["OpenId:ClientCertificateRevocation:FailureCacheDuration"] = "00:05:00",
+            }
+        );
+
+        var options = serviceProvider
+            .GetRequiredService<IOptions<ClientCertificateRevocationOptions>>()
+            .Value;
+
+        Assert.Equal(TimeSpan.FromSeconds(10), options.FetchTimeout);
+        Assert.Equal(TimeSpan.FromMinutes(5), options.FailureCacheDuration);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenClientCertificateRevocationHasUnknownKey_Throws()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:ClientCertificateRevocation:Timeout"] = "00:00:10",
+            }
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            serviceProvider.GetRequiredService<IOptions<ClientCertificateRevocationOptions>>().Value
+        );
+
+        Assert.Contains(
+            "'OpenId:ClientCertificateRevocation'",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("'Timeout'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AddConfiguration_WhenEndedSessionTerminationConfigured_BindsIt()
     {
         using var serviceProvider = BuildConfiguredServiceProvider(

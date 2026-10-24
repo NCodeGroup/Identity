@@ -501,7 +501,13 @@ rationale.
   them — a rewritten document and its new token, an untouched control row — then revert with
   `database update <previous migration>` to exercise `Down`, and remove the container. A value that is metadata
   rather than a runtime control (RFC 7591 `client_name`, `contacts`)
-  is still a registered setting. See [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md).
+  is still a registered setting. Retiring a setting, or giving its value a home outside the settings documents, keeps
+  the previous release working: keep the descriptor registered with a `RetiredReason` (a stored document that carries
+  it loads, an update through `ISettingSerializer.ValidateSettingsUpdate` may keep or remove it, any other write refuses
+  it), copy the value in an `[ExpandMigration]` that leaves the key, and remove the key and the descriptor in a later
+  release's `[ContractMigration]`; a rename is a contract step, since the previous release fails closed on a name it
+  does not know. See [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md) and
+  [ADR-0251](../../docs/adr/0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md).
 - 👁 **A setting declares its domain, not only its type.** Give every descriptor whose type admits values the server
   would not honor a `Rule` (`SettingRules.OneOf`/`EmptyOr`/`AtLeast`/`Between`/`Each`/`Must`): an enumerated string is a
   `OneOf`, a lifetime or interval is at least one second, a timeout is positive, a list applies `Each` to its values, and
@@ -742,6 +748,12 @@ rationale.
   `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through
   `IClientCertificateRevocationChecker`. See
   [ADR-0173](../../docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md).
+- 👁 **A retrieval that concurrent requests share runs once, on its own terms.** Key it in a `ConcurrentDictionary` of
+  `Lazy<Task<T>>` that the retrieval removes itself from; bound it by its own timeout, never a caller's token (a caller
+  stops waiting with `WaitAsync`); give it its own copy of any disposable input a caller owns, such as a chain's
+  certificates; remember a failed retrieval for a configured time so an unreachable source does not cost every request
+  a timeout (`DefaultClientCertificateRevocationChecker`). See
+  [ADR-0252](../../docs/adr/0252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md).
 - 👁 **A count every replica must agree on increments `IExpiringCounterSet`, never a get-then-set.** A counter is
   incremented with the port's atomic `IncrementAsync`, which starts a counter for one fixed window, or, for the limits
   of a rate-limit stage, with `IncrementUntilExceededAsync`; a read followed by a write loses concurrent requests. Read
@@ -855,12 +867,19 @@ rationale.
   re-saves `OpenIdDbContextModelSnapshot.cs` even when the model is unchanged; the repository's files are BOM-less
   (`charset = utf-8`), so strip the BOM from the generated migration and revert a snapshot whose only diff is the BOM.
   See [ADR-0073](../../docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md).
-- ✅ **A migration only expands the schema.** The previous release serves while a migration runs and after a rollback,
-  so a migration adds tables, nullable or defaulted columns, and indexes, and never drops, renames, or tightens what the
-  previous release reads. `ExpandOnlyRuleTests` fails any other migration in the Definition of Done. A deliberate
-  contract step, shipped a release after its expansion, carries `[ContractMigration("why")]`. Hand-written code in
-  `NCode.Identity.OpenId.Host.Database` stays outside `Migrations/`, which `.editorconfig` treats as generated code. See
-  [ADR-0184](../../docs/adr/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md).
+- ✅ **A migration keeps the previous release working.** The previous release serves while a migration runs and after a
+  rollback, so a migration adds tables, nullable or defaulted columns, and indexes, and never drops, renames, or
+  tightens what the previous release reads. A column made required (with or without a default: EF Core writes an
+  explicit NULL for a column the previous release maps as nullable), a unique index, unique constraint, primary key,
+  check constraint or foreign key added to an existing table, and a foreign key that restricts deleting rows of an
+  existing table all tighten it. Raw SQL and seed-data changes carry `[ExpandMigration("why")]` (the previous release
+  still reads every row they write, with the same meaning or a restriction this release applies too) or
+  `[ContractMigration("why")]` (it fails on, or loses, a value it reads). `ExpandOnlyRule.Check` judges every migration
+  in `ExpandOnlyRuleTests`, which fails any other migration in the Definition of Done. A deliberate contract step ships
+  a release after its expansion. Hand-written code in `NCode.Identity.OpenId.Host.Database` stays outside
+  `Migrations/`, which `.editorconfig` treats as generated code. See
+  [ADR-0184](../../docs/adr/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
+  [ADR-0250](../../docs/adr/0250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md).
 - ✅ **Raw SQL in the EF model must quote identifiers.** Any hand-written SQL fragment in the model (`HasFilter`,
   `HasComputedColumnSql`, `HasDefaultValueSql`, …) MUST double-quote column/table names (e.g.
   `HasFilter("\"NormalizedDomainName\" IS NOT NULL")`). Postgres folds unquoted identifiers to lower case (the schema

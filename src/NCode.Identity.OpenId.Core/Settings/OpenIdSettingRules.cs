@@ -296,11 +296,12 @@ internal static class OpenIdSettingRules
 
     /// <summary>
     /// Gets the rule for how a <c>tls_client_auth</c> certificate chain's revocation status is checked:
-    /// <c>online</c> or <c>none</c>.
+    /// <c>online</c>, <c>online_soft_fail</c> or <c>none</c>.
     /// </summary>
     public static SettingRule<string> ClientCertificateRevocationMode() =>
         SettingRules.OneOf(
             OpenIdConstants.ClientCertificateRevocationMode.Online,
+            OpenIdConstants.ClientCertificateRevocationMode.OnlineSoftFail,
             OpenIdConstants.ClientCertificateRevocationMode.None
         );
 

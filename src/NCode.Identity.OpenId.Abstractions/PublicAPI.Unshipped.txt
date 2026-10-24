@@ -1116,6 +1116,7 @@ NCode.Identity.OpenId.Tenants.TenantResolutionOptions.Root.get -> NCode.Identity
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.Root.set -> void
 const NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode.None = "none" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode.Online = "online" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode.OnlineSoftFail = "online_soft_fail" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthRevocationMode = "tls_client_auth_revocation_mode" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthTrustAnchors = "tls_client_auth_trust_anchors" -> string!
 NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode

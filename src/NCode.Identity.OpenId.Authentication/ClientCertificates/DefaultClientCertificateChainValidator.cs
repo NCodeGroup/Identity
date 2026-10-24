@@ -29,8 +29,10 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 /// Provides the default implementation of <see cref="IClientCertificateChainValidator"/>: it builds the presented
 /// certificate's chain with the platform chain engine in custom-root-trust mode, so only the client's configured trust
 /// anchors are trusted, never the machine's certificate store, and missing issuers are never downloaded. The platform
-/// engine never fetches anything: when revocation is required, every certificate below the trust anchor is checked
-/// through the revocation checker, which retrieves revocation data through the server's outbound-request guard.
+/// engine never fetches anything: when revocation is checked, every certificate below the trust anchor is checked
+/// through the revocation checker, which retrieves revocation data through the server's outbound-request guard. A
+/// certificate whose revocation status cannot be determined fails the chain unless the client's revocation mode is
+/// the soft-fail mode; a revoked certificate always fails it.
 /// </summary>
 // See ADR-0173.
 internal sealed class DefaultClientCertificateChainValidator(
@@ -75,6 +77,14 @@ internal sealed class DefaultClientCertificateChainValidator(
         )
             ? configuredMode
             : OpenIdConstants.ClientCertificateRevocationMode.Online;
+
+        // The soft-fail mode accepts a certificate whose revocation status cannot be determined; it never accepts
+        // one that is revoked. See ADR-0252.
+        var acceptsUnknownStatus = string.Equals(
+            revocationMode,
+            OpenIdConstants.ClientCertificateRevocationMode.OnlineSoftFail,
+            StringComparison.Ordinal
+        );
 
         var loaded = new X509Certificate2Collection();
         using var chain = new X509Chain();
@@ -138,6 +148,15 @@ internal sealed class DefaultClientCertificateChainValidator(
                 );
                 if (status == ClientCertificateRevocationStatus.Good)
                     continue;
+
+                if (status == ClientCertificateRevocationStatus.Unknown && acceptsUnknownStatus)
+                {
+                    Logger.ClientCertificateRevocationUnknownAccepted(
+                        openIdClient.ClientId,
+                        certificate.Subject
+                    );
+                    continue;
+                }
 
                 var revocationStatus = status.ToString();
                 Logger.ClientCertificateRevocationFailed(

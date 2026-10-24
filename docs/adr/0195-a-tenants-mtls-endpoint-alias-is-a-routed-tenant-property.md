@@ -1,6 +1,8 @@
 # 195. A tenant's mTLS endpoint alias is a routed tenant property
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0251](0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md): the setting is retired and
+  its value copied)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
 

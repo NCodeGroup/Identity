@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ExpandMigration(
+        "The previous release reads every rewritten row, which only bounds a session this release bounds too."
+    )]
     public partial class BoundEndUserSessions : Migration
     {
         // Every table that stores a settings document that can name the session settings. The settings apply to
@@ -28,9 +31,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // The previous release keeps serving while this migration is applied (ADR-0180), and ADR-0184 leaves a
-            // data rewrite to review. That release accepts every row that this migration rewrites: a document without
-            // a session setting is valid, and a grant with an expiry is valid.
+            // The previous release keeps serving while this migration is applied (ADR-0180), and this data rewrite
+            // keeps it working (ADR-0250). That release accepts every row that this migration rewrites: a document
+            // without a session setting is valid, and a grant with an expiry is valid.
             //
             // A session setting is removed when its value is a TimeSpan that its domain refuses, for example zero,
             // which used to mean that the limit was off. The value only allowed a session that no domain accepts, and

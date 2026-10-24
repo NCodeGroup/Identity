@@ -696,6 +696,24 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **A migration classifies its data change, and a constraint added to an existing table is a contract step.**
+  `ExpandOnlyRule.Check(Migration)` judges each host migration: one that runs raw SQL or changes seed data carries
+  `[ExpandMigration("why")]` (added) when the release still serving reads every row it writes, or
+  `[ContractMigration("why")]` when it does not, and every existing migration is classified. The rule also reports a
+  column made required even with a default, a removed default, a narrowed precision or scale, a unique index, unique
+  constraint, primary key, check constraint or foreign key added to an existing table, and a foreign key that restricts
+  deleting rows of an existing table
+  ([ADR-0250](docs/adr/0250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md),
+  backlog `R14`).
+
+- **Breaking: a retired setting stays registered until a later release removes it.** `SettingDescriptor.RetiredReason`
+  and `IsRetired` retire a setting: reads ignore it, `ValidateSettings` and the configuration reader refuse it, and
+  `ISettingSerializer.ValidateSettingsUpdate`, a member that every implementation adds, accepts it only with its stored
+  value or removed; the management API's settings updates validate through it. `mtls_endpoint_alias_authority` is
+  retired: `PromoteMtlsEndpointAliasAuthority` copies each tenant's value and keeps the setting for the previous
+  release, and its `Down` writes the alias back
+  ([ADR-0251](docs/adr/0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md), backlog `R15`).
+
 - **Breaking: rate limits and quotas are registered descriptors judged in one round trip per stage.** Each limit is a
   `RateLimitDescriptor` (name, stage, order, window, sliding or fixed, limit and overage settings, metered only, usage
   meters, partition selector) contributed through `ICollectionDataSource<RateLimitDescriptor>`; the five built-ins
@@ -1668,6 +1686,16 @@ change to the public API is a **major** version bump.
   (supersedes ADR-0177).
 
 ### Security
+
+- **Client-certificate revocation retrieval is shared and remembers failures; RSA-PSS lists verify; soft-fail is
+  opt-in.** `ClientCertificateRevocationOptions` from `OpenId:ClientCertificateRevocation` (`FetchTimeout`,
+  `MaxResponseSizeBytes`, `MaxCacheDuration`, `FailureCacheDuration`) is validated when the host starts; concurrent
+  checks of a list share one retrieval; a retrieval that yields no usable list is not repeated for
+  `FailureCacheDuration`; a list signed with RSASSA-PSS verifies; `tls_client_auth_revocation_mode` accepts
+  `online_soft_fail`, which refuses a revoked certificate and accepts an unknown status with a warning; `online` is the
+  default
+  ([ADR-0252](docs/adr/0252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
+  backlog `R64`).
 
 - **A Data Protection key the server's master key cannot decrypt stops the host.** `DataProtectionKeyRingGate` checks
   the live keys after the server's protector loads and before Data Protection loads its key ring, and the host names

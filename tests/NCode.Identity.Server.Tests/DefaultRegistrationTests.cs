@@ -909,6 +909,11 @@ public sealed class DefaultRegistrationTests
     )]
     [InlineData("OpenId:Tenant:TenantCacheLifetime", "50.00:00:00", "Tenant:TenantCacheLifetime")]
     [InlineData("OpenId:GrantRetention:PruneInterval", "00:00:00", "GrantRetention:PruneInterval")]
+    [InlineData(
+        "OpenId:ClientCertificateRevocation:FetchTimeout",
+        "00:00:00",
+        "ClientCertificateRevocation:FetchTimeout"
+    )]
     [InlineData("OpenId:TenantUsage:FlushInterval", "00:00:00", "TenantUsage:FlushInterval")]
     [InlineData(
         "OpenId:EndedSessionTermination:Interval",

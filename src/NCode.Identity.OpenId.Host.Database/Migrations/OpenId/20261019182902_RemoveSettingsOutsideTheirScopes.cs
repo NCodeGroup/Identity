@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ExpandMigration(
+        "Each removed setting sat at a scope the previous release never read it from."
+    )]
     public partial class RemoveSettingsOutsideTheirScopes : Migration
     {
         // The settings a client's effective settings never read: discovery and the tenant-wide services read them from

@@ -53,6 +53,7 @@ public static class IdentityServerBuilderExtensions
             nameof(OpenIdOptions.Tenant),
             TenantResolutionSubsection,
             MutualTlsSubsection,
+            ClientCertificateRevocationOptions.SectionName,
             GrantRetentionOptions.SectionName,
             TenantUsageOptions.SectionName,
             EndedSessionTerminationOptions.SectionName,
@@ -65,7 +66,7 @@ public static class IdentityServerBuilderExtensions
         /// <summary>
         /// Binds the server's options from configuration, so a host does not have to repeat the binding boilerplate.
         /// The OpenID configuration section (<see cref="OpenIdOptions.DefaultSectionName"/> unless
-        /// <paramref name="sectionName"/> names another) holds eight subsections, each bound to one options type:
+        /// <paramref name="sectionName"/> names another) holds nine subsections, each bound to one options type:
         /// <list type="bullet">
         /// <item><description><c>Server</c> — <see cref="OpenIdServerOptions"/>, including the server's
         /// <c>Settings</c>.</description></item>
@@ -75,6 +76,8 @@ public static class IdentityServerBuilderExtensions
         /// selects, and the route the tenant is served under.</description></item>
         /// <item><description><c>MutualTls</c> — <see cref="MutualTlsForwardingOptions"/>: how a forwarded mutual-TLS
         /// client certificate is read.</description></item>
+        /// <item><description><c>ClientCertificateRevocation</c> — <see cref="ClientCertificateRevocationOptions"/>: how
+        /// the revocation lists a mutual-TLS client certificate names are retrieved and cached.</description></item>
         /// <item><description><c>GrantRetention</c> — <see cref="GrantRetentionOptions"/>: how long ended grants are
         /// kept and how often they are removed.</description></item>
         /// <item><description><c>TenantUsage</c> — <see cref="TenantUsageOptions"/>: how often each replica adds its
@@ -121,6 +124,9 @@ public static class IdentityServerBuilderExtensions
             var tenantSection = openIdSection.GetSection(nameof(OpenIdOptions.Tenant));
             var tenantResolutionSection = openIdSection.GetSection(TenantResolutionSubsection);
             var mutualTlsSection = openIdSection.GetSection(MutualTlsSubsection);
+            var clientCertificateRevocationSection = openIdSection.GetSection(
+                ClientCertificateRevocationOptions.SectionName
+            );
             var grantRetentionSection = openIdSection.GetSection(GrantRetentionOptions.SectionName);
             var tenantUsageSection = openIdSection.GetSection(TenantUsageOptions.SectionName);
             var endedSessionTerminationSection = openIdSection.GetSection(
@@ -161,6 +167,11 @@ public static class IdentityServerBuilderExtensions
             serviceCollection
                 .AddOptions<MutualTlsForwardingOptions>()
                 .Configure(options => mutualTlsSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            serviceCollection
+                .AddOptions<ClientCertificateRevocationOptions>()
+                .Configure(options => clientCertificateRevocationSection.BindStrictly(options))
                 .ValidateOnStart();
 
             serviceCollection

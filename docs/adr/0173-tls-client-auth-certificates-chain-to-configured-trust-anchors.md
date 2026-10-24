@@ -1,6 +1,8 @@
 # 173. `tls_client_auth` certificates chain to configured trust anchors
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0252](0252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md):
+  retrieval limits, shared and remembered retrievals, RSA-PSS, and online_soft_fail)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

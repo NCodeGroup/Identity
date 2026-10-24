@@ -56,6 +56,20 @@ public abstract class SettingDescriptor
     public bool IsDiscoverable { get; init; }
 
     /// <summary>
+    /// Gets why the setting is retired, or <see langword="null"/> while it is in use. A retired setting stays
+    /// registered until no running release reads it, so a stored settings document that carries it still loads:
+    /// reading the document ignores it, an update may keep its stored value or remove it, and every other write that
+    /// carries it is refused with this reason.
+    /// </summary>
+    public string? RetiredReason { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the setting is retired.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(RetiredReason))]
+    public bool IsRetired => RetiredReason is not null;
+
+    /// <summary>
     /// Gets a value indicating whether the default value is set.
     /// </summary>
     public abstract bool HasDefault { get; }

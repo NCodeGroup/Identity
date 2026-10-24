@@ -21,6 +21,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Dispatch.Options;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Persistence;
@@ -54,7 +55,8 @@ public static class IdentityServerBuilderExtensions
             MutualTlsSubsection,
             GrantRetentionOptions.SectionName,
             TenantUsageOptions.SectionName,
-            EndedSessionTerminationOptions.SectionName
+            EndedSessionTerminationOptions.SectionName,
+            InProcessJobDispatcherOptions.SectionName
         );
 
     /// <param name="builder">The <see cref="IIdentityServerBuilder"/> to configure.</param>
@@ -63,7 +65,7 @@ public static class IdentityServerBuilderExtensions
         /// <summary>
         /// Binds the server's options from configuration, so a host does not have to repeat the binding boilerplate.
         /// The OpenID configuration section (<see cref="OpenIdOptions.DefaultSectionName"/> unless
-        /// <paramref name="sectionName"/> names another) holds seven subsections, each bound to one options type:
+        /// <paramref name="sectionName"/> names another) holds eight subsections, each bound to one options type:
         /// <list type="bullet">
         /// <item><description><c>Server</c> — <see cref="OpenIdServerOptions"/>, including the server's
         /// <c>Settings</c>.</description></item>
@@ -79,6 +81,9 @@ public static class IdentityServerBuilderExtensions
         /// usage to the ledger and how long the ledger keeps it.</description></item>
         /// <item><description><c>EndedSessionTermination</c> — <see cref="EndedSessionTerminationOptions"/>: how often
         /// the sessions that ended while unused are terminated.</description></item>
+        /// <item><description><c>InProcessJobDispatcher</c> — <see cref="InProcessJobDispatcherOptions"/>: how many
+        /// jobs the in-process dispatcher queues and runs at once, and what a dispatch does when the queue is
+        /// full.</description></item>
         /// </list>
         /// The top-level <c>BootstrapAdmin</c> section binds <see cref="BootstrapAdminOptions"/>, and the top-level
         /// <c>SecretProtection</c> section binds <see cref="SecretProtectionOptions"/>: it names the root key provider
@@ -120,6 +125,9 @@ public static class IdentityServerBuilderExtensions
             var tenantUsageSection = openIdSection.GetSection(TenantUsageOptions.SectionName);
             var endedSessionTerminationSection = openIdSection.GetSection(
                 EndedSessionTerminationOptions.SectionName
+            );
+            var inProcessJobDispatcherSection = openIdSection.GetSection(
+                InProcessJobDispatcherOptions.SectionName
             );
             // The bootstrap administrator credential is sourced from its own top-level section so it can be supplied
             // out of band (for example, environment variables); absent it, the feature stays inert (ADR-0044).
@@ -168,6 +176,12 @@ public static class IdentityServerBuilderExtensions
             serviceCollection
                 .AddOptions<EndedSessionTerminationOptions>()
                 .Configure(options => endedSessionTerminationSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            // See ADR-0242.
+            serviceCollection
+                .AddOptions<InProcessJobDispatcherOptions>()
+                .Configure(options => inProcessJobDispatcherSection.BindStrictly(options))
                 .ValidateOnStart();
 
             serviceCollection

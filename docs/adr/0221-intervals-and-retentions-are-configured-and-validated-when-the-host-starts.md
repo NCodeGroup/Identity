@@ -1,7 +1,9 @@
 # 221. Intervals and retentions are configured and validated when the host starts
 
 - **Status:** Accepted (amended by
-  [ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): `OpenId:EndedSessionTermination`)
+  [ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): `OpenId:EndedSessionTermination`;
+  and by [ADR-0242](0242-the-in-process-dispatcher-is-configured-under-the-openid-section.md):
+  `OpenId:InProcessJobDispatcher`)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -47,9 +49,12 @@ the retention options bind from configuration.**
    `OpenId:TenantUsage` binds `TenantUsageOptions`, each with `BindStrictly` and `ValidateOnStart`
    ([ADR-0137](0137-configuration-binds-strictly-and-is-validated-at-startup.md)). `OpenId:EndedSessionTermination`
    binds `EndedSessionTerminationOptions` the same way
-   ([ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)). Each options type has a
-   `SectionName` constant, and the OpenID section recognizes seven subsections: `Server`, `Tenant`,
-   `TenantResolution`, `MutualTls`, `GrantRetention`, `TenantUsage`, and `EndedSessionTermination`.
+   ([ADR-0223](0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)), and
+   `OpenId:InProcessJobDispatcher` binds `InProcessJobDispatcherOptions` the same way
+   ([ADR-0242](0242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)). Each options type has a
+   `SectionName` constant, and the OpenID section recognizes eight subsections: `Server`, `Tenant`,
+   `TenantResolution`, `MutualTls`, `GrantRetention`, `TenantUsage`, `EndedSessionTermination`, and
+   `InProcessJobDispatcher`.
 
 ## Options considered
 

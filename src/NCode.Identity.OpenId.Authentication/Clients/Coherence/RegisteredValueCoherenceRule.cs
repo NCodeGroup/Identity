@@ -16,43 +16,56 @@
 
 #endregion
 
+using System.Collections;
+using System.Globalization;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Authentication.Clients.Coherence;
 
 /// <summary>
-/// Checks that a value the client's own document registers in a setting that merges with a lattice operation survives
-/// into its effective settings: a list value or a <c>true</c> flag that its tenant or a selected security profile
-/// excludes is reported rather than silently lost.
+/// Checks that a value the client's own document registers in a setting that merges with a meet survives into its
+/// effective settings: a list value a ceiling drops, a <c>true</c> a ceiling turns off, and any other value a ceiling
+/// lowers (a lifetime above its tenant's) is reported rather than silently lost. A join only raises a value to a
+/// parent's floor and is never reported.
 /// </summary>
-// See ADR-0206.
+// See ADR-0206 and ADR-0240.
 internal sealed class RegisteredValueCoherenceRule(
-    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider
+    ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
+    ISettingScopeCollectionProvider settingScopeCollectionProvider
 ) : IClientCoherenceRule
 {
     private ISettingDescriptorCollectionProvider SettingDescriptorCollectionProvider { get; } =
         settingDescriptorCollectionProvider;
 
-    /// <summary>
-    /// Gets the names of every registered setting that merges with a lattice operation and whose value is a list of
-    /// strings or a flag.
-    /// </summary>
-    public IReadOnlyCollection<string> SettingNames =>
-        [
-            .. SettingDescriptorCollectionProvider
-                .Collection.Where(descriptor =>
-                    descriptor.HasLatticeMerge
-                    && (
-                        descriptor.ValueType == typeof(bool)
-                        || typeof(IEnumerable<string>).IsAssignableFrom(descriptor.ValueType)
-                    )
-                )
-                .Select(descriptor => descriptor.Name),
-        ];
+    private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
+        settingScopeCollectionProvider;
 
     /// <summary>
-    /// Finds every list value and every <c>true</c> flag that a client registers in a setting that merges with a
-    /// lattice operation and that its effective settings do not keep.
+    /// Gets the names of every registered setting that merges with a meet and applies within the client scope, so a
+    /// value a client registers in it can be lowered by a ceiling.
+    /// </summary>
+    public IReadOnlyCollection<string> SettingNames
+    {
+        get
+        {
+            var scopes = SettingScopeCollectionProvider.Collection;
+
+            return
+            [
+                .. SettingDescriptorCollectionProvider
+                    .Collection.Where(descriptor =>
+                        descriptor.HasMeetMerge
+                        && scopes.AppliesWithin(descriptor, OpenIdSettingScopes.Client)
+                    )
+                    .Select(descriptor => descriptor.Name),
+            ];
+        }
+    }
+
+    /// <summary>
+    /// Finds every value that a client registers in a setting that merges with a meet and that its effective settings
+    /// do not keep: a list element, a <c>true</c> flag, or any other value a ceiling lowers.
     /// </summary>
     /// <param name="context">The registered and effective settings of the client.</param>
     /// <returns>The violations, or an empty list when every registered value is effective.</returns>
@@ -65,7 +78,7 @@ internal sealed class RegisteredValueCoherenceRule(
             var name = setting.Descriptor.Name;
 
             if (
-                !setting.Descriptor.HasLatticeMerge
+                !setting.Descriptor.HasMeetMerge
                 || !context.EffectiveSettings.TryGetValue(name, out var effective)
             )
             {
@@ -74,13 +87,24 @@ internal sealed class RegisteredValueCoherenceRule(
 
             switch (setting.GetValue())
             {
-                case IEnumerable<string> values
-                    when effective is IEnumerable<string> effectiveValues:
-                    AddValuesThatAreNotEffective(violations, name, values, effectiveValues);
+                case bool registered:
+                    if (registered && effective is false)
+                    {
+                        violations.Add(new ClientCoherenceViolation(name, "true", name));
+                    }
+
                     break;
 
-                case true when effective is false:
-                    violations.Add(new ClientCoherenceViolation(name, "true", name));
+                case IEnumerable values when values is not string:
+                    if (effective is IEnumerable effectiveValues)
+                    {
+                        AddValuesThatAreNotEffective(violations, name, values, effectiveValues);
+                    }
+
+                    break;
+
+                case var value when !Equals(value, effective):
+                    violations.Add(CreateLoweredValueViolation(name, value, effective));
                     break;
             }
         }
@@ -89,23 +113,50 @@ internal sealed class RegisteredValueCoherenceRule(
     }
 
     /// <summary>
-    /// Adds a violation for each distinct registered value that is not in the effective list.
+    /// Adds a violation for each distinct registered element that is not in the effective elements.
     /// </summary>
     private static void AddValuesThatAreNotEffective(
         List<ClientCoherenceViolation> violations,
         string name,
-        IEnumerable<string> values,
-        IEnumerable<string> effectiveValues
+        IEnumerable values,
+        IEnumerable effectiveValues
     )
     {
-        var effectiveSet = effectiveValues.ToHashSet(StringComparer.Ordinal);
+        var effectiveSet = effectiveValues.Cast<object>().ToHashSet();
 
-        foreach (var value in values.Distinct(StringComparer.Ordinal))
+        foreach (var value in values.Cast<object>().Distinct())
         {
             if (!effectiveSet.Contains(value))
             {
-                violations.Add(new ClientCoherenceViolation(name, value, name));
+                violations.Add(new ClientCoherenceViolation(name, FormatValue(value), name));
             }
         }
     }
+
+    /// <summary>
+    /// Creates the violation for a registered value that a ceiling lowers to the effective value.
+    /// </summary>
+    private static ClientCoherenceViolation CreateLoweredValueViolation(
+        string name,
+        object registered,
+        object effective
+    )
+    {
+        var registeredText = FormatValue(registered);
+        var effectiveText = FormatValue(effective);
+
+        return new ClientCoherenceViolation(name, registeredText, name)
+        {
+            Description =
+                $"The '{name}' value '{registeredText}' exceeds the effective '{name}' value '{effectiveText}'.",
+        };
+    }
+
+    /// <summary>
+    /// Formats a value for a violation without depending on the current culture.
+    /// </summary>
+    private static string FormatValue(object value) =>
+        value is IFormattable formattable
+            ? formattable.ToString(null, CultureInfo.InvariantCulture)
+            : value.ToString() ?? string.Empty;
 }

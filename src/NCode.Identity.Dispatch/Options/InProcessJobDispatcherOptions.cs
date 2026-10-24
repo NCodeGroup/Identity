@@ -30,6 +30,12 @@ namespace NCode.Identity.Dispatch.Options;
 public sealed class InProcessJobDispatcherOptions
 {
     /// <summary>
+    /// Gets the name of the configuration section that binds these options; the identity server's configuration binds
+    /// it beneath its OpenID section.
+    /// </summary>
+    public const string SectionName = "InProcessJobDispatcher";
+
+    /// <summary>
     /// Gets or sets the maximum number of pending jobs the in-memory queue buffers before <see cref="FullMode"/>
     /// applies. It must be at least <c>1</c>. The default is <c>1024</c>.
     /// </summary>
@@ -46,7 +52,8 @@ public sealed class InProcessJobDispatcherOptions
     /// Gets or sets the behavior when a job is dispatched while the queue is at <see cref="QueueCapacity"/>. The
     /// default is <see cref="BoundedChannelFullMode.Wait"/>, under which a full queue reports the dispatch as dropped
     /// (logged) rather than blocking the dispatching path; a durable dispatcher adapter is the answer to guaranteed
-    /// delivery.
+    /// delivery. It must be a member of <see cref="BoundedChannelFullMode"/>, which configuration names, for example
+    /// <c>DropOldest</c>.
     /// </summary>
     public BoundedChannelFullMode FullMode { get; set; } = BoundedChannelFullMode.Wait;
 }

@@ -22,9 +22,10 @@ using Microsoft.Extensions.Logging;
 namespace NCode.Identity.OpenId.Management.Logging;
 
 /// <summary>
-/// Provides source-generated, strongly-typed log messages for the <c>NCode.Identity.OpenId.Management</c> package.
-/// These record the expected client-input failures that map to a <c>4xx</c> response so the original exception
-/// detail is available to operators without being exposed to the caller.
+/// Provides source-generated, strongly-typed log messages for the <c>NCode.Identity.OpenId.Management</c> package:
+/// the expected client-input failures that map to a <c>4xx</c> response, whose exception detail reaches operators
+/// without being exposed to the caller, and the stored settings documents a settings write cannot read and does not
+/// check.
 /// </summary>
 [ExcludeFromCodeCoverage]
 internal static partial class Log
@@ -63,4 +64,38 @@ internal static partial class Log
         Message = "A management request lost a concurrency race with another request and was answered 412"
     )]
     internal static partial void LostConcurrencyRace(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.ClientSettingsUnreadable,
+        Level = LogLevel.Warning,
+        Message = "The settings document of client '{ClientId}' of tenant '{TenantId}' cannot be honored, so a settings change was not checked against it: {DocumentError}"
+    )]
+    internal static partial void ClientSettingsUnreadable(
+        this ILogger logger,
+        string tenantId,
+        string clientId,
+        string documentError
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantSettingsUnreadable,
+        Level = LogLevel.Warning,
+        Message = "The settings document of tenant '{TenantId}' cannot be honored, so a settings change was not checked against the tenant's clients: {DocumentError}"
+    )]
+    internal static partial void TenantSettingsUnreadable(
+        this ILogger logger,
+        string tenantId,
+        string documentError
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ServerSettingsUnreadable,
+        Level = LogLevel.Warning,
+        Message = "The settings document of server '{ServerId}' that a settings change replaces cannot be honored, so the change was not checked against any client: {DocumentError}"
+    )]
+    internal static partial void ServerSettingsUnreadable(
+        this ILogger logger,
+        string serverId,
+        string documentError
+    );
 }

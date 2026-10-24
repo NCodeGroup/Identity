@@ -34,4 +34,7 @@ internal static class EventIds
     public const int ResourceConflict = Base + 3;
     public const int MissingDependency = Base + 4;
     public const int LostConcurrencyRace = Base + 5;
+    public const int ClientSettingsUnreadable = Base + 6;
+    public const int TenantSettingsUnreadable = Base + 7;
+    public const int ServerSettingsUnreadable = Base + 8;
 }

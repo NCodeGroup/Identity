@@ -16,11 +16,13 @@
 
 #endregion
 
+using System.Threading.Channels;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.Dispatch.Options;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Persistence;
@@ -271,6 +273,46 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
 
         Assert.Equal(TimeSpan.FromSeconds(30), options.FlushInterval);
         Assert.Equal(TimeSpan.FromDays(30), options.Retention);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenInProcessJobDispatcherConfigured_BindsIt()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:InProcessJobDispatcher:QueueCapacity"] = "64",
+                ["OpenId:InProcessJobDispatcher:FullMode"] = "DropOldest",
+                ["OpenId:InProcessJobDispatcher:MaxConcurrentJobs"] = "4",
+            }
+        );
+
+        var options = serviceProvider
+            .GetRequiredService<IOptions<InProcessJobDispatcherOptions>>()
+            .Value;
+
+        Assert.Equal(64, options.QueueCapacity);
+        Assert.Equal(BoundedChannelFullMode.DropOldest, options.FullMode);
+        Assert.Equal(4, options.MaxConcurrentJobs);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenInProcessJobDispatcherHasUnknownKey_Throws()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?> { ["OpenId:InProcessJobDispatcher:Capacity"] = "64" }
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            serviceProvider.GetRequiredService<IOptions<InProcessJobDispatcherOptions>>().Value
+        );
+
+        Assert.Contains(
+            "'OpenId:InProcessJobDispatcher'",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("'Capacity'", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

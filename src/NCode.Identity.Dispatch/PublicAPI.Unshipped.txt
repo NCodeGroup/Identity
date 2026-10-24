@@ -1,4 +1,5 @@
 #nullable enable
+const NCode.Identity.Dispatch.Options.InProcessJobDispatcherOptions.SectionName = "InProcessJobDispatcher" -> string!
 NCode.Identity.Dispatch.DefaultRegistration
 NCode.Identity.Dispatch.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Dispatch.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddDispatchServices() -> NCode.Registration.IServiceBuilder<NCode.Identity.Dispatch.DispatchLibrary>!

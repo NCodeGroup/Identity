@@ -595,7 +595,13 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     private static bool HasProperty(JsonElement element, string name) =>
         element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out _);
 
-    private void SetupClientCoherenceCheck(params ClientCoherenceFinding[] findings)
+    private void SetupClientCoherenceCheck(params ClientCoherenceFinding[] findings) =>
+        SetupClientCoherenceCheckOfTenants([CreateTenantSettings()], findings);
+
+    private void SetupClientCoherenceCheckOfTenants(
+        PersistedTenantSettings[] tenants,
+        params ClientCoherenceFinding[] findings
+    )
     {
         // The patch adds "foo", so the proposed document has it and the committed one does not. The coherence
         // validator reports that the change touches a setting a rule reads, so the tenants are walked.
@@ -662,11 +668,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
                 )
             )
             .ReturnsAsync(
-                new PagedResult<PersistedTenantSettings>
-                {
-                    Items = [CreateTenantSettings()],
-                    NextCursor = null,
-                }
+                new PagedResult<PersistedTenantSettings> { Items = tenants, NextCursor = null }
             )
             .Verifiable();
 
@@ -705,6 +707,14 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             TenantId = TenantId,
             ConcurrencyToken = "settings-ct",
             Value = EmptyObject(),
+        };
+
+    private static PersistedTenantSettings CreateUnreadableTenantSettings() =>
+        new()
+        {
+            TenantId = "tenant-0",
+            ConcurrencyToken = "settings-ct",
+            Value = JsonSerializer.SerializeToElement(new { retired = true }),
         };
 
     [Fact]
@@ -759,6 +769,121 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         var httpContext = CreateHttpContext(authenticated: true);
 
         // Strict mocks: no tenant-store or FindIntroducedViolationsAsync setup, so walking the tenants would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ServerId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenTheReplacedDocumentCannotBeHonored_WritesWithoutWalkingTheTenants()
+    {
+        SetupValidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct", EmptyObject());
+        MockServerStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveServerAsync(
+                    It.Is<JsonElement>(e => !HasProperty(e, "foo")),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                ValueTask.FromException<IReadOnlySettingCollection>(
+                    new JsonException(
+                        "The settings are invalid: 'retired' is not a registered setting."
+                    )
+                )
+            )
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.ResolveServerAsync(
+                    It.Is<JsonElement>(e => HasProperty(e, "foo")),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreateSettingCollection())
+            .Verifiable();
+        MockServerStore
+            .Setup(x => x.UpdateSettingsAsync(settings, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        SetupServerSettingsChanged();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no ReadsChangedSetting, tenant-store or FindIntroducedViolationsAsync setup, so checking a
+        // client would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            ServerId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenATenantDocumentCannotBeHonored_ChecksTheOtherTenantsAndWrites()
+    {
+        SetupValidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct", EmptyObject());
+        MockServerStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupClientCoherenceCheckOfTenants([
+            CreateUnreadableTenantSettings(),
+            CreateTenantSettings(),
+        ]);
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(
+                    It.IsAny<IReadOnlySettingCollection>(),
+                    OpenIdSettingScopes.Tenant,
+                    It.Is<JsonElement>(e => HasProperty(e, "retired"))
+                )
+            )
+            .Throws(
+                new JsonException(
+                    "The settings are invalid: 'retired' is not a registered setting."
+                )
+            )
+            .Verifiable();
+        MockServerStore
+            .Setup(x => x.UpdateSettingsAsync(settings, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        SetupServerSettingsChanged();
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // The verifiable checker setup for TenantId proves the second tenant was checked.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
             ServerId,

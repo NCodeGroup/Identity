@@ -374,6 +374,13 @@ rationale.
   incoherent clients, in a report or a background pass, only through `IClientCoherenceReporter`, which checks one page
   under the tenant's scope and reports a document the rules cannot read as `IncoherentClient.DocumentError`
   ([ADR-0233](../../docs/adr/0233-the-management-api-lists-a-tenants-incoherent-clients.md)).
+  A value the client registers in a setting whose merge is a meet (`SettingDescriptor.HasMeetMerge`: `Min`, `And`,
+  `Intersect`) must survive into its effective settings, so a ceiling that lowers it is a violation, never a silent
+  clamp, while a join only raises a value to a parent's floor and is never reported
+  ([ADR-0240](../../docs/adr/0240-a-client-value-that-a-ceiling-lowers-is-incoherent.md)). A settings write that walks
+  the stored clients logs and skips a document the settings vocabulary cannot honor and never counts it as a violation
+  the change introduces
+  ([ADR-0241](../../docs/adr/0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md)).
 - 👁 **Options validation never constructs a strategy that has dependencies.** `IOptions<OpenIdOptions>.Value` runs
   every `IValidateOptions<OpenIdOptions>`, which read the setting-descriptor catalog, so every setting data source, and
   every catalog it consults to name a domain (the client-authentication method descriptors, the redirect URI kinds, the
@@ -463,9 +470,12 @@ rationale.
   `10.0.0.4/8` to `10.0.0.0/8`; `Uri.TryCreate(value, UriKind.Absolute, …)` accepts an implicit file path — `/path` on
   Unix, `C:\path` on Windows — and trims surrounding whitespace, so an absolute URI must also start with its own
   `scheme:` and contain no whitespace), and a value compared verbatim (a CORS origin) must be in the form it is compared
-  in — reject anything that parses to something other than what was written. A setting the server cannot honor in an
-  environment (a development-only section in Production) is a startup error, not an inert key. See
-  [ADR-0137](../../docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md),
+  in — reject anything that parses to something other than what was written. The binder reads an enum option from a
+  number as well as from a name and accepts a number that names no member (`"7"`), so the options validator refuses a
+  value `Enum.IsDefined` rejects (`InProcessJobDispatcherOptionsValidator`,
+  [ADR-0242](../../docs/adr/0242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)). A setting the
+  server cannot honor in an environment (a development-only section in Production) is a startup error, not an inert
+  key. See [ADR-0137](../../docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md),
   [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md), and
   [ADR-0140](../../docs/adr/0140-setting-values-are-validated-against-their-domain.md).
 - 👁 **Setting names are a closed vocabulary.** Every setting a server, tenant, client, or resource server carries has a

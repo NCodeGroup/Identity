@@ -405,6 +405,25 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public void AddIdentityServer_RegisteredValueRuleReadsEveryMeetAClientCanRegister()
+    {
+        // A value a client registers survives only where no ceiling lowers it (ADR-0240).
+        using var host = BuildHost([]);
+
+        var settingNames = host
+            .Services.GetServices<IClientCoherenceRule>()
+            .Single(candidate => candidate.GetType().Name == "RegisteredValueCoherenceRule")
+            .SettingNames;
+
+        Assert.Contains(OpenIdSettingNames.AccessTokenLifetime, settingNames);
+        Assert.Contains(OpenIdSettingNames.ClockSkew, settingNames);
+        Assert.Contains(OpenIdSettingNames.GrantTypesSupported, settingNames);
+        Assert.DoesNotContain(OpenIdSettingNames.UserCodeLength, settingNames);
+        Assert.DoesNotContain(OpenIdSettingNames.SecurityProfiles, settingNames);
+        Assert.DoesNotContain(OpenIdSettingNames.SectorIdentifierUriFetchTimeout, settingNames);
+    }
+
+    [Fact]
     public void AddIdentityServer_RegistersTheClientCoherenceReporter()
     {
         using var host = BuildHost([]);
@@ -879,6 +898,33 @@ public sealed class DefaultRegistrationTests
         "EndedSessionTermination:Interval"
     )]
     public async Task AddIdentityServer_WhenAnIntervalIsOutsideWhatATimerAccepts_FailsToStart(
+        string key,
+        string value,
+        string expectedKey
+    )
+    {
+        using var host = BuildHost(new Dictionary<string, string?> { [key] = value });
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains($"'{expectedKey}'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(
+        "OpenId:InProcessJobDispatcher:QueueCapacity",
+        "0",
+        "InProcessJobDispatcher:QueueCapacity"
+    )]
+    [InlineData(
+        "OpenId:InProcessJobDispatcher:MaxConcurrentJobs",
+        "0",
+        "InProcessJobDispatcher:MaxConcurrentJobs"
+    )]
+    [InlineData("OpenId:InProcessJobDispatcher:FullMode", "7", "InProcessJobDispatcher:FullMode")]
+    public async Task AddIdentityServer_WhenAnInProcessJobDispatcherOptionIsInvalid_FailsToStart(
         string key,
         string value,
         string expectedKey

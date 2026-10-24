@@ -827,6 +827,64 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateSettingsAsync_WhenTheReplacedDocumentCannotBeHonored_WritesWithoutCheckingTheClients()
+    {
+        SetupValidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct");
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(serverSettings.Object)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(
+                    serverSettings.Object,
+                    OpenIdSettingScopes.Tenant,
+                    It.Is<JsonElement>(e => HasProperty(e, "foo"))
+                )
+            )
+            .Returns(CreateSettingCollection())
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x =>
+                x.Resolve(
+                    serverSettings.Object,
+                    OpenIdSettingScopes.Tenant,
+                    It.Is<JsonElement>(e => !HasProperty(e, "foo"))
+                )
+            )
+            .Throws(
+                new JsonException(
+                    "The settings are invalid: 'retired' is not a registered setting."
+                )
+            )
+            .Verifiable();
+        SetupSettingsWrite(settings);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no FindIntroducedViolationsAsync setup, so checking a client would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            TenantId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        VerifyTenantChanged(settingsChanged: true);
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_WhenTheChangeMakesAClientIncoherent_ReturnsValidationProblem()
     {
         SetupValidSettings();

@@ -16,10 +16,13 @@
 
 #endregion
 
+using System.Threading.Channels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Logging.EventSource;
+using Microsoft.Extensions.Options;
+using NCode.Identity.Dispatch.Options;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -44,6 +47,29 @@ public class ProgramTests
             .OrderBy(type => type.Name, StringComparer.Ordinal);
 
         Assert.Equal([typeof(ConsoleLoggerProvider), typeof(EventSourceLoggerProvider)], providers);
+    }
+
+    #endregion
+
+    #region Configuration Tests
+
+    [Fact]
+    public async Task Configuration_WhenTheInProcessJobDispatcherIsConfigured_BindsIt()
+    {
+        await using var factory = new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:InProcessJobDispatcher:MaxConcurrentJobs"] = "4",
+                ["OpenId:InProcessJobDispatcher:FullMode"] = "DropOldest",
+            }
+        );
+
+        var options = factory
+            .Services.GetRequiredService<IOptions<InProcessJobDispatcherOptions>>()
+            .Value;
+
+        Assert.Equal(4, options.MaxConcurrentJobs);
+        Assert.Equal(BoundedChannelFullMode.DropOldest, options.FullMode);
     }
 
     #endregion

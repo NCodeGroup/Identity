@@ -85,6 +85,47 @@ public class IncoherentClientReportTests
     }
 
     [Fact]
+    public async Task GetIncoherentClients_WhenAStoredClientsAccessTokenLifetimeExceedsItsTenants_ListsTheClient()
+    {
+        using var factory = CreateFactory();
+
+        // A direct store write, so no coherence check refuses the client.
+        await factory.SeedPublicClientWithSettingsAsync(
+            IncoherentClientId,
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.AccessTokenLifetime] = "01:00:00",
+            },
+            RedirectUri
+        );
+        using var administrator = await factory.CreateManagementClientAsync(
+            BootstrapClientId,
+            BootstrapClientSecret
+        );
+
+        using var response = await administrator.GetAsync($"{TenantApiPath}/incoherent-clients");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        using var document = JsonDocument.Parse(body);
+        var items = document.RootElement.GetProperty("items").EnumerateArray().ToList();
+        var item = Assert.Single(
+            items,
+            element => element.GetProperty("clientId").GetString() == IncoherentClientId
+        );
+        var violations = item.GetProperty("violations").EnumerateArray().ToList();
+        Assert.Contains(
+            violations,
+            violation =>
+                violation.GetProperty("settingName").GetString()
+                    == OpenIdSettingNames.AccessTokenLifetime
+                && violation.GetProperty("governingSettingName").GetString()
+                    == OpenIdSettingNames.AccessTokenLifetime
+                && violation.GetProperty("value").GetString() == "01:00:00"
+        );
+    }
+
+    [Fact]
     public async Task GetIncoherentClients_WhenEveryClientIsCoherent_ListsNoClient()
     {
         using var factory = CreateFactory();

@@ -5,6 +5,7 @@ abstract NCode.Identity.Settings.SettingDescriptor.CreateDefault() -> NCode.Iden
 abstract NCode.Identity.Settings.SettingDescriptor.Format(NCode.Identity.Settings.Setting! setting) -> object!
 abstract NCode.Identity.Settings.SettingDescriptor.HasDefault.get -> bool
 abstract NCode.Identity.Settings.SettingDescriptor.HasLatticeMerge.get -> bool
+abstract NCode.Identity.Settings.SettingDescriptor.HasMeetMerge.get -> bool
 abstract NCode.Identity.Settings.SettingDescriptor.Merge(NCode.Identity.Settings.Setting! current, NCode.Identity.Settings.Setting! other) -> NCode.Identity.Settings.Setting!
 abstract NCode.Identity.Settings.SettingDescriptor.TryValidate(object! value, out string? failure) -> bool
 abstract NCode.Identity.Settings.SettingDescriptor.ValueType.get -> System.Type!
@@ -102,6 +103,7 @@ override NCode.Identity.Settings.SettingDescriptor<TValue>.CreateDefault() -> NC
 override NCode.Identity.Settings.SettingDescriptor<TValue>.Format(NCode.Identity.Settings.Setting! setting) -> object!
 override NCode.Identity.Settings.SettingDescriptor<TValue>.HasDefault.get -> bool
 override NCode.Identity.Settings.SettingDescriptor<TValue>.HasLatticeMerge.get -> bool
+override NCode.Identity.Settings.SettingDescriptor<TValue>.HasMeetMerge.get -> bool
 override NCode.Identity.Settings.SettingDescriptor<TValue>.Merge(NCode.Identity.Settings.Setting! current, NCode.Identity.Settings.Setting! other) -> NCode.Identity.Settings.Setting!
 override NCode.Identity.Settings.SettingDescriptor<TValue>.TryValidate(object! value, out string? failure) -> bool
 override NCode.Identity.Settings.SettingDescriptor<TValue>.ValueType.get -> System.Type!

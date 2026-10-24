@@ -16,7 +16,10 @@
 
 #endregion
 
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.Settings;
@@ -31,10 +34,11 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 /// which carries no secrets, and checks it through the <see cref="IClientCoherenceValidator"/>, which resolves the
 /// client's settings onto the tenant's.
 /// </summary>
-// See ADR-0206.
+// See ADR-0206 and ADR-0241.
 internal sealed class DefaultTenantClientCoherenceChecker(
     IAmbientTenantAccessor ambientTenantAccessor,
-    IClientCoherenceValidator clientCoherenceValidator
+    IClientCoherenceValidator clientCoherenceValidator,
+    ILogger<DefaultTenantClientCoherenceChecker> logger
 ) : ITenantClientCoherenceChecker
 {
     // The number of clients read per page.
@@ -42,6 +46,7 @@ internal sealed class DefaultTenantClientCoherenceChecker(
 
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
+    private ILogger<DefaultTenantClientCoherenceChecker> Logger { get; } = logger;
 
     /// <inheritdoc />
     public async ValueTask<IReadOnlyList<ClientCoherenceFinding>> FindIntroducedViolationsAsync(
@@ -68,10 +73,26 @@ internal sealed class DefaultTenantClientCoherenceChecker(
             var result = await clientStore.GetSettingsPageAsync(page, cancellationToken);
             foreach (var clientSettings in result.Items)
             {
-                var violations = ClientCoherenceValidator.Validate(
-                    newTenantSettings,
-                    clientSettings.Value
-                );
+                IReadOnlyList<ClientCoherenceViolation> violations;
+                try
+                {
+                    violations = ClientCoherenceValidator.Validate(
+                        newTenantSettings,
+                        clientSettings.Value
+                    );
+                }
+                catch (JsonException exception)
+                {
+                    // A document the settings cannot honor is incoherent before and after the change, so the change
+                    // introduces no violation of it.
+                    Logger.ClientSettingsUnreadable(
+                        tenantId,
+                        clientSettings.ClientId,
+                        exception.Message
+                    );
+                    continue;
+                }
+
                 if (violations.Count == 0)
                 {
                     continue;
@@ -83,7 +104,7 @@ internal sealed class DefaultTenantClientCoherenceChecker(
                 );
                 findings.AddRange(
                     violations
-                        .Except(existing)
+                        .ExceptBy(existing.Select(GetIdentity), GetIdentity)
                         .Select(violation => new ClientCoherenceFinding(
                             clientSettings.ClientId,
                             violation
@@ -96,4 +117,14 @@ internal sealed class DefaultTenantClientCoherenceChecker(
 
         return findings;
     }
+
+    /// <summary>
+    /// Identifies a violation by the client setting, the value and the governing setting that it names. Its description
+    /// is left out, because it can name an effective value that the change moves, as a lowered lifetime names its
+    /// ceiling, so a violation that predates the change is matched however the change moves that value.
+    /// </summary>
+    // See ADR-0240.
+    private static (string SettingName, string Value, string GoverningSettingName) GetIdentity(
+        ClientCoherenceViolation violation
+    ) => (violation.SettingName, violation.Value, violation.GoverningSettingName);
 }

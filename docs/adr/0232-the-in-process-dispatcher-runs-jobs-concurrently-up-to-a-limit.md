@@ -1,6 +1,8 @@
 # 232. The in-process dispatcher runs jobs concurrently up to a limit
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0242](0242-the-in-process-dispatcher-is-configured-under-the-openid-section.md): the options bind from
+  `OpenId:InProcessJobDispatcher`, and a `FullMode` that names no member stops the host)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 
@@ -28,9 +30,11 @@ that fails for any reason but the host stopping is retried once.**
    bounded channel of `InProcessJobQueue`, which has several readers (`SingleReader = false`). Each consumer runs one
    job at a time, so a job that waits holds one consumer while the others drain the queue. The default is 16.
 2. **The options are validated when the host starts.** `InProcessJobDispatcherOptionsValidator` refuses a
-   `MaxConcurrentJobs` and a `QueueCapacity` below 1, and `AddInProcessJobDispatcher` registers it with
-   `ValidateOnStart`. A queue that holds no job and a worker that runs none stop the host, instead of dropping or never
-   running the dispatched jobs.
+   `MaxConcurrentJobs` and a `QueueCapacity` below 1 and a `FullMode` that names no member of
+   `BoundedChannelFullMode`, naming the configuration key of each, and `AddInProcessJobDispatcher` registers it with
+   `ValidateOnStart`; `AddConfiguration` binds the options from `OpenId:InProcessJobDispatcher`
+   ([ADR-0242](0242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)). A queue that holds no job
+   and a worker that runs none stop the host, instead of dropping or never running the dispatched jobs.
 3. **A failed attempt is any error while the host is not stopping.** An attempt fails when resolving or running the
    job's handlers throws and the stopping token is not cancelled, an `OperationCanceledException` from a handler's own
    timeout included. Only a cancelled stopping token ends a consumer, quietly, and the jobs in flight end with the host.
@@ -50,8 +54,9 @@ that fails for any reason but the host stopping is retried once.**
 - **A durable adapter** (backlog `D5`). Deferred: it answers a delivery that survives a restart, not a slow endpoint
   that holds the in-process worker. A deployment that needs it registers its own `IJobDispatcher`
   ([ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md)).
-- **Binding the options from configuration** (backlog `R103`). Deferred: a host tunes `InProcessJobDispatcherOptions` in
-  code, and the keys and the strict binding of a configuration section are a decision of their own.
+- **Options set only in code.** Rejected: an operator tunes the dispatcher through configuration, which
+  `AddConfiguration` binds from `OpenId:InProcessJobDispatcher`
+  ([ADR-0242](0242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)).
 
 ## Consequences
 

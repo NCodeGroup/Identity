@@ -69,6 +69,22 @@ public class RegisteredValueCoherenceRuleTests : BaseTests
             OnMerge = SettingMerge.Or,
         };
 
+    private static SettingDescriptor<TimeSpan> CreateMinLifetime() =>
+        new()
+        {
+            Name = OpenIdSettingNames.AccessTokenLifetime,
+            AppliesTo = [OpenIdSettingScopes.Client],
+            OnMerge = SettingMerge.Min,
+        };
+
+    private static SettingDescriptor<int> CreateMaxLength() =>
+        new()
+        {
+            Name = OpenIdSettingNames.UserCodeLength,
+            AppliesTo = [OpenIdSettingScopes.Client],
+            OnMerge = SettingMerge.Max,
+        };
+
     private IReadOnlySettingCollection CreateRegisteredSettings(params Setting[] settings)
     {
         var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
@@ -90,13 +106,23 @@ public class RegisteredValueCoherenceRuleTests : BaseTests
         MockEffectiveSettings.Setup(x => x.TryGetValue(settingName, out output)).Returns(true);
     }
 
+    private void SetupEffectiveValue(string settingName, object value)
+    {
+        object? output = value;
+        MockEffectiveSettings.Setup(x => x.TryGetValue(settingName, out output)).Returns(true);
+    }
+
     private RegisteredValueCoherenceRule CreateRule(params SettingDescriptor[] descriptors)
     {
         var mockProvider = CreateLooseMock<ISettingDescriptorCollectionProvider>();
         mockProvider
             .SetupGet(x => x.Collection)
             .Returns(new TestSettingDescriptorCollection(descriptors));
-        return new RegisteredValueCoherenceRule(mockProvider.Object);
+
+        var mockScopeProvider = CreateLooseMock<ISettingScopeCollectionProvider>();
+        mockScopeProvider.SetupGet(x => x.Collection).Returns(TestSettingScopeCollection.OpenId);
+
+        return new RegisteredValueCoherenceRule(mockProvider.Object, mockScopeProvider.Object);
     }
 
     private ClientCoherenceContext CreateContext(IReadOnlySettingCollection registeredSettings) =>
@@ -111,25 +137,29 @@ public class RegisteredValueCoherenceRuleTests : BaseTests
     #region SettingNames Property Tests
 
     [Fact]
-    public void SettingNames_ListsEveryListAndFlagThatMergesWithALatticeOperation()
+    public void SettingNames_ListsEverySettingThatMergesWithAMeetWithinTheClientScope()
     {
         var rule = CreateRule(
             CreateIntersectList(),
             CreateAndFlag(),
+            CreateMinLifetime(),
             CreateReplaceList(),
-            new SettingDescriptor<string>
+            CreateOrFlag(),
+            CreateMaxLength(),
+            new SettingDescriptor<TimeSpan>
             {
-                Name = OpenIdSettingNames.TokenEndpointAuthMethod,
-                AppliesTo = [OpenIdSettingScopes.Client],
+                Name = OpenIdSettingNames.SectorIdentifierUriFetchTimeout,
+                AppliesTo = [OpenIdSettingScopes.Tenant],
                 OnMerge = SettingMerge.Min,
             }
         );
 
         var names = rule.SettingNames;
 
-        Assert.Equal(2, names.Count);
+        Assert.Equal(3, names.Count);
         Assert.Contains(OpenIdSettingNames.GrantTypesSupported, names);
         Assert.Contains(OpenIdSettingNames.TlsClientCertificateBoundAccessTokens, names);
+        Assert.Contains(OpenIdSettingNames.AccessTokenLifetime, names);
     }
 
     #endregion
@@ -221,6 +251,79 @@ public class RegisteredValueCoherenceRuleTests : BaseTests
         var violations = rule.FindViolations(CreateContext(registered));
 
         Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void FindViolations_WhenARegisteredValueExceedsItsMinCeiling_ReportsIt()
+    {
+        var rule = CreateRule();
+        var registered = CreateRegisteredSettings(
+            CreateMinLifetime().Create(TimeSpan.FromHours(1))
+        );
+        SetupEffectiveValue(OpenIdSettingNames.AccessTokenLifetime, TimeSpan.FromMinutes(5));
+
+        var violations = rule.FindViolations(CreateContext(registered));
+
+        var violation = Assert.Single(violations);
+        Assert.Equal(
+            new ClientCoherenceViolation(
+                OpenIdSettingNames.AccessTokenLifetime,
+                "01:00:00",
+                OpenIdSettingNames.AccessTokenLifetime
+            )
+            {
+                Description =
+                    "The 'access_token_lifetime' value '01:00:00' exceeds the effective 'access_token_lifetime' value '00:05:00'.",
+            },
+            violation
+        );
+    }
+
+    [Fact]
+    public void FindViolations_WhenARegisteredValueEqualsItsMinCeiling_ReturnsEmpty()
+    {
+        var rule = CreateRule();
+        var registered = CreateRegisteredSettings(
+            CreateMinLifetime().Create(TimeSpan.FromMinutes(5))
+        );
+        SetupEffectiveValue(OpenIdSettingNames.AccessTokenLifetime, TimeSpan.FromMinutes(5));
+
+        var violations = rule.FindViolations(CreateContext(registered));
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void FindViolations_WhenAMaxFloorRaisesARegisteredValue_ReturnsEmpty()
+    {
+        var rule = CreateRule();
+        var registered = CreateRegisteredSettings(CreateMaxLength().Create(6));
+        SetupEffectiveValue(OpenIdSettingNames.UserCodeLength, 8);
+
+        var violations = rule.FindViolations(CreateContext(registered));
+
+        Assert.Empty(violations);
+    }
+
+    [Fact]
+    public void FindViolations_WhenAListOfAnotherElementTypeLosesAValue_ReportsIt()
+    {
+        const string Name = "it_ports_supported";
+
+        var rule = CreateRule();
+        var descriptor = new SettingDescriptor<IReadOnlyCollection<int>>
+        {
+            Name = Name,
+            AppliesTo = [OpenIdSettingScopes.Client],
+            OnMerge = SettingMerge.Intersect,
+        };
+        var registered = CreateRegisteredSettings(descriptor.Create([443, 8443]));
+        SetupEffectiveValue(Name, new List<int> { 443 });
+
+        var violations = rule.FindViolations(CreateContext(registered));
+
+        var violation = Assert.Single(violations);
+        Assert.Equal(new ClientCoherenceViolation(Name, "8443", Name), violation);
     }
 
     #endregion

@@ -10,6 +10,13 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The in-process dispatcher is configured from `OpenId:InProcessJobDispatcher`.** `AddConfiguration` binds
+  `InProcessJobDispatcherOptions` (`QueueCapacity`, `FullMode`, `MaxConcurrentJobs`) strictly from the OpenID section's
+  `InProcessJobDispatcher` subsection, which `InProcessJobDispatcherOptions.SectionName` names, and the host refuses to
+  start on an unknown key, a capacity or concurrency below 1, or a `FullMode` that names no member of
+  `BoundedChannelFullMode`; each failure names its key
+  ([ADR-0242](docs/adr/0242-the-in-process-dispatcher-is-configured-under-the-openid-section.md), backlog `R103`).
+
 - **The management API lists a tenant's incoherent clients.** `GET api/tenants/{tenantId}/incoherent-clients` checks a
   page of the tenant's stored clients (`cursor`, `limit` up to 100) against the tenant's effective settings and returns
   each client they make incoherent with every violation (`settingName`, `value`, `governingSettingName`,
@@ -688,6 +695,16 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **Breaking: a client value that a ceiling lowers is incoherent.** `RegisteredValueCoherenceRule` checks every
+  setting a client registers whose merge is a meet (`Min`, `And` or `Intersect`, which the added abstract
+  `SettingDescriptor.HasMeetMerge` states), so a lifetime, timeout, size or rate above what the tenant, the server or a
+  selected security profile permits is refused at registration and at a management write, a tenant or server write
+  that would lower it below a client's value is refused, and the reconciliation and the incoherent-client report list
+  it: `The 'access_token_lifetime' value '01:00:00' exceeds the effective 'access_token_lifetime' value '00:05:00'.` A
+  value that a ceiling already lowers blocks no write that moves that ceiling, because a write matches a violation
+  that predates it without its description. A floor (`Max`, `Or`, `Union`) is never reported
+  ([ADR-0240](docs/adr/0240-a-client-value-that-a-ceiling-lowers-is-incoherent.md), backlog `R71`).
 
 - **The in-process dispatcher runs jobs concurrently.** Up to `InProcessJobDispatcherOptions.MaxConcurrentJobs` jobs
   (16 by default) run at once, so a delivery that waits on an unreachable endpoint holds one worker while the jobs
@@ -1957,6 +1974,14 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **A settings write passes a stored document that cannot be honored.** A server or tenant settings write does not
+  fail with `500` when a stored client's or tenant's settings document names a setting, a value or a scope the settings
+  vocabulary rejects: the write logs the document (`ClientSettingsUnreadable`, `TenantSettingsUnreadable`, event IDs
+  3006 and 3007) and does not count it as a violation the change introduces, and a write that replaces such a document
+  of its own checks no client and logs it (`ServerSettingsUnreadable`, 3008, or `TenantSettingsUnreadable`), so the
+  management API can repair it; the incoherent-client report still lists the client
+  ([ADR-0241](docs/adr/0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md), backlog `R104`).
 
 - **The ASP.NET Core Identity adapter stores a password the password policy accepts.** It hashes a password with the
   user manager's password hasher and stores the hash through `IUserPasswordStore<TUser>`, creating the user with

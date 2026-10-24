@@ -32,7 +32,10 @@ internal interface ITenantClientCoherenceChecker
     /// Walks no client when no setting a coherence rule reads changed. Otherwise merges each client of a tenant onto
     /// the tenant's effective settings before and after the change, as the runtime merges it, and returns only the
     /// violations the change introduces. A mismatch that predates the change is not returned, so it never blocks a
-    /// write the change does not affect.
+    /// write the change does not affect. A violation that predates the change is matched by the client setting, the
+    /// value and the governing setting that it names, not by its description, which can name an effective value that
+    /// the change moves. A client whose settings document the settings vocabulary cannot honor is logged and skipped,
+    /// because it is incoherent before and after the change.
     /// </summary>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to page through the tenant's clients.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant whose clients to check.</param>

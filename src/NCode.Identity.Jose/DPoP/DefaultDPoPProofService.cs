@@ -21,6 +21,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jwk;
@@ -45,6 +46,7 @@ internal class DefaultDPoPProofService(
 ) : IDPoPProofService
 {
     private const int JtiSizeBytes = 16;
+    private const int JwsSegmentCount = 3;
 
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IJoseSerializer JoseSerializer { get; } = joseSerializer;
@@ -128,17 +130,24 @@ internal class DefaultDPoPProofService(
     {
         proof = null;
 
-        // A DPoP proof is a compact JWS: header.payload.signature (RFC 9449 §4.2).
-        var parts = proofJwt.Split('.');
-        if (parts.Length != 3)
+        // A DPoP proof is a compact JWS: header.payload.signature (RFC 9449 §4.2); the spare slot catches extra segments.
+        var proofSpan = proofJwt.AsSpan();
+        Span<Range> ranges = stackalloc Range[JwsSegmentCount + 1];
+        var segmentCount = proofSpan.Split(ranges, '.');
+        if (segmentCount != JwsSegmentCount)
         {
             error = "The DPoP proof is not a well-formed compact JWS.";
             return false;
         }
 
+        var encodedHeader = proofSpan[ranges[0]];
+        var encodedPayload = proofSpan[ranges[1]];
+        var encodedSigningInput = proofSpan[..ranges[1].End];
+        var encodedSignature = proofSpan[ranges[2]];
+
         if (
-            !TryDecodeObject(parts[0], out var header)
-            || !TryDecodeObject(parts[1], out var payload)
+            !TryDecodeObject(encodedHeader, out var header)
+            || !TryDecodeObject(encodedPayload, out var payload)
         )
         {
             error = "The DPoP proof header or payload could not be decoded.";
@@ -201,7 +210,15 @@ internal class DefaultDPoPProofService(
             return false;
         }
 
-        if (!TryVerifySignature(signatureAlgorithm, secretKey, parts, out error))
+        if (
+            !TryVerifySignature(
+                signatureAlgorithm,
+                secretKey,
+                encodedSigningInput,
+                encodedSignature,
+                out error
+            )
+        )
             return false;
 
         // RFC 7638: the thumbprint is computed over the key type's required members in canonical form.
@@ -322,15 +339,25 @@ internal class DefaultDPoPProofService(
     private static bool TryVerifySignature(
         SignatureAlgorithm signatureAlgorithm,
         SecretKey secretKey,
-        string[] parts,
+        ReadOnlySpan<char> encodedSigningInput,
+        ReadOnlySpan<char> encodedSignature,
         [NotNullWhen(false)] out string? error
     )
     {
-        var signingInput = Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}");
         bool verified;
         try
         {
-            var signature = DecodeBase64Url(parts[2]);
+            using var signatureLease = Jose.JoseSerializer.DecodeBase64Url(
+                encodedSignature,
+                isSensitive: false,
+                out var signature
+            );
+            using var signingInputLease = BufferFactory.Rent(
+                encodedSigningInput.Length,
+                isSensitive: false,
+                out Span<byte> signingInput
+            );
+            Encoding.ASCII.GetBytes(encodedSigningInput, signingInput);
             verified =
                 signature.Length == signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits)
                 && signatureAlgorithm.Verify(secretKey, signingInput, signature);
@@ -447,12 +474,16 @@ internal class DefaultDPoPProofService(
         return true;
     }
 
-    private static bool TryDecodeObject(string encoded, out JsonElement element)
+    private static bool TryDecodeObject(ReadOnlySpan<char> encoded, out JsonElement element)
     {
         try
         {
-            using var document = JsonDocument.Parse(DecodeBase64Url(encoded));
-            element = document.RootElement.Clone();
+            using var lease = Jose.JoseSerializer.DecodeBase64Url(
+                encoded,
+                isSensitive: false,
+                out var utf8Json
+            );
+            element = JsonElement.Parse(utf8Json);
             return element.ValueKind == JsonValueKind.Object;
         }
         catch (Exception exception) when (exception is FormatException or JsonException)
@@ -460,14 +491,5 @@ internal class DefaultDPoPProofService(
             element = default;
             return false;
         }
-    }
-
-    private static byte[] DecodeBase64Url(string value)
-    {
-        var byteCount = Base64Url.GetByteCountForDecode(value.Length);
-        var buffer = new byte[byteCount];
-        if (!Base64Url.TryDecode(value, buffer, out var bytesWritten))
-            throw new FormatException("The value is not valid base64url.");
-        return bytesWritten == byteCount ? buffer : buffer[..bytesWritten];
     }
 }

@@ -347,6 +347,12 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   never the attribute that React's `defaultValue` writes, so a carried password stays out of the markup. Never call
   `flushSync` here (`@eslint-react/dom-no-flush-sync` is an error); a root's first render is not time-sliced, so it
   is not needed (ADR-0253).
+- **The interactive bundle carries the page's Content-Security-Policy nonce.** `defineBackendServedSurfaceConfig` sets
+  Vite's `html.cspNonce` to `CSP_NONCE_PLACEHOLDER`, so the build writes `nonce="__NCODE_CSP_NONCE__"` on every script
+  and modulepreload link and on a `<meta property="csp-nonce">`; the host writes the response's nonce in its place, and
+  `mountSurface` reads it with `readCspNonce` and gives it to the emotion cache, so MUI's `<style>` elements are
+  allowed. A browser hides the `nonce` attribute once the page is parsed, so read the `nonce` property; jsdom has no
+  such property, so a test assigns `meta.nonce` itself (ADR-0256).
 - **jsdom + undici cross-realm `AbortSignal`.** Under `environment: 'jsdom'`, `fetch`/`Request`/`Response`
   stay Node's (undici) globals while jsdom overrides `AbortController`/`AbortSignal`. `fetchBaseQuery`
   builds `new Request(url, { signal })` from the global (jsdom) `AbortController`, and undici's `Request`
@@ -386,6 +392,12 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   the resource still has dependents). Invalidate both the `LIST` tag and the per-id tag so the scoped
   caches reconcile. Server failures are RFC 7807 Problem Details; surface them through
   [`apiErrorMessage`](packages/store/src/apiError.ts) rather than re-deriving messages in each container.
+- **A resource every owner has is one endpoint per operation, keyed by a `ManagementOwner`.** Secrets and settings
+  belong to the server, a tenant, or a client or resource server in a scope; `@ncode/api`'s
+  [`owner.ts`](packages/api/src/owner.ts) builds each owner's API path (`ownerApiPath`) and cache tags (`ownerTagId`,
+  `ownerEffectiveTagId`), and `@ncode/store` defines `listSecrets`, `getSettings` and the rest once. A new owner kind is
+  a member of `ManagementOwner`, never another set of endpoints; the detail pages render `OwnerSecretsTab` and
+  `OwnerSettingsTab` (ADR-0257).
 - **A query that checks live input shows its result only while the result describes that input.** RTK Query keeps
   returning the previous `data` while a query for new arguments loads, and a debounced input lags the field it reads,
   so a preview of the old input would be shown as the current one. Compare the hook's `originalArgs` with the input as

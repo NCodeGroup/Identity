@@ -4,6 +4,7 @@ import { ASYNC_UTIL_TIMEOUT_MS } from '@ncode/test-support';
 import {
   BROWSER_TEST_TIMEOUT_MS,
   CHUNK_SIZE_LIMIT_KB,
+  CSP_NONCE_PLACEHOLDER,
   defineBackendServedSurfaceConfig,
   defineStandaloneSurfaceConfig,
   defineTestConfig,
@@ -242,6 +243,7 @@ describe('defineStandaloneSurfaceConfig', () => {
     });
 
     expect(config.base).toBe('/');
+    expect(config).not.toHaveProperty('html');
     expect(config.server).toStrictEqual({
       port: 5174,
       strictPort: true,
@@ -285,10 +287,15 @@ describe('defineBackendServedSurfaceConfig', () => {
     const config = defineBackendServedSurfaceConfig({ coverage: floors });
 
     expect(config.base).toBe('./');
+    expect(config.html).toStrictEqual({ cspNonce: '__NCODE_CSP_NONCE__' });
     expect(config).not.toHaveProperty('server');
     expect(config.build).toStrictEqual(expectedBuild);
     expect(config.test).toStrictEqual(testGates({ environment: 'jsdom', coverage: floors }));
     expect(pluginNames(config.plugins ?? [])).toContain('vite:react-babel');
     expect(pluginNames(config.plugins ?? [])).toContain('ncode:fail-on-oversized-chunks');
+  });
+
+  it("names the placeholder the host replaces with each response's nonce", () => {
+    expect(CSP_NONCE_PLACEHOLDER).toBe('__NCODE_CSP_NONCE__');
   });
 });

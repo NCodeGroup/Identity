@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S21`     | `S20`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R113`    | `R112`     |
+| `R` — Review findings                 | `R114`    | `R113`     |
 
 ---
 
@@ -548,6 +548,13 @@ _None remaining._
   page the surface writes, and decide the rest of the surface's Content-Security-Policy (the bundle's module
   scripts and emotion's styles) with it. Touch points: `InteractiveHtmlResult.WriteAsync`,
   `InteractiveOpenIdErrorResponseFormatter`.
+- **`R113` — Send `Strict-Transport-Security` from the reference host.** The host redirects plain HTTP to HTTPS
+  (`UseHttpsRedirection`) but sends no HSTS header, so when it terminates TLS itself, as mutual TLS requires, a
+  browser's later plain-HTTP request to the issuer can be intercepted before the redirect (RFC 6797, OWASP Secure
+  Headers). Add HSTS to the server's turnkey pipeline outside Development, configured from a section (`max-age`,
+  `includeSubDomains`, `preload`), and document that a TLS-terminating proxy sends it instead
+  ([ADR-0256](docs/adr/0256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
+  Touch points: `src/NCode.Identity.OpenId.Host/Program.cs`, `NCode.Identity.Server`.
 
 ### P3
 

@@ -46,6 +46,14 @@ export {
   type SettingsPatchOperation,
 } from './jsonPatch.js';
 export {
+  ownerApiPath,
+  ownerEffectiveTagId,
+  ownerScope,
+  ownerTagId,
+  type ClientOwner,
+  type ManagementOwner,
+} from './owner.js';
+export {
   GLOBAL_SCOPE,
   isGlobalScope,
   LIST_TAG,

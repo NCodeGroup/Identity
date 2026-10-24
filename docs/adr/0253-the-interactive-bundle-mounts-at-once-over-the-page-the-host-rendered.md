@@ -1,6 +1,8 @@
 # 253. The interactive bundle mounts at once over the page the host rendered
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0256](0256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md):
+  the bundle runs only the scripts and styles that carry the page's nonce)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

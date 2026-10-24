@@ -1742,3 +1742,39 @@ NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitStages
 const NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitStages.ClientAuthentication = "client_authentication" -> string!
 const NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitStages.Request = "request" -> string!
 const NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitStages.TokenRequest = "token_request" -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirectives
+const NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirectives.BaseUri = "base-uri" -> string!
+const NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirectives.ConnectSrc = "connect-src" -> string!
+const NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirectives.DefaultSrc = "default-src" -> string!
+const NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirectives.FormAction = "form-action" -> string!
+const NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirectives.FrameAncestors = "frame-ancestors" -> string!
+const NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirectives.FrameSrc = "frame-src" -> string!
+const NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirectives.ImgSrc = "img-src" -> string!
+const NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirectives.ScriptSrc = "script-src" -> string!
+const NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirectives.StyleSrc = "style-src" -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicySources
+const NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicySources.None = "'none'" -> string!
+const NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicySources.Self = "'self'" -> string!
+const NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicySources.StrictDynamic = "'strict-dynamic'" -> string!
+static NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicySources.CreateNonce() -> string!
+static NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicySources.Nonce(string! nonce) -> string!
+static NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicySources.Origin(System.Uri! uri) -> string!
+static NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicySources.Sha256(string! script) -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirective
+NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirective.ContentSecurityPolicyDirective(string! name, params System.Collections.Generic.IEnumerable<string!>! sources) -> void
+NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirective.Name.get -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirective.Sources.get -> System.Collections.Immutable.ImmutableArray<string!>
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy.AllowsAnyFormAction.get -> bool
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy.AllowsAnyFormAction.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy.AllowsFraming.get -> bool
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy.AllowsFraming.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy.Directives.get -> System.Collections.Immutable.ImmutableArray<NCode.Identity.OpenId.Authentication.Endpoints.ContentSecurityPolicyDirective!>
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy.Directives.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy.FrameAncestors.get -> System.Collections.Immutable.ImmutableArray<string!>
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy.FrameAncestors.init -> void
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy.HtmlPageSecurityPolicy() -> void
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy.ToContentSecurityPolicy() -> string!
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityResponseExtensions
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!)
+NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!).SetHtmlPageSecurity(NCode.Identity.OpenId.Authentication.Endpoints.HtmlPageSecurityPolicy! policy) -> void

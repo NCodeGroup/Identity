@@ -744,6 +744,17 @@ rationale.
   reads through the `assets`-rooted `InteractiveBundleReader`, so nothing outside `assets`, the bundle's `index.html`
   included, is servable, and it sends a served file `Cache-Control: public, max-age=31536000, immutable`. See
   [ADR-0254](../../docs/adr/0254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md).
+- 👁 **Every HTML page the server writes sets its headers through `SetHtmlPageSecurity`.** Build the page's
+  `HtmlPageSecurityPolicy` from the strict default (`default-src 'none'`, `base-uri 'none'`, `form-action 'none'`,
+  `frame-ancestors 'none'` with `X-Frame-Options: DENY`) and list only the sources the page needs — an inline script by
+  its `ContentSecurityPolicySources.Sha256` hash, the bundle by the response's nonce, never `'unsafe-inline'` — and
+  write no `style` attribute (use `hidden`). Set `AllowsAnyFormAction` only on a page whose form submission can reach a
+  client (the interactive surface, the `form_post` response), because Chrome and Safari check `form-action` against
+  every redirect that follows it, and `AllowsFraming` only on a page a relying party frames by design (the
+  `check_session_iframe`). List `FrameAncestors` to let only named origins frame a page (the `form_post` response, by
+  its redirect URI's origin). Antiforgery adds `X-Frame-Options` only when it stores an antiforgery cookie, so never
+  rely on it. See
+  [ADR-0256](../../docs/adr/0256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md).
 - 👁 **Background work that runs protocol machinery in a tenant creates its context with
   `IOpenIdContextFactory.CreateForBackgroundAsync` in its own DI scope.** The context has no endpoint, connection or
   user, and it is disposed before the scope. See

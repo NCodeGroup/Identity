@@ -90,6 +90,7 @@ public class InteractiveBundleShellTests
             shell,
             surfaceBase: "/acme/account/",
             branding: null,
+            nonce: "n0nce",
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -106,6 +107,27 @@ public class InteractiveBundleShellTests
         Assert.Contains("src=\"./assets/", html, StringComparison.Ordinal);
         Assert.Contains(
             "<div id=\"root\"><main class=\"auth-card\">",
+            html,
+            StringComparison.Ordinal
+        );
+
+        // The build writes the placeholder that Vite's html.cspNonce names and the host replaces it with the nonce.
+        Assert.Contains(
+            "<script type=\"module\" crossorigin src=\"./assets/",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Contains(
+            "<meta property=\"csp-nonce\" nonce=\"n0nce\">",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Matches(
+            "<script type=\"module\" crossorigin src=\"\\./assets/[^\"]+\" nonce=\"n0nce\"></script>",
+            html
+        );
+        Assert.DoesNotContain(
+            InteractiveBundleShell.NoncePlaceholder,
             html,
             StringComparison.Ordinal
         );

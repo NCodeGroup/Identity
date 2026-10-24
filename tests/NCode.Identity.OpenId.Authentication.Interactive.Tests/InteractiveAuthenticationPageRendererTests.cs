@@ -29,6 +29,13 @@ public class InteractiveAuthenticationPageRendererTests
 
     private const string SurfaceBase = "/acme/account/";
 
+    private const string Nonce = "n0nce";
+
+    private const string NonceBundleShell =
+        "<!doctype html><html><head><meta property=\"csp-nonce\" nonce=\"__NCODE_CSP_NONCE__\">"
+        + "<script type=\"module\" src=\"./app.js\" nonce=\"__NCODE_CSP_NONCE__\"></script></head>"
+        + "<body><div id=\"root\"></div></body></html>";
+
     private static InteractiveBranding AcmeBranding { get; } =
         new("Acme", null, null, null, "dark");
 
@@ -43,6 +50,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: null,
             surfaceBase: SurfaceBase,
             branding: null,
+            nonce: Nonce,
             returnUrl: "/connect/authorize",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "token-123",
@@ -75,6 +83,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: null,
             surfaceBase: SurfaceBase,
             branding: null,
+            nonce: Nonce,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -95,6 +104,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: null,
             surfaceBase: SurfaceBase,
             branding: null,
+            nonce: Nonce,
             returnUrl: "\"><script>alert(1)</script>",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -114,6 +124,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: InteractiveBundleShell.TryCreate(BundleShell),
             surfaceBase: SurfaceBase,
             branding: null,
+            nonce: Nonce,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -136,6 +147,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: InteractiveBundleShell.TryCreate(BundleShell),
             surfaceBase: SurfaceBase,
             branding: null,
+            nonce: Nonce,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -166,6 +178,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: null,
             surfaceBase: SurfaceBase,
             branding: null,
+            nonce: Nonce,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -189,6 +202,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: InteractiveBundleShell.TryCreate(BundleShell),
             surfaceBase: SurfaceBase,
             branding: AcmeBranding,
+            nonce: Nonce,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -220,6 +234,7 @@ public class InteractiveAuthenticationPageRendererTests
                 null,
                 null
             ),
+            nonce: Nonce,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -240,6 +255,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: null,
             surfaceBase: SurfaceBase,
             branding: AcmeBranding,
+            nonce: Nonce,
             returnUrl: "/",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -263,6 +279,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: null,
             surfaceBase: SurfaceBase,
             branding: null,
+            nonce: Nonce,
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -286,6 +303,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: null,
             surfaceBase: SurfaceBase,
             branding: null,
+            nonce: Nonce,
             returnUrl: "/continue",
             antiforgeryFieldName: "__RequestVerificationToken",
             antiforgeryToken: "t",
@@ -324,6 +342,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: null,
             surfaceBase: SurfaceBase,
             branding: null,
+            nonce: Nonce,
             errorCode: "unauthorized_client",
             errorDescription: "The specified 'redirect_uri' is not valid for the associated 'client_id'."
         );
@@ -349,6 +368,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: null,
             surfaceBase: SurfaceBase,
             branding: null,
+            nonce: Nonce,
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -371,6 +391,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: null,
             surfaceBase: SurfaceBase,
             branding: null,
+            nonce: Nonce,
             errorCode: "\"><script>alert(1)</script>",
             errorDescription: null
         );
@@ -388,6 +409,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: InteractiveBundleShell.TryCreate(BundleShell),
             surfaceBase: SurfaceBase,
             branding: null,
+            nonce: Nonce,
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -407,6 +429,7 @@ public class InteractiveAuthenticationPageRendererTests
             shell: null,
             surfaceBase: "/a&b/account/",
             branding: null,
+            nonce: Nonce,
             errorCode: "invalid_client",
             errorDescription: null
         );
@@ -417,6 +440,29 @@ public class InteractiveAuthenticationPageRendererTests
             html,
             StringComparison.Ordinal
         );
+    }
+
+    [Fact]
+    public void RenderErrorPage_WhenTheDescriptionCarriesTheNoncePlaceholder_WritesItAsText()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderErrorPage(
+            writer,
+            shell: InteractiveBundleShell.TryCreate(NonceBundleShell),
+            surfaceBase: SurfaceBase,
+            branding: null,
+            nonce: Nonce,
+            errorCode: "invalid_client",
+            errorDescription: "__NCODE_CSP_NONCE__"
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        Assert.Contains(
+            "class=\"auth-error-description\">__NCODE_CSP_NONCE__</p>",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("nonce=\"n0nce\"", html, StringComparison.Ordinal);
     }
 
     #endregion
@@ -431,7 +477,8 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             InteractiveBundleShell.TryCreate(BundleShell)!,
             SurfaceBase,
-            branding: null
+            branding: null,
+            nonce: Nonce
         );
 
         Assert.Equal(
@@ -449,13 +496,35 @@ public class InteractiveAuthenticationPageRendererTests
             writer,
             InteractiveBundleShell.TryCreate(BundleShell)!,
             SurfaceBase,
-            AcmeBranding
+            AcmeBranding,
+            nonce: Nonce
         );
 
         Assert.Equal(
             "<!doctype html><html><head><base href=\"/acme/account/\" />"
                 + "<script type=\"application/json\" id=\"branding\">{\"displayName\":\"Acme\",\"mode\":\"dark\"}</script>"
                 + "<title>t</title></head><body><div id=\"root\"></div><script src=\"./app.js\"></script></body></html>",
+            writer.WrittenSpan.ToString()
+        );
+    }
+
+    [Fact]
+    public void RenderBundlePage_WhenTheBundleCarriesTheNoncePlaceholder_WritesTheNonceInItsPlace()
+    {
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderBundlePage(
+            writer,
+            InteractiveBundleShell.TryCreate(NonceBundleShell)!,
+            SurfaceBase,
+            branding: null,
+            nonce: Nonce
+        );
+
+        Assert.Equal(
+            "<!doctype html><html><head><base href=\"/acme/account/\" />"
+                + "<meta property=\"csp-nonce\" nonce=\"n0nce\">"
+                + "<script type=\"module\" src=\"./app.js\" nonce=\"n0nce\"></script></head>"
+                + "<body><div id=\"root\"></div></body></html>",
             writer.WrittenSpan.ToString()
         );
     }

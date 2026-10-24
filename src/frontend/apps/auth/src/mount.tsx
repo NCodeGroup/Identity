@@ -1,8 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import createCache from '@emotion/cache';
+import { CacheProvider } from '@emotion/react';
 import { AppThemeProvider } from '@ncode/ui';
 import { App } from './App.js';
 import { readBranding } from './branding.js';
+import { readCspNonce } from './cspNonce.js';
 import { readServerPage } from './serverPage.js';
 
 /**
@@ -13,14 +16,20 @@ export function mountSurface(container: HTMLElement, doc: Document = document): 
   // Read what the end-user typed or the browser autofilled before React replaces the page (ADR-0253).
   const serverPage = readServerPage(container, doc.activeElement);
   const branding = readBranding(doc);
+  // Emotion writes the theme's styles into `<style>` elements, which the page's Content-Security-Policy admits only
+  // with the host's nonce (ADR-0256).
+  const nonce = readCspNonce(doc);
+  const styleCache = createCache({ key: 'auth', container: doc.head, ...(nonce ? { nonce } : {}) });
 
   // A root's first render is not time-sliced, so it commits in the task after this one and `flushSync` is not needed.
   const root = createRoot(container);
   root.render(
     <StrictMode>
-      <AppThemeProvider {...(branding ? { branding } : {})}>
-        <App serverPage={serverPage} {...(branding ? { branding } : {})} />
-      </AppThemeProvider>
+      <CacheProvider value={styleCache}>
+        <AppThemeProvider {...(branding ? { branding } : {})}>
+          <App serverPage={serverPage} {...(branding ? { branding } : {})} />
+        </AppThemeProvider>
+      </CacheProvider>
     </StrictMode>,
   );
   return root;

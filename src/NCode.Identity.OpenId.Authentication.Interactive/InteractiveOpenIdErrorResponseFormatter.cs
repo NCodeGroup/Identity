@@ -52,17 +52,20 @@ internal sealed class InteractiveOpenIdErrorResponseFormatter(
     {
         var error = (IOpenIdError)context.Response;
 
+        // A request that resolved no tenant has no branding to embed.
+        var branding = context.HttpContext.GetOpenIdContextOrDefault() is { } openIdContext
+            ? InteractiveBranding.FromSettings(openIdContext.Tenant.SettingsProvider.Collection)
+            : null;
+        var security = InteractivePageSecurity.Create(branding);
+
         using var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderErrorPage(
             html,
             await BundleReader.TryReadShellAsync(cancellationToken),
             // The page is served at the protocol endpoint, so its base points the bundle's assets at the surface.
             SurfacePaths.GetSurfaceBase(context.HttpContext),
-            // A request that resolved no tenant has no branding to embed.
-            context.HttpContext.GetOpenIdContextOrDefault()
-                is { } openIdContext
-                ? InteractiveBranding.FromSettings(openIdContext.Tenant.SettingsProvider.Collection)
-                : null,
+            branding,
+            security.Nonce,
             error.Code,
             error.Description
         );
@@ -76,6 +79,7 @@ internal sealed class InteractiveOpenIdErrorResponseFormatter(
         await InteractiveHtmlResult.WriteAsync(
             httpResponse,
             html.AsReadOnlySequence,
+            security.Policy,
             cancellationToken
         );
     }

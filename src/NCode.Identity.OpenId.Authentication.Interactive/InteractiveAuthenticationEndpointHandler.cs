@@ -136,18 +136,21 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     {
         var tokens = IssueAntiforgeryTokens(httpContext);
         var query = httpContext.Request.Query;
+        var branding = ReadBranding(httpContext);
+        var security = InteractivePageSecurity.Create(branding);
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderLoginPage(
             html,
             await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
             SurfacePaths.GetSurfaceBase(httpContext),
-            ReadBranding(httpContext),
+            branding,
+            security.Nonce,
             query["ReturnUrl"].ToString(),
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
             DescribeLoginError(query["error"].ToString())
         );
-        return new InteractiveHtmlResult(html);
+        return new InteractiveHtmlResult(html, security.Policy);
     }
 
     /// <summary>
@@ -195,19 +198,22 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             }
         }
 
+        var branding = ReadBranding(httpContext);
+        var security = InteractivePageSecurity.Create(branding);
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderConsentPage(
             html,
             await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
             SurfacePaths.GetSurfaceBase(httpContext),
-            ReadBranding(httpContext),
+            branding,
+            security.Nonce,
             rawReturnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
             appName,
             scopes
         );
-        return new InteractiveHtmlResult(html);
+        return new InteractiveHtmlResult(html, security.Policy);
     }
 
     /// <summary>
@@ -1077,14 +1083,17 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             return BundleMissingResult();
         }
 
+        var branding = ReadBranding(httpContext);
+        var security = InteractivePageSecurity.Create(branding);
         var html = InteractiveHtmlResult.CreateBuffer();
         InteractiveAuthenticationPageRenderer.RenderBundlePage(
             html,
             shell,
             SurfacePaths.GetSurfaceBase(httpContext),
-            ReadBranding(httpContext)
+            branding,
+            security.Nonce
         );
-        return new InteractiveHtmlResult(html);
+        return new InteractiveHtmlResult(html, security.Policy);
     }
 
     // The tenant the request resolved is the one whose page the bundle themes itself for (ADR-0253).

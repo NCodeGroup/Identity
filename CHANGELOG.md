@@ -696,6 +696,14 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Breaking (frontend): the management console reaches every owner's secrets and settings through one endpoint per
+  operation.** `@ncode/store` exposes `useListSecretsQuery`, `useCreateSecretMutation`, `useDeleteSecretMutation`,
+  `useRotateSecretMutation`, `useLazyGetSecretPublicKeyQuery`, `useGetSettingsQuery`, `useGetEffectiveSettingsQuery` and
+  `useUpdateSettingsMutation`, each taking a `ManagementOwner` from `@ncode/api`, in place of a hook per owner type, and
+  `OwnerSecretsTab` and `OwnerSettingsTab` serve every detail page
+  ([ADR-0257](docs/adr/0257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),
+  backlog `R45`).
+
 - **The `apps/auth` bundle's files are cached for a year and served without resolving the tenant.** The host serves
   only the bundle's content-hashed `assets` directory, at `GET|HEAD {tenant}/account/assets/{**asset}`, with
   `Cache-Control: public, max-age=31536000, immutable` and its `ETag` and `Last-Modified` validators, from a route
@@ -1707,6 +1715,21 @@ change to the public API is a **major** version bump.
   (supersedes ADR-0177).
 
 ### Security
+
+- **Every page the server writes has a strict Content-Security-Policy and cannot be framed, except the
+  `check_session_iframe` and, by its client's origin, the `form_post` response.**
+  `HttpResponse.SetHtmlPageSecurity(HtmlPageSecurityPolicy)` writes each page's policy (`default-src 'none'`,
+  `base-uri` and `form-action` `'none'` unless the page lists them, `frame-ancestors 'none'`) with
+  `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin` and `no-store`;
+  `ContentSecurityPolicyDirective`, `ContentSecurityPolicyDirectives` and `ContentSecurityPolicySources` build it. The
+  interactive pages run only the `apps/auth` scripts and styles that carry the response's nonce, including a page
+  served to a browser that already holds the antiforgery cookie; the `form_post` response runs only its own script and
+  may be framed only by its redirect URI's origin; the front-channel logout page frames only the clients' logout
+  origins; the `check_session_iframe` runs only its script and stays embeddable. **Breaking:** a bundle served from
+  `InteractiveAuthentication:BundleRootPath` runs its scripts only when its build writes the nonce placeholder
+  (`@ncode/vite-config`'s `CSP_NONCE_PLACEHOLDER`)
+  ([ADR-0256](docs/adr/0256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),
+  backlog `R112`).
 
 - **Client-certificate revocation retrieval is shared and remembers failures; RSA-PSS lists verify; soft-fail is
   opt-in.** `ClientCertificateRevocationOptions` from `OpenId:ClientCertificateRevocation` (`FetchTimeout`,

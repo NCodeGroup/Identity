@@ -1,20 +1,20 @@
 import { parseBrandingConfig, type BrandingConfig } from '@ncode/config';
-import { BRANDING_ENDPOINT, resolveSurfacePath } from './params.js';
+
+/** The id of the `<script type="application/json">` element in which the host embeds the tenant's branding. */
+export const BRANDING_ELEMENT_ID = 'branding';
 
 /**
- * Fetches the branding of the tenant that serves the surface. Branding only themes the surface, so any failure
- * resolves to `undefined` and the default presentation applies rather than blocking sign-in.
+ * Reads the branding of the tenant that serves the surface from the page. The host embeds the tenant's branding in
+ * every page it serves with the bundle, so nothing is requested. Branding only themes the surface, so a missing or
+ * malformed block resolves to `undefined` and the default presentation applies rather than blocking sign-in.
  */
-export async function loadBranding(
-  fetchFn: typeof fetch = fetch,
-  baseUri: string = document.baseURI,
-): Promise<BrandingConfig | undefined> {
+export function readBranding(doc: Document = document): BrandingConfig | undefined {
+  const text = doc.getElementById(BRANDING_ELEMENT_ID)?.textContent;
+  if (!text) {
+    return undefined;
+  }
   try {
-    const response = await fetchFn(resolveSurfacePath(BRANDING_ENDPOINT, baseUri), {
-      headers: { Accept: 'application/json' },
-      credentials: 'same-origin',
-    });
-    return response.ok ? parseBrandingConfig(await response.json()) : undefined;
+    return parseBrandingConfig(JSON.parse(text));
   } catch {
     return undefined;
   }

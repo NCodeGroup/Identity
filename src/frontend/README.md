@@ -73,7 +73,7 @@ src/frontend/
     ui/       @ncode/ui      — MUI design system + stateless components + Storybook
     shell/    @ncode/shell   — stateful app-shell containers shared by the surfaces (the runtime-config BootstrapGate)
     conformance-core/ @ncode/conformance-core — framework-free conformance logic (discovery, audit, spec-coverage, probes)
-    test-support/ @ncode/test-support — test-only Vitest support shared by every workspace (the console guard)
+    test-support/ @ncode/test-support — test-only Vitest support shared by every workspace (the console guard and the Testing Library wait timeout)
     vite-config/  @ncode/vite-config — the Vite/Vitest preset every workspace builds and tests from
   apps/
     mgmt/     @ncode/app-mgmt — Management console (first surface)
@@ -105,8 +105,9 @@ src/frontend/
 6. **The global vs tenant security boundary is first-class** — distinct browsing contexts, cache tags,
    and authorization gating, never one list with a filter.
 7. **Branding is a runtime seam.** `@ncode/ui` themes from runtime `BrandingConfig`. The interactive
-   surface (`apps/auth`) loads its tenant's branding from the surface-relative `branding` endpoint before
-   it renders, parsed by `parseBrandingConfig` (ADR-0194).
+   surface (`apps/auth`) reads its tenant's branding from the JSON block the host embeds in every page it
+   serves with the bundle (`<script type="application/json" id="branding">`, `BRANDING_ELEMENT_ID`), parses
+   it with `parseBrandingConfig`, and mounts at once over the server-rendered page (ADR-0194, ADR-0253).
 8. **`type` over `interface`, always.** All declarations — DTOs, props, unions — use `type` aliases,
    standardizing on the single most capable mechanism (unions, intersections, mapped/conditional
    types) rather than mixing the two.
@@ -170,7 +171,8 @@ served:
   `dist` continuously rebuilt so a browser refresh shows edits. (There is no HMR dev server because the
   .NET host, not Vite, serves these bundles.) Their config is `defineBackendServedSurfaceConfig({ coverage })`, which
   builds with a relative base: the host serves the bundle beneath each tenant's route and sets the document's
-  `<base href>` there.
+  `<base href>` there. The host serves only the bundle's `assets` directory, its content-hashed files, and marks them
+  immutable, so the preset pins `build.assetsDir` to `assets` (ADR-0254).
 - **Standalone SPAs** — served directly by Vite on their own port (e.g. `apps/mgmt`) — use **`vite`**,
   a full HMR dev server. Their config is `defineStandaloneSurfaceConfig({ port, bootstrapHost, coverage })`, which pins
   the port with `strictPort` (the surface's redirect URI, CORS origin, and AppHost endpoint all assume it) and proxies
@@ -319,12 +321,32 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   read `input instanceof Request ? input.url : String(input)` and return a real `Response`
   (`new Response(JSON.stringify(body), { status, headers })`) — a plain object lacks `.clone()`, which
   `fetchBaseQuery` calls.
-- **jsdom test timeout.** The preset gives every browser-simulating suite `testTimeout: 15_000` instead of Vitest's
-  5 s default. A jsdom test that renders a full MUI screen spends seconds in the first render (theme and emotion setup),
-  and v8 coverage instrumentation — which CI always collects (`pnpm run test:report`) — slows it further on a shared
-  runner: CI measured 2.7–7.1 s for single tests across the jsdom suites, so the default failed them intermittently. The
-  timeout is a hang guard, not a performance assertion; the `environment: 'node'` suites (milliseconds per test) keep
-  the default.
+- **Testing Library and test timeouts.** Every jsdom workspace's `vitest.setup.ts` calls
+  `configureAsyncUtilTimeout(configure)`, which gives each `findBy…` and `waitFor` `ASYNC_UTIL_TIMEOUT_MS` (10 s) from
+  `@ncode/test-support` in place of Testing Library's 1 s default. The preset gives every browser-simulating suite
+  `BROWSER_TEST_TIMEOUT_MS` (30 s), at least three waits, instead of Vitest's 5 s default, so a stuck wait fails with
+  Testing Library's DOM report rather than a bare test timeout. A jsdom test that renders a full MUI screen spends
+  seconds in the first render (theme and emotion setup), and v8 coverage instrumentation — which CI always collects
+  (`pnpm run test:report`) — slows it further on a shared runner: CI measured 2.7–7.1 s for single tests across the
+  jsdom suites, so the defaults failed them intermittently. Both are hang guards, not performance assertions; the
+  `environment: 'node'` suites (milliseconds per test) keep Vitest's 5 s default.
+- **A test waits for an outcome, never for the runner.** A test file imports a lazily loaded surface's module before it
+  renders the surface, so `React.lazy` resolves from the module cache instead of waiting on a cold transform of the
+  chunk. A debounced input takes its delay as a prop that tests set to `0` (`TenantsPage`'s `addressPreviewDelayMs`),
+  so a test never waits out a real debounce. A test awaits the request mock or the settled UI, never a duration.
+  Testing Library's `waitFor` recognizes only Jest's fake timers, so Vitest's fake timers stall it and MUI transitions
+  and are not an option (backlog `R111`).
+- **The interactive bundle mounts over the page the host rendered.** `mountSurface`
+  ([`apps/auth/src/mount.tsx`](apps/auth/src/mount.tsx)) runs when the bundle's module runs and fetches nothing: it
+  reads the `#branding` block and the page's state with `readServerPage`
+  ([`apps/auth/src/serverPage.ts`](apps/auth/src/serverPage.ts)), which holds the values of the text, email and password
+  inputs by id, the `scope` checkboxes the end-user cleared, the id of the focused input, and the authorization error
+  (`#authorization-error`, its `data-error-code`, `#authorization-error-description`), then calls
+  `createRoot(container).render(...)`. Hydration does not apply, because the host's markup is not React's output.
+  `writeCarriedValue` carries a value into an input from a stable ref callback: it assigns the DOM `value` property,
+  never the attribute that React's `defaultValue` writes, so a carried password stays out of the markup. Never call
+  `flushSync` here (`@eslint-react/dom-no-flush-sync` is an error); a root's first render is not time-sliced, so it
+  is not needed (ADR-0253).
 - **jsdom + undici cross-realm `AbortSignal`.** Under `environment: 'jsdom'`, `fetch`/`Request`/`Response`
   stay Node's (undici) globals while jsdom overrides `AbortController`/`AbortSignal`. `fetchBaseQuery`
   builds `new Request(url, { signal })` from the global (jsdom) `AbortController`, and undici's `Request`

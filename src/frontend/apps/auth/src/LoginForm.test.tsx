@@ -63,6 +63,25 @@ describe('LoginForm', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sign in to Contoso');
   });
 
+  it('carries the values typed into the server-rendered form without writing the password to an attribute', () => {
+    renderForm({
+      returnUrl: '/',
+      antiforgeryToken: 'the-token',
+      carriedValues: { username: 'alice', password: 's3cret' },
+    });
+
+    const password = screen.getByLabelText(/Password/);
+    expect(screen.getByLabelText(/Username/)).toHaveValue('alice');
+    expect(password).toHaveValue('s3cret');
+    expect(password).not.toHaveAttribute('value');
+  });
+
+  it('keeps the focus on the field the end-user was typing in', () => {
+    renderForm({ returnUrl: '/', antiforgeryToken: 'the-token', focusedFieldId: 'password' });
+
+    expect(screen.getByLabelText(/Password/)).toHaveFocus();
+  });
+
   it('shows the error message in an alert when one is provided', () => {
     renderForm({
       returnUrl: '/',

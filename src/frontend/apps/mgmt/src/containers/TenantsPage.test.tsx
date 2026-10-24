@@ -14,7 +14,7 @@ const runtime: RuntimeConfig = {
   features: {},
 };
 
-function renderPage(onOpenTenant = vi.fn()) {
+function renderPage(onOpenTenant = vi.fn(), addressPreviewDelayMs?: number) {
   const store = createAppStore({
     config: { runtime },
     auth: {
@@ -27,7 +27,10 @@ function renderPage(onOpenTenant = vi.fn()) {
   });
   render(
     <Provider store={store}>
-      <TenantsPage onOpenTenant={onOpenTenant} />
+      <TenantsPage
+        onOpenTenant={onOpenTenant}
+        {...(addressPreviewDelayMs !== undefined ? { addressPreviewDelayMs } : {})}
+      />
     </Provider>,
   );
   return onOpenTenant;
@@ -143,7 +146,7 @@ describe('TenantsPage (CRUD wiring)', () => {
       }),
     );
 
-    renderPage();
+    renderPage(vi.fn(), 0);
     expect(await screen.findByText('Acme')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('create-tenant'));
     fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'new-co' } });
@@ -176,7 +179,7 @@ describe('TenantsPage (CRUD wiring)', () => {
       }),
     );
 
-    renderPage();
+    renderPage(vi.fn(), 0);
     expect(await screen.findByText('Acme')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('create-tenant'));
     fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'acme' } });
@@ -204,7 +207,7 @@ describe('TenantsPage (CRUD wiring)', () => {
       }),
     );
 
-    renderPage();
+    renderPage(vi.fn(), 0);
     expect(await screen.findByText('Acme')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('create-tenant'));
     fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'new-co' } });
@@ -357,7 +360,7 @@ describe('TenantsPage (CRUD wiring)', () => {
       throw new Error(`Unexpected ${method} ${url}`);
     });
 
-    renderPage();
+    renderPage(vi.fn(), 0);
     fireEvent.click(await screen.findByTestId('tenant-edit-globex'));
     fireEvent.change(screen.getByTestId('tenant-mtls-endpoint-alias'), {
       target: { value: 'https://globex.auth.test' },

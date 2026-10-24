@@ -4,6 +4,14 @@ import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
 import type { RuntimeConfig } from '@ncode/config';
 import { App } from './App.js';
+// Each surface is a lazily loaded chunk (ADR-0175). Loading the modules first lets each lazy surface resolve from the
+// module cache, so a test waits for the surface's data and render rather than a cold transform of its chunk.
+import './containers/ClientsPage.js';
+import './containers/GrantsPage.js';
+import './containers/ResourceServersPage.js';
+import './containers/ServersPage.js';
+import './containers/TenantDetailPage.js';
+import './containers/TenantsPage.js';
 
 const runtime: RuntimeConfig = {
   apiBaseUrl: 'https://api.test',
@@ -247,8 +255,9 @@ describe('App (global ↔ tenant boundary)', () => {
     fireEvent.click(screen.getByTestId('tenant-tab-grants'));
     expect(await screen.findByText('No grants match the current filter.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('tenant-tab-settings'));
+    fireEvent.click(screen.getByTestId('tenant-tab-secrets'));
     expect(await screen.findByText('This tenant has no secrets yet.')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/tenants/acme/secrets');
 
     // Leaving and re-entering a tenant starts again on its clients, not the last surface visited.
     fireEvent.click(screen.getByTestId('exit-tenant'));
@@ -307,6 +316,31 @@ describe('App (routing)', () => {
 
     expect(await screen.findByText('No grants match the current filter.')).toBeInTheDocument();
     expect(screen.getByTestId('scope-badge')).toHaveTextContent('acme');
+  });
+
+  it("opens a deep link on one of the tenant's own surfaces", async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.endsWith('/api/tenants/acme/usage')) {
+          return jsonResponse({
+            tenantId: 'acme',
+            from: '2026-09-21',
+            to: '2026-10-21',
+            entries: [],
+          });
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+    window.history.replaceState(null, '', '/tenants/acme/usage');
+
+    renderApp();
+
+    expect(await screen.findByText('No usage recorded in this range.')).toBeInTheDocument();
+    expect(screen.getByTestId('scope-badge')).toHaveTextContent('acme');
+    expect(screen.getByRole('tab', { name: 'Usage' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('records each navigation in the address bar and restores it on back', async () => {

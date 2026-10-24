@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import type { BrandingConfig } from '@ncode/config';
+import { AuthorizationErrorPage } from './AuthorizationErrorPage.js';
 import { ConsentForm } from './ConsentForm.js';
 import { LoginForm } from './LoginForm.js';
 import { AccountPage } from './AccountPage.js';
@@ -14,6 +15,7 @@ import {
   isPasswordPath,
   isSessionsPath,
 } from './params.js';
+import { EMPTY_SERVER_PAGE, type ServerPage } from './serverPage.js';
 
 /** The per-request inputs the interactive surfaces render against, derived from the environment. */
 export type RouteContext = {
@@ -27,6 +29,8 @@ export type RouteContext = {
   readonly status?: string | null;
   /** The tenant's branding; its display name titles the surfaces that present the tenant. */
   readonly branding?: BrandingConfig;
+  /** The state of the page the host rendered: typed values, focus, cleared scopes and any authorization error. */
+  readonly serverPage?: ServerPage;
 };
 
 type Route = {
@@ -79,8 +83,12 @@ const ROUTES: readonly Route[] = [
   },
   {
     match: isConsentPath,
-    render: ({ returnUrl, antiforgeryToken }) => (
-      <ConsentForm returnUrl={returnUrl} antiforgeryToken={antiforgeryToken} />
+    render: ({ returnUrl, antiforgeryToken, serverPage = EMPTY_SERVER_PAGE }) => (
+      <ConsentForm
+        returnUrl={returnUrl}
+        antiforgeryToken={antiforgeryToken}
+        clearedScopes={serverPage.clearedScopes}
+      />
     ),
   },
 ];
@@ -90,6 +98,7 @@ function renderLogin({
   antiforgeryToken,
   errorMessage,
   branding,
+  serverPage = EMPTY_SERVER_PAGE,
 }: RouteContext): ReactElement {
   return (
     <LoginForm
@@ -97,12 +106,26 @@ function renderLogin({
       antiforgeryToken={antiforgeryToken}
       {...(errorMessage ? { errorMessage } : {})}
       {...productNameOf(branding)}
+      carriedValues={serverPage.fieldValues}
+      focusedFieldId={serverPage.focusedFieldId}
     />
   );
 }
 
 /** Resolves the interactive surface for the given request context (login is the fallback). */
 export function resolveRoute(context: RouteContext): ReactElement {
+  // The error page is served at the protocol endpoint, outside the surface's paths, so the page the host rendered
+  // selects it, not the path (ADR-0253).
+  const authorizationError = context.serverPage?.authorizationError;
+  if (authorizationError) {
+    return (
+      <AuthorizationErrorPage
+        code={authorizationError.code}
+        description={authorizationError.description}
+      />
+    );
+  }
+
   const route = ROUTES.find((candidate) => candidate.match(context.pathname));
   return route ? route.render(context) : renderLogin(context);
 }

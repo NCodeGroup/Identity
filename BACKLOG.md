@@ -79,7 +79,7 @@ entry and/or ADR that closed it.
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S21`     | `S20`      |
 | `X` — Tooling & agent customization   | `X6`      | `X5`       |
-| `R` — Review findings                 | `R112`    | `R111`     |
+| `R` — Review findings                 | `R113`    | `R112`     |
 
 ---
 
@@ -551,6 +551,15 @@ _None remaining._
   awaiting the request mock), and set one deliberate `asyncUtilTimeout` and test timeout for the frontend packages.
   Touch points: `src/frontend/apps/playground/src/App.test.tsx`, `src/frontend/apps/mgmt/src/App.test.tsx`,
   `src/frontend/apps/mgmt/src/containers/TenantsPage.test.tsx`, the packages' Vitest configuration.
+- **`R112` — Forbid framing of every interactive page.** RFC 9700 §4.16 requires an authorization server to prevent
+  clickjacking, and the interactive surface relies on ASP.NET Core antiforgery, which sends
+  `X-Frame-Options: SAMEORIGIN` only with a response that stores a new antiforgery cookie: a login, consent, or
+  account page served to a browser that already holds the cookie, and the authorization error page, carry no
+  framing policy, so a same-site page can frame the consent page. Send
+  `Content-Security-Policy: frame-ancestors 'none'` (with `X-Frame-Options: DENY` for older browsers) on every
+  page the surface writes, and decide the rest of the surface's Content-Security-Policy (the bundle's module
+  scripts and emotion's styles) with it. Touch points: `InteractiveHtmlResult.WriteAsync`,
+  `InteractiveOpenIdErrorResponseFormatter`.
 
 ### P3
 

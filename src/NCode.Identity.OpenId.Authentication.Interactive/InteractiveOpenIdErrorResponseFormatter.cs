@@ -16,6 +16,7 @@
 
 #endregion
 
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
 
@@ -57,6 +58,11 @@ internal sealed class InteractiveOpenIdErrorResponseFormatter(
             await BundleReader.TryReadShellAsync(cancellationToken),
             // The page is served at the protocol endpoint, so its base points the bundle's assets at the surface.
             SurfacePaths.GetSurfaceBase(context.HttpContext),
+            // A request that resolved no tenant has no branding to embed.
+            context.HttpContext.GetOpenIdContextOrDefault()
+                is { } openIdContext
+                ? InteractiveBranding.FromSettings(openIdContext.Tenant.SettingsProvider.Collection)
+                : null,
             error.Code,
             error.Description
         );

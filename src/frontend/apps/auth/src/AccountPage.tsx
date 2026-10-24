@@ -16,6 +16,7 @@ import {
   SESSIONS_PATH,
   resolveSurfacePath,
 } from './params.js';
+import { fetchSurfaceJson } from './surfaceFetch.js';
 
 /** The current end-user session the account page renders (mirrors the OP's `/account/me` payload). */
 export type AccountSession = {
@@ -37,27 +38,11 @@ export type AccountPageProps = {
 };
 
 /**
- * Default session loader: fetches the OP's `/account/me` endpoint. A `401` means the cookie session is gone, so it
- * redirects to the login page (with the account page as the return URL); any other non-OK response yields no session.
- * It is a no-op when `fetch` is unavailable (e.g. a DOM-free unit test that does not inject `loadSession`).
+ * Default session loader: loads the OP's `/account/me` endpoint. The login redirect on a `401` comes from
+ * `fetchSurfaceJson`.
  */
 async function fetchSession(): Promise<AccountSession | null> {
-  if (typeof fetch !== 'function') {
-    return null;
-  }
-  const response = await fetch(resolveSurfacePath(ME_ENDPOINT), {
-    headers: { accept: 'application/json' },
-  });
-  if (response.status === 401) {
-    window.location.assign(
-      `${resolveSurfacePath(LOGIN_ACTION)}?ReturnUrl=${encodeURIComponent(resolveSurfacePath(ACCOUNT_PATH))}`,
-    );
-    return null;
-  }
-  if (!response.ok) {
-    return null;
-  }
-  return (await response.json()) as AccountSession;
+  return fetchSurfaceJson<AccountSession>(ME_ENDPOINT, ACCOUNT_PATH);
 }
 
 function formatAuthTime(authTime: number | null | undefined): string | null {

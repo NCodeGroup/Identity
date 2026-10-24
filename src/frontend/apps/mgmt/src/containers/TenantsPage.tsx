@@ -26,6 +26,11 @@ import {
 
 export type TenantsPageProps = {
   readonly onOpenTenant: (tenantId: string) => void;
+  /**
+   * How long the address must stay unchanged before it is previewed. Defaults to 300 ms so typing sends no burst of
+   * requests; a test passes `0`.
+   */
+  readonly addressPreviewDelayMs?: number;
 };
 
 type DialogState =
@@ -37,7 +42,7 @@ type DialogState =
 const closed: DialogState = { kind: 'none' };
 
 /** How long the address must stay unchanged before it is previewed, so typing sends no burst of requests. */
-const addressPreviewDelayMs = 300;
+const defaultAddressPreviewDelayMs = 300;
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -54,7 +59,10 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
  * Owns only dialog/error state; all persistence, cache invalidation, and error shaping come from the
  * store layer. Selecting a tenant crosses into that tenant's security boundary.
  */
-export function TenantsPage({ onOpenTenant }: TenantsPageProps) {
+export function TenantsPage({
+  onOpenTenant,
+  addressPreviewDelayMs = defaultAddressPreviewDelayMs,
+}: TenantsPageProps) {
   const { data, isLoading, error } = useListTenantsQuery();
   const tenants = data?.items ?? [];
 

@@ -2,6 +2,7 @@ import type { BrandingConfig } from '@ncode/config';
 import { BrandHeader } from './BrandHeader.js';
 import { ANTIFORGERY_COOKIE, describeLoginError, getQueryParam, readCookie } from './params.js';
 import { resolveRoute } from './routes.js';
+import { EMPTY_SERVER_PAGE, type ServerPage } from './serverPage.js';
 
 export type AppProps = {
   /** The current path (defaults to the live location); selects which interactive surface to render. */
@@ -10,8 +11,10 @@ export type AppProps = {
   readonly search?: string;
   /** The current `document.cookie` string (defaults to the live document). */
   readonly cookie?: string;
-  /** The tenant's branding the host serves, or `undefined` for the default presentation. */
+  /** The tenant's branding the host embeds in the page, or `undefined` for the default presentation. */
   readonly branding?: BrandingConfig;
+  /** The state of the page the host rendered before the bundle mounted (an empty page by default). */
+  readonly serverPage?: ServerPage;
 };
 
 /**
@@ -24,6 +27,7 @@ export function App({
   search = window.location.search,
   cookie = document.cookie,
   branding,
+  serverPage = EMPTY_SERVER_PAGE,
 }: AppProps) {
   return (
     <>
@@ -35,6 +39,7 @@ export function App({
         errorMessage: describeLoginError(getQueryParam(search, 'error')),
         errorCode: getQueryParam(search, 'error'),
         status: getQueryParam(search, 'status'),
+        serverPage,
         ...(branding ? { branding } : {}),
       })}
     </>

@@ -13,9 +13,9 @@ import {
   APPLICATIONS_LIST_ENDPOINT,
   APPLICATIONS_PATH,
   APPLICATIONS_REVOKE_ACTION,
-  LOGIN_ACTION,
   resolveSurfacePath,
 } from './params.js';
+import { fetchSurfaceJson } from './surfaceFetch.js';
 
 /** A single granted scope on an authorized application. */
 export type AuthorizedScope = {
@@ -40,28 +40,15 @@ export type AuthorizedAppsPageProps = {
 };
 
 /**
- * Default loader: fetches the OP's authorized-applications endpoint. A `401` means the cookie session is gone, so it
- * redirects to the login page (with the applications page as the return URL); any other non-OK response yields no
- * applications. It is a no-op when `fetch` is unavailable (e.g. a DOM-free unit test that does not inject a loader).
+ * Default loader: loads the OP's authorized-applications endpoint. The login redirect on a `401` comes from
+ * `fetchSurfaceJson`.
  */
 async function fetchApplications(): Promise<readonly AuthorizedApplication[] | null> {
-  if (typeof fetch !== 'function') {
-    return null;
-  }
-  const response = await fetch(resolveSurfacePath(APPLICATIONS_LIST_ENDPOINT), {
-    headers: { accept: 'application/json' },
-  });
-  if (response.status === 401) {
-    window.location.assign(
-      `${resolveSurfacePath(LOGIN_ACTION)}?ReturnUrl=${encodeURIComponent(resolveSurfacePath(APPLICATIONS_PATH))}`,
-    );
-    return null;
-  }
-  if (!response.ok) {
-    return null;
-  }
-  const payload = (await response.json()) as { applications?: readonly AuthorizedApplication[] };
-  return payload.applications ?? [];
+  const payload = await fetchSurfaceJson<{ applications?: readonly AuthorizedApplication[] }>(
+    APPLICATIONS_LIST_ENDPOINT,
+    APPLICATIONS_PATH,
+  );
+  return payload ? (payload.applications ?? []) : null;
 }
 
 /**

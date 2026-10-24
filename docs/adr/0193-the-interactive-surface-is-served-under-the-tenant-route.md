@@ -1,6 +1,8 @@
 # 193. The interactive surface is served under the tenant route, and its session is scoped to the tenant's path
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0254](0254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md):
+  the bundle's hashed files are served immutable by a group that resolves no tenant)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
 

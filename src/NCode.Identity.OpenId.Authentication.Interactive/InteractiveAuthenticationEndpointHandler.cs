@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -25,7 +24,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.AspNetCore.StaticFiles;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Consent;
 using NCode.Identity.OpenId.Authentication.Endpoints;
@@ -74,10 +72,6 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     private const string StatusQueryName = "status";
     private const string PasswordChangedStatus = "changed";
 
-    private const string AssetRouteParameterName = "asset";
-
-    private static FileExtensionContentTypeProvider AssetContentTypes { get; } = new();
-
     private IInteractiveCredentialVerifier CredentialVerifier { get; } = credentialVerifier;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IConsentService ConsentService { get; } = consentService;
@@ -98,7 +92,6 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
 
         surface.MapGet(InteractiveAuthenticationDefaults.AccountPath, GetAccountPageAsync);
         surface.MapGet(InteractiveAuthenticationDefaults.MePath, GetMeAsync);
-        surface.MapGet(InteractiveAuthenticationDefaults.BrandingPath, GetBranding);
         surface.MapGet(InteractiveAuthenticationDefaults.LoginPath, GetLoginPageAsync);
         surface.MapPost(InteractiveAuthenticationDefaults.LoginPath, PostLoginAsync);
         surface.MapGet(InteractiveAuthenticationDefaults.ConsentPath, GetConsentPageAsync);
@@ -132,45 +125,6 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         );
         surface.MapGet(InteractiveAuthenticationDefaults.PasswordPath, GetPasswordPageAsync);
         surface.MapPost(InteractiveAuthenticationDefaults.PasswordPath, PostPasswordAsync);
-        // The bundle's files are served beneath the tenant's surface, where the pages' base resolves them (ADR-0193).
-        // Every page and API route above is a literal route, which takes precedence; the order makes that explicit.
-        surface
-            .MapMethods(
-                $"{InteractiveAuthenticationDefaults.BasePath}/{{**{AssetRouteParameterName}}}",
-                [HttpMethods.Get, HttpMethods.Head],
-                GetAsset
-            )
-            .WithOrder(1);
-    }
-
-    /// <summary>
-    /// Serves a file of the single-page bundle, such as its hashed scripts and styles, with validators so a browser
-    /// revalidates it cheaply. A path the bundle has no file for, or whose type is unknown, is answered <c>404</c>.
-    /// </summary>
-    public IResult GetAsset(HttpContext httpContext)
-    {
-        var assetPath =
-            httpContext.GetRouteValue(AssetRouteParameterName) as string ?? string.Empty;
-        var file = BundleReader.TryGetAsset(assetPath);
-        if (
-            file is not { PhysicalPath: { } physicalPath }
-            || !AssetContentTypes.TryGetContentType(file.Name, out var contentType)
-        )
-        {
-            return TypedResults.NotFound();
-        }
-
-        var lastModified = file.LastModified;
-        var entityTag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue(
-            $"\"{(lastModified.ToFileTime() ^ file.Length).ToString("x", CultureInfo.InvariantCulture)}\""
-        );
-        return TypedResults.PhysicalFile(
-            physicalPath,
-            contentType,
-            lastModified: lastModified,
-            entityTag: entityTag,
-            enableRangeProcessing: true
-        );
     }
 
     /// <summary>
@@ -187,6 +141,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             html,
             await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
             SurfacePaths.GetSurfaceBase(httpContext),
+            ReadBranding(httpContext),
             query["ReturnUrl"].ToString(),
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
@@ -245,6 +200,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             html,
             await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
             SurfacePaths.GetSurfaceBase(httpContext),
+            ReadBranding(httpContext),
             rawReturnUrl,
             tokens.FormFieldName,
             tokens.RequestToken ?? string.Empty,
@@ -267,23 +223,6 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         }
 
         return await ServeBundleAsync(httpContext);
-    }
-
-    /// <summary>
-    /// Returns the branding of the tenant the request is served for as JSON, which the bundle themes itself with. It is
-    /// shown to every visitor of the login page, so it is served without authentication.
-    /// </summary>
-    // See ADR-0194.
-    public static IResult GetBranding(HttpContext httpContext)
-    {
-        var openIdContext = httpContext.GetOpenIdContext();
-        var branding = InteractiveBrandingResponse.FromSettings(
-            openIdContext.Tenant.SettingsProvider.Collection
-        );
-
-        // A tenant's branding changes when its settings do, so a browser revalidates rather than reuse a stale copy.
-        httpContext.Response.Headers.CacheControl = "no-cache";
-        return TypedResults.Json(branding);
     }
 
     /// <summary>
@@ -1142,10 +1081,17 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         InteractiveAuthenticationPageRenderer.RenderBundlePage(
             html,
             shell,
-            SurfacePaths.GetSurfaceBase(httpContext)
+            SurfacePaths.GetSurfaceBase(httpContext),
+            ReadBranding(httpContext)
         );
         return new InteractiveHtmlResult(html);
     }
+
+    // The tenant the request resolved is the one whose page the bundle themes itself for (ADR-0253).
+    private static InteractiveBranding ReadBranding(HttpContext httpContext) =>
+        InteractiveBranding.FromSettings(
+            httpContext.GetOpenIdContext().Tenant.SettingsProvider.Collection
+        );
 
     // Mirrors the apps/auth describeLoginError mapping so the no-JS login form shows the same messages.
     private static string? DescribeLoginError(string? error) =>

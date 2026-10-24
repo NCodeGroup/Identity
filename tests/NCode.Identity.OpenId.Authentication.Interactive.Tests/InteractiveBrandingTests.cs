@@ -23,7 +23,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;
 
-public sealed class InteractiveBrandingResponseTests
+public sealed class InteractiveBrandingTests
 {
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
 
@@ -59,17 +59,17 @@ public sealed class InteractiveBrandingResponseTests
             }
         );
 
-        var response = InteractiveBrandingResponse.FromSettings(settings);
+        var branding = InteractiveBranding.FromSettings(settings);
 
         Assert.Equal(
-            new InteractiveBrandingResponse(
+            new InteractiveBranding(
                 "Acme",
                 "https://cdn.acme.example/logo.svg",
                 "#1565c0",
                 "#9c27b0",
                 "dark"
             ),
-            response
+            branding
         );
         MockRepository.Verify();
     }
@@ -79,9 +79,9 @@ public sealed class InteractiveBrandingResponseTests
     {
         var settings = CreateSettings(new Dictionary<string, string>());
 
-        var response = InteractiveBrandingResponse.FromSettings(settings);
+        var branding = InteractiveBranding.FromSettings(settings);
 
-        Assert.Equal("{}", JsonSerializer.Serialize(response, JsonSerializerOptions.Web));
+        Assert.Equal("{}", JsonSerializer.Serialize(branding, JsonSerializerOptions.Web));
         MockRepository.Verify();
     }
 
@@ -96,11 +96,11 @@ public sealed class InteractiveBrandingResponseTests
             }
         );
 
-        var response = InteractiveBrandingResponse.FromSettings(settings);
+        var branding = InteractiveBranding.FromSettings(settings);
 
         Assert.Equal(
             "{\"logoUrl\":\"https://cdn.acme.example/logo.svg\",\"mode\":\"light\"}",
-            JsonSerializer.Serialize(response, JsonSerializerOptions.Web)
+            JsonSerializer.Serialize(branding, JsonSerializerOptions.Web)
         );
         MockRepository.Verify();
     }

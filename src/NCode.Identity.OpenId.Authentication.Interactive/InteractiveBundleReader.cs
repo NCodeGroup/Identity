@@ -37,16 +37,25 @@ internal sealed class InteractiveBundleReader(
 {
     private const string IndexFileName = "index.html";
 
-    private string? BundleRootPath { get; } = optionsAccessor.Value.BundleRootPath;
+    /// <summary>
+    /// The directory beneath the bundle's root that holds its content-hashed files, which are the only files the host
+    /// serves.
+    /// </summary>
+    public const string AssetsDirectory = "assets";
+
+    private string? AssetsRootPath { get; } =
+        string.IsNullOrEmpty(optionsAccessor.Value.BundleRootPath)
+            ? null
+            : Path.Combine(optionsAccessor.Value.BundleRootPath, AssetsDirectory);
 
     private string? IndexPath { get; } =
         string.IsNullOrEmpty(optionsAccessor.Value.BundleRootPath)
             ? null
             : Path.Combine(optionsAccessor.Value.BundleRootPath, IndexFileName);
 
-    // Rooted at the bundle, so a requested asset path that navigates above the root, or names a hidden or system file,
-    // resolves to no file. Created once the bundle's directory exists, which a development build may create after the
-    // host starts.
+    // Rooted at the bundle's assets directory, so a requested asset path that navigates above it, or names a hidden or
+    // system file, resolves to no file. Created once the directory exists, which a development build may create after
+    // the host starts.
     private PhysicalFileProvider? _assetProvider;
 
     // Replaced as a whole, so a request sees either the previous or the new version, never a mix of the two.
@@ -56,10 +65,11 @@ internal sealed class InteractiveBundleReader(
     public void Dispose() => _assetProvider?.Dispose();
 
     /// <summary>
-    /// Gets a file of the bundle by its path relative to the bundle's root.
+    /// Gets a file of the bundle's assets directory by its path relative to that directory. A path that leaves the
+    /// directory, or names a hidden or system file, resolves to no file.
     /// </summary>
-    /// <param name="assetPath">The file's path relative to the bundle's root, such as <c>assets/index.js</c>.</param>
-    /// <returns>The file, or <c>null</c> when no bundle is present or the bundle has no such file.</returns>
+    /// <param name="assetPath">The file's path relative to the assets directory, such as <c>index-abc123.js</c>.</param>
+    /// <returns>The file, or <c>null</c> when no bundle is present or the assets directory has no such file.</returns>
     public IFileInfo? TryGetAsset(string assetPath)
     {
         if (string.IsNullOrEmpty(assetPath))
@@ -74,12 +84,12 @@ internal sealed class InteractiveBundleReader(
 
     private PhysicalFileProvider? TryCreateAssetProvider()
     {
-        if (string.IsNullOrEmpty(BundleRootPath) || !Directory.Exists(BundleRootPath))
+        if (string.IsNullOrEmpty(AssetsRootPath) || !Directory.Exists(AssetsRootPath))
         {
             return null;
         }
 
-        var provider = new PhysicalFileProvider(BundleRootPath);
+        var provider = new PhysicalFileProvider(AssetsRootPath);
         var existing = Interlocked.CompareExchange(ref _assetProvider, provider, null);
         if (existing is null)
         {

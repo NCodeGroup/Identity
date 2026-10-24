@@ -5,7 +5,8 @@ import { GLOBAL_SCOPE, tenantScope, type ManagementScope } from '@ncode/api';
  * within it second, so the global ↔ tenant boundary (ADR-0064) stays explicit in every address:
  *
  * - `/tenants`, `/servers` — the global scope's surfaces;
- * - `/tenants/{tenantId}/{surface}` — a tenant scope's surfaces, the tenant id percent-encoded as one segment.
+ * - `/tenants/{tenantId}/{surface}` — a tenant scope's surfaces (`clients`, `resource-servers`, `grants`, `secrets`,
+ *   `settings` and `usage`), the tenant id percent-encoded as one segment (ADR-0255).
  *
  * This module is UI-free so the route grammar is unit-tested; `navigation.ts` binds it to the browser history.
  */
@@ -14,10 +15,22 @@ import { GLOBAL_SCOPE, tenantScope, type ManagementScope } from '@ncode/api';
 export const GLOBAL_SURFACES = ['tenants', 'servers'] as const;
 
 /** The surfaces of a tenant scope, in tab order. */
-export const TENANT_SURFACES = ['clients', 'resource-servers', 'grants', 'settings'] as const;
+export const TENANT_SURFACES = [
+  'clients',
+  'resource-servers',
+  'grants',
+  'secrets',
+  'settings',
+  'usage',
+] as const;
 
 export type GlobalSurface = (typeof GLOBAL_SURFACES)[number];
 export type TenantSurface = (typeof TENANT_SURFACES)[number];
+
+/**
+ * The tenant surfaces that show the tenant's own secrets, settings and usage rather than the resources it holds.
+ */
+export type TenantOwnSurface = Extract<TenantSurface, 'secrets' | 'settings' | 'usage'>;
 
 export type ConsoleRoute =
   | { readonly kind: 'global'; readonly surface: GlobalSurface }

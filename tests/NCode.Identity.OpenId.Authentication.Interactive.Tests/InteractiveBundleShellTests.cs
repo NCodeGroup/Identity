@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;
@@ -73,6 +74,41 @@ public class InteractiveBundleShellTests
         var shell = InteractiveBundleShell.TryCreate("<body></body>");
 
         Assert.Null(shell);
+    }
+
+    [BuiltAuthBundleFact]
+    public void TryCreate_WhenGivenTheBuiltBundlesIndex_SplitsItSoTheLoginPageLoadsTheBundleBeneathTheSurface()
+    {
+        var shell = InteractiveBundleShell.TryCreate(
+            File.ReadAllText(BuiltAuthBundleFactAttribute.IndexPath ?? string.Empty)
+        );
+        Assert.NotNull(shell);
+
+        var writer = new ArrayBufferWriter<char>();
+        InteractiveAuthenticationPageRenderer.RenderLoginPage(
+            writer,
+            shell,
+            surfaceBase: "/acme/account/",
+            branding: null,
+            returnUrl: "/",
+            antiforgeryFieldName: "__RequestVerificationToken",
+            antiforgeryToken: "t",
+            errorMessage: null
+        );
+        var html = writer.WrittenSpan.ToString();
+
+        // The base precedes the bundle's script, so the script's relative URL resolves beneath the tenant's surface.
+        var baseIndex = html.IndexOf("<base href=\"/acme/account/\" />", StringComparison.Ordinal);
+        var scriptIndex = html.IndexOf("<script type=\"module\"", StringComparison.Ordinal);
+        Assert.True(baseIndex >= 0);
+        Assert.True(scriptIndex >= 0);
+        Assert.True(baseIndex < scriptIndex);
+        Assert.Contains("src=\"./assets/", html, StringComparison.Ordinal);
+        Assert.Contains(
+            "<div id=\"root\"><main class=\"auth-card\">",
+            html,
+            StringComparison.Ordinal
+        );
     }
 
     #endregion

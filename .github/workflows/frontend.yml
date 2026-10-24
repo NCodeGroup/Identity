@@ -20,6 +20,8 @@ on:
       - 'build/test-report.ps1'
       - 'build/coverage-report.ps1'
       - '.config/dotnet-tools.json'
+      - 'src/NCode.Identity.OpenId.Authentication.Interactive/**'
+      - 'tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/**'
   pull_request:
     branches: [main]
     paths:
@@ -29,6 +31,8 @@ on:
       - 'build/test-report.ps1'
       - 'build/coverage-report.ps1'
       - '.config/dotnet-tools.json'
+      - 'src/NCode.Identity.OpenId.Authentication.Interactive/**'
+      - 'tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/**'
   workflow_dispatch:
 
 # The frontend job only reads the tree; `id-token: write` (the Codecov OIDC upload) belongs to the separate codecov job
@@ -109,11 +113,12 @@ jobs:
         working-directory: .
         run: ./build/test-report.ps1 -Path 'src/frontend/*/*/test-results/junit.xml' -Title 'Frontend tests'
 
-      # Coverage is merged and rendered by the same ReportGenerator tool (pinned in .config/dotnet-tools.json) as the
-      # .NET coverage, so both tiers present coverage identically; that is the only reason this job installs .NET.
-      # Vitest writes no coverage when a test fails, so these steps follow a passing test step only.
+      # .NET renders the coverage report with the same ReportGenerator tool (pinned in .config/dotnet-tools.json) as the
+      # .NET coverage, so both tiers present coverage identically, and it runs the host's test against the built login
+      # bundle below. Vitest writes no coverage when a test fails, so the coverage report follows a passing test step
+      # only.
       - name: Setup .NET
-        if: steps.test.outcome == 'success'
+        if: always()
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
@@ -127,8 +132,19 @@ jobs:
           ./build/coverage-report.ps1 -Path 'src/frontend/*/*/coverage/cobertura-coverage.xml' -TargetDirectory artifacts/frontend-coverage -Title 'Frontend coverage' -ArtifactName frontend-coverage -PerPackageReports
 
       - name: Build
+        id: build
         if: always()
         run: pnpm run build
+
+      # The host splits the built login bundle's `index.html` around its mount point and serves its `assets` directory
+      # (ADR-0254). The .NET Definition of Done builds no frontend, so the split is tested here, against the real build.
+      - name: Test the host against the built login bundle
+        if: steps.build.outcome == 'success'
+        shell: pwsh
+        working-directory: .
+        env:
+          NCODE_AUTH_BUNDLE_INDEX: ${{ github.workspace }}/src/frontend/apps/auth/dist/index.html
+        run: dotnet test tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/NCode.Identity.OpenId.Authentication.Interactive.Tests.csproj --nologo --filter "FullyQualifiedName~InteractiveBundleShellTests.TryCreate_WhenGivenTheBuiltBundlesIndex" -- RunConfiguration.TreatNoTestsAsError=true
 
       - name: Upload test results
         if: always()

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
 import { App } from './App.js';
+import { EMPTY_SERVER_PAGE } from './serverPage.js';
 
 function renderApp(props: Parameters<typeof App>[0]) {
   return render(
@@ -113,5 +114,23 @@ describe('App branding', () => {
     const { container } = renderApp({ pathname: '/account/login', search: '', cookie: '' });
 
     expect(container.querySelector('header')).toBeNull();
+  });
+});
+
+describe('App server page', () => {
+  it('redraws the authorization error the host rendered at the protocol endpoint', () => {
+    const { container } = renderApp({
+      pathname: '/oauth2/authorize',
+      search: '',
+      cookie: '',
+      serverPage: {
+        ...EMPTY_SERVER_PAGE,
+        authorizationError: { code: 'invalid_client', description: null },
+      },
+    });
+
+    expect(container.querySelector('#authorization-error')?.getAttribute('data-error-code')).toBe(
+      'invalid_client',
+    );
   });
 });

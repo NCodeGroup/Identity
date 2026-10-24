@@ -696,6 +696,27 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The `apps/auth` bundle's files are cached for a year and served without resolving the tenant.** The host serves
+  only the bundle's content-hashed `assets` directory, at `GET|HEAD {tenant}/account/assets/{**asset}`, with
+  `Cache-Control: public, max-age=31536000, immutable` and its `ETag` and `Last-Modified` validators, from a route
+  group that resolves no tenant, so a returning browser loads the bundle without a request. Other files of the
+  bundle's directory, such as `index.html`, are not served, and `@ncode/vite-config` pins `build.assetsDir` to
+  `assets`
+  ([ADR-0254](docs/adr/0254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md),
+  backlog `R30`).
+
+- **The host embeds a tenant's branding in the page, and `GET {tenant}/account/branding` is removed.** Every page
+  served with the `apps/auth` bundle carries the tenant's branding in a `<script type="application/json"
+  id="branding">` block after its `<base>`, and the bundle themes itself from it without a request.
+  `InteractiveAuthenticationDefaults.BrandingPath` is removed
+  ([ADR-0253](docs/adr/0253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), backlog
+  `R20`).
+
+- **Each of a tenant's own surfaces in the management console has its own address.** The tenant's secrets,
+  settings, and usage are tenant surfaces at `/tenants/{tenantId}/secrets`, `/settings`, and `/usage`, each with its
+  own tab, so they can be bookmarked, shared, and restored with back and forward
+  ([ADR-0255](docs/adr/0255-each-tenant-surface-of-the-management-console-has-its-own-address.md), backlog `R45`).
+
 - **A migration classifies its data change, and a constraint added to an existing table is a contract step.**
   `ExpandOnlyRule.Check(Migration)` judges each host migration: one that runs raw SQL or changes seed data carries
   `[ExpandMigration("why")]` (added) when the release still serving reads every row it writes, or
@@ -2046,6 +2067,14 @@ change to the public API is a **major** version bump.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
 
 ### Fixed
+
+- **The login page keeps what the end-user typed when the `apps/auth` bundle loads.** The bundle mounts as soon as
+  its script runs and starts from the page the host rendered: the values typed or autofilled into its text and
+  password fields, the field that had focus, and the consent scopes the end-user cleared carry into its forms, and a
+  carried password is written to the input's `value` property, never to an attribute. The authorization error page
+  served with the bundle shows its error instead of a login form
+  ([ADR-0253](docs/adr/0253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), backlog
+  `R20`).
 
 - **A host's own ASP.NET Core Identity pages verify the password the adapter stores.**
   `AddAspNetIdentityLocalAccountStore<TUser>()` wraps the host's `IPasswordHasher<TUser>` registration, made before or

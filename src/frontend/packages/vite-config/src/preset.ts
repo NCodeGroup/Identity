@@ -114,10 +114,15 @@ export function failOnOversizedChunks(): Plugin {
   };
 }
 
-/** The build options every bundle shares: source maps, the vendor chunks, and the chunk-size limit (ADR-0175). */
+/**
+ * The build options every bundle shares: the output and assets directories, source maps, the vendor chunks, and the
+ * chunk-size limit (ADR-0175).
+ */
 function buildOptions(): BuildConfig {
   return {
     outDir: 'dist',
+    // The host serves only this directory of a backend-served bundle, as immutable content-hashed files (ADR-0254).
+    assetsDir: 'assets',
     sourcemap: true,
     chunkSizeWarningLimit: CHUNK_SIZE_LIMIT_KB,
     rolldownOptions: {
@@ -154,6 +159,14 @@ function assertPort(port: number): void {
   }
 }
 
+/**
+ * The test timeout, in milliseconds, of a suite that simulates a browser. It leaves room for at least three Testing
+ * Library waits, each bounded by `ASYNC_UTIL_TIMEOUT_MS` from `@ncode/test-support`, so a test that waits on a few
+ * renders fails with the library's DOM report rather than a bare timeout. The preset names that constant in prose only:
+ * it must not import a workspace package (ADR-0157).
+ */
+export const BROWSER_TEST_TIMEOUT_MS = 30_000;
+
 /** The test gates every workspace holds (ADR-0151), for a workspace's own `test` configuration. */
 export function testGates({ environment, coverage }: TestConfigOptions): TestConfig {
   assertCoverageFloors(coverage);
@@ -161,8 +174,8 @@ export function testGates({ environment, coverage }: TestConfigOptions): TestCon
   return {
     environment,
     // jsdom + MUI renders run for seconds under v8 coverage on shared CI runners, and React Testing Library cleans up
-    // after each test through the global hooks; see "jsdom test timeout" in the frontend README.
-    ...(simulatesBrowser ? { testTimeout: 15_000, globals: true } : {}),
+    // after each test through the global hooks; see "Testing Library and test timeouts" in the frontend README.
+    ...(simulatesBrowser ? { testTimeout: BROWSER_TEST_TIMEOUT_MS, globals: true } : {}),
     setupFiles: ['./vitest.setup.ts'],
     // A test that makes no assertion fails.
     expect: { requireAssertions: true },

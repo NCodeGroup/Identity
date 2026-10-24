@@ -1,6 +1,8 @@
 # 194. A tenant brands its interactive surface through settings
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0253](0253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md):
+  the host embeds the branding in each page, and the bundle mounts without fetching it)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
 

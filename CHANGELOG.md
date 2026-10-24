@@ -2091,6 +2091,10 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **A client assertion whose header or payload is not a JSON object is answered with `400` `invalid_client`.** A
+  `client_assertion` whose header or payload decoded to a JSON array, string, or number raised an unhandled exception
+  and a `500`; the JWT-bearer handlers now treat it like any other malformed assertion.
+
 - **The login page keeps what the end-user typed when the `apps/auth` bundle loads.** The bundle mounts as soon as
   its script runs and starts from the page the host rendered: the values typed or autofilled into its text and
   password fields, the field that had focus, and the consent scopes the end-user cleared carry into its forms, and a

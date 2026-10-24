@@ -956,15 +956,19 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
 - **Dispose what you own.** A local `IDisposable` / `IAsyncDisposable` gets a `using` / `await using` **declaration**
   (`using var x = …;`, not a nested block) unless ownership is deliberately transferred to a type that will dispose it.
   Never leave a `HttpResponseMessage`, `Stream`, `JsonDocument`, or `IHttpClientFactory`-created client undisposed.
-  **Prefer `JsonElement.Parse(string)` (.NET 9+) when you only need a detached `JsonElement`** — it owns no
-  `JsonDocument` to dispose and is the concise replacement for `JsonDocument.Parse(json).RootElement.Clone()` and for
-  `JsonSerializer.Deserialize<JsonElement>(json)`; keep `JsonDocument` only when you parse UTF-8 bytes (no
-  `JsonElement.Parse` byte overload) or genuinely enumerate within a scoped `using`.
+  **Prefer `JsonElement.Parse` when you only need a detached `JsonElement`** — its `string` and UTF-8
+  `ReadOnlySpan<byte>` overloads own no `JsonDocument` to dispose and replace
+  `JsonDocument.Parse(json).RootElement.Clone()` and `JsonSerializer.Deserialize<JsonElement>(json)`, so a token
+  segment decoded into a rented buffer parses straight from the span; keep `JsonDocument` only when you genuinely
+  enumerate within a scoped `using`.
 - **Read `JsonElement` members with the `NCode.Json.JsonElements` extension methods, not hand-rolled accessors.** Use
   `TryGetPropertyValue<T>` / `TryGetValue<T>` — which convert by `ValueKind` and never throw — in place of a
   `TryGetProperty(name, out var e) + e.ValueKind == JsonValueKind.X + e.GetString()/GetInt64()/…` chain (the bare
   `GetInt64()`/`GetString()` form also throws on a mismatched kind); `IsNullOrUndefined()` in place of a bare
   `ValueKind == JsonValueKind.Null` absence check; and `EmptyObject` / `OrEmptyObject()` in place of re-parsing `"{}"`.
+  The property readers (`TryGetPropertyValue<T>`, `TryGetPropertyNumericDate`) call `JsonElement.TryGetProperty`, which
+  throws `InvalidOperationException` on anything but an object, so JSON parsed from wire input — a token's header or
+  payload, a request body — is rejected unless `ValueKind == JsonValueKind.Object` before its members are read.
   Reference the dependency-free **`NCode.Json`** package — the shared home for these helpers
   ([ADR-0056](../../docs/adr/0056-abstractions-split-into-framework-free-tiered-packages.md)).
 - **Parse a date/time string with `NCode.Json.DateCoercion`, never a hand-rolled `DateTime(Offset).TryParse`.**
@@ -1194,6 +1198,15 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md). `BufferFactory.Rent`'s `out` span or
   memory is exactly the requested length — never slice it back to that length — and the `out Span<T>` overload is the
   default; take `out Memory<T>` only for a buffer stored in a field or used across an `await`.
+- 👁 **Parse a fixed-segment token (compact JWS or JWE) without allocating its parts.** Split it with
+  `MemoryExtensions.Split` into a `stackalloc Range[segmentCount + 1]` — never `string.Split` — and reject any count
+  but `segmentCount`: the spare slot makes extra segments count past it instead of folding into the last range. The JWS
+  signing input is the original text up to the end of the payload (`token.AsSpan(..ranges[1].End)`), never a
+  re-concatenated string. Decode each base64url segment into a `BufferFactory.Rent` buffer sized by
+  `Base64Url.GetByteCountForDecode`: `NCode.Base64Url` throws `FormatException` on an invalid length, an illegal
+  character, or `=` padding, so a successful decode fills that buffer exactly and needs no slice by `bytesWritten`. A
+  sync helper does the span work when the caller is `async` (`ClientAssertionClientAuthenticationHandler`). See
+  [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md).
 - 👁 **Sensitive text is never a `string`.** Read a key or secret file as bytes into a secure buffer
   (`File.OpenHandle` + `RandomAccess.Read`) and decode it from UTF-8; write sensitive XML with an `XmlWriter` over a
   sensitive pooled writer and read it back with an `XmlReader` over that buffer; transform identifiers on hot paths

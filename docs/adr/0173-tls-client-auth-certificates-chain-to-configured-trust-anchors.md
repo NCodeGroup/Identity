@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (amended by
   [ADR-0252](0252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md):
-  retrieval limits, shared and remembered retrievals, RSA-PSS, and online_soft_fail)
+  retrieval limits, shared and remembered retrievals, RSA-PSS, and online_soft_fail; amended by
+  [ADR-0259](0259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md): OCSP and every CRL form)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

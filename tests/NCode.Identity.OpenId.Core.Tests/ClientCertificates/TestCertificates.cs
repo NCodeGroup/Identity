@@ -29,6 +29,8 @@ internal static class TestCertificates
 {
     public const string ClientAuthenticationOid = "1.3.6.1.5.5.7.3.2";
     private const string ServerAuthenticationOid = "1.3.6.1.5.5.7.3.1";
+    private const string OcspSigningOid = "1.3.6.1.5.5.7.3.9";
+    private const string OcspNoCheckOid = "1.3.6.1.5.5.7.48.1.5";
 
     public static X509Certificate2 CreateRootAuthority(string commonName)
     {
@@ -43,7 +45,8 @@ internal static class TestCertificates
 
     public static X509Certificate2 CreateIntermediateAuthority(
         X509Certificate2 issuer,
-        string commonName
+        string commonName,
+        IReadOnlyList<string>? crlDistributionPoints = null
     )
     {
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
@@ -52,6 +55,7 @@ internal static class TestCertificates
         request.CertificateExtensions.Add(
             X509AuthorityKeyIdentifierExtension.CreateFromCertificate(issuer, true, false)
         );
+        AddCrlDistributionPoints(request, crlDistributionPoints);
         using var certificate = request.Create(
             issuer,
             DateTimeOffset.UtcNow.AddHours(-1),
@@ -60,6 +64,35 @@ internal static class TestCertificates
         );
         return certificate.CopyWithPrivateKey(key);
     }
+
+    public static X509Certificate2 CreateCrlSigner(
+        X509Certificate2 issuer,
+        string commonName,
+        IReadOnlyList<string>? crlDistributionPoints = null
+    ) =>
+        CreateSigner(
+            issuer,
+            commonName,
+            X509KeyUsageFlags.CrlSign,
+            extendedKeyUsage: false,
+            noCheck: false,
+            crlDistributionPoints
+        );
+
+    public static X509Certificate2 CreateOcspResponder(
+        X509Certificate2 issuer,
+        string commonName,
+        bool noCheck,
+        IReadOnlyList<string>? crlDistributionPoints = null
+    ) =>
+        CreateSigner(
+            issuer,
+            commonName,
+            X509KeyUsageFlags.DigitalSignature,
+            extendedKeyUsage: true,
+            noCheck,
+            crlDistributionPoints
+        );
 
     public static X509Certificate2 CreateClientCertificate(
         X509Certificate2 issuer,
@@ -88,14 +121,16 @@ internal static class TestCertificates
         request.CertificateExtensions.Add(
             X509AuthorityKeyIdentifierExtension.CreateFromCertificate(issuer, true, false)
         );
-        if (effective.CrlDistributionPoints is { Count: > 0 } distributionPoints)
+        AddCrlDistributionPoints(request, effective.CrlDistributionPoints);
+        if (effective.OcspUris is { Count: > 0 } ocspUris)
         {
             request.CertificateExtensions.Add(
-                CertificateRevocationListBuilder.BuildCrlDistributionPointExtension(
-                    distributionPoints
-                )
+                new X509AuthorityInformationAccessExtension(ocspUris, null)
             );
         }
+
+        foreach (var extension in effective.ExtraExtensions)
+            request.CertificateExtensions.Add(extension);
 
         using var certificate = request.Create(
             issuer,
@@ -134,6 +169,62 @@ internal static class TestCertificates
         RandomNumberGenerator.Fill(serialNumber);
         serialNumber[0] &= 0x7F;
         return serialNumber;
+    }
+
+    private static X509Certificate2 CreateSigner(
+        X509Certificate2 issuer,
+        string commonName,
+        X509KeyUsageFlags keyUsage,
+        bool extendedKeyUsage,
+        bool noCheck,
+        IReadOnlyList<string>? crlDistributionPoints
+    )
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var request = new CertificateRequest($"CN={commonName}", key, HashAlgorithmName.SHA256);
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(keyUsage, true));
+        if (extendedKeyUsage)
+        {
+            request.CertificateExtensions.Add(
+                new X509EnhancedKeyUsageExtension(new OidCollection { new(OcspSigningOid) }, false)
+            );
+        }
+
+        request.CertificateExtensions.Add(
+            new X509SubjectKeyIdentifierExtension(request.PublicKey, false)
+        );
+        request.CertificateExtensions.Add(
+            X509AuthorityKeyIdentifierExtension.CreateFromCertificate(issuer, true, false)
+        );
+        if (noCheck)
+            request.CertificateExtensions.Add(
+                new X509Extension(OcspNoCheckOid, [0x05, 0x00], false)
+            );
+
+        AddCrlDistributionPoints(request, crlDistributionPoints);
+        using var certificate = request.Create(
+            issuer,
+            DateTimeOffset.UtcNow.AddHours(-1),
+            DateTimeOffset.UtcNow.AddMonths(6),
+            CreateSerialNumber()
+        );
+        return certificate.CopyWithPrivateKey(key);
+    }
+
+    private static void AddCrlDistributionPoints(
+        CertificateRequest request,
+        IReadOnlyList<string>? crlDistributionPoints
+    )
+    {
+        if (crlDistributionPoints is not { Count: > 0 })
+            return;
+
+        request.CertificateExtensions.Add(
+            CertificateRevocationListBuilder.BuildCrlDistributionPointExtension(
+                crlDistributionPoints
+            )
+        );
     }
 
     private static void AddAuthorityExtensions(CertificateRequest request)

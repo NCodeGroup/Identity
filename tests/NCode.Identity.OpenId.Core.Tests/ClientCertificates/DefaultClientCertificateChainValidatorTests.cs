@@ -48,13 +48,18 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
         Mock<IClientCertificateRevocationChecker> mockChecker,
         X509Certificate2 certificate,
         X509Certificate2 issuer,
+        X509Certificate2 trustAnchor,
         ClientCertificateRevocationStatus status
     ) =>
         mockChecker
             .Setup(x =>
                 x.CheckAsync(
-                    It.Is<X509Certificate2>(c => c.Thumbprint == certificate.Thumbprint),
-                    It.Is<X509Certificate2>(c => c.Thumbprint == issuer.Thumbprint),
+                    It.Is<ClientCertificateRevocationContext>(c =>
+                        c.Certificate.Thumbprint == certificate.Thumbprint
+                        && c.Issuer.Thumbprint == issuer.Thumbprint
+                        && c.TrustAnchor.Thumbprint == trustAnchor.Thumbprint
+                        && c.Depth == 0
+                    ),
                     CancellationToken.None
                 )
             )
@@ -276,7 +281,7 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
         using var leaf = TestCertificates.CreateClientCertificate(root, "CN=client");
         var client = CreateClient([ToPem(root)], revocationMode: null);
         var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
-        SetupCheck(mockChecker, leaf, root, ClientCertificateRevocationStatus.Good);
+        SetupCheck(mockChecker, leaf, root, root, ClientCertificateRevocationStatus.Good);
 
         var result = await CreateValidator(mockChecker.Object)
             .ValidateAsync(client, Present(leaf), CancellationToken.None);
@@ -294,7 +299,7 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
             OpenIdConstants.ClientCertificateRevocationMode.Online
         );
         var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
-        SetupCheck(mockChecker, leaf, root, ClientCertificateRevocationStatus.Revoked);
+        SetupCheck(mockChecker, leaf, root, root, ClientCertificateRevocationStatus.Revoked);
 
         var result = await CreateValidator(mockChecker.Object)
             .ValidateAsync(client, Present(leaf), CancellationToken.None);
@@ -312,7 +317,7 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
             OpenIdConstants.ClientCertificateRevocationMode.Online
         );
         var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
-        SetupCheck(mockChecker, leaf, root, ClientCertificateRevocationStatus.Unknown);
+        SetupCheck(mockChecker, leaf, root, root, ClientCertificateRevocationStatus.Unknown);
 
         var result = await CreateValidator(mockChecker.Object)
             .ValidateAsync(client, Present(leaf), CancellationToken.None);
@@ -330,7 +335,7 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
             OpenIdConstants.ClientCertificateRevocationMode.OnlineSoftFail
         );
         var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
-        SetupCheck(mockChecker, leaf, root, ClientCertificateRevocationStatus.Unknown);
+        SetupCheck(mockChecker, leaf, root, root, ClientCertificateRevocationStatus.Unknown);
 
         var result = await CreateValidator(mockChecker.Object)
             .ValidateAsync(client, Present(leaf), CancellationToken.None);
@@ -348,7 +353,7 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
             OpenIdConstants.ClientCertificateRevocationMode.OnlineSoftFail
         );
         var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
-        SetupCheck(mockChecker, leaf, root, ClientCertificateRevocationStatus.Revoked);
+        SetupCheck(mockChecker, leaf, root, root, ClientCertificateRevocationStatus.Revoked);
 
         var result = await CreateValidator(mockChecker.Object)
             .ValidateAsync(client, Present(leaf), CancellationToken.None);
@@ -367,8 +372,8 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
             OpenIdConstants.ClientCertificateRevocationMode.Online
         );
         var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
-        SetupCheck(mockChecker, leaf, intermediate, ClientCertificateRevocationStatus.Good);
-        SetupCheck(mockChecker, intermediate, root, ClientCertificateRevocationStatus.Good);
+        SetupCheck(mockChecker, leaf, intermediate, root, ClientCertificateRevocationStatus.Good);
+        SetupCheck(mockChecker, intermediate, root, root, ClientCertificateRevocationStatus.Good);
 
         var result = await CreateValidator(mockChecker.Object)
             .ValidateAsync(client, Present(leaf, intermediate), CancellationToken.None);
@@ -387,7 +392,7 @@ public sealed class DefaultClientCertificateChainValidatorTests : BaseTests
         );
         var client = CreateClient([ToPem(root)], revocationMode: null);
         var mockChecker = CreateStrictMock<IClientCertificateRevocationChecker>();
-        SetupCheck(mockChecker, leaf, root, ClientCertificateRevocationStatus.Good);
+        SetupCheck(mockChecker, leaf, root, root, ClientCertificateRevocationStatus.Good);
 
         var result = await CreateValidator(mockChecker.Object)
             .ValidateAsync(client, Present(leaf), CancellationToken.None);

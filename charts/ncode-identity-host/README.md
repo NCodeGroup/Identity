@@ -208,6 +208,21 @@ The host revokes the listed keys as it starts, and Data Protection creates a key
 anti-forgery tokens that the revoked keys protected stop working. The revocation is stored in the key ring, so the
 entries may be removed afterwards.
 
+## Strict-Transport-Security
+
+Outside Development, the host sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response
+to a request that reached it over HTTPS
+([ADR-0258](../../docs/adr/0258-the-server-sends-strict-transport-security-outside-development.md)). Behind the
+ingress the pod serves plain HTTP, so the host sees HTTPS only through the `X-Forwarded-Proto` header of a proxy that
+`reverseProxy` trusts: set `reverseProxy.knownNetworks` or `reverseProxy.knownProxies` to cover the ingress controller,
+or the header is not sent.
+
+When the ingress controller sends the header itself, set `StrictTransportSecurity__Enabled=false` in `extraEnv`, so
+one component owns it. Change the policy the same way with `StrictTransportSecurity__MaxAge` (for example
+`730.00:00:00`), `StrictTransportSecurity__IncludeSubDomains` and `StrictTransportSecurity__Preload`. Set `Preload`
+only after submitting the domain to the browsers' preload list: it requires `IncludeSubDomains` and a `MaxAge` of at
+least 365 days, and the host refuses to start without them.
+
 ## Other settings
 
 The chart models the settings it validates. Pass any other host setting as an environment variable through `extraEnv`

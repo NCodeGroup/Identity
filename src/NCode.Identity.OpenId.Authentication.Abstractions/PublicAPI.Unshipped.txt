@@ -18,11 +18,29 @@ const NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateH
 const NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateHeaderFormats.EnvoyXfcc = "EnvoyXfcc" -> string!
 const NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateHeaderFormats.Pem = "Pem" -> string!
 const NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateHeaderFormats.UrlEncodedPem = "UrlEncodedPem" -> string!
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext.Certificate.get -> System.Security.Cryptography.X509Certificates.X509Certificate2!
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext.Certificate.init -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext.ClientCertificateRevocationContext() -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext.Depth.get -> int
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext.Depth.init -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext.Intermediates.get -> System.Collections.Generic.IReadOnlyCollection<System.Security.Cryptography.X509Certificates.X509Certificate2!>!
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext.Intermediates.init -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext.Issuer.get -> System.Security.Cryptography.X509Certificates.X509Certificate2!
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext.Issuer.init -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext.TrustAnchor.get -> System.Security.Cryptography.X509Certificates.X509Certificate2!
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext.TrustAnchor.init -> void
+NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationSourceNames
+const NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationSourceNames.Crl = "crl" -> string!
+const NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationSourceNames.Ocsp = "ocsp" -> string!
 NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateHeaderDecoder
 NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateHeaderDecoder.Format.get -> string!
 NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateHeaderDecoder.TryDecode(string! headerValue, out NCode.Identity.OpenId.Authentication.ClientCertificates.PresentedClientCertificate? certificate) -> bool
 NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateResolver
 NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateResolver.ResolveCertificateAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.ClientCertificates.PresentedClientCertificate?>
+NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateRevocationSource
+NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateRevocationSource.CheckAsync(NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus>
+NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateRevocationSource.Name.get -> string!
 NCode.Identity.OpenId.Authentication.ClientCertificates.MutualTlsForwardingOptions
 NCode.Identity.OpenId.Authentication.ClientCertificates.MutualTlsForwardingOptions.CertificateHeaderName.get -> string?
 NCode.Identity.OpenId.Authentication.ClientCertificates.MutualTlsForwardingOptions.CertificateHeaderName.set -> void
@@ -1642,7 +1660,7 @@ NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocat
 NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus.Revoked = 2 -> NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus
 NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus.Unknown = 0 -> NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus
 NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateRevocationChecker
-NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateRevocationChecker.CheckAsync(System.Security.Cryptography.X509Certificates.X509Certificate2! certificate, System.Security.Cryptography.X509Certificates.X509Certificate2! issuer, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus>
+NCode.Identity.OpenId.Authentication.ClientCertificates.IClientCertificateRevocationChecker.CheckAsync(NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.ClientCertificates.ClientCertificateRevocationStatus>
 const NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.TokenTypeMetricAttribute = "ncode.identity.token.type" -> string!
 NCode.Identity.OpenId.Authentication.Auditing.TokenIssuedAuditEvent.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void
 const NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent.AuthenticationMethodMetricAttribute = "ncode.identity.client_authentication.method" -> string!

@@ -77,7 +77,8 @@ public static class IdentityServerBuilderExtensions
         /// <item><description><c>MutualTls</c> — <see cref="MutualTlsForwardingOptions"/>: how a forwarded mutual-TLS
         /// client certificate is read.</description></item>
         /// <item><description><c>ClientCertificateRevocation</c> — <see cref="ClientCertificateRevocationOptions"/>: how
-        /// the revocation lists a mutual-TLS client certificate names are retrieved and cached.</description></item>
+        /// the OCSP responses and revocation lists a mutual-TLS client certificate names are retrieved and
+        /// cached.</description></item>
         /// <item><description><c>GrantRetention</c> — <see cref="GrantRetentionOptions"/>: how long ended grants are
         /// kept and how often they are removed.</description></item>
         /// <item><description><c>TenantUsage</c> — <see cref="TenantUsageOptions"/>: how often each replica adds its

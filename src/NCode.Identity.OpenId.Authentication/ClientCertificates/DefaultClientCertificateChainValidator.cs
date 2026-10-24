@@ -138,14 +138,19 @@ internal sealed class DefaultClientCertificateChainValidator(
 
             // Every element except the trust anchor is checked against its issuer, the next element in the chain.
             var elements = chain.ChainElements;
+            var trustAnchor = elements[elements.Count - 1].Certificate;
+            X509Certificate2[] intermediates = [.. policy.ExtraStore];
             for (var i = 0; i < elements.Count - 1; i++)
             {
                 var certificate = elements[i].Certificate;
-                var status = await RevocationChecker.CheckAsync(
-                    certificate,
-                    elements[i + 1].Certificate,
-                    cancellationToken
-                );
+                var context = new ClientCertificateRevocationContext
+                {
+                    Certificate = certificate,
+                    Issuer = elements[i + 1].Certificate,
+                    TrustAnchor = trustAnchor,
+                    Intermediates = intermediates,
+                };
+                var status = await RevocationChecker.CheckAsync(context, cancellationToken);
                 if (status == ClientCertificateRevocationStatus.Good)
                     continue;
 

@@ -73,6 +73,11 @@ serviceCollection.AddHttpLogging(options =>
 // section. Inert when none are configured, which is the correct posture for a direct-TLS deployment.
 serviceCollection.AddReverseProxy(configuration);
 
+// Send Strict-Transport-Security on every HTTPS response outside Development, as configured by the
+// 'StrictTransportSecurity' section (one year with includeSubDomains by default). A deployment whose TLS-terminating
+// proxy sends the header sets StrictTransportSecurity:Enabled to false. See ADR-0258.
+serviceCollection.AddStrictTransportSecurity(configuration);
+
 // Receive mutual-TLS client certificates when this host terminates TLS itself: an endpoint configured to request one
 // (Kestrel:EndpointDefaults:ClientCertificateMode) accepts any certificate at the handshake, and the client-
 // authentication handlers and certificate-bound tokens validate it (RFC 8705, ADR-0202). Kestrel's own validation
@@ -174,6 +179,10 @@ await using var app = builder.Build();
 // logging's client IP, and the tenant's base address — has to observe the original request rather than the
 // proxy-to-application hop. A no-op unless 'ReverseProxy' names a trusted proxy.
 app.UseReverseProxy();
+
+// After the forwarded headers, so a request a trusted proxy received over HTTPS counts as HTTPS. A no-op in
+// Development. See ADR-0258.
+app.UseStrictTransportSecurity();
 
 if (app.Environment.IsDevelopment())
 {

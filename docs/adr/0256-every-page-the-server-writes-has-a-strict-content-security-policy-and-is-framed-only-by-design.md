@@ -1,6 +1,8 @@
 # 256. Every page the server writes has a strict Content-Security-Policy and is framed only by design
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0258](0258-the-server-sends-strict-transport-security-outside-development.md): the server's pipeline sends
+  Strict-Transport-Security)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

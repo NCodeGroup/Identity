@@ -348,6 +348,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   prove a `'sha256-…'` source by hashing the page's own `<script>` text; send the antiforgery cookie the first response
   set back with a second request, because antiforgery adds `X-Frame-Options` only when it stores an antiforgery cookie,
   so a test of a first response alone passes without the page's own headers (`HtmlPageSecurityTests`).
+- 👁 **Prove a header that depends on the forwarded scheme with a forwarded request.** Send `X-Forwarded-Proto: https`
+  over `http` through a host that trusts `127.0.0.1` in `ReverseProxy:KnownProxies`, and pair it with a control whose
+  host trusts no proxy. A test over `https` alone still passes when the step that writes the header runs before
+  `UseReverseProxy` (`StrictTransportSecurityTests`).
 - 👁 **A password a test sets through an entry point meets the password policy.** The management API, the
   change-password page and the seeders refuse a password shorter than 15 characters or on the common-password list
   (`passwordpassword` is), so such a test uses a long, unlisted passphrase; `SeedLocalAccountAsync` writes to the store
@@ -387,10 +391,16 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   wrong reason — `invalid_client` from the method mismatch — and passes without exercising the rule it names.
 - 👁 **Build a certificate subject with `X500DistinguishedNameBuilder` to choose each value's string type.** A subject
   DN is matched by RFC 4517 rules, not by bytes.
-- 👁 **Serve a CRL through a stub handler, never the network.** Build it with `CertificateRevocationListBuilder`
-  (`TestCrls` for extensions the builder cannot write), signed by a CA whose key usage includes `CrlSign`. Unit tests
-  stub `IHttpClientFactory`; integration tests set `HostApplicationFactory.CertificateRevocationListResponder` before
-  the first request.
+- 👁 **Serve revocation data through a stub handler, never the network.** Build a CRL with
+  `CertificateRevocationListBuilder` (`TestCrls` for the extensions and entries the builder cannot write), signed by a
+  CA whose key usage includes `CrlSign`, and an OCSP response with `TestOcspResponses`, signed by the issuer or by a
+  responder from `TestCertificates.CreateOcspResponder`. Unit tests stub `IHttpClientFactory` and answer by
+  `RequestUri`: an OCSP GET appends the URL-encoded base64 request to the responder's location. Integration tests set
+  `HostApplicationFactory.CertificateRevocationListResponder` before the first request.
+- 👁 **Pin a protocol encoder or parser to bytes another implementation wrote.** A parser and a test builder that share
+  one misreading of the specification both pass. Keep a few fixtures that a reference tool produced, with the commands
+  that produced them in a comment, and never edit them by hand (`OcspOpenSslFixtures`, written by OpenSSL with RSA keys
+  where the builder signs with ECDSA).
 - 👁 **Test a contract with an artifact the .NET gate does not build through a fact the workflow that builds it
   runs.** The Definition of Done installs no Node, so `InteractiveBundleShellTests` reads the built `apps/auth`
   `index.html` under `[BuiltAuthBundleFact]`, which skips unless `NCODE_AUTH_BUNDLE_INDEX` names it. Frontend CI sets

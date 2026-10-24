@@ -501,14 +501,15 @@ public static partial class OpenIdConstants
     /// <summary>
     /// Contains constants for how the revocation status of a <c>tls_client_auth</c> client certificate chain is
     /// checked. The values are the revocation policy: revocation is required, checked without being required, or not
-    /// checked. How the status is obtained is the replaceable client certificate revocation checker.
+    /// checked. How the status is obtained is the client certificate revocation checker and its registered sources.
     /// </summary>
     public static class ClientCertificateRevocationMode
     {
         /// <summary>
-        /// Indicates that every certificate below the trust anchor is checked against the certificate revocation list
-        /// its issuer publishes, which the server fetches through its outbound-request guard; a chain whose
-        /// revocation status cannot be determined is rejected.
+        /// Indicates that every certificate below the trust anchor is checked through the registered revocation
+        /// sources, the OCSP responders and then the certificate revocation lists its issuer names, which the server
+        /// reaches through its outbound-request guard; a chain whose revocation status cannot be determined is
+        /// rejected.
         /// </summary>
         public const string Online = "online";
 

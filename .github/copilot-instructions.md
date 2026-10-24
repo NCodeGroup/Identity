@@ -90,6 +90,10 @@ When the user authorizes a push (says "push"), run these gates **before** pushin
    `Re-plan step N` checkpoint commits into the conventional commit(s) they belong to — neither the plan nor its
    checkpoints reach `origin`
    ([ADR-0170](../docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
+   Before force-pushing the squash, fetch and confirm that every commit on `origin` past the plan's base is one of the
+   plan's own checkpoint commits. Replay any other commit, which someone else pushed, onto the squash so the push keeps
+   it, and pin the lease to the head you inspected (`git push --force-with-lease=<branch>:<sha>`), so a commit pushed
+   after the check rejects the push instead of being dropped.
 2. **Persist lessons.** Promote every lesson learned in the session into durable repository content — a convention
    into the scoped instruction files, a non-obvious decision into an ADR under [`docs/adr/`](../docs/adr/), a
    consumer-visible change into [`CHANGELOG.md`](../CHANGELOG.md), and pending work into [`BACKLOG.md`](../BACKLOG.md)

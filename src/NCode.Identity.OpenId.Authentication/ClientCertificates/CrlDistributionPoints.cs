@@ -16,7 +16,9 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Formats.Asn1;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
@@ -28,6 +30,7 @@ namespace NCode.Identity.OpenId.Authentication.ClientCertificates;
 internal static class CrlDistributionPoints
 {
     private const string ExtensionOid = "2.5.29.31";
+    private const string FreshestCrlOid = "2.5.29.46";
 
     private static readonly Asn1Tag DistributionPointNameTag = new(
         TagClass.ContextSpecific,
@@ -35,59 +38,113 @@ internal static class CrlDistributionPoints
         true
     );
 
+    private static readonly Asn1Tag ReasonsTag = new(TagClass.ContextSpecific, 1);
+
+    private static readonly Asn1Tag CrlIssuerTag = new(TagClass.ContextSpecific, 2, true);
+
     private static readonly Asn1Tag FullNameTag = new(TagClass.ContextSpecific, 0, true);
+
+    private static readonly Asn1Tag DirectoryNameTag = new(TagClass.ContextSpecific, 4, true);
 
     private static readonly Asn1Tag UniformResourceIdentifierTag = new(TagClass.ContextSpecific, 6);
 
     /// <summary>
-    /// Gets the <c>http</c> and <c>https</c> locations, as written, that the certificate names as the full name of a
-    /// distribution point, in the order they appear. A distribution point that names a reason or a separate CRL
-    /// issuer contributes nothing, and a malformed extension yields no locations.
+    /// Reads the distribution points that the certificate names in its CRL distribution points extension. A point
+    /// without an <c>http</c> or <c>https</c> location is not returned, and a certificate without the extension or
+    /// with a malformed one yields no points.
     /// </summary>
-    public static IReadOnlyList<string> GetUris(X509Certificate2 certificate)
-    {
-        var extension = certificate.Extensions[ExtensionOid];
-        if (extension is null)
-            return [];
+    public static IReadOnlyList<CrlDistributionPoint> Read(X509Certificate2 certificate) =>
+        ReadExtension(certificate, ExtensionOid);
 
-        var uris = new List<string>();
+    /// <summary>
+    /// Reads the distribution points that the certificate names in its freshest CRL extension, which names the
+    /// locations of delta lists. The syntax and the rules are those of <see cref="Read"/>.
+    /// </summary>
+    public static IReadOnlyList<CrlDistributionPoint> ReadFreshest(X509Certificate2 certificate) =>
+        ReadExtension(certificate, FreshestCrlOid);
+
+    /// <summary>
+    /// Reads the distribution points of an encoded <c>CRLDistributionPoints</c> value, the value of a CRL distribution
+    /// points extension or of a freshest CRL extension. A point without an <c>http</c> or <c>https</c> location, or
+    /// whose CRL issuer names no directory name, is not returned. A malformed value yields no points.
+    /// </summary>
+    public static IReadOnlyList<CrlDistributionPoint> ReadPoints(ReadOnlyMemory<byte> value)
+    {
+        var result = new List<CrlDistributionPoint>();
         try
         {
-            var reader = new AsnReader(extension.RawData, AsnEncodingRules.DER);
+            var reader = new AsnReader(value, AsnEncodingRules.DER);
             var points = reader.ReadSequence();
             reader.ThrowIfNotEmpty();
 
             while (points.HasData)
             {
                 var point = points.ReadSequence();
-                var pointUris = new List<string>();
+                var uris = new List<string>();
+                int? reasons = null;
+                X500DistinguishedName? crlIssuer = null;
                 var usable = true;
 
-                while (point.HasData)
+                if (point.HasData && point.PeekTag() == DistributionPointNameTag)
                 {
-                    if (point.PeekTag() == DistributionPointNameTag)
-                    {
-                        var distributionPointName = point.ReadSequence(DistributionPointNameTag);
-                        TryReadFullNameUris(distributionPointName, pointUris);
-                    }
-                    else
-                    {
-                        // reasons and cRLIssuer make the point unusable
-                        point.ReadEncodedValue();
-                        usable = false;
-                    }
+                    var distributionPointName = point.ReadSequence(DistributionPointNameTag);
+                    TryReadFullNameUris(distributionPointName, uris);
                 }
 
-                if (usable)
-                    uris.AddRange(pointUris);
+                if (point.HasData && point.PeekTag() == ReasonsTag)
+                    reasons = CrlReasons.Read(point, ReasonsTag);
+
+                if (point.HasData && point.PeekTag() == CrlIssuerTag)
+                {
+                    if (TryReadDirectoryName(point.ReadSequence(CrlIssuerTag), out var issuer))
+                        crlIssuer = issuer;
+                    else
+                        usable = false;
+                }
+
+                point.ThrowIfNotEmpty();
+
+                if (usable && uris.Count > 0)
+                    result.Add(new CrlDistributionPoint(uris, reasons, crlIssuer));
             }
         }
         catch (AsnContentException)
         {
             return [];
         }
+        catch (CryptographicException)
+        {
+            return [];
+        }
 
-        return uris;
+        return result;
+    }
+
+    /// <summary>
+    /// Reads the first directory name of a list of general names. The reader is positioned inside the sequence of
+    /// general names. Returns <see langword="false"/> when the list holds no directory name.
+    /// </summary>
+    public static bool TryReadDirectoryName(
+        AsnReader generalNames,
+        [NotNullWhen(true)] out X500DistinguishedName? name
+    )
+    {
+        while (generalNames.HasData)
+        {
+            if (generalNames.PeekTag() != DirectoryNameTag)
+            {
+                generalNames.ReadEncodedValue();
+                continue;
+            }
+
+            var wrapper = generalNames.ReadSequence(DirectoryNameTag);
+            name = new X500DistinguishedName(wrapper.ReadEncodedValue().Span);
+            wrapper.ThrowIfNotEmpty();
+            return true;
+        }
+
+        name = null;
+        return false;
     }
 
     /// <summary>
@@ -126,5 +183,14 @@ internal static class CrlDistributionPoints
         }
 
         return true;
+    }
+
+    private static IReadOnlyList<CrlDistributionPoint> ReadExtension(
+        X509Certificate2 certificate,
+        string oid
+    )
+    {
+        var extension = certificate.Extensions[oid];
+        return extension is null ? [] : ReadPoints(extension.RawData);
     }
 }

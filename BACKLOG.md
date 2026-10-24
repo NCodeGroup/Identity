@@ -539,12 +539,6 @@ _None remaining._
 
 ### P2
 
-- **`R14` — Close the gaps in `ExpandOnlyRule`.** It ignores raw SQL, allows nullable→required with a default (a test
-  asserts it), and misses new unique indexes, foreign keys, and check constraints on existing tables. Touch points:
-  `ExpandOnlyRule.cs:30, 98`, `ExpandOnlyRuleTests.cs:195, 326`.
-- **`R15` — Make `PromoteMtlsEndpointAliasAuthority` safe for the previous release and rollback.** Its SQL removes the
-  settings key the previous release reads, and `Down()` does not restore it. Copy now and remove in a later contract
-  step. Touch point: `20261021021124_PromoteMtlsEndpointAliasAuthority.cs:41-77`.
 - **`R20` — Mount the login bundle without waiting for branding.** The mount waits on a fetch with no timeout, then
   replaces the server-rendered form and erases typed or autofilled credentials. Touch point:
   `src/frontend/apps/auth/src/main.tsx:12-21`.

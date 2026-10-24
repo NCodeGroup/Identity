@@ -3556,3 +3556,27 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   nonce-bearing scripts and styles, the `form_post` response may be framed only by its redirect URI's origin, the
   front-channel logout page frames only the clients' logout origins and the `check_session_iframe` stays embeddable
   ([ADR-0256](docs/adr/0256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md))._
+- **`R113` — Send `Strict-Transport-Security` from the reference host.** The host redirects plain HTTP to HTTPS
+  (`UseHttpsRedirection`) but sends no HSTS header, so when it terminates TLS itself, as mutual TLS requires, a
+  browser's later plain-HTTP request to the issuer can be intercepted before the redirect (RFC 6797, OWASP Secure
+  Headers). Add HSTS to the server's turnkey pipeline outside Development, configured from a section (`max-age`,
+  `includeSubDomains`, `preload`), and document that a TLS-terminating proxy sends it instead
+  ([ADR-0256](docs/adr/0256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
+  Touch points: `src/NCode.Identity.OpenId.Host/Program.cs`, `NCode.Identity.Server`.
+  _Closed: `AddStrictTransportSecurity` and `UseStrictTransportSecurity` send the header on every HTTPS response
+  outside Development from a validated `StrictTransportSecurity` section, right after `UseReverseProxy` so a trusted
+  proxy's forwarded scheme counts; integration tests cover direct HTTPS, a trusted proxy and an untrusted one
+  ([ADR-0258](docs/adr/0258-the-server-sends-strict-transport-security-outside-development.md))._
+- **`R64` — Check client-certificate revocation through OCSP and the remaining CRL forms.** The default checker shares
+  each retrieval, remembers a failed one, verifies RSA-PSS lists and offers `online_soft_fail`
+  ([ADR-0252](docs/adr/0252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)).
+  It still answers Unknown for an OCSP-only PKI, for delta, partitioned (`reasons`, `onlySomeReasons`) and indirect
+  CRLs, and for a CRL signed by a key other than the issuing certificate's. Add OCSP (RFC 6960, a direct query without
+  stapling, with a response cache), delta and partitioned CRLs, indirect CRLs and CRL-signer path validation. Touch
+  points: `DefaultClientCertificateRevocationChecker`, `CertificateRevocationList`, ADR-0173, ADR-0252.
+  _Closed: registered `IClientCertificateRevocationSource`s answer in order, an OCSP source (RFC 6960 with the RFC 5019
+  profile, delegated responders, `id-pkix-ocsp-nocheck`, a verified response cache) ahead of a CRL source that applies
+  RFC 5280 §6.3.3 in full (partitioned, indirect and delta lists, `removeFromCRL`, and a list signed by another key
+  trusted through a validated path to the same anchor); fixtures OpenSSL wrote pin the OCSP parser. A configurable
+  source order is deferred as `D18`
+  ([ADR-0259](docs/adr/0259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md))._

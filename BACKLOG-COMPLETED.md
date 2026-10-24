@@ -3343,3 +3343,25 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   _Closed: the server row records the effective settings it last reconciled (`ReconciledSettings`), and the
   reconciliation reads the keys only of the tenants that gain an algorithm and checks the clients only of the tenants
   whose rule-read settings changed; without a readable record everything is reconciled (ADR-0234)._
+- **`R101` — Enforce a password policy wherever a password is set.** Nothing checks a new password: an administrator's
+  account creation and password reset and the self-service change (ADR-0230) accept any non-empty value. NIST SP
+  800-63B requires a minimum length, a maximum of at least 64 characters, a check against a blocklist of compromised
+  and common passwords, and no composition rules. Add one policy seam that every entry point applies, with a tenant
+  setting for the minimum length. Touch points: `LocalAccountApiEndpointHandler` (create, reset),
+  `LocalAccountInteractivePasswordChanger`, `InteractivePasswordChangeResult`.
+  _Closed: `IPasswordPolicy` judges every password that is set (the self-service change, the management API's create and
+  reset, the developer and conformance seeds): the length in code points (`password_min_length` 15, merged with `Max`;
+  `password_max_length` 128) and every registered `IPasswordBlocklist`, which includes the bundled 46,483 common
+  passwords and the account's own names; a refusal carries an open error code the change page shows (ADR-0236). The
+  ASP.NET Core Identity adapter's own validators are `R105`, normalization `R106`._
+- **`R102` — Limit failed password attempts per account.** The interactive login, the self-service password change
+  and the password grant verify a password as often as they are asked: the Entity Framework account store has no
+  lockout, and no endpoint limits failed attempts per account. NIST SP 800-63B §5.2.2 requires the verifier to limit
+  consecutive failed attempts. Count failures per account with `IExpiringCounterSet` and refuse beyond a limit with the
+  answer a wrong password gets. Touch points: `InteractiveAuthenticationEndpointHandler.PostLoginAsync`,
+  `LocalAccountInteractivePasswordChanger`, `DefaultAuthenticatePasswordGrantHandler`, `LocalAccountStore`.
+  _Closed: `IPasswordAttemptLimiter` counts failed passwords per tenant and per user name as the store holds it
+  (`password_failed_attempts_limit` 10 per `password_failed_attempts_window` 15 minutes) at the sign-in, the password
+  grant and the self-service change; beyond the limit a password is refused unchecked with the wrong-password answer,
+  success or an administrator-set password clears the count, and the limiter fails closed (ADR-0237). Verification
+  timing is `R107`._

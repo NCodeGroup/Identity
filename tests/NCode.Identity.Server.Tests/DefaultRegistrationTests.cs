@@ -27,10 +27,13 @@ using Moq;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Tokens;
+using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using Xunit;
 
@@ -114,6 +117,7 @@ public sealed class DefaultRegistrationTests
     [InlineData("tenant_issuer", "https://op.example")]
     [InlineData("session_management_supported", "yes")]
     [InlineData("grant_types_supported", "authorization_code")]
+    [InlineData("session_idle_timeout", "00:00:00")]
     public async Task AddIdentityServer_WhenServerSettingCannotBeHonored_FailsToStart(
         string name,
         string value
@@ -180,6 +184,309 @@ public sealed class DefaultRegistrationTests
         Assert.NotNull(host.Services.GetRequiredService<IDPoPNonceService>());
         Assert.NotNull(host.Services.GetRequiredService<IDPoPProofReplayCache>());
         Assert.NotNull(host.Services.GetRequiredService<IClientAssertionReplayCache>());
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_RegistersAnExpiringCounterSet()
+    {
+        using var host = BuildHost([]);
+        var counterSet = host.Services.GetRequiredService<IExpiringCounterSet>();
+        var expiresWhen = DateTimeOffset.UtcNow.AddMinutes(1);
+
+        Assert.Equal(
+            1,
+            await counterSet.IncrementAsync("key", expiresWhen, CancellationToken.None)
+        );
+        Assert.Equal(
+            2,
+            await counterSet.IncrementAsync("key", expiresWhen, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_RegistersAReplicaBroadcaster()
+    {
+        using var host = BuildHost([]);
+        var broadcaster = host.Services.GetRequiredService<IReplicaBroadcaster>();
+
+        await broadcaster.PublishAsync("unknown-channel", "message", CancellationToken.None);
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheTenantChangeBroadcastHandler()
+    {
+        // Without this handler a tenant change reaches only the replica that handled it.
+        using var host = BuildHost([]);
+
+        Assert.Single(
+            host.Services.GetServices<IReplicaBroadcastHandler>().Select(x => x.Channel),
+            "tenant-changed"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheServerSettingsChangeBroadcastHandler()
+    {
+        // Without this handler a server settings change reaches only the replica that handled it.
+        using var host = BuildHost([]);
+
+        Assert.Single(
+            host.Services.GetServices<IReplicaBroadcastHandler>().Select(x => x.Channel),
+            "server-settings-changed"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheServerSettingsChangedHandler()
+    {
+        // Without this handler a server settings change reaches the replicas only at their next poll.
+        using var host = BuildHost([]);
+
+        var handlers = host.Services.GetServices<ICommandHandler<ServerSettingsChangedCommand>>();
+
+        Assert.Contains(
+            handlers,
+            handler => handler.GetType().Name == "ServerSettingsChangedHandler"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheServerSettingsReconciliationService()
+    {
+        // Without this service a configuration reload or a deployment that changes the server's settings reaches the
+        // tenants only when each is next materialized.
+        using var host = BuildHost([]);
+
+        Assert.Contains(
+            host.Services.GetServices<IHostedService>(),
+            service => service.GetType().Name == "ServerSettingsReconciliationService"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_StartsTheKeyRingGateAfterTheWarmupAndBeforeDataProtection()
+    {
+        // Hosted services start in registration order. The gate needs the protector that the warmup loads, and it must
+        // refuse the host before Data Protection loads the key ring (ADR-0247).
+        using var host = BuildHost([]);
+
+        var names = host
+            .Services.GetServices<IHostedService>()
+            .Select(service => service.GetType().Name)
+            .ToList();
+        var dataProtectionIndex = names.IndexOf("DataProtectionHostedService");
+
+        Assert.Equal("ServerSecretProtectorWarmup", names[0]);
+        Assert.Equal("DataProtectionKeyRingGate", names[1]);
+        Assert.InRange(dataProtectionIndex, 2, names.Count - 1);
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheEndedSessionTerminationService()
+    {
+        // Without this service a session that ends while no request uses it stays unrevoked, with its refresh tokens
+        // and its relying parties unnotified, until a request finds it.
+        using var host = BuildHost([]);
+
+        Assert.Contains(
+            host.Services.GetServices<IHostedService>(),
+            service => service.GetType().Name == "EndedSessionTerminationService"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_ResolvesTheMaterializedServerAccessorToTheRegistry()
+    {
+        // Background work in another package waits for the replica's server through the public accessor, which is
+        // the registry that the first request completes.
+        using var host = BuildHost([]);
+
+        Assert.Equal(
+            "DefaultMaterializedServerRegistry",
+            host.Services.GetRequiredService<IMaterializedServerAccessor>().GetType().Name
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheTenantKeyReconciliationHandler()
+    {
+        // Without this handler a key that the server's settings permit is provisioned only when a tenant is next
+        // materialized.
+        using var host = BuildHost([]);
+
+        var handlers = host.Services.GetServices<ICommandHandler<ReconcileServerSettingsCommand>>();
+
+        Assert.Contains(
+            handlers,
+            handler => handler.GetType().Name == "TenantKeyReconciliationHandler"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersADescriptorForEveryClientAuthenticationHandler()
+    {
+        // A handler without a descriptor is not advertised or accepted; a descriptor without a handler is advertised
+        // but cannot authenticate (ADR-0207).
+        using var host = BuildHost([]);
+        var catalog = host.Services.GetRequiredService<IClientAuthenticationMethodCatalog>();
+
+        var handlerMethods = host
+            .Services.GetServices<IClientAuthenticationHandler>()
+            .Select(handler => handler.AuthenticationMethod)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.Equal(handlerMethods, catalog.MethodNames.Order(StringComparer.Ordinal).ToList());
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_ResolvesTheClientAuthenticationHandlersWithoutDeadlocking()
+    {
+        // Fails fast instead of hanging when a constructor on a client-authentication handler's dependency path reads
+        // IOptions<OpenIdOptions>.Value (ADR-0204, ADR-0207).
+        using var host = BuildHost([]);
+
+        var handlers = await Task.Run(() =>
+                host.Services.GetServices<IClientAuthenticationHandler>().ToList()
+            )
+            .WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.NotEmpty(handlers);
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_ReadingTheOpenIdOptionsDoesNotDeadlock()
+    {
+        // Fails fast instead of hanging when a constructor on a client-authentication handler's dependency path reads
+        // IOptions<OpenIdOptions>.Value (ADR-0204, ADR-0207).
+        using var host = BuildHost([]);
+
+        await Task.Run(() => host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value)
+            .WaitAsync(TimeSpan.FromSeconds(30));
+    }
+
+    [Fact]
+    public void AddIdentityServer_ReadingTheOpenIdOptions_ConstructsNoClientAuthenticationHandler()
+    {
+        // The setting descriptors name the client-authentication methods from their descriptors, so reading the options
+        // constructs no handler (ADR-0207).
+        using var host = BuildHost(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:Server:Settings:session_management_supported"] = "true",
+            },
+            services =>
+                services.AddSingleton<IClientAuthenticationHandler>(_ =>
+                    throw new InvalidOperationException(
+                        "A client-authentication handler was constructed."
+                    )
+                )
+        );
+
+        var options = host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value;
+
+        Assert.NotNull(options.Server.Settings);
+    }
+
+    [Fact]
+    public void AddIdentityServer_ResolvesTheClientAuthenticationService()
+    {
+        // The service checks at construction that every handler has a descriptor and every descriptor has a handler
+        // (ADR-0207), so the built-in registrations must correspond.
+        using var host = BuildHost([]);
+
+        Assert.NotNull(host.Services.GetRequiredService<IClientAuthenticationService>());
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheBuiltInClientCoherenceRules()
+    {
+        // A client's settings are checked wherever a client is stored, so the validator and the built-in rules must be
+        // composed by default (ADR-0206).
+        using var host = BuildHost([]);
+
+        var settingNames = host
+            .Services.GetServices<IClientCoherenceRule>()
+            .SelectMany(rule => rule.SettingNames)
+            .ToList();
+
+        Assert.Contains(OpenIdSettingNames.IdTokenSignedResponseAlg, settingNames);
+        Assert.Contains(OpenIdSettingNames.RedirectUris, settingNames);
+        Assert.Contains(OpenIdSettingNames.PostLogoutRedirectUris, settingNames);
+        Assert.Contains(OpenIdSettingNames.TokenEndpointAuthMethod, settingNames);
+        Assert.Contains(OpenIdSettingNames.GrantTypesSupported, settingNames);
+        Assert.Contains(OpenIdSettingNames.IdTokenEncryptionRequired, settingNames);
+        Assert.Contains(OpenIdSettingNames.RequireDPoPBoundAccessTokens, settingNames);
+        Assert.Contains(OpenIdSettingNames.ClientNotificationEndpoint, settingNames);
+        Assert.Contains(OpenIdSettingNames.RefreshTokenRotationRetryRequired, settingNames);
+        Assert.NotNull(host.Services.GetRequiredService<IClientCoherenceValidator>());
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegisteredValueRuleReadsEveryMeetAClientCanRegister()
+    {
+        // A value a client registers survives only where no ceiling lowers it (ADR-0240).
+        using var host = BuildHost([]);
+
+        var settingNames = host
+            .Services.GetServices<IClientCoherenceRule>()
+            .Single(candidate => candidate.GetType().Name == "RegisteredValueCoherenceRule")
+            .SettingNames;
+
+        Assert.Contains(OpenIdSettingNames.AccessTokenLifetime, settingNames);
+        Assert.Contains(OpenIdSettingNames.ClockSkew, settingNames);
+        Assert.Contains(OpenIdSettingNames.GrantTypesSupported, settingNames);
+        Assert.DoesNotContain(OpenIdSettingNames.UserCodeLength, settingNames);
+        Assert.DoesNotContain(OpenIdSettingNames.SecurityProfiles, settingNames);
+        Assert.DoesNotContain(OpenIdSettingNames.SectorIdentifierUriFetchTimeout, settingNames);
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheClientCoherenceReporter()
+    {
+        using var host = BuildHost([]);
+
+        var reporter = host.Services.GetRequiredService<IClientCoherenceReporter>();
+
+        Assert.Equal("DefaultClientCoherenceReporter", reporter.GetType().Name);
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheClientCoherenceReportHandler()
+    {
+        // Without this handler a change to the server's settings that is not a write leaves the stored clients that it
+        // makes incoherent unreported until they fail at their next request (ADR-0219).
+        using var host = BuildHost([]);
+
+        var handlers = host.Services.GetServices<ICommandHandler<ReconcileServerSettingsCommand>>();
+
+        Assert.Contains(
+            handlers,
+            handler => handler.GetType().Name == "ClientCoherenceReportHandler"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheClientJwtCredentialSelectorBesideTheTokenService()
+    {
+        // A replacement ITokenService resolves the selector to protect ID tokens exactly as the client registered.
+        using var host = BuildHost([]);
+
+        Assert.NotNull(host.Services.GetRequiredService<ITokenService>());
+        Assert.NotNull(host.Services.GetRequiredService<IClientJwtCredentialSelector>());
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenAClientJwtCredentialSelectorIsRegistered_KeepsIt()
+    {
+        var selector = new Mock<IClientJwtCredentialSelector>(MockBehavior.Strict).Object;
+        var services = new ServiceCollection();
+        services.AddSingleton(selector);
+
+        services.AddIdentityServer();
+
+        using var serviceProvider = services.BuildServiceProvider();
+        Assert.Same(selector, serviceProvider.GetRequiredService<IClientJwtCredentialSelector>());
     }
 
     [Fact]
@@ -389,11 +696,61 @@ public sealed class DefaultRegistrationTests
             var scopeSettings = settingCollectionFactory.Create();
             scopeSettings.Set(OpenIdSettingKeys.SecurityProfiles, [profile.ProfileName]);
 
-            var expanded = settingCollectionFactory.Create(catalog.Expand(scopeSettings));
+            var expanded = settingCollectionFactory.Create(
+                catalog.Expand(scopeSettings, OpenIdSettingScopes.Server)
+            );
 
             Assert.True(expanded.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var selected));
             Assert.Contains(profile.ProfileName, selected);
         }
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenOnlyAClientSelectsFapi1Advanced_LeavesCertificateBindingSupportToTheTenant()
+    {
+        // A profile's default applies only to a setting that applies within the expanding scope: a client selection
+        // requires certificate-bound tokens, but whether the server supports them is the tenant's choice (ADR-0148).
+        using var host = BuildHost([]);
+        var catalog = host.Services.GetRequiredService<ISecurityProfileCatalog>();
+        var settingCollectionFactory =
+            host.Services.GetRequiredService<ISettingCollectionFactory>();
+        var scopeSettings = settingCollectionFactory.Create();
+        scopeSettings.Set(
+            OpenIdSettingKeys.SecurityProfiles,
+            [OpenIdConstants.SecurityProfiles.Fapi1Advanced]
+        );
+
+        var atClient = settingCollectionFactory.Create(
+            catalog.Expand(scopeSettings, OpenIdSettingScopes.Client)
+        );
+        var atTenant = settingCollectionFactory.Create(
+            catalog.Expand(scopeSettings, OpenIdSettingScopes.Tenant)
+        );
+
+        Assert.False(
+            atClient.TryGetValue(OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens, out _)
+        );
+        Assert.True(
+            atClient.TryGetValue(
+                OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens,
+                out var required
+            )
+        );
+        Assert.True(required);
+        Assert.True(
+            atClient.TryGetValue(
+                OpenIdSettingKeys.IdTokenSignedResponseAlg,
+                out var signedResponseAlg
+            )
+        );
+        Assert.Equal("PS256", signedResponseAlg);
+        Assert.True(
+            atTenant.TryGetValue(
+                OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens,
+                out var supported
+            )
+        );
+        Assert.True(supported);
     }
 
     [Theory]
@@ -519,6 +876,90 @@ public sealed class DefaultRegistrationTests
 
         Assert.Contains("Tenant:KeyProvisioning", exception.Message, StringComparison.Ordinal);
         Assert.Contains(expectedReason, exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_WhenTheGrantRetentionIsNegative_FailsToStart()
+    {
+        using var host = BuildHost(
+            [],
+            serviceCollection =>
+                serviceCollection.Configure<GrantRetentionOptions>(options =>
+                    options.Retention = TimeSpan.FromDays(-1)
+                )
+        );
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains("GrantRetentionOptions", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(
+        "OpenId:Server:SettingsPeriodicRefreshInterval",
+        "00:00:00",
+        "Server:SettingsPeriodicRefreshInterval"
+    )]
+    [InlineData(
+        "OpenId:Server:ReconciliationLeaseDuration",
+        "-00:01:00",
+        "Server:ReconciliationLeaseDuration"
+    )]
+    [InlineData("OpenId:Tenant:TenantCacheLifetime", "50.00:00:00", "Tenant:TenantCacheLifetime")]
+    [InlineData("OpenId:GrantRetention:PruneInterval", "00:00:00", "GrantRetention:PruneInterval")]
+    [InlineData(
+        "OpenId:ClientCertificateRevocation:FetchTimeout",
+        "00:00:00",
+        "ClientCertificateRevocation:FetchTimeout"
+    )]
+    [InlineData("OpenId:TenantUsage:FlushInterval", "00:00:00", "TenantUsage:FlushInterval")]
+    [InlineData(
+        "OpenId:EndedSessionTermination:Interval",
+        "00:00:00",
+        "EndedSessionTermination:Interval"
+    )]
+    public async Task AddIdentityServer_WhenAnIntervalIsOutsideWhatATimerAccepts_FailsToStart(
+        string key,
+        string value,
+        string expectedKey
+    )
+    {
+        using var host = BuildHost(new Dictionary<string, string?> { [key] = value });
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains($"'{expectedKey}'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(
+        "OpenId:InProcessJobDispatcher:QueueCapacity",
+        "0",
+        "InProcessJobDispatcher:QueueCapacity"
+    )]
+    [InlineData(
+        "OpenId:InProcessJobDispatcher:MaxConcurrentJobs",
+        "0",
+        "InProcessJobDispatcher:MaxConcurrentJobs"
+    )]
+    [InlineData("OpenId:InProcessJobDispatcher:FullMode", "7", "InProcessJobDispatcher:FullMode")]
+    public async Task AddIdentityServer_WhenAnInProcessJobDispatcherOptionIsInvalid_FailsToStart(
+        string key,
+        string value,
+        string expectedKey
+    )
+    {
+        using var host = BuildHost(new Dictionary<string, string?> { [key] = value });
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains($"'{expectedKey}'", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

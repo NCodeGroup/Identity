@@ -20,7 +20,9 @@ abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.JsonSerializerOpti
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.KnownParameters.get -> NCode.Identity.OpenId.Messages.Parameters.IKnownParameterCollection!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
 abstract NCode.Identity.OpenId.Messages.Parameters.KnownParameter.ValueType.get -> System.Type!
+abstract NCode.Identity.OpenId.Servers.OpenIdServer.ConfiguredSettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+abstract NCode.Identity.OpenId.Servers.OpenIdServer.RefreshSettingsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.SecretsProvider.get -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.ServerId.get -> string!
 abstract NCode.Identity.OpenId.Servers.OpenIdServer.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
@@ -28,6 +30,7 @@ abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.BaseAddress.get -> NCode.Ide
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.DisplayName.get -> string!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.DisposeAsyncCore() -> System.Threading.Tasks.ValueTask
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.Issuer.get -> string!
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.MtlsEndpointAliasAuthority.get -> string?
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SecretsProvider.get -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
@@ -78,12 +81,8 @@ const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Page = "page" -> string
 const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Popup = "popup" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Touch = "touch" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.DisplayTypes.Wap = "wap" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.DPoP.AccessTokenHashClaim = "ath" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.DPoP.HeaderName = "DPoP" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.DPoP.HttpMethodClaim = "htm" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.DPoP.HttpUriClaim = "htu" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.DPoP.NonceHeaderName = "DPoP-Nonce" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.DPoP.ProofJwtType = "dpop+jwt" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Authorization = "authorization_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Continue = "continue_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.DeviceAuthorization = "device_authorization_endpoint" -> string!
@@ -119,6 +118,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Clients = "Clients" -> 
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Grants = "Grants" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.LocalAccounts = "LocalAccounts" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.OpenId = "oidc" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Principals = "Principals" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.ResourceServers = "ResourceServers" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Servers = "Servers" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Sessions = "Sessions" -> string!
@@ -244,10 +244,16 @@ const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.CreateAccount = "create"
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.Login = "login" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.None = "none" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PromptTypes.SelectAccount = "select_account" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds.Http = "http" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds.Https = "https" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds.Loopback = "loopback" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds.PrivateUse = "private_use" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy.Absolute = "absolute" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy.Sliding = "sliding" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenReusePolicy.None = "none" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenReusePolicy.RevokeAll = "revoke_all" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenRotationPolicy.Always = "always" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.RefreshTokenRotationPolicy.Unbound = "unbound" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.MediaTypes.Html = "text/html" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.MediaTypes.Json = "application/json" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.FormPost = "form_post" -> string!
@@ -288,9 +294,11 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IntrospectionEncryptionE
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IntrospectionSignedResponseAlg = "introspection_signed_response_alg" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.IntrospectionSigningAlgValuesSupported = "introspection_signing_alg_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.LogoUri = "logo_uri" -> string!
-const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MtlsEndpointAliasAuthority = "mtls_endpoint_alias_authority" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PolicyUri = "policy_uri" -> string!
-const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireDPoP = "require_dpop" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestObjectMaxLifetime = "request_object_max_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestObjectNotBeforeRequired = "request_object_nbf_required" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireDPoPBoundAccessTokens = "require_dpop_bound_access_tokens" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens = "require_tls_client_certificate_bound_access_tokens" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SoftwareId = "software_id" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.SoftwareVersion = "software_version" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientCertificateBoundAccessTokens = "tls_client_certificate_bound_access_tokens" -> string!
@@ -359,6 +367,7 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.OpenIdProviderTermsOfSer
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PkceNonceExemption = "pkce_nonce_exemption" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PromptValuesSupported = "prompt_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RedirectUris = "redirect_uris" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RedirectUriKindsSupported = "redirect_uri_kinds_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PostLogoutRedirectUris = "post_logout_redirect_uris" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackChannelLogoutUri = "backchannel_logout_uri" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackChannelLogoutSessionRequired = "backchannel_logout_session_required" -> string!
@@ -375,8 +384,10 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.BackChannelLogoutSession
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RegistrationEndpointAllowAnonymous = "registration_endpoint_allow_anonymous" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenExpirationPolicy = "refresh_token_expiration_policy" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenReusePolicy = "refresh_token_reuse_policy" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenRotationPolicy = "refresh_token_rotation_policy" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenReuseInterval = "refresh_token_reuse_interval" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenRotationRetryRequired = "refresh_token_rotation_retry_required" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenLifetime = "refresh_token_lifetime" -> string!
-const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RefreshTokenRotationEnabled = "refresh_token_rotation_enabled" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported = "request_object_encryption_alg_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestObjectEncryptionEncValuesSupported = "request_object_encryption_enc_values_supported" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RequestObjectExpectedAudience = "request_object_expected_audience" -> string!
@@ -428,7 +439,9 @@ const NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DefaultDisplayName
 const NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.DefaultTenantId = "default" -> string!
 NCode.Identity.OpenId.Contexts.IOpenIdContextFactory
 NCode.Identity.OpenId.Contexts.IOpenIdContextFactory.CreateForRequestAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Mediator.IMediator! mediator, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Contexts.OpenIdContext!>
+NCode.Identity.OpenId.Contexts.IOpenIdContextFactory.CreateForControlPlaneAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Mediator.IMediator! mediator, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Contexts.OpenIdContext!>
 NCode.Identity.OpenId.Contexts.IOpenIdContextFactory.CreateForTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, NCode.Mediator.IMediator! mediator, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Contexts.OpenIdContext!>
+NCode.Identity.OpenId.Contexts.IOpenIdContextFactory.CreateForBackgroundAsync(System.IServiceProvider! serviceProvider, string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Contexts.OpenIdContext!>
 NCode.Identity.OpenId.Contexts.IOpenIdContextFeature
 NCode.Identity.OpenId.Contexts.IOpenIdContextFeature.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 NCode.Identity.OpenId.Contexts.OpenIdContext
@@ -446,21 +459,37 @@ NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.MediaTypes.get -> System.
 NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.WriteAsync(NCode.Identity.OpenId.Results.OpenIdResponseFormatterContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Results.IOpenIdResult
 NCode.Identity.OpenId.Results.IOpenIdResult.Response.get -> NCode.Identity.OpenId.Messages.IOpenIdResponse!
+NCode.Identity.OpenId.Settings.IRedirectUriKind
+NCode.Identity.OpenId.Settings.IRedirectUriKind.KindName.get -> string!
+NCode.Identity.OpenId.Settings.IRedirectUriKind.Matches(System.Uri! redirectUri) -> bool
+NCode.Identity.OpenId.Settings.IRedirectUriKindCatalog
+NCode.Identity.OpenId.Settings.IRedirectUriKindCatalog.IsPermitted(NCode.Identity.Settings.IReadOnlySettingCollection! settings, string! redirectUri) -> bool
 NCode.Identity.OpenId.Settings.ISecurityProfile
 NCode.Identity.OpenId.Settings.ISecurityProfile.ApplyCeilingSettings(NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder! ceiling) -> void
+NCode.Identity.OpenId.Settings.ISecurityProfile.ApplyDefaultSettings(NCode.Identity.OpenId.Settings.ISecurityProfileDefaultsBuilder! defaults) -> void
 NCode.Identity.OpenId.Settings.ISecurityProfile.ProfileName.get -> string!
 NCode.Identity.OpenId.Settings.ISecurityProfile.Requirements.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Settings.ISecurityProfileRequirement!>!
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.EvaluateRequirementsAsync<TContext>(NCode.Identity.Settings.IReadOnlySettingCollection! settings, TContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! scopeSettings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! scopeSettings, string! scopeName) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! scopeSettings, string! scopeName, System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>! baselineSettings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.Expand(System.Text.Json.JsonElement settingsJson, string! scopeName, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
 NCode.Identity.OpenId.Settings.ISecurityProfileCatalog.TryGetProfile(string! profileName, out NCode.Identity.OpenId.Settings.ISecurityProfile! profile) -> bool
 NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder
 NCode.Identity.OpenId.Settings.ISecurityProfileCeilingBuilder.Set<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, TValue value) -> void
+NCode.Identity.OpenId.Settings.ISecurityProfileDefaultsBuilder
+NCode.Identity.OpenId.Settings.ISecurityProfileDefaultsBuilder.Set<TValue>(NCode.Identity.Settings.SettingKey<TValue> key, TValue value) -> void
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement<TContext>
 NCode.Identity.OpenId.Settings.ISecurityProfileRequirement<TContext>.EvaluateAsync(TContext context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.ITenantProvisioner
+NCode.Identity.OpenId.Tenants.TenantChangedCommand
+NCode.Identity.OpenId.Tenants.TenantChangedCommand.SettingsChanged.get -> bool
+NCode.Identity.OpenId.Tenants.TenantChangedCommand.SettingsChanged.init -> void
+NCode.Identity.OpenId.Tenants.TenantChangedCommand.TenantChangedCommand() -> void
+NCode.Identity.OpenId.Tenants.TenantChangedCommand.TenantChangedCommand(string! TenantId, bool SettingsChanged) -> void
+NCode.Identity.OpenId.Tenants.TenantChangedCommand.TenantId.get -> string!
+NCode.Identity.OpenId.Tenants.TenantChangedCommand.TenantId.init -> void
 NCode.Identity.OpenId.Tenants.SeedTenantCommand
 NCode.Identity.OpenId.Tenants.SeedTenantCommand.Context.get -> NCode.Identity.OpenId.Tenants.TenantSeedContext!
 NCode.Identity.OpenId.Tenants.SeedTenantCommand.Context.init -> void
@@ -653,6 +682,7 @@ NCode.Identity.OpenId.OpenIdConstants.ClientAuthenticationMethods
 NCode.Identity.OpenId.OpenIdConstants.CodeChallengeMethods
 NCode.Identity.OpenId.OpenIdConstants.ContinueCodes
 NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles
+const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Fapi1Advanced = "fapi1-advanced" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.SecurityProfiles.Fapi2 = "fapi2" -> string!
 NCode.Identity.OpenId.OpenIdConstants.DisplayTypes
 NCode.Identity.OpenId.OpenIdConstants.EndpointNames
@@ -664,8 +694,10 @@ NCode.Identity.OpenId.OpenIdConstants.MediaTypes
 NCode.Identity.OpenId.OpenIdConstants.Parameters
 NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes
 NCode.Identity.OpenId.OpenIdConstants.PromptTypes
+NCode.Identity.OpenId.OpenIdConstants.RedirectUriKinds
 NCode.Identity.OpenId.OpenIdConstants.RefreshTokenExpirationPolicy
 NCode.Identity.OpenId.OpenIdConstants.RefreshTokenReusePolicy
+NCode.Identity.OpenId.OpenIdConstants.RefreshTokenRotationPolicy
 NCode.Identity.OpenId.OpenIdConstants.ResponseModes
 NCode.Identity.OpenId.OpenIdConstants.ResponseTypes
 NCode.Identity.OpenId.OpenIdConstants.ScopeTypes
@@ -728,16 +760,47 @@ NCode.Identity.OpenId.Results.OpenIdResult<T>.OpenIdResult(T! response) -> void
 NCode.Identity.OpenId.Results.OpenIdResult<T>.Response.get -> T!
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider.GetJsonConverters(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.JsonConverter!>!
+NCode.Identity.OpenId.Servers.IMaterializedServerAccessor
+NCode.Identity.OpenId.Servers.IMaterializedServerAccessor.GetServerAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Servers.OpenIdServer!>
 NCode.Identity.OpenId.Servers.IOpenIdServerFactory
 NCode.Identity.OpenId.Servers.IOpenIdServerFactory.CreateAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Servers.OpenIdServer!>
 NCode.Identity.OpenId.Servers.IOpenIdServerProvider
 NCode.Identity.OpenId.Servers.IOpenIdServerProvider.GetAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Servers.OpenIdServer!>
 NCode.Identity.OpenId.Servers.OpenIdServer
 NCode.Identity.OpenId.Servers.OpenIdServer.OpenIdServer() -> void
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.PreviousSettings.get -> NCode.Identity.Settings.IReadOnlySettingCollection?
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.PreviousSettings.init -> void
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ReconcileServerSettingsCommand() -> void
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ReconcileServerSettingsCommand(string! ServerId, NCode.Identity.Settings.IReadOnlySettingCollection! Settings) -> void
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ServerId.get -> string!
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ServerId.init -> void
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.Settings.get -> NCode.Identity.Settings.IReadOnlySettingCollection!
+NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.Settings.init -> void
+NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand
+NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.PreviousSettings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.PreviousSettings.init -> void
+NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.ServerId.get -> string!
+NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.ServerId.init -> void
+NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.ServerSettingsChangedCommand() -> void
+NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.ServerSettingsChangedCommand(string! ServerId, System.Text.Json.JsonElement PreviousSettings, System.Text.Json.JsonElement Settings) -> void
+NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.Settings.init -> void
 NCode.Identity.OpenId.Settings.IDefaultSettingsProvider
 NCode.Identity.OpenId.Settings.IDefaultSettingsProvider.Configure(NCode.Identity.Settings.ISettingCollection! settings) -> void
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ReadScopeSettings(string! scopeName, System.Text.Json.JsonElement settings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.Resolve(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, System.Text.Json.JsonElement settings) -> NCode.Identity.Settings.IReadOnlySettingCollection!
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveServerAsync(System.Text.Json.JsonElement settings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveServerAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveStored(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, string! ownerId, System.Text.Json.JsonElement settings) -> NCode.Identity.Settings.IReadOnlySettingCollection!
 NCode.Identity.OpenId.Settings.OpenIdSettingKeys
 NCode.Identity.OpenId.Settings.OpenIdSettingNames
+NCode.Identity.OpenId.Settings.UnreadableSettingsException
+NCode.Identity.OpenId.Settings.UnreadableSettingsException.DocumentError.get -> string!
+NCode.Identity.OpenId.Settings.UnreadableSettingsException.OwnerId.get -> string!
+NCode.Identity.OpenId.Settings.UnreadableSettingsException.ScopeName.get -> string!
+NCode.Identity.OpenId.Settings.UnreadableSettingsException.UnreadableSettingsException(string! scopeName, string! ownerId, System.Text.Json.JsonException! innerException) -> void
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.DynamicByHostTenantOptions() -> void
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.RegexPattern.get -> string!
@@ -751,22 +814,29 @@ NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantIdRouteParameterN
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantPath.get -> Microsoft.AspNetCore.Http.PathString
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.TenantPath.set -> void
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache
+NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.ClearAsync(NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.RemoveAsync(string! tenantId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.SetAsync(string! tenantId, NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!> tenant, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.TryGetAsync(string! tenantId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
 NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory
 NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory.CreateTenantForRequestAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Servers.OpenIdServer! openIdServer, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
+NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory.CreateControlPlaneTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Servers.OpenIdServer! openIdServer, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
 NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory.CreateTenantByIdAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Servers.OpenIdServer! openIdServer, string! tenantId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
 NCode.Identity.OpenId.Tenants.ITenantResolver
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
+NCode.Identity.OpenId.Tenants.ITenantResolver.ResolveControlPlaneTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantResolver.ResolveTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantResolver.TryGetTenantId(Microsoft.AspNetCore.Http.HttpContext! httpContext, out string? tenantId) -> bool
-NCode.Identity.OpenId.Tenants.ITenantResolver.ValidateTenantAsync(string! tenantId, string? issuer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Tenants.TenantValidationFailure>!>
+NCode.Identity.OpenId.Tenants.ITenantResolver.ValidateTenantAsync(string! tenantId, string? issuer, string? mtlsEndpointAliasAuthority, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Tenants.TenantValidationFailure>!>
+NCode.Identity.OpenId.Tenants.ITenantResolver.IsRequiredTenant(string! tenantId) -> bool
 NCode.Identity.OpenId.Tenants.ITenantStrategy
 NCode.Identity.OpenId.Tenants.ITenantStrategy.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
+NCode.Identity.OpenId.Tenants.ITenantStrategy.ResolveControlPlaneTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantStrategy.ResolveTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantStrategy.StrategyCode.get -> string!
 NCode.Identity.OpenId.Tenants.ITenantStrategy.TryGetTenantId(Microsoft.AspNetCore.Http.HttpContext! httpContext, out string? tenantId) -> bool
-NCode.Identity.OpenId.Tenants.ITenantStrategy.ValidateTenantAsync(string! tenantId, System.Uri? issuer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Tenants.TenantValidationFailure>!>
+NCode.Identity.OpenId.Tenants.ITenantStrategy.ValidateTenantAsync(string! tenantId, System.Uri? issuer, System.Uri? mtlsEndpointAliasAuthority, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Tenants.TenantValidationFailure>!>
+NCode.Identity.OpenId.Tenants.ITenantStrategy.IsRequiredTenant(string! tenantId) -> bool
 NCode.Identity.OpenId.Tenants.TenantValidationFailure
 NCode.Identity.OpenId.Tenants.TenantValidationFailure.Detail.get -> string!
 NCode.Identity.OpenId.Tenants.TenantValidationFailure.Detail.init -> void
@@ -853,9 +923,11 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IntrospectionEncryptionE
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IntrospectionSignedResponseAlg.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.IntrospectionSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.LogoUri.get -> NCode.Identity.Settings.SettingKey<string!>
-static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.MtlsEndpointAliasAuthority.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PolicyUri.get -> NCode.Identity.Settings.SettingKey<string!>
-static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireDPoP.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestObjectMaxLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestObjectNotBeforeRequired.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireDPoPBoundAccessTokens.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SoftwareId.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SoftwareVersion.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens.get -> NCode.Identity.Settings.SettingKey<bool>
@@ -881,6 +953,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.OpenIdProviderTermsOfSer
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PkceNonceExemption.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PromptValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RedirectUris.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RedirectUriKindsSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PostLogoutRedirectUris.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackChannelLogoutUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackChannelLogoutSessionRequired.get -> NCode.Identity.Settings.SettingKey<bool>
@@ -897,8 +970,10 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackChannelLogoutSession
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RegistrationEndpointAllowAnonymous.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenExpirationPolicy.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenReusePolicy.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenRotationPolicy.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenReuseInterval.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenRotationRetryRequired.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
-static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RefreshTokenRotationEnabled.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestObjectEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestObjectEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RequestObjectExpectedAudience.get -> NCode.Identity.Settings.SettingKey<string!>
@@ -1005,6 +1080,8 @@ const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TokenExchangeAllowRefres
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TokenExchangeAllowRefreshToken.get -> NCode.Identity.Settings.SettingKey<bool>
 NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.Issuer.get -> string?
 NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.Issuer.set -> void
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.MtlsEndpointAliasAuthority.set -> void
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Client = "client" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.ResourceServer = "resource_server" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Server = "server" -> string!
@@ -1015,19 +1092,86 @@ const NCode.Identity.OpenId.Tenants.RootTenantOptions.DefaultTenantId = "root" -
 const NCode.Identity.OpenId.Tenants.TenantResolutionOptions.TenantIdPlaceholder = "{tenantId}" -> string!
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.IssuerTemplate.get -> string?
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.IssuerTemplate.set -> void
+NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.MtlsEndpointAliasTemplate.get -> string?
+NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.MtlsEndpointAliasTemplate.set -> void
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.IssuerTemplate.get -> string?
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.IssuerTemplate.set -> void
 NCode.Identity.OpenId.Tenants.ITenantProvisioner.EnsureCreatedAsync(string! tenantId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantProvisioner.SeedAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetDefaultIssuerAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
+NCode.Identity.OpenId.Tenants.ITenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
 NCode.Identity.OpenId.Tenants.ITenantStrategy.GetDefaultIssuerAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
+NCode.Identity.OpenId.Tenants.ITenantStrategy.GetDefaultMtlsEndpointAliasAuthorityAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
 NCode.Identity.OpenId.Tenants.RootTenantOptions
 NCode.Identity.OpenId.Tenants.RootTenantOptions.DisplayName.get -> string!
 NCode.Identity.OpenId.Tenants.RootTenantOptions.DisplayName.set -> void
 NCode.Identity.OpenId.Tenants.RootTenantOptions.Issuer.get -> string?
 NCode.Identity.OpenId.Tenants.RootTenantOptions.Issuer.set -> void
+NCode.Identity.OpenId.Tenants.RootTenantOptions.MtlsEndpointAliasAuthority.get -> string?
+NCode.Identity.OpenId.Tenants.RootTenantOptions.MtlsEndpointAliasAuthority.set -> void
 NCode.Identity.OpenId.Tenants.RootTenantOptions.RootTenantOptions() -> void
 NCode.Identity.OpenId.Tenants.RootTenantOptions.TenantId.get -> string!
 NCode.Identity.OpenId.Tenants.RootTenantOptions.TenantId.set -> void
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.Root.get -> NCode.Identity.OpenId.Tenants.RootTenantOptions!
 NCode.Identity.OpenId.Tenants.TenantResolutionOptions.Root.set -> void
+const NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode.None = "none" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode.Online = "online" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode.OnlineSoftFail = "online_soft_fail" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthRevocationMode = "tls_client_auth_revocation_mode" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TlsClientAuthTrustAnchors = "tls_client_auth_trust_anchors" -> string!
+NCode.Identity.OpenId.OpenIdConstants.ClientCertificateRevocationMode
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientAuthRevocationMode.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TlsClientAuthTrustAnchors.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RateLimitAddressPerMinute = "rate_limit_address_per_minute" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RateLimitClientPerMinute = "rate_limit_client_per_minute" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.RateLimitTenantPerMinute = "rate_limit_tenant_per_minute" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RateLimitAddressPerMinute.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RateLimitClientPerMinute.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RateLimitTenantPerMinute.get -> NCode.Identity.Settings.SettingKey<int>
+NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes
+const NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.Endpoint = "ncode.identity.openid.endpoint" -> string!
+const NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.Error = "ncode.identity.openid.error" -> string!
+const NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.GrantType = "ncode.identity.openid.grant_type" -> string!
+const NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.OtherValue = "_OTHER" -> string!
+static NCode.Identity.OpenId.Metrics.OpenIdMetricAttributes.Add(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! name, string! value) -> void
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.QuotaTenantRequestsPerDay = "quota_tenant_requests_per_day" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.QuotaTenantTokenRequestsPerDay = "quota_tenant_token_requests_per_day" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.QuotaTenantRequestsPerDay.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.QuotaTenantTokenRequestsPerDay.get -> NCode.Identity.Settings.SettingKey<int>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.QuotaTenantRequestsOveragePerDay = "quota_tenant_requests_overage_per_day" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.QuotaTenantTokenRequestsOveragePerDay = "quota_tenant_token_requests_overage_per_day" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.QuotaTenantRequestsOveragePerDay.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.QuotaTenantTokenRequestsOveragePerDay.get -> NCode.Identity.Settings.SettingKey<int>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PasswordFailedAttemptsLimit = "password_failed_attempts_limit" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PasswordFailedAttemptsWindow = "password_failed_attempts_window" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PasswordMaxLength = "password_max_length" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.PasswordMinLength = "password_min_length" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PasswordFailedAttemptsLimit.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PasswordFailedAttemptsWindow.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PasswordMaxLength.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.PasswordMinLength.get -> NCode.Identity.Settings.SettingKey<int>
+const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.FormPostJwt = "form_post.jwt" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.FragmentJwt = "fragment.jwt" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.Jwt = "jwt" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.ResponseModes.QueryJwt = "query.jwt" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.Parameters.Response = "response" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationEncryptedResponseAlg = "authorization_encrypted_response_alg" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationEncryptedResponseAlg.get -> NCode.Identity.Settings.SettingKey<string!>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationEncryptedResponseEnc = "authorization_encrypted_response_enc" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationEncryptedResponseEnc.get -> NCode.Identity.Settings.SettingKey<string!>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationEncryptionAlgValuesSupported = "authorization_encryption_alg_values_supported" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationEncryptionAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationEncryptionEncValuesSupported = "authorization_encryption_enc_values_supported" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationEncryptionEncValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationSignedResponseAlg = "authorization_signed_response_alg" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationSignedResponseAlg.get -> NCode.Identity.Settings.SettingKey<string!>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationResponseLifetime = "authorization_response_lifetime" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationResponseLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuthorizationSigningAlgValuesSupported = "authorization_signing_alg_values_supported" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuthorizationSigningAlgValuesSupported.get -> NCode.Identity.Settings.SettingKey<System.Collections.Generic.IReadOnlyCollection<string!>!>
+NCode.Identity.OpenId.Tenants.ITenantResolver.GetControlPlaneTenantId() -> string!
+NCode.Identity.OpenId.Tenants.ITenantStrategy.GetControlPlaneTenantId() -> string!
+NCode.Identity.OpenId.ClientCertificates.DistinguishedName
+NCode.Identity.OpenId.ClientCertificates.DistinguishedName.Matches(NCode.Identity.OpenId.ClientCertificates.DistinguishedName! other) -> bool
+static NCode.Identity.OpenId.ClientCertificates.DistinguishedName.FromX500(System.Security.Cryptography.X509Certificates.X500DistinguishedName! name) -> NCode.Identity.OpenId.ClientCertificates.DistinguishedName!
+static NCode.Identity.OpenId.ClientCertificates.DistinguishedName.TryParse(string! value, out NCode.Identity.OpenId.ClientCertificates.DistinguishedName? distinguishedName) -> bool

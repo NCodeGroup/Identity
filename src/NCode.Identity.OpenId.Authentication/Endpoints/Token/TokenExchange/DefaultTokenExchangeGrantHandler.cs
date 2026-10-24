@@ -20,7 +20,6 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Jose;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
@@ -36,6 +35,7 @@ using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Settings;
 using NCode.Json;
 using NCode.Persistence.Stores;
+using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.TokenExchange;
 
@@ -190,6 +190,14 @@ internal class DefaultTokenExchangeGrantHandler(
         var createdWhen =
             ReadAuthTime(subjectResult.Payload) ?? TimeProvider.GetUtcNowWithPrecisionInSeconds();
         var authenticationProperties = new AuthenticationProperties { IssuedUtc = createdWhen };
+
+        // The subject token was validated as one this tenant issued, so the subject belongs to this tenant; an ID token
+        // carries no tid claim. See ADR-0225.
+        var tenantId = openIdContext.Tenant.TenantId;
+        authenticationProperties.SetString(
+            OpenIdConstants.AuthenticationPropertyItems.TenantId,
+            tenantId
+        );
 
         var subjectAuthentication = SubjectAuthentication.Create(
             openIdContext,

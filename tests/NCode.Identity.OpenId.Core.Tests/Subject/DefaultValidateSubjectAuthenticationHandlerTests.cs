@@ -225,6 +225,21 @@ public class DefaultValidateSubjectAuthenticationHandlerTests : BaseTests
         Assert.True(disposition.HasError);
     }
 
+    [Fact]
+    public async Task HandleAsync_WhenThereIsNoRequest_SkipsTheRequestedConstraints()
+    {
+        var subject = CreateSubjectAuthentication(TenantId, CreateAuthenticatedSubject("acr-1"));
+        var (command, disposition, mockContext, mockTenant) = CreateCommand(
+            subject,
+            initialError: null
+        );
+        SetupTenant(mockContext, mockTenant);
+
+        await Handler.HandleAsync(command with { OpenIdRequest = null }, CancellationToken.None);
+
+        Assert.False(disposition.HasError);
+    }
+
     #endregion
 
     #region Essential acr Enforcement Tests

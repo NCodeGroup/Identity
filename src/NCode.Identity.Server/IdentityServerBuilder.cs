@@ -89,11 +89,15 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
         // distributed backend (outbox, broker, scheduler cluster) by registering its own IJobDispatcher first.
         serviceCollection.AddDispatchServices().AddInProcessJobDispatcher();
 
-        // The in-process expiring key set is the default shared-state adapter, correct for a single replica; a
-        // deployment that runs several replicas swaps in a shared adapter (AddValkey) on SharedStateLibraryBuilder.
+        // The in-process expiring key and counter sets are the default shared-state adapters, correct for a single
+        // replica; a deployment that runs several replicas swaps in shared adapters (AddValkey) on
+        // SharedStateLibraryBuilder. The in-process replica broadcaster is also a default, correct for a single
+        // replica, which AddValkey replaces.
         SharedStateLibraryBuilder = serviceCollection
             .AddSharedStateServices()
-            .AddInProcessExpiringKeySet();
+            .AddInProcessExpiringKeySet()
+            .AddInProcessExpiringCounterSet()
+            .AddInProcessReplicaBroadcaster();
 
         DataProtectionBuilder = serviceCollection.AddDataProtection();
         SecretsLibraryBuilder = serviceCollection.AddSecretsLibrary();
@@ -127,6 +131,14 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
                 BootstrapAdminSeedHandler
             >()
         );
+
+        // Every configuration seeder checks the clients it creates with this validator before it stores them.
+        serviceCollection.TryAddSingleton<SeededClientValidator>();
+
+        // Every configuration seeder checks the password of an account it creates with this validator before it stores
+        // it.
+        serviceCollection.TryAddSingleton<SeededLocalAccountValidator>();
+
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<
                 IValidateOptions<BootstrapAdminOptions>,

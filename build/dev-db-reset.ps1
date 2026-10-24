@@ -8,9 +8,14 @@
     The host dev database is Postgres in a container, orchestrated by the Aspire AppHost (ADR-0073). Its data
     lives in a STABLE named volume (ncode-identity-openiddb-data) so it survives restarts. This script removes that
     volume so the next AppHost run starts from an empty database: the migration worker re-applies the schema and the
-    host re-seeds the admin user, SPA client, and developer signing key. Because the data, the seeded signing key, and
-    the DataProtection key ring that protects it all live in the one database, this single action resets them together
-    with nothing left on the filesystem.
+    host re-seeds the admin user, SPA client, and developer signing key. Because the data, the seeded signing key, the
+    tenants' master keys, and the DataProtection key ring all live in the one database, this single action resets them
+    together.
+
+    The per-machine development root key that wraps the master keys is NOT in the database: the AppHost writes it once
+    to local application data (NCode.Identity/LocalDev/root-key) and hands it to every OP instance it starts. The reset
+    keeps that file, and a fresh database simply gets new master keys under it. To replace the key, delete the file
+    and run this script together, with the AppHost stopped.
 
     Stop the Aspire AppHost first — a volume cannot be removed while a container is using it. The container runtime
     (Docker or Podman) is auto-detected, matching Aspire's own behavior, so this works unchanged on either machine.

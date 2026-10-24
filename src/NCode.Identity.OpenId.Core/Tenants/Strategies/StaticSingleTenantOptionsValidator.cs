@@ -57,6 +57,27 @@ internal class StaticSingleTenantOptionsValidator : IValidateOptions<TenantResol
         if (TenantAddressRules.TryParseLiteralPath(tenantPath, tenantPathKey, failures))
             ValidateIssuer(staticSingle, failures);
 
+        var alias = staticSingle.MtlsEndpointAliasAuthority;
+        if (
+            !string.IsNullOrEmpty(alias)
+            && !TenantAddressRules.TryParseMtlsEndpointAliasAuthority(alias, out _)
+        )
+        {
+            failures.Add(
+                $"{Prefix}:{nameof(staticSingle.MtlsEndpointAliasAuthority)} '{alias}' must be "
+                    + $"{TenantAddressRules.MtlsEndpointAliasAuthorityRequirement}."
+            );
+        }
+
+        if (!string.IsNullOrEmpty(options.Root?.MtlsEndpointAliasAuthority))
+        {
+            failures.Add(
+                $"{nameof(options.Root)}:{nameof(RootTenantOptions.MtlsEndpointAliasAuthority)} has no effect under the "
+                    + $"{Prefix} strategy, which serves only its own tenant; configure "
+                    + $"{Prefix}:{nameof(staticSingle.MtlsEndpointAliasAuthority)} instead."
+            );
+        }
+
         if (!string.IsNullOrEmpty(options.Root?.Issuer))
         {
             failures.Add(

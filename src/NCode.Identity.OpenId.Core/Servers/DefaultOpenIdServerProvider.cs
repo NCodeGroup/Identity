@@ -22,13 +22,18 @@ using NCode.Identity.OpenId.Environments;
 namespace NCode.Identity.OpenId.Servers;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IOpenIdServerProvider"/> abstraction.
+/// Provides a default implementation of the <see cref="IOpenIdServerProvider"/> abstraction. The server it
+/// materializes is registered with <see cref="IMaterializedServerRegistry"/>, so background work can wait for the
+/// server and a committed change to its settings can refresh it.
 /// </summary>
-internal class DefaultOpenIdServerProvider(IOpenIdServerFactory factory)
-    : IOpenIdServerProvider,
-        IAsyncDisposable
+internal class DefaultOpenIdServerProvider(
+    IOpenIdServerFactory factory,
+    IMaterializedServerRegistry materializedServerRegistry
+) : IOpenIdServerProvider, IAsyncDisposable
 {
     private IOpenIdServerFactory Factory { get; } = factory;
+    private IMaterializedServerRegistry MaterializedServerRegistry { get; } =
+        materializedServerRegistry;
     private OpenIdServer? InstanceOrNull { get; set; }
     private SemaphoreSlim SyncRoot { get; } = new(initialCount: 1, maxCount: 1);
 
@@ -64,7 +69,14 @@ internal class DefaultOpenIdServerProvider(IOpenIdServerFactory factory)
             await SyncRoot.WaitAsync(cancellationToken);
             try
             {
-                InstanceOrNull ??= await Factory.CreateAsync(openIdEnvironment, cancellationToken);
+                if (InstanceOrNull is null)
+                {
+                    var server = await Factory.CreateAsync(openIdEnvironment, cancellationToken);
+                    InstanceOrNull = server;
+
+                    // Background work waits for the server this replica materializes, and a committed change refreshes it (ADR-0219).
+                    MaterializedServerRegistry.Register(server);
+                }
             }
             finally
             {

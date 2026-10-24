@@ -142,6 +142,33 @@ public class CibaDeliveryJobHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_WhenPushError_PostsTheErrorPayload()
+    {
+        SetupHttpClient();
+
+        var job = new CibaDeliveryJob
+        {
+            DeliveryMode = OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            ClientId = "client-1",
+            EndpointUrl = Endpoint,
+            ClientNotificationToken = NotificationToken,
+            AuthReqId = AuthReqId,
+            Error = OpenIdConstants.ErrorCodes.AccessDenied,
+        };
+
+        await Subject.HandleAsync(job, Context(), CancellationToken.None);
+
+        using var document = JsonDocument.Parse(Handler.RequestBody!);
+        var root = document.RootElement;
+        Assert.Equal(AuthReqId, root.GetProperty(OpenIdConstants.Parameters.AuthReqId).GetString());
+        Assert.Equal(
+            OpenIdConstants.ErrorCodes.AccessDenied,
+            root.GetProperty(OpenIdConstants.Parameters.ErrorCode).GetString()
+        );
+        Assert.False(root.TryGetProperty(OpenIdConstants.Parameters.AccessToken, out _));
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenEndpointReturnsError_Throws()
     {
         var errorHandler = new RecordingHttpMessageHandler(HttpStatusCode.ServiceUnavailable);

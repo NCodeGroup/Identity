@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     /// <inheritdoc />
+    [ContractMigration(
+        "Shipped before any release, so no running release reads the 'jwks' setting (ADR-0161, ADR-0025)."
+    )]
     public partial class RetireClientJwksSetting : Migration
     {
         // Every table that stores a settings document (ADR-0139).

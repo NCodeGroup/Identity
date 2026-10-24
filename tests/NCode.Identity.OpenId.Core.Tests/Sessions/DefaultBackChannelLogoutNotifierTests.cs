@@ -142,7 +142,7 @@ public class DefaultBackChannelLogoutNotifierTests : BaseTests
     {
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         MockCryptoService
-            .Setup(x => x.GenerateKey(It.IsAny<int>(), BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(It.IsAny<int>(), BinaryEncodings.Base64Url))
             .Returns("jti-value")
             .Verifiable();
         MockJsonWebTokenService

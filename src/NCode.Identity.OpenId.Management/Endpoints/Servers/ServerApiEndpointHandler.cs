@@ -16,30 +16,35 @@
 
 #endregion
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Servers;
+using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
+using NCode.Mediator;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 using SystemTextJsonPatch;
@@ -73,29 +78,41 @@ internal class ServerApiEndpointHandler(
     IServerValidator serverValidator,
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
-    ISecretImporter secretImporter,
+    IClientKeyImporter keyImporter,
     ISecretPublicKeyConverter secretPublicKeyConverter,
+    ISecretProtectorProvider secretProtectorProvider,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
-    IOpenIdServerProvider serverProvider,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
+    IClientCoherenceValidator clientCoherenceValidator,
+    ITenantClientCoherenceChecker tenantClientCoherenceChecker,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ServerApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
+    // The number of tenants read per page when a settings write is checked against every tenant's clients.
+    private const int TenantPageSize = 100;
+
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IServerValidator ServerValidator { get; } = serverValidator;
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
-    private ISecretImporter SecretImporter { get; } = secretImporter;
+    private IClientKeyImporter KeyImporter { get; } = keyImporter;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
     private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
         settingScopeCollectionProvider;
-    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
+
+    private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
+    private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
+        tenantClientCoherenceChecker;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private ILogger<ServerApiEndpointHandler> Logger { get; } = logger;
 
@@ -514,17 +531,51 @@ internal class ServerApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var openIdContext = httpContext.GetOpenIdContext();
-        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
-
-        // Authorize like the raw settings read (against the persisted settings); the body is the resolved view.
+        // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
+        // document that cannot be honored, and the stored document's token is not the effective view's.
+        // The authorization is against the persisted settings, like the raw settings read. See ADR-0245.
         return await ProcessGetAsync(
             httpContext,
-            server.SettingsProvider.Collection,
+            serverSettings.Value,
             authorizationResource: serverSettings,
             Operations.Read,
-            settings => ToServerEffectiveSettingsResource(serverId, settings)
+            async (settings, token) =>
+            {
+                var effectiveSettings = await ResolveStoredServerSettingsAsync(
+                    serverId,
+                    settings,
+                    token
+                );
+                return ToServerEffectiveSettingsResource(serverId, effectiveSettings);
+            },
+            cancellationToken
         );
+    }
+
+    /// <summary>
+    /// Resolves the effective settings of the server's committed settings document and names the server when the
+    /// document cannot be honored by the settings vocabulary.
+    /// </summary>
+    /// <param name="serverId">The identifier of the OpenID Server that owns the settings document.</param>
+    /// <param name="settings">The server's committed settings document.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The server's effective settings.</returns>
+    /// <exception cref="UnreadableSettingsException">The document cannot be honored.</exception>
+    // See ADR-0245.
+    private async ValueTask<IReadOnlySettingCollection> ResolveStoredServerSettingsAsync(
+        string serverId,
+        JsonElement settings,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            return await EffectiveSettingsResolver.ResolveServerAsync(settings, cancellationToken);
+        }
+        catch (JsonException exception)
+        {
+            throw new UnreadableSettingsException(OpenIdSettingScopes.Server, serverId, exception);
+        }
     }
 
     /// <summary>
@@ -617,7 +668,8 @@ internal class ServerApiEndpointHandler(
 
         var settingsValue = SerializeToElement(jsonObject);
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
-        var settingErrors = SettingSerializer.ValidateSettings(
+        var settingErrors = SettingSerializer.ValidateSettingsUpdate(
+            serverSettings.Value,
             settingsValue,
             OpenIdSettingScopes.Server,
             jsonOptions
@@ -627,15 +679,160 @@ internal class ServerApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
+        var currentServerSettings = await ResolveReplacedServerSettingsOrDefaultAsync(
+            serverId,
+            serverSettings.Value,
+            cancellationToken
+        );
+        var newServerSettings = await EffectiveSettingsResolver.ResolveServerAsync(
+            settingsValue,
+            cancellationToken
+        );
+
+        if (
+            currentServerSettings is not null
+            && ClientCoherenceValidator.ReadsChangedSetting(
+                currentServerSettings,
+                newServerSettings
+            )
+        )
+        {
+            var coherenceErrors = await ValidateClientCoherenceAsync(
+                currentServerSettings,
+                newServerSettings,
+                storeManager,
+                cancellationToken
+            );
+            if (coherenceErrors.Count > 0)
+            {
+                return SettingsValidationProblem(coherenceErrors);
+            }
+        }
+
+        var previousSettings = serverSettings.Value;
         serverSettings.Value = settingsValue;
 
         await store.UpdateSettingsAsync(serverSettings, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        await NotifyServerSettingsChangedAsync(
+            httpContext,
+            serverId,
+            previousSettings,
+            settingsValue,
+            cancellationToken
+        );
+
         httpContext.Response.Headers.ETag = serverSettings.ConcurrencyToken;
 
         return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Resolves the effective settings of the server's committed settings document, which a settings write replaces.
+    /// When the document cannot be honored by the settings vocabulary, nothing was coherent under it, so no client is
+    /// checked and the write may replace it with a document that can be honored.
+    /// </summary>
+    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="replacedSettings">The server's committed settings document.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The server's effective settings, or <see langword="null"/> when the document cannot be honored.</returns>
+    // See ADR-0241.
+    private async ValueTask<IReadOnlySettingCollection?> ResolveReplacedServerSettingsOrDefaultAsync(
+        string serverId,
+        JsonElement replacedSettings,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            return await EffectiveSettingsResolver.ResolveServerAsync(
+                replacedSettings,
+                cancellationToken
+            );
+        }
+        catch (JsonException exception)
+        {
+            Logger.ServerSettingsUnreadable(serverId, exception.Message);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Verifies that replacing the server's settings document leaves every value each client of every tenant registers
+    /// permitted by every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The current and new
+    /// server settings are each resolved through the <see cref="IEffectiveSettingsResolver"/>, and each tenant's
+    /// document is resolved onto both. The tenants are read as an untracked, secret-free projection
+    /// (<see cref="ITenantStore.GetSettingsPageAsync"/>), and the walk runs only when the effective value of a setting
+    /// a coherence rule reads changed (<see cref="IClientCoherenceValidator.ReadsChangedSetting"/>). A tenant whose
+    /// settings document cannot be honored is logged and skipped, because none of its clients is coherent under either
+    /// settings.
+    /// </summary>
+    /// <param name="currentServerSettings">The server's effective settings with its current settings document.</param>
+    /// <param name="newServerSettings">The server's effective settings with its new settings document.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> used to page through the tenants and their clients.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="SettingError"/> instances, keyed by the server setting that does not permit each value, or
+    /// an empty list.</returns>
+    // See ADR-0206 and ADR-0241.
+    internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
+        IReadOnlySettingCollection currentServerSettings,
+        IReadOnlySettingCollection newServerSettings,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        List<SettingError> errors = [];
+        var tenantStore = storeManager.GetStore<ITenantStore>();
+
+        var page = new PageRequest { Limit = TenantPageSize };
+        do
+        {
+            var result = await tenantStore.GetSettingsPageAsync(page, cancellationToken);
+            foreach (var tenantSettings in result.Items)
+            {
+                IReadOnlySettingCollection currentTenantSettings;
+                IReadOnlySettingCollection newTenantSettings;
+                try
+                {
+                    currentTenantSettings = EffectiveSettingsResolver.Resolve(
+                        currentServerSettings,
+                        OpenIdSettingScopes.Tenant,
+                        tenantSettings.Value
+                    );
+                    newTenantSettings = EffectiveSettingsResolver.Resolve(
+                        newServerSettings,
+                        OpenIdSettingScopes.Tenant,
+                        tenantSettings.Value
+                    );
+                }
+                catch (JsonException exception)
+                {
+                    Logger.TenantSettingsUnreadable(tenantSettings.TenantId, exception.Message);
+                    continue;
+                }
+
+                var findings = await TenantClientCoherenceChecker.FindIntroducedViolationsAsync(
+                    storeManager,
+                    tenantSettings.TenantId,
+                    currentTenantSettings,
+                    newTenantSettings,
+                    cancellationToken
+                );
+
+                errors.AddRange(
+                    findings.Select(finding => new SettingError(
+                        finding.Violation.GoverningSettingName,
+                        $"The change would make the client '{finding.ClientId}' of tenant '{tenantSettings.TenantId}' incoherent: {finding.Violation.Description}"
+                    ))
+                );
+            }
+
+            page = page with { Cursor = result.NextCursor };
+        } while (page.Cursor is not null);
+
+        return errors;
     }
 
     /// <summary>
@@ -709,10 +906,17 @@ internal class ServerApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForServer(serverId),
+            [],
+            cancellationToken
+        );
+
         GeneratedSecret generatedSecret;
         try
         {
             generatedSecret = SecretGenerator.GenerateSecret(
+                protector,
                 new GenerateSecretRequest
                 {
                     SecretId = secretId,
@@ -804,40 +1008,31 @@ internal class ServerApiEndpointHandler(
             return ToErrorResult(validationError);
         }
 
-        if (!Enum.TryParse<SecretKeyImportFormat>(request.Format, ignoreCase: true, out var format))
-        {
-            return TypedResults.Problem(
-                detail: $"The import format '{request.Format}' is not supported.",
-                statusCode: StatusCodes.Status400BadRequest
-            );
-        }
-
         var secretId = CryptoService.GenerateResourceId();
 
-        PersistedSecret importedSecret;
-        try
+        var importRequest = new SecretKeyImportRequest
         {
-            importedSecret = SecretImporter.ImportSecret(
-                new SecretKeyImportRequest
-                {
-                    SecretId = secretId,
-                    SecretType = request.SecretType,
-                    Format = format,
-                    KeyMaterial = request.KeyMaterial,
-                    Use = request.Use,
-                    Algorithm = request.Algorithm,
-                    CreatedWhen = TimeProvider.GetUtcNow(),
-                    ExpiresWhen = request.ExpiresWhen,
-                }
-            );
-        }
-        catch (ArgumentException exception)
+            SecretId = secretId,
+            SecretType = request.SecretType,
+            Format = request.Format,
+            KeyMaterial = request.KeyMaterial,
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            CreatedWhen = TimeProvider.GetUtcNow(),
+            ExpiresWhen = request.ExpiresWhen,
+        };
+        if (!KeyImporter.TryImportKey(importRequest, out var importedSecret, out var importError))
         {
-            Logger.SecretGenerationFailed(exception);
             return TypedResults.Problem(
-                detail: "The secret could not be imported from the supplied material.",
+                detail: importError,
                 statusCode: StatusCodes.Status400BadRequest
             );
+        }
+
+        var keyIdConflict = KeyIdConflictOrDefault(server.Secrets.Value, importedSecret, "server");
+        if (keyIdConflict is not null)
+        {
+            return keyIdConflict;
         }
 
         try
@@ -917,13 +1112,29 @@ internal class ServerApiEndpointHandler(
         var store = storeManager.GetStore<IServerStore>();
 
         var secret = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
+        if (secret is null)
+        {
+            return TypedResults.NotFound();
+        }
 
         return await ProcessGetAsync(
             httpContext,
             secret,
             authorizationResource: null,
             Operations.Read,
-            SecretPublicKeyConverter.Convert
+            async (x, ct) =>
+            {
+                // The protector is acquired only after authorization, so a caller who may not read the secret
+                // never loads its owner's master keys.
+                var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+                    SecretOwner.ForServer(serverId),
+                    [x],
+                    ct
+                );
+
+                return SecretPublicKeyConverter.Convert(protector, x);
+            },
+            cancellationToken
         );
     }
 
@@ -975,9 +1186,16 @@ internal class ServerApiEndpointHandler(
             return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
         }
 
+        var metadataError = SecretValidator.ValidateUpdate(secret, request);
+        if (metadataError is not null)
+        {
+            return ToErrorResult(metadataError);
+        }
+
         var updated = new PersistedSecret
         {
             SecretId = secret.SecretId,
+            KeyId = secret.KeyId,
             ConcurrencyToken = secret.ConcurrencyToken,
             Use = request.Use,
             Algorithm = request.Algorithm,
@@ -1055,5 +1273,23 @@ internal class ServerApiEndpointHandler(
         );
 
         return TypedResults.NoContent();
+    }
+
+    // Announces a committed change to the server's settings document, so every handler of the change (the default one
+    // reads the document again on every replica, whose reconciliation then seeds the tenants and checks the clients,
+    // ADR-0219) runs after the write. The mediator is request-scoped, so it is resolved from the request's services.
+    private static ValueTask NotifyServerSettingsChangedAsync(
+        HttpContext httpContext,
+        string serverId,
+        JsonElement previousSettings,
+        JsonElement settings,
+        CancellationToken cancellationToken
+    )
+    {
+        var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
+        return mediator.SendAsync(
+            new ServerSettingsChangedCommand(serverId, previousSettings.Clone(), settings.Clone()),
+            cancellationToken
+        );
     }
 }

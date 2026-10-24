@@ -111,6 +111,21 @@ public sealed class ServerStoreLifecycleTests : IDisposable
     }
 
     [Fact]
+    public async Task AddAsync_RoundTripsTheReconciledSettings()
+    {
+        var server = CreateServer();
+        server.ReconciledSettings = JsonElement.Parse("""{"flag":true}""");
+
+        await _store.AddAsync(server, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(reloaded);
+        Assert.Equal("""{"flag":true}""", reloaded.ReconciledSettings?.GetRawText());
+    }
+
+    [Fact]
     public async Task RemoveAsync_WhenNoSecrets_RemovesAndReturnsTrue()
     {
         await SeedServerAsync();
@@ -188,5 +203,123 @@ public sealed class ServerStoreLifecycleTests : IDisposable
         var reloaded = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
         Assert.NotNull(reloaded);
         Assert.Equal("Renamed Server", reloaded.DisplayName);
+    }
+
+    [Fact]
+    public async Task UpdateReconciledSettingsAsync_RecordsTheFingerprintAndTheSettings()
+    {
+        await SeedServerAsync();
+
+        var server = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(server);
+        Assert.Null(server.ReconciledSettingsFingerprint);
+        Assert.Null(server.ReconciledSettings);
+        server.ReconciledSettingsFingerprint = "fingerprint-1";
+        server.ReconciledSettings = JsonElement.Parse("""{"flag":true}""");
+
+        await _store.UpdateReconciledSettingsAsync(server, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(reloaded);
+        Assert.Equal("fingerprint-1", reloaded.ReconciledSettingsFingerprint);
+        Assert.Equal("""{"flag":true}""", reloaded.ReconciledSettings?.GetRawText());
+        Assert.Equal("Test Server", reloaded.DisplayName);
+    }
+
+    [Fact]
+    public async Task UpdateReconciledSettingsAsync_WhenTheServerChanged_Throws()
+    {
+        await SeedServerAsync();
+
+        var server = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(server);
+        server.ConcurrencyToken = "stale";
+        server.ReconciledSettingsFingerprint = "fingerprint-1";
+
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
+            await _store.UpdateReconciledSettingsAsync(server, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_ClearsTheReconciledSettingsFingerprint()
+    {
+        var seed = CreateServer();
+        seed.ReconciledSettingsFingerprint = "fingerprint-1";
+        await _store.AddAsync(seed, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var seeded = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(seeded);
+        Assert.Equal("fingerprint-1", seeded.ReconciledSettingsFingerprint);
+        _dbContext.ChangeTracker.Clear();
+
+        var settings = await _store.GetSettingsOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(settings);
+        settings.Value = JsonSerializer.SerializeToElement(
+            new Dictionary<string, object> { ["key"] = "value" }
+        );
+
+        await _store.UpdateSettingsAsync(settings, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(reloaded);
+        Assert.Null(reloaded.ReconciledSettingsFingerprint);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenTheSettingsWereReconciled_KeepsTheReconciledSettings()
+    {
+        var seed = CreateServer();
+        seed.ReconciledSettingsFingerprint = "fingerprint-1";
+        seed.ReconciledSettings = JsonElement.Parse("""{"flag":true}""");
+        await _store.AddAsync(seed, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var settings = await _store.GetSettingsOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(settings);
+        settings.Value = JsonSerializer.SerializeToElement(
+            new Dictionary<string, object> { ["key"] = "value" }
+        );
+
+        await _store.UpdateSettingsAsync(settings, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(reloaded);
+        Assert.Null(reloaded.ReconciledSettingsFingerprint);
+        Assert.Equal("""{"flag":true}""", reloaded.ReconciledSettings?.GetRawText());
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenAnEarlierChangeWasNotReconciled_ClearsTheReconciledSettings()
+    {
+        var seed = CreateServer();
+        seed.ReconciledSettings = JsonElement.Parse("""{"flag":true}""");
+        await _store.AddAsync(seed, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var settings = await _store.GetSettingsOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(settings);
+        settings.Value = JsonSerializer.SerializeToElement(
+            new Dictionary<string, object> { ["key"] = "value" }
+        );
+
+        await _store.UpdateSettingsAsync(settings, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetOrDefaultAsync(ServerId, CancellationToken.None);
+        Assert.NotNull(reloaded);
+        Assert.Null(reloaded.ReconciledSettingsFingerprint);
+        Assert.Null(reloaded.ReconciledSettings);
     }
 }

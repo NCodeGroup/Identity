@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Dispatch.InProcess;
 using NCode.Identity.Dispatch.Options;
 using NCode.Registration;
@@ -37,13 +38,14 @@ public static class DispatchLibraryRegistration
     {
         /// <summary>
         /// Registers the built-in in-process, self-scheduling <see cref="IJobDispatcher"/> adapter: an in-memory queue
-        /// drained by a hosted worker that retries failed jobs with exponential back-off. The registration is a default
-        /// (<c>TryAdd</c>), so a deployment that registered its own <see cref="IJobDispatcher"/> first keeps that
-        /// adapter and only adds the hosted worker — omit this call entirely for a fully custom backend.
+        /// drained by hosted workers that run up to <c>MaxConcurrentJobs</c> jobs at once and retry failed jobs with
+        /// exponential back-off. The registration is a default (<c>TryAdd</c>), so a deployment that registered its own
+        /// <see cref="IJobDispatcher"/> first keeps that adapter and only adds the hosted worker — omit this call
+        /// entirely for a fully custom backend.
         /// </summary>
         /// <param name="configureOptions">
         /// An optional callback to configure the in-process queue's <see cref="InProcessJobDispatcherOptions"/>
-        /// (capacity and full-queue behavior).
+        /// (capacity, full-queue behavior, and how many jobs run at once).
         /// </param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
         [PublicAPI]
@@ -53,9 +55,18 @@ public static class DispatchLibraryRegistration
         {
             var serviceCollection = builder.ServiceCollection;
 
-            var optionsBuilder = serviceCollection.AddOptions<InProcessJobDispatcherOptions>();
+            var optionsBuilder = serviceCollection
+                .AddOptions<InProcessJobDispatcherOptions>()
+                .ValidateOnStart();
             if (configureOptions is not null)
                 optionsBuilder.Configure(configureOptions);
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<InProcessJobDispatcherOptions>,
+                    InProcessJobDispatcherOptionsValidator
+                >()
+            );
 
             serviceCollection.TryAddSingleton<InProcessJobQueue>();
             serviceCollection.TryAddSingleton<IJobDispatcher, DefaultInProcessJobDispatcher>();

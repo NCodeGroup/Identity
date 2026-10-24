@@ -3,6 +3,7 @@ import {
   mergeRuntimeConfig,
   normalizeBaseUrl,
   parseBootstrapDocument,
+  parseBrandingConfig,
   parseOpenIdDiscovery,
   RuntimeConfigError,
 } from './parse.js';
@@ -229,4 +230,42 @@ describe('mergeRuntimeConfig', () => {
     expect(result.userInfoEndpoint).toBe('https://op.example/userinfo');
     expect(result.branding).toEqual({ displayName: 'Acme', mode: 'dark' });
   });
+});
+
+describe('parseBrandingConfig', () => {
+  it('keeps every token that has the expected shape', () => {
+    expect(
+      parseBrandingConfig({
+        displayName: 'Acme',
+        logoUrl: 'https://cdn.acme.example/logo.svg',
+        primaryColor: '#1565c0',
+        secondaryColor: '#9c27b0',
+        mode: 'dark',
+      }),
+    ).toEqual({
+      displayName: 'Acme',
+      logoUrl: 'https://cdn.acme.example/logo.svg',
+      primaryColor: '#1565c0',
+      secondaryColor: '#9c27b0',
+      mode: 'dark',
+    });
+  });
+
+  it('drops tokens that are blank, not strings, or not a known mode', () => {
+    expect(
+      parseBrandingConfig({
+        displayName: ' ',
+        logoUrl: 7,
+        primaryColor: '#1565c0',
+        mode: 'system',
+      }),
+    ).toEqual({ primaryColor: '#1565c0' });
+  });
+
+  it.each([null, undefined, 'acme', 42, ['#fff'], {}, { mode: 'Dark' }])(
+    'returns undefined for %j, so the default theme applies',
+    (raw) => {
+      expect(parseBrandingConfig(raw)).toBeUndefined();
+    },
+  );
 });

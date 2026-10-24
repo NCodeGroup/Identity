@@ -238,11 +238,14 @@ try {
                     -- RunConfiguration.MaxCpuCount=0
             }
             else {
+                # coverage.runsettings sets the coverage scope: hand-written code, without generated sources or EF
+                # migrations (ADR-0185).
                 dotnet test $solution `
                     --configuration $Configuration `
                     --no-build `
                     --results-directory $testResults `
                     --collect:"XPlat Code Coverage" `
+                    --settings (Join-Path $PSScriptRoot 'coverage.runsettings') `
                     --logger:$junitLogger
             }
 

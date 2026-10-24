@@ -42,8 +42,9 @@ Rules:
 
 - **The AppHost is a sibling, never nested in the host.** The host stays a single reference OP
   **process**; Aspire is a separate orchestration host (one `DistributedApplication`) that _references_ it.
-- **UI resources are gated on API _health_, not "process started."** `api` exposes `WithHttpHealthCheck("/health")`
-  (the host already maps `/health`); `mgmt` declares `.WaitFor(api)`, so Aspire holds the UI until `/health`
+- **UI resources are gated on API _health_, not "process started."** `api` exposes
+  `WithHttpHealthCheck("/health/ready")` (the host's readiness endpoint, which runs every check tagged
+  `HealthCheckTags.Readiness`); `mgmt` declares `.WaitFor(api)`, so Aspire holds the UI until `/health/ready`
   returns `200`. This deterministically removes the UI-before-API race — the root symptom that motivated this ADR.
 - **Ports stay pinned to preserve the dev contract.** `api` keeps the host launch profile's
   `https://localhost:5001` / `http://localhost:5000`; `mgmt` is pinned to `http://localhost:5173`, direct and
@@ -83,7 +84,7 @@ a static dev copy — so local dev consumes the real runtime bootstrap endpoint 
 
 - **Keep the VS Code compound + `build/dev-ui.ps1` (status quo).** Zero new dependencies, but structurally unable
   to order startup — the race is inherent to a compound launch. Rejected.
-- **A bespoke script that polls `/health` before starting the UIs.** Reinvents a slice of Aspire (health-gated
+- **A bespoke script that polls `/health/ready` before starting the UIs.** Reinvents a slice of Aspire (health-gated
   ordering) with none of the dashboard, log/trace aggregation, service discovery, or future container modeling, and
   becomes per-app bespoke glue the moment a surface is added. Rejected.
 - **Docker Compose.** Orders startup, but imposes a container-runtime prerequisite on every developer and containers

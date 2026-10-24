@@ -50,7 +50,8 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status302Found)
             .DisableAntiforgery()
-            .WithOpenIdDiscoverable();
+            .WithOpenIdDiscoverable()
+            .WithOpenIdFrontChannel();
 
     /// <summary>
     /// End session endpoint (OpenID Connect RP-Initiated Logout).
@@ -95,7 +96,8 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
 
         if (!string.IsNullOrEmpty(disposition.RedirectUri))
         {
-            return TypedResults.Redirect(disposition.RedirectUri);
+            // See ADR-0203.
+            return TypedResults.Redirect(RedirectLocation.Escape(disposition.RedirectUri));
         }
 
         return TypedResults.Content("You have been logged out.", "text/plain");

@@ -21,6 +21,7 @@ describe('RevealInitialAccessTokenDialog', () => {
     expect(screen.getByTestId('reveal-iat-grant-id')).toHaveTextContent('g-1');
     expect(screen.getByTestId('reveal-iat-expires')).toHaveTextContent('2027-01-01T00:00:00Z');
     expect(screen.queryByTestId('reveal-iat-no-expiry')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('reveal-iat-resource-server')).not.toBeInTheDocument();
     expect(screen.getByTestId('reveal-iat-token')).toHaveTextContent('iat-123');
     expect(
       screen.getByText(/shown only once and can never be retrieved again/),
@@ -79,5 +80,20 @@ describe('RevealInitialAccessTokenDialog', () => {
     );
     fireEvent.click(screen.getByTestId('reveal-iat-done'));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('names the resource server a scoped token binds its client to', () => {
+    render(
+      <RevealInitialAccessTokenDialog
+        open
+        token="iat-123"
+        grantId="g-3"
+        expiresWhen={null}
+        resourceServer="Orders"
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('reveal-iat-resource-server')).toHaveTextContent('Orders');
   });
 });

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Text;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,9 +30,15 @@ public sealed class LocalAccountStoreTests : IDisposable
 {
     private const string TenantId = "tenant-1";
 
+    private static readonly Func<string, CancellationToken, ValueTask<bool>> NotRefused = static (
+        _,
+        _
+    ) => ValueTask.FromResult(false);
+
     private readonly ServiceProvider _provider;
     private readonly OpenIdDbContext _dbContext;
     private readonly LocalAccountStore _store;
+    private readonly PlainPasswordHasher _hasher = new();
 
     public LocalAccountStoreTests()
     {
@@ -84,6 +91,46 @@ public sealed class LocalAccountStoreTests : IDisposable
         await _store.AddAsync(account, password: null, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
+    }
+
+    private LocalAccountStore CreateStoreWithPasswords() =>
+        new(
+            Mock.Of<IStoreProvider>(),
+            _provider.GetRequiredService<IIdGenerator<long>>(),
+            _hasher,
+            _dbContext
+        );
+
+    private async Task AddWithPasswordAndDetachAsync(
+        LocalAccountStore store,
+        PersistedLocalAccount account,
+        string password
+    )
+    {
+        await store.AddAsync(account, Encoding.UTF8.GetBytes(password), CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+    }
+
+    private sealed class PlainPasswordHasher : IPasswordHasher
+    {
+        public string DummyPasswordHash { get; set; } = "plain:dummy";
+
+        public List<string> VerifiedHashes { get; } = [];
+
+        public string HashPassword(ReadOnlySpan<byte> password) =>
+            "plain:" + Convert.ToBase64String(password);
+
+        public PasswordVerificationResult VerifyHashedPassword(
+            string hashedPassword,
+            ReadOnlySpan<byte> password
+        )
+        {
+            VerifiedHashes.Add(hashedPassword);
+            return string.Equals(hashedPassword, HashPassword(password), StringComparison.Ordinal)
+                ? PasswordVerificationResult.Success
+                : PasswordVerificationResult.Failed;
+        }
     }
 
     #endregion
@@ -179,6 +226,184 @@ public sealed class LocalAccountStoreTests : IDisposable
         var loaded = await _store.GetByUserNameOrDefaultAsync("nobody", CancellationToken.None);
 
         Assert.Null(loaded);
+    }
+
+    #endregion
+
+    #region VerifyCredentialAsync Tests
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenTheAccountIsDisabled_ReturnsTheAccount()
+    {
+        var store = CreateStoreWithPasswords();
+        await AddWithPasswordAndDetachAsync(
+            store,
+            CreateAccount("account-1", "alice", isEnabled: false),
+            "secret"
+        );
+
+        var result = await store.VerifyCredentialAsync(
+            "alice",
+            Encoding.UTF8.GetBytes("secret"),
+            NotRefused,
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsVerified);
+        Assert.Equal("account-1", result.Account.LocalAccountId);
+        Assert.False(result.Account.IsEnabled);
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenThePasswordIsWrong_ReturnsNull()
+    {
+        var store = CreateStoreWithPasswords();
+        await AddWithPasswordAndDetachAsync(
+            store,
+            CreateAccount("account-1", "alice", isEnabled: false),
+            "secret"
+        );
+
+        var result = await store.VerifyCredentialAsync(
+            "alice",
+            Encoding.UTF8.GetBytes("wrong"),
+            NotRefused,
+            CancellationToken.None
+        );
+
+        Assert.Null(result.Account);
+        Assert.NotEqual("plain:dummy", Assert.Single(_hasher.VerifiedHashes));
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenTheAccountHasNoPassword_VerifiesAgainstTheDummyHash()
+    {
+        var store = CreateStoreWithPasswords();
+        await AddAndDetachAsync(CreateAccount("account-1", "alice"));
+
+        var result = await store.VerifyCredentialAsync(
+            "alice",
+            Encoding.UTF8.GetBytes("secret"),
+            NotRefused,
+            CancellationToken.None
+        );
+
+        Assert.Null(result.Account);
+        Assert.Equal("plain:dummy", Assert.Single(_hasher.VerifiedHashes));
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenNoAccountHasTheUserName_VerifiesAgainstTheDummyHash()
+    {
+        var store = CreateStoreWithPasswords();
+
+        var result = await store.VerifyCredentialAsync(
+            "nobody",
+            Encoding.UTF8.GetBytes("secret"),
+            NotRefused,
+            CancellationToken.None
+        );
+
+        Assert.Null(result.Account);
+        Assert.Equal("plain:dummy", Assert.Single(_hasher.VerifiedHashes));
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenTheDummyHashMatches_ReturnsNull()
+    {
+        _hasher.DummyPasswordHash = _hasher.HashPassword("secret"u8);
+        var store = CreateStoreWithPasswords();
+
+        var result = await store.VerifyCredentialAsync(
+            "nobody",
+            Encoding.UTF8.GetBytes("secret"),
+            NotRefused,
+            CancellationToken.None
+        );
+
+        Assert.Null(result.Account);
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenTheAccountHasNoPasswordAndTheDummyHashMatches_ReturnsNull()
+    {
+        _hasher.DummyPasswordHash = _hasher.HashPassword("secret"u8);
+        var store = CreateStoreWithPasswords();
+        await AddAndDetachAsync(CreateAccount("account-1", "alice"));
+
+        var result = await store.VerifyCredentialAsync(
+            "alice",
+            Encoding.UTF8.GetBytes("secret"),
+            NotRefused,
+            CancellationToken.None
+        );
+
+        Assert.Null(result.Account);
+        Assert.Equal(_hasher.DummyPasswordHash, Assert.Single(_hasher.VerifiedHashes));
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenTheGateRefuses_VerifiesTheDummyHashInsteadOfTheStoredHash()
+    {
+        var store = CreateStoreWithPasswords();
+        await AddWithPasswordAndDetachAsync(store, CreateAccount("account-1", "alice"), "secret");
+
+        var result = await store.VerifyCredentialAsync(
+            "alice",
+            Encoding.UTF8.GetBytes("secret"),
+            static (_, _) => ValueTask.FromResult(true),
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsRefused);
+        Assert.Null(result.Account);
+        Assert.Equal("plain:dummy", Assert.Single(_hasher.VerifiedHashes));
+        Assert.Equal("alice", result.UserName);
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenTheCaseDiffers_AsksTheGateAboutTheStoredUserName()
+    {
+        var store = CreateStoreWithPasswords();
+        await AddWithPasswordAndDetachAsync(store, CreateAccount("account-1", "Alice"), "secret");
+        var askedUserNames = new List<string>();
+
+        var result = await store.VerifyCredentialAsync(
+            "ALICE",
+            Encoding.UTF8.GetBytes("secret"),
+            (userName, _) =>
+            {
+                askedUserNames.Add(userName);
+                return ValueTask.FromResult(false);
+            },
+            CancellationToken.None
+        );
+
+        Assert.Equal("Alice", Assert.Single(askedUserNames));
+        Assert.Equal("Alice", result.UserName);
+        Assert.True(result.IsVerified);
+    }
+
+    [Fact]
+    public async Task VerifyCredentialAsync_WhenNoAccountHasTheUserName_AsksTheGateAboutTheSubmittedUserName()
+    {
+        var store = CreateStoreWithPasswords();
+        var askedUserNames = new List<string>();
+
+        var result = await store.VerifyCredentialAsync(
+            "Nobody",
+            Encoding.UTF8.GetBytes("secret"),
+            (userName, _) =>
+            {
+                askedUserNames.Add(userName);
+                return ValueTask.FromResult(false);
+            },
+            CancellationToken.None
+        );
+
+        Assert.Equal("Nobody", Assert.Single(askedUserNames));
+        Assert.Equal("Nobody", result.UserName);
+        Assert.Equal("plain:dummy", Assert.Single(_hasher.VerifiedHashes));
     }
 
     #endregion

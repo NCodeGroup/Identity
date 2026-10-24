@@ -1,8 +1,11 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import {
   diffPatch,
+  GLOBAL_SCOPE,
+  LIST_TAG,
   replacePatch,
   scopeApiPrefix,
+  scopeTagId,
   type ClientResource,
   type CollectionResource,
   type CreatedInitialAccessTokenResource,
@@ -12,6 +15,7 @@ import {
   type CreateResourceServerRequest,
   type CreateScopeRequest,
   type CreateSecretRequest,
+  type RotateSecretRequest,
   type CreateTenantRequest,
   type EffectiveSettingsResource,
   type GrantResource,
@@ -26,6 +30,7 @@ import {
   type SettingsResource,
   type TenantAddressResource,
   type TenantResource,
+  type TenantUsageResource,
   type UpdateClientFields,
   type UpdateResourceServerFields,
   type UpdateScopeRequest,
@@ -35,11 +40,19 @@ import {
 } from '@ncode/api';
 import { dynamicBaseQuery } from './baseQuery.js';
 
+/** A cache-tag id in the global scope, which owns the tenants and the servers. */
+const globalTag = (id: string): string => scopeTagId(GLOBAL_SCOPE, id);
+
+/** A cache-tag id in a tenant's scope, which owns its grants, secrets, and settings. */
+const tenantTag = (tenantId: string, id: string): string =>
+  scopeTagId({ kind: 'tenant', tenantId }, id);
+
 /**
  * The RTK Query client for the Management REST API. Co-located with the store (one RTK module
- * boundary) so its middleware/reducer types reconcile with `configureStore`. Cache tags are scoped
- * so the global and tenant boundaries invalidate independently (see docs/adr/0064): a tenant
- * mutation never invalidates the global list and vice versa.
+ * boundary) so its middleware/reducer types reconcile with `configureStore`. Every cache-tag id is
+ * derived from the scope that owns the resource ({@link scopeTagId}), so the global and tenant
+ * boundaries invalidate independently (see docs/adr/0064): a mutation in one scope never invalidates
+ * the caches of the global scope or another tenant.
  */
 export const managementApi = createApi({
   reducerPath: 'managementApi',
@@ -52,33 +65,48 @@ export const managementApi = createApi({
     listTenants: build.query<CollectionResource<TenantResource>, void>({
       query: () => 'api/tenants',
       providesTags: (result) => [
-        { type: 'Tenant' as const, id: 'LIST' },
-        ...(result?.items ?? []).map((t) => ({ type: 'Tenant' as const, id: t.tenantId })),
+        { type: 'Tenant' as const, id: globalTag(LIST_TAG) },
+        ...(result?.items ?? []).map((t) => ({
+          type: 'Tenant' as const,
+          id: globalTag(t.tenantId),
+        })),
       ],
     }),
     getTenant: build.query<TenantResource, string>({
       query: (tenantId) => `api/tenants/${encodeURIComponent(tenantId)}`,
-      providesTags: (_result, _error, tenantId) => [{ type: 'Tenant', id: tenantId }],
+      providesTags: (_result, _error, tenantId) => [{ type: 'Tenant', id: globalTag(tenantId) }],
     }),
     // A preview of the address a tenant has or would have. It is never cached beyond its subscriber,
     // so it always reflects the tenants that exist when it is asked.
-    getTenantAddress: build.query<TenantAddressResource, { tenantId: string; issuer?: string }>({
-      query: ({ tenantId, issuer }) => ({
-        url: `api/tenants/${encodeURIComponent(tenantId)}/address`,
-        ...(issuer ? { params: { issuer } } : {}),
-      }),
+    getTenantAddress: build.query<
+      TenantAddressResource,
+      { tenantId: string; issuer?: string; mtlsEndpointAliasAuthority?: string }
+    >({
+      query: ({ tenantId, issuer, mtlsEndpointAliasAuthority }) => {
+        const params = {
+          ...(issuer ? { issuer } : {}),
+          ...(mtlsEndpointAliasAuthority ? { mtlsEndpointAliasAuthority } : {}),
+        };
+        return {
+          url: `api/tenants/${encodeURIComponent(tenantId)}/address`,
+          ...(Object.keys(params).length > 0 ? { params } : {}),
+        };
+      },
       keepUnusedDataFor: 0,
     }),
     listServers: build.query<CollectionResource<ServerResource>, void>({
       query: () => 'api/servers',
       providesTags: (result) => [
-        { type: 'Server' as const, id: 'LIST' },
-        ...(result?.items ?? []).map((s) => ({ type: 'Server' as const, id: s.serverId })),
+        { type: 'Server' as const, id: globalTag(LIST_TAG) },
+        ...(result?.items ?? []).map((s) => ({
+          type: 'Server' as const,
+          id: globalTag(s.serverId),
+        })),
       ],
     }),
     createServer: build.mutation<ServerResource, CreateServerRequest>({
       query: (body) => ({ url: 'api/servers', method: 'POST', body }),
-      invalidatesTags: [{ type: 'Server', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Server', id: globalTag(LIST_TAG) }],
     }),
     updateServer: build.mutation<
       void,
@@ -91,8 +119,8 @@ export const managementApi = createApi({
         headers: { 'If-Match': concurrencyToken },
       }),
       invalidatesTags: (_result, _error, { serverId }) => [
-        { type: 'Server', id: 'LIST' },
-        { type: 'Server', id: serverId },
+        { type: 'Server', id: globalTag(LIST_TAG) },
+        { type: 'Server', id: globalTag(serverId) },
       ],
     }),
     deleteServer: build.mutation<void, { serverId: string }>({
@@ -101,8 +129,8 @@ export const managementApi = createApi({
         method: 'DELETE',
       }),
       invalidatesTags: (_result, _error, { serverId }) => [
-        { type: 'Server', id: 'LIST' },
-        { type: 'Server', id: serverId },
+        { type: 'Server', id: globalTag(LIST_TAG) },
+        { type: 'Server', id: globalTag(serverId) },
       ],
     }),
     // `resourceServerId` lists only the clients that act for that resource server.
@@ -114,14 +142,17 @@ export const managementApi = createApi({
         url: `${scopeApiPrefix(scope)}/clients`,
         ...(resourceServerId ? { params: { resourceServerId } } : {}),
       }),
-      providesTags: (result) => [
-        { type: 'Client' as const, id: 'LIST' },
-        ...(result?.items ?? []).map((c) => ({ type: 'Client' as const, id: c.clientId })),
+      providesTags: (result, _error, { scope }) => [
+        { type: 'Client' as const, id: scopeTagId(scope, LIST_TAG) },
+        ...(result?.items ?? []).map((c) => ({
+          type: 'Client' as const,
+          id: scopeTagId(scope, c.clientId),
+        })),
       ],
     }),
     createTenant: build.mutation<TenantResource, CreateTenantRequest>({
       query: (body) => ({ url: 'api/tenants', method: 'POST', body }),
-      invalidatesTags: [{ type: 'Tenant', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Tenant', id: globalTag(LIST_TAG) }],
     }),
     updateTenant: build.mutation<
       void,
@@ -134,8 +165,8 @@ export const managementApi = createApi({
         headers: { 'If-Match': concurrencyToken },
       }),
       invalidatesTags: (_result, _error, { tenantId }) => [
-        { type: 'Tenant', id: 'LIST' },
-        { type: 'Tenant', id: tenantId },
+        { type: 'Tenant', id: globalTag(LIST_TAG) },
+        { type: 'Tenant', id: globalTag(tenantId) },
       ],
     }),
     deleteTenant: build.mutation<void, { tenantId: string }>({
@@ -144,8 +175,8 @@ export const managementApi = createApi({
         method: 'DELETE',
       }),
       invalidatesTags: (_result, _error, { tenantId }) => [
-        { type: 'Tenant', id: 'LIST' },
-        { type: 'Tenant', id: tenantId },
+        { type: 'Tenant', id: globalTag(LIST_TAG) },
+        { type: 'Tenant', id: globalTag(tenantId) },
       ],
     }),
     createClient: build.mutation<
@@ -157,7 +188,9 @@ export const managementApi = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Client', id: 'LIST' }],
+      invalidatesTags: (_result, _error, { scope }) => [
+        { type: 'Client', id: scopeTagId(scope, LIST_TAG) },
+      ],
     }),
     updateClient: build.mutation<
       void,
@@ -174,9 +207,9 @@ export const managementApi = createApi({
         body: replacePatch({ ...fields }),
         headers: { 'If-Match': concurrencyToken },
       }),
-      invalidatesTags: (_result, _error, { clientId }) => [
-        { type: 'Client', id: 'LIST' },
-        { type: 'Client', id: clientId },
+      invalidatesTags: (_result, _error, { scope, clientId }) => [
+        { type: 'Client', id: scopeTagId(scope, LIST_TAG) },
+        { type: 'Client', id: scopeTagId(scope, clientId) },
       ],
     }),
     deleteClient: build.mutation<void, { scope: ManagementScope; clientId: string }>({
@@ -184,9 +217,9 @@ export const managementApi = createApi({
         url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { clientId }) => [
-        { type: 'Client', id: 'LIST' },
-        { type: 'Client', id: clientId },
+      invalidatesTags: (_result, _error, { scope, clientId }) => [
+        { type: 'Client', id: scopeTagId(scope, LIST_TAG) },
+        { type: 'Client', id: scopeTagId(scope, clientId) },
       ],
     }),
     listResourceServers: build.query<
@@ -194,11 +227,11 @@ export const managementApi = createApi({
       { scope: ManagementScope }
     >({
       query: ({ scope }) => `${scopeApiPrefix(scope)}/resource-servers`,
-      providesTags: (result) => [
-        { type: 'ResourceServer' as const, id: 'LIST' },
+      providesTags: (result, _error, { scope }) => [
+        { type: 'ResourceServer' as const, id: scopeTagId(scope, LIST_TAG) },
         ...(result?.items ?? []).map((r) => ({
           type: 'ResourceServer' as const,
-          id: r.resourceServerId,
+          id: scopeTagId(scope, r.resourceServerId),
         })),
       ],
     }),
@@ -211,7 +244,9 @@ export const managementApi = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'ResourceServer', id: 'LIST' }],
+      invalidatesTags: (_result, _error, { scope }) => [
+        { type: 'ResourceServer', id: scopeTagId(scope, LIST_TAG) },
+      ],
     }),
     updateResourceServer: build.mutation<
       void,
@@ -228,9 +263,9 @@ export const managementApi = createApi({
         body: replacePatch({ ...fields }),
         headers: { 'If-Match': concurrencyToken },
       }),
-      invalidatesTags: (_result, _error, { resourceServerId }) => [
-        { type: 'ResourceServer', id: 'LIST' },
-        { type: 'ResourceServer', id: resourceServerId },
+      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
+        { type: 'ResourceServer', id: scopeTagId(scope, LIST_TAG) },
+        { type: 'ResourceServer', id: scopeTagId(scope, resourceServerId) },
       ],
     }),
     deleteResourceServer: build.mutation<
@@ -241,9 +276,9 @@ export const managementApi = createApi({
         url: `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(resourceServerId)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { resourceServerId }) => [
-        { type: 'ResourceServer', id: 'LIST' },
-        { type: 'ResourceServer', id: resourceServerId },
+      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
+        { type: 'ResourceServer', id: scopeTagId(scope, LIST_TAG) },
+        { type: 'ResourceServer', id: scopeTagId(scope, resourceServerId) },
       ],
     }),
     createScope: build.mutation<
@@ -257,9 +292,9 @@ export const managementApi = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: (_result, _error, { resourceServerId }) => [
-        { type: 'ResourceServer', id: 'LIST' },
-        { type: 'ResourceServer', id: resourceServerId },
+      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
+        { type: 'ResourceServer', id: scopeTagId(scope, LIST_TAG) },
+        { type: 'ResourceServer', id: scopeTagId(scope, resourceServerId) },
       ],
     }),
     updateScope: build.mutation<
@@ -278,9 +313,9 @@ export const managementApi = createApi({
         method: 'PUT',
         body,
       }),
-      invalidatesTags: (_result, _error, { resourceServerId }) => [
-        { type: 'ResourceServer', id: 'LIST' },
-        { type: 'ResourceServer', id: resourceServerId },
+      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
+        { type: 'ResourceServer', id: scopeTagId(scope, LIST_TAG) },
+        { type: 'ResourceServer', id: scopeTagId(scope, resourceServerId) },
       ],
     }),
     deleteScope: build.mutation<
@@ -293,9 +328,9 @@ export const managementApi = createApi({
         )}/scopes/${encodeURIComponent(scopeValue)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { resourceServerId }) => [
-        { type: 'ResourceServer', id: 'LIST' },
-        { type: 'ResourceServer', id: resourceServerId },
+      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
+        { type: 'ResourceServer', id: scopeTagId(scope, LIST_TAG) },
+        { type: 'ResourceServer', id: scopeTagId(scope, resourceServerId) },
       ],
     }),
     listGrants: build.query<
@@ -309,9 +344,12 @@ export const managementApi = createApi({
           ...(clientId ? { clientId } : {}),
         },
       }),
-      providesTags: (result) => [
-        { type: 'Grant' as const, id: 'LIST' },
-        ...(result?.items ?? []).map((g) => ({ type: 'Grant' as const, id: g.grantId })),
+      providesTags: (result, _error, { tenantId }) => [
+        { type: 'Grant' as const, id: tenantTag(tenantId, LIST_TAG) },
+        ...(result?.items ?? []).map((g) => ({
+          type: 'Grant' as const,
+          id: tenantTag(tenantId, g.grantId),
+        })),
       ],
     }),
     revokeGrant: build.mutation<void, { tenantId: string; grantId: string }>({
@@ -319,9 +357,9 @@ export const managementApi = createApi({
         url: `api/tenants/${encodeURIComponent(tenantId)}/grants/${encodeURIComponent(grantId)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { grantId }) => [
-        { type: 'Grant', id: 'LIST' },
-        { type: 'Grant', id: grantId },
+      invalidatesTags: (_result, _error, { tenantId, grantId }) => [
+        { type: 'Grant', id: tenantTag(tenantId, LIST_TAG) },
+        { type: 'Grant', id: tenantTag(tenantId, grantId) },
       ],
     }),
     // Bulk revoke requires at least one filter server-side; the caller must supply a subject and/or client.
@@ -337,7 +375,9 @@ export const managementApi = createApi({
           ...(clientId ? { clientId } : {}),
         },
       }),
-      invalidatesTags: [{ type: 'Grant', id: 'LIST' }],
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'Grant', id: tenantTag(tenantId, LIST_TAG) },
+      ],
     }),
     // Mints an RFC 7591 initial access token; the plaintext value is revealed once and the backing grant is listed.
     createInitialAccessToken: build.mutation<
@@ -349,14 +389,19 @@ export const managementApi = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Grant', id: 'LIST' }],
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'Grant', id: tenantTag(tenantId, LIST_TAG) },
+      ],
     }),
     listClientSecrets: build.query<SecretsResource, { scope: ManagementScope; clientId: string }>({
       query: ({ scope, clientId }) =>
         `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/secrets`,
-      providesTags: (result, _error, { clientId }) => [
-        { type: 'Secret' as const, id: `client:${clientId}` },
-        ...(result?.secrets ?? []).map((s) => ({ type: 'Secret' as const, id: s.secretId })),
+      providesTags: (result, _error, { scope, clientId }) => [
+        { type: 'Secret' as const, id: scopeTagId(scope, `client:${clientId}`) },
+        ...(result?.secrets ?? []).map((s) => ({
+          type: 'Secret' as const,
+          id: scopeTagId(scope, s.secretId),
+        })),
       ],
     }),
     createClientSecret: build.mutation<
@@ -368,8 +413,8 @@ export const managementApi = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: (_result, _error, { clientId }) => [
-        { type: 'Secret', id: `client:${clientId}` },
+      invalidatesTags: (_result, _error, { scope, clientId }) => [
+        { type: 'Secret', id: scopeTagId(scope, `client:${clientId}`) },
       ],
     }),
     deleteClientSecret: build.mutation<
@@ -382,9 +427,25 @@ export const managementApi = createApi({
         )}/secrets/${encodeURIComponent(secretId)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { clientId, secretId }) => [
-        { type: 'Secret', id: `client:${clientId}` },
-        { type: 'Secret', id: secretId },
+      invalidatesTags: (_result, _error, { scope, clientId, secretId }) => [
+        { type: 'Secret', id: scopeTagId(scope, `client:${clientId}`) },
+        { type: 'Secret', id: scopeTagId(scope, secretId) },
+      ],
+    }),
+    rotateClientSecret: build.mutation<
+      CreatedSecretResource,
+      { scope: ManagementScope; clientId: string; secretId: string; body: RotateSecretRequest }
+    >({
+      query: ({ scope, clientId, secretId, body }) => ({
+        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(
+          clientId,
+        )}/secrets/${encodeURIComponent(secretId)}/rotate`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { scope, clientId, secretId }) => [
+        { type: 'Secret', id: scopeTagId(scope, `client:${clientId}`) },
+        { type: 'Secret', id: scopeTagId(scope, secretId) },
       ],
     }),
     getClientSecretPublicKey: build.query<
@@ -399,8 +460,8 @@ export const managementApi = createApi({
     getClientSettings: build.query<SettingsResource, { scope: ManagementScope; clientId: string }>({
       query: ({ scope, clientId }) =>
         `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/settings`,
-      providesTags: (_result, _error, { clientId }) => [
-        { type: 'Settings', id: `client:${clientId}` },
+      providesTags: (_result, _error, { scope, clientId }) => [
+        { type: 'Settings', id: scopeTagId(scope, `client:${clientId}`) },
       ],
     }),
     getClientEffectiveSettings: build.query<
@@ -409,8 +470,8 @@ export const managementApi = createApi({
     >({
       query: ({ scope, clientId }) =>
         `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}/effective-settings`,
-      providesTags: (_result, _error, { clientId }) => [
-        { type: 'Settings', id: `client-effective:${clientId}` },
+      providesTags: (_result, _error, { scope, clientId }) => [
+        { type: 'Settings', id: scopeTagId(scope, `client-effective:${clientId}`) },
       ],
     }),
     // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
@@ -430,16 +491,19 @@ export const managementApi = createApi({
         body: diffPatch(original, desired),
         headers: { 'If-Match': concurrencyToken },
       }),
-      invalidatesTags: (_result, _error, { clientId }) => [
-        { type: 'Settings', id: `client:${clientId}` },
-        { type: 'Settings', id: `client-effective:${clientId}` },
+      invalidatesTags: (_result, _error, { scope, clientId }) => [
+        { type: 'Settings', id: scopeTagId(scope, `client:${clientId}`) },
+        { type: 'Settings', id: scopeTagId(scope, `client-effective:${clientId}`) },
       ],
     }),
     listTenantSecrets: build.query<SecretsResource, { tenantId: string }>({
       query: ({ tenantId }) => `api/tenants/${encodeURIComponent(tenantId)}/secrets`,
       providesTags: (result, _error, { tenantId }) => [
-        { type: 'Secret' as const, id: `tenant:${tenantId}` },
-        ...(result?.secrets ?? []).map((s) => ({ type: 'Secret' as const, id: s.secretId })),
+        { type: 'Secret' as const, id: tenantTag(tenantId, 'tenant') },
+        ...(result?.secrets ?? []).map((s) => ({
+          type: 'Secret' as const,
+          id: tenantTag(tenantId, s.secretId),
+        })),
       ],
     }),
     createTenantSecret: build.mutation<
@@ -452,7 +516,7 @@ export const managementApi = createApi({
         body,
       }),
       invalidatesTags: (_result, _error, { tenantId }) => [
-        { type: 'Secret', id: `tenant:${tenantId}` },
+        { type: 'Secret', id: tenantTag(tenantId, 'tenant') },
       ],
     }),
     deleteTenantSecret: build.mutation<void, { tenantId: string; secretId: string }>({
@@ -461,8 +525,8 @@ export const managementApi = createApi({
         method: 'DELETE',
       }),
       invalidatesTags: (_result, _error, { tenantId, secretId }) => [
-        { type: 'Secret', id: `tenant:${tenantId}` },
-        { type: 'Secret', id: secretId },
+        { type: 'Secret', id: tenantTag(tenantId, 'tenant') },
+        { type: 'Secret', id: tenantTag(tenantId, secretId) },
       ],
     }),
     getTenantSecretPublicKey: build.query<
@@ -477,14 +541,29 @@ export const managementApi = createApi({
     getTenantSettings: build.query<SettingsResource, { tenantId: string }>({
       query: ({ tenantId }) => `api/tenants/${encodeURIComponent(tenantId)}/settings`,
       providesTags: (_result, _error, { tenantId }) => [
-        { type: 'Settings', id: `tenant:${tenantId}` },
+        { type: 'Settings', id: tenantTag(tenantId, 'tenant') },
       ],
     }),
     getTenantEffectiveSettings: build.query<EffectiveSettingsResource, { tenantId: string }>({
       query: ({ tenantId }) => `api/tenants/${encodeURIComponent(tenantId)}/effective-settings`,
       providesTags: (_result, _error, { tenantId }) => [
-        { type: 'Settings', id: `tenant-effective:${tenantId}` },
+        { type: 'Settings', id: tenantTag(tenantId, 'tenant-effective') },
       ],
+    }),
+    // The usage ledger grows with every flush of the server (ADR-0199), so nothing is cached once unused: every mount
+    // reads the current ledger.
+    getTenantUsage: build.query<
+      TenantUsageResource,
+      { tenantId: string; from?: string | undefined; to?: string | undefined }
+    >({
+      query: ({ tenantId, from, to }) => {
+        const params = new URLSearchParams();
+        if (from) params.set('from', from);
+        if (to) params.set('to', to);
+        const search = params.toString();
+        return `api/tenants/${encodeURIComponent(tenantId)}/usage${search ? `?${search}` : ''}`;
+      },
+      keepUnusedDataFor: 0,
     }),
     // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
     updateTenantSettings: build.mutation<
@@ -503,15 +582,18 @@ export const managementApi = createApi({
         headers: { 'If-Match': concurrencyToken },
       }),
       invalidatesTags: (_result, _error, { tenantId }) => [
-        { type: 'Settings', id: `tenant:${tenantId}` },
-        { type: 'Settings', id: `tenant-effective:${tenantId}` },
+        { type: 'Settings', id: tenantTag(tenantId, 'tenant') },
+        { type: 'Settings', id: tenantTag(tenantId, 'tenant-effective') },
       ],
     }),
     listServerSecrets: build.query<SecretsResource, { serverId: string }>({
       query: ({ serverId }) => `api/servers/${encodeURIComponent(serverId)}/secrets`,
       providesTags: (result, _error, { serverId }) => [
-        { type: 'Secret' as const, id: `server:${serverId}` },
-        ...(result?.secrets ?? []).map((s) => ({ type: 'Secret' as const, id: s.secretId })),
+        { type: 'Secret' as const, id: globalTag(`server:${serverId}`) },
+        ...(result?.secrets ?? []).map((s) => ({
+          type: 'Secret' as const,
+          id: globalTag(s.secretId),
+        })),
       ],
     }),
     createServerSecret: build.mutation<
@@ -524,7 +606,7 @@ export const managementApi = createApi({
         body,
       }),
       invalidatesTags: (_result, _error, { serverId }) => [
-        { type: 'Secret', id: `server:${serverId}` },
+        { type: 'Secret', id: globalTag(`server:${serverId}`) },
       ],
     }),
     deleteServerSecret: build.mutation<void, { serverId: string; secretId: string }>({
@@ -533,8 +615,8 @@ export const managementApi = createApi({
         method: 'DELETE',
       }),
       invalidatesTags: (_result, _error, { serverId, secretId }) => [
-        { type: 'Secret', id: `server:${serverId}` },
-        { type: 'Secret', id: secretId },
+        { type: 'Secret', id: globalTag(`server:${serverId}`) },
+        { type: 'Secret', id: globalTag(secretId) },
       ],
     }),
     getServerSecretPublicKey: build.query<
@@ -549,13 +631,13 @@ export const managementApi = createApi({
     getServerSettings: build.query<SettingsResource, { serverId: string }>({
       query: ({ serverId }) => `api/servers/${encodeURIComponent(serverId)}/settings`,
       providesTags: (_result, _error, { serverId }) => [
-        { type: 'Settings', id: `server:${serverId}` },
+        { type: 'Settings', id: globalTag(`server:${serverId}`) },
       ],
     }),
     getServerEffectiveSettings: build.query<EffectiveSettingsResource, { serverId: string }>({
       query: ({ serverId }) => `api/servers/${encodeURIComponent(serverId)}/effective-settings`,
       providesTags: (_result, _error, { serverId }) => [
-        { type: 'Settings', id: `server-effective:${serverId}` },
+        { type: 'Settings', id: globalTag(`server-effective:${serverId}`) },
       ],
     }),
     // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
@@ -575,8 +657,8 @@ export const managementApi = createApi({
         headers: { 'If-Match': concurrencyToken },
       }),
       invalidatesTags: (_result, _error, { serverId }) => [
-        { type: 'Settings', id: `server:${serverId}` },
-        { type: 'Settings', id: `server-effective:${serverId}` },
+        { type: 'Settings', id: globalTag(`server:${serverId}`) },
+        { type: 'Settings', id: globalTag(`server-effective:${serverId}`) },
       ],
     }),
     listResourceServerSecrets: build.query<
@@ -585,9 +667,12 @@ export const managementApi = createApi({
     >({
       query: ({ scope, resourceServerId }) =>
         `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(resourceServerId)}/secrets`,
-      providesTags: (result, _error, { resourceServerId }) => [
-        { type: 'Secret' as const, id: `resource-server:${resourceServerId}` },
-        ...(result?.secrets ?? []).map((s) => ({ type: 'Secret' as const, id: s.secretId })),
+      providesTags: (result, _error, { scope, resourceServerId }) => [
+        { type: 'Secret' as const, id: scopeTagId(scope, `resource-server:${resourceServerId}`) },
+        ...(result?.secrets ?? []).map((s) => ({
+          type: 'Secret' as const,
+          id: scopeTagId(scope, s.secretId),
+        })),
       ],
     }),
     createResourceServerSecret: build.mutation<
@@ -601,8 +686,8 @@ export const managementApi = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: (_result, _error, { resourceServerId }) => [
-        { type: 'Secret', id: `resource-server:${resourceServerId}` },
+      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
+        { type: 'Secret', id: scopeTagId(scope, `resource-server:${resourceServerId}`) },
       ],
     }),
     deleteResourceServerSecret: build.mutation<
@@ -615,9 +700,9 @@ export const managementApi = createApi({
         )}/secrets/${encodeURIComponent(secretId)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { resourceServerId, secretId }) => [
-        { type: 'Secret', id: `resource-server:${resourceServerId}` },
-        { type: 'Secret', id: secretId },
+      invalidatesTags: (_result, _error, { scope, resourceServerId, secretId }) => [
+        { type: 'Secret', id: scopeTagId(scope, `resource-server:${resourceServerId}`) },
+        { type: 'Secret', id: scopeTagId(scope, secretId) },
       ],
     }),
     getResourceServerSecretPublicKey: build.query<
@@ -637,8 +722,8 @@ export const managementApi = createApi({
         `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
           resourceServerId,
         )}/settings`,
-      providesTags: (_result, _error, { resourceServerId }) => [
-        { type: 'Settings', id: `resource-server:${resourceServerId}` },
+      providesTags: (_result, _error, { scope, resourceServerId }) => [
+        { type: 'Settings', id: scopeTagId(scope, `resource-server:${resourceServerId}`) },
       ],
     }),
     getResourceServerEffectiveSettings: build.query<
@@ -649,8 +734,11 @@ export const managementApi = createApi({
         `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
           resourceServerId,
         )}/effective-settings`,
-      providesTags: (_result, _error, { resourceServerId }) => [
-        { type: 'Settings', id: `resource-server-effective:${resourceServerId}` },
+      providesTags: (_result, _error, { scope, resourceServerId }) => [
+        {
+          type: 'Settings',
+          id: scopeTagId(scope, `resource-server-effective:${resourceServerId}`),
+        },
       ],
     }),
     // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only).
@@ -672,9 +760,12 @@ export const managementApi = createApi({
         body: diffPatch(original, desired),
         headers: { 'If-Match': concurrencyToken },
       }),
-      invalidatesTags: (_result, _error, { resourceServerId }) => [
-        { type: 'Settings', id: `resource-server:${resourceServerId}` },
-        { type: 'Settings', id: `resource-server-effective:${resourceServerId}` },
+      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
+        { type: 'Settings', id: scopeTagId(scope, `resource-server:${resourceServerId}`) },
+        {
+          type: 'Settings',
+          id: scopeTagId(scope, `resource-server-effective:${resourceServerId}`),
+        },
       ],
     }),
   }),
@@ -710,6 +801,7 @@ export const {
   useListClientSecretsQuery,
   useCreateClientSecretMutation,
   useDeleteClientSecretMutation,
+  useRotateClientSecretMutation,
   useLazyGetClientSecretPublicKeyQuery,
   useGetClientSettingsQuery,
   useGetClientEffectiveSettingsQuery,
@@ -720,6 +812,7 @@ export const {
   useLazyGetTenantSecretPublicKeyQuery,
   useGetTenantSettingsQuery,
   useGetTenantEffectiveSettingsQuery,
+  useGetTenantUsageQuery,
   useUpdateTenantSettingsMutation,
   useListServerSecretsQuery,
   useCreateServerSecretMutation,

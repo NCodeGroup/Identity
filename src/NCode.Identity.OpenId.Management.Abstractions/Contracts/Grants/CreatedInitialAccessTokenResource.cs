@@ -23,7 +23,8 @@ namespace NCode.Identity.OpenId.Management.Contracts.Grants;
 
 /// <summary>
 /// Represents a newly minted initial access token (RFC 7591). The <see cref="InitialAccessToken"/> value is revealed
-/// exactly once at creation and never again, because the grant store persists only its salted hash.
+/// exactly once at creation and never again, because the grant store persists only its salted hash. The token
+/// registers one client.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
@@ -52,12 +53,18 @@ public sealed class CreatedInitialAccessTokenResource
     public required string? Description { get; init; }
 
     /// <summary>
+    /// Gets the identifier of the resource server the token is scoped to, or <c>null</c> when it registers ordinary
+    /// clients.
+    /// </summary>
+    public string? ResourceServerId { get; init; }
+
+    /// <summary>
     /// Gets when the token was created.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }
 
     /// <summary>
-    /// Gets when the token expires, or <c>null</c> when it does not expire.
+    /// Gets when the token expires.
     /// </summary>
-    public required DateTimeOffset? ExpiresWhen { get; init; }
+    public required DateTimeOffset ExpiresWhen { get; init; }
 }

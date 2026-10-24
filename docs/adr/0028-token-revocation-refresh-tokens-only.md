@@ -1,6 +1,8 @@
 # 28. Token revocation revokes refresh tokens only; stateless access tokens expire
 
-- **Status:** Accepted (refined by [ADR-0112](0112-authorization-code-replay-revokes-session.md))
+- **Status:** Accepted (refined by [ADR-0112](0112-authorization-code-replay-revokes-session.md);
+  [ADR-0217](0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md): revoking a refresh token revokes
+  its rotation family)
 - **Date:** 2026-09-30
 - **Deciders:** NCode Group
 

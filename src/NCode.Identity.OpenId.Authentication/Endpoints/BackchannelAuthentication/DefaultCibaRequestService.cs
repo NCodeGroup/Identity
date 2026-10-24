@@ -25,14 +25,17 @@ using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
+using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication;
 
 /// <summary>
 /// Provides a default implementation of <see cref="ICibaRequestService"/> that records the out-of-band approve/deny
 /// decision on the pending CIBA grant and, for ping or push delivery, dispatches a durable, retryable
-/// <see cref="CibaDeliveryJob"/> that notifies the client (ping) or delivers the issued tokens (push).
+/// <see cref="CibaDeliveryJob"/> that notifies the client (ping), delivers the issued tokens (push), or tells the
+/// client its request was denied.
 /// </summary>
 internal sealed class DefaultCibaRequestService(
     IPersistedGrantService persistedGrantService,
@@ -57,6 +60,21 @@ internal sealed class DefaultCibaRequestService(
         if (!pendingOrNull.HasValue)
             return false;
 
+        // The approving subject is validated before the approval is recorded: push delivery issues the tokens at
+        // approval, and a refused approval denies the request. See ADR-0225.
+        if (
+            !await IsSubjectValidAsync(
+                openIdContext,
+                openIdClient,
+                subjectAuthentication,
+                cancellationToken
+            )
+        )
+        {
+            await DenyAsync(openIdContext, openIdClient, authReqId, cancellationToken);
+            return false;
+        }
+
         var payload = pendingOrNull.Value with
         {
             Status = DeviceAuthorizationStatus.Approved,
@@ -69,10 +87,22 @@ internal sealed class DefaultCibaRequestService(
             authReqId
         );
 
-        var updated = await PersistedGrantService.UpdatePayloadAsync(
+        // Only the call that decides a pending request delivers, so a concurrent approval issues no second set of
+        // tokens. See ADR-0222.
+        var updated = await PersistedGrantService.UpdatePayloadAsync<CibaGrant>(
             openIdContext,
             grantId,
-            payload,
+            stored =>
+                stored.Payload.Status == DeviceAuthorizationStatus.Pending
+                    ? new PersistedGrantUpdate<CibaGrant>
+                    {
+                        Payload = stored.Payload with
+                        {
+                            Status = DeviceAuthorizationStatus.Approved,
+                            SubjectAuthentication = subjectAuthentication,
+                        },
+                    }
+                    : null,
             cancellationToken
         );
 
@@ -100,33 +130,16 @@ internal sealed class DefaultCibaRequestService(
         CancellationToken cancellationToken
     )
     {
-        var isPing = string.Equals(
-            payload.DeliveryMode,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
-            StringComparison.Ordinal
-        );
-        var isPush = string.Equals(
-            payload.DeliveryMode,
-            OpenIdConstants.BackchannelTokenDeliveryModes.Push,
-            StringComparison.Ordinal
-        );
-        if (!isPing && !isPush)
+        if (CreateDeliveryJob(openIdClient, authReqId, payload) is not { } job)
             return;
 
-        var endpoint = openIdClient.Settings.GetValue(OpenIdSettingKeys.ClientNotificationEndpoint);
-        if (string.IsNullOrEmpty(endpoint))
-            return;
-
-        var job = new CibaDeliveryJob
-        {
-            DeliveryMode = payload.DeliveryMode,
-            ClientId = openIdClient.ClientId,
-            EndpointUrl = endpoint,
-            ClientNotificationToken = payload.ClientNotificationToken,
-            AuthReqId = authReqId,
-        };
-
-        if (isPush)
+        if (
+            string.Equals(
+                job.DeliveryMode,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+                StringComparison.Ordinal
+            )
+        )
         {
             // Issue the tokens now; a push-mode client never polls the token endpoint (CIBA §10.3). Push delivery has
             // no token-endpoint request, so there is no proof of possession to bind — the tokens are plain bearer.
@@ -156,6 +169,66 @@ internal sealed class DefaultCibaRequestService(
         await JobDispatcher.DispatchAsync(job, cancellationToken: cancellationToken);
     }
 
+    // A denial reaches a ping or push client so it does not wait for a request that can no longer be approved. A ping
+    // tells the client to poll, and the token endpoint answers access_denied; a push carries the error payload (CIBA
+    // Core §10.2, §12). See ADR-0231.
+    private async ValueTask NotifyDeniedAsync(
+        OpenIdClient openIdClient,
+        string authReqId,
+        CibaGrant payload,
+        CancellationToken cancellationToken
+    )
+    {
+        if (CreateDeliveryJob(openIdClient, authReqId, payload) is not { } job)
+            return;
+
+        if (
+            string.Equals(
+                job.DeliveryMode,
+                OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            job = job with { Error = OpenIdConstants.ErrorCodes.AccessDenied };
+        }
+
+        await JobDispatcher.DispatchAsync(job, cancellationToken: cancellationToken);
+    }
+
+    private static CibaDeliveryJob? CreateDeliveryJob(
+        OpenIdClient openIdClient,
+        string authReqId,
+        CibaGrant payload
+    )
+    {
+        var isPing = string.Equals(
+            payload.DeliveryMode,
+            OpenIdConstants.BackchannelTokenDeliveryModes.Ping,
+            StringComparison.Ordinal
+        );
+        var isPush = string.Equals(
+            payload.DeliveryMode,
+            OpenIdConstants.BackchannelTokenDeliveryModes.Push,
+            StringComparison.Ordinal
+        );
+        if (!isPing && !isPush)
+            return null;
+
+        var endpoint = openIdClient.Settings.GetValue(OpenIdSettingKeys.ClientNotificationEndpoint);
+        if (string.IsNullOrEmpty(endpoint))
+            return null;
+
+        return new CibaDeliveryJob
+        {
+            DeliveryMode = payload.DeliveryMode,
+            ClientId = openIdClient.ClientId,
+            EndpointUrl = endpoint,
+            ClientNotificationToken = payload.ClientNotificationToken,
+            AuthReqId = authReqId,
+        };
+    }
+
     /// <inheritdoc />
     public async ValueTask<bool> DenyAsync(
         OpenIdContext openIdContext,
@@ -174,15 +247,53 @@ internal sealed class DefaultCibaRequestService(
             authReqId
         );
 
-        return await PersistedGrantService.UpdatePayloadAsync(
+        var updated = await PersistedGrantService.UpdatePayloadAsync<CibaGrant>(
             openIdContext,
             grantId,
-            pendingOrNull.Value with
-            {
-                Status = DeviceAuthorizationStatus.Denied,
-            },
+            stored =>
+                stored.Payload.Status == DeviceAuthorizationStatus.Pending
+                    ? new PersistedGrantUpdate<CibaGrant>
+                    {
+                        Payload = stored.Payload with { Status = DeviceAuthorizationStatus.Denied },
+                    }
+                    : null,
             cancellationToken
         );
+
+        if (!updated)
+            return false;
+
+        // Only the call that decides a pending request notifies, so a concurrent decision sends no second
+        // notification. See ADR-0231.
+        await NotifyDeniedAsync(openIdClient, authReqId, pendingOrNull.Value, cancellationToken);
+
+        return true;
+    }
+
+    private static async ValueTask<bool> IsSubjectValidAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        SubjectAuthentication subjectAuthentication,
+        CancellationToken cancellationToken
+    )
+    {
+        var operationDisposition = new OperationDisposition<IOpenIdError>();
+
+        // The approval happens outside a protocol request, so there is no request to validate against, and the
+        // authentication age the authorization request enforced is not checked again.
+        await openIdContext.Mediator.SendAsync(
+            new ValidateSubjectAuthenticationCommand(
+                openIdContext,
+                openIdClient,
+                OpenIdRequest: null,
+                subjectAuthentication,
+                operationDisposition,
+                EnforceAuthenticationAge: false
+            ),
+            cancellationToken
+        );
+
+        return !operationDisposition.HasError;
     }
 
     private async ValueTask<CibaGrant?> GetPendingAsync(

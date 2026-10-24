@@ -16,40 +16,126 @@
 
 #endregion
 
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
 /// Reads the single-page bundle's <c>index.html</c> so the login, consent, and error pages can inject their
-/// server-rendered form into the bundle's <c>#root</c> mount point (progressive enhancement). The index is read on
-/// each request rather than cached so a locally rebuilt bundle is picked up without a restart; the no-JavaScript forms
-/// render standalone when no bundle is configured or available.
+/// server-rendered form into the bundle's <c>#root</c> mount point (progressive enhancement). The index is read once
+/// and cached; each request compares the file's last-write time and length with the cached copy's, so a locally
+/// rebuilt bundle is picked up without a restart. The no-JavaScript forms render standalone when no bundle is
+/// configured or available.
 /// </summary>
+// The cache is revalidated from file metadata rather than invalidated by a file watcher: a watcher costs an inotify
+// instance per process and misses changes on bind-mounted and network file systems, while one metadata read per
+// request is far cheaper than the file read it replaces.
 internal sealed class InteractiveBundleReader(
     IOptions<InteractiveAuthenticationOptions> optionsAccessor
-)
+) : IDisposable
 {
-    private InteractiveAuthenticationOptions Options { get; } = optionsAccessor.Value;
+    private const string IndexFileName = "index.html";
+
+    private string? BundleRootPath { get; } = optionsAccessor.Value.BundleRootPath;
+
+    private string? IndexPath { get; } =
+        string.IsNullOrEmpty(optionsAccessor.Value.BundleRootPath)
+            ? null
+            : Path.Combine(optionsAccessor.Value.BundleRootPath, IndexFileName);
+
+    // Rooted at the bundle, so a requested asset path that navigates above the root, or names a hidden or system file,
+    // resolves to no file. Created once the bundle's directory exists, which a development build may create after the
+    // host starts.
+    private PhysicalFileProvider? _assetProvider;
+
+    // Replaced as a whole, so a request sees either the previous or the new version, never a mix of the two.
+    private InteractiveBundleIndex? CachedIndex { get; set; }
+
+    /// <inheritdoc />
+    public void Dispose() => _assetProvider?.Dispose();
 
     /// <summary>
-    /// Reads the single-page bundle's <c>index.html</c>, or returns <see langword="null"/> when no bundle is
-    /// configured or available.
+    /// Gets a file of the bundle by its path relative to the bundle's root.
     /// </summary>
-    public async ValueTask<string?> TryReadIndexHtmlAsync(CancellationToken cancellationToken)
+    /// <param name="assetPath">The file's path relative to the bundle's root, such as <c>assets/index.js</c>.</param>
+    /// <returns>The file, or <c>null</c> when no bundle is present or the bundle has no such file.</returns>
+    public IFileInfo? TryGetAsset(string assetPath)
     {
-        var bundleRootPath = Options.BundleRootPath;
-        if (string.IsNullOrEmpty(bundleRootPath))
+        if (string.IsNullOrEmpty(assetPath))
         {
             return null;
         }
 
-        var indexPath = Path.Combine(bundleRootPath, "index.html");
-        if (!File.Exists(indexPath))
+        var provider = Volatile.Read(ref _assetProvider) ?? TryCreateAssetProvider();
+        var file = provider?.GetFileInfo(assetPath);
+        return file is { Exists: true, IsDirectory: false, PhysicalPath: not null } ? file : null;
+    }
+
+    private PhysicalFileProvider? TryCreateAssetProvider()
+    {
+        if (string.IsNullOrEmpty(BundleRootPath) || !Directory.Exists(BundleRootPath))
         {
             return null;
         }
 
-        return await File.ReadAllTextAsync(indexPath, cancellationToken);
+        var provider = new PhysicalFileProvider(BundleRootPath);
+        var existing = Interlocked.CompareExchange(ref _assetProvider, provider, null);
+        if (existing is null)
+        {
+            return provider;
+        }
+
+        provider.Dispose();
+        return existing;
+    }
+
+    /// <summary>
+    /// Reads the single-page bundle's <c>index.html</c> split at its <c>#root</c> mount point, or returns
+    /// <see langword="null"/> when no bundle is configured or available, or the bundle has no empty mount point.
+    /// </summary>
+    public async ValueTask<InteractiveBundleShell?> TryReadShellAsync(
+        CancellationToken cancellationToken
+    ) => (await TryReadIndexAsync(cancellationToken))?.Shell;
+
+    private async ValueTask<InteractiveBundleIndex?> TryReadIndexAsync(
+        CancellationToken cancellationToken
+    )
+    {
+        if (IndexPath is null)
+        {
+            return null;
+        }
+
+        var file = new FileInfo(IndexPath);
+        if (!file.Exists)
+        {
+            return null;
+        }
+
+        var lastWriteTimeUtc = file.LastWriteTimeUtc;
+        var length = file.Length;
+
+        var cachedIndex = CachedIndex;
+        if (
+            cachedIndex is not null
+            && cachedIndex.LastWriteTimeUtc == lastWriteTimeUtc
+            && cachedIndex.Length == length
+        )
+        {
+            return cachedIndex;
+        }
+
+        // A rebuild that lands between the metadata read and this read is cached under the older metadata, so the
+        // next request sees a mismatch and reads the file again.
+        // The document is split once per version, so each page render writes its slices rather than searching it.
+        var html = await File.ReadAllTextAsync(IndexPath, cancellationToken);
+        var index = new InteractiveBundleIndex(
+            lastWriteTimeUtc,
+            length,
+            InteractiveBundleShell.TryCreate(html)
+        );
+        CachedIndex = index;
+        return index;
     }
 }

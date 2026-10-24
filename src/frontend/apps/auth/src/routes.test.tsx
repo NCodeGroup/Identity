@@ -65,6 +65,25 @@ describe('resolveRoute', () => {
     );
   });
 
+  it('renders the change-password surface for the password path', () => {
+    const { container } = renderRoute({ ...baseContext, pathname: '/account/password' });
+    expect(container.querySelector('#change-password')).not.toBeNull();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('password-changed')).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('maps the password error code and status', () => {
+    renderRoute({
+      ...baseContext,
+      pathname: '/account/password',
+      errorCode: 'invalid_current_password',
+      status: 'changed',
+    });
+    expect(screen.getByText('The current password is incorrect.')).toBeInTheDocument();
+    expect(screen.getByTestId('password-changed')).toBeInTheDocument();
+  });
+
   it.each([
     ['/account/', 'account-loading'],
     ['/account/applications/', 'applications-loading'],
@@ -111,5 +130,30 @@ describe('resolveRoute', () => {
     const { container } = renderRoute({ ...baseContext, pathname: '/account/sessions/other' });
     expect(container.querySelector('#login')).not.toBeNull();
     expect(screen.queryByTestId('sessions-loading')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['/account/login', 'Sign in to Acme'],
+    ['/account', 'Acme account'],
+    ['/account/applications', 'Acme — authorized applications'],
+    ['/account/sessions', 'Acme — active sessions'],
+    ['/account/password', 'Acme — change password'],
+  ])('titles %s with the tenant display name', (pathname, title) => {
+    renderRoute({ ...baseContext, pathname, branding: { displayName: 'Acme' } });
+    expect(screen.getByText(title)).toBeInTheDocument();
+  });
+
+  it('names the requesting application, not the tenant, on the consent surface', () => {
+    renderRoute({
+      ...baseContext,
+      pathname: '/account/consent',
+      branding: { displayName: 'Acme' },
+    });
+    expect(screen.queryByText(/Acme/)).toBeNull();
+  });
+
+  it('keeps the default titles when the branding has no display name', () => {
+    renderRoute({ ...baseContext, branding: { primaryColor: '#1565c0' } });
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 });

@@ -230,7 +230,7 @@ public sealed class TenantStoreSecretsTests : IDisposable
         var stale = CreateSecret("secret-1");
         stale.ConcurrencyToken = "stale-token";
 
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(async () =>
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
             await _store.UpdateSecretAsync(TenantId, stale, CancellationToken.None)
         );
     }

@@ -75,6 +75,15 @@ public sealed record RegisterClientResponse
     public string? RegistrationClientUri { get; init; }
 
     /// <summary>
+    /// Gets the identifier of the resource server the client is bound to and introspects for, or <c>null</c> for an
+    /// ordinary client. The binding comes from the initial access token the client registered with and never changes
+    /// (ADR-0192), so the server reports it and ignores the member in a request.
+    /// </summary>
+    [JsonPropertyName("resource_server_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ResourceServerId { get; init; }
+
+    /// <summary>
     /// Gets the array of redirection URI strings the client may use in authorization requests.
     /// </summary>
     [JsonPropertyName("redirect_uris")]
@@ -177,6 +186,61 @@ public sealed record RegisterClientResponse
     public string? JwksUri { get; init; }
 
     /// <summary>
+    /// Gets the expected subject distinguished name (RFC 4514) of the certificate a PKI-validated
+    /// <c>tls_client_auth</c> client presents (RFC 8705 §2.1.2); such a client registers exactly one identity.
+    /// </summary>
+    [JsonPropertyName("tls_client_auth_subject_dn")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TlsClientAuthSubjectDn { get; init; }
+
+    /// <summary>
+    /// Gets the expected <c>dNSName</c> subject alternative name of the certificate a PKI-validated
+    /// <c>tls_client_auth</c> client presents (RFC 8705 §2.1.2); such a client registers exactly one identity.
+    /// </summary>
+    [JsonPropertyName("tls_client_auth_san_dns")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TlsClientAuthSanDns { get; init; }
+
+    /// <summary>
+    /// Gets the expected <c>uniformResourceIdentifier</c> subject alternative name of the certificate a PKI-validated
+    /// <c>tls_client_auth</c> client presents (RFC 8705 §2.1.2); such a client registers exactly one identity.
+    /// </summary>
+    [JsonPropertyName("tls_client_auth_san_uri")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TlsClientAuthSanUri { get; init; }
+
+    /// <summary>
+    /// Gets the expected <c>iPAddress</c> subject alternative name of the certificate a PKI-validated
+    /// <c>tls_client_auth</c> client presents (RFC 8705 §2.1.2); such a client registers exactly one identity.
+    /// </summary>
+    [JsonPropertyName("tls_client_auth_san_ip")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TlsClientAuthSanIp { get; init; }
+
+    /// <summary>
+    /// Gets the expected <c>rfc822Name</c> subject alternative name of the certificate a PKI-validated
+    /// <c>tls_client_auth</c> client presents (RFC 8705 §2.1.2); such a client registers exactly one identity.
+    /// </summary>
+    [JsonPropertyName("tls_client_auth_san_email")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TlsClientAuthSanEmail { get; init; }
+
+    /// <summary>
+    /// Gets whether the client's access tokens must be bound to its mutual-TLS certificate (RFC 8705 §3.4).
+    /// </summary>
+    [JsonPropertyName("tls_client_certificate_bound_access_tokens")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? TlsClientCertificateBoundAccessTokens { get; init; }
+
+    /// <summary>
+    /// Gets whether the client always presents a DPoP proof at the token endpoint, so its access tokens are bound to
+    /// its DPoP key (RFC 9449 §5.2); <see langword="false"/> when omitted.
+    /// </summary>
+    [JsonPropertyName("dpop_bound_access_tokens")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? DPoPBoundAccessTokens { get; init; }
+
+    /// <summary>
     /// Gets the client's JSON Web Key Set document value, which contains the client's public keys.
     /// </summary>
     [JsonPropertyName("jwks")]
@@ -240,6 +304,48 @@ public sealed record RegisterClientResponse
     public string? UserInfoEncryptedResponseEnc { get; init; }
 
     /// <summary>
+    /// Gets the JWS <c>alg</c> the client requires for signing its JWT introspection responses (RFC 9701 §6); <c>RS256</c> when omitted. Registered only by a client bound to a resource server (ADR-0192).
+    /// </summary>
+    [JsonPropertyName("introspection_signed_response_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IntrospectionSignedResponseAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>alg</c> the client requires for encrypting its JWT introspection responses to its public key (RFC 9701 §6); introspection responses are not encrypted when omitted. Registered only by a client bound to a resource server (ADR-0192).
+    /// </summary>
+    [JsonPropertyName("introspection_encrypted_response_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IntrospectionEncryptedResponseAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>enc</c> the client requires for encrypting its JWT introspection responses (RFC 9701 §6); <c>A128CBC-HS256</c> when omitted, and allowed only with <see cref="IntrospectionEncryptedResponseAlg"/>.
+    /// </summary>
+    [JsonPropertyName("introspection_encrypted_response_enc")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IntrospectionEncryptedResponseEnc { get; init; }
+
+    /// <summary>
+    /// Gets the JWS <c>alg</c> the client requires for signing its JWT-secured authorization responses (JARM §3); <c>RS256</c> when omitted.
+    /// </summary>
+    [JsonPropertyName("authorization_signed_response_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AuthorizationSignedResponseAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>alg</c> the client requires for encrypting its JWT-secured authorization responses to its public key (JARM §3); authorization responses are signed only when omitted.
+    /// </summary>
+    [JsonPropertyName("authorization_encrypted_response_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AuthorizationEncryptedResponseAlg { get; init; }
+
+    /// <summary>
+    /// Gets the JWE <c>enc</c> the client requires for encrypting its JWT-secured authorization responses (JARM §3); <c>A128CBC-HS256</c> when omitted, and allowed only with <see cref="AuthorizationEncryptedResponseAlg"/>.
+    /// </summary>
+    [JsonPropertyName("authorization_encrypted_response_enc")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AuthorizationEncryptedResponseEnc { get; init; }
+
+    /// <summary>
     /// Gets the JWS <c>alg</c> every request object from the client must be signed with (OpenID Connect Dynamic Client Registration 1.0 §2); any algorithm the server permits when omitted.
     /// </summary>
     [JsonPropertyName("request_object_signing_alg")]
@@ -259,4 +365,39 @@ public sealed record RegisterClientResponse
     [JsonPropertyName("request_object_encryption_enc")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? RequestObjectEncryptionEnc { get; init; }
+
+    /// <summary>
+    /// Gets the JWS <c>alg</c> the client signs its token endpoint authentication assertions with (OpenID Connect Dynamic Client Registration 1.0 §2); any algorithm the server permits when omitted.
+    /// </summary>
+    [JsonPropertyName("token_endpoint_auth_signing_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TokenEndpointAuthSigningAlg { get; init; }
+
+    /// <summary>
+    /// Gets the CIBA token delivery mode the client uses: <c>poll</c>, <c>ping</c>, or <c>push</c> (CIBA Core 1.0 §4); <c>poll</c> when omitted.
+    /// </summary>
+    [JsonPropertyName("backchannel_token_delivery_mode")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? BackchannelTokenDeliveryMode { get; init; }
+
+    /// <summary>
+    /// Gets the HTTPS endpoint the server sends CIBA ping and push notifications to (CIBA Core 1.0 §4); required for the <c>ping</c> and <c>push</c> delivery modes.
+    /// </summary>
+    [JsonPropertyName("backchannel_client_notification_endpoint")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? BackchannelClientNotificationEndpoint { get; init; }
+
+    /// <summary>
+    /// Gets the asymmetric JWS <c>alg</c> every signed CIBA authentication request from the client must use (CIBA Core 1.0 §4); any algorithm the server permits when omitted.
+    /// </summary>
+    [JsonPropertyName("backchannel_authentication_request_signing_alg")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? BackchannelAuthenticationRequestSigningAlg { get; init; }
+
+    /// <summary>
+    /// Gets whether the client supports the CIBA <c>user_code</c> parameter (CIBA Core 1.0 §4); <see langword="false"/> when omitted, and <see langword="true"/> only when the server supports it.
+    /// </summary>
+    [JsonPropertyName("backchannel_user_code_parameter")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? BackchannelUserCodeParameter { get; init; }
 }

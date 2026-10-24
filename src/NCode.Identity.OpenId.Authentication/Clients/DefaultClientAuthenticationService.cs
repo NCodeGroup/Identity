@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
+using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 
@@ -31,12 +32,18 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// Provides a default implementation of the <see cref="IClientAuthenticationService"/> abstraction. Every registered
 /// <see cref="IClientAuthenticationHandler"/> examines the request; the service selects the client they authenticated
 /// and accepts it only when the method it authenticated with is the one it is registered to use and its ceiling permits
-/// that method, whichever handler produced it.
+/// that method, whichever handler produced it. An authenticated confidential client is then judged at the
+/// <c>client_authentication</c> rate-limit stage, once per request, and refused with <c>429 Too Many Requests</c> when
+/// it is over a limit. The constructor throws an <see cref="InvalidOperationException"/> unless every registered
+/// handler's method has a <see cref="ClientAuthenticationMethodDescriptor"/>, no two handlers authenticate one method,
+/// and every described method has a handler.
 /// </summary>
-// See ADR-0145.
+// See ADR-0145, ADR-0196, ADR-0207 and ADR-0246.
 internal class DefaultClientAuthenticationService(
     IEnumerable<IClientAuthenticationHandler> handlers,
+    IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
     IAuditEventRecorder auditEventRecorder,
+    IRequestRateLimiter rateLimiter,
     ILogger<DefaultClientAuthenticationService> logger
 ) : IClientAuthenticationService
 {
@@ -44,9 +51,12 @@ internal class DefaultClientAuthenticationService(
     // this service is a singleton, so an instance field would leak one request's result to every other request.
     private static readonly object CacheKey = new();
 
-    private ImmutableArray<IClientAuthenticationHandler> Handlers { get; } = [.. handlers];
+    private ImmutableArray<IClientAuthenticationHandler> Handlers { get; } =
+        EnsureEveryMethodIsDescribed([.. handlers], clientAuthenticationMethodCatalog);
 
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
+
+    private IRequestRateLimiter RateLimiter { get; } = rateLimiter;
 
     private ILogger<DefaultClientAuthenticationService> Logger { get; } = logger;
 
@@ -66,6 +76,28 @@ internal class DefaultClientAuthenticationService(
         }
 
         var authenticationResult = await AuthenticateCoreAsync(openIdContext, cancellationToken);
+
+        // Counted on the uncached path only, so a request that authenticates its client more than once counts once. Only
+        // a confidential client proves its identity; a public client is named by its client_id alone, so counting it
+        // would let anyone spend its allowance and refuse its real users.
+        if (authenticationResult.ConfidentialClient is { } client)
+        {
+            var rateLimitContext = new RateLimitContext
+            {
+                OpenIdContext = openIdContext,
+                Client = client,
+            };
+            var decision = await RateLimiter.AcquireAsync(
+                RateLimitStages.ClientAuthentication,
+                rateLimitContext,
+                cancellationToken
+            );
+            if (decision.RetryAfter is { } retryAfter)
+                authenticationResult = new ClientAuthenticationResult(
+                    RateLimitErrors.Refuse(openIdContext, retryAfter)
+                );
+        }
+
         items[CacheKey] = authenticationResult;
         return authenticationResult;
     }
@@ -177,6 +209,7 @@ internal class DefaultClientAuthenticationService(
         await AuditEventRecorder.RecordClientAuthenticationFailedAsync(
             openIdContext,
             client.ClientId,
+            method,
             reason,
             cancellationToken
         );
@@ -189,5 +222,50 @@ internal class DefaultClientAuthenticationService(
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
         );
+    }
+
+    /// <summary>
+    /// Ensures that the handlers and the method descriptors correspond one to one. A handler whose method has no
+    /// descriptor is not advertised, two handlers that authenticate one method are ambiguous, and a descriptor without
+    /// a handler is advertised but cannot authenticate.
+    /// </summary>
+    /// <param name="handlers">The registered client-authentication handlers.</param>
+    /// <param name="catalog">The catalog of the registered client-authentication method descriptors.</param>
+    /// <returns>The <paramref name="handlers"/>, unchanged.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// A handler's method has no descriptor, two handlers authenticate one method, or a descriptor has no handler.
+    /// </exception>
+    // See ADR-0207.
+    private static ImmutableArray<IClientAuthenticationHandler> EnsureEveryMethodIsDescribed(
+        ImmutableArray<IClientAuthenticationHandler> handlers,
+        IClientAuthenticationMethodCatalog catalog
+    )
+    {
+        var handledMethods = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var handler in handlers)
+        {
+            var method = handler.AuthenticationMethod;
+
+            if (!catalog.TryGet(method, out _))
+                throw new InvalidOperationException(
+                    $"The client-authentication handler '{handler.GetType().Name}' authenticates '{method}', which no client-authentication method descriptor names."
+                );
+
+            if (!handledMethods.Add(method))
+                throw new InvalidOperationException(
+                    $"More than one client-authentication handler authenticates '{method}'."
+                );
+        }
+
+        foreach (var name in catalog.MethodNames)
+        {
+            if (!handledMethods.Contains(name))
+                throw new InvalidOperationException(
+                    $"No client-authentication handler authenticates the registered method '{name}'."
+                );
+        }
+
+        return handlers;
     }
 }

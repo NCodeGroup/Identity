@@ -22,7 +22,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Grants;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Subject;
@@ -30,6 +29,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Results;
 using NCode.Registration.AspNetCore;
+using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.DeviceAuthorization;
 
@@ -191,22 +191,20 @@ internal class DefaultDeviceVerificationEndpointHandler(
         // Only act on a request that is still pending so a second submission is a no-op.
         if (payload.Status == DeviceAuthorizationStatus.Pending)
         {
-            var updatedPayload = approved
-                ? payload with
-                {
-                    Status = DeviceAuthorizationStatus.Approved,
-                    SubjectAuthentication = subjectAuthentication,
-                }
-                : payload with
-                {
-                    Status = DeviceAuthorizationStatus.Denied,
-                };
-
-            await PersistedGrantService.UpdatePayloadAsync(
-                openIdContext,
-                deviceCodeGrantId,
-                updatedPayload,
-                cancellationToken
+            await (
+                approved
+                    ? PersistedGrantService.UpdatePayloadAsync<DeviceCodeGrant>(
+                        openIdContext,
+                        deviceCodeGrantId,
+                        stored => Approve(stored, subjectAuthentication),
+                        cancellationToken
+                    )
+                    : PersistedGrantService.UpdatePayloadAsync<DeviceCodeGrant>(
+                        openIdContext,
+                        deviceCodeGrantId,
+                        Deny,
+                        cancellationToken
+                    )
             );
 
             // The user_code is single-use: revoke the pointer so the code cannot be entered again.
@@ -222,6 +220,54 @@ internal class DefaultDeviceVerificationEndpointHandler(
             new VerificationResult { Status = approved ? ApproveAction : DenyAction },
             openIdEnvironment.JsonSerializerOptions
         );
+    }
+
+    /// <summary>
+    /// Approves a pending device authorization request for the authenticated subject. The change applies only to a
+    /// request that is still pending as stored.
+    /// </summary>
+    /// <param name="grant">The device authorization request as stored.</param>
+    /// <param name="subjectAuthentication">The authenticated subject that approves the request.</param>
+    /// <returns>The change to apply, or <c>null</c> when the request is no longer pending.</returns>
+    internal static PersistedGrantUpdate<DeviceCodeGrant>? Approve(
+        PersistedGrant<DeviceCodeGrant> grant,
+        SubjectAuthentication subjectAuthentication
+    )
+    {
+        // A decision applies only to a request that is still pending as stored, so a concurrent submission changes
+        // nothing. See ADR-0222.
+        if (grant.Payload.Status != DeviceAuthorizationStatus.Pending)
+            return null;
+
+        return new PersistedGrantUpdate<DeviceCodeGrant>
+        {
+            Payload = grant.Payload with
+            {
+                Status = DeviceAuthorizationStatus.Approved,
+                SubjectAuthentication = subjectAuthentication,
+            },
+        };
+    }
+
+    /// <summary>
+    /// Denies a pending device authorization request. The change applies only to a request that is still pending as
+    /// stored.
+    /// </summary>
+    /// <param name="grant">The device authorization request as stored.</param>
+    /// <returns>The change to apply, or <c>null</c> when the request is no longer pending.</returns>
+    internal static PersistedGrantUpdate<DeviceCodeGrant>? Deny(
+        PersistedGrant<DeviceCodeGrant> grant
+    )
+    {
+        // A decision applies only to a request that is still pending as stored, so a concurrent submission changes
+        // nothing. See ADR-0222.
+        if (grant.Payload.Status != DeviceAuthorizationStatus.Pending)
+            return null;
+
+        return new PersistedGrantUpdate<DeviceCodeGrant>
+        {
+            Payload = grant.Payload with { Status = DeviceAuthorizationStatus.Denied },
+        };
     }
 
     private static ChallengeHttpResult ChallengeForLogin(HttpContext httpContext)

@@ -98,23 +98,33 @@ export function TenantsPage({ onOpenTenant }: TenantsPageProps) {
           tenantId: dialog.tenant.tenantId,
           displayName: dialog.tenant.displayName,
           issuer: dialog.tenant.issuer ?? '',
+          mtlsEndpointAliasAuthority: dialog.tenant.mtlsEndpointAliasAuthority ?? '',
           isDisabled: dialog.tenant.isDisabled,
         }
       : emptyTenantFormValues;
 
   // The address is previewed against the server's own rules: for a new tenant always, and for an existing
-  // one only when its issuer changes, because the server judges an address only when it can change.
+  // one only when its issuer or mTLS endpoint alias changes, because the server judges an address only
+  // when it can change.
   const debouncedAddress = useDebouncedValue(addressInput, addressPreviewDelayMs);
-  const originalIssuer = dialog.kind === 'edit' ? (dialog.tenant.issuer ?? '') : undefined;
+  const isAddressUnchanged =
+    dialog.kind === 'edit' &&
+    debouncedAddress !== undefined &&
+    debouncedAddress.issuer === (dialog.tenant.issuer ?? '') &&
+    debouncedAddress.mtlsEndpointAliasAuthority ===
+      (dialog.tenant.mtlsEndpointAliasAuthority ?? '');
   const shouldPreview =
     formOpen &&
     debouncedAddress !== undefined &&
     isValidTenantId(debouncedAddress.tenantId) &&
-    debouncedAddress.issuer !== originalIssuer;
+    !isAddressUnchanged;
   const { data: preview, originalArgs: previewArgs } = useGetTenantAddressQuery(
     {
       tenantId: debouncedAddress?.tenantId ?? '',
       ...(debouncedAddress?.issuer ? { issuer: debouncedAddress.issuer } : {}),
+      ...(debouncedAddress?.mtlsEndpointAliasAuthority
+        ? { mtlsEndpointAliasAuthority: debouncedAddress.mtlsEndpointAliasAuthority }
+        : {}),
     },
     { skip: !shouldPreview, refetchOnMountOrArgChange: true },
   );
@@ -125,18 +135,22 @@ export function TenantsPage({ onOpenTenant }: TenantsPageProps) {
     preview &&
     addressInput &&
     previewArgs?.tenantId === addressInput.tenantId &&
-    (previewArgs.issuer ?? '') === addressInput.issuer
+    (previewArgs.issuer ?? '') === addressInput.issuer &&
+    (previewArgs.mtlsEndpointAliasAuthority ?? '') === addressInput.mtlsEndpointAliasAuthority
       ? preview
       : undefined;
 
   const handleSubmit = async (values: TenantFormValues) => {
     setFormError(undefined);
     const issuer = values.issuer.length > 0 ? values.issuer : null;
+    const mtlsEndpointAliasAuthority =
+      values.mtlsEndpointAliasAuthority.length > 0 ? values.mtlsEndpointAliasAuthority : null;
     try {
       if (dialog.kind === 'create') {
         await createTenant({
           tenantId: values.tenantId,
           issuer,
+          mtlsEndpointAliasAuthority,
           displayName: values.displayName,
           isDisabled: values.isDisabled,
           settings: {},
@@ -147,6 +161,7 @@ export function TenantsPage({ onOpenTenant }: TenantsPageProps) {
           concurrencyToken: dialog.tenant.concurrencyToken,
           fields: {
             issuer,
+            mtlsEndpointAliasAuthority,
             displayName: values.displayName,
             isDisabled: values.isDisabled,
           },

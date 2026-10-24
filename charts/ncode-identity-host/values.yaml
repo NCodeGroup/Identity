@@ -1,0 +1,167 @@
+# Default values for the ncode-identity-host chart (ADR-0179). Secrets are never values: the chart references Secrets
+# the operator creates, by name.
+
+# The number of replicas. More than one requires Valkey (ADR-0164), because replicas share single-use state through it.
+replicaCount: 1
+
+image:
+  repository: ghcr.io/ncodegroup/ncode-identity-host
+  # Defaults to the chart's appVersion.
+  tag: ""
+  # When set, the image is pulled by digest and the tag is ignored.
+  digest: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# ASPNETCORE_ENVIRONMENT. Production turns on the host's production-safety gate.
+environment: Production
+
+# The host names the host answers to (AllowedHosts). Required; '*' is refused.
+allowedHosts: []
+
+tenantResolution:
+  # OpenId:TenantResolution:StrategyCode. Settings for another strategy go in extraEnv.
+  strategyCode: StaticSingle
+  staticSingle:
+    # The public issuer URL, for example https://id.example.com. Required by the StaticSingle strategy.
+    issuer: ""
+
+# The proxies whose X-Forwarded-* headers the host trusts (ReverseProxy). Set knownNetworks to the pod CIDR when the
+# ingress controller runs in the cluster.
+reverseProxy:
+  knownNetworks: []
+  knownProxies: []
+  forwardLimit: 1
+
+# The Postgres database (ConnectionStrings:openiddb). It also persists the Data Protection key ring. Required.
+database:
+  existingSecret: ""
+  connectionStringKey: connection-string
+
+# The pre-install and pre-upgrade Job that applies the database migrations before the rollout (ADR-0180). Every
+# migration must stay compatible with the previous release, which keeps serving until the rollout finishes.
+migrations:
+  enabled: true
+  # A connection allowed to change the schema. Defaults to the database Secret; name a separate one so the running host
+  # connects without schema rights.
+  database:
+    existingSecret: ""
+    connectionStringKey: ""
+  backoffLimit: 1
+  activeDeadlineSeconds: 600
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+
+# Valkey (ConnectionStrings:valkey), shared by every replica. Required when replicaCount is greater than 1.
+valkey:
+  existingSecret: ""
+  connectionStringKey: connection-string
+
+# Stored secrets and the Data Protection key ring are encrypted under a root key held outside the database; see "Secret
+# protection" in the chart's README.
+secretProtection:
+  # Required in Production: local, or aws-kms once its values are set.
+  rootKeyProvider: ""
+  local:
+    # Secret holding the root key under the key 'key' (base64url, 32 bytes).
+    keySecret: ""
+    # Secrets of older root keys, kept so the master keys they wrapped still unwrap.
+    previousKeySecrets: []
+  awsKms:
+    # ARN of the KMS key, or of an alias that names it: arn:aws:kms:<region>:<account>:alias/<name>.
+    keyArn: ""
+    webIdentity:
+      # IAM role the host's service account assumes through the cluster's IAM OIDC identity provider.
+      roleArn: ""
+      audience: sts.amazonaws.com
+      tokenExpirationSeconds: 3600
+  recovery:
+    # ConfigMap holding the recovery public key under the key 'recovery-public.pem'.
+    publicKeyConfigMap: ""
+    # true only to accept that losing the root key loses every stored secret.
+    disabled: false
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  #  - host: id.example.com
+  #    paths:
+  #      - path: /
+  #        pathType: Prefix
+  tls: []
+  #  - secretName: id-example-com-tls
+  #    hosts:
+  #      - id.example.com
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+# The ingress removes a terminating pod from its endpoints asynchronously, so the pod keeps serving for this long
+# before the host starts shutting down.
+preStopSleepSeconds: 10
+# Covers the preStop drain plus the host's 30-second graceful shutdown.
+terminationGracePeriodSeconds: 45
+
+probes:
+  # The Host header every probe sends, which allowedHosts must accept. Defaults to the first allowed host.
+  host: ""
+  startup:
+    periodSeconds: 2
+    timeoutSeconds: 3
+    failureThreshold: 60
+  liveness:
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readiness:
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
+
+# Spread replicas across nodes when the scheduler can.
+topologySpread:
+  enabled: true
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+priorityClassName: ""
+
+# Any other host setting, as environment variables (for example Logging__LogLevel__Default), and extra volumes. The
+# migration Job receives them too, so a setting the database connection needs (a CA bundle, say) reaches both.
+extraEnv: []
+extraEnvFrom: []
+extraVolumes: []
+extraVolumeMounts: []

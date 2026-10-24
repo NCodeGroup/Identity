@@ -72,7 +72,7 @@ public class DispatchRegistrationTests
     }
 
     [Fact]
-    public void AddInProcessJobDispatcher_WhenConfigured_AppliesQueueOptions()
+    public void AddInProcessJobDispatcher_WhenConfigured_AppliesTheOptions()
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
@@ -83,6 +83,7 @@ public class DispatchRegistrationTests
             .AddInProcessJobDispatcher(options =>
             {
                 options.QueueCapacity = 7;
+                options.MaxConcurrentJobs = 3;
                 options.FullMode = BoundedChannelFullMode.DropOldest;
             });
 
@@ -90,7 +91,43 @@ public class DispatchRegistrationTests
 
         var options = provider.GetRequiredService<IOptions<InProcessJobDispatcherOptions>>().Value;
         Assert.Equal(7, options.QueueCapacity);
+        Assert.Equal(3, options.MaxConcurrentJobs);
         Assert.Equal(BoundedChannelFullMode.DropOldest, options.FullMode);
+    }
+
+    [Fact]
+    public void AddInProcessJobDispatcher_ByDefault_RunsSixteenJobsAtOnce()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSingleton<IHostApplicationLifetime, FakeLifetime>();
+
+        serviceCollection.AddDispatchServices().AddInProcessJobDispatcher();
+
+        using var provider = serviceCollection.BuildServiceProvider();
+
+        var options = provider.GetRequiredService<IOptions<InProcessJobDispatcherOptions>>().Value;
+        Assert.Equal(16, options.MaxConcurrentJobs);
+    }
+
+    [Fact]
+    public void AddInProcessJobDispatcher_WhenMaxConcurrentJobsIsZero_RefusesTheOptions()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSingleton<IHostApplicationLifetime, FakeLifetime>();
+
+        serviceCollection
+            .AddDispatchServices()
+            .AddInProcessJobDispatcher(options => options.MaxConcurrentJobs = 0);
+
+        using var provider = serviceCollection.BuildServiceProvider();
+
+        var optionsAccessor = provider.GetRequiredService<
+            IOptions<InProcessJobDispatcherOptions>
+        >();
+        var exception = Assert.Throws<OptionsValidationException>(() => optionsAccessor.Value);
+        Assert.Contains("MaxConcurrentJobs", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

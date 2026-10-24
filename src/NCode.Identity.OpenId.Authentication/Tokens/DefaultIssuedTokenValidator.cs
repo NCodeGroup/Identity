@@ -132,12 +132,26 @@ internal class DefaultIssuedTokenValidator(
         CancellationToken cancellationToken
     )
     {
-        var parameters = CreateIdTokenParameters(openIdContext);
+        var openIdTenant = openIdContext.Tenant;
+        var settings = openIdTenant.SettingsProvider.Collection;
+
+        // A relying party that received an encrypted ID token may re-encrypt it to the server (RP-Initiated Logout 1.0
+        // §2), so a hint is decrypted with the tenant's keys under the tenant's advertised ID-token encryption lists.
+        var parameters = CreateIdTokenParameters(openIdContext)
+            .UseDecryptionKeys(openIdTenant.SecretsProvider.Collection);
+        parameters.ValidKeyManagementAlgorithms = settings.GetPermittedAlgorithms(
+            OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported
+        );
+        parameters.ValidContentEncryptionAlgorithms = settings.GetPermittedAlgorithms(
+            OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported
+        );
+        parameters.ValidCompressionAlgorithms = [];
+
         return await ValidateAsync(idTokenHint, parameters, cancellationToken);
     }
 
     // An ID token is encrypted only to the public key of its client, so the server names no decryption keys and an
-    // encrypted ID token is rejected.
+    // encrypted ID token is rejected; only a hint, which its client may re-encrypt to the server, is decrypted.
     private static JwtValidationParameters CreateIdTokenParameters(OpenIdContext openIdContext)
     {
         var openIdTenant = openIdContext.Tenant;

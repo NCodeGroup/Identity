@@ -9,6 +9,7 @@ const NCode.Identity.OpenId.Accounts.AccountMaxLengths.UserName = 300 -> int
 NCode.Identity.OpenId.Accounts.AccountConstants
 NCode.Identity.OpenId.Accounts.AccountMaxLengths
 NCode.Identity.OpenId.Accounts.Credentials.IPasswordHasher
+NCode.Identity.OpenId.Accounts.Credentials.IPasswordHasher.DummyPasswordHash.get -> string!
 NCode.Identity.OpenId.Accounts.Credentials.IPasswordHasher.HashPassword(System.ReadOnlySpan<byte> password) -> string!
 NCode.Identity.OpenId.Accounts.Credentials.IPasswordHasher.VerifyHashedPassword(string! hashedPassword, System.ReadOnlySpan<byte> password) -> NCode.Identity.OpenId.Accounts.Credentials.PasswordVerificationResult
 NCode.Identity.OpenId.Accounts.Credentials.PasswordVerificationResult
@@ -52,7 +53,16 @@ NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.RemoveAsync(string! loc
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.ReplaceClaimsAsync(string! localAccountId, System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccountClaim!>! claims, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.SetPasswordAsync(string! localAccountId, System.ReadOnlyMemory<byte> password, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.UpdateAsync(NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount! account, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.VerifyCredentialAsync(string! userName, System.ReadOnlyMemory<byte> password, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount?>
+NCode.Identity.OpenId.Accounts.Stores.ILocalAccountStore.VerifyCredentialAsync(string! userName, System.ReadOnlyMemory<byte> password, System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<bool>>! isRefusedAsync, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Accounts.Stores.LocalAccountVerificationResult!>
+NCode.Identity.OpenId.Accounts.Stores.LocalAccountVerificationResult
+NCode.Identity.OpenId.Accounts.Stores.LocalAccountVerificationResult.Account.get -> NCode.Identity.OpenId.Accounts.DataContracts.PersistedLocalAccount?
+NCode.Identity.OpenId.Accounts.Stores.LocalAccountVerificationResult.Account.init -> void
+NCode.Identity.OpenId.Accounts.Stores.LocalAccountVerificationResult.IsRefused.get -> bool
+NCode.Identity.OpenId.Accounts.Stores.LocalAccountVerificationResult.IsRefused.init -> void
+NCode.Identity.OpenId.Accounts.Stores.LocalAccountVerificationResult.IsVerified.get -> bool
+NCode.Identity.OpenId.Accounts.Stores.LocalAccountVerificationResult.LocalAccountVerificationResult() -> void
+NCode.Identity.OpenId.Accounts.Stores.LocalAccountVerificationResult.UserName.get -> string!
+NCode.Identity.OpenId.Accounts.Stores.LocalAccountVerificationResult.UserName.init -> void
 NCode.Identity.OpenId.Accounts.SubjectMetadataExtensions
 NCode.Identity.OpenId.Accounts.SubjectMetadataExtensions.extension(System.Security.Claims.ClaimsPrincipal!)
 NCode.Identity.OpenId.Accounts.SubjectMetadataExtensions.extension(System.Security.Claims.ClaimsPrincipal!).TryGetMetadata(string! claimType, out System.Text.Json.JsonElement metadata) -> bool

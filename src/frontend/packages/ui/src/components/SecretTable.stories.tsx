@@ -23,6 +23,7 @@ export const Populated: Story = {
       {
         ...base,
         secretId: 's-active',
+        keyId: 's-active',
         secretType: 'symmetric',
         keySizeBits: 256,
         expiresWhen: '2099-01-01T12:00:00Z',
@@ -30,6 +31,7 @@ export const Populated: Story = {
       {
         ...base,
         secretId: 's-expired',
+        keyId: 's-expired',
         secretType: 'rsa',
         keySizeBits: 2048,
         expiresWhen: '2020-01-01T12:00:00Z',
@@ -46,6 +48,7 @@ export const WithActions: Story = {
       {
         ...base,
         secretId: 's-active',
+        keyId: 's-active',
         secretType: 'symmetric',
         keySizeBits: 256,
         expiresWhen: '2099-01-01T12:00:00Z',
@@ -53,6 +56,7 @@ export const WithActions: Story = {
       {
         ...base,
         secretId: 's-rsa',
+        keyId: 's-rsa',
         secretType: 'rsa',
         keySizeBits: 2048,
         expiresWhen: '2099-01-01T12:00:00Z',

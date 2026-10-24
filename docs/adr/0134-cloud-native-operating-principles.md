@@ -64,7 +64,8 @@ when it is down, nobody signs in.
   - the in-process `IJobDispatcher` loses in-flight jobs when a replica is replaced (`D5`) — a durable adapter is a
     prerequisite before the platform offers CIBA push or back-channel logout;
   - readiness, graceful drain, and disruption budgets are part of the host's deployment artifacts (`F46`);
-  - the Data Protection key ring must be encrypted outside the database (`S10`);
+  - the Data Protection key ring must be encrypted outside the database
+    ([ADR-0177](0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md));
   - accepted single points of failure at launch: one region, and the free (non-HA) managed control plane on the
     rank-1 topology ([hosting analysis §2](../hosting-analysis.md#2-summary-and-ranked-recommendations)).
 - Reviews can cite a principle by number instead of re-arguing it.

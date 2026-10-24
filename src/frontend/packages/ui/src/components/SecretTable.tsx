@@ -1,4 +1,5 @@
 import Chip from '@mui/material/Chip';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
@@ -13,6 +14,8 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey';
 /** The minimal secret shape this presentational table needs (decoupled from the API contract). */
 export type SecretRow = {
   readonly secretId: string;
+  /** The key identifier (`kid`) the key is selected by; equal to {@link secretId} when the key has no own `kid`. */
+  readonly keyId: string;
   readonly secretType: string;
   readonly keySizeBits: number;
   readonly use: string | null;
@@ -36,6 +39,13 @@ export type SecretTableProps = {
    * action is shown for a row only when its {@link SecretRow.secretType} is included here.
    */
   readonly exportableSecretTypes?: readonly string[];
+  /** Rotates a secret in one call; shown only for secret types in {@link rotatableSecretTypes}. */
+  readonly onRotate?: (secretId: string) => void;
+  /**
+   * The secret types that can be rotated, discovered from the server capabilities. The rotate action is shown for a
+   * row only when its {@link SecretRow.secretType} is included here.
+   */
+  readonly rotatableSecretTypes?: readonly string[];
 };
 
 /** Formats an ISO-8601 instant for display, falling back to the raw value if it is unparseable. */
@@ -55,14 +65,18 @@ export function SecretTable({
   onDelete,
   onExportPublicKey,
   exportableSecretTypes,
+  onRotate,
+  rotatableSecretTypes,
 }: SecretTableProps) {
   const exportable = new Set(exportableSecretTypes ?? []);
-  const showActions = Boolean(onDelete) || Boolean(onExportPublicKey);
+  const rotatable = new Set(rotatableSecretTypes ?? []);
+  const showActions = Boolean(onDelete) || Boolean(onExportPublicKey) || Boolean(onRotate);
   return (
     <Table size="small" aria-label="Secrets">
       <TableHead>
         <TableRow>
           <TableCell>Secret ID</TableCell>
+          <TableCell>Key ID</TableCell>
           <TableCell>Type</TableCell>
           <TableCell>Key size</TableCell>
           <TableCell>Expires</TableCell>
@@ -75,6 +89,7 @@ export function SecretTable({
           return (
             <TableRow key={secret.secretId} data-testid={`secret-row-${secret.secretId}`}>
               <TableCell>{secret.secretId}</TableCell>
+              <TableCell data-testid={`secret-kid-${secret.secretId}`}>{secret.keyId}</TableCell>
               <TableCell>{secret.secretType}</TableCell>
               <TableCell>{secret.keySizeBits}</TableCell>
               <TableCell>
@@ -94,6 +109,18 @@ export function SecretTable({
                         onClick={() => onExportPublicKey(secret.secretId)}
                       >
                         <VpnKeyIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  {onRotate && rotatable.has(secret.secretType) && (
+                    <Tooltip title="Rotate secret">
+                      <IconButton
+                        size="small"
+                        aria-label={`Rotate ${secret.secretId}`}
+                        data-testid={`secret-rotate-${secret.secretId}`}
+                        onClick={() => onRotate(secret.secretId)}
+                      >
+                        <AutorenewIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   )}

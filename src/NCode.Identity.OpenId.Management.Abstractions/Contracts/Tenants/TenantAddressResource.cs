@@ -47,6 +47,18 @@ public sealed class TenantAddressResource
     public required bool IsIssuerDerived { get; init; }
 
     /// <summary>
+    /// Gets the mutual-TLS endpoint-alias authority (RFC 8705 §5) the tenant has or would have: the proposed alias, else
+    /// the tenant's current alias, else the one its tenant strategy derives for it; or <c>null</c> when there is none.
+    /// </summary>
+    public required string? MtlsEndpointAliasAuthority { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether <see cref="MtlsEndpointAliasAuthority"/> is the one the tenant strategy derives,
+    /// which a tenant created or updated without an alias is given.
+    /// </summary>
+    public required bool IsMtlsEndpointAliasAuthorityDerived { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether a tenant with the identifier already exists, so a new tenant cannot take it.
     /// </summary>
     public required bool Exists { get; init; }

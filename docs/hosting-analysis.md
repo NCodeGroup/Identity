@@ -15,7 +15,7 @@
 | ≥ 3 nodes for service HA                                                  | Traefik sourcing tenant PKI / mTLS config from our datastores   |
 | Traefik as the load balancer, with mTLS                                   | Mix-and-match vendors (compute, Postgres, Valkey, KMS)          |
 | Entry-level, shared CPU OK, monthly billing                               |                                                                 |
-| Backing services: **PostgreSQL** (EF Core / Npgsql) and **Valkey** (cache) | Remote keys (Azure Key Vault et al.) — backlog `S7`             |
+| Backing services: **PostgreSQL** (EF Core / Npgsql) and **Valkey** (cache) | Root key in a KMS (ADR-0235); remote signing — backlog `S7`    |
 
 Every option is judged against the platform's operating principles — cattle not pets, immutable artifacts, everything as
 code, stateless services, redundancy by default, proven recoverability, and secure by default
@@ -33,14 +33,14 @@ first — it is the system of record), how much of that is managed, capacity, la
 
 | Rank  | Topology                                   | What runs where                                                                                                                                                                                                                         | Monthly total                                                    | What the money buys                                                                                     | Trade-offs                                                                                                                                                       |
 | ----- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1** | **Akamai Dallas — managed HA**             | **Kubernetes:** LKE, 4 × Linode 2 GB (4 vCPU / 8 GB, workers only — control plane is managed) · **LB:** NodeBalancer · **Postgres:** Akamai managed, **3-node HA**, same DC · **Valkey:** in-cluster, primary + replica + Sentinel · **Keys:** Azure Key Vault, South Central US (federated identity) | 4 × $12 + NB $10 + PG $37 = **$95**                              | HA in every tier except the free, non-HA control plane; managed failover, backups, and patching for the database; ~15–20 ms | x86; 2 GB nodes leave modest headroom. Variants: 3 × 4 GB + HA DB = $119, or 3 × 4 GB + single-node DB = $98.                                                   |
+| **1** | **Akamai Dallas — managed HA**             | **Kubernetes:** LKE, 4 × Linode 2 GB (4 vCPU / 8 GB, workers only — control plane is managed) · **LB:** NodeBalancer · **Postgres:** Akamai managed, **3-node HA**, same DC · **Valkey:** in-cluster, primary + replica + Sentinel · **Keys:** AWS KMS root key, us-west-2 (web identity federation — no stored credential) | 4 × $12 + NB $10 + PG $37 = **$95**                              | HA in every tier except the free, non-HA control plane; managed failover, backups, and patching for the database; ~15–20 ms | x86; 2 GB nodes leave modest headroom. Variants: 3 × 4 GB + HA DB = $119, or 3 × 4 GB + single-node DB = $98.                                                   |
 | **2** | **OCI Phoenix — maximum capacity**         | **Kubernetes:** k3s HA (3 servers, embedded etcd) on 3 × Ampere A1 (2 OCPU / 12 GB each = 6 vCPU / 36 GB), one per availability domain · **LB:** OCI Network LB (free) · **Postgres:** CloudNativePG, 3 instances, backups → S3 (Object Lock) or OCI Object Storage · **Valkey:** in-cluster HA · **Keys:** OCI Vault (instance principal, no secret) | A1 beyond the free allowance $27.74 + block storage ~$4 = **~$32** | ~3× rank 1's capacity; HA in every tier **including** the control plane, spread across 3 availability domains; 10 TB free egress | You operate k3s and Postgres; arm64 images; A1 capacity can be scarce; home region fixed at sign-up. A 3 × 1 OCPU / 8 GB cluster fits the free allowance (~$4). |
-| **3** | **Vultr Dallas — lean nodes, HA DB**       | **Kubernetes:** VKE, 3 × 1 vCPU / 2 GB · **LB:** Vultr LB · **Postgres:** Vultr managed, 2 GB + 1 replica · **Valkey:** in-cluster · **Keys:** Azure Key Vault, South Central US                                                                 | $30 + LB $10 + PG $50 = **$90**                                  | Managed control plane and HA database                                                                  | One fewer node and a 2-node (not 3-node) database vs. rank 1 for about the same money; VKE HA control-plane price unpublished. Variant: k3s on 3 × 2 vCPU / 4 GB + single-node DB = $97.    |
-| **4** | **DigitalOcean Kansas City — closest**     | **Kubernetes:** DOKS, 3 × 2 GiB Premium Intel · **LB:** DO LB · **Postgres:** DO managed, 1 GiB single node · **Valkey:** in-cluster · **Keys:** Azure Key Vault, Central US                                                                     | $48 + LB $12 + PG $15.15 = **~$75**                              | Lowest latency (~10–15 ms); managed control plane and database                                         | **No database HA within budget** (2 GiB + standby is $60.90 → ~$121); MKC1 offers Premium-Intel droplets and limited DB plans only _(verify)_.                 |
-| **5** | **Civo NYC1 — free egress**                | **Kubernetes:** Civo managed k3s, 3 × 4 GB · **LB:** Civo LB · **Postgres:** CloudNativePG in-cluster · **Valkey:** in-cluster · **Keys:** Azure Key Vault, East US                                                                              | $65.19 + LB $10.86 = **~$76**                                    | 6 cores / 12 GB; unlimited free egress                                                                  | You operate Postgres (Civo's managed PG starts at $43.45 → ~$119); east-coast latency (35–45 ms); no published HA control plane.                                |
+| **3** | **Vultr Dallas — lean nodes, HA DB**       | **Kubernetes:** VKE, 3 × 1 vCPU / 2 GB · **LB:** Vultr LB · **Postgres:** Vultr managed, 2 GB + 1 replica · **Valkey:** in-cluster · **Keys:** AWS KMS root key, us-west-2                                                                       | $30 + LB $10 + PG $50 = **$90**                                  | Managed control plane and HA database                                                                  | One fewer node and a 2-node (not 3-node) database vs. rank 1 for about the same money; VKE HA control-plane price unpublished. Variant: k3s on 3 × 2 vCPU / 4 GB + single-node DB = $97.    |
+| **4** | **DigitalOcean Kansas City — closest**     | **Kubernetes:** DOKS, 3 × 2 GiB Premium Intel · **LB:** DO LB · **Postgres:** DO managed, 1 GiB single node · **Valkey:** in-cluster · **Keys:** AWS KMS root key, us-west-2                                                                     | $48 + LB $12 + PG $15.15 = **~$75**                              | Lowest latency (~10–15 ms); managed control plane and database                                         | **No database HA within budget** (2 GiB + standby is $60.90 → ~$121); MKC1 offers Premium-Intel droplets and limited DB plans only _(verify)_.                 |
+| **5** | **Civo NYC1 — free egress**                | **Kubernetes:** Civo managed k3s, 3 × 4 GB · **LB:** Civo LB · **Postgres:** CloudNativePG in-cluster · **Valkey:** in-cluster · **Keys:** AWS KMS root key, us-west-2                                                                           | $65.19 + LB $10.86 = **~$76**                                    | 6 cores / 12 GB; unlimited free egress                                                                  | You operate Postgres (Civo's managed PG starts at $43.45 → ~$119); east-coast latency (35–45 ms); no published HA control plane.                                |
 
-Every row adds the shared free services below. Key Vault usage is excluded: backlog `S7` isn't built yet, and it is
-cents per month once it is.
+Every row adds the shared free services below. The root key is excluded: one key and a few requests per replica start
+cost about a dollar a month (ADR-0235).
 
 **Why this order:**
 
@@ -72,8 +72,8 @@ Decided in [ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-sc
   customer tenant. Lab hosts carry a `lab` label (`auth.lab.nidentity.io`) so a platform environment can't be confused
   with a customer's `-dev` tenant; `dev`, `test`, and `staging` are reserved for customers' tenants and never name a
   platform environment ([ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-scheme.md)).
-- **Production therefore carries customers' dev/test traffic too:** per-tenant rate limits and quotas keep one
-  tenant's load test from starving another (backlog `F45`).
+- **Production therefore carries customers' dev/test traffic too:** per-tenant rate limits (done, backlog `F45`) and
+  quotas (done, backlog `F79`) keep one tenant's load test from starving another.
 
 ### Recommended plan
 
@@ -105,6 +105,7 @@ control plane (+$60).
 | Metrics, logs, traces, synthetics, load tests  | Grafana Cloud Free                            | 10k active series, 50 GB logs, 50 GB traces, 14-day retention, 3 users, 100k synthetic API checks, 500 k6 VU-hours       |
 | Uptime alerts (alternative)                    | UptimeRobot Free                              | 50 monitors, 5-minute interval (positioned for hobby / non-profit use)                                                   |
 | Signing keys on OCI (production-capable)       | OCI Vault                                     | Software keys free; first 20 HSM key versions free, then $0.5334/version/month                                           |
+| Root key (ADR-0235)                            | AWS KMS (the platform's account)              | $1 per key per month (plus $1 for each of the first two yearly rotations) and $0.03 per 10,000 requests, 20,000 requests per month free _(verify)_ |
 | Key Vault experiments, ephemeral conformance   | Azure via the Visual Studio credit            | $50/month, dev/test only ([§10](#10-devtest-and-conformance-on-azure-visual-studio-credit))                               |
 | Inbound email (`security@`, vendor accounts)   | Cloudflare Email Routing                      | Free; receive-and-forward only (sending needs Workers Paid)                                                              |
 | Outbound email, when needed                    | OCI Email Delivery                            | 3,000 emails/month                                                                                                       |
@@ -145,7 +146,7 @@ flowchart LR
     T1 & T2 & T3 -->|HTTP + X-Forwarded-Tls-Client-Cert| API[Identity server<br/>2-3 replicas]
     API --> PG[(PostgreSQL)]
     API --> VK[(Valkey)]
-    API -.->|sign only| KMS[KMS / Key Vault<br/>future S7]
+    API -.->|unwrap at start; sign with S7| KMS[KMS<br/>root key ADR-0235]
 ```
 
 - The cloud LB must be **L4 TCP pass-through** (never TLS-terminating, never an L7/CDN proxy) so Traefik sees the client
@@ -153,8 +154,9 @@ flowchart LR
 - Traefik terminates TLS, **requests** the client certificate on the mTLS host, and forwards it with the
   `passTLSClientCert` middleware; the server reads it via `OpenId:MutualTls:CertificateHeaderName`
   ([ADR-0097](adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md)).
-- RFC 8705 §5 mTLS endpoint aliases map naturally to a dedicated mTLS hostname (`mtls_endpoint_alias_authority`), so
-  only that host asks for client certificates (per-tenant alias hosts need backlog `F47`).
+- RFC 8705 §5 mTLS endpoint aliases map naturally to a dedicated mTLS hostname (the tenant's
+  `mtlsEndpointAliasAuthority`), so only that host asks for client certificates; per-tenant alias hosts route to their
+  tenant ([ADR-0195](adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)).
 
 ### Domain and DNS — `nidentity.io`
 
@@ -196,7 +198,7 @@ dashboard):
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------ |
 | `auth.nidentity.io`                             | Root (control-plane) tenant issuer — where admins sign in and management-API tokens are issued ([ADR-0031](adr/0031-control-plane-management-resource-server-and-root-tenant-seeding.md)) | `auth.nidentity.io`            |
 | `{tenant}.auth.nidentity.io`                    | Workload tenant issuers, resolved by `DynamicByHost` (e.g. `acme.auth.nidentity.io`)                     | `*.auth.nidentity.io`          |
-| `mtls.nidentity.io`, `{tenant}.mtls.nidentity.io` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. Per-tenant alias hosts need `F47`: `DynamicByHost` routes only on the issuer's host today | `mtls.…` + `*.mtls.nidentity.io` |
+| `mtls.nidentity.io`, `{tenant}.mtls.nidentity.io` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-0195) | `mtls.…` + `*.mtls.nidentity.io` |
 | `manage.nidentity.io`                           | Management API (`/api`) and admin console — the control-plane surface ([ADR-0042](adr/0042-management-api-route-driven-tenant-scope.md)) | `manage.nidentity.io`          |
 | `nidentity.io`, `www.nidentity.io`              | Project site / docs                                                                                      | Hosting provider               |
 
@@ -221,12 +223,16 @@ Why this shape:
   ([ADR-0165](adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)):
   `OpenId:TenantResolution:StrategyCode = DynamicByHost`, `DynamicByHost:IssuerTemplate =
   https://{tenantId}.auth.nidentity.io`, and `Root:Issuer = https://auth.nidentity.io`. A tenant created without an
-  issuer is given (and keeps) the one the template derives; a custom domain is set as an explicit issuer. The root tenant
+  issuer is given (and keeps) the one the template derives; a custom domain is set as an explicit issuer. The mTLS
+  aliases follow the same rule: `DynamicByHost:MtlsEndpointAliasTemplate = https://{tenantId}.mtls.nidentity.io` and
+  `Root:MtlsEndpointAliasAuthority = https://mtls.nidentity.io`
+  ([ADR-0195](adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). The root tenant
   is created when the first request reaches `auth.nidentity.io`, with the bootstrap administrator named into it
   (`BootstrapAdmin:TenantId = root`,
-  [ADR-0166](adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). Serving `/api` on
-  `manage.nidentity.io`, which is no tenant's host, still needs the management API to authenticate against the root
-  tenant rather than the host it is called on (backlog `F75`).
+  [ADR-0166](adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). `/api` is served on
+  `manage.nidentity.io`, which is no tenant's host, because the management API authenticates against the root tenant
+  rather than the host it is called on
+  ([ADR-0191](adr/0191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
 
 **Environments.** Customer environments are just tenants on production (`acme-dev.auth.nidentity.io`), so they need no
 extra hostnames. The platform's private **lab** inserts a `lab` label after the function: `auth.lab.nidentity.io`,
@@ -314,8 +320,10 @@ No production load data exists yet, so these are **planning estimates**; confirm
 - **Bandwidth is not a cost driver.** Token responses are a few KB; even 1M interactive logins/month at ~500 KB of
   assets each is ~0.5 TB, below every vendor's included transfer.
 - **Multi-replica readiness:** Data Protection keys already persist to Postgres
-  ([ADR-0073](adr/0073-postgres-dev-database-and-aspire-migration-worker.md); encryption at rest is `S10`); the DPoP
-  nonce and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`
+  ([ADR-0073](adr/0073-postgres-dev-database-and-aspire-migration-worker.md); each key is encrypted under the server
+  master key, whose root key lives outside the database —
+  [ADR-0235](adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)); the DPoP nonce
+  and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`
   connection string ([ADR-0164](adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); the
   in-process job dispatcher does not coordinate across nodes (backlog `D5`).
 
@@ -398,6 +406,10 @@ cluster). Neon and Aiven Free/Developer are fine for dev/staging, not for a prod
 single-use DPoP-proof and client-assertion `jti`s
 ([ADR-0164](adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); losing it on restart only
 reopens a replay window bounded by the proof and assertion lifetimes. Enable AOF persistence if that window matters.
+Valkey also carries the replica broadcast port, so a tenant or server settings change reaches every replica at once
+([ADR-0205](adr/0205-replicas-announce-changes-through-a-broadcast-port.md)); the access-control user needs `PUBLISH`
+and `SUBSCRIBE` as well as the key-set and counter commands, and an outage costs only that promptness, because the
+replicas converge through their polls and the 15-minute tenant cache lifetime.
 Address it with the `valkey` connection string (TLS and an access-control user in production:
 `valkey:6380,ssl=true,user=identity,password=…`); a replica that cannot reach it reports not ready on the `valkey`
 health check and fails those checks closed.
@@ -436,22 +448,23 @@ Verified against Traefik v3.7 documentation and source:
 
 ### Server gaps found (tracked in the backlog)
 
-- **`F44` — chain in the forwarded header.** `MutualTlsClientCertificateFormat.Base64Der` decodes a single certificate;
-  a client presenting its chain produces a comma-separated value that fails to parse, and the resolver silently treats
-  the request as having no certificate.
-- **`F43` — `tls_client_auth` trusts the TLS layer for chain validation.** The handler matches only subject DN / SAN.
-  Therefore the proxy must `RequireAndVerifyClientCert` against a CA bundle, which (a) rejects
-  `self_signed_tls_client_auth` certificates on the same host, (b) cannot pick a per-tenant CA when tenants share a
-  hostname (`DynamicByPath`), and (c) **becomes an authentication bypass** if the proxy is set to
-  `RequireAnyClientCert` — a self-signed certificate carrying the registered subject DN would match.
-- **`F47` — the mTLS alias host doesn't route to a tenant.** `mtls_endpoint_alias_authority` advertises
-  `{tenant}.mtls…`, but `DynamicByHost` resolves tenants only by the host of their issuer
-  ([ADR-0129](adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)), so requests to a per-tenant alias
-  host find no tenant.
+- **`F44` — chain in the forwarded header (resolved).** The default `Base64Der` format reads Traefik's comma-separated
+  chain, the client's own certificate first, and surfaces the rest as intermediates for chain building. A forwarded
+  value that cannot be decoded fails the request with `invalid_request` rather than reading as no certificate
+  ([ADR-0172](adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
+- **`F43` — chain validation in the server (resolved).** `tls_client_auth` builds the presented certificate's chain to
+  the client's `tls_client_auth_trust_anchors` (tenant- or client-scoped PEM CAs, custom root trust, `clientAuth` EKU,
+  validity, `tls_client_auth_revocation_mode`) before matching the subject, and trusts no certificate when no anchor is
+  configured. The proxy only requests and forwards the certificate
+  ([ADR-0173](adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
+- **`F47` — the mTLS alias host routes to its tenant (resolved).** The alias is the tenant property
+  `MtlsEndpointAliasAuthority`; `DynamicByHost` routes its derived host as well as the issuer's, and validation keeps
+  both hosts unique ([ADR-0195](adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). Each tenant's
+  alias is derived from `DynamicByHost:MtlsEndpointAliasTemplate` unless one is set through the management API (`F78`).
 
-**Interim rule until `F43` lands:** on the mTLS host, either use `RequireAndVerifyClientCert` with the trusted CA bundle
-and register only `tls_client_auth` clients, **or** use `RequireAnyClientCert` and register only
-`self_signed_tls_client_auth` clients. Never combine `RequireAnyClientCert` with `tls_client_auth` clients.
+**Proxy rule:** on the mTLS host, use `RequireAnyClientCert` (request, don't verify) and forward the certificate. The
+server validates `tls_client_auth` chains itself, so `tls_client_auth` and `self_signed_tls_client_auth` clients share
+the host.
 
 ### Can Traefik read tenant PKI from our datastores?
 
@@ -462,18 +475,27 @@ Yes, indirectly — but it is not the recommended long-term design:
   provider with a generated file works the same way outside Kubernetes.)
 - **Limits:** client-CA selection happens at the TLS handshake by SNI, before any tenant routing — per-tenant CAs at the
   proxy require **per-tenant hostnames** (`DynamicByHost`). Self-signed and PKI clients still cannot share a host.
-- **Recommended:** keep the proxy simple — **request** the certificate on the mTLS host and forward it — and enforce
-  per-tenant / per-client trust anchors **in the server** (`F43`). Tenant changes then apply immediately, without proxy
-  reloads, and both RFC 8705 methods share one mTLS alias host. Use proxy-side dynamic config only for what must live at
+- **Recommended (implemented by `F43`):** keep the proxy simple — **request** the certificate on the mTLS host and
+  forward it — and enforce per-tenant / per-client trust anchors **in the server**. Tenant changes then apply
+  immediately, without proxy reloads, and both RFC 8705 methods share one mTLS alias host. Use proxy-side dynamic config only for what must live at
   the edge: per-tenant custom-domain routers and their server certificates (cert-manager).
 
 ### TLS pass-through alternative
 
 An `IngressRouteTCP` with `tls.passthrough: true` can route the mTLS hostname by SNI straight to Kestrel
 (`ClientCertificateMode.AllowCertificate`). The server then reads the certificate from the connection — no forwarded
-header to trust — at the cost of Traefik's L7 features for that host. Per-tenant trust still needs `F43`.
+header to trust — at the cost of Traefik's L7 features for that host. Per-tenant trust comes from the server's trust
+anchors (`F43`).
 
-## 9. Remote keys / KMS (backlog `S7`, `S9`)
+## 9. Root key and remote keys / KMS (ADR-0235, backlog `S7`)
+
+Every deployment needs one root key in a key management service (ADR-0235); it wraps the master keys that protect
+stored secrets and is called only when a replica first meets an owner. Remote signing (`S7`) is the separate,
+per-request use priced below. The root key lives in AWS KMS, in the account that already holds the platform's OpenTofu
+state key. A cluster reaches it through web identity federation, which needs the cluster's service-account issuer to be
+publicly discoverable, because AWS IAM fetches the issuer's discovery document and JWKS; a cluster whose issuer is
+private needs IAM Roles Anywhere (backlog `S19`) or the `local` provider. Google Cloud KMS, by contrast, accepts an
+uploaded JWKS, so a private issuer is no obstacle there.
 
 | Service                    | Key cost                                         | Sign-operation cost                                            | Throughput notes                                                         |
 | -------------------------- | ------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -494,9 +516,8 @@ Design considerations for `S7`:
   Central US (Illinois) for Chicago, West US 3 (Arizona) for Phoenix — and serve JWKS from cached public keys.
 - **Throttling:** ~400 EC signatures/s per Key Vault (software keys) is far above entry-level load, but the signer must
   handle `429` with back-off.
-- **Credentials:** authenticate the cluster to Azure with **workload identity federation** (a Kubernetes
-  service-account token as a federated credential) — no client secrets. GitHub Actions likewise uses OIDC federation
-  for `azurerm`.
+- **Credentials:** workload identity federation, never a client secret: AWS and Azure need a publicly discoverable
+  issuer; Google Cloud accepts an uploaded JWKS. GitHub Actions likewise uses OIDC federation for OpenTofu.
 - **Cross-vendor is fine here:** unlike Postgres, KMS calls are few per request and public keys are cacheable.
 - **Experiment on the Visual Studio credit** ([§10](#10-devtest-and-conformance-on-azure-visual-studio-credit)): a
   Standard vault costs only per operation, so `S7` prototyping is effectively free.
@@ -529,7 +550,7 @@ Prices — West Central US, Linux, pay-as-you-go, from the public Azure Retail P
 | Standard public IPv4                       | $3.65             | $0.005    |
 | PostgreSQL Flexible Server B1ms            | $14.89 + $0.14/GB-mo storage | ~$0.020 |
 | Internet egress                            | First 100 GB/mo free, then ~$0.08–$0.09/GB | — |
-| Key Vault                                  | See [§9](#9-remote-keys--kms-backlog-s7-s9) | — |
+| Key Vault                                  | See [§9](#9-root-key-and-remote-keys--kms-adr-0235-backlog-s7) | — |
 
 VM prices exclude the OS managed disk (a few dollars per month, _(verify)_).
 
@@ -607,18 +628,28 @@ speed-test endpoint from the Denver network the users are on.
 
 **Must-do before customers (code and composition, tracked in the backlog):**
 
-- **The Data Protection key ring is unencrypted at rest.** The host persists the ring to the same Postgres database as
-  the secrets it protects, with no `ProtectKeysWith…`, so any database backup or dump holds everything needed to
-  decrypt the signing keys. Production must wrap the ring with a key held outside the database — backlog `S10` (pairs
-  with `S7` / `S9`).
-- **Kubernetes deployment artifacts** — backlog `F46`. `NCode.Identity.OpenId.Host` already trusts forwarded headers
+- **Stored secrets must be protected by a root key outside the database.** The host persists signing keys, client
+  secrets and the Data Protection key ring in the same Postgres database, so a backup would otherwise hold everything
+  needed to use them. Every private value is encrypted under a per-owner master key wrapped by a root key held in a key
+  management service, and a Production host refuses to start without a real root key and a recovery decision
+  ([ADR-0235](adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md); pairs with
+  `S7`).
+- **Kubernetes deployment artifacts** — backlog `F46`, done. `NCode.Identity.OpenId.Host` already trusts forwarded headers
   only from configured proxies (set `ReverseProxy:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,
-  developer CORS, seeders). Still needed: a hardened multi-arch image (non-root, port 8080 — today's Dockerfile is
-  development-shaped), readiness checks separate from liveness, a Helm chart, `Host.MigrationService` as a pre-deploy
-  Job with expand/contract schema changes so a rolling update never breaks the running version, and a production gate
-  for a missing tenant issuer ([ADR-0129](adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)).
-- **mTLS gaps** `F43` / `F44` / `F47` and **per-tenant rate limits** `F45` (above).
+  developer CORS, seeders). Its image is chiseled, runs non-root on port 8080, is built for amd64 and arm64, and
+  carries the login bundle
+  ([ADR-0178](adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)). Its Helm
+  chart runs restricted pods that probe `/health/live` and `/health/ready`, drain before stopping, and require Valkey
+  for more than one replica
+  ([ADR-0179](adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Before
+  each rollout it migrates the database in a Job from the same image, and every migration keeps the previous release
+  working ([ADR-0180](adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Still
+  needed: publishing the image and chart (`F48`).
+- **Per-tenant rate limits and quotas** — backlog `F45` and `F79`, done
+  ([ADR-0196](adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
+  [ADR-0198](adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)); the mTLS work (`F43`, `F44`,
+  `F47`, and `F78`) is done.
 
 **Operations:**
 
@@ -671,6 +702,6 @@ the provider's SPF include and DKIM keys, and keep DMARC at `p=reject`.
    customer dev/test/prod are tenants on production; the platform runs production plus a private lab
    on the OCI Pay-As-You-Go A1 allowance (~$4) and ephemeral Azure runs on the Visual Studio credit (§2, §10,
    backlog `T9`).
-5. **Server prerequisites before mTLS goes live:** `F43` (in-app chain validation), `F44` (Traefik header format), and
-   `F47` (route per-tenant mTLS alias hosts).
+5. **Server prerequisites before mTLS goes live:** done — `F47` (route per-tenant mTLS alias hosts), `F43` (in-app
+   chain validation), `F44` (Traefik header format), and `F78` (each tenant's alias derived from a template).
 6. **Primary domain:** acquire `nidentity.com` ($250 offer pending) or stay on `nidentity.io` (§3).

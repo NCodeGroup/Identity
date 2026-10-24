@@ -32,6 +32,8 @@ internal static class CoreDbContextExtensions
     {
         public DbSet<SecretEntity> Secrets => context.Set<SecretEntity>();
 
+        public DbSet<MasterKeyEntity> MasterKeys => context.Set<MasterKeyEntity>();
+
         public DbSet<ServerEntity> Servers => context.Set<ServerEntity>();
 
         public DbSet<ServerSecretEntity> ServerSecrets => context.Set<ServerSecretEntity>();
@@ -64,5 +66,14 @@ internal static class CoreDbContextExtensions
 
         public DbSet<FederatedIdentityEntity> FederatedIdentities =>
             context.Set<FederatedIdentityEntity>();
+
+        public DbSet<RetiredTenantEntity> RetiredTenants => context.Set<RetiredTenantEntity>();
+
+        public DbSet<RetiredIssuerEntity> RetiredIssuers => context.Set<RetiredIssuerEntity>();
+
+        public DbSet<TenantUsageEntity> TenantUsage => context.Set<TenantUsageEntity>();
+
+        public DbSet<TenantUsageCheckpointEntity> TenantUsageCheckpoints =>
+            context.Set<TenantUsageCheckpointEntity>();
     }
 }

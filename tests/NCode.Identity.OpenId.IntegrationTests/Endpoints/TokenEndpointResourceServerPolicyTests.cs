@@ -97,7 +97,7 @@ public class TokenEndpointResourceServerPolicyTests
             certificate,
             new Dictionary<string, object>
             {
-                [OpenIdSettingNames.TlsClientCertificateBoundAccessTokens] = true,
+                [OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens] = true,
             },
             OpenIdConstants.GrantTypes.ClientCredentials
         );

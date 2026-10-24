@@ -284,6 +284,11 @@ public static partial class OpenIdConstants
         public const string LocalAccounts = "LocalAccounts";
 
         /// <summary>
+        /// Contains the OpenAPI tag applied to the <c>principals</c> management endpoints.
+        /// </summary>
+        public const string Principals = "Principals";
+
+        /// <summary>
         /// Contains the OpenAPI tag applied to the server <c>capabilities</c> discovery endpoint.
         /// </summary>
         public const string Capabilities = "Capabilities";
@@ -475,6 +480,54 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
+    /// Contains constants for which refresh tokens are rotated, that is replaced by a new refresh token each time they
+    /// are used.
+    /// </summary>
+    public static class RefreshTokenRotationPolicy
+    {
+        /// <summary>
+        /// Indicates that a refresh token is rotated when it is bound neither to a proof-of-possession key nor to
+        /// client authentication, that is a public client's token without a DPoP or certificate binding, as the OAuth
+        /// 2.0 Security BCP (RFC 9700) requires.
+        /// </summary>
+        public const string Unbound = "unbound";
+
+        /// <summary>
+        /// Indicates that every refresh token is rotated.
+        /// </summary>
+        public const string Always = "always";
+    }
+
+    /// <summary>
+    /// Contains constants for how the revocation status of a <c>tls_client_auth</c> client certificate chain is
+    /// checked. The values are the revocation policy: revocation is required, checked without being required, or not
+    /// checked. How the status is obtained is the replaceable client certificate revocation checker.
+    /// </summary>
+    public static class ClientCertificateRevocationMode
+    {
+        /// <summary>
+        /// Indicates that every certificate below the trust anchor is checked against the certificate revocation list
+        /// its issuer publishes, which the server fetches through its outbound-request guard; a chain whose
+        /// revocation status cannot be determined is rejected.
+        /// </summary>
+        public const string Online = "online";
+
+        /// <summary>
+        /// Indicates that every certificate below the trust anchor is checked as for <see cref="Online"/>; a revoked
+        /// certificate is rejected, and one whose revocation status cannot be determined is accepted with a warning,
+        /// so a client keeps authenticating while the revocation source is unreachable — and so does a revoked
+        /// certificate whose source an attacker blocks.
+        /// </summary>
+        public const string OnlineSoftFail = "online_soft_fail";
+
+        /// <summary>
+        /// Indicates that revocation is not checked, for a PKI that issues short-lived certificates instead of
+        /// publishing revocation data.
+        /// </summary>
+        public const string None = "none";
+    }
+
+    /// <summary>
     /// Contains constants for various types of client authentication methods.
     /// These values are used in the <c>token_endpoint_auth_methods_supported</c> metadata.
     /// </summary>
@@ -531,6 +584,14 @@ public static partial class OpenIdConstants
         /// signing (<c>PS256</c> / <c>ES256</c> / <c>EdDSA</c>).
         /// </summary>
         public const string Fapi2 = "fapi2";
+
+        /// <summary>
+        /// The OpenID Foundation <c>FAPI 1.0 Advanced</c> Security Profile (Final): <c>code</c> with a JWT-secured
+        /// authorization response (JARM) or <c>code id_token</c>, PAR, PKCE <c>S256</c>, signed request objects,
+        /// mutual-TLS sender-constrained tokens, strong (asymmetric / mutual-TLS) client authentication, and
+        /// asymmetric-only signing (<c>PS256</c> / <c>ES256</c>).
+        /// </summary>
+        public const string Fapi1Advanced = "fapi1-advanced";
     }
 
     /// <summary>

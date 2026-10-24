@@ -1,6 +1,10 @@
 # 87. Refresh-token reuse detection revokes the whole rotation family
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0211](0211-a-rotated-refresh-token-is-spent-with-its-successor.md): rotation
+  spends the presented token with its successor in one unit of work, and a lost spend is a reuse;
+  [ADR-0216](0216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md): which refresh tokens rotate;
+  [ADR-0217](0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md): a rotated token may be retried
+  within an opt-in reuse interval)
 - **Date:** 2026-10-12
 - **Deciders:** NCode Group
 
@@ -51,8 +55,9 @@ Concretely:
   [ADR-0012](0012-interceptor-managed-concurrency-tokens.md)). It loads and mutates the matched rows rather than issuing
   a set-based `ExecuteUpdate`, matching the established bulk-revocation pattern
   ([ADR-0022](0022-grant-filters-and-bulk-revocation.md)) so the interceptor still stamps each changed row;
-  `IPersistedGrantService.RevokeByRefreshTokenLineageAsync` wraps it for the grant handler. The handler calls it only
-  inside the existing `Revoked`-status branch, after the replay audit.
+  `IPersistedGrantService.RevokeByRefreshTokenLineageAsync` wraps it for the grant handler. The handler calls it, after
+  the replay audit, for a presented token that is revoked and for one whose spend a concurrent request won
+  ([ADR-0211](0211-a-rotated-refresh-token-is-spent-with-its-successor.md)).
 
 ## Options considered
 

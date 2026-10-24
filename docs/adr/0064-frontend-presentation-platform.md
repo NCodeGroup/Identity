@@ -4,7 +4,9 @@
   [ADR-0152](0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md): pnpm is installed from
   its `packageManager` pin by its own tooling, because Node no longer ships Corepack; and by
   [ADR-0156](0156-shared-app-shell-containers-live-in-ncode-shell.md): stateful containers shared by more than one
-  surface live in `@ncode/shell`, the one package that may depend on both `@ncode/store` and `@ncode/ui`)
+  surface live in `@ncode/shell`, the one package that may depend on both `@ncode/store` and `@ncode/ui`; and by
+  [ADR-0182](0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md): the bootstrap document's
+  issuer defaults to the serving tenant's issuer, never the request origin)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 
@@ -88,7 +90,8 @@ services/logic — so every layer is independently testable.** Concretely:
   boundary is visible and enforced in the UI, not merely cosmetic.
 - **Branding is a seam, not yet a feature.** `@ncode/ui` centralizes theme tokens behind a provider so a
   future per-tenant brand/theme can be injected via the same runtime-discovery channel. No branding
-  feature ships now; the seam exists so it is additive later.
+  feature ships now; the seam exists so it is additive later. (Per-tenant branding of the interactive surface
+  landed in [ADR-0194](0194-a-tenant-brands-its-interactive-surface-through-settings.md).)
 - **Monorepo now, clean split later.** Every shared concern is a scoped `@ncode/*` package consumed only
   through its public entry point — no deep relative imports across package boundaries — so `src/frontend/`
   can be extracted into its own repository at GA by moving the folder and repointing the workspace root,

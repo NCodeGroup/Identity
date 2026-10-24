@@ -96,6 +96,23 @@ public sealed class ClientStoreLifecycleTests : IDisposable
             },
         };
 
+    private static PersistedRoleAssignment CreateAssignment(
+        string assignmentId,
+        string roleName,
+        string resourceType,
+        string resourceId
+    ) =>
+        new()
+        {
+            TenantId = TenantId,
+            AssignmentId = assignmentId,
+            PrincipalId = "subject-1",
+            RoleName = roleName,
+            ResourceType = resourceType,
+            ResourceId = resourceId,
+            ConcurrencyToken = string.Empty,
+        };
+
     private async Task SeedTenantAsync()
     {
         var tenant = new PersistedTenant
@@ -156,13 +173,16 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     }
 
     [Fact]
-    public async Task RemoveAsync_WhenHasSecrets_Throws()
+    public async Task RemoveAsync_WhenHasSecrets_RemovesThemWithIt()
     {
         await SeedClientAsync(CreateSecret("secret-1"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _store.RemoveAsync(ClientId, CancellationToken.None)
-        );
+        var removed = await _store.RemoveAsync(ClientId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+
+        Assert.True(removed);
+        var reloaded = await _store.GetOrDefaultAsync(ClientId, CancellationToken.None);
+        Assert.Null(reloaded);
     }
 
     [Fact]
@@ -180,30 +200,47 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     }
 
     [Fact]
+    public async Task RemoveAsync_RemovesTheRoleAssignmentsAtTheClientsNode()
+    {
+        await SeedClientAsync();
+        var roleAssignmentStore = new RoleAssignmentStore(
+            Mock.Of<IStoreProvider>(),
+            _provider.GetRequiredService<IIdGenerator<long>>(),
+            _dbContext
+        );
+        await roleAssignmentStore.AddAsync(
+            CreateAssignment("assign-1", "Owner", "client", "client-1"),
+            CancellationToken.None
+        );
+        await roleAssignmentStore.AddAsync(
+            CreateAssignment("assign-2", "Owner", "client", "client-2"),
+            CancellationToken.None
+        );
+        await roleAssignmentStore.AddAsync(
+            CreateAssignment("assign-3", "TenantAdmin", "tenant", TenantId),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveAsync(ClientId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.True(removed);
+        var remaining = await _dbContext
+            .RoleAssignments.IgnoreQueryFilters()
+            .Select(entity => entity.AssignmentId)
+            .OrderBy(assignmentId => assignmentId)
+            .ToListAsync();
+        Assert.Equal(["assign-2", "assign-3"], remaining);
+    }
+
+    [Fact]
     public async Task RemoveAsync_WhenMissing_ReturnsFalse()
     {
         var removed = await _store.RemoveAsync("missing", CancellationToken.None);
 
         Assert.False(removed);
-    }
-
-    [Fact]
-    public async Task HasDependentsAsync_WhenNoSecrets_ReturnsFalse()
-    {
-        await SeedClientAsync();
-
-        var result = await _store.HasDependentsAsync(ClientId, CancellationToken.None);
-
-        Assert.False(result);
-    }
-
-    [Fact]
-    public async Task HasDependentsAsync_WhenHasSecrets_ReturnsTrue()
-    {
-        await SeedClientAsync(CreateSecret("secret-1"));
-
-        var result = await _store.HasDependentsAsync(ClientId, CancellationToken.None);
-
-        Assert.True(result);
     }
 }

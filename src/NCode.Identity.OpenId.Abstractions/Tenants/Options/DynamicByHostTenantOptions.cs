@@ -48,4 +48,12 @@ public sealed class DynamicByHostTenantOptions
     /// never moves an existing tenant. When unset, every tenant must be given an issuer explicitly.
     /// </summary>
     public string? IssuerTemplate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the template a tenant's mutual-TLS endpoint-alias authority (RFC 8705 §5) is derived from when the
+    /// tenant is written without one — an https origin that carries <see cref="TenantResolutionOptions.TenantIdPlaceholder"/>
+    /// in its host, for example <c>https://{tenantId}.mtls.example</c>. The derived alias is stored with the tenant, so
+    /// changing the template never moves an existing tenant. When unset, a tenant has an alias only when it is given one.
+    /// </summary>
+    public string? MtlsEndpointAliasTemplate { get; set; }
 }

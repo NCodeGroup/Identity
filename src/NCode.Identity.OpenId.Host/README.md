@@ -1,7 +1,7 @@
 # NCode.Identity.OpenId.Host
 
 A runnable ASP.NET Core reference host for the OpenID Connect + OAuth 2.0 library family. This document covers the
-**local database environment**, **schema management**, and the **purge/reset procedure**.
+**local database environment**, **schema management**, the **purge/reset procedure**, and the **container image**.
 
 ## Database provider
 
@@ -29,9 +29,39 @@ A container runtime (Docker Desktop or Podman) must be running when you launch t
 
 ### One database holds everything
 
-The single `openiddb` database holds the OpenID data, the **signing keys every tenant is provisioned with**, and the
-**DataProtection key ring** that protects them (persisted via `PersistKeysToDbContext`, not a file under `App_Data/`).
-Because they live together, one purge resets all three consistently, with nothing left on the filesystem.
+The single `openiddb` database holds the OpenID data, the **signing keys every tenant is provisioned with** (encrypted
+under the tenants' master keys, which are rows of the same database), and the **DataProtection key ring** (cookies and
+anti-forgery tokens; persisted via `PersistKeysToDbContext`, not a file under `App_Data/`). Because they live together,
+one purge resets all of them consistently.
+
+### Secret protection
+
+Every stored secret, including the key ring, is encrypted under a key hierarchy whose root key lives **outside** the
+database ([ADR-0235](../../docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+A **Production** host refuses to start without a real root key, and a root key must never be committed. The
+`SecretProtection` section selects it (environment variables use `__`, for example
+`SecretProtection__RootKeyProvider=local`):
+
+| Setting                                           | Meaning                                                        |
+|---------------------------------------------------|----------------------------------------------------------------|
+| `SecretProtection:RootKeyProvider`                | `ephemeral`, `local`, `aws-kms`, or another registered name    |
+| `SecretProtection:RootKeyProviders:Local:KeyPath` | File with a base64url 32-byte key (the `local` provider)       |
+| `SecretProtection:RootKeyProviders:Local:Key`     | The same key inline: Development and tests only                |
+| `SecretProtection:Recovery:PublicKeyPath`         | Offline recovery RSA public key (PEM) that also wraps the keys |
+| `SecretProtection:Recovery:Disabled`              | `true` only to acknowledge running without a recovery key      |
+
+Further providers ship as packages that register themselves by name, such as `aws-kms`, which takes
+`SecretProtection:RootKeyProviders:AwsKms:KeyArn` and finds its AWS credentials through the AWS SDK's default
+credential chain rather than configuration. The [Helm chart](../../charts/ncode-identity-host/README.md) wires these
+settings for a deployment.
+
+**Local development.** Nothing to do: on first run the AppHost writes one development root key to
+`LocalApplicationData/NCode.Identity/LocalDev/root-key` (owner-only on Unix) and hands it to both OP instances it
+starts, the `api` and the conformance instance, which share the one database. That key lives outside the repository.
+`build/dev-db-reset.ps1` resets the database and keeps the key; to replace the key, stop the AppHost, delete the file
+and reset the database together. A Development host started without the AppHost uses `ephemeral`, which suits tests and
+throwaway databases. After pulling a change that alters how secrets are protected, existing development tenants lose
+their unreadable keys automatically and are provisioned again; reset the database if client secrets matter.
 
 ## Schema management (EF Core migrations)
 
@@ -41,8 +71,42 @@ host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/O
 `Migrations/DataProtection`; the published persistence library ships none.
 
 - The **migration worker** applies pending migrations before the `api` starts — the `api` never applies schema itself.
-- **Production** (any non-Development deployment) applies schema deliberately with `dotnet ef database update` or a
-  generated idempotent script (`dotnet ef migrations script --idempotent`).
+- **Production** (any non-Development deployment) applies schema deliberately, once per release, before the rollout.
+  The Helm chart runs the same worker from the host's image as a `pre-install` and `pre-upgrade` Job, and a failed
+  migration stops the release before any pod changes
+  ([ADR-0180](../../docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Without the
+  chart, run the worker the same way, or apply a generated idempotent script
+  (`dotnet ef migrations script --idempotent`).
+
+### Every migration keeps the previous release working
+
+The previous release keeps serving while the new schema is applied and until the rollout replaces its last pod, and a
+rollback returns to it. So every migration must work with the release before it — **expand, then contract**:
+
+- **Expand** in the release that needs the change: add a table, add a nullable column or one with a default, or add an
+  index. Never rename, drop, or tighten anything the previous release reads or writes. A unique index, a constraint or a
+  foreign key goes only on a table the same migration creates.
+- **Migrate the data** in code or in a later migration while both shapes are valid.
+- **Contract** only in a later release, once no running version uses the old shape: drop the old column or table, or
+  make the new column required.
+
+A rename is an add, a copy, and a later drop: three steps across at least two releases.
+
+The Definition of Done enforces the rule. `ExpandOnlyRuleTests` runs `ExpandOnlyRule.Check` over every migration and
+fails one that drops or renames a table or column; adds a required column without a default; makes a column required,
+removes the default of a required column, changes its type, or shortens it or its precision; adds a unique index,
+unique constraint, primary key, check constraint or foreign key to an existing table; or adds a foreign key that
+restricts deleting rows of an existing table. A migration that runs raw SQL or changes seed data says what that does to
+the previous release: `[ExpandMigration("why")]` when that release still reads every row it writes,
+`[ContractMigration("why")]` when it does not. A deliberate contract step carries `[ContractMigration("why")]`, whose
+reason names the release that stopped reading the old shape
+([ADR-0184](../../docs/adr/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
+[ADR-0250](../../docs/adr/0250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md)).
+
+Retiring a setting, or giving its value a home outside the settings documents, is an expansion too: the descriptor stays
+registered with a `RetiredReason`, the migration copies the value and leaves the stored setting, and a later release
+removes both
+([ADR-0251](../../docs/adr/0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md)).
 
 Add a migration after changing the EF model (the `Database` project carries the design-time factories, so it is both
 `--project` and `--startup-project`):
@@ -71,3 +135,44 @@ the next AppHost run rebuilds the schema (migration worker) and re-seeds the dev
 The script auto-detects Docker or Podman and removes the `ncode-identity-openiddb-data` volume (equivalently,
 `docker volume rm ncode-identity-openiddb-data`). This is the only reset needed — the provisioned signing keys and the
 DataProtection key ring are in the same database and are purged with it.
+
+## Container image
+
+The `Dockerfile` builds the production image from the repository root. Its base images are pinned by tag and digest, and
+Dependabot moves the digests
+([ADR-0249](../../docs/adr/0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)); the
+Node image's major matches the single pin in `src/frontend/.node-version`, which the `Host image` workflow checks:
+
+```bash
+docker build --file src/NCode.Identity.OpenId.Host/Dockerfile --tag ncode-identity-host .
+```
+
+The image runs on a chiseled ASP.NET Core base with no shell. It runs as the non-root `app` user (UID 1654), listens on
+port **8080** over plain HTTP, and serves the `apps/auth` login bundle from `/app/auth`. TLS terminates at the ingress.
+Probe `/health/live` for liveness and `/health/ready` for readiness. The image writes one JSON object per line to
+standard output, with a UTC timestamp, so a log collector keeps an entry and its exception in one record; set
+`Logging__Console__FormatterName=simple` to write text
+([ADR-0248](../../docs/adr/0248-the-host-image-writes-one-line-json-logs.md)). CI builds it for `linux/amd64` and
+`linux/arm64`
+([ADR-0178](../../docs/adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
+
+The image starts in the `Production` environment, which refuses to start until the deployment provides:
+
+- `AllowedHosts`: the public host names. A missing value or `*` is refused.
+- `DeveloperKeys__Mode=None`: every tenant gets persisted signing keys instead of developer keys.
+- `SecretProtection__RootKeyProvider`: a real root key provider (not `ephemeral`) with its settings, such as
+  `SecretProtection__RootKeyProviders__Local__KeyPath` for `local`, and either
+  `SecretProtection__Recovery__PublicKeyPath` or `SecretProtection__Recovery__Disabled=true`, which acknowledges running
+  without a recovery key
+  ([ADR-0235](../../docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+- `ConnectionStrings__openiddb`: the Postgres database. It also stores the key ring, so the host refuses to start
+  without it.
+- `OpenId__TenantResolution__StaticSingle__Issuer`: the public issuer URL, or another tenant resolution mode. A served
+  tenant without an issuer fails closed
+  ([ADR-0165](../../docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+
+The host does not migrate on boot. The image also carries the migration worker, which runs from `/app/migrations` with
+`dotnet NCode.Identity.OpenId.Host.MigrationService.dll` and the same `ConnectionStrings__openiddb`.
+
+The Helm chart in [`charts/ncode-identity-host`](../../charts/ncode-identity-host/README.md) deploys the image with
+these settings and refuses a release that lacks them.

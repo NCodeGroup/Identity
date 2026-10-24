@@ -260,7 +260,7 @@ internal sealed class DefaultClientKeyResolver(
             return [];
         }
 
-        return [.. persistedSecrets.Select(SecretSerializer.DeserializeSecret)];
+        return [.. persistedSecrets.Select(SecretSerializer.DeserializePublicSecret)];
     }
 
     private static string GetCacheKey(Uri uri) =>

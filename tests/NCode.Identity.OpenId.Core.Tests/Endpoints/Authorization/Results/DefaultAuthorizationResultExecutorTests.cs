@@ -16,13 +16,20 @@
 
 #endregion
 
+using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
+using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Core.Tests.Metrics;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Messages.Parameters;
 using NCode.Identity.OpenId.Messages.Parsers;
+using NCode.Identity.OpenId.Metrics;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints.Authorization.Results;
@@ -34,13 +41,13 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     private const string InternalName = OpenIdConstants.Parameters.CreatedWhen;
     private const string InternalValue = "2025-01-01T00:00:00Z";
 
-    private static readonly Uri RedirectUri = new("https://client.example/callback");
+    private const string RedirectUri = "https://client.example/callback";
 
     private DefaultAuthorizationResultExecutor Executor { get; } = new();
 
     #region Scaffolding
 
-    private IParameter CreateSerializedParameter()
+    private IParameter CreateSerializedParameter(string value)
     {
         var mockParser = CreateStrictMock<ParameterParser<string>>();
         var knownParameter = new KnownParameter<string>(NormalName, mockParser.Object)
@@ -54,13 +61,13 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
                 x.GetStringValues(
                     It.IsAny<OpenIdEnvironment>(),
                     It.IsAny<ParameterDescriptor>(),
-                    NormalValue
+                    value
                 )
             )
-            .Returns(new StringValues(NormalValue))
+            .Returns(new StringValues(value))
             .Verifiable();
 
-        return new Parameter<string>(descriptor, mockParser.Object, NormalValue);
+        return new Parameter<string>(descriptor, mockParser.Object, value);
     }
 
     private IParameter CreateInternalParameter()
@@ -78,10 +85,14 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
         return new Parameter<string>(descriptor, mockParser.Object, InternalValue);
     }
 
-    private AuthorizationResult CreateResult(string responseMode)
+    private AuthorizationResult CreateResult(
+        IAuthorizationResponseModeHandler handler,
+        string normalValue = NormalValue,
+        string? redirectUri = null
+    )
     {
         var parameters = new ParameterCollection(
-            [CreateSerializedParameter(), CreateInternalParameter()],
+            [CreateSerializedParameter(normalValue), CreateInternalParameter()],
             cloneParameters: false
         );
 
@@ -91,7 +102,28 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
         mockTicket.SetupGet(x => x.OpenIdEnvironment).Returns(mockEnvironment.Object);
         mockTicket.SetupGet(x => x.Parameters).Returns(parameters);
 
-        return new AuthorizationResult(RedirectUri, responseMode, mockTicket.Object);
+        return new AuthorizationResult(
+            CreateLooseMock<OpenIdContext>().Object,
+            CreateLooseMock<OpenIdClient>().Object,
+            new AuthorizationResponseDelivery(redirectUri ?? RedirectUri, handler, State: null),
+            mockTicket.Object
+        );
+    }
+
+    private static async Task<string> ExecuteFormPostAsync(
+        DefaultAuthorizationResultExecutor executor,
+        AuthorizationResult result
+    )
+    {
+        var httpContext = new DefaultHttpContext();
+        using var body = new MemoryStream();
+        httpContext.Response.Body = body;
+
+        await executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        Assert.Equal("text/html; charset=utf-8", httpContext.Response.ContentType);
+        body.Position = 0;
+        return await new StreamReader(body).ReadToEndAsync();
     }
 
     #endregion
@@ -99,9 +131,67 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     #region ExecuteAsync Tests
 
     [Fact]
+    public async Task ExecuteAsync_WhenTheResultIsDelivered_DelegatesToTheDeliverysHandler()
+    {
+        var ticket = CreateLooseMock<IAuthorizationTicket>().Object;
+        var mockHandler = CreateStrictMock<IAuthorizationResponseModeHandler>();
+        var result = new AuthorizationResult(
+            CreateLooseMock<OpenIdContext>().Object,
+            CreateLooseMock<OpenIdClient>().Object,
+            new AuthorizationResponseDelivery(RedirectUri, mockHandler.Object, State: null),
+            ticket
+        );
+        var httpContext = new DefaultHttpContext();
+        mockHandler
+            .Setup(x => x.ExecuteAsync(httpContext, result, ticket, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var executor = new DefaultAuthorizationResultExecutor();
+
+        await executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenAnErrorIsRedirected_TagsTheErrorCode()
+    {
+        var mockError = CreateLooseMock<IOpenIdError>();
+        mockError.SetupGet(x => x.Code).Returns(OpenIdConstants.ErrorCodes.AccessDenied);
+        mockError
+            .SetupGet(x => x.OpenIdEnvironment)
+            .Returns(CreateStrictMock<OpenIdEnvironment>().Object);
+        mockError
+            .SetupGet(x => x.Parameters)
+            .Returns(new ParameterCollection([], cloneParameters: false));
+        var result = new AuthorizationResult(
+            CreateLooseMock<OpenIdContext>().Object,
+            CreateLooseMock<OpenIdClient>().Object,
+            new AuthorizationResponseDelivery(
+                RedirectUri,
+                new QueryAuthorizationResponseModeHandler(),
+                State: null
+            ),
+            mockError.Object
+        );
+        var metricsTags = new TestHttpMetricsTagsFeature();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Features.Set<IHttpMetricsTagsFeature>(metricsTags);
+
+        await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        var tag = Assert.Single(metricsTags.Tags);
+        Assert.Equal(OpenIdMetricAttributes.Error, tag.Key);
+        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, tag.Value);
+        Assert.StartsWith(
+            RedirectUri,
+            httpContext.Response.Headers.Location.ToString(),
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WhenResponseModeQuery_OmitsInternalParameters()
     {
-        var result = CreateResult(OpenIdConstants.ResponseModes.Query);
+        var result = CreateResult(new QueryAuthorizationResponseModeHandler());
         var httpContext = new DefaultHttpContext();
 
         await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
@@ -116,7 +206,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     [Fact]
     public async Task ExecuteAsync_WhenResponseModeFormPost_OmitsInternalParameters()
     {
-        var result = CreateResult(OpenIdConstants.ResponseModes.FormPost);
+        var result = CreateResult(new FormPostAuthorizationResponseModeHandler());
         var httpContext = new DefaultHttpContext();
         var body = new MemoryStream();
         httpContext.Response.Body = body;
@@ -130,6 +220,155 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
         Assert.Contains(NormalValue, html, StringComparison.Ordinal);
         Assert.DoesNotContain("created_when", html, StringComparison.Ordinal);
         Assert.DoesNotContain(InternalValue, html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenResponseModeFormPost_HtmlEncodesTheValuesWithoutUrlEncoding()
+    {
+        const string value = "a b=c/d+e'<f>";
+        var result = CreateResult(
+            new FormPostAuthorizationResponseModeHandler(),
+            normalValue: value
+        );
+
+        var html = await ExecuteFormPostAsync(Executor, result);
+
+        Assert.Contains(
+            $"<input type='hidden' name='{NormalName}' value='{HtmlEncoder.Default.Encode(value)}'/>",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain("%20", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("%3D", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenResponseModeFormPost_HtmlEncodesTheAction()
+    {
+        const string redirectUri = "https://client.example/callback?x='y'";
+        var result = CreateResult(
+            new FormPostAuthorizationResponseModeHandler(),
+            redirectUri: redirectUri
+        );
+
+        var html = await ExecuteFormPostAsync(Executor, result);
+
+        Assert.Contains(
+            $"action='{HtmlEncoder.Default.Encode(redirectUri)}'>",
+            html,
+            StringComparison.Ordinal
+        );
+        Assert.DoesNotContain("x='y'", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenResponseModeQuery_RedirectsToTheRedirectUriAsWritten()
+    {
+        var result = CreateResult(
+            new QueryAuthorizationResponseModeHandler(),
+            redirectUri: "myapp://callback"
+        );
+        var httpContext = new DefaultHttpContext();
+
+        await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        Assert.Equal(
+            "myapp://callback?code=auth-code#_=_",
+            httpContext.Response.Headers.Location.ToString()
+        );
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenTheRegisteredQueryIsUnencoded_KeepsItAndReplacesACollidingName()
+    {
+        var result = CreateResult(
+            new QueryAuthorizationResponseModeHandler(),
+            redirectUri: "https://client.example/callback?path=a/b&code=stale"
+        );
+        var httpContext = new DefaultHttpContext();
+
+        await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        Assert.Equal(
+            "https://client.example/callback?path=a/b&code=auth-code#_=_",
+            httpContext.Response.Headers.Location.ToString()
+        );
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenResponseModeFragment_AppendsTheParametersToTheUriAsWritten()
+    {
+        var result = CreateResult(
+            new FragmentAuthorizationResponseModeHandler(),
+            redirectUri: "myapp://callback"
+        );
+        var httpContext = new DefaultHttpContext();
+
+        await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        Assert.Equal(
+            "myapp://callback#code=auth-code",
+            httpContext.Response.Headers.Location.ToString()
+        );
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenResponseModeFormPost_PostsToTheUriAsWritten()
+    {
+        var result = CreateResult(
+            new FormPostAuthorizationResponseModeHandler(),
+            redirectUri: "myapp://callback"
+        );
+
+        var html = await ExecuteFormPostAsync(Executor, result);
+
+        Assert.Contains("action='myapp://callback'>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenTheRedirectUriHasANonAsciiCharacter_PercentEncodesItInTheLocation()
+    {
+        var result = CreateResult(
+            new QueryAuthorizationResponseModeHandler(),
+            redirectUri: "https://client.example/caf\u00e9"
+        );
+        var httpContext = new DefaultHttpContext();
+
+        await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        Assert.Equal(
+            "https://client.example/caf%C3%A9?code=auth-code#_=_",
+            httpContext.Response.Headers.Location.ToString()
+        );
+    }
+
+    [Theory]
+    [InlineData(
+        "https://client.example/cb\u0001x",
+        "https://client.example/cb%01x?code=auth-code#_=_"
+    )]
+    [InlineData(
+        "https://client.example/cb\u007fx",
+        "https://client.example/cb%7Fx?code=auth-code#_=_"
+    )]
+    [InlineData(
+        "https://client.example/cb\r\nSet-Cookie:a=b",
+        "https://client.example/cb%0D%0ASet-Cookie:a=b?code=auth-code#_=_"
+    )]
+    public async Task ExecuteAsync_WhenTheRedirectUriHasAControlCharacter_PercentEncodesItInTheLocation(
+        string redirectUri,
+        string expected
+    )
+    {
+        var result = CreateResult(
+            new QueryAuthorizationResponseModeHandler(),
+            redirectUri: redirectUri
+        );
+        var httpContext = new DefaultHttpContext();
+
+        await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
+
+        Assert.Equal(expected, httpContext.Response.Headers.Location.ToString());
     }
 
     #endregion

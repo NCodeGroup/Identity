@@ -16,16 +16,15 @@
 
 #endregion
 
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
+using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Sessions;
 
@@ -37,6 +36,7 @@ internal class DefaultSessionService(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     IPersistedGrantService persistedGrantService,
+    IPersistedPayloadSerializer payloadSerializer,
     IStoreManagerFactory storeManagerFactory,
     ISessionEvictionPolicy evictionPolicy,
     IAuditEventRecorder auditEventRecorder,
@@ -53,6 +53,7 @@ internal class DefaultSessionService(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
+    private IPersistedPayloadSerializer PayloadSerializer { get; } = payloadSerializer;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ISessionEvictionPolicy EvictionPolicy { get; } = evictionPolicy;
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
@@ -65,6 +66,33 @@ internal class DefaultSessionService(
             sessionId
         );
 
+    // See ADR-0220.
+    private static DateTimeOffset? GetAbsoluteEnd(
+        SessionGrant payload,
+        DateTimeOffset? expiresWhen
+    ) => payload.AbsoluteExpiresWhen ?? expiresWhen;
+
+    // When the session ends unless it is used again: the end of its idle window or, if earlier, its absolute end.
+    private static DateTimeOffset GetEnd(SessionGrant payload, DateTimeOffset absoluteEnd) =>
+        payload.IdleTimeout is { } idle && payload.LastActivityWhen + idle < absoluteEnd
+            ? payload.LastActivityWhen + idle
+            : absoluteEnd;
+
+    // Why the session has ended at 'now', or null while it lasts.
+    private static string? GetEndReason(
+        SessionGrant payload,
+        DateTimeOffset? expiresWhen,
+        DateTimeOffset now
+    )
+    {
+        if (GetAbsoluteEnd(payload, expiresWhen) is not { } absoluteEnd || now >= absoluteEnd)
+            return SessionTerminationReasons.AbsoluteExpiry;
+
+        return expiresWhen <= now || now >= GetEnd(payload, absoluteEnd)
+            ? SessionTerminationReasons.IdleTimeout
+            : null;
+    }
+
     /// <inheritdoc />
     public async ValueTask<string> CreateAsync(
         OpenIdContext openIdContext,
@@ -72,6 +100,9 @@ internal class DefaultSessionService(
         CancellationToken cancellationToken
     )
     {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(request.AbsoluteLifetime, TimeSpan.Zero);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(request.IdleTimeout, TimeSpan.Zero);
+
         var createdWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds();
 
         // Enforce the concurrent-session cap before persisting the new session so that, once it is added, the subject
@@ -80,6 +111,7 @@ internal class DefaultSessionService(
             openIdContext,
             request.SubjectId,
             request.MaxConcurrentSessions,
+            createdWhen,
             cancellationToken
         );
 
@@ -95,6 +127,7 @@ internal class DefaultSessionService(
             ClientIds = [],
             LastActivityWhen = createdWhen,
             IdleTimeout = request.IdleTimeout,
+            AbsoluteExpiresWhen = createdWhen + request.AbsoluteLifetime,
             UserAgent = request.UserAgent,
             RemoteIpAddress = request.RemoteIpAddress,
         };
@@ -111,12 +144,16 @@ internal class DefaultSessionService(
             Payload = payload,
         };
 
+        // The grant expires when the session ends unless it is used again: at the end of its idle window or, if
+        // earlier, at its absolute end. See ADR-0220.
         await PersistedGrantService.AddAsync(
             openIdContext,
             grantId,
             grant,
             createdWhen,
-            request.Lifetime,
+            request.IdleTimeout < request.AbsoluteLifetime
+                ? request.IdleTimeout
+                : request.AbsoluteLifetime,
             cancellationToken
         );
 
@@ -135,6 +172,7 @@ internal class DefaultSessionService(
         OpenIdContext openIdContext,
         string subjectId,
         int? maxConcurrentSessions,
+        DateTimeOffset now,
         CancellationToken cancellationToken
     )
     {
@@ -147,14 +185,18 @@ internal class DefaultSessionService(
 
         foreach (var session in EvictionPolicy.SelectSessionsToEvict(sessions, max))
         {
-            await TerminateAsync(
-                openIdContext,
-                SessionTerminationReason.ConcurrentSessionLimit,
-                session.SubjectId,
-                session.SessionId,
-                session.Grant.ClientIds,
-                cancellationToken
-            );
+            // A session another caller terminated first is not evicted by this call.
+            if (
+                !await TerminateOnceAsync(
+                    openIdContext,
+                    session.SessionId,
+                    SessionTerminationReasons.ConcurrentSessionLimit,
+                    now,
+                    cancellationToken
+                )
+            )
+                continue;
+
             Logger.SessionEvicted(session.SessionId);
         }
     }
@@ -163,7 +205,7 @@ internal class DefaultSessionService(
     // application extensions) so every termination path is handled consistently.
     private static ValueTask TerminateAsync(
         OpenIdContext openIdContext,
-        SessionTerminationReason reason,
+        string reason,
         string? subjectId,
         string? sessionId,
         IReadOnlyList<string> participatingClientIds,
@@ -176,6 +218,52 @@ internal class DefaultSessionService(
             ),
             cancellationToken
         );
+
+    // The termination of a session as claimed: the subject and the clients the claimed session lists.
+    private static SessionTermination ToTermination(
+        string reason,
+        string sessionId,
+        PersistedGrant<SessionGrant> claimed
+    ) => new(reason, claimed.SubjectId, sessionId, claimed.Payload.ClientIds);
+
+    // Terminates the session through the termination seam when this call claims it. Returns false without terminating
+    // it when another caller revoked its grant first.
+    private async ValueTask<bool> TerminateOnceAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        string reason,
+        DateTimeOffset now,
+        CancellationToken cancellationToken
+    )
+    {
+        var grantId = CreateGrantId(openIdContext, sessionId);
+
+        // Of the requests and background passes that find one ended session, only the one that revokes its grant
+        // terminates it, so its relying parties are notified once. The same unit of work revokes the grants issued
+        // under the session, so a failure of the dispatch that follows leaves no token of the session active. The
+        // termination names the subject and the clients the session lists as claimed, so a client added after an
+        // earlier read is notified too. See ADR-0223, ADR-0227 and ADR-0228.
+        if (
+            await PersistedGrantService.RevokeSessionOnceAsync<SessionGrant>(
+                openIdContext,
+                grantId,
+                now,
+                cancellationToken
+            )
+            is not { } claimed
+        )
+            return false;
+
+        await openIdContext.Mediator.SendAsync(
+            new OnSessionTerminatedCommand(
+                openIdContext,
+                ToTermination(reason, sessionId, claimed)
+            ),
+            cancellationToken
+        );
+
+        return true;
+    }
 
     /// <inheritdoc />
     public ValueTask<PersistedGrant<SessionGrant>?> GetOrDefaultAsync(
@@ -193,7 +281,7 @@ internal class DefaultSessionService(
     }
 
     /// <inheritdoc />
-    public async ValueTask<bool> AddClientAsync(
+    public ValueTask<bool> AddClientAsync(
         OpenIdContext openIdContext,
         string sessionId,
         string clientId,
@@ -202,28 +290,29 @@ internal class DefaultSessionService(
     {
         var grantId = CreateGrantId(openIdContext, sessionId);
 
-        var grant = await PersistedGrantService.GetOrDefaultAsync<SessionGrant>(
+        // Added to the session as stored, so a client a concurrent request added stays. See ADR-0222.
+        return PersistedGrantService.UpdatePayloadAsync<SessionGrant>(
             openIdContext,
             grantId,
-            cancellationToken
-        );
-
-        if (grant is not { Status: PersistedGrantStatus.Active } active)
-            return false;
-
-        var payload = active.Payload;
-        if (payload.ClientIds.Contains(clientId, StringComparer.Ordinal))
-            return true;
-
-        var updatedPayload = payload with { ClientIds = [.. payload.ClientIds, clientId] };
-
-        return await PersistedGrantService.UpdatePayloadAsync(
-            openIdContext,
-            grantId,
-            updatedPayload,
+            stored => AddClient(stored, clientId),
             cancellationToken
         );
     }
+
+    // The change that lists the client in the session as stored, or null when the session already lists it.
+    private static PersistedGrantUpdate<SessionGrant>? AddClient(
+        PersistedGrant<SessionGrant> stored,
+        string clientId
+    ) =>
+        stored.Payload.ClientIds.Contains(clientId, StringComparer.Ordinal)
+            ? null
+            : new PersistedGrantUpdate<SessionGrant>
+            {
+                Payload = stored.Payload with
+                {
+                    ClientIds = [.. stored.Payload.ClientIds, clientId],
+                },
+            };
 
     /// <inheritdoc />
     public async ValueTask<bool> ValidateAndTouchAsync(
@@ -240,47 +329,130 @@ internal class DefaultSessionService(
             cancellationToken
         );
 
-        if (grant is not { Status: PersistedGrantStatus.Active } active)
+        if (grant is not { } session || session.Status == PersistedGrantStatus.Revoked)
             return false;
 
-        var payload = active.Payload;
-        if (payload.IdleTimeout is not { } idleTimeout)
-            return true;
-
+        var payload = session.Payload;
         var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
-        var elapsed = now - payload.LastActivityWhen;
 
-        // The session has been idle past its sliding window: expire it through the termination seam (revoke its grants,
-        // notify its relying parties, audit) and treat the request as having no valid session.
-        if (elapsed >= idleTimeout)
+        // A session that has ended, at its absolute end or at the end of its idle window, is terminated through the
+        // termination seam (revoke its grants, notify its relying parties, audit) whichever bound ended it, and the
+        // request has no valid session. See ADR-0220.
+        if (GetEndReason(payload, session.ExpiresWhen, now) is { } endReason)
         {
-            await TerminateAsync(
-                openIdContext,
-                SessionTerminationReason.IdleTimeout,
-                active.SubjectId,
-                sessionId,
-                payload.ClientIds,
-                cancellationToken
-            );
-            Logger.SessionIdleExpired(sessionId);
+            await TerminateEndedAsync(openIdContext, sessionId, endReason, now, cancellationToken);
+
             return false;
         }
 
-        // Renew the sliding window, throttled so a burst of requests does not write on every one.
-        if (elapsed >= TouchGranularity)
+        // Renew the sliding window and the grant's expiry together, throttled so a burst of requests does not write on
+        // every one.
+        if (
+            now - payload.LastActivityWhen >= TouchGranularity
+            && GetAbsoluteEnd(payload, session.ExpiresWhen) is not null
+        )
         {
-            await PersistedGrantService.UpdatePayloadAsync(
-                openIdContext,
-                grantId,
-                payload with
-                {
-                    LastActivityWhen = now,
-                },
-                cancellationToken
-            );
+            try
+            {
+                await PersistedGrantService.UpdatePayloadAsync<SessionGrant>(
+                    openIdContext,
+                    grantId,
+                    stored => Touch(stored, now),
+                    cancellationToken
+                );
+            }
+            catch (StoreConcurrencyException)
+            {
+                // Every attempt lost to another write of the session, each of which records its activity, so the
+                // touch is dropped. See ADR-0222.
+            }
         }
 
         return true;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> TerminateIfEndedAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        CancellationToken cancellationToken
+    )
+    {
+        var grantId = CreateGrantId(openIdContext, sessionId);
+
+        var grant = await PersistedGrantService.GetOrDefaultAsync<SessionGrant>(
+            openIdContext,
+            grantId,
+            cancellationToken
+        );
+
+        if (grant is not { } session || session.Status == PersistedGrantStatus.Revoked)
+            return false;
+
+        var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+
+        if (GetEndReason(session.Payload, session.ExpiresWhen, now) is not { } endReason)
+            return false;
+
+        return await TerminateEndedAsync(
+            openIdContext,
+            sessionId,
+            endReason,
+            now,
+            cancellationToken
+        );
+    }
+
+    // Terminates the session that has ended through the termination seam and logs why it ended. Returns false without
+    // terminating it when another caller revoked its grant first.
+    private async ValueTask<bool> TerminateEndedAsync(
+        OpenIdContext openIdContext,
+        string sessionId,
+        string endReason,
+        DateTimeOffset now,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!await TerminateOnceAsync(openIdContext, sessionId, endReason, now, cancellationToken))
+            return false;
+
+        if (
+            string.Equals(
+                endReason,
+                SessionTerminationReasons.AbsoluteExpiry,
+                StringComparison.Ordinal
+            )
+        )
+            Logger.SessionAbsoluteExpired(sessionId);
+        else
+            Logger.SessionIdleExpired(sessionId);
+
+        return true;
+    }
+
+    // The change that renews the sliding window of the session as stored, or null when another request touched it
+    // within the granularity or it has ended.
+    private static PersistedGrantUpdate<SessionGrant>? Touch(
+        PersistedGrant<SessionGrant> stored,
+        DateTimeOffset now
+    )
+    {
+        var payload = stored.Payload;
+
+        if (
+            now - payload.LastActivityWhen < TouchGranularity
+            || GetAbsoluteEnd(payload, stored.ExpiresWhen) is not { } absoluteEnd
+            || GetEndReason(payload, stored.ExpiresWhen, now) is not null
+        )
+            return null;
+
+        var touched = payload with { LastActivityWhen = now, AbsoluteExpiresWhen = absoluteEnd };
+
+        return new PersistedGrantUpdate<SessionGrant>
+        {
+            Payload = touched,
+            ExpiresWhen = GetEnd(touched, absoluteEnd),
+        };
     }
 
     /// <inheritdoc />
@@ -316,18 +488,18 @@ internal class DefaultSessionService(
                 if (envelope.SessionId is not { Length: > 0 } sessionId)
                     continue;
 
-                // Skip sessions that are no longer usable: revoked, past their absolute expiry, or idle-timed-out.
+                // Skip sessions that are no longer usable: revoked or ended.
                 if (envelope.RevokedWhen is not null)
                     continue;
 
-                if (envelope.ExpiresWhen is { } expiresWhen && expiresWhen <= now)
-                    continue;
-
-                var payload = envelope.PayloadJson.Deserialize<SessionGrant>(jsonOptions);
+                var payload = PayloadSerializer.Deserialize<SessionGrant>(
+                    envelope.PayloadJson,
+                    jsonOptions
+                );
 
                 if (
-                    payload.IdleTimeout is { } idleTimeout
-                    && now - payload.LastActivityWhen >= idleTimeout
+                    GetAbsoluteEnd(payload, envelope.ExpiresWhen) is not { } absoluteEnd
+                    || GetEndReason(payload, envelope.ExpiresWhen, now) is not null
                 )
                 {
                     continue;
@@ -338,7 +510,7 @@ internal class DefaultSessionService(
                         sessionId,
                         envelope.SubjectId,
                         envelope.CreatedWhen,
-                        envelope.ExpiresWhen,
+                        GetEnd(payload, absoluteEnd),
                         payload
                     )
                 );
@@ -354,43 +526,104 @@ internal class DefaultSessionService(
         return results;
     }
 
-    /// <inheritdoc />
-    public async ValueTask RevokeAsync(
-        OpenIdContext openIdContext,
-        string sessionId,
-        SessionTerminationReason reason,
+    // The identifiers of the sessions of the subject that no caller has terminated, an ended one included, read from
+    // the store without their payloads. A subject-wide termination claims every session no caller terminated, an ended
+    // one included, so the background pass never finds an ended session revoked without its relying parties notified.
+    // See ADR-0228.
+    private async ValueTask<IReadOnlyList<string>> GetUnrevokedSessionIdsAsync(
+        string subjectId,
         CancellationToken cancellationToken
     )
     {
-        // Resolve the participating relying parties so the termination seam can notify them via back-channel logout.
-        var session = await GetOrDefaultAsync(openIdContext, sessionId, cancellationToken);
-        var participatingClientIds = session?.Payload.ClientIds ?? [];
-        var subjectId = session?.SubjectId;
+        var results = new List<string>();
 
-        await TerminateAsync(
-            openIdContext,
-            reason,
-            subjectId,
-            sessionId,
-            participatingClientIds,
-            cancellationToken
-        );
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IGrantStore>();
+
+        string? cursor = null;
+        do
+        {
+            var page = await store.GetPageAsync(
+                new GrantFilter
+                {
+                    SubjectId = subjectId,
+                    GrantType = OpenIdConstants.PersistedGrantTypes.Session,
+                },
+                new PageRequest { Cursor = cursor, Limit = EnumerationPageSize },
+                cancellationToken
+            );
+
+            foreach (var envelope in page.Items)
+            {
+                if (envelope.SessionId is { Length: > 0 } sessionId && envelope.RevokedWhen is null)
+                    results.Add(sessionId);
+            }
+
+            cursor = page.NextCursor;
+        } while (cursor is not null);
+
+        return results;
     }
 
     /// <inheritdoc />
-    public async ValueTask RevokeAllAsync(
+    public async ValueTask<bool> RevokeAsync(
         OpenIdContext openIdContext,
-        string subjectId,
-        SessionTerminationReason reason,
+        string sessionId,
+        string reason,
         CancellationToken cancellationToken
     )
     {
-        // Union the relying parties across all of the subject's sessions so every participant is notified once.
-        var sessions = await GetSessionsAsync(openIdContext, subjectId, cancellationToken);
-        var participatingClientIds = sessions
-            .SelectMany(session => session.Grant.ClientIds)
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
+        var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+
+        // The termination names the subject and the clients of the session as claimed, so the session is not read
+        // first. See ADR-0228.
+        return await TerminateOnceAsync(openIdContext, sessionId, reason, now, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<int> RevokeAllAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        string reason,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentException.ThrowIfNullOrEmpty(subjectId);
+
+        var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+
+        // Claim each session so a session that another caller terminates at the same time notifies its relying parties
+        // once, and union the relying parties of the sessions this call claimed, as the claim returned them, so every
+        // participant is notified once, including a client added after the sessions were listed. See ADR-0228.
+        var sessionIds = await GetUnrevokedSessionIdsAsync(subjectId, cancellationToken);
+        var clientIds = new List<string>();
+        var terminated = 0;
+        foreach (var sessionId in sessionIds)
+        {
+            var grantId = CreateGrantId(openIdContext, sessionId);
+            if (
+                await PersistedGrantService.RevokeSessionOnceAsync<SessionGrant>(
+                    openIdContext,
+                    grantId,
+                    now,
+                    cancellationToken
+                )
+                is not { } claimed
+            )
+                continue;
+
+            terminated++;
+            clientIds.AddRange(claimed.Payload.ClientIds);
+        }
+
+        // The grants the subject holds outside its sessions are revoked before the dispatch, so a dispatch that fails
+        // leaves none of them active. See ADR-0227.
+        await PersistedGrantService.RevokeWhereAsync(
+            openIdContext,
+            new GrantFilter { SubjectId = subjectId },
+            now,
+            cancellationToken
+        );
 
         // A null session id denotes a subject-wide termination (revokes every grant the subject holds).
         await TerminateAsync(
@@ -398,36 +631,73 @@ internal class DefaultSessionService(
             reason,
             subjectId,
             sessionId: null,
-            participatingClientIds,
+            [.. clientIds.Distinct(StringComparer.Ordinal)],
             cancellationToken
         );
+
+        return terminated;
     }
 
     /// <inheritdoc />
-    public async ValueTask RevokeAllExceptAsync(
+    public async ValueTask<int> RevokeAllExceptAsync(
         OpenIdContext openIdContext,
         string subjectId,
         string exceptSessionId,
-        SessionTerminationReason reason,
+        string reason,
         CancellationToken cancellationToken
     )
     {
-        // Terminate each other session individually (not subject-wide) so the retained session and the grants issued
-        // under it survive while every other session is revoked and its relying parties are notified.
-        var sessions = await GetSessionsAsync(openIdContext, subjectId, cancellationToken);
-        foreach (var session in sessions)
+        ArgumentException.ThrowIfNullOrEmpty(subjectId);
+        ArgumentException.ThrowIfNullOrEmpty(exceptSessionId);
+
+        var now = TimeProvider.GetUtcNowWithPrecisionInSeconds();
+
+        // Claim each other session individually (not subject-wide) so the retained session and the grants issued
+        // under it survive while every other session is revoked, ended or not, and its relying parties are notified
+        // once, with the clients the claim returned.
+        var sessionIds = await GetUnrevokedSessionIdsAsync(subjectId, cancellationToken);
+        var claimedSessions = new List<(string SessionId, PersistedGrant<SessionGrant> Grant)>();
+        foreach (var sessionId in sessionIds)
         {
-            if (string.Equals(session.SessionId, exceptSessionId, StringComparison.Ordinal))
+            if (string.Equals(sessionId, exceptSessionId, StringComparison.Ordinal))
                 continue;
 
-            await TerminateAsync(
-                openIdContext,
-                reason,
-                session.SubjectId,
-                session.SessionId,
-                session.Grant.ClientIds,
+            var grantId = CreateGrantId(openIdContext, sessionId);
+            if (
+                await PersistedGrantService.RevokeSessionOnceAsync<SessionGrant>(
+                    openIdContext,
+                    grantId,
+                    now,
+                    cancellationToken
+                )
+                is not { } claimed
+            )
+                continue;
+
+            claimedSessions.Add((sessionId, claimed));
+        }
+
+        // The grants the subject holds outside every session are revoked before the dispatches, so a failed dispatch
+        // leaves only the retained session's grants active.
+        // See ADR-0230.
+        await PersistedGrantService.RevokeWhereAsync(
+            openIdContext,
+            new GrantFilter { SubjectId = subjectId, WithoutSession = true },
+            now,
+            cancellationToken
+        );
+
+        foreach (var (sessionId, grant) in claimedSessions)
+        {
+            await openIdContext.Mediator.SendAsync(
+                new OnSessionTerminatedCommand(
+                    openIdContext,
+                    ToTermination(reason, sessionId, grant)
+                ),
                 cancellationToken
             );
         }
+
+        return claimedSessions.Count;
     }
 }

@@ -1,0 +1,83 @@
+# Host image — builds the production image of NCode.Identity.OpenId.Host for every published architecture.
+#
+# The image is the deployable artifact (ADR-0133), so a change that breaks its build — a project the publish needs, a
+# frontend build step, the allow-list .dockerignore — fails here rather than at release. Nothing is pushed: publishing
+# to GHCR belongs to the release workflow. Every stage that runs commands runs on the runner's own architecture and
+# cross-publishes, so the arm64 image builds without emulation (ADR-0178).
+name: Host image
+
+on:
+  # A push gates only main, because a pull request already gates every other branch (see ci.yml).
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# See the note in ci.yml: on main the group includes the SHA so every trunk commit keeps its own verdict.
+concurrency:
+  group: host-image-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'head' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build:
+    name: Build host image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The Dockerfile names Node by a literal tag and digest, which a FROM line cannot read from a file, so its major
+      # must equal the single pin in src/frontend/.node-version (ADR-0152, ADR-0249).
+      - name: Check the Node image follows .node-version
+        run: |
+          major=$(cat src/frontend/.node-version)
+          if ! grep -q "node:${major}-trixie-slim@sha256:" src/NCode.Identity.OpenId.Host/Dockerfile; then
+            echo "::error::The Dockerfile must pin node:${major}-trixie-slim by digest (src/frontend/.node-version)"
+            exit 1
+          fi
+
+      # Third-party actions, so each is pinned to a commit; Dependabot moves the pin and its version comment together.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: src/NCode.Identity.OpenId.Host/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # A multi-architecture build cannot be loaded into the local Docker daemon, so the amd64 image is built once more,
+      # from the cache, to be inspected.
+      - name: Load the amd64 image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: src/NCode.Identity.OpenId.Host/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ncode-identity-host:ci
+          cache-from: type=gha
+
+      # The image carries the log format (ADR-0248), so a change that drops it fails here rather than in production.
+      - name: Check the image logs one-line JSON
+        run: |
+          env=$(docker image inspect ncode-identity-host:ci --format '{{range .Config.Env}}{{println .}}{{end}}')
+          for setting in \
+            Logging__Console__FormatterName=json \
+            Logging__Console__FormatterOptions__UseUtcTimestamp=true \
+            Logging__Console__FormatterOptions__TimestampFormat=O; do
+            if ! grep -qxF "$setting" <<< "$env"; then
+              echo "::error::The image does not set ${setting}"
+              exit 1
+            fi
+          done

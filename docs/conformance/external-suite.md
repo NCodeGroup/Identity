@@ -78,7 +78,9 @@ hermetic [`build/dod.ps1`](../../build/dod.ps1) inner loop — consistent with
   `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` across 38 modules with no mass-abort. Triaging those dispositions is
   tracked as backlog `T8`.
 - **Profile expansion** beyond Basic + Config (Form Post / Dynamic OP / FAPI) as those capabilities are
-  verified end-to-end.
+  verified end-to-end. The FAPI 1.0 Advanced Final plans are wired (`run-conformance.ps1 -Fapi1Advanced`, see the
+  [harness README](../../build/conformance/README.md#run)) but have not yet been run against the suite; their first
+  run and baseline are tracked as backlog `T1`.
 
 ## Live-run dispositions (`T8`) — fixes applied and open follow-ups
 

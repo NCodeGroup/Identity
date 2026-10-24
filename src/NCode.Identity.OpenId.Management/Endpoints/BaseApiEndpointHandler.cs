@@ -92,13 +92,69 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     }
 
     /// <summary>
+    /// The most errors a validation problem lists for one setting.
+    /// </summary>
+    internal const int MaxErrorsPerSetting = 10;
+
+    /// <summary>
+    /// Limits the number of errors listed for each setting: the first errors of a setting are kept in order, and the
+    /// errors of a setting beyond the limit are replaced by one error that counts them. The counting errors follow the
+    /// kept errors, in the order the settings first appear.
+    /// </summary>
+    /// <param name="errors">The <see cref="SettingError"/> instances to limit.</param>
+    /// <param name="maxErrorsPerSetting">The most errors to keep for one setting.</param>
+    /// <returns>The kept errors followed by one counting error for each setting that exceeds the limit.</returns>
+    internal static IReadOnlyList<SettingError> LimitErrorsPerSetting(
+        IReadOnlyList<SettingError> errors,
+        int maxErrorsPerSetting
+    )
+    {
+        var kept = new List<SettingError>(errors.Count);
+        var names = new List<string>();
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        foreach (var error in errors)
+        {
+            if (!counts.TryGetValue(error.SettingName, out var count))
+            {
+                names.Add(error.SettingName);
+            }
+
+            counts[error.SettingName] = count + 1;
+            if (count < maxErrorsPerSetting)
+            {
+                kept.Add(error);
+            }
+        }
+
+        foreach (var name in names)
+        {
+            var count = counts[name];
+            if (count > maxErrorsPerSetting)
+            {
+                kept.Add(
+                    new SettingError(
+                        name,
+                        $"Errors not listed for '{name}': {count - maxErrorsPerSetting}."
+                    )
+                );
+            }
+        }
+
+        return kept;
+    }
+
+    /// <summary>
     /// Builds the <c>400 Bad Request</c> validation problem for a settings document that cannot be honored: the
-    /// problem's <c>errors</c> map each offending setting name to its error, and its <c>detail</c> lists them all.
+    /// problem's <c>errors</c> map each offending setting name to its errors, and its <c>detail</c> lists them. A
+    /// tenant or server change can report one error per client, so each setting lists at most
+    /// <see cref="MaxErrorsPerSetting"/> errors and then counts the rest.
     /// </summary>
     /// <param name="errors">The <see cref="SettingError"/> instances describing each setting that cannot be honored.</param>
     /// <returns>The <see cref="IResult"/> representing the validation failure.</returns>
     internal virtual IResult SettingsValidationProblem(IReadOnlyList<SettingError> errors)
     {
+        errors = LimitErrorsPerSetting(errors, MaxErrorsPerSetting);
         var messages = errors.Select(error => error.Message);
         var detail = string.Join(" ", messages);
         var errorsBySetting = errors
@@ -138,6 +194,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
         return new SecretResource
         {
             SecretId = secret.SecretId,
+            KeyId = GetKeyId(secret),
             ConcurrencyToken = secret.ConcurrencyToken,
             Use = secret.Use,
             Algorithm = secret.Algorithm,
@@ -164,6 +221,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
         return new CreatedSecretResource
         {
             SecretId = secret.SecretId,
+            KeyId = GetKeyId(secret),
             ConcurrencyToken = secret.ConcurrencyToken,
             Use = secret.Use,
             Algorithm = secret.Algorithm,
@@ -173,5 +231,40 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
             KeySizeBits = secret.KeySizeBits,
             SecretMaterial = secretMaterial,
         };
+    }
+
+    /// <summary>
+    /// Gets the key identifier (<c>kid</c>) a key is selected by: the <c>kid</c> it was imported with, or its secret
+    /// identifier when it has none.
+    /// </summary>
+    /// <param name="secret">The <see cref="PersistedSecret"/> to identify.</param>
+    /// <returns>The key identifier.</returns>
+    internal static string GetKeyId(PersistedSecret secret) => secret.KeyId ?? secret.SecretId;
+
+    /// <summary>
+    /// Returns a <c>409 Conflict</c> when one of an owner's existing keys is selected by the same <c>kid</c> as an
+    /// imported key, because keys are selected by <c>kid</c> and two of one owner's keys never share one.
+    /// </summary>
+    /// <param name="secrets">The owner's existing keys.</param>
+    /// <param name="imported">The imported key.</param>
+    /// <param name="owner">The kind of owner, such as <c>client</c> or <c>tenant</c>, for the problem detail.</param>
+    /// <returns>The conflict result, or <c>null</c> when the <c>kid</c> is free.</returns>
+    // See ADR-0161 and ADR-0186.
+    internal static IResult? KeyIdConflictOrDefault(
+        IEnumerable<PersistedSecret> secrets,
+        PersistedSecret imported,
+        string owner
+    )
+    {
+        var keyId = GetKeyId(imported);
+        if (
+            !secrets.Any(secret => string.Equals(GetKeyId(secret), keyId, StringComparison.Ordinal))
+        )
+            return null;
+
+        return TypedResults.Problem(
+            detail: $"A key with the 'kid' value '{keyId}' is already registered for the {owner}.",
+            statusCode: StatusCodes.Status409Conflict
+        );
     }
 }

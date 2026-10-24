@@ -50,7 +50,8 @@ namespace NCode.Identity.OpenId.Settings;
 internal class DefaultSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
-    IEnumerable<ISecurityProfile> securityProfiles
+    IEnumerable<ISecurityProfile> securityProfiles,
+    IEnumerable<IRedirectUriKind> redirectUriKinds
 ) : ICollectionDataSource<SettingDescriptor>
 {
     private const bool IsStdDiscoverable = true;
@@ -72,6 +73,8 @@ internal class DefaultSettingDescriptorDataSource(
     private const int MinUserCodeLength = 8;
     private const int MaxUserCodeLength = 32;
 
+    private const string RetiredMtlsEndpointAliasAuthority = "mtls_endpoint_alias_authority";
+
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;
 
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
@@ -79,6 +82,9 @@ internal class DefaultSettingDescriptorDataSource(
 
     private ImmutableArray<string> SecurityProfileNames { get; } =
     [.. securityProfiles.Select(profile => profile.ProfileName).Order(StringComparer.Ordinal)];
+
+    private ImmutableArray<string> RedirectUriKindNames { get; } =
+    [.. redirectUriKinds.Select(kind => kind.KindName).Order(StringComparer.Ordinal)];
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken;
@@ -310,7 +316,9 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = And,
             };
 
-            // allow_loopback_redirect: permit loopback IP redirect URIs for native clients (default true).
+            // allow_loopback_redirect: whether a registered loopback IP redirect URI (http://127.0.0.1 or http://[::1])
+            // may be requested with any port (RFC 8252 §7.3). Every other part of a redirect URI must equal a registered
+            // one exactly. Default true; fapi1-advanced turns it off (ADR-0203).
             // Ceiling (And): once a parent forbids it, a child cannot re-allow it.
             yield return new SettingDescriptor<bool>
             {
@@ -571,12 +579,13 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect,
             };
 
-            // backchannel_user_code_parameter_supported: whether the server supports the CIBA user_code parameter (default false).
+            // backchannel_user_code_parameter_supported: whether the server supports the CIBA user_code parameter (default false);
+            // a client's registered backchannel_user_code_parameter is stored here, at the client's scope.
             // Ceiling (And): once a parent disables it, a child cannot re-enable it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.BackchannelUserCodeParameterSupported,
-                AppliesTo = Tenants,
+                AppliesTo = TenantsAndClients,
                 Default = false,
 
                 IsDiscoverable = IsStdDiscoverable,
@@ -802,6 +811,19 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
+            // redirect_uri_kinds_supported: the kinds of redirect URI (https, loopback, http, private_use) a client may
+            // register and use; unset permits every registered kind, and a security profile caps it (ADR-0203). Not
+            // advertised. Ceiling (Intersect): a child narrows the parent's set.
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.RedirectUriKindsSupported,
+                AppliesTo = TenantsAndClients,
+                Rule = RegisteredRedirectUriKinds(),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
             // post_logout_redirect_uris: the registered post-logout redirect URIs for a client (RP-Initiated Logout).
             // Override (Replace): each client specifies its own set (per-client registration, not a cascade ceiling).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
@@ -922,30 +944,32 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
-            // session_absolute_lifetime: absolute lifetime of the server-side end-user session, after which it expires
-            // regardless of activity. TimeSpan.Zero disables it (bounded only by the idle timeout, if any). Default
-            // Zero. Not advertised (leaking session policy aids attackers). Override (Replace): a tenant fully replaces
-            // the value. (F25)
+            // session_absolute_lifetime: absolute lifetime of the server-side end-user session, after which it ends
+            // however it is used. Between one second and 365 days; default 30 days (Auth0's tenant default and NIST
+            // SP 800-63B's AAL1 reauthentication of at least once per 30 days; the maximum is Auth0's). Not advertised
+            // (leaking session policy aids attackers). Override (Replace): a tenant fully replaces the value.
+            // (ADR-0220)
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SessionAbsoluteLifetime,
                 AppliesTo = Tenants,
-                Rule = OpenIdSettingRules.NonNegativeDuration(),
-                Default = TimeSpan.Zero,
+                Rule = SettingRules.Between(TimeSpan.FromSeconds(1), TimeSpan.FromDays(365)),
+                Default = TimeSpan.FromDays(30),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
             };
 
-            // session_idle_timeout: sliding inactivity window after which the end-user session expires if unused; each
-            // authorize request that resolves the session renews it. TimeSpan.Zero disables it. Default Zero. Not
-            // advertised. Override (Replace): a tenant fully replaces the value. (F25)
+            // session_idle_timeout: sliding inactivity window after which the end-user session ends if unused; each
+            // authorize request that resolves the session renews it. Between one second and 100 days; default 3 days
+            // (Auth0's inactivity default; the maximum is Auth0's enterprise maximum). Not advertised. Override
+            // (Replace): a tenant fully replaces the value. (ADR-0220)
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.SessionIdleTimeout,
                 AppliesTo = Tenants,
-                Rule = OpenIdSettingRules.NonNegativeDuration(),
-                Default = TimeSpan.Zero,
+                Rule = SettingRules.Between(TimeSpan.FromSeconds(1), TimeSpan.FromDays(100)),
+                Default = TimeSpan.FromDays(3),
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -1007,6 +1031,54 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
+            // refresh_token_rotation_policy: which refresh tokens are rotated, that is replaced by a new refresh token
+            // each time they are used — unbound (the default) rotates a token bound neither to a proof-of-possession
+            // key nor to client authentication, that is a public client's token without a DPoP or certificate binding,
+            // as RFC 9700 §2.2.2 and §4.14.2 require; always rotates every refresh token. No value turns off the
+            // rotation of a public client's unbound token. (ADR-0216)
+            // Override (Replace): a child fully replaces the parent value, so a tenant cannot force rotation on its
+            // clients; the floor that matters is the requirement that a public client's unbound token is rotated.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.RefreshTokenRotationPolicy,
+                AppliesTo = Clients,
+                Rule = OpenIdSettingRules.RefreshTokenRotationPolicy(),
+                Default = OpenIdConstants.RefreshTokenRotationPolicy.Unbound,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // refresh_token_reuse_interval: how long after a rotation the rotated refresh token may be presented again
+            // as a retry instead of a reuse, so a client that lost the rotation response can recover; the retry is
+            // answered as the rotation was and the rotation family is not revoked. TimeSpan.Zero turns it off
+            // (default); at most one minute, because a longer window weakens reuse detection. (ADR-0217)
+            // Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.RefreshTokenReuseInterval,
+                AppliesTo = Clients,
+                Rule = OpenIdSettingRules.RefreshTokenReuseInterval(),
+                Default = TimeSpan.Zero,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // refresh_token_rotation_retry_required: whether a client whose refresh tokens rotate must be able to retry
+            // a rotation, that is have a positive refresh_token_reuse_interval (default false; FAPI 2.0 §5.3.2.1
+            // requires it).
+            // Floor (Or): once a parent requires it, a child cannot un-require it. (ADR-0206, ADR-0217)
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.RefreshTokenRotationRetryRequired,
+                AppliesTo = Clients,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Or,
+            };
+
             // refresh_token_lifetime: validity window for issued refresh tokens (default 30 days).
             // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
@@ -1018,18 +1090,6 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Min,
-            };
-
-            // refresh_token_rotation_enabled: issue a new refresh token on each use and revoke the prior one (default false).
-            // Floor (Or): once a parent enables rotation, a child cannot disable it.
-            yield return new SettingDescriptor<bool>
-            {
-                Name = OpenIdSettingNames.RefreshTokenRotationEnabled,
-                AppliesTo = Clients,
-                Default = false,
-
-                IsDiscoverable = IsNonStdDiscoverable,
-                OnMerge = Or,
             };
 
             // request_object_encryption_alg_values_supported: permitted "alg" values for encrypting request objects.
@@ -1075,7 +1135,8 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect,
             };
 
-            // request_object_expected_audience: expected "aud" of a client's request object; empty disables audience validation (default empty).
+            // request_object_expected_audience: expected "aud" of a client's request object; empty expects the tenant's
+            // issuer (RFC 9101 §4, ADR-0187), which a FAPI profile requires (ADR-0202) (default empty).
             // Override (Replace): a child fully replaces the parent value.
             yield return new SettingDescriptor<string>
             {
@@ -1085,6 +1146,33 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
+            };
+
+            // request_object_max_lifetime: longest lifetime accepted for a signed request object or CIBA authentication
+            // request, from its earliest 'iat'/'nbf' to its 'exp' (default 60 minutes, FAPI's bound; ADR-0187).
+            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.RequestObjectMaxLifetime,
+                AppliesTo = Clients,
+                Rule = OpenIdSettingRules.Lifetime(),
+                Default = TimeSpan.FromMinutes(60),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // request_object_nbf_required: whether a signed request object must carry 'nbf' (default false; FAPI requires
+            // it; a CIBA authentication request always must, ADR-0187).
+            // Floor (Or): once a parent requires it, a child cannot un-require it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.RequestObjectNotBeforeRequired,
+                AppliesTo = Clients,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Or,
             };
 
             // request_parameter_supported: whether a passed-by-value "request" object parameter is accepted (default true).
@@ -1311,11 +1399,11 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Or,
             };
 
-            // require_dpop: whether the client must present a valid DPoP proof at the token endpoint (RFC 9449),
-            // default false. Floor (Or): once a parent requires it, a child cannot un-require it.
+            // require_dpop_bound_access_tokens: whether the client must present a valid DPoP proof at the token
+            // endpoint (RFC 9449), default false. Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
-                Name = OpenIdSettingNames.RequireDPoP,
+                Name = OpenIdSettingNames.RequireDPoPBoundAccessTokens,
                 AppliesTo = Clients,
                 Default = false,
 
@@ -1323,29 +1411,59 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Or,
             };
 
-            // tls_client_certificate_bound_access_tokens: at server scope, whether the OP supports/advertises
-            // mutual-TLS client-certificate-bound access tokens; at client scope, whether the client's access tokens
-            // must be bound to its certificate (RFC 8705 §3.3). Secure-by-default false (only advertise once the
-            // deployment has wired certificate forwarding). Floor (Or).
+            // tls_client_certificate_bound_access_tokens: whether the server supports mutual-TLS
+            // client-certificate-bound access tokens, which discovery advertises (RFC 8705 §3.3); it never requires a
+            // client to bind. Secure-by-default false (only advertise once the deployment has wired certificate
+            // forwarding). Override (Replace): a tenant overrides the server.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.TlsClientCertificateBoundAccessTokens,
-                AppliesTo = TenantsAndClients,
+                AppliesTo = Tenants,
                 Default = false,
 
                 IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // require_tls_client_certificate_bound_access_tokens: whether the client's access tokens must be bound to
+            // the mutual-TLS certificate it presents (RFC 8705 §3), default false. A server or tenant value is a floor
+            // for every client. Floor (Or): once a parent requires it, a child cannot un-require it.
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens,
+                AppliesTo = Clients,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Or,
             };
 
-            // mtls_endpoint_alias_authority: scheme-and-authority that the discovery handler uses to synthesize the
-            // mtls_endpoint_aliases object (RFC 8705 §5). Not itself advertised (the handler emits the derived object);
-            // Override (Replace): a child fully replaces the parent value.
+            // tls_client_auth_trust_anchors: the PEM CA certificates a tls_client_auth certificate must chain to; a
+            // self-issued certificate is an anchor, any other an intermediate. Empty (the default) trusts no
+            // certificate, so tls_client_auth fails closed until a tenant or client configures its PKI. Not
+            // advertised. Override (Replace): a client pins its own PKI in place of the tenant's.
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.TlsClientAuthTrustAnchors,
+                AppliesTo = TenantsAndClients,
+                Rule = SettingRules.Each(OpenIdSettingRules.CaCertificatePem()),
+                Default = [],
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // tls_client_auth_revocation_mode: how a tls_client_auth chain's revocation status is checked; the secure
+            // default is online, where the server fetches each issuer's CRL through its guarded outbound HTTP client
+            // and rejects a chain whose status cannot be determined. online_soft_fail refuses a revoked certificate
+            // and accepts one whose status cannot be determined. Not advertised. Override (Replace): a child fully
+            // replaces the parent value.
             yield return new SettingDescriptor<string>
             {
-                Name = OpenIdSettingNames.MtlsEndpointAliasAuthority,
-                AppliesTo = Tenants,
-                Rule = SettingRules.EmptyOr(OpenIdSettingRules.HttpsOrigin()),
-                Default = string.Empty,
+                Name = OpenIdSettingNames.TlsClientAuthRevocationMode,
+                AppliesTo = TenantsAndClients,
+                Rule = OpenIdSettingRules.ClientCertificateRevocationMode(),
+                Default = OpenIdConstants.ClientCertificateRevocationMode.Online,
 
                 IsDiscoverable = IsNonStdDiscoverable,
                 OnMerge = Replace,
@@ -2020,6 +2138,113 @@ internal class DefaultSettingDescriptorDataSource(
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
             };
+
+            // authorization_signed_response_alg: the signature "alg" a client registers for
+            // its JWT-secured authorization responses (JARM) (JARM §3: RS256 unless registered).
+            // Override (Replace): a child fully replaces the parent value. The effective
+            // authorization_signing_alg_values_supported must permit it (ADR-0155, ADR-0168).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.AuthorizationSignedResponseAlg,
+                AppliesTo = Clients,
+                Rule = AsymmetricSignatureAlgorithm(),
+                Default = AlgorithmCodes.DigitalSignature.RsaSha256,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // authorization_response_lifetime: lifetime of a JARM response JWT; JARM §2.1 recommends at most 10 minutes. Ceiling (Min).
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.AuthorizationResponseLifetime,
+                AppliesTo = Clients,
+                Rule = SettingRules.Between(TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(10)),
+                Default = TimeSpan.FromMinutes(5),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // authorization_signing_alg_values_supported: permitted "alg" values for signing a JWT-secured authorization
+            // response (JARM §4); a key-provisioning default (ADR-0169). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
+            // (ADR-0010). Advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.AuthorizationSigningAlgValuesSupported,
+                AppliesTo = TenantsAndClients,
+                Rule = AsymmetricSignatureAlgorithms(),
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // authorization_encrypted_response_alg: the key-management "alg" a client acting for a resource server
+            // registers for encrypting its JWT-secured authorization responses (JARM) to its public key (JARM §3); absent = not
+            // encrypted. Override (Replace): a child fully replaces the parent value. The effective
+            // authorization_encryption_alg_values_supported must permit it (ADR-0155).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.AuthorizationEncryptedResponseAlg,
+                AppliesTo = Clients,
+                Rule = AsymmetricKeyManagementAlgorithm(),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // authorization_encrypted_response_enc: the content-encryption "enc" of the client's encrypted JWT
+            // introspection responses (JARM §3: A128CBC-HS256 unless registered).
+            // Override (Replace): a child fully replaces the parent value. The effective
+            // authorization_encryption_enc_values_supported must permit it (ADR-0155).
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.AuthorizationEncryptedResponseEnc,
+                AppliesTo = Clients,
+                Rule = ContentEncryptionAlgorithm(),
+                Default = AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
+            };
+
+            // authorization_encryption_alg_values_supported: permitted "alg" values for encrypting a JWT introspection
+            // response (JARM §4). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
+            // (ADR-0010). The response is encrypted to the client's public key, so only asymmetric key management
+            // applies; advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.AuthorizationEncryptionAlgValuesSupported,
+                AppliesTo = TenantsAndClients,
+                Rule = AsymmetricKeyManagementAlgorithms(),
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // authorization_encryption_enc_values_supported: permitted "enc" values for encrypting a JWT introspection
+            // response (JARM §4). Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted
+            // (ADR-0010). Advertised from the tenant's settings and enforced against the client's (ADR-0155).
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.AuthorizationEncryptionEncValuesSupported,
+                AppliesTo = TenantsAndClients,
+                Rule = ContentEncryptionAlgorithms(),
+
+                IsDiscoverable = IsStdDiscoverable,
+                OnMerge = Intersect,
+            };
+
+            // mtls_endpoint_alias_authority: retired. A tenant's mTLS endpoint alias is a tenant property; the
+            // descriptor stays registered so a stored document that carries the setting still loads, until a later
+            // release removes the setting from the stored documents (ADR-0195, ADR-0251).
+            yield return new SettingDescriptor<string>
+            {
+                Name = RetiredMtlsEndpointAliasAuthority,
+                AppliesTo = Tenants,
+                RetiredReason =
+                    "A tenant's mTLS endpoint alias is its mtlsEndpointAliasAuthority property, which the management API reads and writes.",
+            };
         }
     }
 
@@ -2034,6 +2259,18 @@ internal class DefaultSettingDescriptorDataSource(
                 value => value.Count == 0
             )
             : SettingRules.Each(SettingRules.OneOf(SecurityProfileNames));
+
+    /// <summary>
+    /// Gets the rule for <c>redirect_uri_kinds_supported</c>: a list whose every value names a registered
+    /// <see cref="IRedirectUriKind"/>; the empty list permits no redirect URI.
+    /// </summary>
+    private SettingRule<IReadOnlyCollection<string>> RegisteredRedirectUriKinds() =>
+        RedirectUriKindNames.IsEmpty
+            ? SettingRules.Must<IReadOnlyCollection<string>>(
+                "empty, because no redirect URI kind is registered",
+                value => value.Count == 0
+            )
+            : SettingRules.Each(SettingRules.OneOf(RedirectUriKindNames));
 
     /// <summary>
     /// Gets the rule for a list of signature algorithms a client or the server may choose from, symmetric ones

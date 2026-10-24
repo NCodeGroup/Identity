@@ -30,6 +30,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
@@ -48,6 +49,7 @@ internal class DefaultOpenIdServerFactory(
     IOptions<OpenIdOptions> optionsAccessor,
     IServiceProvider serviceProvider,
     ISecretSerializer secretSerializer,
+    ISecretProtectorProvider secretProtectorProvider,
     IStoreManagerFactory storeManagerFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
     IReadOnlySettingCollectionProviderFactory settingCollectionProviderFactory,
@@ -56,9 +58,12 @@ internal class DefaultOpenIdServerFactory(
     IIdGenerator<long> idGenerator
 ) : IOpenIdServerFactory
 {
-    private OpenIdOptions Options { get; } = optionsAccessor.Value;
+    // Read on use: Value runs the OpenIdOptions validators, which construct the client-authentication handlers, which depend on this factory (ADR-0204).
+    private IOptions<OpenIdOptions> OptionsAccessor { get; } = optionsAccessor;
+    private OpenIdOptions Options => OptionsAccessor.Value;
     private IServiceProvider ServiceProvider { get; } = serviceProvider;
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ICollectionDataSourceFactory CollectionDataSourceFactory { get; } =
         collectionDataSourceFactory;
@@ -92,7 +97,7 @@ internal class DefaultOpenIdServerFactory(
     {
         var serverId = GetServerId();
 
-        var disposables = new List<object>(2);
+        var disposables = new List<object>(3);
         var propertyBag = openIdEnvironment.PropertyBag.Clone();
         var persistedServer = await GetPersistedServerAsync(
             serverId,
@@ -101,13 +106,44 @@ internal class DefaultOpenIdServerFactory(
         );
         try
         {
-            var settingsProvider = await CreateSettingsProviderAsync(
-                openIdEnvironment,
-                persistedServer,
+            var rootSettingsDataSource = await CreateRootSettingsDataSourceAsync(
                 propertyBag,
                 cancellationToken
             );
+
+            // Until the merged provider owns them, a failure disposes the data sources that exist.
+            var dataSources = new List<object>(2) { rootSettingsDataSource };
+            RefreshableSettingsCollectionDataSource serverSettingsDataSource;
+            IReadOnlySettingCollectionProvider settingsProvider;
+            try
+            {
+                serverSettingsDataSource = await CreateServerSettingsDataSourceAsync(
+                    openIdEnvironment,
+                    persistedServer,
+                    propertyBag,
+                    cancellationToken
+                );
+                dataSources.Add(serverSettingsDataSource);
+
+                // The merged provider owns both data sources; the configured provider shares the root.
+                settingsProvider = SettingCollectionProviderFactory.Create(
+                    [rootSettingsDataSource, serverSettingsDataSource],
+                    owns: true
+                );
+            }
+            catch
+            {
+                await dataSources.DisposeAllAsync();
+                throw;
+            }
+
             disposables.Add(settingsProvider);
+
+            var configuredSettingsProvider = SettingCollectionProviderFactory.Create(
+                [rootSettingsDataSource],
+                owns: false
+            );
+            disposables.Add(configuredSettingsProvider);
 
             var secretsProvider = await CreateSecretsProviderAsync(
                 persistedServer,
@@ -116,7 +152,14 @@ internal class DefaultOpenIdServerFactory(
             );
             disposables.Add(secretsProvider);
 
-            return Create(serverId, settingsProvider, secretsProvider, propertyBag);
+            return Create(
+                serverId,
+                configuredSettingsProvider,
+                settingsProvider,
+                secretsProvider,
+                serverSettingsDataSource.RefreshAsync,
+                propertyBag
+            );
         }
         catch
         {
@@ -130,10 +173,20 @@ internal class DefaultOpenIdServerFactory(
     /// </summary>
     protected internal virtual OpenIdServer Create(
         string serverId,
+        IReadOnlySettingCollectionProvider configuredSettingsProvider,
         IReadOnlySettingCollectionProvider settingsProvider,
         ISecretKeyCollectionProvider secretsProvider,
+        Func<CancellationToken, ValueTask> refreshSettingsAsync,
         IPropertyBag propertyBag
-    ) => new DefaultOpenIdServer(serverId, settingsProvider, secretsProvider, propertyBag);
+    ) =>
+        new DefaultOpenIdServer(
+            serverId,
+            configuredSettingsProvider,
+            settingsProvider,
+            secretsProvider,
+            refreshSettingsAsync,
+            propertyBag
+        );
 
     /// <summary>
     /// Attempts to retrieve the <see cref="PersistedServer"/> with the specified server ID from the store.
@@ -190,39 +243,6 @@ internal class DefaultOpenIdServerFactory(
     }
 
     /// <summary>
-    /// Used to create the <see cref="IReadOnlySettingCollectionProvider"/> for the OpenID server.
-    /// </summary>
-    protected internal virtual async ValueTask<IReadOnlySettingCollectionProvider> CreateSettingsProviderAsync(
-        OpenIdEnvironment openIdEnvironment,
-        PersistedServer persistedServer,
-        IPropertyBag propertyBag,
-        CancellationToken cancellationToken
-    )
-    {
-        var dataSources = new List<ICollectionDataSource<Setting>>(2);
-        try
-        {
-            dataSources.Add(
-                await CreateRootSettingsDataSourceAsync(propertyBag, cancellationToken)
-            );
-            dataSources.Add(
-                await CreateServerSettingsDataSourceAsync(
-                    openIdEnvironment,
-                    persistedServer,
-                    propertyBag,
-                    cancellationToken
-                )
-            );
-            return SettingCollectionProviderFactory.Create(dataSources, owns: true);
-        }
-        catch
-        {
-            await dataSources.DisposeAllAsync();
-            throw;
-        }
-    }
-
-    /// <summary>
     /// Used to create a data source for the server's settings that are derived from the configurable options.
     /// </summary>
     protected internal virtual ValueTask<
@@ -244,9 +264,7 @@ internal class DefaultOpenIdServerFactory(
     /// <summary>
     /// Used to create a data source for the server's settings that are persisted in a store.
     /// </summary>
-    protected internal virtual ValueTask<
-        IAsyncDisposableCollectionDataSource<Setting>
-    > CreateServerSettingsDataSourceAsync(
+    protected internal virtual ValueTask<RefreshableSettingsCollectionDataSource> CreateServerSettingsDataSourceAsync(
         OpenIdEnvironment openIdEnvironment,
         PersistedServer persistedServer,
         IPropertyBag propertyBag,
@@ -262,28 +280,26 @@ internal class DefaultOpenIdServerFactory(
             jsonOptions
         );
 
-        var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
-            new RefreshSettingsState(openIdEnvironment, persistedServer),
+        Func<CancellationToken, ValueTask<IReadOnlyCollection<Setting>?>> loadChangedSettingsAsync =
+            ct => LoadChangedSettingsAsync(openIdEnvironment, persistedServer, ct);
+
+        // A committed change is read at once through OpenIdServer.RefreshSettingsAsync; the interval is the fallback (ADR-0219).
+        var dataSource = ActivatorUtilities.CreateInstance<RefreshableSettingsCollectionDataSource>(
+            ServiceProvider,
             initialSettings,
-            Options.Server.SettingsPeriodicRefreshInterval,
-            RefreshSettingsAsync
+            loadChangedSettingsAsync,
+            Options.Server.SettingsPeriodicRefreshInterval
         );
 
         return ValueTask.FromResult(dataSource);
     }
 
-    private readonly record struct RefreshSettingsState(
-        OpenIdEnvironment OpenIdEnvironment,
-        PersistedServer PersistedServer
-    );
-
-    private async ValueTask<RefreshCollectionResult<Setting>> RefreshSettingsAsync(
-        RefreshSettingsState state,
-        IReadOnlyCollection<Setting> current,
+    private async ValueTask<IReadOnlyCollection<Setting>?> LoadChangedSettingsAsync(
+        OpenIdEnvironment openIdEnvironment,
+        PersistedServer persistedServer,
         CancellationToken cancellationToken
     )
     {
-        var (openIdEnvironment, persistedServer) = state;
         var serverId = persistedServer.ServerId;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -291,14 +307,14 @@ internal class DefaultOpenIdServerFactory(
 
         var newSettings = await store.GetSettingsOrDefaultAsync(serverId, cancellationToken);
         if (newSettings is null)
-            return RefreshCollectionResultFactory.Unchanged<Setting>();
+            return null;
 
         var prevSettings = persistedServer.Settings;
         var prevConcurrencyToken = prevSettings.ConcurrencyToken;
         var newConcurrencyToken = newSettings.ConcurrencyToken;
 
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
-            return RefreshCollectionResultFactory.Unchanged<Setting>();
+            return null;
 
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
         var settings = SecurityProfileCatalog.Expand(
@@ -310,13 +326,13 @@ internal class DefaultOpenIdServerFactory(
         // update the state after successfully deserializing the settings
         persistedServer.Settings = newSettings;
 
-        return RefreshCollectionResultFactory.Changed(settings);
+        return settings;
     }
 
     /// <summary>
     /// Used to create the <see cref="ISecretKeyCollectionProvider"/> containing secrets only known to the OpenID server.
     /// </summary>
-    protected internal virtual ValueTask<ISecretKeyCollectionProvider> CreateSecretsProviderAsync(
+    protected internal virtual async ValueTask<ISecretKeyCollectionProvider> CreateSecretsProviderAsync(
         PersistedServer persistedServer,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
@@ -324,7 +340,16 @@ internal class DefaultOpenIdServerFactory(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var initialSecrets = SecretSerializer.DeserializeSecrets(persistedServer.Secrets.Value);
+        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+            SecretOwner.ForServer(persistedServer.ServerId),
+            persistedServer.Secrets.Value,
+            cancellationToken
+        );
+
+        var initialSecrets = SecretSerializer.DeserializeSecrets(
+            protector,
+            persistedServer.Secrets.Value
+        );
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedServer,
@@ -335,7 +360,7 @@ internal class DefaultOpenIdServerFactory(
 
         var provider = SecretKeyCollectionProviderFactory.Create(dataSource, owns: true);
 
-        return ValueTask.FromResult(provider);
+        return provider;
     }
 
     private async ValueTask<RefreshCollectionResult<SecretKey>> RefreshSecretsAsync(
@@ -360,7 +385,13 @@ internal class DefaultOpenIdServerFactory(
         if (string.Equals(prevConcurrencyToken, newConcurrencyToken, StringComparison.Ordinal))
             return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 
-        var secrets = SecretSerializer.DeserializeSecrets(newSecrets.Value);
+        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+            SecretOwner.ForServer(serverId),
+            newSecrets.Value,
+            cancellationToken
+        );
+
+        var secrets = SecretSerializer.DeserializeSecrets(protector, newSecrets.Value);
 
         // update the state after successfully deserializing the secrets
         persistedServer.Secrets = newSecrets;

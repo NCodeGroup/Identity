@@ -100,7 +100,7 @@ public class DefaultCreateBackchannelAuthenticationRequestHandlerTests : BaseTes
         mockRequest.SetupGet(x => x.BindingMessage).Returns((string?)null);
 
         MockCryptoService
-            .Setup(x => x.GenerateKey(32, BinaryEncodingType.Base64Url))
+            .Setup(x => x.GenerateKey(32, BinaryEncodings.Base64Url))
             .Returns("auth-req-id-value");
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
 

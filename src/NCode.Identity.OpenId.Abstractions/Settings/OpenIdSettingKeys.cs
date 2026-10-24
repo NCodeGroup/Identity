@@ -135,8 +135,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.AllowedIdentityProviders);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'allow_loopback_redirect' setting.
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'allow_loopback_redirect' setting. Whether a registered
+    /// loopback IP redirect URI (<c>http://127.0.0.1</c> or <c>http://[::1]</c>) may be requested with any port
+    /// (RFC 8252 §7.3). Every other part of a redirect URI must equal a registered one exactly. Default <c>true</c>;
+    /// <c>fapi1-advanced</c> turns it off.
     /// </summary>
+    // See ADR-0203.
     public static SettingKey<bool> AllowLoopbackRedirect =>
         new(OpenIdSettingNames.AllowLoopbackRedirect);
 
@@ -339,6 +343,52 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.IdTokenSigningAlgValuesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_encrypted_response_alg' setting.
+    /// </summary>
+    public static SettingKey<string> AuthorizationEncryptedResponseAlg =>
+        new(OpenIdSettingNames.AuthorizationEncryptedResponseAlg);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_encrypted_response_enc' setting.
+    /// </summary>
+    public static SettingKey<string> AuthorizationEncryptedResponseEnc =>
+        new(OpenIdSettingNames.AuthorizationEncryptedResponseEnc);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_encryption_alg_values_supported' setting.
+    /// </summary>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > AuthorizationEncryptionAlgValuesSupported =>
+        new(OpenIdSettingNames.AuthorizationEncryptionAlgValuesSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_encryption_enc_values_supported' setting.
+    /// </summary>
+    public static SettingKey<
+        IReadOnlyCollection<string>
+    > AuthorizationEncryptionEncValuesSupported =>
+        new(OpenIdSettingNames.AuthorizationEncryptionEncValuesSupported);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_signed_response_alg' setting.
+    /// </summary>
+    public static SettingKey<string> AuthorizationSignedResponseAlg =>
+        new(OpenIdSettingNames.AuthorizationSignedResponseAlg);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_response_lifetime' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> AuthorizationResponseLifetime =>
+        new(OpenIdSettingNames.AuthorizationResponseLifetime);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'authorization_signing_alg_values_supported' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> AuthorizationSigningAlgValuesSupported =>
+        new(OpenIdSettingNames.AuthorizationSigningAlgValuesSupported);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'introspection_encrypted_response_alg' setting.
     /// </summary>
     public static SettingKey<string> IntrospectionEncryptedResponseAlg =>
@@ -430,6 +480,12 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> RedirectUris =>
         new(OpenIdSettingNames.RedirectUris);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'redirect_uri_kinds_supported' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> RedirectUriKindsSupported =>
+        new(OpenIdSettingNames.RedirectUriKindsSupported);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'post_logout_redirect_uris' setting.
@@ -528,16 +584,28 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.RefreshTokenReusePolicy);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_rotation_policy' setting.
+    /// </summary>
+    public static SettingKey<string> RefreshTokenRotationPolicy =>
+        new(OpenIdSettingNames.RefreshTokenRotationPolicy);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_reuse_interval' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> RefreshTokenReuseInterval =>
+        new(OpenIdSettingNames.RefreshTokenReuseInterval);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_rotation_retry_required' setting.
+    /// </summary>
+    public static SettingKey<bool> RefreshTokenRotationRetryRequired =>
+        new(OpenIdSettingNames.RefreshTokenRotationRetryRequired);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_lifetime' setting.
     /// </summary>
     public static SettingKey<TimeSpan> RefreshTokenLifetime =>
         new(OpenIdSettingNames.RefreshTokenLifetime);
-
-    /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'refresh_token_rotation_enabled' setting.
-    /// </summary>
-    public static SettingKey<bool> RefreshTokenRotationEnabled =>
-        new(OpenIdSettingNames.RefreshTokenRotationEnabled);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_object_encryption_alg_values_supported' setting.
@@ -566,6 +634,18 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<string> RequestObjectExpectedAudience =>
         new(OpenIdSettingNames.RequestObjectExpectedAudience);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_object_max_lifetime' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> RequestObjectMaxLifetime =>
+        new(OpenIdSettingNames.RequestObjectMaxLifetime);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_object_nbf_required' setting.
+    /// </summary>
+    public static SettingKey<bool> RequestObjectNotBeforeRequired =>
+        new(OpenIdSettingNames.RequestObjectNotBeforeRequired);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'request_parameter_supported' setting.
@@ -847,9 +927,17 @@ public static class OpenIdSettingKeys
     public static SettingKey<bool> DPoPNonceRequired => new(OpenIdSettingNames.DPoPNonceRequired);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_dpop' setting (RFC 9449).
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_dpop_bound_access_tokens' setting (RFC 9449).
     /// </summary>
-    public static SettingKey<bool> RequireDPoP => new(OpenIdSettingNames.RequireDPoP);
+    public static SettingKey<bool> RequireDPoPBoundAccessTokens =>
+        new(OpenIdSettingNames.RequireDPoPBoundAccessTokens);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'require_tls_client_certificate_bound_access_tokens' setting
+    /// (RFC 8705 §3).
+    /// </summary>
+    public static SettingKey<bool> RequireTlsClientCertificateBoundAccessTokens =>
+        new(OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_certificate_bound_access_tokens' setting
@@ -857,6 +945,18 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<bool> TlsClientCertificateBoundAccessTokens =>
         new(OpenIdSettingNames.TlsClientCertificateBoundAccessTokens);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_auth_trust_anchors' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> TlsClientAuthTrustAnchors =>
+        new(OpenIdSettingNames.TlsClientAuthTrustAnchors);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_auth_revocation_mode' setting.
+    /// </summary>
+    public static SettingKey<string> TlsClientAuthRevocationMode =>
+        new(OpenIdSettingNames.TlsClientAuthRevocationMode);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'tls_client_auth_subject_dn' setting (RFC 8705 §2.1.2).
@@ -887,12 +987,6 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<string> TlsClientAuthSanEmail =>
         new(OpenIdSettingNames.TlsClientAuthSanEmail);
-
-    /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'mtls_endpoint_alias_authority' setting (RFC 8705 §5).
-    /// </summary>
-    public static SettingKey<string> MtlsEndpointAliasAuthority =>
-        new(OpenIdSettingNames.MtlsEndpointAliasAuthority);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'client_name' setting (RFC 7591 §2).
@@ -934,4 +1028,68 @@ public static class OpenIdSettingKeys
     /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'software_version' setting (RFC 7591 §2).
     /// </summary>
     public static SettingKey<string> SoftwareVersion => new(OpenIdSettingNames.SoftwareVersion);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'rate_limit_tenant_per_minute' setting.
+    /// </summary>
+    public static SettingKey<int> RateLimitTenantPerMinute =>
+        new(OpenIdSettingNames.RateLimitTenantPerMinute);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'rate_limit_address_per_minute' setting.
+    /// </summary>
+    public static SettingKey<int> RateLimitAddressPerMinute =>
+        new(OpenIdSettingNames.RateLimitAddressPerMinute);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the per-client 'rate_limit_client_per_minute' setting.
+    /// </summary>
+    public static SettingKey<int> RateLimitClientPerMinute =>
+        new(OpenIdSettingNames.RateLimitClientPerMinute);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'quota_tenant_requests_per_day' setting.
+    /// </summary>
+    public static SettingKey<int> QuotaTenantRequestsPerDay =>
+        new(OpenIdSettingNames.QuotaTenantRequestsPerDay);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'quota_tenant_token_requests_per_day' setting.
+    /// </summary>
+    public static SettingKey<int> QuotaTenantTokenRequestsPerDay =>
+        new(OpenIdSettingNames.QuotaTenantTokenRequestsPerDay);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'quota_tenant_requests_overage_per_day' setting.
+    /// </summary>
+    public static SettingKey<int> QuotaTenantRequestsOveragePerDay =>
+        new(OpenIdSettingNames.QuotaTenantRequestsOveragePerDay);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'quota_tenant_token_requests_overage_per_day' setting.
+    /// </summary>
+    public static SettingKey<int> QuotaTenantTokenRequestsOveragePerDay =>
+        new(OpenIdSettingNames.QuotaTenantTokenRequestsOveragePerDay);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'password_min_length' setting.
+    /// </summary>
+    public static SettingKey<int> PasswordMinLength => new(OpenIdSettingNames.PasswordMinLength);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'password_max_length' setting.
+    /// </summary>
+    public static SettingKey<int> PasswordMaxLength => new(OpenIdSettingNames.PasswordMaxLength);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'password_failed_attempts_limit' setting.
+    /// </summary>
+    public static SettingKey<int> PasswordFailedAttemptsLimit =>
+        new(OpenIdSettingNames.PasswordFailedAttemptsLimit);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'password_failed_attempts_window' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> PasswordFailedAttemptsWindow =>
+        new(OpenIdSettingNames.PasswordFailedAttemptsWindow);
 }

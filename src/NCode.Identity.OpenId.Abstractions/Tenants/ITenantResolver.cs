@@ -68,6 +68,25 @@ public interface ITenantResolver
     );
 
     /// <summary>
+    /// Gets the identifier of the control-plane tenant from the configured <see cref="ITenantStrategy"/>, without a store
+    /// round-trip, so the tenant cache can be probed before <see cref="ResolveControlPlaneTenantAsync"/> reads the store.
+    /// </summary>
+    /// <returns>The identifier of the control-plane tenant.</returns>
+    string GetControlPlaneTenantId();
+
+    /// <summary>
+    /// Resolves the control-plane tenant, which authenticates the management API whatever tenant the request addresses.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the control-plane
+    /// <see cref="PersistedTenant"/>.</returns>
+    ValueTask<PersistedTenant> ResolveControlPlaneTenantAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Gets the issuer the configured <see cref="ITenantStrategy"/> assigns a tenant that is written without one — its
     /// configured issuer or the expansion of its issuer template. Every place a tenant is written applies it before
     /// <see cref="ValidateTenantAsync"/>, which judges a derived issuer exactly like an explicit one.
@@ -77,6 +96,30 @@ public interface ITenantResolver
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the default issuer, or
     /// <c>null</c> when the identifier is not a valid tenant identifier or the strategy assigns the tenant none.</returns>
     ValueTask<string?> GetDefaultIssuerAsync(string tenantId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the mutual-TLS endpoint-alias authority (RFC 8705 §5) the configured <see cref="ITenantStrategy"/> assigns a
+    /// tenant that is written without one — the expansion of its alias template. Every place a tenant is written applies
+    /// it before <see cref="ValidateTenantAsync"/>, which judges a derived alias exactly like an explicit one.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the default alias
+    /// authority, or <c>null</c> when the identifier is not a valid tenant identifier or the strategy assigns the tenant
+    /// none.</returns>
+    ValueTask<string?> GetDefaultMtlsEndpointAliasAuthorityAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Determines whether the deployment requires the specified tenant: one that is created on demand — the root tenant
+    /// under every strategy, and the configured tenant under the static single-tenant strategy. A required tenant cannot
+    /// be deleted, because retired tenant identifiers are never reissued and the next request would fail to recreate it.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant.</param>
+    /// <returns><see langword="true"/> when the deployment requires the tenant; otherwise, <see langword="false"/>.</returns>
+    bool IsRequiredTenant(string tenantId);
 
     /// <summary>
     /// Validates that a tenant with the specified identifier and issuer can be served: the identifier is 1 to 63
@@ -89,6 +132,9 @@ public interface ITenantResolver
     /// </summary>
     /// <param name="tenantId">The identifier of the tenant.</param>
     /// <param name="issuer">The proposed issuer of the tenant, or <c>null</c> or empty when it has none.</param>
+    /// <param name="mtlsEndpointAliasAuthority">The proposed mutual-TLS endpoint-alias authority of the tenant (RFC 8705
+    /// §5), or <c>null</c> or empty when it has none. When present, it must be an <c>https</c> origin, and the configured
+    /// <see cref="ITenantStrategy"/> judges whether a request to it reaches the tenant.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the unit of work the tenant is written in.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the failures; empty
@@ -96,6 +142,7 @@ public interface ITenantResolver
     ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
         string tenantId,
         string? issuer,
+        string? mtlsEndpointAliasAuthority,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     );

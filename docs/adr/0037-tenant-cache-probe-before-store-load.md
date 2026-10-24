@@ -1,6 +1,8 @@
 # 37. The tenant cache is probed before the store is read on the resolution hot path
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a cached tenant has an
+  absolute lifetime)
 - **Date:** 2026-10-03
 - **Deciders:** NCode Group
 
@@ -46,7 +48,7 @@ cache using the identity probe before it reads the store.**
   second cache with its own invalidation and staleness surface for one strategy; host-based tenancy keeps its single
   store read. This remains available as a future optimization.
 - **Re-validate the disabled flag on every request even on a cache hit.** Rejected: it reintroduces the per-request
-  store read this ADR removes. Bounding disabled-tenant staleness to the cache's sliding expiration is the accepted
+  store read this ADR removes. Bounding disabled-tenant staleness to the cache's lifetime is the accepted
   trade-off of caching a tenant at all.
 
 ## Consequences
@@ -55,9 +57,9 @@ cache using the identity probe before it reads the store.**
   unchanged.
 - The static-single strategy no longer re-ensures (and lazily provisions) the root tenant on warm requests; that work
   now runs only on the cache-miss path, which is the correct place for one-time provisioning.
-- A tenant disabled _after_ it was cached continues to serve until its cache entry expires
-  (`OpenIdTenantOptions.TenantCacheExpiration`). Operators requiring immediate cut-off must shorten the expiration or
-  evict the entry; this is the inherent staleness window of the tenant cache.
+- A tenant disabled after it was cached continues to serve on a replica until the announcement of the change evicts it
+  ([ADR-0205](0205-replicas-announce-changes-through-a-broadcast-port.md)), and at most
+  `OpenIdTenantOptions.TenantCacheLifetime` (15 minutes) on a replica that missed it.
 - `TryGetTenantId` is a store-free, non-throwing probe; the authoritative validation (missing or disabled tenant → a
   `404`) stays in `ResolveTenantAsync` on the load path.
 

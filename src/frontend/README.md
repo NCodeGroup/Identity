@@ -45,9 +45,10 @@ and fnm honor it, so each repo selects its own Node (nvm reads only `.nvmrc`). `
 major as the floor — it is also what makes Turborepo's cache miss when the runtime changes — and `@types/node` tracks
 that major, not the newest release
 ([ADR-0147](../../docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Moving to a
-new major changes `.node-version`, `engines.node`, and the `@types/node` ranges together. With
-NVS: `nvs auto on` switches automatically on `cd`; it only lasts for the current shell, so persist it in your shell
-profile:
+new major changes `.node-version`, `engines.node`, the `@types/node` ranges, and the Node image of the host
+[`Dockerfile`](../NCode.Identity.OpenId.Host/Dockerfile) together; the `Host image` workflow checks that image's
+major. With NVS: `nvs auto on` switches automatically on `cd`; it only lasts for the current shell, so persist it in
+your shell profile:
 
 ```powershell
 # pwsh — $PROFILE.CurrentUserAllHosts (profile.ps1; covers the terminal and the VS Code PowerShell host)
@@ -103,8 +104,9 @@ src/frontend/
    `/config/bootstrap.json` + the OP's `/.well-known/openid-configuration`.
 6. **The global vs tenant security boundary is first-class** — distinct browsing contexts, cache tags,
    and authorization gating, never one list with a filter.
-7. **Branding is a runtime seam.** `@ncode/ui` themes from runtime `BrandingConfig`; per-tenant
-   branding is additive later through the same discovery channel.
+7. **Branding is a runtime seam.** `@ncode/ui` themes from runtime `BrandingConfig`. The interactive
+   surface (`apps/auth`) loads its tenant's branding from the surface-relative `branding` endpoint before
+   it renders, parsed by `parseBrandingConfig` (ADR-0194).
 8. **`type` over `interface`, always.** All declarations — DTOs, props, unions — use `type` aliases,
    standardizing on the single most capable mechanism (unions, intersections, mapped/conditional
    types) rather than mixing the two.
@@ -166,7 +168,9 @@ served:
 - **Backend-served SPAs** — served by the .NET host from a static `dist` (e.g. `apps/auth`, which the
   Playground serves through the interactive-login endpoint) — use **`vite build --watch`**. This keeps
   `dist` continuously rebuilt so a browser refresh shows edits. (There is no HMR dev server because the
-  .NET host, not Vite, serves these bundles.) Their config is `defineBackendServedSurfaceConfig({ base, coverage })`.
+  .NET host, not Vite, serves these bundles.) Their config is `defineBackendServedSurfaceConfig({ coverage })`, which
+  builds with a relative base: the host serves the bundle beneath each tenant's route and sets the document's
+  `<base href>` there.
 - **Standalone SPAs** — served directly by Vite on their own port (e.g. `apps/mgmt`) — use **`vite`**,
   a full HMR dev server. Their config is `defineStandaloneSurfaceConfig({ port, bootstrapHost, coverage })`, which pins
   the port with `strictPort` (the surface's redirect URI, CORS origin, and AppHost endpoint all assume it) and proxies
@@ -214,9 +218,10 @@ unfinished load and starts over.
 
 `NCode.Identity.Server` binds the `Frontend` configuration section and registers the endpoint through the
 single `IIdentityServerBuilder.AddFrontendBootstrap(configuration)` seam — the host's existing
-`MapEndpointGroups()` call then publishes it (API base, issuer, client id, scopes, feature flags, branding),
-falling back to the serving request's own origin for the API base and issuer when they are unset — so a
-single-origin host needs no configuration.
+`MapEndpointGroups()` call then publishes it (API base, issuer, client id, scopes, feature flags, branding). An unset
+issuer is the issuer of the tenant that serves the surface — never the request's origin — and an unset API base is the
+serving request's own origin, so a single-origin host needs no configuration
+([ADR-0182](../../docs/adr/0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md)).
 
 - **Backend-served bundles** (e.g. `apps/auth`, served by the OpenID Provider host) fetch the document
   straight from their serving host.
@@ -256,7 +261,7 @@ Pick **`Aspire: Full stack (F5)`** in the Run and Debug view (or press F5) — a
 as one resource graph: the Playground OP host (`api`), the interactive-login build-watcher (`auth`), the
 Management console Vite dev server (`mgmt`), the flow-explorer Vite dev server (`playground`, :5174), and the
 conformance-dashboard Vite dev server (`conformance`, :5175). Aspire gates each UI resource on the API being
-**healthy** (`WaitFor` + `/health`), so the browser UIs no longer race the API, and its **dashboard** is one place
+**healthy** (`WaitFor` + `/health/ready`), so the browser UIs no longer race the API, and its **dashboard** is one place
 for ordered startup, logs, and traces.
 
 One-time setup (**required** before the first launch, and again whenever dependencies or the pinned Node/pnpm change):

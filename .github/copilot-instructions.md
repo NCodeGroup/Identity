@@ -100,5 +100,8 @@ When the user authorizes a push (says "push"), run these gates **before** pushin
    its final line is `Definition of Done: PASSED`. The full `./build/dod.ps1` (which adds coverage + packing and
    treats NuGet advisories as errors) is the CI-parity gate that runs in CI, **not** before a local push.
 
+After the push, an item is done only when every GitHub Actions workflow run for the pushed commit succeeds. Wait for
+the runs, and remediate any failure in the same change, before reporting the item done or archiving it.
+
 This upholds [ADR-0008](../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md): conventions, reasoning, and
 recurring gotchas live in the repository.

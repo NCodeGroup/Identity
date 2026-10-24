@@ -1,6 +1,7 @@
 # 124. JWT lifetime is capped from its earliest asserted start; client assertions default to five minutes
 
-- **Status:** Accepted
+- **Status:** Accepted (request objects capped by
+  [ADR-0187](./0187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md))
 - **Date:** 2026-10-17
 - **Deciders:** NCode.Identity maintainers
 
@@ -75,8 +76,9 @@ client assertions use it through a lattice-bounded setting.**
   resources, introspected tokens, token-exchange subject tokens) is now rejected when its `iat` is unreadable or later
   than the clock skew in the future. Tokens this server issues stamp `iat` at issuance, so they are unaffected.
 - The far-future-`exp` replay-cache growth that motivated `F39` is closed.
-- Signed request objects (JAR and CIBA) are not yet capped; FAPI 2.0 Message Signing, FAPI 1.0 Advanced, and CIBA impose
-  their own request-object claim and lifetime rules. Applying `MaxLifetime` there is tracked as backlog `F40`.
+- Signed request objects (JAR and CIBA) apply `MaxLifetime` through their own `request_object_max_lifetime` setting,
+  with the claim rules FAPI 2.0 Message Signing, FAPI 1.0 Advanced, and CIBA impose
+  ([ADR-0187](./0187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md)).
 
 ## References
 
@@ -87,4 +89,4 @@ client assertions use it through a lattice-bounded setting.**
 - [RFC 7523 §3 — JWT assertion processing](https://datatracker.ietf.org/doc/html/rfc7523#section-3)
 - [FAPI 2.0 Security Profile §5.3.2.1](https://openid.net/specs/fapi-security-profile-2_0-final.html)
 - [Auth0 — Authenticate with Private Key JWT](https://auth0.com/docs/get-started/authentication-and-authorization-flow/authenticate-with-private-key-jwt)
-- Backlog `F39` ([`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLETED.md)) and `F40` ([`BACKLOG.md`](../../BACKLOG.md))
+- Backlog `F39` and `F40` ([`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLETED.md))

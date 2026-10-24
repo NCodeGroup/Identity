@@ -27,7 +27,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
-using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
@@ -39,13 +38,11 @@ using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Json;
 using NCode.Persistence.Stores;
@@ -70,6 +67,8 @@ GET    api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/public-key
 PUT    api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}
 DELETE api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}
 
+GET   api/tenants/{tenantId}/incoherent-clients
+
 */
 
 /// <summary>
@@ -83,14 +82,15 @@ internal class ClientApiEndpointHandler(
     ISecretGenerator secretGenerator,
     IClientKeyImporter clientKeyImporter,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
-    IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretPublicKeyConverter secretPublicKeyConverter,
+    ISecretProtectorProvider secretProtectorProvider,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
-    IOpenIdServerProvider serverProvider,
-    ISecurityProfileCatalog securityProfileCatalog,
+    IEffectiveSettingsResolver effectiveSettingsResolver,
+    IClientCoherenceValidator clientCoherenceValidator,
+    IClientCoherenceReporter clientCoherenceReporter,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<ClientApiEndpointHandler> logger
@@ -103,16 +103,17 @@ internal class ClientApiEndpointHandler(
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
-    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
-        algorithmCollectionProvider;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
     private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
         settingScopeCollectionProvider;
-    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
-    private ISecurityProfileCatalog SecurityProfileCatalog { get; } = securityProfileCatalog;
+    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
+        effectiveSettingsResolver;
+    private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
+    private IClientCoherenceReporter ClientCoherenceReporter { get; } = clientCoherenceReporter;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -168,6 +169,10 @@ internal class ClientApiEndpointHandler(
         clients
             .MapDelete("/{clientId}/secrets/{secretId}", DeleteSecretAsync)
             .Produces(StatusCodes.Status204NoContent);
+        clients
+            .MapPost("/{clientId}/secrets/{secretId}/rotate", RotateSecretAsync)
+            .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
+            .ProducesValidationProblem();
 
         clients
             .MapGet("/{clientId}/owners", ListOwnersAsync)
@@ -178,6 +183,12 @@ internal class ClientApiEndpointHandler(
         clients
             .MapDelete("/{clientId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
+
+        // The report is not under /clients because /clients/{clientId} would answer it as a client identifier.
+        endpoints
+            .MapGet("/incoherent-clients", ListIncoherentClientsAsync)
+            .WithTags(OpenIdConstants.EndpointTags.Clients)
+            .Produces<CollectionResource<IncoherentClientResource>>();
     }
 
     /// <summary>
@@ -216,23 +227,21 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
-    /// Merges an OpenID Client's persisted settings onto the addressed tenant's effective settings, producing the same
-    /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the client at runtime.
-    /// The tenant's effective view is reconstructed by id (the server baseline merged with the tenant's persisted
-    /// overrides), so the preview is independent of the request's resolved tenant. Both the tenant's and the client's
-    /// settings are expanded with the ceilings of the security profiles they select, as they are at runtime.
+    /// Resolves the addressed tenant's effective settings: the server's committed settings merged with the tenant's
+    /// persisted overrides. The tenant's effective view is reconstructed by id, so it is independent of the request's
+    /// resolved tenant. Both the server's and the tenant's settings are resolved through the
+    /// <see cref="IEffectiveSettingsResolver"/>, so each is expanded with the ceilings of the security profiles it
+    /// selects, as it is at runtime.
     /// </summary>
-    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
-    /// <param name="client">The <see cref="PersistedClient"/> whose settings to merge.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the owning tenant's
+    /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the tenant's
     /// settings are absent.</returns>
-    internal virtual async ValueTask<IReadOnlySettingCollection?> MergeClientSettingsAsync(
-        OpenIdContext openIdContext,
+    /// <exception cref="UnreadableSettingsException">The tenant's document or the server's cannot be honored.</exception>
+    // See ADR-0204 and ADR-0245.
+    internal virtual async ValueTask<IReadOnlySettingCollection?> MergeTenantSettingsAsync(
         string tenantId,
-        PersistedClient client,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
@@ -245,21 +254,89 @@ internal class ClientApiEndpointHandler(
             return null;
         }
 
-        var jsonOptions = openIdContext.Environment.JsonSerializerOptions;
-        var server = await ServerProvider.GetAsync(openIdContext.Environment, cancellationToken);
-        var tenantScopeSettings = SecurityProfileCatalog.Expand(
-            tenantSettings.Value,
+        var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        return EffectiveSettingsResolver.ResolveStored(
+            serverEffective,
             OpenIdSettingScopes.Tenant,
-            jsonOptions
+            tenantId,
+            tenantSettings.Value
         );
-        var clientScopeSettings = SecurityProfileCatalog.Expand(
-            client.Settings.Value,
-            OpenIdSettingScopes.Client,
-            jsonOptions
+    }
+
+    /// <summary>
+    /// Merges an OpenID Client's persisted settings onto the addressed tenant's effective settings, producing the same
+    /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the client at runtime.
+    /// The tenant's effective view is reconstructed by id (see <see cref="MergeTenantSettingsAsync"/>), so the preview
+    /// is independent of the request's resolved tenant. The client's settings are resolved through the
+    /// <see cref="IEffectiveSettingsResolver"/>, so they are expanded with the ceilings of the security profiles they
+    /// select, as they are at runtime. A document that cannot be honored fails naming its owner.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
+    /// <param name="clientId">The identifier of the OpenID Client that owns the settings document.</param>
+    /// <param name="clientSettings">The client's settings document to merge.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the owning tenant's
+    /// settings are absent.</returns>
+    /// <exception cref="UnreadableSettingsException">The client's document, the tenant's or the server's cannot be
+    /// honored.</exception>
+    // See ADR-0204 and ADR-0245.
+    internal virtual async ValueTask<IReadOnlySettingCollection?> MergeClientSettingsAsync(
+        string tenantId,
+        string clientId,
+        JsonElement clientSettings,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantEffective = await MergeTenantSettingsAsync(
+            tenantId,
+            storeManager,
+            cancellationToken
+        );
+        return tenantEffective is null
+            ? null
+            : EffectiveSettingsResolver.ResolveStored(
+                tenantEffective,
+                OpenIdSettingScopes.Client,
+                clientId,
+                clientSettings
+            );
+    }
+
+    /// <summary>
+    /// Verifies that a client's settings document, resolved onto its tenant's effective settings as the runtime
+    /// resolves it, satisfies every registered <see cref="IClientCoherenceRule"/> (the algorithms the client registers
+    /// for the JWTs addressed to it, the kinds of its redirect URIs, and its token endpoint authentication method). A
+    /// mismatch is rejected when the settings are written instead of failing every issuance with
+    /// <c>server_error</c> or every authorization request with <c>invalid_request</c>.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
+    /// <param name="clientSettings">The client's settings document to verify.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="SettingError"/> instances naming each registered setting whose value is not permitted, or an
+    /// empty list.</returns>
+    // See ADR-0206.
+    internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateEffectiveSettingsAsync(
+        string tenantId,
+        JsonElement clientSettings,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantSettings = await MergeTenantSettingsAsync(
+            tenantId,
+            storeManager,
+            cancellationToken
         );
 
-        var tenantEffective = server.SettingsProvider.Collection.Merge(tenantScopeSettings);
-        return tenantEffective.Merge(clientScopeSettings);
+        return tenantSettings is null
+            ? []
+            : ClientCoherenceValidator
+                .Validate(tenantSettings, clientSettings)
+                .Select(violation => new SettingError(violation.SettingName, violation.Description))
+                .ToList();
     }
 
     /// <summary>
@@ -283,6 +360,35 @@ internal class ClientApiEndpointHandler(
                 SettingScopeCollectionProvider.Collection,
                 OpenIdSettingScopes.Client
             ),
+        };
+    }
+
+    /// <summary>
+    /// Maps an <see cref="IncoherentClient"/> to its <see cref="IncoherentClientResource"/> representation.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
+    /// <param name="client">The <see cref="IncoherentClient"/> to map.</param>
+    /// <returns>The mapped <see cref="IncoherentClientResource"/>.</returns>
+    internal virtual IncoherentClientResource ToIncoherentClientResource(
+        string tenantId,
+        IncoherentClient client
+    )
+    {
+        return new IncoherentClientResource
+        {
+            TenantId = tenantId,
+            ClientId = client.ClientId,
+            Violations =
+            [
+                .. client.Violations.Select(violation => new ClientCoherenceViolationResource
+                {
+                    SettingName = violation.SettingName,
+                    Value = violation.Value,
+                    GoverningSettingName = violation.GoverningSettingName,
+                    Description = violation.Description,
+                }),
+            ],
+            DocumentError = client.DocumentError,
         };
     }
 
@@ -345,6 +451,63 @@ internal class ClientApiEndpointHandler(
                     );
             },
             ToClientResource
+        );
+    }
+
+    /// <summary>
+    /// Lists the clients of a tenant that the tenant's effective settings make incoherent.
+    /// </summary>
+    /// <remarks>
+    /// A page checks up to <paramref name="limit"/> clients of the tenant and lists the incoherent ones among them, so
+    /// a page can list none while a continuation token remains. A tenant without settings has no incoherent clients.
+    /// </remarks>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
+    /// <param name="limit">The maximum number of clients to check on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">A page of incoherent clients.</response>
+    // See ADR-0233.
+    [EndpointName("api/clients/incoherent/list")]
+    internal virtual async ValueTask<IResult> ListIncoherentClientsAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken
+    )
+    {
+        // The report is authorized like the client list: for the addressed tenant.
+        var effectiveLimit = NormalizeLimit(limit);
+
+        return await ProcessListAsync(
+            httpContext,
+            TenantScopeResource.For(tenantId),
+            async () =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                var tenantSettings = await MergeTenantSettingsAsync(
+                    tenantId,
+                    storeManager,
+                    cancellationToken
+                );
+                if (tenantSettings is null)
+                {
+                    return new PagedResult<IncoherentClient> { Items = [], NextCursor = null };
+                }
+
+                var page = new PageRequest { Cursor = cursor, Limit = effectiveLimit };
+                return await ClientCoherenceReporter.FindIncoherentClientsAsync(
+                    storeManager,
+                    tenantId,
+                    tenantSettings,
+                    page,
+                    cancellationToken
+                );
+            },
+            client => ToIncoherentClientResource(tenantId, client)
         );
     }
 
@@ -445,6 +608,17 @@ internal class ClientApiEndpointHandler(
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);
+        }
+
+        var effectiveSettingErrors = await ValidateEffectiveSettingsAsync(
+            tenantId,
+            client.Settings.Value,
+            storeManager,
+            cancellationToken
+        );
+        if (effectiveSettingErrors.Count > 0)
+        {
+            return SettingsValidationProblem(effectiveSettingErrors);
         }
 
         await store.AddAsync(client, cancellationToken);
@@ -573,7 +747,7 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Core preconditions (authorization + no-dependents) are asserted by the validator (ADR-0014).
+        // The core precondition (authorization) is asserted by the validator (ADR-0014); the store removes everything that exists for the client (ADR-0212).
         var error = await ClientValidator.ValidateDeleteAsync(
             httpContext.User,
             client,
@@ -660,26 +834,30 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var openIdContext = httpContext.GetOpenIdContext();
-        var effectiveSettings = await MergeClientSettingsAsync(
-            openIdContext,
-            tenantId,
-            client,
-            storeManager,
-            cancellationToken
-        );
-        if (effectiveSettings is null)
-        {
-            return TypedResults.NotFound();
-        }
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
+        // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
+        // document that cannot be honored, and the stored document's token is not the effective view's.
+        // A null projection is the absent tenant, answered 404. See ADR-0245.
         return await ProcessGetAsync(
             httpContext,
-            effectiveSettings,
+            client.Settings.Value,
             node,
             Operations.Read,
-            settings => ToClientEffectiveSettingsResource(client, settings)
+            async (settings, token) =>
+            {
+                var effectiveSettings = await MergeClientSettingsAsync(
+                    tenantId,
+                    clientId,
+                    settings,
+                    storeManager,
+                    token
+                );
+                return effectiveSettings is null
+                    ? null
+                    : ToClientEffectiveSettingsResource(client, effectiveSettings);
+            },
+            cancellationToken
         );
     }
 
@@ -748,7 +926,8 @@ internal class ClientApiEndpointHandler(
 
         var settingsValue = SerializeToElement(jsonObject);
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
-        var settingErrors = SettingSerializer.ValidateSettings(
+        var settingErrors = SettingSerializer.ValidateSettingsUpdate(
+            clientSettings.Value,
             settingsValue,
             OpenIdSettingScopes.Client,
             jsonOptions
@@ -761,6 +940,17 @@ internal class ClientApiEndpointHandler(
         if (HasJwksUri(settingsValue) && HasPublicKeys(client.Secrets.Value))
         {
             return KeySourceConflict();
+        }
+
+        var effectiveSettingErrors = await ValidateEffectiveSettingsAsync(
+            client.TenantId,
+            settingsValue,
+            storeManager,
+            cancellationToken
+        );
+        if (effectiveSettingErrors.Count > 0)
+        {
+            return SettingsValidationProblem(effectiveSettingErrors);
         }
 
         clientSettings.Value = settingsValue;
@@ -865,6 +1055,12 @@ internal class ClientApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(client.TenantId),
+            [],
+            cancellationToken
+        );
+
         GeneratedSecret generatedSecret;
         try
         {
@@ -886,8 +1082,8 @@ internal class ClientApiEndpointHandler(
             // produces for asymmetric JWKS keys (which never UTF-8 round-trips). See ADR-0110.
             generatedSecret =
                 request.SecretType == SecretTypes.Symmetric
-                    ? SecretGenerator.GenerateSharedSecret(generateRequest)
-                    : SecretGenerator.GenerateSecret(generateRequest);
+                    ? SecretGenerator.GenerateSharedSecret(protector, generateRequest)
+                    : SecretGenerator.GenerateSecret(protector, generateRequest);
         }
         catch (Exception exception)
             when (exception is ArgumentException or InvalidOperationException)
@@ -980,14 +1176,6 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(validationError);
         }
 
-        if (!Enum.TryParse<SecretKeyImportFormat>(request.Format, ignoreCase: true, out var format))
-        {
-            return TypedResults.Problem(
-                detail: $"The import format '{request.Format}' is not supported.",
-                statusCode: StatusCodes.Status400BadRequest
-            );
-        }
-
         if (HasJwksUri(client.Settings.Value))
         {
             return KeySourceConflict();
@@ -999,7 +1187,7 @@ internal class ClientApiEndpointHandler(
         {
             SecretId = secretId,
             SecretType = request.SecretType,
-            Format = format,
+            Format = request.Format,
             KeyMaterial = request.KeyMaterial,
             Use = request.Use,
             Algorithm = request.Algorithm,
@@ -1011,18 +1199,10 @@ internal class ClientApiEndpointHandler(
             return TypedResults.Problem(detail: error, statusCode: StatusCodes.Status400BadRequest);
         }
 
-        // Keys are selected by kid, so two of a client's keys never share one.
-        var keyId = GetKeyId(importedSecret);
-        if (
-            client.Secrets.Value.Any(secret =>
-                string.Equals(GetKeyId(secret), keyId, StringComparison.Ordinal)
-            )
-        )
+        var keyIdConflict = KeyIdConflictOrDefault(client.Secrets.Value, importedSecret, "client");
+        if (keyIdConflict is not null)
         {
-            return TypedResults.Problem(
-                detail: $"A key with the 'kid' value '{keyId}' is already registered for the client.",
-                statusCode: StatusCodes.Status409Conflict
-            );
+            return keyIdConflict;
         }
 
         try
@@ -1131,9 +1311,12 @@ internal class ClientApiEndpointHandler(
             cancellationToken
         );
 
-        var scoped = clientSecret is null
-            ? null
-            : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
+        if (clientSecret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var scoped = TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
 
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
@@ -1141,7 +1324,20 @@ internal class ClientApiEndpointHandler(
             scoped,
             node,
             Operations.Read,
-            x => SecretPublicKeyConverter.Convert(x.Value)
+            async (x, ct) =>
+            {
+                // The owner is the tenant that owns the secret, not the route value.
+                // The protector is acquired only after authorization, so a caller who may not read the secret
+                // never loads its owner's master keys.
+                var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
+                    SecretOwner.ForTenant(clientSecret.TenantId),
+                    [x.Value],
+                    ct
+                );
+
+                return SecretPublicKeyConverter.Convert(protector, x.Value);
+            },
+            cancellationToken
         );
     }
 
@@ -1199,13 +1395,10 @@ internal class ClientApiEndpointHandler(
             return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
         }
 
-        var metadataError = ValidateKeyMetadata(secret, request.Use, request.Algorithm);
+        var metadataError = SecretValidator.ValidateUpdate(secret, request);
         if (metadataError is not null)
         {
-            return TypedResults.Problem(
-                detail: metadataError,
-                statusCode: StatusCodes.Status400BadRequest
-            );
+            return ToErrorResult(metadataError);
         }
 
         var updated = new PersistedSecret
@@ -1295,6 +1488,185 @@ internal class ClientApiEndpointHandler(
         );
 
         return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Rotates a client secret: generates a replacement of the same type, size, use, and algorithm, and removes the
+    /// rotated secret in the same change.
+    /// </summary>
+    /// <remarks>
+    /// Only a client's shared secret is rotated; a key is the client's to hold and is replaced by importing a new one.
+    /// The rotated secret stops being accepted at once, so a client that needs both to overlap creates the replacement
+    /// and deletes the rotated secret in two calls. Rotation is authorized as those two calls are. The replacement's
+    /// material is revealed in the response only.
+    /// </remarks>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="clientId">The identifier of the OpenID Client.</param>
+    /// <param name="secretId">The identifier of the secret to rotate.</param>
+    /// <param name="request">The <see cref="RotateSecretRequest"/> describing the replacement.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the rotated secret.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="201">The replacement secret.</response>
+    // See ADR-0183.
+    [EndpointName("api/clients/secrets/rotate")]
+    internal virtual async ValueTask<IResult> RotateSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string clientId,
+        [FromRoute] string secretId,
+        [FromBody] RotateSecretRequest request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IClientStore>();
+
+        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
+        var secret = client?.Secrets.Value.FirstOrDefault(candidate =>
+            string.Equals(candidate.SecretId, secretId, StringComparison.Ordinal)
+        );
+        if (client is null || secret is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var createResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            client,
+            Operations.Create
+        );
+        if (!createResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var deleteResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            TenantOwnedResource.For(client.TenantId, secret),
+            Operations.Delete
+        );
+        if (!deleteResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (
+            !string.IsNullOrEmpty(ifMatch)
+            && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
+        )
+        {
+            return TypedResults.StatusCode(StatusCodes.Status412PreconditionFailed);
+        }
+
+        if (secret.SecretType != SecretTypes.Symmetric)
+        {
+            return TypedResults.Problem(
+                detail: "Only a client's shared secret can be rotated; a key is replaced by importing a new one and "
+                    + "deleting the old one.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        var createRequest = new CreateSecretRequest
+        {
+            SecretType = secret.SecretType,
+            KeySizeBits = secret.KeySizeBits,
+            Use = secret.Use,
+            Algorithm = secret.Algorithm,
+            ExpiresWhen = request.ExpiresWhen,
+        };
+        var validationError = SecretValidator.ValidateCreate(createRequest);
+        if (validationError is not null)
+        {
+            return ToErrorResult(validationError);
+        }
+
+        var replacementId = CryptoService.GenerateResourceId();
+
+        var protector = await SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(client.TenantId),
+            [],
+            cancellationToken
+        );
+
+        GeneratedSecret generatedSecret;
+        try
+        {
+            // A client's shared secret is its client_secret, stored as the UTF-8 bytes of the opaque string (ADR-0110).
+            generatedSecret = SecretGenerator.GenerateSharedSecret(
+                protector,
+                new GenerateSecretRequest
+                {
+                    SecretId = replacementId,
+                    SecretType = createRequest.SecretType,
+                    KeySizeBits = createRequest.KeySizeBits,
+                    Use = createRequest.Use,
+                    Algorithm = createRequest.Algorithm,
+                    CreatedWhen = TimeProvider.GetUtcNow(),
+                    ExpiresWhen = createRequest.ExpiresWhen,
+                }
+            );
+        }
+        catch (Exception exception)
+            when (exception is ArgumentException or InvalidOperationException)
+        {
+            Logger.SecretGenerationFailed(exception);
+            return TypedResults.Problem(
+                detail: "The secret could not be generated from the supplied parameters.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        var rotatedValues = ToResourceValues(ToSecretResource(secret));
+
+        // The replacement is added and the rotated secret removed in one unit of work, so the client is never left
+        // with both or with neither.
+        try
+        {
+            await store.AddSecretAsync(clientId, generatedSecret.Secret, cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Logger.ResourceConflict(exception);
+            return TypedResults.Problem(
+                detail: "A secret with the specified identifier already exists.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await store.RemoveSecretAsync(clientId, secretId, cancellationToken);
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        var replacementResource = ToSecretResource(generatedSecret.Secret);
+
+        await ManagementAuditRecorder.RecordClientSecretChangedAsync(
+            httpContext,
+            client.TenantId,
+            clientId,
+            replacementId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(replacementResource),
+            cancellationToken
+        );
+        await ManagementAuditRecorder.RecordClientSecretChangedAsync(
+            httpContext,
+            client.TenantId,
+            clientId,
+            secretId,
+            ResourceChangeTypes.Deleted,
+            rotatedValues,
+            cancellationToken
+        );
+
+        httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
+
+        // The replacement's material is revealed here only (ADR-0050).
+        return TypedResults.Created(
+            $"/tenants/{tenantId}/clients/{clientId}/secrets/{replacementId}",
+            ToCreatedSecretResource(generatedSecret.Secret, generatedSecret.SecretMaterial)
+        );
     }
 
     /// <summary>
@@ -1394,38 +1766,4 @@ internal class ClientApiEndpointHandler(
 
     private bool HasPublicKeys(IEnumerable<PersistedSecret> secrets) =>
         secrets.Any(secret => IsPublicKeyType(secret.SecretType));
-
-    // A key without its own kid is selected by its secret identifier.
-    private static string GetKeyId(PersistedSecret secret) => secret.KeyId ?? secret.SecretId;
-
-    /// <summary>
-    /// Validates the metadata an update declares for a client's key: the <c>use</c> is <c>sig</c> or <c>enc</c>, and
-    /// the <c>alg</c> agrees with the use and accepts the key's type and size. Returns a human-readable reason, or
-    /// <see langword="null"/> when the metadata is coherent.
-    /// </summary>
-    // See ADR-0161.
-    private string? ValidateKeyMetadata(PersistedSecret secret, string? use, string? algorithm)
-    {
-        if (use is not null && use is not (SecretKeyUses.Signature or SecretKeyUses.Encryption))
-        {
-            return $"The use '{use}' is not supported; expected '{SecretKeyUses.Signature}' or "
-                + $"'{SecretKeyUses.Encryption}'.";
-        }
-
-        if (algorithm is null)
-            return null;
-
-        if (!SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor))
-            return $"The secret type '{secret.SecretType}' is not supported.";
-
-        return AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
-            new KeyAlgorithmDeclaration
-            {
-                KeyType = descriptor.KeyClrType,
-                KeySizeBits = secret.KeySizeBits,
-                Use = use,
-                Algorithm = algorithm,
-            }
-        );
-    }
 }

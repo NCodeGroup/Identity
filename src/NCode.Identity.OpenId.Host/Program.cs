@@ -18,8 +18,10 @@
 #endregion
 
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
+using NCode.Identity;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.Management;
 using NCode.Identity.OpenId.Authentication.Interactive;
@@ -27,6 +29,7 @@ using NCode.Identity.OpenId.Host.Database;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
+using NCode.Identity.Secrets.Persistence.AwsKms;
 using NCode.Identity.Server;
 using NCode.Identity.SharedState.Valkey;
 using NCode.Registration.AspNetCore;
@@ -42,6 +45,11 @@ var configuration = builder.Configuration;
 var hostEnvironment = builder.Environment;
 var serviceCollection = builder.Services;
 
+// Logs go to standard output on every platform: the console provider writes them, and the EventSource provider hands
+// them to a diagnostics tool that attaches (dotnet-monitor, dotnet-trace). The default builder's Windows Event Log and
+// debugger providers are left out. See ADR-0210.
+builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger();
+
 // SAFETY GATE: refuse to start a Production deployment that still has development-only conveniences enabled
 // (developer signing keys, a wildcard host filter, developer CORS configuration, seeded accounts). Every one of them is
 // silent — the server would start, serve traffic, and look healthy — so this fails before the port is bound.
@@ -51,6 +59,11 @@ serviceCollection.AddProductionSafety(configuration, hostEnvironment);
 serviceCollection.AddAntiforgery();
 
 serviceCollection.AddHealthChecks();
+
+// Metrics: the family's meters plus ASP.NET Core, Kestrel, outbound HTTP, and the runtime, exported over OTLP when
+// OTEL_EXPORTER_OTLP_ENDPOINT is configured (the Aspire AppHost injects it, so its dashboard shows them). ADR-0197.
+serviceCollection.AddOpenTelemetryMetrics(configuration);
+
 serviceCollection.AddHttpLogging(options =>
 {
     options.LoggingFields = HttpLoggingFields.All;
@@ -60,11 +73,23 @@ serviceCollection.AddHttpLogging(options =>
 // section. Inert when none are configured, which is the correct posture for a direct-TLS deployment.
 serviceCollection.AddReverseProxy(configuration);
 
+// Receive mutual-TLS client certificates when this host terminates TLS itself: an endpoint configured to request one
+// (Kestrel:EndpointDefaults:ClientCertificateMode) accepts any certificate at the handshake, and the client-
+// authentication handlers and certificate-bound tokens validate it (RFC 8705, ADR-0202). Kestrel's own validation
+// would refuse every self-signed or tenant-PKI certificate first. Inert while no endpoint requests one. The host owns
+// this hook: ConfigureHttpsDefaults keeps only the last action, so every HTTPS default belongs in this one call.
+builder.WebHost.ConfigureKestrel(kestrel =>
+    kestrel.ConfigureHttpsDefaults(https => https.AllowAnyClientCertificate())
+);
+
 var openIdOptionsSectionName = Environment.GetEnvironmentVariable("OpenId_OptionsSectionName");
 
 // TODO
 var identityServer = serviceCollection.AddIdentityServer();
 identityServer.AddConfiguration(configuration, openIdOptionsSectionName);
+
+// AWS KMS can hold the root key ('SecretProtection:RootKeyProvider' = 'aws-kms'); its client is created on first use, so the provider is inert otherwise.
+identityServer.SecretPersistenceLibraryBuilder.AddAwsKmsRootKeyProvider(configuration);
 
 // Bind the frontend runtime bootstrap document (ADR-0064) from the 'Frontend' configuration section so the host can
 // publish this deployment's coordinates (API base, issuer, client id, feature flags, branding) to the tier-agnostic
@@ -109,7 +134,11 @@ serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 // The dev database is Postgres, orchestrated by the Aspire AppHost (ADR-0073): the AppHost provisions the container
 // and injects the 'openiddb' connection string, and a dedicated migration worker applies the schema before this host
 // starts — so the api never bootstraps the database itself. The developer data-protection key ring is persisted in the
-// same database, so one purge resets the OpenID data, the seeded signing key, and the ring that protects it together.
+// same database, so one purge resets the OpenID data, the seeded signing key, the tenants' master keys, and the ring
+// together. Stored secrets are encrypted under their owners' master keys and the ring under the server master key,
+// whose root key lives outside the database (the 'SecretProtection' section); the production gate refuses to start
+// without a real root key (ADR-0235).
+
 var connectionString = configuration.GetConnectionString("openiddb");
 if (!string.IsNullOrEmpty(connectionString))
 {
@@ -123,11 +152,17 @@ if (!string.IsNullOrEmpty(connectionString))
         .AddDataProtection()
         .PersistKeysToDbContext<DeveloperDataProtectionDbContext>()
         .SetApplicationName("NCode.Identity.OpenId.Host");
+
+    // The replica is ready only while it can reach the database it serves every request from.
+    serviceCollection
+        .AddHealthChecks()
+        .AddDbContextCheck<OpenIdDbContext>("openiddb", tags: [HealthCheckTags.Readiness]);
 }
 else
 {
-    // No connection string: hermetic test hosts boot this composition root and override the context with an isolated
-    // in-memory store. Default (ephemeral) data protection is sufficient because tests use ephemeral signing keys.
+    // No connection string: hermetic test hosts boot this composition root and replace the OpenID context and the Data
+    // Protection key ring with stores of their own; Data Protection otherwise keeps its default repository, which the
+    // production gate refuses.
     serviceCollection.AddDbContextFactory<OpenIdDbContext>(dbOptions =>
         dbOptions.UseInMemoryDatabase("OpenId")
     );
@@ -151,9 +186,6 @@ app.MapIdentityServerApiReference();
 app.UseHttpLogging();
 app.UseHttpsRedirection();
 
-// Serve the interactive login/consent bundle's static assets under /account/* (a no-op unless a bundle is configured).
-app.UseInteractiveAuthentication();
-
 app.UseRouting();
 
 // Must run after UseRouting and before the authN/authZ + endpoint middleware. A no-op unless AddDeveloperCors
@@ -173,6 +205,19 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapEndpointGroups();
-app.MapHealthChecks("/health").WithName("health_endpoint");
+
+// Liveness runs no checks: it reports only that the process answers, so a dependency outage never restarts a replica.
+// Readiness runs the checks tagged 'ready' (the database, and Valkey when configured) and takes the replica out of
+// rotation while a dependency it needs is unreachable.
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
+    .WithName("health_live_endpoint");
+app.MapHealthChecks(
+        "/health/ready",
+        new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains(HealthCheckTags.Readiness),
+        }
+    )
+    .WithName("health_ready_endpoint");
 
 await app.RunAsync();

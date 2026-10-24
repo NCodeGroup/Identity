@@ -16,6 +16,9 @@
 
 #endregion
 
+using System.Diagnostics.Metrics;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Moq;
 using NCode.Identity.SharedState.Valkey.Facades;
 using NCode.Identity.SharedState.Valkey.Options;
@@ -38,19 +41,62 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
 
     private ValkeyExpiringKeySet KeySet { get; }
 
+    private ServiceProvider MetricsProvider { get; }
+
+    private MetricCollector<double> DurationCollector { get; }
+
     public ValkeyExpiringKeySetTests()
     {
         MockConnection = CreateStrictMock<IValkeyConnection>();
         MockDatabase = CreateStrictMock<IDatabase>();
         MockTimeProvider = CreateStrictMock<TimeProvider>();
 
+        MetricsProvider = new ServiceCollection().AddMetrics().BuildServiceProvider();
+        var meterFactory = MetricsProvider.GetRequiredService<IMeterFactory>();
+        DurationCollector = new MetricCollector<double>(
+            meterFactory,
+            ValkeyMetrics.MeterName,
+            ValkeySharedStateMetrics.OperationDurationName
+        );
+
         KeySet = new ValkeyExpiringKeySet(
             MockConnection.Object,
             Microsoft.Extensions.Options.Options.Create(
                 new ValkeyOptions { KeyPrefix = KeyPrefix }
             ),
-            MockTimeProvider.Object
+            MockTimeProvider.Object,
+            new ValkeySharedStateMetrics(meterFactory)
         );
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            DurationCollector.Dispose();
+            MetricsProvider.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
+    private void AssertOperationRecorded(string operation, string? errorType)
+    {
+        var measurement = Assert.Single(DurationCollector.GetMeasurementSnapshot());
+        Assert.Equal("s", DurationCollector.Instrument?.Unit);
+        Assert.True(measurement.Value >= 0);
+        Assert.Equal(operation, measurement.Tags[ValkeySharedStateMetrics.OperationAttribute]);
+        Assert.Equal(
+            ValkeySharedStateMetrics.Adapter,
+            measurement.Tags[ValkeySharedStateMetrics.AdapterAttribute]
+        );
+        if (errorType is null)
+            Assert.DoesNotContain(
+                ValkeySharedStateMetrics.ErrorTypeAttribute,
+                measurement.Tags.Keys
+            );
+        else
+            Assert.Equal(errorType, measurement.Tags[ValkeySharedStateMetrics.ErrorTypeAttribute]);
     }
 
     private void SetupNow() => MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
@@ -87,6 +133,7 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
         var added = await KeySet.TryAddAsync("key", Now.AddSeconds(30), CancellationToken.None);
 
         Assert.True(added);
+        AssertOperationRecorded(ValkeySharedStateMetrics.KeySetTryAddOperation, errorType: null);
     }
 
     [Fact]
@@ -125,6 +172,7 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
         var added = await KeySet.TryAddAsync("key", Now, CancellationToken.None);
 
         Assert.False(added);
+        Assert.Empty(DurationCollector.GetMeasurementSnapshot());
     }
 
     [Fact]
@@ -154,6 +202,10 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
         await Assert.ThrowsAsync<RedisConnectionException>(async () =>
             await KeySet.TryAddAsync("key", Now.AddSeconds(30), CancellationToken.None)
         );
+        AssertOperationRecorded(
+            ValkeySharedStateMetrics.KeySetTryAddOperation,
+            typeof(RedisConnectionException).FullName
+        );
     }
 
     #endregion
@@ -174,6 +226,7 @@ public sealed class ValkeyExpiringKeySetTests : BaseTests
         var contains = await KeySet.ContainsAsync("key", CancellationToken.None);
 
         Assert.Equal(exists, contains);
+        AssertOperationRecorded(ValkeySharedStateMetrics.KeySetContainsOperation, errorType: null);
     }
 
     #endregion

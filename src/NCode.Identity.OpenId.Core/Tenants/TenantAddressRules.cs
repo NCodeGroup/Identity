@@ -54,6 +54,14 @@ internal static partial class TenantAddressRules
         + "template expression, and whose expansion for a tenant identifier is a valid issuer";
 
     /// <summary>
+    /// Gets the requirement a mutual-TLS endpoint-alias template must meet, phrased to complete a sentence such as
+    /// "must be …".
+    /// </summary>
+    public static string MtlsEndpointAliasTemplateRequirement { get; } =
+        $"an https origin that contains '{TenantResolutionOptions.TenantIdPlaceholder}' exactly once and no other "
+        + $"template expression, and whose expansion for a tenant identifier is {MtlsEndpointAliasAuthorityRequirement}";
+
+    /// <summary>
     /// Gets the tenant identifiers an issuer template is expanded with to prove it yields a valid issuer, and a distinct
     /// one per tenant. An expansion that is valid for these can still be too long for a long identifier — a template that
     /// embeds the identifier in a longer host label — which is reported when that tenant is written.
@@ -113,6 +121,45 @@ internal static partial class TenantAddressRules
         return true;
     }
 
+    /// <summary>
+    /// Describes the form a tenant's mutual-TLS endpoint-alias authority must have.
+    /// </summary>
+    public const string MtlsEndpointAliasAuthorityRequirement =
+        "an https origin such as 'https://acme.mtls.example' — a scheme and authority with no path, query, fragment, or "
+        + "user information";
+
+    /// <summary>
+    /// Parses the specified mutual-TLS endpoint-alias authority (RFC 8705 §5): an <c>https</c> origin — a scheme and
+    /// authority with no path, query, fragment, or user information — whose host is a valid DNS host. Unlike an issuer, a
+    /// loopback <c>http</c> origin is not accepted: the alias exists only to request a client certificate over TLS.
+    /// </summary>
+    /// <param name="authority">The authority to parse.</param>
+    /// <param name="authorityUri">When this method returns <see langword="true"/>, contains the parsed authority.</param>
+    /// <returns><see langword="true"/> when the authority is valid; otherwise, <see langword="false"/>.</returns>
+    public static bool TryParseMtlsEndpointAliasAuthority(
+        [NotNullWhen(true)] string? authority,
+        [NotNullWhen(true)] out Uri? authorityUri
+    )
+    {
+        authorityUri = null;
+
+        if (
+            !TryParseIssuer(authority, out var uri)
+            || uri.Scheme != Uri.UriSchemeHttps
+            || !string.Equals(
+                uri.GetLeftPart(UriPartial.Authority),
+                authority.TrimEnd('/'),
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
+            return false;
+        }
+
+        authorityUri = uri;
+        return true;
+    }
+
     // A host name whose labels exceed 63 characters, or whose whole exceeds 253, parses as a URI (the parser reports it as
     // a basic rather than a DNS host) but cannot be resolved or certified — the shape a template produces when it embeds
     // a long tenant identifier in a longer label.
@@ -163,29 +210,63 @@ internal static partial class TenantAddressRules
         List<string> failures
     )
     {
-        const string placeholder = TenantResolutionOptions.TenantIdPlaceholder;
-
-        var first = issuerTemplate.IndexOf(placeholder, StringComparison.Ordinal);
-        var isSinglePlaceholder =
-            first >= 0
-            && issuerTemplate.IndexOf(
-                placeholder,
-                first + placeholder.Length,
-                StringComparison.Ordinal
-            ) < 0;
-        var remainder = issuerTemplate.Replace(placeholder, string.Empty, StringComparison.Ordinal);
-        var isWellFormed =
-            isSinglePlaceholder
-            && remainder.AsSpan().IndexOfAny('{', '}') < 0
+        if (
+            IsSinglePlaceholderTemplate(issuerTemplate)
             && ProbeTenantIds.All(tenantId =>
                 TryParseIssuer(ExpandIssuerTemplate(issuerTemplate, tenantId), out _)
-            );
-
-        if (isWellFormed)
+            )
+        )
+        {
             return true;
+        }
 
         failures.Add($"{key} '{issuerTemplate}' must be {IssuerTemplateRequirement}.");
         return false;
+    }
+
+    /// <summary>
+    /// Validates that the specified configured mutual-TLS endpoint-alias template is
+    /// <see cref="MtlsEndpointAliasTemplateRequirement"/>, recording a failure under the specified configuration key when
+    /// it is not. The rules of the strategy that uses the template are checked separately, against its expansions.
+    /// </summary>
+    /// <param name="aliasTemplate">The configured alias template.</param>
+    /// <param name="key">The configuration key the template was bound from, used in the failure message.</param>
+    /// <param name="failures">The failures to append to.</param>
+    /// <returns><see langword="true"/> when the template is valid; otherwise, <see langword="false"/>.</returns>
+    public static bool TryValidateMtlsEndpointAliasTemplate(
+        string aliasTemplate,
+        string key,
+        List<string> failures
+    )
+    {
+        if (
+            IsSinglePlaceholderTemplate(aliasTemplate)
+            && ProbeTenantIds.All(tenantId =>
+                TryParseMtlsEndpointAliasAuthority(
+                    ExpandIssuerTemplate(aliasTemplate, tenantId),
+                    out _
+                )
+            )
+        )
+        {
+            return true;
+        }
+
+        failures.Add($"{key} '{aliasTemplate}' must be {MtlsEndpointAliasTemplateRequirement}.");
+        return false;
+    }
+
+    private static bool IsSinglePlaceholderTemplate(string template)
+    {
+        const string placeholder = TenantResolutionOptions.TenantIdPlaceholder;
+
+        var first = template.IndexOf(placeholder, StringComparison.Ordinal);
+        var isSinglePlaceholder =
+            first >= 0
+            && template.IndexOf(placeholder, first + placeholder.Length, StringComparison.Ordinal)
+                < 0;
+        var remainder = template.Replace(placeholder, string.Empty, StringComparison.Ordinal);
+        return isSinglePlaceholder && remainder.AsSpan().IndexOfAny('{', '}') < 0;
     }
 
     /// <summary>

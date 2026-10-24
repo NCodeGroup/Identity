@@ -62,6 +62,15 @@ internal class DefaultTokenService(
         resourceServerCredentialResolver;
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
 
+    private readonly record struct PreparedRefreshToken(
+        string Value,
+        PersistedGrantId GrantId,
+        PersistedGrant<RefreshTokenGrant> Grant,
+        DateTimeOffset CreatedWhen,
+        TimeSpan Lifetime,
+        string? SubjectId
+    );
+
     private static IEnumerable<Claim> FilterClaims(
         IReadOnlySettingCollection settings,
         IEnumerable<Claim> claims
@@ -469,6 +478,99 @@ internal class DefaultTokenService(
         CancellationToken cancellationToken
     )
     {
+        var prepared = PrepareRefreshToken(openIdContext, openIdClient, tokenRequest);
+
+        await PersistedGrantService.AddAsync(
+            openIdContext,
+            prepared.GrantId,
+            prepared.Grant,
+            prepared.CreatedWhen,
+            prepared.Lifetime,
+            cancellationToken
+        );
+
+        return await AuditIssuedRefreshTokenAsync(
+            openIdContext,
+            openIdClient,
+            prepared,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<SecurityToken?> RotateRefreshTokenAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        PersistedGrantId presentedGrantId,
+        CreateSecurityTokenRequest tokenRequest,
+        CancellationToken cancellationToken
+    )
+    {
+        var prepared = PrepareRefreshToken(openIdContext, openIdClient, tokenRequest);
+
+        var replacementGrantKey = await PersistedGrantService.ReplaceOnceOrDefault(
+            openIdContext,
+            presentedGrantId,
+            prepared.GrantId,
+            prepared.Grant,
+            prepared.CreatedWhen,
+            prepared.Lifetime,
+            cancellationToken
+        );
+
+        if (replacementGrantKey is null)
+            return null;
+
+        return await AuditIssuedRefreshTokenAsync(
+            openIdContext,
+            openIdClient,
+            prepared,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<SecurityToken?> ReissueRefreshTokenAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        CreateSecurityTokenRequest tokenRequest,
+        CancellationToken cancellationToken
+    )
+    {
+        if (string.IsNullOrEmpty(tokenRequest.RefreshTokenLineageId))
+            throw new ArgumentException(
+                "The request must name the refresh-token rotation family to join.",
+                nameof(tokenRequest)
+            );
+
+        var prepared = PrepareRefreshToken(openIdContext, openIdClient, tokenRequest);
+
+        var grantKey = await PersistedGrantService.AddToRefreshTokenLineageOrDefault(
+            openIdContext,
+            prepared.GrantId,
+            prepared.Grant,
+            prepared.CreatedWhen,
+            prepared.Lifetime,
+            cancellationToken
+        );
+
+        if (grantKey is null)
+            return null;
+
+        return await AuditIssuedRefreshTokenAsync(
+            openIdContext,
+            openIdClient,
+            prepared,
+            cancellationToken
+        );
+    }
+
+    private PreparedRefreshToken PrepareRefreshToken(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        CreateSecurityTokenRequest tokenRequest
+    )
+    {
         var settings = openIdClient.Settings;
 
         var subjectAuthentication = tokenRequest.SubjectAuthentication;
@@ -510,32 +612,40 @@ internal class DefaultTokenService(
         var createdWhen = tokenRequest.CreatedWhen;
         var lifetime = settings.GetValue(OpenIdSettingKeys.RefreshTokenLifetime);
 
-        await PersistedGrantService.AddAsync(
-            openIdContext,
+        return new PreparedRefreshToken(
+            refreshToken,
             persistedGrantId,
             persistedGrant,
             createdWhen,
             lifetime,
-            cancellationToken
+            subjectId
         );
+    }
 
+    private async ValueTask<SecurityToken> AuditIssuedRefreshTokenAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        PreparedRefreshToken prepared,
+        CancellationToken cancellationToken
+    )
+    {
         var tokenLifetime = new TimePeriod
         {
-            StartTime = createdWhen,
-            EndTime = createdWhen + lifetime,
+            StartTime = prepared.CreatedWhen,
+            EndTime = prepared.CreatedWhen + prepared.Lifetime,
         };
 
         var securityToken = new SecurityToken
         {
             TokenType = OpenIdConstants.SecurityTokenTypes.RefreshToken,
-            TokenValue = refreshToken,
+            TokenValue = prepared.Value,
             TokenLifetime = tokenLifetime,
         };
 
         await AuditEventRecorder.RecordTokenIssuedAsync(
             openIdContext,
             openIdClient,
-            subjectId,
+            prepared.SubjectId,
             securityToken,
             cancellationToken
         );

@@ -42,7 +42,8 @@ public class UriParser : ParameterParser<Uri>
         if (parsedValue is null)
             return StringValues.Empty;
 
-        return parsedValue.AbsoluteUri;
+        // A parameter is written as the client wrote it; AbsoluteUri would normalize it (ADR-0203).
+        return parsedValue.OriginalString;
     }
 
     /// <inheritdoc/>

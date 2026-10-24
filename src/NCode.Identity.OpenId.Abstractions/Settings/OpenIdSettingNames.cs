@@ -139,8 +139,12 @@ public static class OpenIdSettingNames
     public const string AllowedIdentityProviders = "allowed_identity_providers";
 
     /// <summary>
-    /// Contains the name of <c>allow_loopback_redirect</c> setting.
+    /// Contains the name of the <c>allow_loopback_redirect</c> setting. Whether a registered loopback IP redirect URI
+    /// (<c>http://127.0.0.1</c> or <c>http://[::1]</c>) may be requested with any port (RFC 8252 §7.3). Every other
+    /// part of a redirect URI must equal a registered one exactly. Default <c>true</c>; <c>fapi1-advanced</c> turns it
+    /// off.
     /// </summary>
+    // See ADR-0203.
     public const string AllowLoopbackRedirect = "allow_loopback_redirect";
 
     /// <summary>
@@ -334,6 +338,51 @@ public static class OpenIdSettingNames
     public const string IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported";
 
     /// <summary>
+    /// Contains the name of the per-client <c>authorization_encrypted_response_alg</c> setting (JARM §3): the key-management algorithm a
+    /// client registers for encrypting its JWT-secured authorization responses to its public key. When it is absent,
+    /// authorization responses are signed only.
+    /// </summary>
+    public const string AuthorizationEncryptedResponseAlg = "authorization_encrypted_response_alg";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>authorization_encrypted_response_enc</c> setting (JARM §3): the content-encryption
+    /// algorithm of the client's encrypted authorization responses (<c>A128CBC-HS256</c> unless registered).
+    /// </summary>
+    public const string AuthorizationEncryptedResponseEnc = "authorization_encrypted_response_enc";
+
+    /// <summary>
+    /// Contains the name of the <c>authorization_encryption_alg_values_supported</c> setting (JARM §4): the key-management
+    /// algorithms a JWT-secured authorization response may be encrypted with.
+    /// </summary>
+    public const string AuthorizationEncryptionAlgValuesSupported =
+        "authorization_encryption_alg_values_supported";
+
+    /// <summary>
+    /// Contains the name of the <c>authorization_encryption_enc_values_supported</c> setting (JARM §4): the content-encryption
+    /// algorithms a JWT-secured authorization response may be encrypted with.
+    /// </summary>
+    public const string AuthorizationEncryptionEncValuesSupported =
+        "authorization_encryption_enc_values_supported";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>authorization_signed_response_alg</c> setting (JARM §3): the signature algorithm of the
+    /// client's JWT-secured authorization responses (<c>RS256</c> unless registered).
+    /// </summary>
+    public const string AuthorizationSignedResponseAlg = "authorization_signed_response_alg";
+
+    /// <summary>
+    /// How long a JWT-secured authorization response (JARM) is valid; at most 10 minutes (JARM §2.1).
+    /// </summary>
+    public const string AuthorizationResponseLifetime = "authorization_response_lifetime";
+
+    /// <summary>
+    /// Contains the name of the <c>authorization_signing_alg_values_supported</c> setting (JARM §4): the signature algorithms a
+    /// JWT-secured authorization response may be signed with.
+    /// </summary>
+    public const string AuthorizationSigningAlgValuesSupported =
+        "authorization_signing_alg_values_supported";
+
+    /// <summary>
     /// Contains the name of the per-client <c>introspection_encrypted_response_alg</c> setting (RFC 9701 §6): the
     /// key-management algorithm a client acting for a resource server registers for encrypting its JWT introspection
     /// responses to its public key. When it is absent, introspection responses are not encrypted.
@@ -427,6 +476,12 @@ public static class OpenIdSettingNames
     public const string RedirectUris = "redirect_uris";
 
     /// <summary>
+    /// Contains the name of <c>redirect_uri_kinds_supported</c> setting: the kinds of redirect URI a client may register
+    /// and use. A security profile narrows it, and when it is unset every registered kind is permitted.
+    /// </summary>
+    public const string RedirectUriKindsSupported = "redirect_uri_kinds_supported";
+
+    /// <summary>
     /// Contains the name of the per-client <c>post_logout_redirect_uris</c> setting (RP-Initiated Logout 1.0): the
     /// URIs the end-session endpoint is permitted to redirect back to after logout.
     /// </summary>
@@ -496,17 +551,15 @@ public static class OpenIdSettingNames
 
     /// <summary>
     /// Contains the name of the tenant <c>session_absolute_lifetime</c> setting: the absolute lifetime applied to the
-    /// server-side end-user session established at sign-in, after which the session expires regardless of activity. A
-    /// value of <see cref="System.TimeSpan.Zero"/> disables the absolute lifetime (the session is bounded only by the
-    /// idle timeout, if any). Defaults to <see cref="System.TimeSpan.Zero"/>. Not advertised in discovery.
+    /// server-side end-user session established at sign-in, after which the session ends however it is used. Between
+    /// one second and 365 days; defaults to 30 days. Not advertised in discovery.
     /// </summary>
     public const string SessionAbsoluteLifetime = "session_absolute_lifetime";
 
     /// <summary>
     /// Contains the name of the tenant <c>session_idle_timeout</c> setting: the sliding inactivity window after which
-    /// an end-user session expires if it is not used. Each authorize request that resolves the session renews the
-    /// window. A value of <see cref="System.TimeSpan.Zero"/> disables the idle timeout. Defaults to
-    /// <see cref="System.TimeSpan.Zero"/>. Not advertised in discovery.
+    /// an end-user session ends if it is not used. Each authorize request that resolves the session renews the
+    /// window. Between one second and 100 days; defaults to 3 days. Not advertised in discovery.
     /// </summary>
     public const string SessionIdleTimeout = "session_idle_timeout";
 
@@ -535,14 +588,27 @@ public static class OpenIdSettingNames
     public const string RefreshTokenReusePolicy = "refresh_token_reuse_policy";
 
     /// <summary>
+    /// Contains the name of <c>refresh_token_rotation_policy</c> setting.
+    /// </summary>
+    public const string RefreshTokenRotationPolicy = "refresh_token_rotation_policy";
+
+    /// <summary>
+    /// Contains the name of <c>refresh_token_reuse_interval</c> setting.
+    /// </summary>
+    public const string RefreshTokenReuseInterval = "refresh_token_reuse_interval";
+
+    /// <summary>
+    /// Contains the name of the client <c>refresh_token_rotation_retry_required</c> setting: whether a client whose
+    /// refresh tokens rotate must be able to retry a rotation, that is have a positive
+    /// <c>refresh_token_reuse_interval</c>. Once a parent scope requires it, a child cannot un-require it. Defaults to
+    /// <c>false</c>; the FAPI 2.0 security profile requires it. Not advertised in discovery.
+    /// </summary>
+    public const string RefreshTokenRotationRetryRequired = "refresh_token_rotation_retry_required";
+
+    /// <summary>
     /// Contains the name of <c>refresh_token_lifetime</c> setting.
     /// </summary>
     public const string RefreshTokenLifetime = "refresh_token_lifetime";
-
-    /// <summary>
-    /// Contains the name of <c>refresh_token_rotation_enabled</c> setting.
-    /// </summary>
-    public const string RefreshTokenRotationEnabled = "refresh_token_rotation_enabled";
 
     /// <summary>
     /// Contains the name of <c>request_object_encryption_alg_values_supported</c> setting.
@@ -566,6 +632,18 @@ public static class OpenIdSettingNames
     /// Contains the name of <c>request_object_expected_audience</c> setting.
     /// </summary>
     public const string RequestObjectExpectedAudience = "request_object_expected_audience";
+
+    /// <summary>
+    /// Contains the name of <c>request_object_max_lifetime</c> setting (the longest lifetime accepted for a signed
+    /// request object, from its earliest <c>iat</c> or <c>nbf</c> to its <c>exp</c>).
+    /// </summary>
+    public const string RequestObjectMaxLifetime = "request_object_max_lifetime";
+
+    /// <summary>
+    /// Contains the name of <c>request_object_nbf_required</c> setting (whether a signed request object must carry an
+    /// <c>nbf</c> claim).
+    /// </summary>
+    public const string RequestObjectNotBeforeRequired = "request_object_nbf_required";
 
     /// <summary>
     /// Contains the name of <c>request_parameter_supported</c> setting.
@@ -840,15 +918,24 @@ public static class OpenIdSettingNames
     public const string DPoPNonceRequired = "dpop_nonce_required";
 
     /// <summary>
-    /// Contains the name of <c>require_dpop</c> setting: whether the client must present a valid DPoP proof at the
-    /// token endpoint, with the issued access token bound to the proof key (RFC 9449).
+    /// Contains the name of <c>require_dpop_bound_access_tokens</c> setting: whether the client's access tokens must
+    /// be bound to a DPoP proof key (RFC 9449), registered dynamically as the client metadata
+    /// <c>dpop_bound_access_tokens</c> (RFC 9449 §5.2).
     /// </summary>
-    public const string RequireDPoP = "require_dpop";
+    public const string RequireDPoPBoundAccessTokens = "require_dpop_bound_access_tokens";
 
     /// <summary>
-    /// Contains the name of <c>tls_client_certificate_bound_access_tokens</c> setting (RFC 8705 §3.3): at server
-    /// scope, whether the OP supports and advertises mutual-TLS client-certificate-bound access tokens; at client
-    /// scope, whether the client's access tokens must be bound to its presented certificate.
+    /// Contains the name of <c>require_tls_client_certificate_bound_access_tokens</c> setting: whether the client's
+    /// access tokens must be bound to the mutual-TLS certificate it presents (RFC 8705 §3), registered dynamically
+    /// as the client metadata <c>tls_client_certificate_bound_access_tokens</c>.
+    /// </summary>
+    public const string RequireTlsClientCertificateBoundAccessTokens =
+        "require_tls_client_certificate_bound_access_tokens";
+
+    /// <summary>
+    /// Contains the name of <c>tls_client_certificate_bound_access_tokens</c> setting (RFC 8705 §3.3): whether the
+    /// server supports mutual-TLS client-certificate-bound access tokens, which discovery advertises; it never
+    /// requires a client to bind.
     /// </summary>
     public const string TlsClientCertificateBoundAccessTokens =
         "tls_client_certificate_bound_access_tokens";
@@ -884,11 +971,19 @@ public static class OpenIdSettingNames
     public const string TlsClientAuthSanEmail = "tls_client_auth_san_email";
 
     /// <summary>
-    /// Contains the name of <c>mtls_endpoint_alias_authority</c> setting (RFC 8705 §5): when set to a
-    /// scheme-and-authority (for example <c>https://mtls.op.example</c>), the discovery document advertises an
-    /// <c>mtls_endpoint_aliases</c> object whose endpoint URLs are rewritten to that mutual-TLS authority.
+    /// Contains the name of the <c>tls_client_auth_trust_anchors</c> setting: the PEM-encoded X.509 CA certificates a
+    /// <c>tls_client_auth</c> client certificate must chain to. A self-issued certificate is a trust anchor; any other
+    /// is an intermediate that may complete a chain but is never trusted on its own. With none configured, no
+    /// <c>tls_client_auth</c> certificate is trusted.
     /// </summary>
-    public const string MtlsEndpointAliasAuthority = "mtls_endpoint_alias_authority";
+    public const string TlsClientAuthTrustAnchors = "tls_client_auth_trust_anchors";
+
+    /// <summary>
+    /// Contains the name of the <c>tls_client_auth_revocation_mode</c> setting: how the revocation status of a
+    /// <c>tls_client_auth</c> client certificate chain is checked (<c>online</c>, <c>online_soft_fail</c> or
+    /// <c>none</c>).
+    /// </summary>
+    public const string TlsClientAuthRevocationMode = "tls_client_auth_revocation_mode";
 
     /// <summary>
     /// Contains the name of the per-client <c>client_name</c> setting (RFC 7591 §2): the human-readable name of the
@@ -935,4 +1030,74 @@ public static class OpenIdSettingNames
     /// software identified by <c>software_id</c>.
     /// </summary>
     public const string SoftwareVersion = "software_version";
+
+    /// <summary>
+    /// Contains the name of the <c>rate_limit_tenant_per_minute</c> setting: the most requests per minute a tenant's
+    /// protocol endpoints serve, across every caller. Unset means unlimited.
+    /// </summary>
+    public const string RateLimitTenantPerMinute = "rate_limit_tenant_per_minute";
+
+    /// <summary>
+    /// Contains the name of the <c>rate_limit_address_per_minute</c> setting: the most requests per minute a tenant's
+    /// protocol endpoints serve to one remote address. Unset means unlimited.
+    /// </summary>
+    public const string RateLimitAddressPerMinute = "rate_limit_address_per_minute";
+
+    /// <summary>
+    /// Contains the name of the per-client <c>rate_limit_client_per_minute</c> setting: the most requests per minute a
+    /// tenant's protocol endpoints accept from one authenticated client. Unset means unlimited.
+    /// </summary>
+    public const string RateLimitClientPerMinute = "rate_limit_client_per_minute";
+
+    /// <summary>
+    /// Contains the name of the <c>quota_tenant_requests_per_day</c> setting: the most requests a tenant's protocol
+    /// endpoints serve in one UTC calendar day, the quota a plan tier sets. Unset means unlimited.
+    /// </summary>
+    public const string QuotaTenantRequestsPerDay = "quota_tenant_requests_per_day";
+
+    /// <summary>
+    /// Contains the name of the <c>quota_tenant_token_requests_per_day</c> setting: the most token requests from
+    /// confidential clients a tenant's token endpoint serves in one UTC calendar day, the quota a plan tier sets. Unset
+    /// means unlimited.
+    /// </summary>
+    public const string QuotaTenantTokenRequestsPerDay = "quota_tenant_token_requests_per_day";
+
+    /// <summary>
+    /// Contains the name of the <c>quota_tenant_requests_overage_per_day</c> setting: the most requests a tenant's
+    /// protocol endpoints serve past <see cref="QuotaTenantRequestsPerDay"/> in one UTC calendar day, each recorded as
+    /// billable overage. Unset means none: the quota refuses once it is spent.
+    /// </summary>
+    public const string QuotaTenantRequestsOveragePerDay = "quota_tenant_requests_overage_per_day";
+
+    /// <summary>
+    /// Contains the name of the <c>quota_tenant_token_requests_overage_per_day</c> setting: the most token requests from
+    /// confidential clients a tenant's token endpoint serves past <see cref="QuotaTenantTokenRequestsPerDay"/> in one UTC
+    /// calendar day, each recorded as billable overage. Unset means none: the quota refuses once it is spent.
+    /// </summary>
+    public const string QuotaTenantTokenRequestsOveragePerDay =
+        "quota_tenant_token_requests_overage_per_day";
+
+    /// <summary>
+    /// Contains the name of the <c>password_min_length</c> setting: the fewest characters, counted as Unicode code
+    /// points, a password set for a local account may have.
+    /// </summary>
+    public const string PasswordMinLength = "password_min_length";
+
+    /// <summary>
+    /// Contains the name of the <c>password_max_length</c> setting: the most characters, counted as Unicode code
+    /// points, a password set for a local account may have.
+    /// </summary>
+    public const string PasswordMaxLength = "password_max_length";
+
+    /// <summary>
+    /// Contains the name of the <c>password_failed_attempts_limit</c> setting: the failed password attempts an account
+    /// may accumulate within the window before every password for it is refused.
+    /// </summary>
+    public const string PasswordFailedAttemptsLimit = "password_failed_attempts_limit";
+
+    /// <summary>
+    /// Contains the name of the <c>password_failed_attempts_window</c> setting: how long the failed password attempts,
+    /// counted from the first one, are kept.
+    /// </summary>
+    public const string PasswordFailedAttemptsWindow = "password_failed_attempts_window";
 }

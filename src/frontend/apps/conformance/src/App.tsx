@@ -1,10 +1,16 @@
+import { lazy, Suspense } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
 import Container from '@mui/material/Container';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import { useAppSelector } from '@ncode/store';
-import { ConformanceDashboard } from './containers/ConformanceDashboard.js';
+
+// The surface's container is its own chunk, so the shell renders before it loads (ADR-0175).
+const ConformanceDashboard = lazy(() =>
+  import('./containers/ConformanceDashboard.js').then((m) => ({ default: m.ConformanceDashboard })),
+);
 
 /**
  * The conformance surface shell. Reads the discovered runtime config (guaranteed present by the bootstrap gate) and
@@ -38,7 +44,9 @@ export function App() {
           reports Basic/Config OP readiness, and measures coverage of the full published
           OAuth/OIDC/CIBA/FAPI spec surface to surface gaps and regressions.
         </Typography>
-        <ConformanceDashboard runtime={runtime} />
+        <Suspense fallback={<CircularProgress aria-label="Loading" />}>
+          <ConformanceDashboard runtime={runtime} />
+        </Suspense>
       </Container>
     </Box>
   );

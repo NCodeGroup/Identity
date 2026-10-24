@@ -1,4 +1,5 @@
 import react from '@vitejs/plugin-react';
+import type { Plugin } from 'vite';
 import type { ViteUserConfig } from 'vitest/config';
 
 // Every workspace's vite.config.ts / vitest.config.ts imports this module, and Vite's config bundler externalizes bare
@@ -45,10 +46,93 @@ export type StandaloneSurfaceConfigOptions = {
 };
 
 export type BackendServedSurfaceConfigOptions = {
-  /** The path the serving host publishes the bundle under; assets resolve from it. */
-  readonly base: string;
   readonly coverage: CoverageFloors;
 };
+
+type BuildConfig = NonNullable<ViteUserConfig['build']>;
+
+/**
+ * The vendor chunks every bundle splits its third-party code into, highest priority first: React, then MUI with its
+ * emotion styling engine, then Redux, then every other package. A vendor chunk changes only when its packages are
+ * upgraded, so it stays cached across application releases, and no chunk carries the whole dependency graph (ADR-0175).
+ */
+export const VENDOR_CHUNKS: readonly { readonly name: string; readonly test: RegExp }[] = [
+  { name: 'react', test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+  { name: 'mui', test: /[\\/]node_modules[\\/](@mui|@emotion)[\\/]/ },
+  {
+    name: 'redux',
+    test: /[\\/]node_modules[\\/](@reduxjs|redux|react-redux|redux-thunk|reselect|immer)[\\/]/,
+  },
+  { name: 'vendor', test: /[\\/]node_modules[\\/]/ },
+];
+
+/** The size, in kB of minified code, above which a chunk fails the build: Vite's chunk-size warning threshold. */
+export const CHUNK_SIZE_LIMIT_KB = 500;
+
+/** An output of a generated bundle, as far as the chunk-size gate reads it: a code chunk or an asset. */
+export type BundleOutput =
+  | { readonly type: 'chunk'; readonly fileName: string; readonly code: string }
+  | { readonly type: 'asset'; readonly fileName: string };
+
+/** The code chunks of a bundle whose minified code exceeds the limit, each with its size in kB. */
+export function oversizedChunks(
+  bundle: Readonly<Record<string, BundleOutput>>,
+  limitKb: number,
+): { readonly fileName: string; readonly sizeKb: number }[] {
+  const oversized: { fileName: string; sizeKb: number }[] = [];
+  for (const output of Object.values(bundle)) {
+    const sizeKb = output.type === 'chunk' ? output.code.length / 1000 : 0;
+    if (sizeKb > limitKb) {
+      oversized.push({ fileName: output.fileName, sizeKb });
+    }
+  }
+  return oversized;
+}
+
+/**
+ * Fails the build when a chunk exceeds the build's `chunkSizeWarningLimit`, the build-time counterpart of the test
+ * gates that treat warnings as errors (ADR-0151). Vite only warns, and a warning in a passing build goes unread.
+ */
+export function failOnOversizedChunks(): Plugin {
+  let limitKb = CHUNK_SIZE_LIMIT_KB;
+  return {
+    name: 'ncode:fail-on-oversized-chunks',
+    apply: 'build',
+    configResolved(config) {
+      limitKb = config.build.chunkSizeWarningLimit;
+    },
+    generateBundle(_options, bundle) {
+      const oversized = oversizedChunks(bundle as Readonly<Record<string, BundleOutput>>, limitKb);
+      if (oversized.length > 0) {
+        const list = oversized.map((c) => `${c.fileName} (${c.sizeKb.toFixed(2)} kB)`).join(', ');
+        this.error(
+          `Chunks larger than ${String(limitKb)} kB after minification: ${list}. Split them — lazy-load the ` +
+            'route-level containers or add a vendor chunk — rather than raising the limit (ADR-0175).',
+        );
+      }
+    },
+  };
+}
+
+/** The build options every bundle shares: source maps, the vendor chunks, and the chunk-size limit (ADR-0175). */
+function buildOptions(): BuildConfig {
+  return {
+    outDir: 'dist',
+    sourcemap: true,
+    chunkSizeWarningLimit: CHUNK_SIZE_LIMIT_KB,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: VENDOR_CHUNKS.map(({ name, test }, index) => ({
+            name,
+            test,
+            priority: VENDOR_CHUNKS.length - index,
+          })),
+        },
+      },
+    },
+  };
+}
 
 /** The well-known path of the bootstrap document every bundle fetches from its serving host (`@ncode/config`). */
 const BOOTSTRAP_PATH = '/config/bootstrap.json';
@@ -136,7 +220,7 @@ export function defineStandaloneSurfaceConfig({
   assertPort(port);
   return {
     base: '/',
-    plugins: [react()],
+    plugins: [react(), failOnOversizedChunks()],
     server: {
       port,
       strictPort: true,
@@ -149,26 +233,24 @@ export function defineStandaloneSurfaceConfig({
         },
       },
     },
-    build: { outDir: 'dist', sourcemap: true },
+    build: buildOptions(),
     test: testGates({ environment: 'jsdom', coverage }),
   };
 }
 
 /**
  * The configuration of a backend-served surface: a bundle the OpenID Provider host serves from its `dist` folder. It has
- * no dev server; its `dev` script rebuilds `dist` on change instead.
+ * no dev server; its `dev` script rebuilds `dist` on change instead. The bundle is built with a relative base, so it
+ * does not assume where it is mounted: the host serves it beneath each tenant's route and sets the document's
+ * `<base href>` to that location, which the bundle's asset URLs resolve against (ADR-0193).
  */
 export function defineBackendServedSurfaceConfig({
-  base,
   coverage,
 }: BackendServedSurfaceConfigOptions): ViteUserConfig {
-  if (!base.startsWith('/') || !base.endsWith('/')) {
-    throw new RangeError(`Base '${base}' must start and end with '/'.`);
-  }
   return {
-    base,
-    plugins: [react()],
-    build: { outDir: 'dist', sourcemap: true },
+    base: './',
+    plugins: [react(), failOnOversizedChunks()],
+    build: buildOptions(),
     test: testGates({ environment: 'jsdom', coverage }),
   };
 }

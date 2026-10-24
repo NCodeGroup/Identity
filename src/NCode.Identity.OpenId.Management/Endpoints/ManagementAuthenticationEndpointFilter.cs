@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// <summary>
 /// The management authentication endpoint filter. It runs after <see cref="ManagementEnvironmentEndpointFilter"/> has
 /// materialized the OpenID request environment, validates a self-issued bearer access token for the management audience
-/// against the resolved tenant, and publishes the authenticated principal on <see cref="HttpContext.User"/> for the
+/// against the control-plane tenant, and publishes the authenticated principal on <see cref="HttpContext.User"/> for the
 /// endpoints' resource-based authorization to read. A missing or invalid token leaves the caller anonymous, and the
 /// imperative authorization returns <c>401</c>/<c>403</c>.
 /// </summary>

@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (introspection's enforcement realized by
   [ADR-0167](0167-the-server-validates-the-tokens-it-issued-under-one-policy.md): every reader of an issued access
-  token checks its session through one seam)
+  token checks its session through one seam; amended by
+  [ADR-0228](0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md):
+  a replayed code terminates its session through the termination seam, which notifies its relying parties and audits
+  it)
 - **Date:** 2026-10-16
 - **Deciders:** NCode Group
 

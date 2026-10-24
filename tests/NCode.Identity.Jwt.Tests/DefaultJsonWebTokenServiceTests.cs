@@ -127,7 +127,9 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     private async Task<JwtValidationResult> EncodeAndValidateLifetimeAsync(
         IReadOnlyDictionary<string, object> lifetimeClaims,
         bool requireExpirationTime = true,
-        TimeSpan? maxLifetime = null
+        TimeSpan? maxLifetime = null,
+        bool requireNotBefore = false,
+        bool requireIssuedAt = false
     )
     {
         // Encode through the JOSE serializer so the JWT encoder cannot add default 'iat'/'nbf'/'exp' claims.
@@ -141,6 +143,8 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
             {
                 options.RequireExpirationTime = requireExpirationTime;
                 options.MaxLifetime = maxLifetime;
+                options.RequireNotBefore = requireNotBefore;
+                options.RequireIssuedAt = requireIssuedAt;
             });
 
         return await _validator.ValidateAsync(token, validationParameters, CancellationToken.None);
@@ -536,6 +540,59 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         Assert.False(result.IsValid);
         var exception = Assert.IsType<JwtValidationException>(result.Exception);
         Assert.Contains("issued in the future", exception.Message, StringComparison.Ordinal);
+    }
+
+    #endregion
+
+    #region ValidateTokenLifeTime RequireNotBefore / RequireIssuedAt Tests
+
+    [Fact]
+    public async Task ValidateAsync_WhenNotBeforeIsRequiredAndMissing_Fails()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["iat"] = now, ["exp"] = now + 300 },
+            requireNotBefore: true
+        );
+
+        Assert.False(result.IsValid);
+        var exception = Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Contains("not-before", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenIssuedAtIsRequiredAndMissing_Fails()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["nbf"] = now, ["exp"] = now + 300 },
+            requireIssuedAt: true
+        );
+
+        Assert.False(result.IsValid);
+        var exception = Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Contains("issued-at", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenRequiredNotBeforeAndIssuedAtArePresent_Succeeds()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object>
+            {
+                ["iat"] = now,
+                ["nbf"] = now,
+                ["exp"] = now + 300,
+            },
+            requireNotBefore: true,
+            requireIssuedAt: true
+        );
+
+        Assert.True(result.IsValid);
     }
 
     #endregion

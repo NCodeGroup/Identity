@@ -22,6 +22,7 @@ using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
@@ -105,15 +106,27 @@ internal sealed class DefaultSecretValidator(
     /// <inheritdoc />
     public ManagementError? ValidateImport(ImportSecretRequest request)
     {
+        // Each key type declares the formats it parses, so a key type another package registers brings its own (ADR-0150).
+        var secretType = request.SecretType;
         if (
-            !string.Equals(request.Format, "jwk", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(request.Format, "pem", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(request.Format, "certificate", StringComparison.OrdinalIgnoreCase)
+            !SecretKeyTypeCatalog.TryGet(secretType, out var descriptor)
+            || descriptor.PublicKeyImportFormats.Count == 0
         )
         {
             return Error(
-                $"The import format '{request.Format}' is not supported; expected "
-                    + "'jwk', 'pem', or 'certificate'."
+                $"The secret type '{secretType}' is not supported or cannot be imported as public key material."
+            );
+        }
+
+        if (!descriptor.PublicKeyImportFormats.Contains(request.Format))
+        {
+            return Error(
+                $"The import format '{request.Format}' is not supported for the secret type '{secretType}'; expected "
+                    + string.Join(
+                        ", ",
+                        descriptor.PublicKeyImportFormats.Select(format => $"'{format}'")
+                    )
+                    + "."
             );
         }
 
@@ -132,6 +145,37 @@ internal sealed class DefaultSecretValidator(
         }
 
         return null;
+    }
+
+    /// <inheritdoc />
+    // See ADR-0161 and ADR-0186.
+    public ManagementError? ValidateUpdate(PersistedSecret secret, UpdateSecretRequest request)
+    {
+        var use = request.Use;
+        if (use is not null && use is not (SecretKeyUses.Signature or SecretKeyUses.Encryption))
+        {
+            return Error(
+                $"The use '{use}' is not supported; expected "
+                    + $"'{SecretKeyUses.Signature}' or '{SecretKeyUses.Encryption}'."
+            );
+        }
+
+        if (request.Algorithm is not { } algorithm)
+            return null;
+
+        if (!SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor))
+            return Error($"The secret type '{secret.SecretType}' is not supported.");
+
+        var algorithmError = AlgorithmCollectionProvider.Collection.ValidateKeyAlgorithm(
+            new KeyAlgorithmDeclaration
+            {
+                KeyType = descriptor.KeyClrType,
+                KeySizeBits = secret.KeySizeBits,
+                Use = use,
+                Algorithm = algorithm,
+            }
+        );
+        return algorithmError is null ? null : Error(algorithmError);
     }
 
     private static ManagementError Error(string detail) =>

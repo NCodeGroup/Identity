@@ -18,9 +18,12 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.RateLimiting;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -35,11 +38,14 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     private const string ClientId = "client-1";
 
     private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
+    private Mock<IRequestRateLimiter> MockRateLimiter { get; }
     private Mock<OpenIdContext> MockContext { get; }
+    private int HandlerCount { get; set; }
 
     public DefaultClientAuthenticationServiceTests()
     {
         MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
+        MockRateLimiter = CreateStrictMock<IRequestRateLimiter>();
 
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         mockErrorFactory
@@ -64,13 +70,28 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     ) =>
         new(
             handlers,
+            CreateCatalog(handlers.Select(x => x.AuthenticationMethod)),
             MockAuditEventRecorder.Object,
+            MockRateLimiter.Object,
             CreateLooseMock<ILogger<DefaultClientAuthenticationService>>().Object
         );
+
+    private static DefaultClientAuthenticationMethodCatalog CreateCatalog(
+        IEnumerable<string> names
+    ) =>
+        new([
+            new StaticDataSource<ClientAuthenticationMethodDescriptor>([
+                .. names.Select(name => new ClientAuthenticationMethodDescriptor { Name = name }),
+            ]),
+        ]);
 
     private IClientAuthenticationHandler CreateHandler(ClientAuthenticationResult result)
     {
         var mockHandler = CreateStrictMock<IClientAuthenticationHandler>();
+        mockHandler
+            .SetupGet(x => x.AuthenticationMethod)
+            .Returns($"method-{++HandlerCount}")
+            .Verifiable();
         mockHandler
             .Setup(x => x.AuthenticateClientAsync(MockContext.Object, CancellationToken.None))
             .ReturnsAsync(result)
@@ -141,12 +162,27 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
         return mockClient.Object;
     }
 
-    private void SetupAudit(string reason) =>
+    private void SetupClientRateLimitAdmits(OpenIdConfidentialClient client) =>
+        MockRateLimiter
+            .Setup(x =>
+                x.AcquireAsync(
+                    RateLimitStages.ClientAuthentication,
+                    It.Is<RateLimitContext>(context =>
+                        context.OpenIdContext == MockContext.Object && context.Client == client
+                    ),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(RateLimitDecision.Admitted)
+            .Verifiable();
+
+    private void SetupAudit(string authenticationMethod, string reason) =>
         MockAuditEventRecorder
             .Setup(x =>
                 x.RecordClientAuthenticationFailedAsync(
                     MockContext.Object,
                     ClientId,
+                    authenticationMethod,
                     reason,
                     CancellationToken.None
                 )
@@ -227,7 +263,10 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
             isRefused: true
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
-        SetupAudit("authentication_method_not_registered");
+        SetupAudit(
+            OpenIdConstants.ClientAuthenticationMethods.None,
+            "authentication_method_not_registered"
+        );
 
         var result = await service.AuthenticateClientAsync(
             MockContext.Object,
@@ -250,6 +289,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
             [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt],
             isRefused: false
         );
+        SetupClientRateLimitAdmits(client);
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
 
         var result = await service.AuthenticateClientAsync(
@@ -271,7 +311,10 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
             isRefused: true
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
-        SetupAudit("authentication_method_not_registered");
+        SetupAudit(
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretPost,
+            "authentication_method_not_registered"
+        );
 
         var result = await service.AuthenticateClientAsync(
             MockContext.Object,
@@ -295,7 +338,10 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
             isRefused: true
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
-        SetupAudit("authentication_method_not_permitted");
+        SetupAudit(
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            "authentication_method_not_permitted"
+        );
 
         var result = await service.AuthenticateClientAsync(
             MockContext.Object,
@@ -320,7 +366,10 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
             isRefused: true
         );
         var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
-        SetupAudit("authentication_method_not_permitted");
+        SetupAudit(
+            OpenIdConstants.ClientAuthenticationMethods.ClientSecretBasic,
+            "authentication_method_not_permitted"
+        );
 
         var result = await service.AuthenticateClientAsync(
             MockContext.Object,
@@ -395,6 +444,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
     public async Task AuthenticateClientAsync_WhenCalledTwiceInOneRequest_AuthenticatesOnce()
     {
         var mockHandler = CreateStrictMock<IClientAuthenticationHandler>();
+        mockHandler.SetupGet(x => x.AuthenticationMethod).Returns("method-once").Verifiable();
         mockHandler
             .Setup(x => x.AuthenticateClientAsync(MockContext.Object, CancellationToken.None))
             .ReturnsAsync(ClientAuthenticationResult.Undefined)
@@ -410,5 +460,62 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
         Assert.True(result.IsUndefined);
     }
 
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenAPublicClientIsAuthenticated_DoesNotCountItsRateLimit()
+    {
+        var client = CreatePublicClient(
+            OpenIdConstants.ClientAuthenticationMethods.None,
+            [OpenIdConstants.ClientAuthenticationMethods.None],
+            isRefused: false
+        );
+        var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
+
+        // The strict rate limiter has no setup, so counting the public client would throw.
+        await service.AuthenticateClientAsync(MockContext.Object, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task AuthenticateClientAsync_WhenTheClientIsOverItsRateLimit_ReturnsTooManyRequests()
+    {
+        var client = CreateConfidentialClient(
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt,
+            [OpenIdConstants.ClientAuthenticationMethods.PrivateKeyJwt],
+            isRefused: false
+        );
+        MockRateLimiter
+            .Setup(x =>
+                x.AcquireAsync(
+                    RateLimitStages.ClientAuthentication,
+                    It.Is<RateLimitContext>(context =>
+                        context.OpenIdContext == MockContext.Object && context.Client == client
+                    ),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(new RateLimitDecision(TimeSpan.FromSeconds(1.5)))
+            .Verifiable(Times.Once);
+        var service = CreateService(CreateHandler(new ClientAuthenticationResult(client)));
+
+        await service.AuthenticateClientAsync(MockContext.Object, CancellationToken.None);
+        var result = await service.AuthenticateClientAsync(
+            MockContext.Object,
+            CancellationToken.None
+        );
+
+        AssertError(
+            result,
+            OpenIdConstants.ErrorCodes.TemporarilyUnavailable,
+            StatusCodes.Status429TooManyRequests
+        );
+    }
+
     #endregion
+
+    private sealed class StaticDataSource<T>(IEnumerable<T> items) : ICollectionDataSource<T>
+    {
+        public IEnumerable<T> Collection { get; } = [.. items];
+
+        public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
+    }
 }

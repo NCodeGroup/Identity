@@ -203,13 +203,29 @@ internal class DefaultLoadAuthorizationRequestHandler(
                 .UseDecryptionKeys(openIdContext.Tenant.SecretsProvider.Collection)
                 .ValidateIssuer(openIdClient.ClientId)
                 .ValidateCertificateLifeTime()
-                .ValidateTokenLifeTime();
+                .ValidateTokenLifeTime(options =>
+                {
+                    // A request object expires, and is valid for a bounded time from its earliest 'iat' or 'nbf', so a
+                    // pre-generated one cannot be held for later use; FAPI also requires 'nbf' (ADR-0187).
+                    options.RequireExpirationTime = true;
+                    options.MaxLifetime = settings.GetValue(
+                        OpenIdSettingKeys.RequestObjectMaxLifetime
+                    );
+                    options.RequireNotBefore = settings.GetValue(
+                        OpenIdSettingKeys.RequestObjectNotBeforeRequired
+                    );
+                });
 
+            // A request object is addressed to the authorization server: its 'aud' is the issuer unless the client's
+            // settings name another audience (RFC 9101 §4, FAPI 2.0 Message Signing §5.3.1, ADR-0187).
             var expectedAudience = settings.GetValue(
                 OpenIdSettingKeys.RequestObjectExpectedAudience
             );
-            if (!string.IsNullOrEmpty(expectedAudience))
-                parameters.ValidateAudience(expectedAudience);
+            parameters.ValidateAudience(
+                string.IsNullOrEmpty(expectedAudience)
+                    ? openIdContext.Tenant.Issuer
+                    : expectedAudience
+            );
 
             var result = await JwtValidator.ValidateAsync(
                 requestJwt,

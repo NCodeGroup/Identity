@@ -21,7 +21,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.Jose;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Commands;
@@ -34,6 +33,7 @@ using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
 using NCode.Registration.AspNetCore;
+using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection;
 

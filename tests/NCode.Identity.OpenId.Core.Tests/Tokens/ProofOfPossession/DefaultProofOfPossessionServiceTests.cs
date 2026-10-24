@@ -21,8 +21,8 @@ using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Encoders;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Clients;
-using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Authentication.Tokens.ProofOfPossession;
 using NCode.Identity.OpenId.Contexts;
@@ -82,9 +82,11 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
 
     private void SetupSettings(bool requireDPoP, bool certificateBound)
     {
-        MockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.RequireDPoP)).Returns(requireDPoP);
         MockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens))
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RequireDPoPBoundAccessTokens))
+            .Returns(requireDPoP);
+        MockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RequireTlsClientCertificateBoundAccessTokens))
             .Returns(certificateBound);
     }
 
@@ -102,6 +104,24 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     public async Task EvaluateTokenRequestAsync_WhenNoBinding_ReturnsUnbound()
     {
         SetupSettings(requireDPoP: false, certificateBound: false);
+
+        var binding = await Service.EvaluateTokenRequestAsync(
+            MockContext.Object,
+            MockClient.Object,
+            CancellationToken.None
+        );
+
+        Assert.Equal(OpenIdConstants.TokenTypes.Bearer, binding.TokenType);
+        Assert.False(binding.IsSenderConstrained);
+    }
+
+    [Fact]
+    public async Task EvaluateTokenRequestAsync_WhenTheServerSupportsBindingButTheClientDoesNotRequireIt_ReturnsUnbound()
+    {
+        SetupSettings(requireDPoP: false, certificateBound: false);
+        MockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.TlsClientCertificateBoundAccessTokens))
+            .Returns(true);
 
         var binding = await Service.EvaluateTokenRequestAsync(
             MockContext.Object,
@@ -166,8 +186,10 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
         SetupSettings(requireDPoP: false, certificateBound: true);
         using var certificate = CreateSelfSignedCertificate();
         MockCertificateResolver
-            .Setup(x => x.ResolveCertificateAsync(HttpContext, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(certificate)
+            .Setup(x =>
+                x.ResolveCertificateAsync(MockContext.Object, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(new PresentedClientCertificate(certificate))
             .Verifiable();
 
         var binding = await Service.EvaluateTokenRequestAsync(
@@ -186,8 +208,10 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     {
         SetupSettings(requireDPoP: false, certificateBound: true);
         MockCertificateResolver
-            .Setup(x => x.ResolveCertificateAsync(HttpContext, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((X509Certificate2?)null)
+            .Setup(x =>
+                x.ResolveCertificateAsync(MockContext.Object, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync((PresentedClientCertificate?)null)
             .Verifiable();
 
         await Assert.ThrowsAsync<OpenIdException>(() =>
@@ -252,8 +276,10 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
         SetupSenderConstraintRequired();
         using var certificate = CreateSelfSignedCertificate();
         MockCertificateResolver
-            .Setup(x => x.ResolveCertificateAsync(HttpContext, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(certificate)
+            .Setup(x =>
+                x.ResolveCertificateAsync(MockContext.Object, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(new PresentedClientCertificate(certificate))
             .Verifiable();
 
         var binding = await Service.EvaluateTokenRequestAsync(
@@ -373,8 +399,10 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
         using var certificate = CreateSelfSignedCertificate();
         var thumbprint = Base64Url.Encode(SHA256.HashData(certificate.RawData));
         MockCertificateResolver
-            .Setup(x => x.ResolveCertificateAsync(HttpContext, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(certificate)
+            .Setup(x =>
+                x.ResolveCertificateAsync(MockContext.Object, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(new PresentedClientCertificate(certificate))
             .Verifiable();
 
         var confirmation = new TokenConfirmation { X509CertificateSha256Thumbprint = thumbprint };
@@ -394,8 +422,10 @@ public class DefaultProofOfPossessionServiceTests : BaseTests
     {
         using var certificate = CreateSelfSignedCertificate();
         MockCertificateResolver
-            .Setup(x => x.ResolveCertificateAsync(HttpContext, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(certificate)
+            .Setup(x =>
+                x.ResolveCertificateAsync(MockContext.Object, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(new PresentedClientCertificate(certificate))
             .Verifiable();
 
         var confirmation = new TokenConfirmation

@@ -91,6 +91,15 @@ public class DefaultLoadBackchannelAuthenticationRequestHandlerTests : BaseTests
             .Returns(permittedAlgorithms is not null)
             .Verifiable();
 
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.ClockSkew))
+            .Returns(TimeSpan.FromSeconds(30))
+            .Verifiable();
+        mockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.RequestObjectMaxLifetime))
+            .Returns(TimeSpan.FromMinutes(10))
+            .Verifiable();
+
         MockClientKeyResolver
             .Setup(x => x.ResolveSecretKeysAsync(mockClient.Object, It.IsAny<CancellationToken>()))
             .ReturnsAsync(clientKeys)
@@ -179,6 +188,30 @@ public class DefaultLoadBackchannelAuthenticationRequestHandlerTests : BaseTests
         Assert.Equal(permitted, CapturedParameters.ValidSignatureAlgorithms);
         // CIBA defines no encrypted authentication request, so no decryption keys are given.
         Assert.Null(CapturedParameters.DecryptionKeys);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenRequestObject_RequiresBoundedLifetimeClaimsWithTheClientsClockSkew()
+    {
+        var (command, _) = CreateSignedRequestScaffold(["PS256"]);
+        SetupValidatorFailure();
+
+        await Assert.ThrowsAsync<OpenIdException>(() =>
+            Handler.HandleAsync(command, CancellationToken.None).AsTask()
+        );
+
+        Assert.NotNull(CapturedParameters);
+        Assert.Equal(TimeSpan.FromSeconds(30), CapturedParameters.ClockSkew);
+        var lifetime = Assert.Single(
+            CapturedParameters.Requirements.OfType<TokenLifetimeRequirement>()
+        );
+        Assert.True(lifetime.RequireExpirationTime);
+        Assert.True(lifetime.RequireIssuedAt);
+        Assert.True(lifetime.RequireNotBefore);
+        Assert.Equal(TimeSpan.FromSeconds(30), lifetime.ClockSkew);
+        Assert.Equal(TimeSpan.FromMinutes(10), lifetime.MaxLifetime);
+        // CIBA Core 1.0 §7.1.1 also requires 'jti', which an assertion checks.
+        Assert.Single(CapturedParameters.Requirements.OfType<AssertionRequirement>());
     }
 
     [Fact]

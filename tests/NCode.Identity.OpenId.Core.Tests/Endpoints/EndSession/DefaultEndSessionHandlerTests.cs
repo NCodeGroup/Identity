@@ -19,13 +19,14 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Handlers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Settings;
@@ -44,20 +45,27 @@ public class DefaultEndSessionHandlerTests : BaseTests
     private const string RedirectUri = "https://rp.example/after-logout";
 
     private Mock<IOpenIdClientResolver> MockClientResolver { get; }
+    private Mock<IRedirectUriKindCatalog> MockRedirectUriKindCatalog { get; }
     private Mock<IFrontChannelLogoutService> MockFrontChannelLogoutService { get; }
     private Mock<ISessionStateService> MockSessionStateService { get; }
+    private Mock<ISessionService> MockSessionService { get; }
+    private FakeLogger<DefaultEndSessionHandler> Logger { get; } = new();
     private DefaultEndSessionHandler Handler { get; }
 
     public DefaultEndSessionHandlerTests()
     {
         MockClientResolver = CreateStrictMock<IOpenIdClientResolver>();
+        MockRedirectUriKindCatalog = CreateStrictMock<IRedirectUriKindCatalog>();
         MockFrontChannelLogoutService = CreateStrictMock<IFrontChannelLogoutService>();
         MockSessionStateService = CreateStrictMock<ISessionStateService>();
+        MockSessionService = CreateStrictMock<ISessionService>();
         Handler = new DefaultEndSessionHandler(
             MockClientResolver.Object,
+            MockRedirectUriKindCatalog.Object,
             MockFrontChannelLogoutService.Object,
             MockSessionStateService.Object,
-            NullLogger<DefaultEndSessionHandler>.Instance
+            MockSessionService.Object,
+            Logger
         );
     }
 
@@ -121,12 +129,33 @@ public class DefaultEndSessionHandlerTests : BaseTests
             )
             .Returns(new ValueTask<EndSessionSubject>(subject))
             .Verifiable();
-        mockMediator
-            .Setup(x =>
-                x.SendAsync(It.IsAny<OnSessionTerminatedCommand>(), It.IsAny<CancellationToken>())
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+
+        if (subject.SessionId is { Length: > 0 } sessionId)
+        {
+            MockSessionService
+                .Setup(x =>
+                    x.RevokeAsync(
+                        It.IsAny<OpenIdContext>(),
+                        sessionId,
+                        SessionTerminationReasons.Logout,
+                        It.IsAny<CancellationToken>()
+                    )
+                )
+                .ReturnsAsync(true)
+                .Verifiable();
+        }
+        else
+        {
+            mockMediator
+                .Setup(x =>
+                    x.SendAsync(
+                        It.IsAny<OnSessionTerminatedCommand>(),
+                        It.IsAny<CancellationToken>()
+                    )
+                )
+                .Returns(ValueTask.CompletedTask)
+                .Verifiable();
+        }
 
         mockAuthService
             .Setup(x =>
@@ -166,12 +195,37 @@ public class DefaultEndSessionHandlerTests : BaseTests
             .Verifiable();
     }
 
+    private void SetupKind(string redirectUri, bool permitted)
+    {
+        MockRedirectUriKindCatalog
+            .Setup(x => x.IsPermitted(It.IsAny<IReadOnlySettingCollection>(), redirectUri))
+            .Returns(permitted)
+            .Verifiable();
+    }
+
     private static EndSessionSubject CreateSubject(string? clientId) =>
         new(SubjectId, SessionId, clientId, [ClientId]);
+
+    private List<int> LogEventIds =>
+        Logger.Collector.GetSnapshot().Select(record => record.Id.Id).ToList();
 
     #endregion
 
     #region HandleAsync Tests
+
+    [Fact]
+    public async Task HandleAsync_WhenTheLogoutNamesNoSession_DispatchesTheTerminationForTheSubject()
+    {
+        var scaffold = CreateScaffold(
+            new EndSessionSubject(SubjectId, null, ClientId, []),
+            postLogoutRedirectUri: null,
+            state: null
+        );
+
+        var disposition = await Handler.HandleAsync(scaffold.Command, CancellationToken.None);
+
+        Assert.Null(disposition.RedirectUri);
+    }
 
     [Fact]
     public async Task HandleAsync_WhenNoPostLogoutRedirectUri_RunsPipelineAndReturnsNullRedirect()
@@ -238,6 +292,8 @@ public class DefaultEndSessionHandlerTests : BaseTests
         var disposition = await Handler.HandleAsync(scaffold.Command, CancellationToken.None);
 
         Assert.Null(disposition.RedirectUri);
+        Assert.Contains(EventIds.EndSessionPostLogoutRedirectUriRejected, LogEventIds);
+        Assert.DoesNotContain(EventIds.EndSessionPostLogoutRedirectUriKindRejected, LogEventIds);
     }
 
     [Fact]
@@ -249,10 +305,29 @@ public class DefaultEndSessionHandlerTests : BaseTests
             state: null
         );
         SetupResolvedClientWithAllowedUris([RedirectUri]);
+        SetupKind(RedirectUri, true);
 
         var disposition = await Handler.HandleAsync(scaffold.Command, CancellationToken.None);
 
         Assert.Equal(RedirectUri, disposition.RedirectUri);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheRedirectUriKindIsNotPermitted_ReturnsNullRedirect()
+    {
+        var scaffold = CreateScaffold(
+            CreateSubject(ClientId),
+            postLogoutRedirectUri: RedirectUri,
+            state: null
+        );
+        SetupResolvedClientWithAllowedUris([RedirectUri]);
+        SetupKind(RedirectUri, false);
+
+        var disposition = await Handler.HandleAsync(scaffold.Command, CancellationToken.None);
+
+        Assert.Null(disposition.RedirectUri);
+        Assert.Contains(EventIds.EndSessionPostLogoutRedirectUriKindRejected, LogEventIds);
+        Assert.DoesNotContain(EventIds.EndSessionPostLogoutRedirectUriRejected, LogEventIds);
     }
 
     [Fact]
@@ -264,6 +339,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
             state: "abc 123"
         );
         SetupResolvedClientWithAllowedUris([RedirectUri]);
+        SetupKind(RedirectUri, true);
 
         var disposition = await Handler.HandleAsync(scaffold.Command, CancellationToken.None);
 
@@ -298,6 +374,7 @@ public class DefaultEndSessionHandlerTests : BaseTests
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.PostLogoutRedirectUris, out allowed))
             .Returns(true)
             .Verifiable();
+        SetupKind(uriWithQuery, true);
 
         var disposition = await Handler.HandleAsync(scaffold.Command, CancellationToken.None);
 

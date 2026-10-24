@@ -9,7 +9,9 @@ abstractions, and DI composition — plus a runnable `NCode.Identity.OpenId.Host
 Production projects live under `src/`; test projects (the `*Tests` projects) live under `tests/`.
 
 - **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.JsonWebTokens`
-- **Secrets** — `NCode.Identity.Secrets(.Abstractions)`, `NCode.Identity.Secrets.Persistence(.Abstractions)`
+- **Secrets** — `NCode.Identity.Secrets(.Abstractions)`, `NCode.Identity.Secrets.Persistence(.Abstractions)` and its
+  opt-in `NCode.Identity.Secrets.Persistence.AwsKms` adapter (the AWS KMS root key provider,
+  [ADR-0235](docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md))
 - **OpenID** — `NCode.Identity.OpenId.Abstractions` + `.Core` (environments, errors, messages, serialization),
   `.Authentication(.Abstractions)` (endpoints, grant handlers, token/claims services), `.Management(.Abstractions)`
   (the `.Abstractions` package holds the wire contracts under the `NCode.Identity.OpenId.Management.Contracts` namespace),
@@ -131,3 +133,33 @@ best long-term, cohesive design**: when a change forks between a minimal compati
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
 breakage, and surface a fork for the user only when the options are genuinely equal in quality. Full statement: the
 standing posture in [`BACKLOG.md`](BACKLOG.md).
+
+## Copilot cloud agent sessions
+
+A cloud-agent session stops at **59 minutes**, a hard limit that cannot be raised, and its runner is discarded with
+everything on it. Only commits pushed from the repository clone survive — work on any other branch or `git worktree`
+(for example under `/tmp`) is lost even when it is committed. So:
+
+- **Size a session to fit.** Give one session one dependency chain of backlog items (one to three items), not a whole
+  group. Run independent chains as separate sessions; each gets its own runner and its own 59 minutes.
+- **Read the deadline from the runner, not the agent.** The limit is the job's `timeout-minutes: 59` in
+  `copilot-setup-steps.yml`, so it counts from when the job starts and includes the setup steps; the agent can begin
+  ten or more minutes in. `ps -o lstart= -p 1` prints when the runner booted, just before the job started, so it
+  gives a safe estimate. Plan the session to end 59 minutes after that time, and start the final
+  `./build/dod.ps1 -Fast` at least fifteen minutes before then.
+- **Push each finished item at once**, from the clone, before starting the next. Do not leave finished work on a side
+  branch or worktree to integrate later.
+- **Do not run parallel sub-agents that build.** The standard runner has four cores; concurrent .NET, pnpm, and Docker
+  builds slow every agent down rather than finishing more items.
+- **Budget the gates.** On the standard runner a cold `dotnet build` takes about two minutes and `./build/dod.ps1 -Fast`
+  about five; iterate with targeted tests and run the full gate once per item.
+- **Validate the chart against a real API server.** `helm` and `kind` are on the runner, and a `kind` cluster starts in
+  about a minute. Its API server checks the chart's manifests (`helm install --dry-run=server`), and Pod Security
+  admission enforces a namespace labeled `restricted`. Pod-to-pod networking and cluster DNS do not work on the
+  runner, so reach a pod with `kubectl port-forward` instead.
+
+[`.github/workflows/copilot-setup-steps.yml`](.github/workflows/copilot-setup-steps.yml) installs the pinned .NET SDK,
+Node, and pnpm and restores the NuGet and pnpm packages before a session starts. The platform runs it only from the
+default branch, so until it is on `main` a session starts without pnpm or the frontend packages. Run
+`npx -y pnpm@<version> install --frozen-lockfile` in `src/frontend`, using the version from `packageManager` in its
+`package.json`; it takes seconds. Then run each tool through `npx -y pnpm@<version> exec`.

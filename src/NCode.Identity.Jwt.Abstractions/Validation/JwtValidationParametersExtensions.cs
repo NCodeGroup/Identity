@@ -178,6 +178,8 @@ public static class JwtValidationParametersExtensions
                 new TokenLifetimeRequirement(options.RequireExpirationTime, parameters.ClockSkew)
                 {
                     MaxLifetime = options.MaxLifetime,
+                    RequireNotBefore = options.RequireNotBefore,
+                    RequireIssuedAt = options.RequireIssuedAt,
                 }
             );
         }

@@ -6,7 +6,8 @@
   nothing; profile selection amended by
   [ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md): a scope selects a set of profiles through
   `security_profiles`, merged with `Union` so every profile a parent selects stays in force, and every scope — the
-  server included — is expanded)
+  server included — is expanded; redirect URI kinds amended by [ADR-0203](0203-redirect-uris-are-matched-exactly.md):
+  the `fapi2` ceiling also caps `redirect_uri_kinds_supported` at `https`, `loopback`, and `private_use`)
 - **Date:** 2026-10-15
 - **Deciders:** NCode Group
 

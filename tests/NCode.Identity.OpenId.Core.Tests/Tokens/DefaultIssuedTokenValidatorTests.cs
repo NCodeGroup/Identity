@@ -48,6 +48,10 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
     ["A256GCM"];
 
     private static IReadOnlyCollection<string> IdTokenSigningAlgorithms { get; } = ["RS256"];
+    private static IReadOnlyCollection<string> IdTokenEncryptionAlgorithms { get; } =
+    ["RSA-OAEP-256"];
+    private static IReadOnlyCollection<string> IdTokenContentEncryptionAlgorithms { get; } =
+    ["A256GCM"];
 
     private Mock<IJwtValidator> MockJwtValidator { get; }
     private Mock<ISessionService> MockSessionService { get; }
@@ -387,10 +391,7 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
     [Fact]
     public async Task ValidateIdTokenHintAsync_DoesNotValidateTheLifetime()
     {
-        SetupAlgorithms(
-            OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
-            IdTokenSigningAlgorithms
-        );
+        SetupIdTokenHintAlgorithms();
         SetupJwtValidation(TestJwtValidationResults.Valid(new Dictionary<string, object>()));
 
         var result = await Validator.ValidateIdTokenHintAsync(
@@ -406,6 +407,52 @@ public class DefaultIssuedTokenValidatorTests : BaseTests
         Assert.Equal(
             [JoseTokenTypes.Jwt],
             AssertSingleRequirement<TokenTypeRequirement>(parameters).ValidTokenTypes
+        );
+    }
+
+    [Fact]
+    public async Task ValidateIdTokenHintAsync_DecryptsAHintReEncryptedToTheTenant()
+    {
+        SetupIdTokenHintAlgorithms();
+        SetupJwtValidation(TestJwtValidationResults.Valid(new Dictionary<string, object>()));
+
+        var result = await Validator.ValidateIdTokenHintAsync(
+            MockContext.Object,
+            Token,
+            CancellationToken.None
+        );
+
+        // A relying party may re-encrypt the hint to the server, under the tenant's advertised ID-token encryption lists.
+        Assert.True(result.IsValid);
+        var parameters = AssertCaptured();
+        Assert.Equal([TenantKey], parameters.DecryptionKeys);
+        Assert.Equal(IdTokenEncryptionAlgorithms, parameters.ValidKeyManagementAlgorithms);
+        Assert.Equal(
+            IdTokenContentEncryptionAlgorithms,
+            parameters.ValidContentEncryptionAlgorithms
+        );
+        Assert.Empty(
+            Assert.IsAssignableFrom<IEnumerable<string>>(parameters.ValidCompressionAlgorithms)
+        );
+        Assert.Equal(
+            [Issuer],
+            AssertClaimRequirement(parameters, JoseClaimNames.Payload.Iss).ValidValues
+        );
+    }
+
+    private void SetupIdTokenHintAlgorithms()
+    {
+        SetupAlgorithms(
+            OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
+            IdTokenSigningAlgorithms
+        );
+        SetupAlgorithms(
+            OpenIdSettingKeys.IdTokenEncryptionAlgValuesSupported,
+            IdTokenEncryptionAlgorithms
+        );
+        SetupAlgorithms(
+            OpenIdSettingKeys.IdTokenEncryptionEncValuesSupported,
+            IdTokenContentEncryptionAlgorithms
         );
     }
 

@@ -40,6 +40,13 @@ rationale.
   request's `HttpContext.RequestAborted` means the client went away; at an endpoint/middleware boundary rethrow it so
   the framework abandons the request — never convert it into a rendered error response, a retry, or an audit write (the
   aborted token would fail those writes anyway).
+- 👁 **A background loop treats an `OperationCanceledException` as a failure unless its own stopping token is
+  cancelled.** An `HttpClient` timeout throws `TaskCanceledException` while the loop's token is untouched, so a filter
+  `when (exception is not OperationCanceledException)` lets one slow endpoint end the loop and, under the host's default
+  `BackgroundServiceExceptionBehavior.StopHost`, stop the process. Catch the failure of one unit of work with
+  `when (!stoppingToken.IsCancellationRequested)` and end the loop quietly only when that token is cancelled
+  (`JobDispatchWorker`,
+  [ADR-0232](../../docs/adr/0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md)).
 - ✅ **Prefer C# 12+ collection expressions** over `new[] { … }` / `new List<T> { … }` / `Array.Empty<T>()`:
   `byte[] data = [1, 2, 3];`, `List<string> names = ["a", "b"];`, `int[] empty = [];`. Cast when a target type needs
   it for generic inference, e.g. `(byte[])[1, 2, 3]` for a `ReadOnlyMemory<T>` parameter.
@@ -67,7 +74,11 @@ rationale.
   never `$`: .NET's `$` also matches before a trailing newline, so `^[a-z]+$` accepts `"acme\n"`. When the value is an
   identifier compared byte for byte — an issuer, a redirect URI — check the raw string as well as the parsed `Uri`:
   `Uri` trims surrounding whitespace and reports an empty query (`?`) or fragment (`#`) as absent, so a string it
-  accepts can still differ from the one clients must match (`TenantAddressRules.TryParseIssuer`).
+  accepts can still differ from the one clients must match (`TenantAddressRules.TryParseIssuer`). Carry such an
+  identifier as a `string` wherever it is stored, serialized, compared, or delivered, and parse a `Uri` only to inspect
+  a part: `Uri` equality ignores the case of the host, the user information, and the fragment, and `AbsoluteUri`,
+  `ToString()`, `UriBuilder`, and `UriJsonConverter` normalize it (`myapp://callback` becomes `myapp://callback/`)
+  ([ADR-0203](../../docs/adr/0203-redirect-uris-are-matched-exactly.md)).
 - 👁 Prefer **auto-properties over fields** for state (static or instance) — **including `private` members**. Use a
   field only for a low-level need a property cannot express (a `ref` / `Interlocked` / `fixed` / `stackalloc` target).
   **A `System.Threading.Lock` does _not_ qualify** — declare it as a get-only auto-property
@@ -100,9 +111,11 @@ rationale.
   for an equal-or-stronger one.
 - 👁 **A policy that a replaceable public service must apply is itself a public seam.** When a public interface a
   consumer may replace (`ITokenService`) has to enforce a security policy, put the policy behind its own public
-  interface with an internal default (`IAccessTokenPolicyService`), so a replacement resolves the policy instead of
-  reimplementing it or silently skipping it; keeping it internal makes the secure path unreachable for exactly the code
-  that needs it. See [ADR-0158](../../docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md).
+  interface with an internal default (`IAccessTokenPolicyService`, `IClientJwtCredentialSelector`), so a replacement
+  resolves the policy instead of reimplementing it or silently skipping it; keeping it internal makes the secure path
+  unreachable for exactly the code that needs it. See
+  [ADR-0158](../../docs/adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md) and
+  [ADR-0181](../../docs/adr/0181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md).
 - 👁 **A token the server issued is validated only through `IIssuedTokenValidator`.** Never build
   `JwtValidationParameters` for an access token, ID token, or `id_token_hint` the tenant minted. The seam states the
   tenant's algorithm allow-lists, keys, `typ`, issuer, lifetime, and session check in one place, and hand-built copies
@@ -116,6 +129,13 @@ rationale.
   `DefaultOpenIdClientResolver` checks). A per-endpoint deny check would be missing from the next endpoint someone
   adds, and a request with no endpoint, such as background work, must resolve nothing. See
   [ADR-0168](../../docs/adr/0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md).
+- 👁 **Keep CORS off a front-channel endpoint with `WithOpenIdFrontChannel()`, never CORS metadata.** An endpoint the
+  user agent navigates to (authorization, continue, end-session, the interactive surface) carries
+  `IOpenIdEndpointFrontChannelMetadata`, and the CORS middleware is branched around it (`UseDeveloperCors`); the same
+  call routes a CORS preflight to the endpoint, which refuses it, since routing's own 405 endpoint has no marker, and a
+  preflight that selects no endpoint (an unmapped method) gets no policy either. Do not use `DisableCors()` /
+  `DisableCorsAttribute` or any other `ICorsMetadata`: the endpoint middleware throws for an endpoint carrying CORS
+  metadata when no CORS middleware ran, so it fails every request a production host without CORS serves. See [ADR-0109](../../docs/adr/0109-fapi-behavioral-rules-and-discovery-validation-details.md).
 - 👁 **Extensibility is the default: a vocabulary is open unless it is provably closed.** The family exists to be
   extended — by consumers and by sibling packages — without editing it, so every set of named values (kinds, types,
   modes, scopes, formats, methods, reasons, statuses, plans) is **open** by default and modeled as:
@@ -142,6 +162,10 @@ rationale.
     registered data and let the catalog derive it.
   - 🚫 **No exhaustive `switch` over an open vocabulary to choose behavior** — dispatch to the strategy registered for
     the name.
+  - 🚫 **No trait inferred from a member's name.** A suffix or prefix test such as `EndsWith(".jwt")` is a
+    hard-coded relationship too. The registered strategy declares the trait
+    (`IAuthorizationResponseModeHandler.SecuredResponseMode`), and the catalog validates it when composed
+    ([ADR-0201](../../docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md)).
   - A persisted or wire value is its string name, never an ordinal, so an older node that meets a newer member fails
     closed by name instead of misreading a number.
 
@@ -310,7 +334,11 @@ rationale.
   (`AddDeveloperKeys`/`GetDeveloperKeysOptions`, `AddDeveloperCors`/`UseDeveloperCors`) and are exposed through the server's
   turnkey surface so a host opts in with one call. Default to "it goes in the package"; only the genuinely host-specific,
   unsafe-to-default inputs called out below (database provider/connection string, production signing key) stay in
-  `Program.cs`.
+  `Program.cs`. Kestrel's HTTPS defaults are one of them: `ConfigureHttpsDefaults` keeps only its last action, so a
+  package that called it would silently replace, or be replaced by, the host's own TLS settings. A package never calls
+  it; the host makes one `ConfigureKestrel(k => k.ConfigureHttpsDefaults(...))` call that holds every HTTPS default,
+  such as the reference host's `AllowAnyClientCertificate()` for mutual TLS
+  ([ADR-0202](../../docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
 - ✅ Use the **C# 14 `extension` member syntax** (`extension(ReceiverType r) { … }` blocks), not classic
   `this`-parameter static methods — matching the `DefaultRegistration.cs` composition pattern
   (`extension(IServiceBuilder<IdentityLibrary> builder) { … }`).
@@ -332,12 +360,64 @@ rationale.
 - 👁 **Choose the DI shape deliberately** per [ADR-0001](../../docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md):
   a **service** (`TryAddSingleton<IFoo, DefaultFoo>`) for a capability you call for an answer; a **strategy collection**
   (`TryAddEnumerable`) for many implementations the caller iterates or selects; the **mediator** (`ICommandHandler<T>`)
-  only for a genuine pipeline seam where the sender must stay ignorant of the handlers.
+  only for a genuine pipeline seam where the sender must stay ignorant of the handlers. `TryAddEnumerable`
+  keeps one registration per implementation type, an instance's type included, so each built-in strategy of an open
+  vocabulary is its own class (the redirect URI kinds); several instances of one class keep only the first.
+- 👁 **A relationship between a client's settings is a registered coherence rule.** When a value a client registers must
+  be permitted by another of its effective settings, or may require one, add an `IClientCoherenceRule` with
+  `TryAddEnumerable`. The rule reads a `ClientCoherenceContext` (the client's registered and its effective settings; a
+  value a ceiling drops is visible only in the registered settings) and reports a missing companion with
+  `ClientCoherenceViolation.Missing`. Every entry point that stores a client, a configuration seeder through
+  `SeededClientValidator` included, and every tenant or server settings change checks it with
+  `IClientCoherenceValidator.Validate(tenantSettings, clientSettings)`; never add the check to one caller
+  ([ADR-0206](../../docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md)). List a tenant's
+  incoherent clients, in a report or a background pass, only through `IClientCoherenceReporter`, which checks one page
+  under the tenant's scope and reports a document the rules cannot read as `IncoherentClient.DocumentError`
+  ([ADR-0233](../../docs/adr/0233-the-management-api-lists-a-tenants-incoherent-clients.md)).
+  A value the client registers in a setting whose merge is a meet (`SettingDescriptor.HasMeetMerge`: `Min`, `And`,
+  `Intersect`) must survive into its effective settings, so a ceiling that lowers it is a violation, never a silent
+  clamp, while a join only raises a value to a parent's floor and is never reported
+  ([ADR-0240](../../docs/adr/0240-a-client-value-that-a-ceiling-lowers-is-incoherent.md)). A settings write that walks
+  the stored clients logs and skips a document the settings vocabulary cannot honor and never counts it as a violation
+  the change introduces
+  ([ADR-0241](../../docs/adr/0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md)).
+- 👁 **Options validation never constructs a strategy that has dependencies.** `IOptions<OpenIdOptions>.Value` runs
+  every `IValidateOptions<OpenIdOptions>`, which read the setting-descriptor catalog, so every setting data source, and
+  every catalog it consults to name a domain (the client-authentication method descriptors, the redirect URI kinds, the
+  security profiles), is built from dependency-free registrations; resolving a strategy with dependencies there builds
+  its whole graph inside options validation and deadlocks composition when a constructor on that path reads `Value`.
+  When a vocabulary's members are strategies, register a descriptor beside each one and check at composition that they
+  correspond
+  ([ADR-0207](../../docs/adr/0207-client-authentication-methods-are-named-by-registered-descriptors.md)).
 - 👁 **Mediator handlers run in descending `ISupportMediatorPriority` order** — `DefaultMediatorPriorities.High` (100)
   first, `Low` (-100) last. When one handler depends on another's effect, state it with priorities, never with
   registration order. A handler that observes or repairs state for the rest runs `High` (the default validators, the
   development secret pruner), and a handler that consumes what the others leave runs `Low` (tenant key provisioning,
   [ADR-0169](../../docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)).
+- 👁 **A change other replicas must observe is announced, not only applied locally.** An in-process cache or
+  materialized object is invalidated on every replica through `IReplicaBroadcaster`, with a registered
+  `IReplicaBroadcastHandler` per channel. Apply the change locally first, publish after, and log rather than throw a
+  failed publish once the write has committed
+  ([ADR-0205](../../docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md)). A handler also implements
+  `HandleMissedMessagesAsync`, which the Valkey subscriber calls once it subscribes and whenever its connection is
+  restored: drop or read again everything a lost message on the channel could have made stale.
+- 👁 **Work proportional to the deployment never runs inside a request.** A pass over every tenant or every client
+  reads a settings projection (`GetSettingsPageAsync`, untracked, no secrets) and skips when the change cannot affect
+  it. A pass that brings tenants or clients in line with the server's settings is a handler of
+  `ReconcileServerSettingsCommand`, which one replica runs in the background whenever the server's effective settings
+  change ([ADR-0219](../../docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md));
+  never put such a pass on the in-process job dispatcher, whose bounded workers it would hold.
+- 👁 **State derived from settings converges by reconciliation, not by replaying an event.** A background pass reads the
+  current state and repairs what differs, so a pass that a restart interrupted is run again and nothing depends on a
+  queued job that a restart loses. Record durably what the pass reconciled against — the input itself beside its
+  fingerprint (`PersistedServer.ReconciledSettings`, `ReconciledSettingsFingerprint`) — and let each handler compare
+  it with the current input (`ReconcileServerSettingsCommand.PreviousSettings`) to skip what the change cannot affect,
+  reconciling everything when there is nothing to compare with. Mark the record stale in the unit of work that changes
+  its input, discard the compared input when a second change arrives before the first was reconciled, write the
+  record alone so it never overwrites a concurrent write, and take an `IExpiringKeySet` lease keyed by the input's
+  version so one replica runs each pass
+  ([ADR-0219](../../docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
+  [ADR-0234](../../docs/adr/0234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md)).
 - 👁 **Build a protocol endpoint to the canonical shape** per [ADR-0086](../../docs/adr/0086-canonical-openid-endpoint-shape.md):
   a **thin** `IEndpointProvider` whose `HandleRouteAsync` only orchestrates — verb/content-type guard →
   `IClientAuthenticationService.AuthenticateClientAsync` → load a **strongly-typed** `OpenIdMessage<T>` request
@@ -390,9 +470,12 @@ rationale.
   `10.0.0.4/8` to `10.0.0.0/8`; `Uri.TryCreate(value, UriKind.Absolute, …)` accepts an implicit file path — `/path` on
   Unix, `C:\path` on Windows — and trims surrounding whitespace, so an absolute URI must also start with its own
   `scheme:` and contain no whitespace), and a value compared verbatim (a CORS origin) must be in the form it is compared
-  in — reject anything that parses to something other than what was written. A setting the server cannot honor in an
-  environment (a development-only section in Production) is a startup error, not an inert key. See
-  [ADR-0137](../../docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md),
+  in — reject anything that parses to something other than what was written. The binder reads an enum option from a
+  number as well as from a name and accepts a number that names no member (`"7"`), so the options validator refuses a
+  value `Enum.IsDefined` rejects (`InProcessJobDispatcherOptionsValidator`,
+  [ADR-0242](../../docs/adr/0242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)). A setting the
+  server cannot honor in an environment (a development-only section in Production) is a startup error, not an inert
+  key. See [ADR-0137](../../docs/adr/0137-configuration-binds-strictly-and-is-validated-at-startup.md),
   [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md), and
   [ADR-0140](../../docs/adr/0140-setting-values-are-validated-against-their-domain.md).
 - 👁 **Setting names are a closed vocabulary.** Every setting a server, tenant, client, or resource server carries has a
@@ -418,7 +501,13 @@ rationale.
   them — a rewritten document and its new token, an untouched control row — then revert with
   `database update <previous migration>` to exercise `Down`, and remove the container. A value that is metadata
   rather than a runtime control (RFC 7591 `client_name`, `contacts`)
-  is still a registered setting. See [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md).
+  is still a registered setting. Retiring a setting, or giving its value a home outside the settings documents, keeps
+  the previous release working: keep the descriptor registered with a `RetiredReason` (a stored document that carries
+  it loads, an update through `ISettingSerializer.ValidateSettingsUpdate` may keep or remove it, any other write refuses
+  it), copy the value in an `[ExpandMigration]` that leaves the key, and remove the key and the descriptor in a later
+  release's `[ContractMigration]`; a rename is a contract step, since the previous release fails closed on a name it
+  does not know. See [ADR-0139](../../docs/adr/0139-setting-names-are-a-closed-vocabulary.md) and
+  [ADR-0251](../../docs/adr/0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md).
 - 👁 **A setting declares its domain, not only its type.** Give every descriptor whose type admits values the server
   would not honor a `Rule` (`SettingRules.OneOf`/`EmptyOr`/`AtLeast`/`Between`/`Each`/`Must`): an enumerated string is a
   `OneOf`, a lifetime or interval is at least one second, a timeout is positive, a list applies `Each` to its values, and
@@ -434,10 +523,12 @@ rationale.
   reader, and is never split back into its parts to be enforced piecewise.
   See [ADR-0140](../../docs/adr/0140-setting-values-are-validated-against-their-domain.md) and
   [ADR-0141](../../docs/adr/0141-response-types-are-whole-values.md).
-- 👁 **A security profile binds every scope below the one that selects it.** A scope's own settings enter the cascade
-  through `ISecurityProfileCatalog.Expand` — the root settings, the persisted server, tenant, and client documents, and
-  any view that claims to show what the runtime enforces (a management effective-settings preview) — never through a
-  bare `ISettingSerializer.DeserializeSettings`, which would apply a profile's requirements without its ceilings.
+- 👁 **A security profile binds every scope below the one that selects it.** Outside the live providers, resolve a
+  scope's effective settings only through `IEffectiveSettingsResolver`. Use `Resolve(parent, scope, document)`, and
+  `ResolveServerAsync` for the server's committed settings. Never hand-merge a deserialized document, and never take
+  server settings from this replica's poll for a seed or a check. Only the server factory and the root settings source
+  call the catalog directly
+  ([ADR-0204](../../docs/adr/0204-a-scopes-effective-settings-are-resolved-by-one-service.md)).
   `security_profiles` accumulates down the cascade (`Union`), so enforcement evaluates the requirements of every profile
   in the effective settings and never picks "the" profile. A profile contributes its ceiling through
   `ISecurityProfileCeilingBuilder`, which accepts only a setting whose merge is a lattice operation
@@ -459,6 +550,20 @@ rationale.
   the profiles the client selects. Adding a reader at a new scope widens `AppliesTo`; narrowing it ships with a data
   migration that removes the setting from the documents of the scopes it leaves. See
   [ADR-0149](../../docs/adr/0149-settings-declare-the-scopes-they-apply-to.md).
+- 👁 **A capability the server advertises and a requirement a client registers are two settings.** Advertised support
+  never forces a client. The requirement is a client setting with an `Or` floor, and a coherence rule refuses it where
+  support is off (`tls_client_certificate_bound_access_tokens` and
+  `require_tls_client_certificate_bound_access_tokens`; `dpop_signing_alg_values_supported` and
+  `require_dpop_bound_access_tokens`). A requirement is named `require_` plus its RFC client metadata member
+  (`tls_client_certificate_bound_access_tokens`, `dpop_bound_access_tokens`). See
+  [ADR-0097](../../docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md).
+- 👁 **A value nobody chose sits beneath a security profile's default.** At the server root the descriptor defaults, the
+  computed `*_supported` values and the default-settings providers are the baseline passed to
+  `ISecurityProfileCatalog.Expand(scopeSettings, OpenIdSettingScopes.Server, baselineSettings)`, and only the
+  configuration is the root's own settings, so a selected profile's default replaces the baseline and never a
+  configured value. Every `Expand` names its scope, and a default applies only to a setting that applies within that
+  scope. See
+  [ADR-0148](../../docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md).
 - 👁 **Sibling scopes combine; a cascade merges.** When two scopes that are not parent and child govern one operation —
   an access token is bound by its client **and** every resource server it targets — join their effective settings with
   `IReadOnlySettingCollection.Combine`, never `Merge`: it accepts only lattice merges, so the result binds both and does
@@ -532,14 +637,193 @@ rationale.
   request. State that must outlive a request or be seen by another replica goes to the database or to the shared-state
   port; in-memory state (`IMemoryCache`, static or singleton fields) is only for data that can be rebuilt on a miss, and
   must tolerate eviction and restarts. Never write durable data to the local filesystem.
+- 👁 **A hosted service whose `StopAsync` does work runs it once and never throws.** A host can be stopped twice at
+  once (`StopAsync` called while `RunAsync` stops it too), and the stop that returns first lets its caller dispose
+  the service provider under the other's work. Memoize the stop task under a `Lock`, serialize it with the
+  service's periodic work, and log what it could not finish (`TenantUsageFlushService.StopAsync`,
+  [ADR-0209](../../docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
+- 👁 **A hosted service that reads the store waits for the server to be materialized.** It starts from
+  `IMaterializedServerAccessor.GetServerAsync`, public so a package other than the core waits the same way, which
+  completes at the replica's first request, never at host start: a
+  host starts while its database may still be migrating, and the integration factory seeds the server's settings before
+  the first request (`HostApplicationFactory.SeedServerSettingsAsync`)
+  ([ADR-0219](../../docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
+- 👁 **A start check that needs the server's protector is a hosted service after the warmup.** `ValidateOnStart` and
+  every startup validator run before any hosted service starts, so before `ServerSecretProtectorWarmup` loads the
+  protector; `AddSecretProtection` inserts the warmup first and `DataProtectionKeyRingGate` second, both ahead of Data
+  Protection's hosted service
+  ([ADR-0247](../../docs/adr/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).
 - 👁 **A single-use or freshness check records into `IExpiringKeySet`, never a get-then-set.** A replay guard (a
   `jti`), a server-issued nonce, or any "accept once" record is an atomic add-if-absent on the shared-state port
   (`NCode.Identity.SharedState.Abstractions`), whose adapter the composition root chooses — in-process for one replica,
   Valkey for several. `IDistributedCache` cannot express it: a read followed by a write lets two concurrent requests
   both pass. Build the key with the tenant and a digest of the length-prefixed, request-supplied components
   (`ExpiringKeys.Create`), so tenants sharing a store never collide and an attacker-supplied value cannot make a key
-  ambiguous or unbounded. A library never registers a host-wide cache. See
+  ambiguous or unbounded. `ExpiringKeys.Create` puts the tenant in braces, the key's hash tag, so one script may touch
+  one tenant's keys on a clustered Valkey and never several tenants'; and every Valkey adapter call goes through
+  `ValkeySharedStateMetrics.MeasureAsync`. A library never registers a host-wide cache. See
   [ADR-0164](../../docs/adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md).
+- 👁 **A credential with a stored grant is spent through `IPersistedGrantService.ConsumeOnceOrDefault`, after every
+  check passes and before its effect.** A refused request leaves it usable. `IExpiringKeySet` is for single-use state
+  with no durable row. See
+  [ADR-0192](../../docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md).
+- 👁 **Every grant that issues tokens for a subject validates it before it spends its credential.** A token grant sends
+  `ValidateSubjectAuthenticationCommand` through `TokenGrantSubjectValidation.ValidateAsync` from its
+  `ValidateTokenGrantCommand<TGrant>` handler, an out-of-band approval sends it with no request, and a stored credential
+  issued to a client (an authorization code, a device code, an `auth_req_id`) is redeemed only by that client. The end
+  user's standing (a blocked principal, a disabled or deleted local account) is `ValidateSubjectStandingCommand`, which
+  every `ValidateSubjectAuthenticationCommand` includes, the interactive sign-in sends before it creates a session, and
+  the authorization request answers with `access_denied` instead of a login challenge; a capability with its own reason
+  to refuse an end user adds a `ValidateSubjectStandingCommand` handler with `TryAddEnumerable`. See
+  [ADR-0225](../../docs/adr/0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md),
+  [ADR-0226](../../docs/adr/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md)
+  and
+  [ADR-0229](../../docs/adr/0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md).
+- 👁 **A refresh-token rotation spends the presented token and stores its successor in one unit of work**
+  (`ITokenService.RotateRefreshTokenAsync` over `IPersistedGrantService.ReplaceOnceOrDefault`), after every check and
+  before any token is minted. A spend that loses to a spend or a revocation is answered as a reuse, and one that loses
+  to a write that left the grant active reads the grant again. `RefreshTokenRotationRequirement` decides whether a token
+  rotates. A successor stored in a later unit of work can escape the loser's lineage revocation. See
+  [ADR-0211](../../docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md),
+  [ADR-0216](../../docs/adr/0216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md) and
+  [ADR-0217](../../docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md).
+- 👁 **A store reports a lost optimistic-concurrency race as `StoreConcurrencyException`, never an Entity Framework
+  type.** `IStoreManager.SaveChangesAsync` and a store's own concurrency-token check throw it, so no caller references
+  Entity Framework to handle a lost race, and a single-use spend that loses is answered as a second spend. A
+  management endpoint never catches it: the management route group's `StoreConcurrencyEndpointFilter` answers it
+  `412`. See
+  [ADR-0208](../../docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) and
+  [ADR-0214](../../docs/adr/0214-a-management-write-that-loses-a-race-is-answered-412.md).
+- 👁 **A stored settings document that cannot be honored is answered `409` once, by the management route group.** A
+  management request resolves a document a store holds with
+  `IEffectiveSettingsResolver.ResolveStored(parent, scopeName, ownerId, document)`, and the server's committed one with
+  `ResolveServerAsync`; both throw `UnreadableSettingsException` naming the scope and the owner, and
+  `UnreadableSettingsEndpointFilter` answers it with a `409` problem (`settingsScope`, `ownerId`, `documentError`), so
+  no handler catches it. Resolve only after authorization (a read resolves in the `mapperAsync` of `ProcessGetAsync`),
+  and keep `Resolve` for a proposed document and for a write that replaces the document it cannot read
+  ([ADR-0241](../../docs/adr/0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md),
+  [ADR-0245](../../docs/adr/0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)).
+- 👁 **A revocation wins a lost race.** Revoke grants through `IPersistedGrantService` (`SetRevokedOnceAsync`,
+  `RevokeWhereAsync`, `RevokeByRefreshTokenLineageAsync`), which read again in a new unit of work and retry, never
+  through `IGrantStore.RevokeWhereAsync` and a save of your own; a revocation does not depend on what its caller read,
+  so the server retries it instead of answering `412`. See
+  [ADR-0215](../../docs/adr/0215-a-revocation-wins-a-concurrency-race.md).
+- 👁 **Change a stored grant's payload with the read-modify-write
+  `IPersistedGrantService.UpdatePayloadAsync(…, update, …)`, never by writing a payload computed from an earlier
+  read.** The service applies `update` to the grant as stored under that read's concurrency token and again after a
+  lost race, so `update` decides from its argument and returns `null` when the stored grant does not need the change.
+  See [ADR-0222](../../docs/adr/0222-a-grants-payload-is-changed-by-a-read-modify-write.md).
+- 👁 **When a request and a background pass can both act on one record, the caller whose write claims it acts.**
+  `RevokeSessionOnceAsync` returns the session grant as this call revoked it, or `null` when another caller did, in the
+  unit of work that also revokes the grants issued under it, so a failure after the claim leaves no token active, and
+  only that caller terminates an ended session. See
+  [ADR-0223](../../docs/adr/0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md). Every path that
+  terminates a named session goes through `ISessionService`, which claims the session this way before it dispatches
+  `OnSessionTerminatedCommand`; never dispatch the command for a named session yourself, and revoke a subject's grants
+  before a subject-wide dispatch. See
+  [ADR-0227](../../docs/adr/0227-a-session-is-terminated-at-most-once-on-every-path.md). A termination notifies the
+  clients that the claimed grant lists, never the clients an earlier read listed, and a subject-wide termination claims
+  every unrevoked session, an ended one included
+  ([ADR-0228](../../docs/adr/0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md)).
+- 👁 **A security effect that follows a committed change — ending the sessions after a password change or reset, an
+  account disable or a principal block — runs with `CancellationToken.None`.** A client disconnect must not leave the
+  change committed without its effect; a step that precedes its commit keeps the request token. See
+  [ADR-0226](../../docs/adr/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md).
+- 👁 **The interactive surface serves a cookie only while the session it names is active.** An interactive endpoint
+  authenticates its cookie through the handler's `AuthenticateSessionAsync`, never `AuthenticateAsync` directly, and a
+  refusal that resumes a parked authorization request answers it through `IContinueRefusalService`, which delivers the
+  error to the client, never a redirect elsewhere. See
+  [ADR-0229](../../docs/adr/0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md).
+- 👁 **Background work that runs protocol machinery in a tenant creates its context with
+  `IOpenIdContextFactory.CreateForBackgroundAsync` in its own DI scope.** The context has no endpoint, connection or
+  user, and it is disposed before the scope. See
+  [ADR-0223](../../docs/adr/0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md).
+- 👁 **Read a stored grant's payload through `IPersistedGrantService` or `IPersistedPayloadSerializer`, never
+  `PayloadJson.Deserialize<T>()`.** A grant's `PayloadJson` is a schema-versioned envelope (`$ver`, `$payload`), so
+  deserializing it as the payload reads none of the payload's members and throws for a `required` one; a session
+  listing that did so failed for every stored session. See
+  [ADR-0220](../../docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md).
+- 👁 **A fetch of a URL a tenant or certificate supplies uses a named client whose primary handler has the
+  `IOutboundHttpForgeryGuard` connect callback, and the platform `X509Chain` retrieves nothing.** Use
+  `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through
+  `IClientCertificateRevocationChecker`. See
+  [ADR-0173](../../docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md).
+- 👁 **A retrieval that concurrent requests share runs once, on its own terms.** Key it in a `ConcurrentDictionary` of
+  `Lazy<Task<T>>` that the retrieval removes itself from; bound it by its own timeout, never a caller's token (a caller
+  stops waiting with `WaitAsync`); give it its own copy of any disposable input a caller owns, such as a chain's
+  certificates; remember a failed retrieval for a configured time so an unreachable source does not cost every request
+  a timeout (`DefaultClientCertificateRevocationChecker`). See
+  [ADR-0252](../../docs/adr/0252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md).
+- 👁 **A count every replica must agree on increments `IExpiringCounterSet`, never a get-then-set.** A counter is
+  incremented with the port's atomic `IncrementAsync`, which starts a counter for one fixed window, or, for the limits
+  of a rate-limit stage, with `IncrementUntilExceededAsync`; a read followed by a write loses concurrent requests. Read
+  a counter this request does not add to (the previous window) with `GetAsync`, or as an increment's `ReferenceKey`
+  within the batch. Count what is requested, not what later succeeds: counting only an outcome needs a read before the
+  work and an increment after it. A rate limit or quota is a `RateLimitDescriptor` registered through
+  `ICollectionDataSource<RateLimitDescriptor>` and judged by `IRequestRateLimiter.AcquireAsync` at its stage, which
+  counts the stage's limits in one `IncrementUntilExceededAsync` call; never call the counter set for a limit from an
+  endpoint. See
+  [ADR-0196](../../docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
+  [ADR-0198](../../docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) and
+  [ADR-0246](../../docs/adr/0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md).
+- 👁 **A password is judged by `IPasswordPolicy` wherever it is set.** The management API's create and reset, an
+  `IInteractivePasswordChanger`, and a configuration seeder pass the tenant's effective settings, the account's user
+  name and email, and the password to `IPasswordPolicy.ValidateAsync` before the store hashes it, and answer a refusal
+  with its description (management `400`) or its error code (the change page). Another password the policy must refuse
+  is a registered `IPasswordBlocklist`, never a check in one caller, and a store's own password validators are not the
+  policy
+  ([ADR-0236](../../docs/adr/0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md)).
+- 👁 **Every password verification goes through `IPasswordAttemptLimiter`, inside the store's one lookup.** Pass
+  the `IsRefusedAsync` of a `PasswordAttemptGate`, which asks `IsLimitReachedAsync`, as the `isRefusedAsync` of
+  `ILocalAccountStore.VerifyCredentialAsync`, and answer the result of its `Enforce`, which fails a store that never
+  asked and refuses a result verified after a refusal: the store looks the account up once, asks it about the user
+  name the account holds (or the submitted name when none has it), and verifies a refused password against its dummy
+  hash, so a refusal costs and answers what a wrong password does. Call `RecordFailureAsync` with
+  `CancellationToken.None` and the result's `UserName` for every result that is not verified, a refusal included; after
+  a verified password, or a password an administrator sets, call `ResetAsync`, last when other effects such as ending
+  sessions must not depend on the counter store. Never look the account up a second time to name the count. A count of
+  a run of events that ends is cleared with `IExpiringCounterSet.RemoveAsync`
+  ([ADR-0237](../../docs/adr/0237-failed-password-attempts-are-limited-per-account.md),
+  [ADR-0244](../../docs/adr/0244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md)).
+- 👁 **A password is judged, hashed and verified in its Unicode Normalization Form C (NFC), and a failed verification
+  takes as long whether or not the account exists.** `DefaultPasswordPolicy` judges the NFC form and every
+  `IPasswordHasher` hashes and verifies it, verifying the submitted form as a fallback that reports
+  `SuccessRehashNeeded`; the ASP.NET Core Identity adapter hashes and verifies only through
+  `NormalizingPasswordHasher<TUser>`, which `AddAspNetIdentityLocalAccountStore<TUser>()` wraps around the host's
+  `IPasswordHasher<TUser>` registration whatever its order, so the host's own pages hash and verify the same form. When
+  a store holds no hash it may verify (no account has the user name, the account has no password or is locked out, the
+  stored hash cannot be read, or the password is refused at the attempt limit), it verifies the submitted password
+  against a dummy hash of the current parameters (`IPasswordHasher.DummyPasswordHash`) through the same code path and
+  refuses it whatever the result. A store never sets a password through an API that runs the host's password validators
+  (`UserManager<TUser>.CreateAsync(user, password)`, `ResetPasswordAsync`); it hashes and stores the hash itself
+  ([ADR-0238](../../docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md),
+  [ADR-0239](../../docs/adr/0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md),
+  [ADR-0243](../../docs/adr/0243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md)).
+- 👁 **A write that a background loop retries is idempotent.** A save can commit and still fail at its caller (a lost
+  acknowledgement, a timeout, a cancelled shutdown). Give the write an identity that the store records in the same
+  unit of work, and skip a write whose identity is already there: the usage ledger's per-replica batch checkpoint,
+  [ADR-0209](../../docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md).
+- 👁 **Deleting an owner removes what it owns, in the same unit of work, through the change tracker.** A client's
+  removal takes its secrets, client grants, consents and grants; a client's or a resource server's removal also takes
+  the role assignments at its node, ownership included; a tenant's takes every `ISupportTenantEntity` row of
+  the model, so an entity a package contributes is erased with its tenant. Foreign keys stay `Restrict`. See
+  [ADR-0212](../../docs/adr/0212-deleting-an-owner-removes-what-it-owns.md).
+- 👁 **An Entity Framework store issues no `ExecuteUpdate`/`ExecuteDelete`.** EF InMemory, the hermetic host's provider,
+  does not support them, and they bypass the concurrency-token interceptor; a bulk removal stages a bounded batch and
+  its caller saves each batch as one unit of work (`ITenantUsageStore.RemoveBeforeAsync`,
+  [ADR-0213](../../docs/adr/0213-the-usage-ledger-is-pruned-in-bounded-batches.md);
+  `IGrantStore.RemoveEndedBeforeAsync`,
+  [ADR-0218](../../docs/adr/0218-ended-grants-are-removed-after-a-retention-period.md)).
+- 👁 **Public metadata is unmetered, and a limit an endpoint enforces refuses through `RateLimitErrors.Refuse`.** An
+  endpoint any anonymous caller or cache fetches (discovery, the JSON Web Key Set) is marked `WithOpenIdMetered(false)`,
+  so it spends only the per-minute limits, never the tenant's daily quota or billable usage. The limiter marks a
+  request it refuses and adds the usage meters of each admitting stage to the request, and `RateLimitEndpointFilter`
+  records them after the endpoint runs unless a stage refused it, so a meter is a descriptor's `UsageMeter` or
+  `OverageUsageMeter`, never an `ITenantUsageRecorder.Record` call beside a limit; answer a refusal with
+  `RateLimitErrors.Refuse`. See
+  [ADR-0198](../../docs/adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
+  [ADR-0199](../../docs/adr/0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) and
+  [ADR-0246](../../docs/adr/0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
   property `ServiceCollection` — never `services` or `service`. The canonical `NCode.Registration` builder sets this
   shape; keep it uniform everywhere, including tests.
@@ -583,6 +867,19 @@ rationale.
   re-saves `OpenIdDbContextModelSnapshot.cs` even when the model is unchanged; the repository's files are BOM-less
   (`charset = utf-8`), so strip the BOM from the generated migration and revert a snapshot whose only diff is the BOM.
   See [ADR-0073](../../docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md).
+- ✅ **A migration keeps the previous release working.** The previous release serves while a migration runs and after a
+  rollback, so a migration adds tables, nullable or defaulted columns, and indexes, and never drops, renames, or
+  tightens what the previous release reads. A column made required (with or without a default: EF Core writes an
+  explicit NULL for a column the previous release maps as nullable), a unique index, unique constraint, primary key,
+  check constraint or foreign key added to an existing table, and a foreign key that restricts deleting rows of an
+  existing table all tighten it. Raw SQL and seed-data changes carry `[ExpandMigration("why")]` (the previous release
+  still reads every row they write, with the same meaning or a restriction this release applies too) or
+  `[ContractMigration("why")]` (it fails on, or loses, a value it reads). `ExpandOnlyRule.Check` judges every migration
+  in `ExpandOnlyRuleTests`, which fails any other migration in the Definition of Done. A deliberate contract step ships
+  a release after its expansion. Hand-written code in `NCode.Identity.OpenId.Host.Database` stays outside
+  `Migrations/`, which `.editorconfig` treats as generated code. See
+  [ADR-0184](../../docs/adr/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
+  [ADR-0250](../../docs/adr/0250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md).
 - ✅ **Raw SQL in the EF model must quote identifiers.** Any hand-written SQL fragment in the model (`HasFilter`,
   `HasComputedColumnSql`, `HasDefaultValueSql`, …) MUST double-quote column/table names (e.g.
   `HasFilter("\"NormalizedDomainName\" IS NOT NULL")`). Postgres folds unquoted identifiers to lower case (the schema
@@ -664,6 +961,11 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   because they throw on out-of-range input. A time claim that is **present but invalid fails closed** — never read it
   as absent. Saturate (don't overflow) when adding a margin to an instant near `DateTimeOffset.MaxValue`. See
   [ADR-0123](../../docs/adr/0123-numeric-date-is-read-strictly-and-range-guarded.md).
+- **Stamp an instant that a JWT or a stored grant carries with `NCode.Time`'s whole-second helpers.** Use
+  `TimeProvider.GetUtcNowWithPrecisionInSeconds()` (or `GetTimestampWithPrecisionInSeconds()` for ticks) and
+  `WithPrecisionInSeconds()`, so a stored time equals the `NumericDate` it round-trips through. Reference the
+  dependency-free **`NCode.Time`** package, the home for general time helpers. A helper with a method body never lives
+  in an `*.Abstractions` package. See [ADR-0188](../../docs/adr/0188-general-time-helpers-live-in-a-dependency-free-package.md).
 - **Bound a received JWT's lifetime through the lifetime requirement, never with ad-hoc `exp` arithmetic.** Cap a
   client-supplied JWT (assertion, request object) with `ValidateTokenLifeTime(o => o.MaxLifetime = …)`, fed from a
   `Min`-merged `*_max_lifetime` setting; it measures from the earliest asserted `iat`/`nbf` (or now plus skew), so the
@@ -695,6 +997,13 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   (`PersistedSecret.KeyId`), while a secret identifier is globally unique. Match a key type by its JSON Web Key `kty`
   through `ISecretKeyTypeCatalog.TryGetByJwkKeyType`, never a `switch` over `kty` values. See
   [ADR-0161](../../docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md).
+- 👁 **Read a client's certificate only through `IClientCertificateResolver`.** It is the one place that knows where the
+  deployment's certificate comes from: the connection under direct TLS, and behind a proxy only the trusted forwarded
+  header, decoded by the `IClientCertificateHeaderDecoder` registered for the configured format. Never read
+  `HttpContext.Connection.ClientCertificate` or a forwarded header directly — behind a proxy the connection's certificate
+  is the proxy's. A forwarded value that cannot be decoded is `invalid_request`, never an absent certificate: a
+  present-but-malformed credential fails visibly instead of looking like one that was never sent. See
+  [ADR-0172](../../docs/adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md).
 - **Give a typed `Claim` its value in the declared type's XML Schema lexical form** — numbers via
   `value.ToString(CultureInfo.InvariantCulture)`, never culture-formatted (`"1,000"`). The JWT claim ⇄ JSON mapping
   (`ClaimValueMapper`, the single place a `Claim.ValueType` is interpreted) parses each value strictly in its declared
@@ -848,6 +1157,40 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   non-secret bytes — and flatten a multi-segment `Sequence<byte>` to a contiguous span via `GetSpanLease(isSensitive:)`,
   never manual concatenation. This is the general convention for all byte-array/memory/buffer usage; existing `byte[]`
   surfaces migrate incrementally. See [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md).
+- 👁 **Allocate a `byte[]` only when an external API demands an array, and then rent or pin it.** A rented buffer
+  (`BufferFactory.Rent(…, isSensitive:, out …)`, `CreatePooledBufferWriter(isSensitive:)`) or a small, fixed
+  `stackalloc` is the default for every transient; a secret held by an object or across an `await` is a sensitive
+  rental held as an `IDisposable` lease beside the `Memory<byte>` it returned
+  (`BufferFactory.Rent(…, isSensitive: true, out Memory<byte>)`, a pinned secure-pool array zeroed when returned),
+  because `BufferFactory.CreatePinnedArray` returns a `ref struct` for synchronous, method-local use only; never a bare
+  array or `GC.AllocateArray`. An API that needs an array gets one from a rental via `MemoryMarshal.TryGetArray`.
+  `new byte[]`, `.ToArray()`, `ArrayBufferWriter<T>` and `MemoryStream` appear only at an API that requires them (an SDK
+  request stream), over a rented or pinned array. An interface method's output is a `Span<T>`/`Memory<T>` with a
+  returned count, or a generic `ref TWriter … allows ref struct` writer with a sizing method beside it
+  (`IAesKeyWrap.WrapKey` with `GetEncryptedContentKeySizeBytes`); Moq proxies such methods. See
+  [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md). `BufferFactory.Rent`'s `out` span or
+  memory is exactly the requested length — never slice it back to that length — and the `out Span<T>` overload is the
+  default; take `out Memory<T>` only for a buffer stored in a field or used across an `await`.
+- 👁 **Sensitive text is never a `string`.** Read a key or secret file as bytes into a secure buffer
+  (`File.OpenHandle` + `RandomAccess.Read`) and decode it from UTF-8; write sensitive XML with an `XmlWriter` over a
+  sensitive pooled writer and read it back with an `XmlReader` over that buffer; transform identifiers on hot paths
+  into rented `char` spans (`MemoryExtensions.ToLowerInvariant(source, destination)`) instead of allocating strings.
+  A `string` is produced only for a non-secret value at a storage or wire boundary — an envelope stored in a text
+  column, a persisted identifier — exactly once, written in place by `string.Create` — never by renting a `char`
+  buffer and copying it out with `new string(span)`. Pass span inputs through an `internal readonly ref struct`
+  state (`string.Create`'s `TState` allows ref structs) and `ReadOnlyMemory<T>` inputs through a value tuple; when an
+  interface implementation writes the characters, check `writer.WrittenCount == chars.Length`, so no `'\0'` remainder
+  is ever persisted. See [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md) and
+  [ADR-0235](../../docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md).
+- 👁 **Size a collection from a count you already know, and keep per-call paths free of avoidable allocations.** Pass the
+  capacity (`new HashSet<T>(source.Count)`, `new List<T>(n)`, `new Dictionary<TKey, TValue>(n)`) whenever the final or
+  maximum count is known; return a shared empty instance (`FrozenSet<T>.Empty`, a `[]` collection expression) rather
+  than allocating an empty one — but `list ?? []` types the `[]` as the list and allocates one, so write
+  `list ?? (IReadOnlyCollection<T>)[]` to get the shared empty array; create a collection lazily when it may stay
+  empty; and on a path that runs per request replace LINQ (`All`, `Any`, `Where(…).ToHashSet()`) with a `foreach` —
+  each LINQ call allocates a delegate and an enumerator — testing `Count == 0` first so an interface's boxed
+  enumerator is not created for nothing. See
+  [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md).
 - 👁 **Cryptographic and numeric hot-path primitives are optimized aggressively; readability is secondary there.**
   Inner loops of the math/crypto primitives (field, scalar, and group arithmetic; encoders; constant-time helpers)
   should use every applicable trick — `[MethodImpl(MethodImplOptions.AggressiveInlining |
@@ -860,15 +1203,20 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   rules above, limited to performance-critical primitives. See
   [ADR-0116](../../docs/adr/0116-memory-allocations-and-buffer-operations.md).
 
-## 11. Logging
+## 11. Logging & metrics
 
+- 👁 **A library never registers or removes a logging provider; the host's composition root chooses its sinks.** The
+  reference hosts log to standard output on every platform, with
+  `builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger()`, and never to the Windows Event Log
+  ([ADR-0210](../../docs/adr/0210-the-reference-hosts-log-to-standard-output.md)).
 - 👁 **Log through source-generated `[LoggerMessage]` methods**, never `ILogger.Log*` calls with an interpolated
   message — the generator gives allocation-free, strongly-typed, structured logging. Group the partial methods for a
   package in a `Logging/Log.cs` `internal static partial class Log`, written as **extension methods on `ILogger`**
   (`Logger.SubjectValidationFailed(reason)`), and mark the class `[ExcludeFromCodeCoverage]` (generated plumbing).
 - 👁 **A message template is a constant with named placeholders** (`"… {DisplayName}"`), never string interpolation or
   concatenation; a value that also feeds an error/response is defined **once** (§6) and passed to the log method as a
-  structured argument.
+  structured argument. Pass a value as its own type, never a pre-built `ToString()` — the generated method formats it
+  only when the level is enabled.
 - 👁 **Event IDs are named `const`s in a per-package `Logging/EventIds.cs`** — an `internal static class EventIds`
   with a `private const int Base` set to the package's band (below) and one `public const int` per event defined as
   `Base + n`. **Each constant is named _exactly_ as the `[LoggerMessage]` method it identifies**
@@ -902,6 +1250,27 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
     | `16000`–`16999` | `NCode.Identity.SharedState`                        |
     | `17000`–`17999` | `NCode.Identity.SharedState.Valkey`                 |
 
+### Metrics
+
+- 👁 **Measure a signal once, through its owner**
+  ([ADR-0197](../../docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md)): request
+  count, latency, and status belong to ASP.NET Core's `http.server.request.duration` (enrich it through
+  `IHttpMetricsTagsFeature`), outbound calls to `System.Net.Http`, and domain outcomes to the event seam's counter.
+  Add a family instrument only for a mechanism that is none of these, such as rate limiting or shared state.
+- 👁 **Create meters through `IMeterFactory`, never `new Meter(…)`**: one meter per package, named after the package
+  as a public constant, with its instruments in one internal `…Metrics` singleton that call sites use. A meter name
+  starts with `NCode.Identity.`, so the host's `AddOpenTelemetryMetrics` subscribes to it without a change.
+- 👁 **An event adds metric dimensions by implementing `ISupportMetricAttributes`**, never through a counter at its
+  call site; an endpoint tags the request through `OpenIdMetricAttributes.Add`.
+- 👁 **Name instruments and attributes `ncode.identity.{area}.…`**, keep an OpenTelemetry semantic-convention name
+  (`error.type`) where one exists, and use UCUM units: durations as histograms in seconds, counts as `{noun}`.
+- 👁 **A metric attribute's value comes from a vocabulary the server controls**: a registered name, a server-chosen
+  error code, or `_OTHER`. Never a tenant, client, subject, or address, and never a value echoed from the request;
+  those belong to traces and logs.
+- 👁 **Test every instrument with `MetricCollector<T>`**, asserting its name, unit, and attributes.
+- 👁 **A new or renamed instrument or attribute updates [`docs/metrics.md`](../../docs/metrics.md)** in the same
+  change; the catalog is the contract dashboards and alerts are built against.
+
 ## 12. Configuration & options
 
 - 👁 **Configuration is a strongly-typed options class** in an `Options/` folder, bound with
@@ -930,3 +1299,9 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   something to seed, and an unset target never means "every tenant": every tenant created at runtime would inherit the
   credential. Validate the requirement when the host starts. See
   [ADR-0166](../../docs/adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md).
+- 👁 **A period that options hand to a timer is validated when the host starts with `TimerPeriod.IsValid`**
+  (`NCode.Time`): between one millisecond, the shortest a `PeriodicTimer` accepts, and `TimerPeriod.MaxValue`,
+  4,294,967,294 milliseconds, the longest any .NET timer or `CancellationTokenSource` delay accepts. The options type's
+  `IValidateOptions<T>` names the option and its configuration key, so a period a timer refuses stops the host instead
+  of faulting a hosted service after it started. See
+  [ADR-0221](../../docs/adr/0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md).

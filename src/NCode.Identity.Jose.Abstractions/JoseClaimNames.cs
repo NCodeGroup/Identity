@@ -276,6 +276,12 @@ public static class JoseClaimNames
         public const string Amr = "amr";
 
         /// <summary>
+        /// Contains a constant with the value: <c>ath</c>
+        /// https://datatracker.ietf.org/doc/html/rfc9449#section-4.2
+        /// </summary>
+        public const string Ath = "ath";
+
+        /// <summary>
         /// Contains a constant with the value: <c>at_hash</c>
         /// https://openid.net/specs/openid-connect-core-1_0.html#HybridIDToken
         /// </summary>
@@ -358,6 +364,18 @@ public static class JoseClaimNames
         /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
         /// </summary>
         public const string GivenName = "given_name";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>htm</c>
+        /// https://datatracker.ietf.org/doc/html/rfc9449#section-4.2
+        /// </summary>
+        public const string Htm = "htm";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>htu</c>
+        /// https://datatracker.ietf.org/doc/html/rfc9449#section-4.2
+        /// </summary>
+        public const string Htu = "htu";
 
         /// <summary>
         /// Contains a constant with the value: <c>iat</c>

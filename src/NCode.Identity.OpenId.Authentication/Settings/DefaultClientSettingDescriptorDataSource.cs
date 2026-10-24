@@ -16,7 +16,6 @@
 
 #endregion
 
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Clients;
@@ -27,30 +26,22 @@ namespace NCode.Identity.OpenId.Authentication.Settings;
 
 /// <summary>
 /// Provides an additive <see cref="SettingDescriptor"/> data source for the settings whose default value or domain
-/// depends on the registered client-authentication handlers (an authentication-slice concern), composed with the base
-/// descriptor catalog from the core slice. Each such setting accepts only the authentication methods of the registered
-/// handlers, so a misspelled or unsupported method is rejected rather than stored and never matched.
+/// is the registered client-authentication methods, named by their descriptors (an authentication-slice concern),
+/// composed with the base descriptor catalog from the core slice. Each such setting accepts only the registered
+/// authentication methods, so a misspelled or unsupported method is rejected rather than stored and never matched.
 /// </summary>
-// See ADR-0140.
+// See ADR-0140 and ADR-0207.
 internal class DefaultClientSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
-    IServiceProvider serviceProvider
+    IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog
 ) : ICollectionDataSource<SettingDescriptor>
 {
     private INullChangeToken NullChangeToken { get; } = nullChangeToken;
 
-    private IServiceProvider ServiceProvider { get; } = serviceProvider;
+    private IClientAuthenticationMethodCatalog ClientAuthenticationMethodCatalog { get; } =
+        clientAuthenticationMethodCatalog;
 
-    private List<string>? AuthMethodsOrNull { get; set; }
-    private List<string> AuthMethods => AuthMethodsOrNull ??= GetAuthMethods();
-
-    private List<string> GetAuthMethods()
-    {
-        return ServiceProvider
-            .GetServices<IClientAuthenticationHandler>()
-            .Select(handler => handler.AuthenticationMethod)
-            .ToList();
-    }
+    private IReadOnlyList<string> AuthMethods => ClientAuthenticationMethodCatalog.MethodNames;
 
     /// <inheritdoc />
     public IChangeToken GetChangeToken() => NullChangeToken;
@@ -61,8 +52,8 @@ internal class DefaultClientSettingDescriptorDataSource(
         get
         {
             // token_endpoint_auth_methods_supported: the client-authentication methods the server, tenant, or security
-            // profile permits (default derived from the registered handlers). A ceiling over the registered method,
-            // never a choice between methods. Ceiling (Intersect): a child narrows the parent's set; unset =
+            // profile permits (default derived from the registered method descriptors). A ceiling over the registered
+            // method, never a choice between methods. Ceiling (Intersect): a child narrows the parent's set; unset =
             // unrestricted (ADR-0010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {

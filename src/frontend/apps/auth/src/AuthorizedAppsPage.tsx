@@ -14,6 +14,7 @@ import {
   APPLICATIONS_PATH,
   APPLICATIONS_REVOKE_ACTION,
   LOGIN_ACTION,
+  resolveSurfacePath,
 } from './params.js';
 
 /** A single granted scope on an authorized application. */
@@ -47,11 +48,13 @@ async function fetchApplications(): Promise<readonly AuthorizedApplication[] | n
   if (typeof fetch !== 'function') {
     return null;
   }
-  const response = await fetch(APPLICATIONS_LIST_ENDPOINT, {
+  const response = await fetch(resolveSurfacePath(APPLICATIONS_LIST_ENDPOINT), {
     headers: { accept: 'application/json' },
   });
   if (response.status === 401) {
-    window.location.assign(`${LOGIN_ACTION}?ReturnUrl=${encodeURIComponent(APPLICATIONS_PATH)}`);
+    window.location.assign(
+      `${resolveSurfacePath(LOGIN_ACTION)}?ReturnUrl=${encodeURIComponent(resolveSurfacePath(APPLICATIONS_PATH))}`,
+    );
     return null;
   }
   if (!response.ok) {
@@ -126,7 +129,11 @@ export function AuthorizedAppsPage({
                       <Typography sx={{ wordBreak: 'break-all' }}>
                         <strong>{application.clientName ?? application.clientId}</strong>
                       </Typography>
-                      <Stack component="form" method="post" action={APPLICATIONS_REVOKE_ACTION}>
+                      <Stack
+                        component="form"
+                        method="post"
+                        action={resolveSurfacePath(APPLICATIONS_REVOKE_ACTION)}
+                      >
                         <input type="hidden" name="client_id" value={application.clientId} />
                         <input type="hidden" name={ANTIFORGERY_FIELD} value={antiforgeryToken} />
                         <Button
@@ -159,7 +166,7 @@ export function AuthorizedAppsPage({
               </Stack>
             )}
 
-            <Button href={ACCOUNT_PATH} variant="text">
+            <Button href={resolveSurfacePath(ACCOUNT_PATH)} variant="text">
               Back to your account
             </Button>
           </Stack>

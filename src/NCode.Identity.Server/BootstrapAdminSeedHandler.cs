@@ -29,6 +29,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.Logging;
 using NCode.Mediator;
 
@@ -41,21 +42,28 @@ namespace NCode.Identity.Server;
 /// <see cref="BootstrapAdminAccessTokenClaimsHandler"/>, so an operator can make the first authorized management call.
 /// The handler is idempotent and inert unless a bootstrap client id and secret are configured, and it seeds exactly the
 /// one tenant <see cref="BootstrapAdminOptions.TenantId"/> names — never every tenant, which would hand a GlobalAdmin
-/// credential to each tenant created at runtime.
+/// credential to each tenant created at runtime. The client is checked before it is stored, so a ceiling that excludes
+/// <c>client_secret_basic</c> stops the seed. An existing client is left as it is; the reconciliation of the server's
+/// settings reports it, as it reports every stored client, when the settings make it incoherent.
 /// </summary>
-// See ADR-0044 (the bootstrap administrator) and ADR-0166 (a seeder that names a tenant seeds exactly that tenant).
+// See ADR-0044 (the bootstrap administrator), ADR-0166 (a seeder that names a tenant seeds exactly that tenant), and
+// ADR-0219 (an existing client is reported by the reconciliation).
 internal sealed class BootstrapAdminSeedHandler(
     IOptions<BootstrapAdminOptions> bootstrapOptionsAccessor,
     ISecretGenerator secretGenerator,
+    ISecretProtectorProvider secretProtectorProvider,
     ICryptoService cryptoService,
     TimeProvider timeProvider,
+    SeededClientValidator seededClientValidator,
     ILogger<BootstrapAdminSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
     private BootstrapAdminOptions Options { get; } = bootstrapOptionsAccessor.Value;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private SeededClientValidator SeededClientValidator { get; } = seededClientValidator;
     private ILogger<BootstrapAdminSeedHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -93,23 +101,60 @@ internal sealed class BootstrapAdminSeedHandler(
         var existing = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (existing is not null)
         {
-            // The configured secret is authoritative. Re-protect it with the current data-protection keys so a stale
-            // or undecryptable stored secret (for example after a key-ring change) is healed instead of leaving the
-            // bootstrap client permanently unable to authenticate.
-            await RefreshClientSecretAsync(store, clientId, clientSecretBytes, cancellationToken);
+            // The configured secret is authoritative. It is re-protected under the tenant's current master key, so a
+            // stale or undecryptable stored secret is healed instead of leaving the bootstrap client permanently
+            // unable to authenticate.
+            var refreshProtector = await GetProtectorAsync(tenantId, cancellationToken);
+            await RefreshClientSecretAsync(
+                store,
+                refreshProtector,
+                clientId,
+                clientSecretBytes,
+                cancellationToken
+            );
             Logger.BootstrapAdminClientSecretRefreshed(clientId, tenantId);
             return;
         }
 
-        var persistedClient = CreateClient(tenantId, clientId, clientSecretBytes);
+        var settings = CreateSettings();
+
+        // See ADR-0206.
+        await SeededClientValidator.EnsureCanBeSeededAsync(
+            "bootstrap administrator client",
+            clientId,
+            context.Tenant,
+            settings,
+            cancellationToken
+        );
+
+        // The tenant's master key is loaded only once the client is accepted, so a refused seed never creates it.
+        var protector = await GetProtectorAsync(tenantId, cancellationToken);
+        var persistedClient = CreateClient(
+            tenantId,
+            clientId,
+            settings,
+            clientSecretBytes,
+            protector
+        );
 
         await store.AddAsync(persistedClient, cancellationToken);
 
         Logger.BootstrapAdminClientSeeded(clientId, tenantId);
     }
 
+    private ValueTask<ISecretProtector> GetProtectorAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    ) =>
+        SecretProtectorProvider.GetProtectorAsync(
+            SecretOwner.ForTenant(tenantId),
+            [],
+            cancellationToken
+        );
+
     private async ValueTask RefreshClientSecretAsync(
         IClientStore store,
+        ISecretProtector protector,
         string clientId,
         ReadOnlyMemory<byte> clientSecret,
         CancellationToken cancellationToken
@@ -126,7 +171,7 @@ internal sealed class BootstrapAdminSeedHandler(
 
         await store.AddSecretAsync(
             clientId,
-            CreatePersistedSecret(clientSecret),
+            CreatePersistedSecret(protector, clientSecret),
             cancellationToken
         );
     }
@@ -136,16 +181,9 @@ internal sealed class BootstrapAdminSeedHandler(
         // (control-plane) tenant is a legitimate home for it, wherever a host serves the root tenant.
         string.Equals(context.TenantId, Options.TenantId, StringComparison.Ordinal);
 
-    private PersistedClient CreateClient(
-        string tenantId,
-        string clientId,
-        ReadOnlyMemory<byte> clientSecret
-    )
-    {
-        var persistedSecret = CreatePersistedSecret(clientSecret);
-
+    private static JsonElement CreateSettings() =>
         // The bootstrap credential is a shared secret, which RFC 6749 §2.3.1 has the client present with HTTP Basic.
-        var settings = JsonSerializer.SerializeToElement(
+        JsonSerializer.SerializeToElement(
             new Dictionary<string, object>
             {
                 [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdConstants
@@ -153,6 +191,16 @@ internal sealed class BootstrapAdminSeedHandler(
                     .ClientSecretBasic,
             }
         );
+
+    private PersistedClient CreateClient(
+        string tenantId,
+        string clientId,
+        JsonElement settings,
+        ReadOnlyMemory<byte> clientSecret,
+        ISecretProtector protector
+    )
+    {
+        var persistedSecret = CreatePersistedSecret(protector, clientSecret);
 
         return new PersistedClient
         {
@@ -174,13 +222,17 @@ internal sealed class BootstrapAdminSeedHandler(
         };
     }
 
-    private PersistedSecret CreatePersistedSecret(ReadOnlyMemory<byte> clientSecret)
+    private PersistedSecret CreatePersistedSecret(
+        ISecretProtector protector,
+        ReadOnlyMemory<byte> clientSecret
+    )
     {
         var now = TimeProvider.GetUtcNow();
 
         // Persist the configured client_secret through the single shared-secret primitive (ADR-0110) so its stored
         // UTF-8 shape cannot drift from generated secrets.
         return SecretGenerator.ImportSharedSecret(
+            protector,
             new ImportSharedSecretRequest
             {
                 // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so a refresh (remove-then-add

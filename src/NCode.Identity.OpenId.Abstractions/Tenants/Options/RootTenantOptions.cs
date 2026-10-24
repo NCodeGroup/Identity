@@ -59,4 +59,15 @@ public sealed class RootTenantOptions
     /// serve the root tenant (the static single-tenant strategy, unless its tenant is the root tenant) rejects it.
     /// </remarks>
     public string? Issuer { get; set; }
+
+    /// <summary>
+    /// Gets or sets the mutual-TLS endpoint-alias authority (RFC 8705 §5) the root tenant is created with, when it differs
+    /// from the one the tenant strategy derives for it from its alias template — for example <c>https://mtls.example</c>
+    /// beside workload tenants at <c>https://{tenantId}.mtls.example</c>. An https origin.
+    /// </summary>
+    /// <remarks>
+    /// Applied when the root tenant is first provisioned; it does not update an existing tenant. A strategy that does not
+    /// serve the root tenant (the static single-tenant strategy, unless its tenant is the root tenant) rejects it.
+    /// </remarks>
+    public string? MtlsEndpointAliasAuthority { get; set; }
 }

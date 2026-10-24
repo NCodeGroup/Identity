@@ -100,6 +100,8 @@ internal class ServerStore(
             DisplayName = entity.DisplayName,
             Settings = await MapSettingsAsync(entity, cancellationToken),
             Secrets = await MapSecretsAsync(entity, cancellationToken),
+            ReconciledSettingsFingerprint = entity.ReconciledSettingsFingerprint,
+            ReconciledSettings = entity.ReconciledSettingsJson,
         };
     }
 
@@ -206,6 +208,8 @@ internal class ServerStore(
             SecretsConcurrencyToken = persistedServer.Secrets.ConcurrencyToken,
             DisplayName = persistedServer.DisplayName,
             SettingsJson = persistedServer.Settings.Value,
+            ReconciledSettingsFingerprint = persistedServer.ReconciledSettingsFingerprint,
+            ReconciledSettingsJson = persistedServer.ReconciledSettings,
             Secrets = secrets,
         };
 
@@ -251,7 +255,7 @@ internal class ServerStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The OpenId Server with ServerId='{serverId}' has been modified by another process. Please reload and try again."
             );
         }
@@ -279,7 +283,7 @@ internal class ServerStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The settings for OpenId Server with ServerId='{serverId}' have been modified by another process. Please reload and try again."
             );
         }
@@ -289,9 +293,44 @@ internal class ServerStore(
         serverEntity.SettingsConcurrencyToken = nextConcurrencyToken;
         serverEntity.SettingsJson = persistedServerSettings.Value;
 
+        // A second change before the first is reconciled leaves settings that no pass reconciled, so the next pass has
+        // nothing to compare with and reaches every tenant. See ADR-0234.
+        if (serverEntity.ReconciledSettingsFingerprint is null)
+            serverEntity.ReconciledSettingsJson = null;
+
+        serverEntity.ReconciledSettingsFingerprint = null;
+
         DbContext.Servers.Update(serverEntity);
 
         persistedServerSettings.ConcurrencyToken = nextConcurrencyToken;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask UpdateReconciledSettingsAsync(
+        PersistedServer persistedServer,
+        CancellationToken cancellationToken
+    )
+    {
+        var serverId = persistedServer.ServerId;
+        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+
+        if (
+            !string.Equals(
+                persistedServer.ConcurrencyToken,
+                serverEntity.ConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            throw new StoreConcurrencyException(
+                $"The OpenId Server with ServerId='{serverId}' has been modified by another process. Please reload and try again."
+            );
+        }
+
+        // Set only these two columns and do not call Update, so that only they are written. The interceptor regenerates
+        // the row ConcurrencyToken on save (ADR-0012).
+        serverEntity.ReconciledSettingsFingerprint = persistedServer.ReconciledSettingsFingerprint;
+        serverEntity.ReconciledSettingsJson = persistedServer.ReconciledSettings;
     }
 
     /// <inheritdoc />
@@ -384,7 +423,7 @@ internal class ServerStore(
             )
         )
         {
-            throw new DbUpdateConcurrencyException(
+            throw new StoreConcurrencyException(
                 $"The secret with SecretId='{persistedSecret.SecretId}' has been modified by another process. Please reload and try again."
             );
         }

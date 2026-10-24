@@ -30,8 +30,9 @@ Forces:
 small components composed into opinionated stacks, and the supported set is limited to what the platform itself runs.**
 
 1. **Helm chart — the primary, vendor-neutral artifact.** The chart for `NCode.Identity.OpenId.Host` lives in the library
-   repository next to the host and its Dockerfile, because it encodes the host's configuration surface (settings,
-   ports, probes) and must change atomically with it. It is versioned and released with the host image, and published
+   repository with the host and its Dockerfile, at `charts/ncode-identity-host`
+   ([ADR-0179](0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)), because it
+   encodes the host's configuration surface (settings, ports, probes) and must change atomically with it. It is versioned and released with the host image, and published
    as a signed OCI chart on GHCR with provenance.
 2. **Layered building blocks** in `NCodeGroup/identity-platform`, so users can take a single component, a whole stack,
    or a stack as a template to fork:

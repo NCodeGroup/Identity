@@ -18,6 +18,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Servers;
@@ -62,6 +63,53 @@ internal class DefaultOpenIdContextFactory(
             cancellationToken
         );
 
+        return PublishContext(
+            httpContext,
+            mediator,
+            openIdEnvironment,
+            openIdServer,
+            tenantReference
+        );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<OpenIdContext> CreateForControlPlaneAsync(
+        HttpContext httpContext,
+        IMediator mediator,
+        CancellationToken cancellationToken
+    )
+    {
+        var openIdEnvironment = OpenIdEnvironmentProvider.Get();
+        var openIdServer = await OpenIdServerProvider.GetAsync(
+            openIdEnvironment,
+            cancellationToken
+        );
+
+        await using var tenantReference = await OpenIdTenantFactory.CreateControlPlaneTenantAsync(
+            httpContext,
+            openIdEnvironment,
+            openIdServer,
+            openIdServer.PropertyBag,
+            cancellationToken
+        );
+
+        return PublishContext(
+            httpContext,
+            mediator,
+            openIdEnvironment,
+            openIdServer,
+            tenantReference
+        );
+    }
+
+    private OpenIdContext PublishContext(
+        HttpContext httpContext,
+        IMediator mediator,
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdServer openIdServer,
+        AsyncSharedReferenceLease<OpenIdTenant> tenantReference
+    )
+    {
         var propertyBag = tenantReference.Value.PropertyBag.Clone();
 
         var openIdContext = CreateContext(
@@ -80,7 +128,7 @@ internal class DefaultOpenIdContextFactory(
     }
 
     /// <inheritdoc />
-    public async ValueTask<OpenIdContext> CreateForTenantAsync(
+    public virtual async ValueTask<OpenIdContext> CreateForTenantAsync(
         HttpContext httpContext,
         string tenantId,
         IMediator mediator,
@@ -114,6 +162,19 @@ internal class DefaultOpenIdContextFactory(
             tenantReference,
             propertyBag
         );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<OpenIdContext> CreateForBackgroundAsync(
+        IServiceProvider serviceProvider,
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        // See ADR-0223.
+        var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+        return await CreateForTenantAsync(httpContext, tenantId, mediator, cancellationToken);
     }
 
     /// <summary>

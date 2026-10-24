@@ -20,7 +20,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Jose;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Messages;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Messages.Parameters;
@@ -31,6 +30,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using NCode.Json;
 using NCode.Mediator;
+using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Subject;
 
@@ -38,7 +38,8 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 /// Provides a default implementation of a handler for the <see cref="ValidateSubjectAuthenticationCommand"/> message.
 /// </summary>
 /// <remarks>
-/// The application should also register an additional handler to validate the subject's active status.
+/// The end user's standing (a blocked principal, a disabled or deleted local account) is validated by the handlers of
+/// <see cref="ValidateSubjectStandingCommand"/>, which another handler of this command sends.
 /// </remarks>
 internal class DefaultValidateSubjectAuthenticationHandler(
     TimeProvider timeProvider,
@@ -110,7 +111,7 @@ internal class DefaultValidateSubjectAuthenticationHandler(
         if (enforceAuthenticationAge)
         {
             // verify the request's max age
-            var requestMaxAge = openIdRequest.Parameters.GetValueOrDefault(
+            var requestMaxAge = openIdRequest?.Parameters.GetValueOrDefault(
                 OpenIdCommonParameters.MaxAge
             );
             if (!ValidateMaxAge(authTime, requestMaxAge))
@@ -169,9 +170,15 @@ internal class DefaultValidateSubjectAuthenticationHandler(
 
     private static bool IsRequestedAcrSatisfied(
         ClaimsPrincipal subject,
-        IOpenIdRequest openIdRequest
+        IOpenIdRequest? openIdRequest
     )
     {
+        // a subject validated outside a protocol request has no requested acr to satisfy
+        if (openIdRequest is null)
+        {
+            return true;
+        }
+
         // Per OpenID Connect Core 1.0 §5.5.1.1, acr is only a hard requirement when it is requested as an *essential*
         // id_token.acr claim with specific values; the issued acr MUST then match one of them. A voluntary request
         // (including the entire `acr_values` parameter, which the spec defines as voluntary) is best-effort and imposes
@@ -235,8 +242,14 @@ internal class DefaultValidateSubjectAuthenticationHandler(
         return allowed.Contains(receivedIdp, StringComparer.Ordinal);
     }
 
-    private static bool IsRequestedIdpValid(string? receivedIdp, IOpenIdRequest openIdRequest)
+    private static bool IsRequestedIdpValid(string? receivedIdp, IOpenIdRequest? openIdRequest)
     {
+        // a subject validated outside a protocol request has no requested idp to match
+        if (openIdRequest is null)
+        {
+            return true;
+        }
+
         // if no specific acr values were requested, then any idp is valid
         var acrValues = openIdRequest.Parameters.GetValueOrDefault(
             OpenIdCommonParameters.AcrValues

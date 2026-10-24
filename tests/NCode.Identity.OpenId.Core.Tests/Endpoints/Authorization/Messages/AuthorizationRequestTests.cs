@@ -124,7 +124,7 @@ public class AuthorizationRequestTests : BaseTests
             MaxAge = TimeSpan.FromMinutes(2.1),
             Nonce = "Nonce",
             PromptTypes = ["PromptType1", "PromptType2"],
-            RedirectUri = new Uri("https://localhost/RedirectUri"),
+            RedirectUri = "https://localhost/RedirectUri",
             ResponseMode = "ResponseMode",
             ResponseTypes = ["ResponseType1", "ResponseType2"],
             Scopes = ["Scope1", "Scope2"],
@@ -170,7 +170,7 @@ public class AuthorizationRequestTests : BaseTests
             MaxAge = TimeSpan.FromMinutes(2.1),
             Nonce = "Nonce",
             PromptTypes = ["PromptType1", "PromptType2"],
-            RedirectUri = new Uri("https://localhost/RedirectUri"),
+            RedirectUri = "https://localhost/RedirectUri",
             ResponseMode = "ResponseMode",
             ResponseTypes = ["ResponseType1", "ResponseType2"],
             Scopes = ["Scope1", "Scope2"],
@@ -257,28 +257,87 @@ public class AuthorizationRequestTests : BaseTests
         );
     }
 
-    #region ResponseMode Property Tests
+    #region Request Object Values Tests
 
-    [Theory]
-    [InlineData(new[] { "code" }, "query")]
-    [InlineData(new[] { "id_token" }, "fragment")]
-    [InlineData(new[] { "token" }, "fragment")]
-    [InlineData(new[] { "id_token", "code" }, "fragment")]
-    [InlineData(new[] { "code", "id_token", "token" }, "fragment")]
-    public void ResponseMode_WhenNotRequested_DefaultsByResponseType(
-        string[] responseTypes,
-        string expected
-    )
+    [Fact]
+    public void ResponseTypes_WhenTheRequestObjectOmitsThem_IgnoresTheOuterValue()
     {
         var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
         {
-            ResponseTypes = [.. responseTypes],
+            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+        };
+        var requestObject = new AuthorizationRequestObject(MockOpenIdEnvironment.Object);
+        var authorizationRequest = new AuthorizationRequest(false, requestMessage, requestObject);
+
+        var responseTypes = authorizationRequest.ResponseTypes;
+
+        Assert.Empty(responseTypes);
+    }
+
+    [Fact]
+    public void Scopes_WhenTheRequestObjectOmitsThem_IgnoresTheOuterValue()
+    {
+        var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
+        {
+            Scopes = [OpenIdConstants.ScopeTypes.OpenId],
+        };
+        var requestObject = new AuthorizationRequestObject(MockOpenIdEnvironment.Object);
+        var authorizationRequest = new AuthorizationRequest(false, requestMessage, requestObject);
+
+        var scopes = authorizationRequest.Scopes;
+
+        Assert.Empty(scopes);
+    }
+
+    [Fact]
+    public void Scopes_WhenTheOuterValueDiffers_ReturnsTheRequestObjectsValue()
+    {
+        var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
+        {
+            Scopes = [OpenIdConstants.ScopeTypes.OpenId, "outer"],
+        };
+        var requestObject = new AuthorizationRequestObject(MockOpenIdEnvironment.Object)
+        {
+            Scopes = [OpenIdConstants.ScopeTypes.OpenId],
+        };
+        var authorizationRequest = new AuthorizationRequest(false, requestMessage, requestObject);
+
+        var scopes = authorizationRequest.Scopes;
+
+        Assert.Equal([OpenIdConstants.ScopeTypes.OpenId], scopes);
+    }
+
+    [Fact]
+    public void ClientId_WhenTheRequestObjectOmitsIt_ReturnsTheOuterValue()
+    {
+        var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
+        {
+            ClientId = "outer-client",
+        };
+        var requestObject = new AuthorizationRequestObject(MockOpenIdEnvironment.Object);
+        var authorizationRequest = new AuthorizationRequest(false, requestMessage, requestObject);
+
+        var clientId = authorizationRequest.ClientId;
+
+        Assert.Equal("outer-client", clientId);
+    }
+
+    #endregion
+
+    #region ResponseMode Property Tests
+
+    [Fact]
+    public void ResponseMode_WhenNotRequested_ReturnsNull()
+    {
+        var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
+        {
+            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
         };
         var authorizationRequest = new AuthorizationRequest(false, requestMessage, null);
 
         var responseMode = authorizationRequest.ResponseMode;
 
-        Assert.Equal(expected, responseMode);
+        Assert.Null(responseMode);
     }
 
     [Fact]

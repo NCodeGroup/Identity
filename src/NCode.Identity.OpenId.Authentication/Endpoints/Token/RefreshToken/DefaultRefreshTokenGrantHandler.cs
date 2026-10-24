@@ -17,7 +17,6 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Jose.Extensions;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Token.Commands;
@@ -30,6 +29,8 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Settings;
+using NCode.Time;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken;
 
@@ -94,40 +95,33 @@ internal class DefaultRefreshTokenGrantHandler(
                 .WithStatusCode(StatusCodes.Status400BadRequest);
 
         var persistedGrant = persistedGrantOrNull.Value;
+        var isRetry = false;
         if (persistedGrant.Status != PersistedGrantStatus.Active)
         {
             // A revoked grant presented again is a reuse/replay signal (likely rotated away or
             // revoked on suspicion), distinct from a benign expiry.
             if (persistedGrant.Status == PersistedGrantStatus.Revoked)
             {
-                await AuditEventRecorder.RecordRefreshTokenReplayAsync(
-                    openIdContext,
-                    openIdClient,
-                    persistedGrant.Payload.SubjectAuthentication?.PrincipalId,
-                    cancellationToken
-                );
-
-                var reusePolicy = settings.GetValue(OpenIdSettingKeys.RefreshTokenReusePolicy);
-                var lineageId = persistedGrant.RefreshTokenLineageId;
-                if (
-                    reusePolicy == OpenIdConstants.RefreshTokenReusePolicy.RevokeAll
-                    && !string.IsNullOrEmpty(lineageId)
-                )
+                if (!IsWithinReuseInterval(settings, persistedGrant, utcNow))
                 {
-                    // Reuse detection: revoke the whole rotation family so a stolen token cannot be
-                    // exchanged even if the attacker raced ahead of the legitimate client (RFC 9700).
-                    await PersistedGrantService.RevokeByRefreshTokenLineageAsync(
+                    return await AnswerReuseAsync(
                         openIdContext,
-                        lineageId,
+                        openIdClient,
+                        persistedGrant,
                         utcNow,
                         cancellationToken
                     );
                 }
-            }
 
-            return errorFactory
-                .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
-                .WithStatusCode(StatusCodes.Status400BadRequest);
+                // A rotated token presented again within the reuse interval is a retry, not a reuse. See ADR-0217.
+                isRetry = true;
+            }
+            else
+            {
+                return errorFactory
+                    .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+                    .WithStatusCode(StatusCodes.Status400BadRequest);
+            }
         }
 
         var refreshTokenGrant = persistedGrant.Payload;
@@ -185,31 +179,139 @@ internal class DefaultRefreshTokenGrantHandler(
             cancellationToken
         );
 
-        var rotationEnabled = settings.GetValue(OpenIdSettingKeys.RefreshTokenRotationEnabled);
-        if (rotationEnabled)
+        var securityTokenRequest = new CreateSecurityTokenRequest
         {
-            await PersistedGrantService.SetRevokedOnceAsync(
+            CreatedWhen = utcNow,
+            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.RefreshToken,
+            OriginalScopes = refreshTokenGrant.OriginalScopes,
+            EffectiveScopes = tokenRequest.Scopes ?? refreshTokenGrant.OriginalScopes,
+            Resources = tokenRequest.Resources,
+            RefreshToken = refreshToken,
+            RefreshTokenLineageId = persistedGrant.RefreshTokenLineageId,
+            SubjectAuthentication = refreshTokenGrant.SubjectAuthentication,
+            Confirmation = effectiveBinding.Confirmation,
+        };
+
+        var rotates =
+            isRetry
+            || RefreshTokenRotationRequirement.IsRequired(
+                openIdClient,
+                refreshTokenGrant.Confirmation
+            );
+        var issuesRefreshToken = securityTokenRequest.EffectiveScopes.Contains(
+            OpenIdConstants.ScopeTypes.OfflineAccess
+        );
+
+        string? responseRefreshToken = null;
+        if (isRetry)
+        {
+            responseRefreshToken = await ReissueRefreshTokenForRetryAsync(
+                openIdContext,
+                openIdClient,
+                persistedGrant,
+                securityTokenRequest,
+                issuesRefreshToken,
+                cancellationToken
+            );
+
+            if (responseRefreshToken is null)
+            {
+                return errorFactory
+                    .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+                    .WithStatusCode(StatusCodes.Status400BadRequest);
+            }
+        }
+        else if (rotates && issuesRefreshToken)
+        {
+            var successor = await TokenService.RotateRefreshTokenAsync(
+                openIdContext,
+                openIdClient,
+                persistedGrantId,
+                securityTokenRequest,
+                cancellationToken
+            );
+
+            if (successor is { } rotated)
+            {
+                responseRefreshToken = rotated.TokenValue;
+            }
+            else if (
+                await WasRotatedByConcurrentRequestAsync(
+                    openIdContext,
+                    settings,
+                    persistedGrantId,
+                    utcNow,
+                    cancellationToken
+                )
+            )
+            {
+                // A rotation that lost to a concurrent rotation is a retry while the reuse interval lasts: the winner
+                // consumed the grant a moment ago. See ADR-0217.
+                responseRefreshToken = await ReissueRefreshTokenForRetryAsync(
+                    openIdContext,
+                    openIdClient,
+                    persistedGrant,
+                    securityTokenRequest,
+                    issuesRefreshToken,
+                    cancellationToken
+                );
+
+                if (responseRefreshToken is null)
+                {
+                    return errorFactory
+                        .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+                        .WithStatusCode(StatusCodes.Status400BadRequest);
+                }
+            }
+            else
+            {
+                return await AnswerReuseAsync(
+                    openIdContext,
+                    openIdClient,
+                    persistedGrant,
+                    utcNow,
+                    cancellationToken
+                );
+            }
+        }
+        else if (rotates)
+        {
+            var spent = await PersistedGrantService.TryRevokeOnceAsync(
                 openIdContext,
                 persistedGrantId,
                 utcNow,
                 cancellationToken
             );
+
+            if (!spent)
+            {
+                return await AnswerReuseAsync(
+                    openIdContext,
+                    openIdClient,
+                    persistedGrant,
+                    utcNow,
+                    cancellationToken
+                );
+            }
+        }
+        else if (issuesRefreshToken)
+        {
+            responseRefreshToken = refreshToken;
         }
 
         var tokenResponse = await CreateTokenResponseAsync(
             openIdContext,
             openIdClient,
-            tokenRequest,
-            refreshTokenGrant,
-            persistedGrant.RefreshTokenLineageId,
-            effectiveBinding,
+            securityTokenRequest,
+            effectiveBinding.TokenType,
+            responseRefreshToken,
             cancellationToken
         );
 
         var expirationPolicy = settings.GetValue(OpenIdSettingKeys.RefreshTokenExpirationPolicy);
         var useSlidingExpiration =
             expirationPolicy == OpenIdConstants.RefreshTokenExpirationPolicy.Sliding;
-        if (useSlidingExpiration && !rotationEnabled)
+        if (useSlidingExpiration && !rotates)
         {
             var lifetime = settings.GetValue(OpenIdSettingKeys.RefreshTokenLifetime);
             var expiresWhen = utcNow + lifetime;
@@ -225,37 +327,144 @@ internal class DefaultRefreshTokenGrantHandler(
         return tokenResponse;
     }
 
+    // A grant that a rotation spent is a retry, not a reuse, while its reuse interval lasts and the grant has not
+    // expired. A grant that was revoked otherwise is a reuse. See ADR-0217.
+    private static bool IsWithinReuseInterval(
+        IReadOnlySettingCollection settings,
+        PersistedGrant<RefreshTokenGrant> grant,
+        DateTimeOffset utcNow
+    )
+    {
+        if (
+            grant.ConsumedWhen is not { } rotatedWhen
+            || (grant.ExpiresWhen is { } expiresWhen && expiresWhen <= utcNow)
+        )
+        {
+            return false;
+        }
+
+        return utcNow
+            < rotatedWhen + settings.GetValue(OpenIdSettingKeys.RefreshTokenReuseInterval);
+    }
+
+    // A retry is answered only when it can issue another refresh token in a lineage that is still active. Otherwise it
+    // is refused (null) without a replay audit and without revoking the lineage. A retry that is answered is audited as
+    // a retry; a refused one is not. See ADR-0217.
+    private async ValueTask<string?> ReissueRefreshTokenForRetryAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        PersistedGrant<RefreshTokenGrant> persistedGrant,
+        CreateSecurityTokenRequest securityTokenRequest,
+        bool issuesRefreshToken,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!issuesRefreshToken || string.IsNullOrEmpty(persistedGrant.RefreshTokenLineageId))
+            return null;
+
+        var reissued = await TokenService.ReissueRefreshTokenAsync(
+            openIdContext,
+            openIdClient,
+            securityTokenRequest,
+            cancellationToken
+        );
+
+        if (reissued is not { } successor)
+            return null;
+
+        await AuditEventRecorder.RecordRefreshTokenRetryAsync(
+            openIdContext,
+            openIdClient,
+            persistedGrant.Payload.SubjectAuthentication?.PrincipalId,
+            cancellationToken
+        );
+
+        return successor.TokenValue;
+    }
+
+    // A rotation that lost its spend was won by a concurrent rotation when the grant, read again, is a rotated grant
+    // that is within the reuse interval. The grant is not read again when the interval is off. See ADR-0217.
+    private async ValueTask<bool> WasRotatedByConcurrentRequestAsync(
+        OpenIdContext openIdContext,
+        IReadOnlySettingCollection settings,
+        PersistedGrantId persistedGrantId,
+        DateTimeOffset utcNow,
+        CancellationToken cancellationToken
+    )
+    {
+        if (settings.GetValue(OpenIdSettingKeys.RefreshTokenReuseInterval) <= TimeSpan.Zero)
+            return false;
+
+        var currentOrNull = await PersistedGrantService.GetOrDefaultAsync<RefreshTokenGrant>(
+            openIdContext,
+            persistedGrantId,
+            cancellationToken
+        );
+
+        if (!currentOrNull.HasValue)
+            return false;
+
+        var current = currentOrNull.Value;
+        return current.Status == PersistedGrantStatus.Revoked
+            && IsWithinReuseInterval(settings, current, utcNow);
+    }
+
+    // A refresh token presented after it was rotated or revoked, or spent first by a concurrent request, is a reuse
+    // (RFC 9700 §4.14.2). See ADR-0211.
+    private async ValueTask<IOpenIdResponse> AnswerReuseAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        PersistedGrant<RefreshTokenGrant> persistedGrant,
+        DateTimeOffset utcNow,
+        CancellationToken cancellationToken
+    )
+    {
+        var errorFactory = openIdContext.ErrorFactory;
+        var settings = openIdClient.Settings;
+
+        await AuditEventRecorder.RecordRefreshTokenReplayAsync(
+            openIdContext,
+            openIdClient,
+            persistedGrant.Payload.SubjectAuthentication?.PrincipalId,
+            cancellationToken
+        );
+
+        var reusePolicy = settings.GetValue(OpenIdSettingKeys.RefreshTokenReusePolicy);
+        var lineageId = persistedGrant.RefreshTokenLineageId;
+        if (
+            reusePolicy == OpenIdConstants.RefreshTokenReusePolicy.RevokeAll
+            && !string.IsNullOrEmpty(lineageId)
+        )
+        {
+            // Reuse detection: revoke the whole rotation family so a stolen token cannot be
+            // exchanged even if the attacker raced ahead of the legitimate client (RFC 9700).
+            await PersistedGrantService.RevokeByRefreshTokenLineageAsync(
+                openIdContext,
+                lineageId,
+                utcNow,
+                cancellationToken
+            );
+        }
+
+        return errorFactory
+            .InvalidGrant("The provided refresh token is invalid, expired, or revoked.")
+            .WithStatusCode(StatusCodes.Status400BadRequest);
+    }
+
     private async ValueTask<TokenResponse> CreateTokenResponseAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
-        ITokenRequest tokenRequest,
-        RefreshTokenGrant refreshTokenGrant,
-        string? refreshTokenLineageId,
-        ProofOfPossessionBinding proofOfPossessionBinding,
+        CreateSecurityTokenRequest securityTokenRequest,
+        string tokenType,
+        string? refreshToken,
         CancellationToken cancellationToken
     )
     {
         var openIdEnvironment = openIdContext.Environment;
-        var (_, originalScopes, _, subjectAuthentication, _) = refreshTokenGrant;
-
-        var effectiveScopes = tokenRequest.Scopes ?? originalScopes;
 
         var tokenResponse = TokenResponse.Create(openIdEnvironment);
 
-        tokenResponse.Scopes = effectiveScopes.ToList();
-
-        var securityTokenRequest = new CreateSecurityTokenRequest
-        {
-            CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.RefreshToken,
-            OriginalScopes = originalScopes,
-            EffectiveScopes = effectiveScopes,
-            Resources = tokenRequest.Resources,
-            RefreshToken = tokenRequest.RefreshToken,
-            RefreshTokenLineageId = refreshTokenLineageId,
-            SubjectAuthentication = subjectAuthentication,
-            Confirmation = proofOfPossessionBinding.Confirmation,
-        };
+        tokenResponse.Scopes = securityTokenRequest.EffectiveScopes.ToList();
 
         {
             var securityToken = await TokenService.CreateAccessTokenAsync(
@@ -267,10 +476,10 @@ internal class DefaultRefreshTokenGrantHandler(
 
             tokenResponse.AccessToken = securityToken.TokenValue;
             tokenResponse.ExpiresIn = securityToken.TokenLifetime.Duration;
-            tokenResponse.TokenType = proofOfPossessionBinding.TokenType;
+            tokenResponse.TokenType = tokenType;
         }
 
-        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
+        if (securityTokenRequest.EffectiveScopes.Contains(OpenIdConstants.ScopeTypes.OpenId))
         {
             var newRequest = securityTokenRequest with { AccessToken = tokenResponse.AccessToken };
 
@@ -284,32 +493,7 @@ internal class DefaultRefreshTokenGrantHandler(
             tokenResponse.IdToken = securityToken.TokenValue;
         }
 
-        if (effectiveScopes.Contains(OpenIdConstants.ScopeTypes.OfflineAccess))
-        {
-            var settings = openIdClient.Settings;
-            var rotationEnabled = settings.GetValue(OpenIdSettingKeys.RefreshTokenRotationEnabled);
-
-            if (rotationEnabled)
-            {
-                var newRequest = securityTokenRequest with
-                {
-                    AccessToken = tokenResponse.AccessToken,
-                };
-
-                var securityToken = await TokenService.CreateRefreshTokenAsync(
-                    openIdContext,
-                    openIdClient,
-                    newRequest,
-                    cancellationToken
-                );
-
-                tokenResponse.RefreshToken = securityToken.TokenValue;
-            }
-            else
-            {
-                tokenResponse.RefreshToken = tokenRequest.RefreshToken;
-            }
-        }
+        tokenResponse.RefreshToken = refreshToken;
 
         return tokenResponse;
     }

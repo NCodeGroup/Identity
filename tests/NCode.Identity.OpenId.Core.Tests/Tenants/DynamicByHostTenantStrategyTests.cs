@@ -35,6 +35,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
 {
     private const string TenantId = "acme";
     private const string IssuerHost = "acme.auth.example";
+    private const string AliasHost = "acme.mtls.example";
 
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
     private Mock<IStoreManager> MockStoreManager { get; }
@@ -66,8 +67,20 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .Returns(MockTenantStore.Object)
             .Verifiable();
         MockTenantStore
-            .Setup(x => x.GetOrDefaultByIssuerHostAsync(IssuerHost, CancellationToken.None))
-            .ReturnsAsync(holderTenantId is null ? null : CreatePersistedTenant(holderTenantId))
+            .Setup(x => x.ListTenantIdsByHostAsync(IssuerHost, CancellationToken.None))
+            .ReturnsAsync(holderTenantId is null ? [] : [holderTenantId])
+            .Verifiable();
+    }
+
+    private void SetupHostHolder(string host, string? holderTenantId)
+    {
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.ListTenantIdsByHostAsync(host, CancellationToken.None))
+            .ReturnsAsync(holderTenantId is null ? [] : [holderTenantId])
             .Verifiable();
     }
 
@@ -121,6 +134,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .ValidateTenantAsync(
                 TenantId,
                 issuer: null,
+                null,
                 MockStoreManager.Object,
                 CancellationToken.None
             );
@@ -139,6 +153,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .ValidateTenantAsync(
                 TenantId,
                 new Uri($"https://{IssuerHost}"),
+                null,
                 MockStoreManager.Object,
                 CancellationToken.None
             );
@@ -155,6 +170,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .ValidateTenantAsync(
                 TenantId,
                 new Uri($"https://{IssuerHost}"),
+                null,
                 MockStoreManager.Object,
                 CancellationToken.None
             );
@@ -171,6 +187,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .ValidateTenantAsync(
                 TenantId,
                 new Uri($"https://{IssuerHost}/other"),
+                null,
                 MockStoreManager.Object,
                 CancellationToken.None
             );
@@ -191,6 +208,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .ValidateTenantAsync(
                 TenantId,
                 new Uri($"https://{IssuerHost}"),
+                null,
                 MockStoreManager.Object,
                 CancellationToken.None
             );
@@ -211,12 +229,123 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .ValidateTenantAsync(
                 TenantId,
                 new Uri($"https://{IssuerHost}"),
+                null,
                 MockStoreManager.Object,
                 CancellationToken.None
             );
 
         var failure = Assert.Single(failures);
         Assert.Contains("must end with '/identity'", failure.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenAliasHostIsFree_Succeeds()
+    {
+        SetupIssuerHostHolder(holderTenantId: null);
+        SetupHostHolder(AliasHost, holderTenantId: null);
+
+        var failures = await CreateStrategy()
+            .ValidateTenantAsync(
+                TenantId,
+                new Uri($"https://{IssuerHost}"),
+                new Uri($"https://{AliasHost}"),
+                MockStoreManager.Object,
+                CancellationToken.None
+            );
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenAnotherTenantHoldsTheAliasHost_ReportsAConflict()
+    {
+        SetupIssuerHostHolder(holderTenantId: null);
+        SetupHostHolder(AliasHost, "globex");
+
+        var failures = await CreateStrategy()
+            .ValidateTenantAsync(
+                TenantId,
+                new Uri($"https://{IssuerHost}"),
+                new Uri($"https://{AliasHost}"),
+                MockStoreManager.Object,
+                CancellationToken.None
+            );
+
+        var failure = Assert.Single(failures);
+        Assert.True(failure.IsConflict);
+        Assert.Contains($"'{AliasHost}'", failure.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenTheTenantAndAnotherAlreadyShareTheAliasHost_ReportsAConflict()
+    {
+        SetupIssuerHostHolder(holderTenantId: null);
+        MockTenantStore
+            .Setup(x => x.ListTenantIdsByHostAsync(AliasHost, CancellationToken.None))
+            .ReturnsAsync([TenantId, "globex"])
+            .Verifiable();
+
+        var failures = await CreateStrategy()
+            .ValidateTenantAsync(
+                TenantId,
+                new Uri($"https://{IssuerHost}"),
+                new Uri($"https://{AliasHost}"),
+                MockStoreManager.Object,
+                CancellationToken.None
+            );
+
+        var failure = Assert.Single(failures);
+        Assert.True(failure.IsConflict);
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenAliasHostIsTheIssuerHost_Fails()
+    {
+        SetupIssuerHostHolder(holderTenantId: null);
+
+        var failures = await CreateStrategy()
+            .ValidateTenantAsync(
+                TenantId,
+                new Uri($"https://{IssuerHost}"),
+                new Uri($"https://{IssuerHost.ToUpperInvariant()}"),
+                MockStoreManager.Object,
+                CancellationToken.None
+            );
+
+        var failure = Assert.Single(failures);
+        Assert.False(failure.IsConflict);
+        Assert.Contains(
+            "must differ from the issuer host",
+            failure.Detail,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task ValidateTenantAsync_WhenHostPatternMapsTheAliasHostElsewhere_Fails()
+    {
+        const string aliasHost = "acme.mtls.example.internal";
+        SetupIssuerHostHolder(holderTenantId: null);
+        SetupHostHolder(aliasHost, holderTenantId: null);
+
+        var failures = await CreateStrategy(
+                new DynamicByHostTenantOptions { RegexPattern = "^[^.]+\\.(auth|mtls)\\.example" }
+            )
+            .ValidateTenantAsync(
+                TenantId,
+                new Uri($"https://{IssuerHost}"),
+                new Uri($"https://{aliasHost}"),
+                MockStoreManager.Object,
+                CancellationToken.None
+            );
+
+        var failure = Assert.Single(failures);
+        Assert.False(failure.IsConflict);
+        Assert.Contains(
+            $"mTLS endpoint alias host '{aliasHost}' does not reach the tenant",
+            failure.Detail,
+            StringComparison.Ordinal
+        );
     }
 
     #endregion
@@ -233,6 +362,75 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
         var issuer = await strategy.GetDefaultIssuerAsync(TenantId, CancellationToken.None);
 
         Assert.Equal($"https://{IssuerHost}", issuer);
+    }
+
+    #endregion
+
+    #region GetDefaultMtlsEndpointAliasAuthorityAsync Tests
+
+    [Fact]
+    public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_WhenTemplateIsConfigured_ExpandsItForTheTenant()
+    {
+        var strategy = CreateStrategy(
+            new DynamicByHostTenantOptions
+            {
+                IssuerTemplate = "https://{tenantId}.auth.example",
+                MtlsEndpointAliasTemplate = "https://{tenantId}.mtls.example",
+            }
+        );
+
+        var alias = await strategy.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.Equal($"https://{AliasHost}", alias);
+    }
+
+    [Fact]
+    public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_WhenRootTenantHasAConfiguredAlias_ReturnsIt()
+    {
+        var strategy = new DynamicByHostTenantStrategy(
+            MockRepository.Create<IStoreManagerFactory>().Object,
+            Options.Create(
+                new TenantResolutionOptions
+                {
+                    Root = { MtlsEndpointAliasAuthority = "https://mtls.example" },
+                    DynamicByHost = new DynamicByHostTenantOptions
+                    {
+                        IssuerTemplate = "https://{tenantId}.auth.example",
+                        MtlsEndpointAliasTemplate = "https://{tenantId}.mtls.example",
+                    },
+                }
+            )
+        );
+
+        var rootAlias = await strategy.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            RootTenantOptions.DefaultTenantId,
+            CancellationToken.None
+        );
+        var tenantAlias = await strategy.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.Equal("https://mtls.example", rootAlias);
+        Assert.Equal($"https://{AliasHost}", tenantAlias);
+    }
+
+    [Fact]
+    public async Task GetDefaultMtlsEndpointAliasAuthorityAsync_WhenNoTemplateIsConfigured_ReturnsNull()
+    {
+        var strategy = CreateStrategy(
+            new DynamicByHostTenantOptions { IssuerTemplate = "https://{tenantId}.auth.example" }
+        );
+
+        var alias = await strategy.GetDefaultMtlsEndpointAliasAuthorityAsync(
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.Null(alias);
     }
 
     #endregion
@@ -316,7 +514,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
             .Verifiable();
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         MockTenantStore
-            .Setup(x => x.GetOrDefaultByIssuerHostAsync(issuerHost, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultByHostAsync(issuerHost, It.IsAny<CancellationToken>()))
             .ReturnsAsync(holder)
             .Verifiable();
 

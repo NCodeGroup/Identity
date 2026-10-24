@@ -20,10 +20,17 @@ using System.Collections.Frozen;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Dispatch.Options;
 using NCode.Identity.OpenId;
-using NCode.Identity.OpenId.Authentication.Tokens;
+using NCode.Identity.OpenId.Authentication.ClientCertificates;
+using NCode.Identity.OpenId.Authentication.Persistence;
+using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Server.Frontend;
+using NCode.Identity.Server.SecretProtection;
 using NCode.Registration;
 using NCode.Registration.AspNetCore;
 
@@ -45,7 +52,12 @@ public static class IdentityServerBuilderExtensions
             nameof(OpenIdOptions.Server),
             nameof(OpenIdOptions.Tenant),
             TenantResolutionSubsection,
-            MutualTlsSubsection
+            MutualTlsSubsection,
+            ClientCertificateRevocationOptions.SectionName,
+            GrantRetentionOptions.SectionName,
+            TenantUsageOptions.SectionName,
+            EndedSessionTerminationOptions.SectionName,
+            InProcessJobDispatcherOptions.SectionName
         );
 
     /// <param name="builder">The <see cref="IIdentityServerBuilder"/> to configure.</param>
@@ -54,7 +66,7 @@ public static class IdentityServerBuilderExtensions
         /// <summary>
         /// Binds the server's options from configuration, so a host does not have to repeat the binding boilerplate.
         /// The OpenID configuration section (<see cref="OpenIdOptions.DefaultSectionName"/> unless
-        /// <paramref name="sectionName"/> names another) holds four subsections, each bound to one options type:
+        /// <paramref name="sectionName"/> names another) holds nine subsections, each bound to one options type:
         /// <list type="bullet">
         /// <item><description><c>Server</c> — <see cref="OpenIdServerOptions"/>, including the server's
         /// <c>Settings</c>.</description></item>
@@ -64,18 +76,35 @@ public static class IdentityServerBuilderExtensions
         /// selects, and the route the tenant is served under.</description></item>
         /// <item><description><c>MutualTls</c> — <see cref="MutualTlsForwardingOptions"/>: how a forwarded mutual-TLS
         /// client certificate is read.</description></item>
+        /// <item><description><c>ClientCertificateRevocation</c> — <see cref="ClientCertificateRevocationOptions"/>: how
+        /// the revocation lists a mutual-TLS client certificate names are retrieved and cached.</description></item>
+        /// <item><description><c>GrantRetention</c> — <see cref="GrantRetentionOptions"/>: how long ended grants are
+        /// kept and how often they are removed.</description></item>
+        /// <item><description><c>TenantUsage</c> — <see cref="TenantUsageOptions"/>: how often each replica adds its
+        /// usage to the ledger and how long the ledger keeps it.</description></item>
+        /// <item><description><c>EndedSessionTermination</c> — <see cref="EndedSessionTerminationOptions"/>: how often
+        /// the sessions that ended while unused are terminated.</description></item>
+        /// <item><description><c>InProcessJobDispatcher</c> — <see cref="InProcessJobDispatcherOptions"/>: how many
+        /// jobs the in-process dispatcher queues and runs at once, and what a dispatch does when the queue is
+        /// full.</description></item>
         /// </list>
-        /// The top-level <c>BootstrapAdmin</c> section binds <see cref="BootstrapAdminOptions"/>.
+        /// The top-level <c>BootstrapAdmin</c> section binds <see cref="BootstrapAdminOptions"/>, and the top-level
+        /// <c>SecretProtection</c> section binds <see cref="SecretProtectionOptions"/>: it names the root key provider
+        /// that protects the stored secrets and the Data Protection key ring at rest.
         /// </summary>
         /// <remarks>
         /// Binding is strict and checked when the host starts: a key that maps to no option — a misspelling, or a
         /// setting placed in the wrong subsection — stops the host with an error naming the key, rather than leaving
-        /// the option at its default without any sign that the setting was ignored.
+        /// the option at its default without any sign that the setting was ignored. The <c>SecretProtection</c>
+        /// section is also checked immediately: a direct child other than <c>RootKeyProvider</c>, <c>Recovery</c> and
+        /// <c>RootKeyProviders</c> stops the host during composition.
         /// </remarks>
         /// <param name="configuration">The <see cref="IConfiguration"/> to bind the options from.</param>
         /// <param name="sectionName">The configuration section name that holds the OpenID options, or <c>null</c> to use
         /// <see cref="OpenIdOptions.DefaultSectionName"/>.</param>
         /// <returns>The same <see cref="IIdentityServerBuilder"/> instance for method chaining.</returns>
+        /// <exception cref="InvalidOperationException">The <c>SecretProtection</c> section has a direct child other
+        /// than <c>RootKeyProvider</c>, <c>Recovery</c> and <c>RootKeyProviders</c>.</exception>
         public IIdentityServerBuilder AddConfiguration(
             IConfiguration configuration,
             string? sectionName = null
@@ -95,7 +124,17 @@ public static class IdentityServerBuilderExtensions
             var tenantSection = openIdSection.GetSection(nameof(OpenIdOptions.Tenant));
             var tenantResolutionSection = openIdSection.GetSection(TenantResolutionSubsection);
             var mutualTlsSection = openIdSection.GetSection(MutualTlsSubsection);
-
+            var clientCertificateRevocationSection = openIdSection.GetSection(
+                ClientCertificateRevocationOptions.SectionName
+            );
+            var grantRetentionSection = openIdSection.GetSection(GrantRetentionOptions.SectionName);
+            var tenantUsageSection = openIdSection.GetSection(TenantUsageOptions.SectionName);
+            var endedSessionTerminationSection = openIdSection.GetSection(
+                EndedSessionTerminationOptions.SectionName
+            );
+            var inProcessJobDispatcherSection = openIdSection.GetSection(
+                InProcessJobDispatcherOptions.SectionName
+            );
             // The bootstrap administrator credential is sourced from its own top-level section so it can be supplied
             // out of band (for example, environment variables); absent it, the feature stays inert (ADR-0044).
             var bootstrapAdminSection = configuration.GetSection(
@@ -131,9 +170,38 @@ public static class IdentityServerBuilderExtensions
                 .ValidateOnStart();
 
             serviceCollection
+                .AddOptions<ClientCertificateRevocationOptions>()
+                .Configure(options => clientCertificateRevocationSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            serviceCollection
+                .AddOptions<GrantRetentionOptions>()
+                .Configure(options => grantRetentionSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            serviceCollection
+                .AddOptions<TenantUsageOptions>()
+                .Configure(options => tenantUsageSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            serviceCollection
+                .AddOptions<EndedSessionTerminationOptions>()
+                .Configure(options => endedSessionTerminationSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            // See ADR-0242.
+            serviceCollection
+                .AddOptions<InProcessJobDispatcherOptions>()
+                .Configure(options => inProcessJobDispatcherSection.BindStrictly(options))
+                .ValidateOnStart();
+
+            serviceCollection
                 .AddOptions<BootstrapAdminOptions>()
                 .Configure(options => bootstrapAdminSection.BindStrictly(options))
                 .ValidateOnStart();
+
+            // Stored secrets and the Data Protection key ring are protected under a root key held outside the database (ADR-0235).
+            SecretProtectionRegistration.AddSecretProtection(builder, configuration);
 
             return builder;
         }
@@ -180,6 +248,8 @@ public static class IdentityServerBuilderExtensions
             {
                 serviceCollection.Configure(configureOptions);
             }
+
+            serviceCollection.TryAddScoped<FrontendIssuerResolver>();
 
             builder.AddEndpointProvider<FrontendBootstrapEndpointProvider>();
 

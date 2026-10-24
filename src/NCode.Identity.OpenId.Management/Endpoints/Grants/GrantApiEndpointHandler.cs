@@ -61,6 +61,9 @@ internal class GrantApiEndpointHandler(
     ICryptoService cryptoService
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
+    private const long DefaultInitialAccessTokenLifetimeSeconds = 86_400;
+    private const long MaxInitialAccessTokenLifetimeSeconds = 2_592_000;
+
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
@@ -213,16 +216,13 @@ internal class GrantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IGrantStore>();
-
-        var revoked = await store.RevokeWhereAsync(
+        // A revocation retries a lost race instead of answering 412. See ADR-0215.
+        var revoked = await PersistedGrantService.RevokeWhereAsync(
+            httpContext.GetOpenIdContext(),
             filter,
             TimeProvider.GetUtcNow(),
             cancellationToken
         );
-
-        await storeManager.SaveChangesAsync(cancellationToken);
 
         await ManagementAuditRecorder.RecordGrantsRevokedAsync(
             httpContext,
@@ -240,14 +240,17 @@ internal class GrantApiEndpointHandler(
     /// <summary>
     /// Mints an initial access token (RFC 7591) that authorizes its bearer to register a new client at the protected
     /// dynamic client registration endpoint. The token is persisted as a hash-keyed <c>initial_access_token</c> grant,
-    /// so its plaintext value is revealed exactly once in the response and never retrievable again.
+    /// so its plaintext value is revealed exactly once in the response and never retrievable again. The token is
+    /// single-use: it registers one client. It expires after one day by default and after at most 30 days.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant that will own the token.</param>
-    /// <param name="request">The token-creation request, carrying an optional description and lifetime.</param>
+    /// <param name="request">The token-creation request, carrying an optional description, lifetime, and resource
+    /// server the token is scoped to.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The newly minted initial access token, including its one-time plaintext value.</response>
-    /// <response code="400">The requested lifetime was not greater than zero.</response>
+    /// <response code="400">The requested lifetime was not greater than zero or was longer than 30 days, or the
+    /// resource server does not exist in the tenant or is a system resource server.</response>
     [EndpointName("api/grants/initial-access-tokens/create")]
     internal virtual async ValueTask<IResult> CreateInitialAccessTokenAsync(
         HttpContext httpContext,
@@ -256,19 +259,16 @@ internal class GrantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        TimeSpan? lifetime = null;
-        if (request.LifetimeSeconds is { } lifetimeSeconds)
+        var lifetimeSeconds = request.LifetimeSeconds ?? DefaultInitialAccessTokenLifetimeSeconds;
+        if (lifetimeSeconds is <= 0 or > MaxInitialAccessTokenLifetimeSeconds)
         {
-            if (lifetimeSeconds <= 0)
-            {
-                return TypedResults.Problem(
-                    detail: "'lifetimeSeconds' must be greater than zero.",
-                    statusCode: StatusCodes.Status400BadRequest
-                );
-            }
-
-            lifetime = TimeSpan.FromSeconds(lifetimeSeconds);
+            return TypedResults.Problem(
+                detail: "'lifetimeSeconds' must be greater than zero and at most 2592000 (30 days).",
+                statusCode: StatusCodes.Status400BadRequest
+            );
         }
+
+        var lifetime = TimeSpan.FromSeconds(lifetimeSeconds);
 
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
@@ -279,6 +279,20 @@ internal class GrantApiEndpointHandler(
         if (!authorizationResult.Succeeded)
         {
             return AuthorizationFailed(httpContext);
+        }
+
+        if (request.ResourceServerId is { } resourceServerId)
+        {
+            var resourceServerError = await AuthorizeResourceServerScopeAsync(
+                httpContext,
+                tenantId,
+                resourceServerId,
+                cancellationToken
+            );
+            if (resourceServerError is not null)
+            {
+                return resourceServerError;
+            }
         }
 
         var openIdContext = httpContext.GetOpenIdContext();
@@ -292,7 +306,11 @@ internal class GrantApiEndpointHandler(
             ClientId = null,
             SubjectId = null,
             SessionId = null,
-            Payload = new InitialAccessTokenGrant { Description = request.Description },
+            Payload = new InitialAccessTokenGrant
+            {
+                Description = request.Description,
+                ResourceServerId = request.ResourceServerId,
+            },
         };
 
         var grantId = await PersistedGrantService.AddAsync(
@@ -326,11 +344,59 @@ internal class GrantApiEndpointHandler(
             GrantId = grantId,
             TenantId = tenantId,
             Description = request.Description,
+            ResourceServerId = request.ResourceServerId,
             CreatedWhen = createdWhen,
-            ExpiresWhen = lifetime is null ? null : createdWhen + lifetime,
+            ExpiresWhen = createdWhen + lifetime,
         };
 
         return TypedResults.Json(response, statusCode: StatusCodes.Status201Created);
+    }
+
+    // A token scoped to a resource server registers a client that introspects for it and reads every token issued to
+    // it, so minting one is a change to the resource server, exactly like binding a client through the management API:
+    // the resource server must exist in the tenant, must not be a system resource server, and the caller must be
+    // authorized to update it (ADR-0168, ADR-0192).
+    private async ValueTask<IResult?> AuthorizeResourceServerScopeAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string resourceServerId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var resourceServer = await storeManager
+            .GetStore<IResourceServerStore>()
+            .GetOrDefaultAsync(resourceServerId, cancellationToken);
+        if (
+            resourceServer is null
+            || !string.Equals(resourceServer.TenantId, tenantId, StringComparison.Ordinal)
+        )
+        {
+            return TypedResults.Problem(
+                detail: "The resource server the token is scoped to does not exist in the tenant.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            Operations.Update
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (resourceServer.IsSystem)
+        {
+            return TypedResults.Problem(
+                detail: "A token cannot be scoped to a system resource server.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -410,22 +476,28 @@ internal class GrantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Soft-revoke is idempotent: an already-revoked grant is left untouched.
+        // Soft-revoke is idempotent: an already-revoked grant is left untouched. A revocation retries a lost race
+        // instead of answering 412. See ADR-0215.
         if (grant.RevokedWhen is null)
         {
-            grant.RevokedWhen = TimeProvider.GetUtcNow();
-
-            await store.UpdateAsync(grant, cancellationToken);
-            await storeManager.SaveChangesAsync(cancellationToken);
-
-            await ManagementAuditRecorder.RecordGrantRevokedAsync(
-                httpContext,
-                tenantId,
-                grant.SubjectId,
-                grant.ClientId,
-                grant.GrantType,
+            var revoked = await PersistedGrantService.RevokeWhereAsync(
+                httpContext.GetOpenIdContext(),
+                new GrantFilter { GrantId = grant.GrantId },
+                TimeProvider.GetUtcNow(),
                 cancellationToken
             );
+
+            if (revoked > 0)
+            {
+                await ManagementAuditRecorder.RecordGrantRevokedAsync(
+                    httpContext,
+                    tenantId,
+                    grant.SubjectId,
+                    grant.ClientId,
+                    grant.GrantType,
+                    cancellationToken
+                );
+            }
         }
 
         return TypedResults.NoContent();

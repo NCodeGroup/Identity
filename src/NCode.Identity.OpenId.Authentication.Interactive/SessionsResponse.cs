@@ -27,8 +27,8 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// <param name="CreatedWhen">The time the session was established, as a Unix timestamp in seconds.</param>
 /// <param name="LastActivityWhen">The most recent time the session was observed in use, as a Unix timestamp in
 /// seconds.</param>
-/// <param name="ExpiresWhen">The absolute expiration time as a Unix timestamp in seconds, or <see langword="null"/>
-/// when the session has no absolute lifetime.</param>
+/// <param name="ExpiresWhen">The time the session ends unless it is used again, as a Unix timestamp in seconds: the end
+/// of its idle window or, if earlier, its absolute end.</param>
 /// <param name="Amr">The authentication method references (<c>amr</c>) captured at sign-in.</param>
 /// <param name="Idp">The identity provider (<c>idp</c>) that authenticated the end-user, or <see langword="null"/>.</param>
 /// <param name="UserAgent">The <c>User-Agent</c> captured at sign-in, or <see langword="null"/> when none was recorded.</param>
@@ -38,7 +38,7 @@ internal sealed record SessionSummaryResponse(
     bool IsCurrent,
     long CreatedWhen,
     long LastActivityWhen,
-    long? ExpiresWhen,
+    long ExpiresWhen,
     IReadOnlyList<string> Amr,
     string? Idp,
     string? UserAgent,

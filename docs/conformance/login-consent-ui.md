@@ -11,10 +11,11 @@ records: [ADR-0062](../adr/0062-opt-in-interactive-login-consent-ui.md) (seam + 
 The interactive login/consent surface landed as the opt-in leaf capability package
 [`NCode.Identity.OpenId.Authentication.Interactive`](../../src/NCode.Identity.OpenId.Authentication.Interactive)
 (+ [`.Abstractions`](../../src/NCode.Identity.OpenId.Authentication.Interactive.Abstractions)): a single
-`AddInteractiveAuthentication` / `UseInteractiveAuthentication` registration
+`AddInteractiveAuthentication` registration
 ([`DefaultRegistration`](../../src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs))
 registers the `Identity.Application` cookie scheme (`LoginPath = /account/login`) the authorize challenge
-redirects into, and maps the `/account/*` endpoints through an `IEndpointProvider`
+redirects into, and maps the `/account/*` endpoints, which also serve the bundle's files, beneath the tenant route
+([ADR-0193](../adr/0193-the-interactive-surface-is-served-under-the-tenant-route.md)) through an `IEndpointProvider`
 ([`InteractiveAuthenticationEndpointHandler`](../../src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs)).
 Credential verification is a pluggable `IInteractiveCredentialVerifier` seam whose local-account
 implementation ([`LocalAccountInteractiveCredentialVerifier`](../../src/NCode.Identity.OpenId.Accounts.Authentication/LocalAccountInteractiveCredentialVerifier.cs),

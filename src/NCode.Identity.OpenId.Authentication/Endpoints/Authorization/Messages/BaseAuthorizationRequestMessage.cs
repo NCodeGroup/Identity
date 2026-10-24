@@ -163,7 +163,7 @@ public abstract class BaseAuthorizationRequestMessage<T> : OpenIdMessage<T>
     }
 
     /// <inheritdoc cref="IBaseAuthorizationRequestValues.RedirectUri" />
-    public Uri? RedirectUri
+    public string? RedirectUri
     {
         get => GetKnownParameter(OpenIdCommonParameters.RedirectUri);
         set => SetKnownParameter(OpenIdCommonParameters.RedirectUri, value);

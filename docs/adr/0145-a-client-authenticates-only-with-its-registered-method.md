@@ -6,7 +6,9 @@
   [ADR-0140](0140-setting-values-are-validated-against-their-domain.md), and
   [ADR-0144](0144-authorization-codes-are-bound-to-pkce-by-default.md); extended by
   [ADR-0168](0168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): a client bound to a resource
-  server authenticates the same way and is accepted only at introspection)
+  server authenticates the same way and is accepted only at introspection; amended by
+  [ADR-0207](0207-client-authentication-methods-are-named-by-registered-descriptors.md): the registered method
+  descriptors, not the handlers, name the methods)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -20,7 +22,7 @@ clients (RFC 6749 §2.3, §3.2.1). A request may use only one method (RFC 6749 �
 The server did not hold the registration to that:
 
 - The client-authentication service checked the method a client used only against its effective
-  `token_endpoint_auth_methods_supported`, whose default is every registered handler, `none` included. A client
+  `token_endpoint_auth_methods_supported`, whose default is every registered method, `none` included. A client
   registered as confidential — every dynamically registered `client_secret_*` client — could present only its
   `client_id` and be served as public: at the token endpoint for the refresh-token, device-code, and back-channel
   grants, at the pushed authorization request endpoint, and at introspection and revocation. It could equally use any
@@ -48,7 +50,8 @@ that authenticates the client, at every endpoint that authenticates clients, and
    applies. It is the setting's default, so a server or tenant may configure another default for the clients that
    register none (the setting merges by replacement). A client provisioned without a method — through the management API
    or a seed — is therefore confidential and cannot authenticate until it holds a secret: the default fails closed. A
-   public client registers `none`. The setting's domain is the registered handlers' methods; the empty string is not a
+   public client registers `none`. The setting's domain is the names of the registered method descriptors
+   ([ADR-0207](0207-client-authentication-methods-are-named-by-registered-descriptors.md)); the empty string is not a
    value.
 3. **`token_endpoint_auth_methods_supported` is the ceiling over the registered method**, imposed by the server, tenant,
    and security profile (it merges by intersection). A client whose registered method its ceiling excludes cannot
@@ -107,12 +110,34 @@ that authenticates the client, at every endpoint that authenticates clients, and
 - A FAPI 2.0 client reaches the authorization endpoint, where the profile's rules (PAR, a confidential client) apply.
 - A management-API client that registers no method is a `client_secret_basic` client; one that authenticates otherwise
   must register its method. A tenant can change the default for its clients.
-- Dynamic client registration accepts only `none`, `client_secret_basic`, and `client_secret_post`, so a dynamically
-  registered client cannot use a strong method until registration accepts them (backlog `F16`).
+- Dynamic client registration accepts every method the tenant's effective `token_endpoint_auth_methods_supported`
+  permits (amendment below), so a dynamically registered client can use a strong method.
 - The bootstrap administrator authenticates with HTTP Basic, and the API reference sends header credentials.
 - The authorization endpoint refuses a request that carries a `client_secret` with `invalid_request`.
 - The `RegisterClientAuthenticationMethod` migration rewrites stored settings documents; a deployment storing them
   elsewhere applies the same rule.
+
+## Amendment (2026-10-21): registration accepts the strong methods
+
+Dynamic Client Registration no longer keeps its own list of `none`, `client_secret_basic`, and `client_secret_post`.
+The method vocabulary is open: the settings validation accepts every method a registered method descriptor names
+([ADR-0207](0207-client-authentication-methods-are-named-by-registered-descriptors.md)), and the tenant's effective
+`token_endpoint_auth_methods_supported` narrows it, so a `fapi2` tenant refuses `client_secret_*` when the client
+registers rather than at its first token request. Registration then requires what the method verifies against:
+
+- `private_key_jwt` requires the client's public keys in `jwks` or `jwks_uri` (RFC 7523 §2.2).
+- `self_signed_tls_client_auth` requires its certificates in `jwks` or `jwks_uri`; a `jwks` given by value needs a key
+  with an `x5c` certificate (RFC 8705 §2.2).
+- `tls_client_auth` requires exactly one `tls_client_auth_subject_dn`, `_san_dns`, `_san_uri`, `_san_ip`, or
+  `_san_email` (RFC 8705 §2.1.2); those parameters are refused for every other method. A registering client never
+  supplies trust anchors: its certificate chains to the tenant's anchors, and with none configured the method fails
+  closed ([ADR-0173](0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
+- Only the shared-secret methods (`client_secret_basic`, `client_secret_post`, `client_secret_jwt`) are issued a
+  `client_secret`. A key- or certificate-based client gets none, so it holds no second, weaker credential.
+
+The registration, read, and update responses report the `tls_client_auth_*` identity. An update that changes the
+method keeps the client's stored secret and issues none; switching a client to a shared-secret method is a management
+API operation.
 
 ## References
 
@@ -129,4 +154,5 @@ that authenticates the client, at every endpoint that authenticates clients, and
   `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/`,
   `src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/DefaultAuthorizationEndpointHandler.cs`,
   `src/NCode.Identity.OpenId.Authentication/Settings/DefaultClientSettingDescriptorDataSource.cs`,
+  `src/NCode.Identity.OpenId.Authentication/Endpoints/Registration/DefaultClientRegistrationEndpointHandler.cs`,
   `src/NCode.Identity.OpenId.Host.Database/Migrations/OpenId/20261019163430_RegisterClientAuthenticationMethod.cs`.

@@ -73,6 +73,12 @@ internal abstract class TenantStrategy(
     /// </summary>
     protected virtual string? IssuerTemplate => null;
 
+    /// <summary>
+    /// Gets the template a tenant's default mutual-TLS endpoint-alias authority is expanded from, or <c>null</c> when the
+    /// strategy has none. The default implementation has none.
+    /// </summary>
+    protected virtual string? MtlsEndpointAliasTemplate => null;
+
     /// <inheritdoc />
     public virtual bool TryGetTenantId(
         HttpContext httpContext,
@@ -106,6 +112,25 @@ internal abstract class TenantStrategy(
 
     /// <inheritdoc />
     /// <remarks>
+    /// The control-plane tenant is the root tenant, which the request need not address: under a dynamic strategy the
+    /// management API is reached on any host or path, not beneath the tenant that issued the caller's token.
+    /// </remarks>
+    // See ADR-0191 (the management API authenticates against the control-plane tenant).
+    public virtual string GetControlPlaneTenantId() => RootOptions.TenantId;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The control-plane tenant is the root tenant, which the request need not address: under a dynamic strategy the
+    /// management API is reached on any host or path, not beneath the tenant that issued the caller's token.
+    /// </remarks>
+    // See ADR-0191 (the management API authenticates against the control-plane tenant).
+    public virtual async ValueTask<PersistedTenant> ResolveControlPlaneTenantAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    ) => await GetTenantByIdAsync(httpContext, GetControlPlaneTenantId(), cancellationToken);
+
+    /// <inheritdoc />
+    /// <remarks>
     /// The root tenant is given its configured issuer when it has one; every tenant otherwise gets the expansion of the
     /// strategy's issuer template, or none when the strategy has no template.
     /// </remarks>
@@ -129,12 +154,43 @@ internal abstract class TenantStrategy(
 
     /// <inheritdoc />
     /// <remarks>
+    /// The root tenant is given its configured alias when it has one; every tenant otherwise gets the expansion of the
+    /// strategy's alias template, or none when the strategy has no template.
+    /// </remarks>
+    // See ADR-0195 (a tenant's mTLS endpoint alias is a routed tenant property).
+    public virtual ValueTask<string?> GetDefaultMtlsEndpointAliasAuthorityAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var rootAlias = RootOptions.MtlsEndpointAliasAuthority;
+        if (IsRootTenant(tenantId) && !string.IsNullOrEmpty(rootAlias))
+            return ValueTask.FromResult<string?>(rootAlias);
+
+        var aliasTemplate = MtlsEndpointAliasTemplate;
+        var defaultAlias = string.IsNullOrEmpty(aliasTemplate)
+            ? null
+            : TenantAddressRules.ExpandIssuerTemplate(aliasTemplate, tenantId);
+
+        return ValueTask.FromResult(defaultAlias);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The base implementation requires the root tenant, which every strategy can create on demand.
+    /// </remarks>
+    public virtual bool IsRequiredTenant(string tenantId) =>
+        string.Equals(tenantId, RootOptions.TenantId, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    /// <remarks>
     /// The base rules are that a tenant this strategy serves has an issuer, and that the issuer ends with the tenant route
     /// bound for the tenant, the path its endpoints and its discovery document are served under.
     /// </remarks>
     public virtual ValueTask<IReadOnlyList<TenantValidationFailure>> ValidateTenantAsync(
         string tenantId,
         Uri? issuer,
+        Uri? mtlsEndpointAliasAuthority,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )

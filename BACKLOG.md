@@ -558,6 +558,26 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   identity-platform `.github/`, `.githooks/`, `.pre-commit-config.yaml`, `.claude/settings.json`,
   `.vscode/settings.json` and its `default-branch` ruleset.
 
+  This repository's adoption (pull request #15) found three more template gaps; fix them in the same template change:
+  - **The adoption breaks an allow-list Docker build context.** `Directory.Build.props` now imports
+    `build/ProjectTemplate.props`, and this repository's `.dockerignore` re-admits only named root build files, so the
+    host image failed to restore (`MSB4019`) until `!build/ProjectTemplate.props` was added. The Definition of Done
+    does not build the image, so only the `Host image` check caught it. The `/plan-migration` request that
+    `Adopt-Project.ps1` prints should name every allow-list build context (`.dockerignore`, a CI cache key) as a place
+    to re-admit the new file. Check identity-platform's Dockerfiles for the same gap when adopting.
+  - **The Claude Code executor cannot run its Done-when check.** In a session that works in a git worktree, Claude
+    Code refuses to let the `plan-executor` subagent run `pwsh`, because it cannot prove the command stays in the
+    worktree, so every executor reported a hand-made check instead. The coordinator's run of each Done-when is what
+    verified the steps. The template's `plan-executor` agent and `execute-step` command should say that the
+    coordinator runs the check when the executor cannot, rather than asking the executor to run it.
+  - **Parallel steps leak into each other's checkpoint commits.** `orchestrate-plan` commits each step with
+    `git add -A`, and `git rm` or `git mv` stage at once, so when independent steps ran in parallel one step's commit
+    picked up another's deletions and rename. Either say that steps run one at a time, or commit each step's own
+    paths (`git commit -- <paths> PLAN.md`) and tell executors not to edit `PLAN.md`.
+
+  More touch points: project-template's `Adopt-Project.ps1` migration request,
+  `template/.claude/agents/plan-executor.md`, and the `execute-step` and `orchestrate-plan` sources.
+
 ## Review findings for the feature-gaps branch (group `R`)
 
 A principal-level review of the `copilot/work-through-feature-gaps-frontend` branch against `main` (93 commits, 670

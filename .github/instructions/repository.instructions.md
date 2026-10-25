@@ -122,7 +122,9 @@ these gates **before** pushing:
    `./build/dod.ps1` (all tests, coverage, packing, and NuGet advisories as errors): the merge queue runs it on the
    merged result before anything reaches `main`
    ([ADR-0263](../../docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)), so it
-   does **not** run before a local push.
+   does **not** run before a local push. Neither gate builds the host image: when a change adds a file that a root
+   build file imports, re-admit it in [`.dockerignore`](../../.dockerignore) too, or only the `Host image` check on the
+   pull request finds it.
 
 After the push, the pull request merges through the merge queue, which runs the full gate on its merged result. An
 item is done only when the merge queue merges the pull request and every GitHub Actions run for the resulting `main`

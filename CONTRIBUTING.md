@@ -10,6 +10,9 @@ enforced quality bar.
 - Local tools: run `dotnet tool restore` once after cloning to install the repo-pinned **CSharpier** formatter.
 - Git hooks: run `git config core.hooksPath .githooks` once after cloning to enable the repo-versioned hooks (see
   [Commit attribution](#commit-attribution)).
+- Windows: run `git config --global core.longpaths true` once. A Claude Code plan's worktree under
+  `.claude/worktrees/` adds enough depth that some paths pass Windows' 260-character limit, and without it
+  `git worktree remove` fails with "Filename too long" and leaves the folder behind.
 - Frontend / full-stack (Aspire F5): [NVS](https://github.com/jasongin/nvs); `build/frontend-install.ps1` adds the
   Node major pinned in `src/frontend/.node-version` and the pinned pnpm — see
   [`src/frontend/README.md`](src/frontend/README.md).

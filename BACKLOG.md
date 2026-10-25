@@ -78,7 +78,7 @@ entry and/or ADR that closed it.
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S21`     | `S20`      |
-| `X` — Tooling & agent customization   | `X6`      | `X5`       |
+| `X` — Tooling & agent customization   | `X9`      | `X8`       |
 | `R` — Review findings                 | `R114`    | `R113`     |
 
 ---
@@ -519,7 +519,31 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
 
 ## Tooling & agent customization (group `X`)
 
-_No pending items. Completed `X` items are archived in [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)._
+- **`X6` — Publish the NuGet packages from a release tag.** [`GOVERNANCE.md`](GOVERNANCE.md) "Publishing" says
+  packages and their `.snupkg` symbols are published to nuget.org from protected refs only, signed and RFC-3161
+  timestamped, but no workflow publishes anything today. Add a workflow that a `v*` tag on a release line triggers: it
+  runs the full Definition of Done, signs and timestamps the packages, verifies them with `dotnet nuget verify`, and
+  pushes the packages and symbols to nuget.org through a protected environment and a trusted publisher, with no
+  long-lived API key. Touch points: `.github/workflows/`, `build/dod.ps1`, `GOVERNANCE.md` "Publishing".
+
+- **`X7` — Automate backports.** Servicing is upstream-first
+  ([ADR-0263](docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)): a fix
+  merges to `main`, and a backport pull request cherry-picks it with `git cherry-pick -x` onto
+  `backport/<pr>-vX.Y`, cut from `release/vX.Y`. Today that is done by hand. Add a workflow that, when a pull request
+  labeled `backport vX.Y` merges to `main`, opens the cherry-pick pull request against `release/vX.Y`, and comments on
+  the original pull request when the cherry-pick conflicts. Touch points: `.github/workflows/`, `GOVERNANCE.md`
+  "Releases, branches & tags", ADR-0263.
+
+- **`X8` — Re-enable the Request Delegate Generator for the Interactive package.**
+  `NCode.Identity.OpenId.Authentication.Interactive` binds its endpoints at runtime, because in `dotnet/aspnetcore`
+  `release/10.0` the generated form binding (`TryResolveFormAsync`) reads a form without checking
+  `IAntiforgeryValidationFeature`, so a POST whose antiforgery validation failed answers 500 instead of 400
+  ([ADR-0262](docs/adr/0262-minimal-api-request-delegates-are-generated-at-compile-time.md)). Once upstream's
+  generated form binding checks the feature, remove the opt-out and confirm that
+  `LocalAccountLifecycleTests.ChangePassword_WithoutTheAntiforgeryToken_ChangesNothing` still passes. Touch points:
+  `src/NCode.Identity.OpenId.Authentication.Interactive/NCode.Identity.OpenId.Authentication.Interactive.csproj`,
+  `tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/LocalAccountLifecycleTests.cs`, ADR-0262,
+  `.github/instructions/csharp-production.instructions.md`.
 
 ## Review findings for the feature-gaps branch (group `R`)
 

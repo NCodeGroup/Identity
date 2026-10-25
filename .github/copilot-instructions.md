@@ -84,9 +84,12 @@ it is enabled per clone and must not be relied on — do not generate the traile
 ## Push protocol
 
 When the user authorizes a push (says "push"), it pushes the current **topic branch** — never `main`, which accepts
-changes only through a pull request
-([ADR-0261](../docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)) — and opens its
-pull request against `main` if none exists. Run these gates **before** pushing:
+changes only by pull request through the merge queue
+([ADR-0261](../docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
+[ADR-0263](../docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) — opens its
+pull request against `main` if none exists (a push to an open pull request's branch updates it), and enables auto-merge
+with `gh pr merge <number> --auto --squash`, which adds the pull request to the merge queue once its checks pass. Run
+these gates **before** pushing:
 
 1. **Retire the plan.** If a `PLAN.md` exists, every step is `[x]` and its review (`/review-plan-diff`) has run with
    every queued fix step done. Promote its Decisions in gate 2, delete `PLAN.md`, and squash its `Plan step N` /
@@ -103,13 +106,18 @@ pull request against `main` if none exists. Run these gates **before** pushing:
    (moving any item completed this session into [`BACKLOG-COMPLETED.md`](../BACKLOG-COMPLETED.md)).
 3. **Drain volatile memory.** No durable knowledge may remain only in agent memory (`/memories/…`) or chat history:
    migrate anything durable into the repository and clear the memory so nothing survives solely as a volatile note.
-4. **Pass the local pre-push gate.** Run `./build/dod.ps1 -Fast` — the local-development pre-push gate — and confirm
-   its final line is `Definition of Done: PASSED`. The full `./build/dod.ps1` (which adds coverage + packing and
-   treats NuGet advisories as errors) is the CI-parity gate that runs in CI, **not** before a local push.
+4. **Pass the local pre-push gate.** Run `./build/dod.ps1 -Fast -Affected` — the local-development pre-push gate, which
+   builds the whole solution and runs the test projects the change reaches since its merge base with `origin/main`
+   (fetch `origin` first) — and confirm its final line is `Definition of Done: PASSED`. CI owns the full
+   `./build/dod.ps1` (all tests, coverage, packing, and NuGet advisories as errors): the merge queue runs it on the
+   merged result before anything reaches `main`
+   ([ADR-0263](../docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)), so it
+   does **not** run before a local push.
 
-After the push, an item is done only when every check on the pull request's head commit succeeds. Remediate any
-failure in the same change, and archive a completed backlog item in a commit on the same branch before the pull request
-merges.
+After the push, the pull request merges through the merge queue, which runs the full gate on its merged result. An
+item is done only when the merge queue merges the pull request and every GitHub Actions run for the resulting `main`
+commit succeeds. Remediate any failure in the same change, and archive a completed backlog item in a commit on the same
+branch before the pull request merges.
 
 This upholds [ADR-0008](../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md): conventions, reasoning, and
 recurring gotchas live in the repository.

@@ -7,20 +7,25 @@
 name: Host chart
 
 on:
-  # A push gates only main, because a pull request already gates every other branch (see ci.yml).
+  # A push gates only main and the release lines, because a pull request already gates every other branch (see ci.yml).
+  # The merge queue runs the check on the merged result, so a required check must report on merge_group (ADR-0263).
+  # Release lines are gated like main.
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
-    branches: [main]
+    branches: [main, 'release/**']
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# See the note in ci.yml: on main the group includes the SHA so every trunk commit keeps its own verdict.
+# See the note in ci.yml: on main and the release lines the group includes the SHA so every commit of a protected line
+# keeps its own verdict.
 concurrency:
-  group: host-chart-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'head' }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  group: host-chart-${{ github.ref }}-${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && github.sha || 'head' }}
+  cancel-in-progress: ${{ !(github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
   check:

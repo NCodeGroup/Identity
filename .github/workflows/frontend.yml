@@ -4,17 +4,20 @@
 # shell out to Node would couple a .NET contributor's inner loop to a pnpm install. This workflow gates the frontend
 # tier independently instead.
 #
-# A push to main is path-filtered, so a C#-only push does not pay for a pnpm install. A pull request always runs the
-# workflow, and its `changes` job decides whether the frontend job runs. A skipped job reports success, so every pull
-# request reports "Lint, typecheck, test, build", which is a required check of the main ruleset (ADR-0261).
+# A push to main or a release line is path-filtered, so a C#-only push does not pay for a pnpm install. A pull request
+# and the merge queue always run the workflow, and the `changes` job decides whether the frontend job runs. A skipped
+# job reports success, so every pull request reports "Lint, typecheck, test, build", which is a required check of the
+# main ruleset (ADR-0261).
 name: Frontend CI
 
 on:
-  # See the note in ci.yml: a push gates only main, because a pull request already gates every other branch.
-  # A pull request always runs the workflow, so its required check reports; the `changes` job skips the frontend job
-  # when no frontend path changed. A push to main keeps the path filter.
+  # See the note in ci.yml: a push gates only main and the release lines, because a pull request already gates every
+  # other branch. A pull request always runs the workflow, so its required check reports; the `changes` job skips the
+  # frontend job when no frontend path changed. The merge queue runs the check on the merged result, so a required check
+  # must report on merge_group too (ADR-0263); it always runs the frontend job. Release lines are gated like main: a
+  # push to either keeps the path filter.
   push:
-    branches: [main]
+    branches: [main, 'release/**']
     # Keep in sync with the pattern in the `changes` job, which applies the same paths to a pull request.
     paths:
       - 'src/frontend/**'
@@ -26,7 +29,9 @@ on:
       - 'src/NCode.Identity.OpenId.Authentication.Interactive/**'
       - 'tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/**'
   pull_request:
-    branches: [main]
+    branches: [main, 'release/**']
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
 
 # The frontend job only reads the tree; `id-token: write` (the Codecov OIDC upload) belongs to the separate codecov job
@@ -34,18 +39,20 @@ on:
 permissions:
   contents: read
 
-# See the note in ci.yml: on main the group includes the SHA so every trunk commit keeps its own verdict, because
-# `cancel-in-progress: false` alone still lets GitHub cancel previously pending runs in the same group.
+# See the note in ci.yml: on main and the release lines the group includes the SHA so every commit of a protected line
+# keeps its own verdict, because `cancel-in-progress: false` alone still lets GitHub cancel previously pending runs in
+# the same group.
 concurrency:
-  group: frontend-ci-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'head' }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  group: frontend-ci-${{ github.ref }}-${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && github.sha || 'head' }}
+  cancel-in-progress: ${{ !(github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 defaults:
   run:
     working-directory: src/frontend
 
 jobs:
-  # Decides from a pull request's changed files whether the frontend job runs; any other event always runs it.
+  # Decides from a pull request's changed files whether the frontend job runs; every event other than pull_request, the
+  # merge queue included, always runs it.
   changes:
     name: Detect frontend changes
     runs-on: ubuntu-latest
@@ -199,8 +206,9 @@ jobs:
   codecov:
     name: Codecov
     needs: frontend
-    # A skipped frontend job leaves nothing to upload.
-    if: ${{ !cancelled() && needs.frontend.result != 'skipped' }}
+    # A skipped frontend job leaves nothing to upload, and the merge queue's run duplicates the coverage main's push
+    # uploads.
+    if: ${{ !cancelled() && needs.frontend.result != 'skipped' && github.event_name != 'merge_group' }}
     permissions:
       contents: read
       id-token: write

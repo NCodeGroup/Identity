@@ -1,5 +1,6 @@
 #!/usr/bin/env pwsh
 #requires -version 7
+
 <#
 .SYNOPSIS
     Regenerates the list of common passwords the password policy refuses.

@@ -1,5 +1,6 @@
 #!/usr/bin/env pwsh
 #requires -version 7
+
 <#
 .SYNOPSIS
     Purges the OpenID host developer database on demand.

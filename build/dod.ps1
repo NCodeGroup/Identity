@@ -1,5 +1,6 @@
 #!/usr/bin/env pwsh
 #requires -version 7
+
 <#
 .SYNOPSIS
     The NCode.Identity Definition of Done — the single entrypoint CI and developers both run.
@@ -21,22 +22,44 @@
     Build only; skip the test + coverage stage.
 
 .PARAMETER Fast
-    Local inner-loop accelerator and the local pre-push gate (NOT a CI-parity gate): parallelizes project builds and
-    test assemblies, and skips the non-correctness stages (coverage collection and NuGet packing). Compile
-    warnings-as-errors and analyzers stay on, but NuGet vulnerability advisories (NU1901-1904) are warnings instead of
-    errors. The plain ./build/dod.ps1 (no -Fast) is the CI-parity gate that CI runs.
+    Local inner-loop accelerator (NOT a CI-parity gate; the local pre-push gate is -Fast -Affected): parallelizes
+    project builds and skips the non-correctness stages (coverage collection and NuGet packing). Test assemblies run in
+    parallel in every mode, so -Fast does not change that. Compile warnings-as-errors and analyzers stay on, but NuGet
+    vulnerability advisories (NU1901-1904) are warnings instead of errors. The plain ./build/dod.ps1 (no -Fast) is the
+    full gate that the merge queue, main and the release lines run (ADR-0263).
+
+.PARAMETER Filter
+    A `dotnet test --filter` expression; runs only the matching tests (for example `FullyQualifiedName~NCode.Time`).
+
+.PARAMETER Affected
+    Runs only the test projects that build/affected-tests.ps1 selects for the changes since the merge base of HEAD and
+    -Base: the test projects in the reverse ProjectReference closure of the changed projects, all of them when a global
+    build input changed, and none when no project changed. The build stage still builds the whole solution, so compile
+    errors anywhere are caught. Composes with -Fast and -Filter.
+
+.PARAMETER Base
+    The commit-ish whose merge base with HEAD -Affected measures the changes from. Defaults to origin/main.
 
 .EXAMPLE
     ./build/dod.ps1
 
 .EXAMPLE
     ./build/dod.ps1 -Fast
+
+.EXAMPLE
+    ./build/dod.ps1 -Fast -Filter 'FullyQualifiedName~TokenEndpoint'
+
+.EXAMPLE
+    ./build/dod.ps1 -Fast -Affected
 #>
 [CmdletBinding()]
 param(
     [string]$Configuration = 'Release',
     [switch]$SkipTests,
-    [switch]$Fast
+    [switch]$Fast,
+    [string]$Filter,
+    [switch]$Affected,
+    [string]$Base = 'origin/main'
 )
 
 Set-StrictMode -Version Latest
@@ -56,6 +79,7 @@ $env:CI = if ($Fast) { $null } else { 'true' }
 
 $stages = [System.Collections.Generic.List[object]]::new()
 $passed = $false
+$testsSkipped = $false
 
 function Format-Duration([TimeSpan]$Elapsed) {
     if ($Elapsed.TotalSeconds -lt 60) {
@@ -100,6 +124,12 @@ function Write-StageSummary {
     }
     $verdict = if ($passed) { 'PASSED' } else { 'FAILED' }
     $mode = if ($Fast) { 'fast gate' } else { 'full gate' }
+    if ($Filter) {
+        $mode += ', filtered tests'
+    }
+    if ($Affected) {
+        $mode += ', affected tests'
+    }
 
     Write-Host "`nStages ($mode, $Configuration):"
     foreach ($stage in $stages) {
@@ -134,6 +164,10 @@ Push-Location $repoRoot
 try {
     Invoke-Step 'agent customizations' {
         & (Join-Path $PSScriptRoot 'tests\agent-customizations.tests.ps1')
+        $global:LASTEXITCODE = 0
+    }
+    Invoke-Step 'affected-tests selector' {
+        & (Join-Path $PSScriptRoot 'tests\affected-tests.tests.ps1')
         $global:LASTEXITCODE = 0
     }
 
@@ -226,28 +260,56 @@ try {
             if (Test-Path -LiteralPath $testResults) {
                 Remove-Item -LiteralPath $testResults -Recurse -Force
             }
+            $testTarget = $solution
+            if ($Affected) {
+                $selection = & (Join-Path $PSScriptRoot 'affected-tests.ps1') -Root $repoRoot -Base $Base
+                foreach ($reason in $selection.Reasons) {
+                    Write-Host $reason
+                }
+                if (-not $selection.All) {
+                    if ($selection.Projects.Count -eq 0) {
+                        Write-Host 'No test project is affected; skipping the tests.'
+                        $script:testsSkipped = $true
+                        $global:LASTEXITCODE = 0
+                        return
+                    }
+                    # A solution filter narrows `dotnet test` to the selected projects; its solution path is relative
+                    # to the filter itself, which lives in artifacts/.
+                    $artifacts = Join-Path $repoRoot 'artifacts'
+                    New-Item -ItemType Directory -Force -Path $artifacts | Out-Null
+                    $testTarget = Join-Path $artifacts 'affected.slnf'
+                    $solutionFilter = @{
+                        solution = @{
+                            path     = '../NCode.Identity.slnx'
+                            projects = [string[]]@($selection.Projects | ForEach-Object { $_.Replace('/', '\') })
+                        }
+                    }
+                    $json = ConvertTo-Json -InputObject $solutionFilter -Depth 4
+                    [IO.File]::WriteAllText($testTarget, $json, [System.Text.UTF8Encoding]::new($false))
+                }
+            }
             $junitLogger = "junit;LogFilePath=$(Join-Path $testResults '{assembly}-{framework}.junit.xml')"
-            if ($Fast) {
-                # Skip coverage collection and run the test assemblies in parallel across cores
-                # (RunConfiguration.MaxCpuCount=0); xUnit already parallelizes collections within each assembly.
-                dotnet test $solution `
-                    --configuration $Configuration `
-                    --no-build `
-                    --results-directory $testResults `
-                    --logger:$junitLogger `
-                    -- RunConfiguration.MaxCpuCount=0
-            }
-            else {
+            $testArguments = @(
+                $testTarget,
+                '--configuration', $Configuration,
+                '--no-build',
+                '--results-directory', $testResults,
+                "--logger:$junitLogger"
+            )
+            if (-not $Fast) {
+                # Coverage is collected per test host, so it is unaffected by running the assemblies in parallel.
                 # coverage.runsettings sets the coverage scope: hand-written code, without generated sources or EF
-                # migrations (ADR-0185).
-                dotnet test $solution `
-                    --configuration $Configuration `
-                    --no-build `
-                    --results-directory $testResults `
-                    --collect:"XPlat Code Coverage" `
-                    --settings (Join-Path $PSScriptRoot 'coverage.runsettings') `
-                    --logger:$junitLogger
+                # migrations (ADR-0185). -Fast skips coverage collection.
+                $testArguments += '--collect:XPlat Code Coverage'
+                $testArguments += '--settings', (Join-Path $PSScriptRoot 'coverage.runsettings')
             }
+            if ($Filter) {
+                $testArguments += '--filter', $Filter
+            }
+            # Test assemblies run in parallel across cores in every mode (RunConfiguration.MaxCpuCount=0); xUnit already
+            # parallelizes collections within each assembly.
+            $testArguments += '--', 'RunConfiguration.MaxCpuCount=0'
+            dotnet test @testArguments
 
             # Report whatever ran — failures are exactly when the digest and annotations matter — then let the test
             # run's own exit code decide the stage.
@@ -256,8 +318,8 @@ try {
             $global:LASTEXITCODE = $testExitCode
         }
 
-        # -Fast skips coverage collection, so there is nothing to merge into a report.
-        if (-not $Fast) {
+        # -Fast skips coverage collection, and a skipped test stage collects none, so there is nothing to merge.
+        if (-not $Fast -and -not $testsSkipped) {
             Invoke-Step 'coverage report' {
                 # Merge this run's per-project cobertura files into one report (Cobertura + HTML + summaries). The echoed
                 # "Line coverage: NN%" line lets a CI system scrape the overall percentage, and the merged,

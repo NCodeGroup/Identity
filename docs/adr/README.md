@@ -296,4 +296,6 @@ standards.
 | [0258](./0258-the-server-sends-strict-transport-security-outside-development.md) | The server sends Strict-Transport-Security outside Development | Accepted |
 | [0259](./0259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md) | Revocation is checked by registered sources, OCSP before every CRL form | Accepted |
 | [0260](./0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) | Azure Key Vault and Google Cloud KMS are root key providers | Accepted |
-| [0261](./0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) | main accepts changes only through pull requests that pass the gate | Accepted |
+| [0261](./0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) | main accepts changes only through pull requests that pass the gate | Accepted (strict up-to-date superseded by [0263](./0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) |
+| [0262](./0262-minimal-api-request-delegates-are-generated-at-compile-time.md) | Minimal-API request delegates are generated at compile time | Accepted |
+| [0263](./0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) | Feature branches run a fast gate and the merge queue runs the full gate | Accepted |

@@ -708,6 +708,20 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **Minimal-API request delegates are generated at compile time, so a host starts faster.** Every package builds with
+  the Request Delegate Generator, so a host no longer compiles each endpoint's expression trees before it answers its
+  first request, and the integration tests run in 41 s instead of 5m58s.
+  `NCode.Identity.OpenId.Authentication.Interactive` still binds its endpoints at runtime, because the generated form
+  binding answers a form whose antiforgery validation failed with 500 instead of 400
+  ([ADR-0262](docs/adr/0262-minimal-api-request-delegates-are-generated-at-compile-time.md), backlog `X8`).
+
+- **Feature branches run a fast gate, and the merge queue runs the full gate.** `./build/dod.ps1` gains `-Affected`
+  (with `-Base`), which runs only the test projects a change reaches through the project graph, and `-Filter`, which
+  passes a `dotnet test --filter` expression through; test assemblies run in parallel in every mode. A pull request
+  into `main` runs the affected tests, and the merge queue, `main` and the `release/**` lines run the full gate, so a
+  branch no longer has to be up to date with `main` before it merges
+  ([ADR-0263](docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)).
+
 - **Breaking (frontend): the management console reaches every owner's secrets and settings through one endpoint per
   operation.** `@ncode/store` exposes `useListSecretsQuery`, `useCreateSecretMutation`, `useDeleteSecretMutation`,
   `useRotateSecretMutation`, `useLazyGetSecretPublicKeyQuery`, `useGetSettingsQuery`, `useGetEffectiveSettingsQuery` and

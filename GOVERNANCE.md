@@ -26,13 +26,17 @@ any one host feature.
   Bug fixes, patches, and small changes go straight to a PR that references the issue.
 - `main` is the single trunk and accepts changes only through a pull request. A repository ruleset requires the pull
   request, the `Definition of Done`, `Lint, typecheck, test, build`, `Lint and render the host chart` and
-  `Build host image` status checks with the branch up to date with `main`, resolved review threads, and linear history
-  (a squash or rebase merge); it forbids force pushes and deletion, and nobody bypasses it. An approval requirement is
-  added when a second maintainer exists
+  `Build host image` status checks, resolved review threads, and linear history; it forbids force pushes and deletion,
+  and nobody bypasses it. A pull request runs the fast gate: its `Definition of Done` check runs only the tests its
+  change reaches. A merge goes through the **merge queue**, which runs the full gate on the merged result and
+  squash-merges it, so a branch need not be up to date with `main`. An approval requirement is added when a second
+  maintainer exists
   ([ADR-0261](docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md), which supersedes
-  the unprotected trunk of [ADR-0125](docs/adr/0125-trunk-based-development-on-main.md)).
-- The [scripted Definition of Done](build/dod.ps1) must pass — it is the single entrypoint invoked identically by CI
-  and locally. See [CONTRIBUTING](CONTRIBUTING.md).
+  the unprotected trunk of [ADR-0125](docs/adr/0125-trunk-based-development-on-main.md);
+  [ADR-0263](docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate
+  tiers and the merge queue).
+- The [scripted Definition of Done](build/dod.ps1) must pass — it is the single entrypoint that CI and developers run,
+  each place in the gate tier that ADR-0263 assigns it. See [CONTRIBUTING](CONTRIBUTING.md).
 - Versioning is **lockstep** across the whole family via Nerdbank.GitVersioning (one root `version.json`,
   [ADR-0003](docs/adr/0003-central-package-management-and-lockstep-versioning.md)). Validation-affecting or otherwise
   breaking changes are **major** version bumps. Once GA, evolve the public surface backward-compatibly per
@@ -46,10 +50,17 @@ any one host feature.
   `-alpha` prerelease.
 - **Release lines.** Each shipped `major.minor` is serviced from a long-lived `release/vX.Y` branch, cut with
   `nbgv prepare-release` (which creates the branch and bumps the trunk to the next prerelease). These branches match
-  `publicReleaseRefSpec`, so their builds carry a clean version with no commit-height suffix.
+  `publicReleaseRefSpec`, so their builds carry a clean version with no commit-height suffix. The ruleset
+  `release-lines` (`release/v*`) protects them like `main`, but without a merge queue: every pull request runs the full
+  gate on a branch up to date with its line
+  ([ADR-0263](docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)).
 - **Tags.** A release is an annotated (ideally signed) tag `vMAJOR.MINOR.PATCH` (prereleases `-rc.N` / `-alpha`) on a
-  release line. A tag is immutable — one tag = one published package set. Only a **major** is gated behind a release
-  candidate; minors and patches ship straight to GA.
+  release line. A tag is immutable — one tag = one published package set; the ruleset `release-tags` forbids deleting or
+  moving a `v*` tag. Only a **major** is gated behind a release candidate; minors and patches ship straight to GA.
+- **Servicing** is upstream-first. A fix merges to `main` first; a backport pull request cherry-picks it
+  (`git cherry-pick -x`) onto a branch `backport/<pr>-vX.Y` cut from `release/vX.Y` and targets that line. A fix that
+  cannot apply to `main` lands directly on the release line by pull request, whose description states why. A patch
+  release is an annotated `vX.Y.Z` tag on the release line; a hotfix follows the same flow, expedited (ADR-0263).
 - **Binary compatibility.** `AssemblyVersion` is pinned to `major` precision (all `1.*` share `1.0.0.0`), so patch and
   minor upgrades are drop-in within a major and different majors load side by side; `InformationalVersion` /
   `FileVersion` still carry the exact build.
@@ -70,5 +81,5 @@ The [`build/dod.ps1`](build/dod.ps1) script is the contract. It enforces:
 - **Banned APIs** (`BannedApiAnalyzers`, `RS0030`) from `BannedSymbols.txt` — no `Newtonsoft.Json`, no sync-over-async.
 - **Public API surface guard** (`PublicApiAnalyzers`) — the declared surface in each packable project's
   `PublicAPI.{Shipped,Unshipped}.txt`.
-- Full test suite with coverage.
+- Tests with coverage — the full suite in the full gate; a pull request into `main` runs the affected tests (ADR-0263).
 - Deterministic, source-linked builds.

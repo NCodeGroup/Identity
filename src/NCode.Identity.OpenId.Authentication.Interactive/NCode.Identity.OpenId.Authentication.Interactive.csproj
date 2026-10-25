@@ -4,6 +4,10 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>NCode.Identity.OpenId.Authentication.Interactive</RootNamespace>
+        <!-- Opts out: RDG's generated form binding reads a form whose antiforgery validation failed and answers 500 where the runtime factory answers 400.
+             Guarded by LocalAccountLifecycleTests.ChangePassword_WithoutTheAntiforgeryToken_ChangesNothing.
+             See ADR-0262 and backlog X8. -->
+        <EnableRequestDelegateGenerator>false</EnableRequestDelegateGenerator>
     </PropertyGroup>
 
     <ItemGroup>

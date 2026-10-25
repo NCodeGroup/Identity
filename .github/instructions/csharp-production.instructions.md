@@ -922,7 +922,9 @@ rationale.
   console stream (`./build/dod.ps1 *>&1 | Tee-Object run.log`) or just read the verdict off the console.
 - 👁 **A `build/*.ps1` script keeps a blank line between its `#requires` line and its `<#` help block.** PowerShell
   reads line comments that touch the block as part of it, so the shebang and `#requires` lines hide the help and
-  `Get-Help ./build/<script>.ps1` shows only the generated syntax.
+  `Get-Help ./build/<script>.ps1` shows only the generated syntax. The DoD's `build script help` stage
+  ([`build/tests/script-help.tests.ps1`](../../build/tests/script-help.tests.ps1)) fails a script whose help does not
+  parse.
 - ⏳ **Local inner loop: `./build/dod.ps1 -Fast`, narrowed with `-Filter`.** It parallelizes project builds and skips
   the non-correctness stages (coverage collection + packing) for a quicker edit-run cycle, while keeping CSharpier,
   analyzers, and compile warnings-as-errors; test assemblies run in parallel in every mode.

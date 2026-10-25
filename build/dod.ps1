@@ -170,6 +170,10 @@ try {
         & (Join-Path $PSScriptRoot 'tests\affected-tests.tests.ps1')
         $global:LASTEXITCODE = 0
     }
+    Invoke-Step 'build script help' {
+        & (Join-Path $PSScriptRoot 'tests\script-help.tests.ps1')
+        $global:LASTEXITCODE = 0
+    }
 
     Invoke-Step 'tool-restore' { dotnet tool restore }
     Invoke-Step 'format (csharpier check)' { dotnet csharpier check . }

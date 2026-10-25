@@ -13,6 +13,11 @@ coverage:
       default:
         informational: true
 
+# A pull request into main runs only the tests its change affects (ADR-0263), so its project coverage reflects part of
+# the code and only patch coverage is meaningful there. main's full runs still report project coverage.
+comment:
+  hide_project_coverage: true
+
 # The coverage scope is set where coverage is collected (build/coverage.runsettings), so the job summary and Codecov read
 # the same reports (ADR-0185). Codecov scores a partially covered line as a miss by default, while ReportGenerator, which
 # writes the job summary, counts it as covered; counting partials as hits keeps the two figures equal.

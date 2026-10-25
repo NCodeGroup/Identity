@@ -20,6 +20,8 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Minimal-API request delegates are generated at compile time, not compiled from expression trees by every host at startup (ADR-0262). -->
+    <EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
     <!-- Fail builds on the CI server for security vulnerability advisories, but not locally. -->
     <WarningsNotAsErrors Condition="'$(CI)' == ''">NU1901,NU1902,NU1903,NU1904</WarningsNotAsErrors>
   </PropertyGroup>

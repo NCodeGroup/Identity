@@ -438,6 +438,14 @@ rationale.
   `GetTenantUriByName`, which takes the authority from the tenant and carries the tenant route's values over. Never
   hand the request's live `RouteValues` to a template binder — it consumes them; bind a copy. See
   [ADR-0138](../../docs/adr/0138-protocol-endpoints-are-served-under-the-tenant-route.md).
+- 👁 **Minimal-API endpoints are bound by the Request Delegate Generator; a project with form-bound endpoints opts
+  out.** `Directory.Build.props` generates every project's request delegates at compile time, and a handler shape the
+  generator cannot produce fails the build — fix the shape, never suppress the diagnostic. A project with an endpoint
+  that binds `[FromForm]`, `IFormFile` or `IFormCollection` sets
+  `<EnableRequestDelegateGenerator>false</EnableRequestDelegateGenerator>`, because the generated form binding ignores
+  a failed antiforgery validation and answers 500, and each such endpoint has an integration test that a POST without
+  the antiforgery token answers 4xx and changes nothing (backlog `X8` re-enables the generator). See
+  [ADR-0262](../../docs/adr/0262-minimal-api-request-delegates-are-generated-at-compile-time.md).
 - 👁 **A client authenticates only with its registered method, and its type is that one fact.** The registered
   `token_endpoint_auth_method` (RFC 7591 §2; `client_secret_basic` when none is registered) is the only method that
   authenticates a client at every endpoint that authenticates clients, and `token_endpoint_auth_methods_supported` is
@@ -912,14 +920,19 @@ rationale.
   bypasses the PowerShell pipeline. `./build/dod.ps1 2>&1 | Out-File run.log` therefore captures the nested tool output
   but **silently drops the verdict line**, making a passing run look inconclusive. To capture everything, tee the
   console stream (`./build/dod.ps1 *>&1 | Tee-Object run.log`) or just read the verdict off the console.
-- ⏳ **Local inner loop: `./build/dod.ps1 -Fast`.** It parallelizes project builds and test assemblies and skips the
-  non-correctness stages (coverage collection + packing) for a quicker edit-run cycle, while keeping CSharpier,
-  analyzers, and compile warnings-as-errors. It is the **local pre-push gate** (the push protocol's final check); the
-  plain `./build/dod.ps1` is the CI-parity gate that CI runs.
+- 👁 **A `build/*.ps1` script keeps a blank line between its `#requires` line and its `<#` help block.** PowerShell
+  reads line comments that touch the block as part of it, so the shebang and `#requires` lines hide the help and
+  `Get-Help ./build/<script>.ps1` shows only the generated syntax.
+- ⏳ **Local inner loop: `./build/dod.ps1 -Fast`, narrowed with `-Filter`.** It parallelizes project builds and skips
+  the non-correctness stages (coverage collection + packing) for a quicker edit-run cycle, while keeping CSharpier,
+  analyzers, and compile warnings-as-errors; test assemblies run in parallel in every mode.
+  `./build/dod.ps1 -Fast -Affected` (only the test projects the change reaches since its merge base with
+  `origin/main`) is the **local pre-push gate** (the push protocol's final check); the plain `./build/dod.ps1` is the
+  full gate, which runs in the merge queue, on `main` and on release lines (ADR-0263).
 - 👁 **Never run two `dotnet build` / `dotnet test` invocations concurrently in one clone.** They share every project's
   `obj/` output, and Nerdbank.GitVersioning rewrites `obj/<config>/<tfm>/<Project>.Version.cs.new` on each build, so
   concurrent runs fail with `MSB4018` (the file is in use by another process) — a spurious build error, not a code
-  defect. Run test projects one after another, or let `./build/dod.ps1 -Fast` parallelize within a single invocation.
+  defect. Run test projects one after another, or let a single `./build/dod.ps1` invocation parallelize them.
 - 👁 **Run the full `dod.ps1` (no `-Fast`, a clean Release build over the whole solution) before calling a structural
   change done —
   an incremental Debug build of a single project can mask errors a clean build catches.** Notably, a `git mv` of a file

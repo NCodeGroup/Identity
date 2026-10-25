@@ -25,14 +25,17 @@ dotnet tool restore
 # One-time after cloning — enables the repo-versioned git hooks.
 git config core.hooksPath .githooks
 
-# From the repo root — the single Definition-of-Done entrypoint CI also runs
-# (CSharpier check + restore + build + pack + tests + coverage):
+# From the repo root — the full gate, the one the merge queue, main and release lines run in CI
+# (CSharpier check + restore + build + pack + all tests + coverage):
 ./build/dod.ps1
 
-# Faster local inner loop and the local pre-push gate — parallel builds + test assemblies,
-# skips coverage + packing. Keeps CSharpier, analyzers, and warnings-as-errors. The full
-# ./build/dod.ps1 (above) is the CI-parity gate that CI runs.
-./build/dod.ps1 -Fast
+# The local pre-push gate — parallel builds, skips coverage + packing, and runs only the test
+# projects the branch's changes reach (against origin/main). Keeps CSharpier, analyzers, and
+# warnings-as-errors.
+./build/dod.ps1 -Fast -Affected
+
+# The inner loop — the fast gate running only the tests that match a dotnet test filter.
+./build/dod.ps1 -Fast -Filter 'FullyQualifiedName~MyTests'
 
 # Or drive the tools directly:
 dotnet csharpier format .    # format before committing
@@ -88,13 +91,17 @@ marked tool-enforced or review-only. The highlights:
 2. Work on a short-lived branch from `main`. Keep the public surface deliberate; a breaking change to the public API is
    a **major** version bump.
 3. Record any consumer-visible change in [`CHANGELOG.md`](CHANGELOG.md) under `## [Unreleased]`.
-4. Ensure `./build/dod.ps1` passes locally before opening a pull request.
-5. Push the branch and open a pull request against `main`, as a draft while it is in progress. It merges, by squash or
-   rebase, once the required checks pass on a branch up to date with `main` and every review thread is resolved; no
-   one pushes to `main` directly. See
-   [ADR-0261](docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md). CI runs on a push
-   to `main` and on a pull request, not on a push to any other branch, so a branch's commits are checked once. To check
-   a branch that has no pull request, open a draft pull request or run the workflows by hand (`workflow_dispatch`).
+4. Ensure `./build/dod.ps1 -Fast -Affected` passes before pushing.
+5. Push the branch and open a pull request against `main`, as a draft while it is in progress. The pull request runs
+   the fast gate: the `Definition of Done` check runs only the tests its change reaches. Once the required checks pass
+   and every review thread is resolved, merging ("Merge when ready") adds it to the merge queue, which runs the full
+   gate on the merged result and squash-merges it, so the branch need not be up to date with `main`; no one pushes to
+   `main` directly. See
+   [ADR-0261](docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) and
+   [ADR-0263](docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md). CI runs on a
+   pull request, in the merge queue, and on a push to `main` or a release line, not on a push to any other branch, so a
+   branch's commits are checked once. To check a branch that has no pull request, open a draft pull request or run the
+   workflows by hand (`workflow_dispatch`).
 
 An agent-assisted change of more than a few steps runs as **plan-and-execute**: Claude Opus plans it into `PLAN.md`, a
 lower-cost Copilot model executes one verified step at a time, and Opus re-plans any step that comes back — see

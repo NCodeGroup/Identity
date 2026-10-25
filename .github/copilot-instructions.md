@@ -74,11 +74,14 @@ to `BACKLOG-COMPLETED.md` in the same change, so it is never both done and liste
 
 ## Commit attribution
 
-**Never add a `Co-authored-by:` trailer naming an agent account** (`Copilot`, `copilot-swe-agent[bot]`, or any other
-tooling identity) to a commit message. A commit records the **people** who authored it; the repository host reads that
-trailer as authorship and lists the agent in the contributor graph, which can only be undone by rewriting published
-history. The versioned [`.githooks/commit-msg`](../.githooks/commit-msg) hook strips such trailers as a safety net, but
-it is enabled per clone and must not be relied on — do not generate the trailer in the first place. See
+**Never add agent attribution to a commit message** — a `Co-authored-by:` trailer naming an agent account (`Copilot`,
+`copilot-swe-agent[bot]`, Claude's `noreply@anthropic.com`, or any other tooling identity), a `Claude-Session:` trailer,
+or a "Generated with" line. A commit records the **people** who authored it; the repository host reads such a trailer as
+authorship and lists the agent in the contributor graph, which can only be undone by rewriting published history. The
+versioned [`.githooks/commit-msg`](../.githooks/commit-msg) hook strips these lines as a safety net, but it is enabled
+per clone and must not be relied on — do not generate them in the first place. The required `Commit attribution` check
+([`build/commit-attribution.ps1`](../build/commit-attribution.ps1)) rejects agent-authored commits and agent attribution
+on pull requests, in the merge queue and on pushes, because a squash merge credits every commit author. See
 [ADR-0128](../docs/adr/0128-commits-are-attributed-to-people-not-agents.md).
 
 ## Push protocol

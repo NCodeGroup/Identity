@@ -2575,6 +2575,21 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   marker on a migration that only expands. `ReplaceTenantDomainNameWithIssuerHost`, which shipped before any release,
   is the one marked migration. Raw SQL stays a review item._
 
+- **`X9` — Require the `Commit attribution` check on `main` and the release lines.** The `Commit attribution` workflow
+  ([ADR-0128](docs/adr/0128-commits-are-attributed-to-people-not-agents.md)) reports on pull requests, in the merge
+  queue and on pushes, but no ruleset requires it yet, so it cannot stop a merge. After the pull request that adds it
+  merges, add `Commit attribution` to the required status checks of the `main` and `release-lines` rulesets. Then open
+  the first pull request from the Copilot cloud agent and confirm both that it fails the check until its commits are
+  re-authored and that the merge-queue run sees the `Co-authored-by:` trailers GitHub writes when it squashes; if it
+  does not, check the squashed commit in a push-triggered run instead. Touch points: the repository rulesets (admin
+  setting, not a file), `.github/workflows/commit-attribution.yml`, ADR-0128.
+
+  _Closed by the `main` and `release-lines` rulesets, which require `Commit attribution` from 2026-10-25, and by the
+  [ADR-0128](docs/adr/0128-commits-are-attributed-to-people-not-agents.md) amendment. A throwaway pull request (#13),
+  whose commit was authored as `copilot-swe-agent[bot]`, failed the required check and passed once re-authored. The
+  merge-queue question needed no cloud-agent pull request: PR #12's `merge_group` run checked `f47bb897`, the commit
+  that landed on `main`, so the queue sees any trailer a squash writes._
+
 ## Review findings for the feature-gaps branch (group `R`)
 
 - **`R1` — Merge `main` and reconcile clashing backlog IDs.** `BACKLOG.md` conflicts, and

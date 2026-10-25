@@ -24,8 +24,11 @@ The decision gains a third level, and the first two now cover Claude as well:
   `Co-authored-by:` line naming one, a `Claude-Session:` line, or a "Generated with [Claude Code" line. The workflow
   [`commit-attribution.yml`](../../.github/workflows/commit-attribution.yml) runs it on pull requests, in the merge
   queue (the commit that lands, including the trailers GitHub writes when it squashes) and on pushes to `main` and
-  `release/**`; its tests run in the Definition of Done. After it merges, the maintainer adds `Commit attribution` to
-  the `main` and `release-lines` rulesets' required status checks.
+  `release/**`; its tests run in the Definition of Done. The `main` and `release-lines` rulesets require it. A throwaway
+  pull request (#13) proved that it blocks an agent-authored commit and passes once the commit is re-authored. The
+  merge-queue run checks the very commit that lands — PR #12's `merge_group` run checked `f47bb897`, the commit on
+  `main` — so it sees any trailer GitHub writes when it squashes; with the pull request check required first, there is
+  none to write.
 - **Prevention and the hook — Claude as well as Copilot.** The hook keeps stripping, never rejecting, and now also
   strips Claude attribution. Claude Code's `attribution` setting is off in `.claude/settings.json`, and VS Code's
   `git.addAICoAuthor` is `off` in `.vscode/settings.json`. The Copilot-only workflow of

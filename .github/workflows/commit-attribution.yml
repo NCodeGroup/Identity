@@ -1,8 +1,8 @@
 # Commit attribution — commits are attributed to people, not agents (ADR-0128).
 #
-# This workflow runs build/commit-attribution.ps1, which rejects any commit whose author or committer is an AI agent
-# account, or whose message carries agent attribution (a `Co-authored-by:` line naming an agent, a `Claude-Session:`
-# line, or a "Generated with Claude Code" line).
+# This workflow runs .template/Test-CommitAttribution.ps1, from the project template, which rejects any commit whose
+# author or committer is an AI agent account, or whose message carries agent attribution (a `Co-authored-by:` line
+# naming an agent, a `Claude-Session:` line, or a line that starts with "Generated with [Claude Code").
 #
 # The merge queue run matters most: when GitHub squashes a pull request it writes a `Co-authored-by:` trailer for every
 # commit author into the commit that lands, so an agent that authored any commit of the pull request would be credited
@@ -48,4 +48,4 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
-        run: ./build/commit-attribution.ps1 -Base $env:BASE -Head $env:HEAD
+        run: ./.template/Test-CommitAttribution.ps1 -Base $env:BASE -Head $env:HEAD

@@ -19,16 +19,17 @@ disabled.
 The decision gains a third level, and the first two now cover Claude as well:
 
 - **Enforcement — server-side.** The required `Commit attribution` check runs
-  [`build/commit-attribution.ps1`](../../build/commit-attribution.ps1) over every commit it is about to accept. It
-  fails when the author or committer is an AI agent account, or when the message carries agent attribution: a
+  [`.template/Test-CommitAttribution.ps1`](../../.template/Test-CommitAttribution.ps1) over every commit it is about to
+  accept. It fails when the author or committer is an AI agent account, or when the message carries agent attribution: a
   `Co-authored-by:` line naming one, a `Claude-Session:` line, or a "Generated with [Claude Code" line. The workflow
   [`commit-attribution.yml`](../../.github/workflows/commit-attribution.yml) runs it on pull requests, in the merge
   queue (the commit that lands, including the trailers GitHub writes when it squashes) and on pushes to `main` and
-  `release/**`; its tests run in the Definition of Done. The `main` and `release-lines` rulesets require it. A throwaway
-  pull request (#13) proved that it blocks an agent-authored commit and passes once the commit is re-authored. The
-  merge-queue run checks the very commit that lands — PR #12's `merge_group` run checked `f47bb897`, the commit on
-  `main` — so it sees any trailer GitHub writes when it squashes; with the pull request check required first, there is
-  none to write.
+  `release/**`; the project template tests it
+  ([ADR-0170](0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)). The `main`
+  and `release-lines` rulesets require it. A throwaway pull request (#13) proved that it blocks an agent-authored commit
+  and passes once the commit is re-authored. The merge-queue run checks the very commit that lands — PR #12's
+  `merge_group` run checked `f47bb897`, the commit on `main` — so it sees any trailer GitHub writes when it squashes;
+  with the pull request check required first, there is none to write.
 - **Prevention and the hook — Claude as well as Copilot.** The hook keeps stripping, never rejecting, and now also
   strips Claude attribution. Claude Code's `attribution` setting is off in `.claude/settings.json`, and VS Code's
   `git.addAICoAuthor` is `off` in `.vscode/settings.json`. The Copilot-only workflow of
@@ -77,7 +78,8 @@ pull request, and in this ADR; it does not belong in the commit's authorship rec
 
 The rule is enforced at two levels, because prevention and enforcement fail differently:
 
-- **Prevention — an instruction.** [`.github/copilot-instructions.md`](../../.github/copilot-instructions.md) states
+- **Prevention — an instruction.**
+  [`.github/instructions/repository.instructions.md`](../../.github/instructions/repository.instructions.md) states
   the rule, so agents working in this repository do not generate the trailer in the first place. This is the control
   that works on every clone, including ones that never ran the setup step below.
 - **Enforcement — a versioned hook.** [`.githooks/commit-msg`](../../.githooks/commit-msg) removes any

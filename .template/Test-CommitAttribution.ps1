@@ -1,9 +1,6 @@
-#!/usr/bin/env pwsh
-#requires -version 7
-
 <#
 .SYNOPSIS
-    Fails when a commit in a range is attributed to an AI agent.
+    Fail when a commit in a range is attributed to an AI agent.
 
 .DESCRIPTION
     Inspects every commit in Base..Head (merge commits included) and fails when the author or the committer is an AI
@@ -11,35 +8,38 @@
 
     An AI agent account has a name that is copilot-swe-agent (with or without the [bot] suffix), Copilot or
     GitHub Copilot, or an email that ends with +Copilot@users.noreply.github.com or @anthropic.com. Agent attribution
-    is a Co-authored-by line that names such an account, a Claude-Session line, or a line that contains
-    "Generated with [Claude Code". Matching is case-insensitive. Dependabot and the GitHub <noreply@github.com>
-    committer are not AI agents and pass.
+    is a Co-authored-by line that names such an account, a Claude-Session line, or a line that starts with
+    "Generated with [Claude Code", after any leading symbols. Matching is case-insensitive. Dependabot and the
+    GitHub <noreply@github.com> committer are not AI agents and pass.
 
-    When Base is all zeros or is not a commit in the clone (a new branch, or a force-push), only Head is checked, so
-    the check never fails for a reason other than attribution.
+    When Base is empty, is all zeros, or is not a commit in the clone (a new branch, or a force-push), only Head is
+    checked, so the check never fails for a reason other than attribution.
 
     On failure each finding is written as "<short sha> <subject>: <finding>", followed by the remedy: re-author the
     commits with git rebase <base> --exec "git commit --amend --no-edit --reset-author", then git push
     --force-with-lease. When GITHUB_ACTIONS is true each finding is also written as a workflow error annotation.
 
+    This file comes from the project template. Template updates replace it, so a local edit is lost.
+
 .PARAMETER Base
-    The revision that excludes the commits already accepted. Commits in Base..Head are checked.
+    The revision that excludes the commits already accepted. Commits in Base..Head are checked. May be empty.
 
 .PARAMETER Head
     The revision whose history is checked. Defaults to HEAD.
 
 .PARAMETER Root
-    The repository root. Defaults to the parent of the build/ directory.
+    The project root. Defaults to the parent of the .template directory.
 
 .EXAMPLE
-    ./build/commit-attribution.ps1 -Base origin/main
+    .\.template\Test-CommitAttribution.ps1 -Base origin/main
 
 .EXAMPLE
-    ./build/commit-attribution.ps1 -Base origin/main~20 -Head origin/main
+    .\.template\Test-CommitAttribution.ps1 -Base origin/main~20 -Head origin/main
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
+    [AllowEmptyString()]
     [string]$Base,
     [string]$Head = 'HEAD',
     [string]$Root = (Split-Path -Parent $PSScriptRoot)
@@ -54,7 +54,7 @@ $accountEmail = '(\+Copilot@users\.noreply\.github\.com|@anthropic\.com)$'
 $attributionLines = @(
     '^\s*co-authored-by:.*(copilot|@anthropic\.com)',
     '^\s*claude-session:',
-    'generated with \[?claude code'
+    '^\W*generated with \[?claude code'
 )
 
 function Test-AgentAccount([string]$Name, [string]$Email) {
@@ -66,11 +66,13 @@ if ($LASTEXITCODE -ne 0) {
     throw "Head '$Head' is not a commit in $Root."
 }
 
+$baseEmpty = [string]::IsNullOrWhiteSpace($Base)
 $baseKnown = $false
-if ($Base -notmatch '^0+$') {
+if (-not $baseEmpty -and $Base -notmatch '^0+$') {
     $null = & git -C $Root rev-parse --verify --quiet "$Base^{commit}" 2>$null
     $baseKnown = $LASTEXITCODE -eq 0
 }
+$remedyBase = if ($baseKnown) { $Base } else { '<base>' }
 
 if ($baseKnown) {
     $commits = [string[]]@(& git -C $Root rev-list "$Base..$Head")
@@ -79,7 +81,12 @@ if ($baseKnown) {
     }
 }
 else {
-    Write-Output "Commit attribution: base $Base is not in this clone; checking $Head only."
+    if ($baseEmpty) {
+        Write-Output "Commit attribution: no base given; checking $Head only."
+    }
+    else {
+        Write-Output "Commit attribution: base $Base is not in this clone; checking $Head only."
+    }
     $commits = [string[]]@($headCommit)
 }
 
@@ -119,7 +126,7 @@ if ($findings.Count -eq 0) {
 foreach ($finding in $findings) {
     Write-Output $finding
 }
-Write-Output "Re-author these commits before merging: git rebase $Base --exec ""git commit --amend --no-edit --reset-author"", then git push --force-with-lease."
+Write-Output "Re-author these commits before merging: git rebase $remedyBase --exec ""git commit --amend --no-edit --reset-author"", then git push --force-with-lease."
 if ($env:GITHUB_ACTIONS -eq 'true') {
     foreach ($finding in $findings) {
         Write-Output "::error title=Commit attribution::$finding"

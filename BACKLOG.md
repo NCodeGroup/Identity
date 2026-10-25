@@ -78,7 +78,7 @@ entry and/or ADR that closed it.
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S21`     | `S20`      |
-| `X` — Tooling & agent customization   | `X11`     | `X10`      |
+| `X` — Tooling & agent customization   | `X12`     | `X11`      |
 | `R` — Review findings                 | `R114`    | `R113`     |
 
 ---
@@ -545,26 +545,18 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   `tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/LocalAccountLifecycleTests.cs`, ADR-0262,
   `.github/instructions/csharp-production.instructions.md`.
 
-- **`X10` — Adopt the project template here and in identity-platform.** Both repositories generate their agents, prompts
-  and skills with the project template's installer but are not Copier projects, so a template change — the executor on
-  Claude Sonnet 5.5 instead of Auto, the anchored "Generated with [Claude Code" pattern, Claude Code's commands —
-  reaches them only by hand. Adopt each with project-template's `Adopt-Project.ps1` (`v0.2.0` or later, `workflow_tools`
-  `claude, copilot`), then run the `/plan-migration` request it prints. This repository keeps its own `ci.yml`, so the
-  report asks for the template's commit-attribution job: instead, point `.github/workflows/commit-attribution.yml` at
-  `.template/Test-CommitAttribution.ps1` and remove `build/commit-attribution.ps1`, its tests and its Definition of Done
-  stage; the template's `.githooks/commit-msg` replaces this one. Amend
-  [ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md) —
-  the executor is Claude Sonnet 5.5, the files come from the template, and Claude Code is supported — and update the
-  workflow sections of `AGENTS.md` and `CONTRIBUTING.md`. identity-platform gets the template's `ci.yml` with the
-  `Commit attribution` job, the hook, and Claude Code's and VS Code's attribution settings, which closes its gap: today
-  only a Copilot-only hook run by pre-commit keeps agents out of its commits. Require `Commit attribution` in its
-  `default-branch` ruleset afterwards. Before adopting it, change the template: `Adopt-Project.ps1` sets
-  `core.hooksPath .githooks` whenever it is unset, which would silently turn off identity-platform's pre-commit hooks in
-  `.git/hooks`. Until the adoption, the executor stays on Auto (the Copilot CLI workaround is in `AGENTS.md`), and this
-  repository's hook and check match the advertising phrase anywhere in a line, so keep it out of commit messages. Touch
-  points: project-template's `Adopt-Project.ps1`; here `.github/`, `.githooks/`, `build/commit-attribution.ps1`,
-  `build/dod.ps1`, ADR-0170, `AGENTS.md`, `CONTRIBUTING.md`; in identity-platform `.github/`, `.githooks/`,
-  `.pre-commit-config.yaml`, `.claude/settings.json`, `.vscode/settings.json` and its `default-branch` ruleset.
+- **`X11` — Adopt the project template in identity-platform.** This repository adopted project-template `v0.3.0`
+  (backlog `X10`). identity-platform still generates its agents, prompts and skills with the template's installer, so
+  a template change reaches it only by hand, and its executor stays on Auto (the Copilot CLI workaround is in its
+  `AGENTS.md`). First change the template: `Adopt-Project.ps1` and `.template/Update-Project.ps1` set
+  `core.hooksPath .githooks` whenever it is unset, which would silently turn off identity-platform's pre-commit hooks
+  in `.git/hooks`. Then adopt it with `Adopt-Project.ps1` (`workflow_tools` `claude, copilot`) and run the
+  `/plan-migration` request it prints. identity-platform gets the template's `ci.yml` with the `Commit attribution`
+  job, the hook, and Claude Code's and VS Code's attribution settings, which closes its gap: today only a Copilot-only
+  hook run by pre-commit keeps agents out of its commits. Require `Commit attribution` in its `default-branch` ruleset
+  afterwards. Touch points: project-template's `Adopt-Project.ps1` and `template/.template/Update-Project.ps1`; in
+  identity-platform `.github/`, `.githooks/`, `.pre-commit-config.yaml`, `.claude/settings.json`,
+  `.vscode/settings.json` and its `default-branch` ruleset.
 
 ## Review findings for the feature-gaps branch (group `R`)
 

@@ -1,6 +1,13 @@
 <Project>
+  <!-- Central package management: versions live here, PackageReference items carry no Version. -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup></ItemGroup>
+
+  <!-- Kept from this repository's own Directory.Packages.props when it adopted the project template -->
+  <PropertyGroup>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 

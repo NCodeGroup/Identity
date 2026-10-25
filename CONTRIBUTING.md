@@ -103,9 +103,10 @@ marked tool-enforced or review-only. The highlights:
    branch's commits are checked once. To check a branch that has no pull request, open a draft pull request or run the
    workflows by hand (`workflow_dispatch`).
 
-An agent-assisted change of more than a few steps runs as **plan-and-execute**: Claude Opus plans it into `PLAN.md`, a
-lower-cost Copilot model executes one verified step at a time, and Opus re-plans any step that comes back — see
-[AGENTS.md](AGENTS.md#plan-and-execute-workflow) and
+An agent-assisted change of more than a few steps runs as **plan-and-execute**: Claude Opus plans it into `PLAN.md`,
+Claude Sonnet 5.5 executes one verified step at a time, and Opus re-plans any step that comes back — in VS Code,
+Copilot CLI or Claude Code. The workflow files come from the project template; update them with
+`./.template/Update-Project.ps1`, never by hand. See [AGENTS.md](AGENTS.md#plan-and-execute-workflow) and
 [ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md).
 
 See [GOVERNANCE.md](GOVERNANCE.md) for ownership, the release lifecycle, and how versions map onto tags.
@@ -121,16 +122,18 @@ authorship record.
 
 Three layers keep the record clean:
 
-- The repo-versioned [`.githooks/commit-msg`](.githooks/commit-msg) hook strips such lines automatically once hooks
-  are enabled (`git config core.hooksPath .githooks` — see [Prerequisites](#prerequisites)). Hooks are client-side
-  only, so this is a safety net, not a guarantee; don't write the lines in the first place.
+- The repo-versioned [`.githooks/commit-msg`](.githooks/commit-msg) hook, which comes from the project template, strips
+  such lines automatically once hooks are enabled (`git config core.hooksPath .githooks` — see
+  [Prerequisites](#prerequisites)). Hooks are client-side only, so this is a safety net, not a guarantee; don't write
+  the lines in the first place.
 - The editor settings stop the tools from adding them: `attribution` in [`.claude/settings.json`](.claude/settings.json)
   keeps Claude Code's commit and pull request attribution empty, and `git.addAICoAuthor` is `off` in
   [`.vscode/settings.json`](.vscode/settings.json).
-- The required `Commit attribution` check ([`build/commit-attribution.ps1`](build/commit-attribution.ps1)) runs on pull
-  requests, in the merge queue and on pushes to `main` and release lines. It fails when a commit's author or committer
-  is an AI agent account, or when a message carries agent attribution, because a squash merge credits every commit
-  author.
+- The required `Commit attribution` check
+  ([`.template/Test-CommitAttribution.ps1`](.template/Test-CommitAttribution.ps1), from the project template) runs on
+  pull requests, in the merge queue and on pushes to `main` and release lines. It fails when a commit's author or
+  committer is an AI agent account, or when a message carries agent attribution, because a squash merge credits every
+  commit author.
 
 The Copilot cloud agent authors its commits as `copilot-swe-agent[bot]`, so its pull request fails the check until a
 person re-authors the commits and force-pushes the branch:

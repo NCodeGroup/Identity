@@ -1,13 +1,13 @@
 {
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "git.addAICoAuthor": "off",
   "chat.promptFilesRecommendations": {
     "audit-conventions": true
   },
   "chat.planAgent.defaultModel": "Claude Opus 5.5 (copilot)",
-  "github.copilot.chat.implementAgent.model": "Auto (copilot)",
-  "git.addAICoAuthor": "off",
-  "files.eol": "\n",
-  "files.insertFinalNewline": true,
-  "files.trimTrailingWhitespace": true,
+  "github.copilot.chat.implementAgent.model": "Claude Sonnet 5.5 (copilot)",
   "editor.formatOnSave": true,
   "[csharp]": {
     "editor.defaultFormatter": "csharpier.csharpier-vscode"

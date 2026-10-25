@@ -2590,6 +2590,32 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   merge-queue question needed no cloud-agent pull request: PR #12's `merge_group` run checked `f47bb897`, the commit
   that landed on `main`, so the queue sees any trailer a squash writes._
 
+- **`X10` — Adopt the project template here and in identity-platform.** Both repositories generate their agents, prompts
+  and skills with the project template's installer but are not Copier projects, so a template change — the executor on
+  Claude Sonnet 5.5 instead of Auto, the anchored "Generated with [Claude Code" pattern, Claude Code's commands —
+  reaches them only by hand. Adopt each with project-template's `Adopt-Project.ps1` (`v0.2.0` or later, `workflow_tools`
+  `claude, copilot`), then run the `/plan-migration` request it prints. This repository keeps its own `ci.yml`, so the
+  report asks for the template's commit-attribution job: instead, point `.github/workflows/commit-attribution.yml` at
+  `.template/Test-CommitAttribution.ps1` and remove `build/commit-attribution.ps1`, its tests and its Definition of Done
+  stage; the template's `.githooks/commit-msg` replaces this one. Amend
+  [ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md) —
+  the executor is Claude Sonnet 5.5, the files come from the template, and Claude Code is supported — and update the
+  workflow sections of `AGENTS.md` and `CONTRIBUTING.md`. identity-platform gets the template's `ci.yml` with the
+  `Commit attribution` job, the hook, and Claude Code's and VS Code's attribution settings, which closes its gap: today
+  only a Copilot-only hook run by pre-commit keeps agents out of its commits. Require `Commit attribution` in its
+  `default-branch` ruleset afterwards. Before adopting it, change the template: `Adopt-Project.ps1` sets
+  `core.hooksPath .githooks` whenever it is unset, which would silently turn off identity-platform's pre-commit hooks in
+  `.git/hooks`. Until the adoption, the executor stays on Auto (the Copilot CLI workaround is in `AGENTS.md`), and this
+  repository's hook and check match the advertising phrase anywhere in a line, so keep it out of commit messages. Touch
+  points: project-template's `Adopt-Project.ps1`; here `.github/`, `.githooks/`, `build/commit-attribution.ps1`,
+  `build/dod.ps1`, ADR-0170, `AGENTS.md`, `CONTRIBUTING.md`; in identity-platform `.github/`, `.githooks/`,
+  `.pre-commit-config.yaml`, `.claude/settings.json`, `.vscode/settings.json` and its `default-branch` ruleset.
+
+  _Closed for this repository by the adoption of project-template `v0.3.0`, the
+  [ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)
+  amendment of 2026-10-25 and the [`CHANGELOG.md`](CHANGELOG.md) entry "The plan-and-execute workflow comes from the
+  project template". The template's `core.hooksPath` change and identity-platform's adoption continue as `X11`._
+
 ## Review findings for the feature-gaps branch (group `R`)
 
 - **`R1` — Merge `main` and reconcile clashing backlog IDs.** `BACKLOG.md` conflicts, and

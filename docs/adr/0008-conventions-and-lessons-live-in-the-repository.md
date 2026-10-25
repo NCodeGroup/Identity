@@ -56,7 +56,7 @@ considered done.
 
 ## References
 
-- [`.github/copilot-instructions.md`](../../.github/copilot-instructions.md) — points every session at
-  the instruction files and ADRs as the sources of truth.
+- [`.github/instructions/repository.instructions.md`](../../.github/instructions/repository.instructions.md) —
+  points every session at the instruction files and ADRs as the sources of truth.
 - The scoped instruction files under [`.github/instructions/`](../../.github/instructions/).
 - [`AGENTS.md`](../../AGENTS.md) and [`CONTRIBUTING.md`](../../CONTRIBUTING.md).

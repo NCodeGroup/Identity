@@ -4,6 +4,10 @@ An open-source **OpenID Connect + OAuth 2.0** library family and reference serve
 of independently-published NuGet packages — JOSE/JWT, cryptographic secrets, the OpenID protocol model, persistence
 abstractions, and DI composition — plus a runnable `NCode.Identity.OpenId.Host` reference host.
 
+## Project Template
+
+- @.github/instructions/project-template.instructions.md — the plan-then-execute workflow and base conventions, from the project template. Template updates replace it; never edit it. Where this file or a file it lists says otherwise, the project's instruction wins.
+
 ## Layout
 
 Production projects live under `src/`; test projects (the `*Tests` projects) live under `tests/`.
@@ -39,6 +43,15 @@ The coding-convention instruction files are the single source of truth, auto-app
 [`csharp-testing.instructions.md`](.github/instructions/csharp-testing.instructions.md). The _reasoning_ behind
 non-obvious decisions lives in [`docs/adr/`](docs/adr/).
 
+The repository-wide agent rules — design posture, orientation, commit attribution and the push protocol — are in:
+
+- @.github/instructions/repository.instructions.md — Copilot applies it to every file, and Claude Code loads it through this line.
+
+The project template's generic [`csharp.instructions.md`](.github/instructions/csharp.instructions.md) also applies to
+every `.cs` file; where it and `csharp-production.instructions.md` or `csharp-testing.instructions.md` differ, those two
+files win. Claude Code ignores `applyTo`, so [`.claude/rules/csharp-production.md`](.claude/rules/csharp-production.md)
+and [`.claude/rules/csharp-testing.md`](.claude/rules/csharp-testing.md) point it at them by path.
+
 ## Known pending work
 
 [`BACKLOG.md`](BACKLOG.md) is the single source of truth for documented pending work — deferred decisions, feature
@@ -51,59 +64,67 @@ item is fully done, **move** its text to the completed-items archive [`BACKLOG-C
 
 Multi-step changes run as **plan-and-execute**
 ([ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)):
-Claude Opus plans into a root `PLAN.md`, a lower-cost Copilot model (Auto) executes it one verified step at a time, and
-any step that needs a decision comes back to Opus to be re-planned.
+Claude Opus plans into a root `PLAN.md`, Claude Sonnet 5.5 executes it one verified step at a time, and any step that
+needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI or Claude Code.
 
 - **VS Code** (session target Local): pick the **Copilot Planner** agent **and Claude Opus 5.5 in the model picker** —
   in a Local session, choosing an agent from the picker keeps the selected model (an agent file's `model` applies to it
   only as a subagent, and each handoff button selects its own). Review `PLAN.md`, then either **Run all steps with
-  subagents** (the Copilot Orchestrator on Opus delegates each step to a Copilot Implementer subagent on Auto, runs the
-  step's check, and re-plans escalations itself — its agent file grants the subagent tool, so nothing needs enabling)
-  or step through with **Execute next step** and **Re-plan with the planner**. Finish with **Review the work** (Sonnet)
-  and execute the fix steps it queues. The planning prompts — `/plan-feature`, `/plan-bugfix`, `/plan-refactor`,
-  `/plan-tests`, `/plan-migration`, `/plan-performance`, `/plan-security`, `/plan-docs`, and `/handoff-plan` after
-  planning in conversation — select Opus themselves but run in the built-in Agent, which has no handoff buttons:
-  continue by picking **Copilot Orchestrator** with Opus and asking it to execute `PLAN.md`.
+  subagents** (the Copilot Orchestrator on Opus delegates each step to a Copilot Implementer subagent on Claude Sonnet
+  5.5, runs the step's check, and re-plans escalations itself — its agent file grants the subagent tool, so nothing
+  needs enabling) or step through with **Execute next step** and **Re-plan with the planner**. Finish with **Review the
+  work** (Sonnet) and execute the fix steps it queues. The planning prompts — `/plan-feature`, `/plan-bugfix`,
+  `/plan-refactor`, `/plan-tests`, `/plan-migration`, `/plan-performance`, `/plan-security`, `/plan-docs`, and
+  `/handoff-plan` after planning in conversation — select Opus themselves but run in the built-in Agent, which has no
+  handoff buttons: continue by picking **Copilot Orchestrator** with Opus and asking it to execute `PLAN.md`.
 - **Copilot CLI:** start on Opus — `copilot --model claude-opus-5.5 --reasoning-effort high` — then `/plan-feature …`,
-  `/orchestrate-plan` (delegates each step to the `plan-executor` agent on `auto`), and `/review-plan-diff`. When the
-  session's plan offers no `auto` model, `plan-executor` and `Copilot Implementer` both fail to start with "Model 'auto'
-  is not available"; delegate each step to the general-purpose subagent instead (set its model through `/subagents`),
-  which `/orchestrate-plan` allows. Do not edit the generated agents to work around it.
+  `/orchestrate-plan` (delegates each step to the `plan-executor` agent on `claude-sonnet-5.5`), and
+  `/review-plan-diff`.
 - **VS Code (session target Copilot):** use the same skills as Copilot CLI. Select **Claude Opus 5.5** in the model
-  picker before `/plan-feature …` or `/orchestrate-plan`; a skill runs on the session's model and cannot switch it.
-  The orchestrator delegates execution as above. Select **Claude Sonnet 5.5** before `/review-plan-diff`, or the intended
-  execution model before running `/execute-step` yourself. Selecting Auto for the planning session does not become
-  Opus merely because the corresponding Local prompt selects it.
-  If this session cannot delegate to the configured Auto executor, select an available lower-cost execution model,
-  run `/execute-step` one step at a time, and switch back to the planning model for verification or re-planning.
-  Do not hand-edit generated agents to work around a session-specific model-availability error.
+  picker before `/plan-feature …` or `/orchestrate-plan`; a skill runs on the session's model and cannot switch it. The
+  orchestrator delegates execution as above. Select **Claude Sonnet 5.5** before `/review-plan-diff`, or the intended
+  execution model before running `/execute-step` yourself. Selecting Auto for the planning session does not become Opus
+  merely because the corresponding Local prompt selects it. If this session cannot delegate to the Claude Sonnet 5.5
+  executor, select Claude Sonnet 5.5 yourself, run `/execute-step` one step at a time, and switch back to the planning
+  model for verification or re-planning. Do not hand-edit generated agents to work around a session-specific
+  model-availability error.
+- **Claude Code** (CLI, VS Code extension or desktop app): run `/plan-feature …` and the other planning commands on
+  Claude Opus 5.5. Each plan lives in its own git worktree, `.claude/worktrees/<name>/` on the branch
+  `worktree-<name>`; `/orchestrate-plan` (from another session, `/orchestrate-plan <name>`) delegates each step to
+  the `plan-executor` subagent on Claude Sonnet 5.5, and `/review-plan-diff` reviews the result.
+  [`CLAUDE.md`](CLAUDE.md) imports this file.
 - **Done-when commands** prove one step: the narrowest test that fails until the step is done, such as
   `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>" -- RunConfiguration.TreatNoTestsAsError=true`
   (xUnit v2 on VSTest). Keep the trailing setting: without it a filter that matches no test exits `0`, so the check
   passes before its test exists. `./build/dod.ps1 -Fast -Affected` stays the gate for the whole change.
-- **`PLAN.md` is transient:** the push protocol in [`copilot-instructions.md`](.github/copilot-instructions.md) promotes
-  its Decisions, deletes it, and squashes the `Plan step N` / `Re-plan step N` checkpoint commits before anything is
-  pushed.
-- The agents, prompts, and skills under `.github/` are **generated** (the installer command is in ADR-0170); change the
-  templates and re-install rather than hand-editing them. Repository rules belong in the instruction files, which every
-  agent in the loop already loads. The hand-written `audit-conventions` prompt and skill are the exception; edit both
-  together.
+- **`PLAN.md` is transient:** the push protocol in
+  [`repository.instructions.md`](.github/instructions/repository.instructions.md) promotes its Decisions, deletes it,
+  and squashes the `Plan step N` / `Re-plan step N` checkpoint commits before anything is pushed.
+- The agents, prompts and skills under `.github/`, the commands under `.claude/commands/`,
+  `.claude/agents/plan-executor.md` and `CLAUDE.md` **come from the project template**
+  ([`polewskm/project-template`](https://github.com/polewskm/project-template); the version is in
+  [`.copier-answers.yml`](.copier-answers.yml)), which owns them: never hand-edit them. Change the workflow in
+  project-template, then pull the new version in with `./.template/Update-Project.ps1`. Repository rules belong in the
+  instruction files, which every agent in the loop already loads. The hand-written `audit-conventions` prompt and
+  skill are the exception; edit both together.
 
 ### Local and Copilot customizations
 
 **Both session targets are intentionally supported.** Each workflow has a Local adapter under
 [`.github/prompts/`](.github/prompts/) and a Copilot adapter under [`.github/skills/`](.github/skills/).
 Local supports prompt-specific agent/model/tool selection; Copilot uses skills and the session's selected model.
-Both copies appearing in Local's slash menu is expected, not unfinished migration work.
+Both copies appearing in Local's slash menu is expected, not unfinished migration work. Claude Code reads its own
+copies of the same workflows from `.claude/commands/`, which the template generates from the same sources, so the
+customization check does not compare them.
 
 The [customization check](build/agent-customizations.ps1) enforces matching command names, descriptions and ordered
 workflow bodies, allowing only the argument syntax and relative-link depth differences between formats. It also
 rejects prompt-only settings and invocation-control flags in skills. Its
 [fixture tests](build/tests/agent-customizations.tests.ps1) run as the first Definition-of-Done stage, including checks
 against the real repository. Run them directly with `pwsh -NoProfile -File .\build\tests\agent-customizations.tests.ps1`.
-After changing templates and reinstalling, run this check; for `audit-conventions`, update both copies and run it.
-Skills may be selected automatically by the model; their descriptions and workflow instructions guide their use.
-Manual-only selection is not a requirement of this design.
+After `./.template/Update-Project.ps1` brings in a new template version, run this check; for `audit-conventions`,
+update both copies and run it. Skills may be selected automatically by the model; their descriptions and workflow
+instructions guide their use. Manual-only selection is not a requirement of this design.
 
 **Do not bulk-migrate these repository prompts.** Copilot's **Review Migrations** banner detects prompt files it
 cannot read, but this repository already provides their skill equivalents. Use **Ignore** for the workspace
@@ -164,7 +185,7 @@ everything on it. Only commits pushed from the repository clone survive — work
   (`git rebase origin/main --exec "git commit --amend --no-edit --reset-author"`) and force-pushes the branch
   (`git push --force-with-lease`). See
   [ADR-0128](docs/adr/0128-commits-are-attributed-to-people-not-agents.md) and
-  [`build/commit-attribution.ps1`](build/commit-attribution.ps1).
+  [`.template/Test-CommitAttribution.ps1`](.template/Test-CommitAttribution.ps1).
 - **Do not run parallel sub-agents that build.** The standard runner has four cores; concurrent .NET, pnpm, and Docker
   builds slow every agent down rather than finishing more items.
 - **Budget the gates.** On the standard runner a cold `dotnet build` takes about two minutes and

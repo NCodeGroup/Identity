@@ -21,7 +21,8 @@ Two design questions had to be settled first:
   conformance surface was described in point-in-time backlog text as "the browser-drivable harness control surface
   that `T1`/`T2` drive" — but the Selenium-driven login/consent surface the external suite automates is already
   `apps/auth` (`T2`). Per the greenfield, security-practice-default posture
-  ([copilot-instructions](../../.github/copilot-instructions.md), [ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md)),
+  ([repository instructions](../../.github/instructions/repository.instructions.md),
+  [ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md)),
   existing prose is a point-in-time artifact, so the surface was (re)defined by what a modern, security-aware identity
   platform should offer.
 - **How does each standalone SPA learn its own public client id?** Each interactive surface is its own public client
@@ -101,6 +102,6 @@ document surface-aware so one endpoint can hand each surface its own coordinates
   [ADR-0062](0062-opt-in-interactive-login-consent-ui.md) / [ADR-0065](0065-interactive-login-consent-op-hosted-auth-surface.md)
   (the `apps/auth` login/consent surface this does not duplicate).
 - Posture: [ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md) and the security-practice default in
-  [`.github/copilot-instructions.md`](../../.github/copilot-instructions.md).
+  [`.github/instructions/repository.instructions.md`](../../.github/instructions/repository.instructions.md).
 - Conformance plan: [`docs/conformance-testing.md`](../conformance-testing.md).
 - Platform guide: [`src/frontend/README.md`](../../src/frontend/README.md).

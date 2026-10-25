@@ -1,4 +1,7 @@
 <Project>
+  <!-- Shared settings from the project template; this file's own settings, after the import, override them. -->
+  <Import Project="$(MSBuildThisFileDirectory)build/ProjectTemplate.props" />
+
   <PropertyGroup>
     <Authors>NCode Group</Authors>
     <Company>NCode Group</Company>

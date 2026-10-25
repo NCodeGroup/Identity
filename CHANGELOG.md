@@ -708,6 +708,17 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The plan-and-execute workflow comes from the project template, executes on Claude Sonnet 5.5, and runs in Claude
+  Code too.** The repository adopted [project-template](https://github.com/polewskm/project-template) `v0.3.0`: its
+  agents, prompt files, skills, Claude Code commands, `CLAUDE.md`, `commit-msg` hook and `.template/` scripts are
+  template-owned, `.copier-answers.yml` records the version, and `./.template/Update-Project.ps1` takes a newer one.
+  Plan steps execute on Claude Sonnet 5.5 instead of Auto in VS Code, Copilot CLI and Claude Code. The
+  repository-wide agent rules moved from `.github/copilot-instructions.md` to
+  `.github/instructions/repository.instructions.md`. The `Commit attribution` check now runs the template's
+  `./.template/Test-CommitAttribution.ps1`, which replaces `./build/commit-attribution.ps1` and its Definition-of-Done
+  stage, and the template's hook strips a "Generated with [Claude Code" line only when the phrase starts the line
+  ([ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
+
 - **A required check rejects commits attributed to an AI agent.** `./build/commit-attribution.ps1 -Base <rev>` fails
   when the author or committer of a commit in `Base..Head` is an AI agent account, such as the Copilot cloud agent's
   `copilot-swe-agent[bot]`, or when its message carries agent attribution: a `Co-authored-by:` line naming an agent, a

@@ -1,8 +1,48 @@
 # 170. Agent work is planned on a frontier model and executed step by step on a cheaper one
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-10-25)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
+
+## Amendment (2026-10-25): the project template, Claude Sonnet 5.5 and Claude Code
+
+This repository adopted [project-template](https://github.com/polewskm/project-template) `v0.3.0` with its
+`Adopt-Project.ps1` (backlog `X10`), so the workflow files are template-owned files of a Copier project rather than an
+installer's output. Three parts of the decision change:
+
+- **The files come from the template.** The agents, prompt files and skills under `.github/`, Claude Code's commands
+  under `.claude/commands/`, `.claude/agents/plan-executor.md`, `CLAUDE.md`, `.githooks/commit-msg` and `.template/`
+  are owned by project-template. [`.copier-answers.yml`](../../.copier-answers.yml) records the version, and
+  `./.template/Update-Project.ps1` moves to a newer one. A workflow change is made and tagged in project-template,
+  then pulled in; the installer command below no longer applies. The template's rules arrive in
+  [`project-template.instructions.md`](../../.github/instructions/project-template.instructions.md), and this
+  repository's instructions win where they differ.
+- **The executor is Claude Sonnet 5.5,** not Auto: Copilot Implementer, `/execute-step`, the Copilot CLI
+  `plan-executor` agent (`claude-sonnet-5.5`) and Claude Code's `plan-executor` subagent. Auto was not offered in
+  every session — `plan-executor` failed to start with "Model 'auto' is not available" — and the model it picked
+  varied from step to step. A named built-in model is available wherever Copilot is, and runs every step on the same
+  model. `.vscode/settings.json` routes the built-in **Start Implementation** handoff to Sonnet as well.
+- **Claude Code is supported** alongside VS Code and Copilot CLI. Copilot stays the surface every contributor has; a
+  contributor with Claude Code runs the same commands there, and each Claude Code plan lives in its own git worktree
+  under `.claude/worktrees/`. `CLAUDE.md` imports `AGENTS.md`, so the repository-wide rules moved from
+  `.github/copilot-instructions.md`, which Claude Code does not read, to
+  [`repository.instructions.md`](../../.github/instructions/repository.instructions.md), which `AGENTS.md` lists.
+
+The commit-attribution check is now the template's `.template/Test-CommitAttribution.ps1`, and the template tests it
+and the hook ([ADR-0128](0128-commits-are-attributed-to-people-not-agents.md)). identity-platform keeps the installer
+until it adopts the template too (backlog `X11`).
+
+The adoption kept the files the template merges with this repository's own (`.editorconfig`, `.gitattributes`,
+`.gitignore`, `.vscode/settings.json`, `.claude/settings.json`, `Directory.Build.props` and `Directory.Packages.props`)
+as the template writes them, so a later template update merges cleanly; only the duplicate
+`ManagePackageVersionsCentrally` was removed, and the two `.props` files are formatted with CSharpier, which skips the
+template-owned `build/ProjectTemplate.props`. `Directory.Build.props` imports that file first and keeps its own
+settings after the import, so they win. The template's `nuget_package` answer is `false`, because
+`Directory.Build.props` and `Directory.Build.targets` already own packaging. The `Commit attribution` check stays its
+own workflow rather than the template's `ci.yml` job, because this repository keeps its own `ci.yml`. The template's
+generic `csharp.instructions.md` applies too, and `csharp-production.instructions.md` and
+`csharp-testing.instructions.md` win where they differ; `.claude/rules/` points Claude Code at them by path, because
+it ignores `applyTo`.
 
 ## Context
 
@@ -56,8 +96,9 @@ The rules:
   into conventional commits before the change leaves the machine — before a push to `main` here
   ([ADR-0125](0125-trunk-based-development-on-main.md)), and before a pull request merges in `identity-platform`.
 - **Repository rules reach every agent.** The planner and the executor both load
-  [`copilot-instructions.md`](../../.github/copilot-instructions.md), [`AGENTS.md`](../../AGENTS.md), and the scoped
-  instruction files, so a plan restates only what a step needs, and the Definition of Done stays the final gate.
+  [`repository.instructions.md`](../../.github/instructions/repository.instructions.md), [`AGENTS.md`](../../AGENTS.md),
+  and the scoped instruction files, so a plan restates only what a step needs, and the Definition of Done stays the
+  final gate.
 
 The agents ([`.github/agents/`](../../.github/agents/)), prompt files ([`.github/prompts/`](../../.github/prompts/)),
 and Copilot CLI skills ([`.github/skills/`](../../.github/skills/)) are generated from the maintainer's plan-and-execute

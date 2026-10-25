@@ -174,10 +174,6 @@ try {
         & (Join-Path $PSScriptRoot 'tests\script-help.tests.ps1')
         $global:LASTEXITCODE = 0
     }
-    Invoke-Step 'commit attribution check' {
-        & (Join-Path $PSScriptRoot 'tests\commit-attribution.tests.ps1')
-        $global:LASTEXITCODE = 0
-    }
 
     Invoke-Step 'tool-restore' { dotnet tool restore }
     Invoke-Step 'format (csharpier check)' { dotnet csharpier check . }

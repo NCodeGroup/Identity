@@ -1,0 +1,14 @@
+# Written by Copier; never edit by hand. Change an answer with .template\Update-Project.ps1 -Data.
+_commit: v0.3.0
+_src_path: https://github.com/polewskm/project-template.git
+author_name: NCode Group
+build_command: ./build/dod.ps1 -Fast -SkipTests
+git_host: github
+nuget_package: false
+project_description: ''
+project_name: NCode.Identity
+stack: dotnet
+test_command: ./build/dod.ps1 -Fast
+workflow_tools:
+- claude
+- copilot

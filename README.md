@@ -121,8 +121,9 @@ conformance posture dashboard. See [`src/frontend/README.md`](src/frontend/READM
 green run means the same thing in both places. It prints `Definition of Done: PASSED` as its final line.
 
 ```pwsh
-./build/dod.ps1          # full gate: format check, build + pack, EF model drift, tests + coverage
-./build/dod.ps1 -Fast    # local inner loop and pre-push gate: parallel, skips coverage + packing
+./build/dod.ps1                                               # full gate: format check, build + pack, EF model drift, tests + coverage
+./build/dod.ps1 -Fast -Affected                               # pre-push gate: parallel builds, skips coverage + packing, runs only affected tests
+./build/dod.ps1 -Fast -Filter 'FullyQualifiedName~MyTests'    # inner loop: only the matching tests
 ```
 
 Test results land in `artifacts/test-results/` and the merged coverage report in `artifacts/coverage/` (open

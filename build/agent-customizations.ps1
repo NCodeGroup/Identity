@@ -1,5 +1,6 @@
 #!/usr/bin/env pwsh
 #requires -version 7
+
 <#
 .SYNOPSIS
     Checks that Local prompts and Copilot skills expose the same workflows.

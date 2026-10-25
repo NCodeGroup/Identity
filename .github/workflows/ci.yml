@@ -2,8 +2,10 @@
 #
 # This workflow runs the SAME entrypoint developers run (build/dod.ps1), with no CI-only variant of the gate: the
 # script is the single source of truth for what "done" means (CONTRIBUTING.md), so a green run here and a green run
-# locally mean the same thing. It deliberately runs the FULL gate (Release, coverage + packing, NuGet vulnerability
-# advisories as errors) rather than the -Fast local pre-push accelerator.
+# locally mean the same thing. It always runs in Release with coverage, packing and NuGet vulnerability advisories as
+# errors; the gate tier only decides which tests run (ADR-0263). A pull request into main runs the tests affected by its
+# change (-Affected against the pull request's base); the merge queue, a push to main or a release line, and a pull
+# request into a release line run the FULL gate.
 #
 # The repository is public, so standard-runner minutes are unmetered — the gate runs on every branch, via push for
 # human branches and via the pull request for bot branches.
@@ -13,13 +15,17 @@
 name: .NET CI
 
 on:
-  # A pull request into main gates every branch, and a push gates only main. A push trigger on other branches would
-  # run the whole gate a second time for each commit of a branch with a pull request. Run a branch that has no pull
-  # request yet with workflow_dispatch, or open a draft pull request.
+  # A pull request into main runs the affected tests; the merge queue then runs the full gate on the merged result, so a
+  # required check must report on merge_group (ADR-0263). Release lines are gated like main before the queue: a push
+  # to main or a release line, and a pull request into a release line, run the full gate. A push trigger on other
+  # branches would run the gate a second time for each commit of a branch with a pull request. Run a branch that has no
+  # pull request yet with workflow_dispatch, or open a draft pull request.
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
-    branches: [main]
+    branches: [main, 'release/**']
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
 
 # Least privilege: the gate job only reads the tree, and nothing here publishes. The one write-scoped permission —
@@ -28,15 +34,16 @@ on:
 permissions:
   contents: read
 
-# Supersede in-flight runs for the same ref while iterating on a branch, but give every trunk commit its own verdict.
+# Supersede in-flight runs for the same ref while iterating on a branch, but give every commit of main and a release
+# line its own verdict.
 #
-# On main the group includes the SHA, so two trunk commits never share a group. That matters because
-# `cancel-in-progress: false` alone does NOT achieve it: GitHub still cancels any previously *pending* run in a group,
-# keeping only the newest. Under rapid pushes that silently leaves trunk commits unverified — a commit that broke
-# something, followed by one that fixed it, would never report the break.
+# On main and the release lines the group includes the SHA, so two commits of a protected line never share a group.
+# That matters because `cancel-in-progress: false` alone does NOT achieve it: GitHub still cancels any previously
+# *pending* run in a group, keeping only the newest. Under rapid pushes that silently leaves protected commits
+# unverified — a commit that broke something, followed by one that fixed it, would never report the break.
 concurrency:
-  group: dotnet-ci-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'head' }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  group: dotnet-ci-${{ github.ref }}-${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && github.sha || 'head' }}
+  cancel-in-progress: ${{ !(github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
   definition-of-done:
@@ -69,10 +76,14 @@ jobs:
 
       # The one gate. dod.ps1 sets CI=true internally, which promotes NuGet vulnerability advisories (NU1901-1904) to
       # errors on top of the always-on warnings-as-errors. Under GitHub Actions it also writes the job summary (stage
-      # table, test results, coverage) and annotates failed tests and the failing stage (ADR-0143).
+      # table, test results, coverage) and annotates failed tests and the failing stage (ADR-0143). A pull request into
+      # main runs only the tests its change affects, measured from the base SHA (the checkout's full history holds its
+      # merge base); every other event runs the full gate (ADR-0263).
       - name: Definition of Done
         shell: pwsh
-        run: ./build/dod.ps1
+        env:
+          AFFECTED_BASE: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' && github.event.pull_request.base.sha || '' }}
+        run: if ($env:AFFECTED_BASE) { ./build/dod.ps1 -Affected -Base $env:AFFECTED_BASE } else { ./build/dod.ps1 }
 
       - name: Upload test results
         if: always()
@@ -105,11 +116,11 @@ jobs:
           if-no-files-found: warn
 
   # Reporting, not gating: runs after the gate whatever its verdict (failed tests are still worth reporting), and is
-  # never a required check.
+  # never a required check. Skipped in the merge queue: its run duplicates the coverage main's push uploads.
   codecov:
     name: Codecov
     needs: definition-of-done
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && github.event_name != 'merge_group' }}
     permissions:
       contents: read
       id-token: write

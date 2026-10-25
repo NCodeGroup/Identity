@@ -1,6 +1,6 @@
 # 261. main accepts changes only through pull requests that pass the gate
 
-- **Status:** Accepted
+- **Status:** Accepted (strict up-to-date superseded by [ADR-0263](0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md))
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

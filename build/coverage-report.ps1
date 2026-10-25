@@ -1,5 +1,6 @@
 #!/usr/bin/env pwsh
 #requires -version 7
+
 <#
 .SYNOPSIS
     Merges Cobertura coverage into one report: Cobertura + browsable HTML + text, plus a job summary on GitHub.

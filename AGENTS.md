@@ -80,7 +80,7 @@ any step that needs a decision comes back to Opus to be re-planned.
 - **Done-when commands** prove one step: the narrowest test that fails until the step is done, such as
   `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>" -- RunConfiguration.TreatNoTestsAsError=true`
   (xUnit v2 on VSTest). Keep the trailing setting: without it a filter that matches no test exits `0`, so the check
-  passes before its test exists. `./build/dod.ps1 -Fast` stays the gate for the whole change.
+  passes before its test exists. `./build/dod.ps1 -Fast -Affected` stays the gate for the whole change.
 - **`PLAN.md` is transient:** the push protocol in [`copilot-instructions.md`](.github/copilot-instructions.md) promotes
   its Decisions, deletes it, and squashes the `Plan step N` / `Re-plan step N` checkpoint commits before anything is
   pushed.
@@ -119,10 +119,15 @@ Run [`./build/dod.ps1`](build/dod.ps1) — the single Definition of Done (tool-r
 build + pack, test + coverage) that CI and developers both run. It fails fast on the first broken gate and prints
 `Definition of Done: PASSED` as its final line on success — that line (not any generated file) is the pass signal.
 For local development — including any protocol or validation step that runs the Definition of Done — use
-`./build/dod.ps1 -Fast`: it parallelizes project builds and test assemblies and skips the non-correctness stages
-(coverage + packing) while keeping compile warnings-as-errors and analyzers. `./build/dod.ps1 -Fast` is the **local
-pre-push gate** (the push protocol's final check); the plain `./build/dod.ps1` is the CI-parity gate that CI runs (also
-available locally for a thorough clean Release check). Package versions are centrally managed in
+`./build/dod.ps1 -Fast`: it parallelizes project builds and skips the non-correctness stages (coverage + packing) while
+keeping compile warnings-as-errors and analyzers; test assemblies run in parallel in every mode. In the inner loop,
+narrow the tests with `-Filter <expr>` (a `dotnet test --filter` expression, for example
+`./build/dod.ps1 -Fast -Filter 'FullyQualifiedName~TokenEndpoint'`). `./build/dod.ps1 -Fast -Affected` is the **local
+pre-push gate** (the push protocol's final check): it runs only the test projects the change reaches since its merge
+base with `origin/main`, while still building the whole solution. The plain `./build/dod.ps1` is the full gate, which
+runs in the merge queue, on `main` and on the release lines; a pull request into `main` runs it with `-Affected`
+([ADR-0263](docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)). It is also
+available locally for a thorough clean Release check. Package versions are centrally managed in
 [`Directory.Packages.props`](Directory.Packages.props); versioning is stamped in lockstep by Nerdbank.GitVersioning
 from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow and
 [`GOVERNANCE.md`](GOVERNANCE.md) for ownership, versioning, and publishing. For a full conventions sweep, run the
@@ -151,13 +156,14 @@ everything on it. Only commits pushed from the repository clone survive — work
   `copilot-setup-steps.yml`, so it counts from when the job starts and includes the setup steps; the agent can begin
   ten or more minutes in. `ps -o lstart= -p 1` prints when the runner booted, just before the job started, so it
   gives a safe estimate. Plan the session to end 59 minutes after that time, and start the final
-  `./build/dod.ps1 -Fast` at least fifteen minutes before then.
+  `./build/dod.ps1 -Fast -Affected` at least fifteen minutes before then.
 - **Push each finished item at once**, from the clone, before starting the next. Do not leave finished work on a side
   branch or worktree to integrate later.
 - **Do not run parallel sub-agents that build.** The standard runner has four cores; concurrent .NET, pnpm, and Docker
   builds slow every agent down rather than finishing more items.
-- **Budget the gates.** On the standard runner a cold `dotnet build` takes about two minutes and `./build/dod.ps1 -Fast`
-  about five; iterate with targeted tests and run the full gate once per item.
+- **Budget the gates.** On the standard runner a cold `dotnet build` takes about two minutes and
+  `./build/dod.ps1 -Fast -Affected` at most about five; iterate with targeted tests and run the pre-push gate once per
+  item.
 - **Validate the chart against a real API server.** `helm` and `kind` are on the runner, and a `kind` cluster starts in
   about a minute. Its API server checks the chart's manifests (`helm install --dry-run=server`), and Pod Security
   admission enforces a namespace labeled `restricted`. Pod-to-pod networking and cluster DNS do not work on the

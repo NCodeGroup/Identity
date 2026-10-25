@@ -1,5 +1,6 @@
 #!/usr/bin/env pwsh
 #requires -version 7
+
 <#
 .SYNOPSIS
     Presents JUnit test results: a console digest everywhere, plus a job summary and failure annotations on GitHub.

@@ -708,6 +708,17 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **A required check rejects commits attributed to an AI agent.** `./build/commit-attribution.ps1 -Base <rev>` fails
+  when the author or committer of a commit in `Base..Head` is an AI agent account, such as the Copilot cloud agent's
+  `copilot-swe-agent[bot]`, or when its message carries agent attribution: a `Co-authored-by:` line naming an agent, a
+  `Claude-Session:` line, or a "Generated with [Claude Code" line. The `Commit attribution` workflow runs it on pull
+  requests, in the merge queue (the commit that lands, including the trailers GitHub writes when it squashes) and on
+  pushes to `main` and `release/**`. The `commit-msg` hook now also strips Claude attribution, and Claude Code's and
+  VS Code's settings no longer add it. A pull request from the cloud agent fails the check until its commits are
+  re-authored with `git rebase origin/main --exec "git commit --amend --no-edit --reset-author"` and
+  `git push --force-with-lease`
+  ([ADR-0128](docs/adr/0128-commits-are-attributed-to-people-not-agents.md)).
+
 - **Minimal-API request delegates are generated at compile time, so a host starts faster.** Every package builds with
   the Request Delegate Generator, so a host no longer compiles each endpoint's expression trees before it answers its
   first request, and the integration tests run in 41 s instead of 5m58s.

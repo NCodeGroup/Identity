@@ -159,6 +159,12 @@ everything on it. Only commits pushed from the repository clone survive — work
   `./build/dod.ps1 -Fast -Affected` at least fifteen minutes before then.
 - **Push each finished item at once**, from the clone, before starting the next. Do not leave finished work on a side
   branch or worktree to integrate later.
+- **Re-author before merging.** The cloud agent authors its commits as `copilot-swe-agent[bot]`, so its pull request
+  fails the required `Commit attribution` check until a person re-authors them
+  (`git rebase origin/main --exec "git commit --amend --no-edit --reset-author"`) and force-pushes the branch
+  (`git push --force-with-lease`). See
+  [ADR-0128](docs/adr/0128-commits-are-attributed-to-people-not-agents.md) and
+  [`build/commit-attribution.ps1`](build/commit-attribution.ps1).
 - **Do not run parallel sub-agents that build.** The standard runner has four cores; concurrent .NET, pnpm, and Docker
   builds slow every agent down rather than finishing more items.
 - **Budget the gates.** On the standard runner a cold `dotnet build` takes about two minutes and

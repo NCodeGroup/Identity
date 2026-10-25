@@ -3,9 +3,12 @@
 # commit-msg - strip agent co-author trailers from the commit message.
 #
 # Commits in this repository are attributed to the people who authored them.
-# A `Co-authored-by: Copilot <...>` trailer makes the repository host count the
-# agent account as a contributor, which misreports authorship and can only be
-# undone afterwards by rewriting published history.
+# A `Co-authored-by: Copilot <...>` trailer, or Claude Code's
+# `Co-Authored-By: Claude <noreply@anthropic.com>` trailer, makes the repository
+# host count the agent account as a contributor, which misreports authorship and
+# can only be undone afterwards by rewriting published history. Claude Code also
+# adds a `Claude-Session:` trailer and a "Generated with Claude Code" line, which
+# are removed as well.
 #
 # See docs/adr/0128-commits-are-attributed-to-people-not-agents.md
 #
@@ -16,11 +19,17 @@ set -eu
 
 msg_file="$1"
 
-# The agent identities that appear in co-author trailers: the `Copilot` user
-# account and the `copilot-swe-agent[bot]` coding-agent account.
-agent_trailer='^[[:space:]]*Co-authored-by:[[:space:]]*(Copilot|copilot-swe-agent)(\[bot\])?[[:space:]]*<'
+# The agent attribution that appears in commit messages: co-author trailers for
+# the `Copilot` user account and the `copilot-swe-agent[bot]` coding-agent
+# account, co-author trailers with an agent's no-reply address (Claude Code uses
+# `noreply@anthropic.com`), Claude Code's `Claude-Session:` trailer and its
+# "Generated with Claude Code" line.
+copilot='^[[:space:]]*co-authored-by:[[:space:]]*(github[[:space:]]+)?copilot(-swe-agent)?(\[bot\])?[[:space:]]*<'
+agent_email='^[[:space:]]*co-authored-by:.*<[^>]*(noreply@anthropic\.com|copilot@users\.noreply\.github\.com)>'
+claude_session='^[[:space:]]*claude-session:'
+generated='generated with \[?claude code'
 
-if ! grep -qiE "$agent_trailer" "$msg_file"; then
+if ! grep -qiE -e "$copilot" -e "$agent_email" -e "$claude_session" -e "$generated" "$msg_file"; then
     exit 0
 fi
 
@@ -28,7 +37,7 @@ fi
 # matching git's own message cleanup. Comment lines are preserved so the editor
 # flow still works; git strips those itself afterwards.
 stripped="$msg_file.no-agent-trailer"
-grep -ivE "$agent_trailer" "$msg_file" | git stripspace >"$stripped"
+grep -viE -e "$copilot" -e "$agent_email" -e "$claude_session" -e "$generated" "$msg_file" | git stripspace >"$stripped"
 mv "$stripped" "$msg_file"
 
-echo "commit-msg: removed a Co-authored-by trailer for an agent account." >&2
+echo "commit-msg: removed AI agent attribution from the commit message." >&2

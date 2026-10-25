@@ -1,0 +1,51 @@
+# Commit attribution — commits are attributed to people, not agents (ADR-0128).
+#
+# This workflow runs build/commit-attribution.ps1, which rejects any commit whose author or committer is an AI agent
+# account, or whose message carries agent attribution (a `Co-authored-by:` line naming an agent, a `Claude-Session:`
+# line, or a "Generated with Claude Code" line).
+#
+# The merge queue run matters most: when GitHub squashes a pull request it writes a `Co-authored-by:` trailer for every
+# commit author into the commit that lands, so an agent that authored any commit of the pull request would be credited
+# on main even though the pull request's own commits were checked. Checking the merge group's commit covers those
+# trailers. A pull request is checked from its base to its head, the merge queue from the merge group's base to its
+# head, and a push from the commit before the push to the commit after it.
+#
+# A separate workflow, rather than a step of the .NET gate, keeps this check independent of that gate's concurrency
+# group, and it finishes in seconds.
+name: Commit attribution
+
+on:
+  # The merge queue checks the commit that lands, including the trailers GitHub writes when it squashes, so a required
+  # check must report on merge_group.
+  push:
+    branches: [main, 'release/**']
+  pull_request:
+    branches: [main, 'release/**']
+  merge_group:
+    types: [checks_requested]
+
+# Least privilege: the job only reads the tree.
+permissions:
+  contents: read
+
+jobs:
+  commit-attribution:
+    name: Commit attribution
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # The check walks the commits between the base and the head, so it needs their history, not a shallow clone.
+          fetch-depth: 0
+
+      # The expressions are GitHub's, not PowerShell's, so they are passed through env rather than interpolated into
+      # the script. A push to a new branch has an all-zero `before`, for which the script checks only the head.
+      - name: Check commit attribution
+        shell: pwsh
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+        run: ./build/commit-attribution.ps1 -Base $env:BASE -Head $env:HEAD

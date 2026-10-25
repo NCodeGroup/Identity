@@ -112,15 +112,35 @@ See [GOVERNANCE.md](GOVERNANCE.md) for ownership, the release lifecycle, and how
 
 ## Commit attribution
 
-A commit records the **people** who authored it. **Never add a `Co-authored-by:` trailer naming an agent account**
-(`Copilot`, `copilot-swe-agent[bot]`, or any other tooling identity): the repository host reads that trailer as
-authorship and lists the agent in the contributor graph, which can only be undone by rewriting published history. Which
-tools produced a change belongs in the pull request, not in the commit's authorship record.
+A commit records the **people** who authored it. **Never add agent attribution to a commit message** — a
+`Co-authored-by:` trailer naming an agent account (`Copilot`, `copilot-swe-agent[bot]`, Claude's
+`noreply@anthropic.com`, or any other tooling identity), a `Claude-Session:` trailer, or a "Generated with" line: the
+repository host reads such a trailer as authorship and lists the agent in the contributor graph, which can only be
+undone by rewriting published history. Which tools produced a change belongs in the pull request, not in the commit's
+authorship record.
 
-The repo-versioned [`.githooks/commit-msg`](.githooks/commit-msg) hook strips such trailers automatically once hooks
-are enabled (`git config core.hooksPath .githooks` — see [Prerequisites](#prerequisites)). Hooks are client-side only,
-so this is a safety net, not a guarantee; don't write the trailer in the first place. See
-[ADR-0128](docs/adr/0128-commits-are-attributed-to-people-not-agents.md).
+Three layers keep the record clean:
+
+- The repo-versioned [`.githooks/commit-msg`](.githooks/commit-msg) hook strips such lines automatically once hooks
+  are enabled (`git config core.hooksPath .githooks` — see [Prerequisites](#prerequisites)). Hooks are client-side
+  only, so this is a safety net, not a guarantee; don't write the lines in the first place.
+- The editor settings stop the tools from adding them: `attribution` in [`.claude/settings.json`](.claude/settings.json)
+  keeps Claude Code's commit and pull request attribution empty, and `git.addAICoAuthor` is `off` in
+  [`.vscode/settings.json`](.vscode/settings.json).
+- The required `Commit attribution` check ([`build/commit-attribution.ps1`](build/commit-attribution.ps1)) runs on pull
+  requests, in the merge queue and on pushes to `main` and release lines. It fails when a commit's author or committer
+  is an AI agent account, or when a message carries agent attribution, because a squash merge credits every commit
+  author.
+
+The Copilot cloud agent authors its commits as `copilot-swe-agent[bot]`, so its pull request fails the check until a
+person re-authors the commits and force-pushes the branch:
+
+```shell
+git rebase origin/main --exec "git commit --amend --no-edit --reset-author"
+git push --force-with-lease
+```
+
+See [ADR-0128](docs/adr/0128-commits-are-attributed-to-people-not-agents.md).
 
 ## Code formatting — CSharpier
 

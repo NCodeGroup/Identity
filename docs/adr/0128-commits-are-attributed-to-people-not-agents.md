@@ -1,8 +1,43 @@
 # 128. Commits are attributed to people, not agents
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-10-24)
 - **Date:** 2026-10-17
 - **Deciders:** NCode Group
+
+## Amendment (2026-10-24): agent-authored commits and a server-side check
+
+The trailer was not the only way an agent reached the contributor graph. The Copilot cloud agent authors its own
+commits as `copilot-swe-agent[bot]`, and 124 of them reached `main` through PR #9, so GitHub listed Copilot as a
+contributor although no commit carried a trailer naming it. The hook could not see this: it reads the message, not the
+author, and it runs only in a clone that enabled it. A squash merge adds to the problem, because GitHub appends a
+`Co-authored-by:` trailer for every commit author on its own servers, where no client-side hook runs.
+
+On 2026-10-24 the history was rewritten with `git filter-repo` and a commit callback that set the author of each agent
+commit to the person (229 commits re-SHA'd, trees unchanged), and `main` was force-pushed with its ruleset briefly
+disabled.
+
+The decision gains a third level, and the first two now cover Claude as well:
+
+- **Enforcement — server-side.** The required `Commit attribution` check runs
+  [`build/commit-attribution.ps1`](../../build/commit-attribution.ps1) over every commit it is about to accept. It
+  fails when the author or committer is an AI agent account, or when the message carries agent attribution: a
+  `Co-authored-by:` line naming one, a `Claude-Session:` line, or a "Generated with [Claude Code" line. The workflow
+  [`commit-attribution.yml`](../../.github/workflows/commit-attribution.yml) runs it on pull requests, in the merge
+  queue (the commit that lands, including the trailers GitHub writes when it squashes) and on pushes to `main` and
+  `release/**`; its tests run in the Definition of Done. After it merges, the maintainer adds `Commit attribution` to
+  the `main` and `release-lines` rulesets' required status checks.
+- **Prevention and the hook — Claude as well as Copilot.** The hook keeps stripping, never rejecting, and now also
+  strips Claude attribution. Claude Code's `attribution` setting is off in `.claude/settings.json`, and VS Code's
+  `git.addAICoAuthor` is `off` in `.vscode/settings.json`. The Copilot-only workflow of
+  [ADR-0170](0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md) is
+  unchanged.
+- **The cloud agent's pull requests are re-authored before they merge**, because their commits fail the check until
+  then:
+
+  ```pwsh
+  git rebase origin/main --exec "git commit --amend --no-edit --reset-author"
+  git push --force-with-lease
+  ```
 
 ## Context
 
@@ -56,8 +91,9 @@ fail a batch, and leaves a message that is already correct untouched.
 - Enabling the hook is a one-time, per-clone step. A clone that skips it is unprotected, which is precisely why the
   instruction file — not the hook — is the primary control; the hook is the safety net for the case where an agent
   ignores or never loads the instruction.
-- Git hooks are client-side only. Nothing rejects a tainted commit server-side, so a push from an unconfigured clone
-  can still reintroduce the trailer and the remedy is again a history rewrite. The recorded recipe:
+- Git hooks are client-side only. Unless the `Commit attribution` check above stops it, a push from an unconfigured
+  clone can still reintroduce the trailer and the remedy is again a history rewrite. The recorded recipe for a
+  trailer follows; it removes trailers only and leaves authorship alone:
 
   ```pwsh
   # Strip the trailer across the tainted range, then move the trunk.
@@ -66,5 +102,26 @@ fail a batch, and leaves a message that is already correct untouched.
   ```
 
   Verify with an empty `git diff --stat <backup-tag> HEAD` — the rewrite must change messages only, never content.
+- A commit authored by an agent account needs the author changed, which `filter-branch --msg-filter` cannot do. The
+  recorded recipe, run in a fresh clone, is `git filter-repo` with a commit callback:
+
+  ```pwsh
+  git tag backup-main main
+  $callback = @'
+  import re
+  if commit.author_email.endswith(b"+Copilot@users.noreply.github.com") or b"copilot-swe-agent" in commit.author_name:
+      commit.author_name = b"<person>"
+      commit.author_email = b"<person-email>"
+      commit.message = re.sub(rb"(?mi)^co-authored-by:[ \t]*<person>[ \t]*<[^>]*>[ \t]*\n?", b"", commit.message)
+      commit.message = commit.message.rstrip(b"\n") + b"\n"
+  '@
+  uvx --from git-filter-repo git-filter-repo --force --refs main --commit-callback $callback
+  git remote add origin <url>   # filter-repo removes the remote
+  git push --force-with-lease=main:<old tip> origin main   # <old tip>: the SHA of backup-main
+  ```
+
+  A `Co-authored-by:` trailer naming that same person is redundant after the rewrite and is removed in the same
+  callback. Verify with an empty `git diff --stat backup-main main`, and that every rewritten commit keeps its tree. The
+  push needs the `main` ruleset disabled for its duration; enable it again immediately afterwards.
 - GitHub recomputes the contributor list within a minute or two of the push, but the rendered repository page is cached
   separately and can keep showing the stale roster; the contributors API is the authoritative check.

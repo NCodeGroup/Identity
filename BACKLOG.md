@@ -574,6 +574,14 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
     `git add -A`, and `git rm` or `git mv` stage at once, so when independent steps ran in parallel one step's commit
     picked up another's deletions and rename. Either say that steps run one at a time, or commit each step's own
     paths (`git commit -- <paths> PLAN.md`) and tell executors not to edit `PLAN.md`.
+  - **`Update-Project.ps1` never hands the update over to the newer script.** It clones the template with
+    `--filter=blob:none`, and in that clone `git checkout <tag> -- template/.template/Update-Project.ps1` fails
+    ("unable to read sha1 file") on Git 2.56.0.windows.3, while `git show <tag>:<path>` fetches the blob. The script
+    reads the failure as "no newer script" and runs the project's own copy, so every update runs the previous
+    version's update logic. Updating this repository to `v0.4.0` hit it: the `v0.3.0` copy ran, without the
+    `WinError 206` fix, and failed; running project-template's root `Update-Project.ps1 -Path <repository>` from a
+    `v0.4.0` clone worked. Read the target script with `git show`, and give `Test-Template.ps1` an update from a
+    `file://` clone, so the blob filter applies the way it does for a hosted template.
 
   More touch points: project-template's `Adopt-Project.ps1` migration request,
   `template/.claude/agents/plan-executor.md`, and the `execute-step` and `orchestrate-plan` sources.

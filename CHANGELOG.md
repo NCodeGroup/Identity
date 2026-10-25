@@ -709,9 +709,12 @@ change to the public API is a **major** version bump.
 ### Changed
 
 - **The plan-and-execute workflow comes from the project template, executes on Claude Sonnet 5.5, and runs in Claude
-  Code too.** The repository adopted [project-template](https://github.com/polewskm/project-template) `v0.3.0`: its
-  agents, prompt files, skills, Claude Code commands, `CLAUDE.md`, `commit-msg` hook and `.template/` scripts are
-  template-owned, `.copier-answers.yml` records the version, and `./.template/Update-Project.ps1` takes a newer one.
+  Code too.** The repository adopted [project-template](https://github.com/polewskm/project-template) `v0.3.0` and
+  updated to `v0.4.0`: its agents, prompt files, skills, Claude Code commands, `CLAUDE.md`, `commit-msg` hook and
+  `.template/` scripts are template-owned, `.copier-answers.yml` records the version, and
+  `./.template/Update-Project.ps1` takes a newer one. `v0.4.0` keeps the update from failing on Windows with
+  `WinError 206` (the filename or extension is too long) when the repository's `.gitignore` ignores a folder the
+  template's does not, here `src/frontend/node_modules`.
   Plan steps execute on Claude Sonnet 5.5 instead of Auto in VS Code, Copilot CLI and Claude Code. The
   repository-wide agent rules moved from `.github/copilot-instructions.md` to
   `.github/instructions/repository.instructions.md`. The `Commit attribution` check now runs the template's

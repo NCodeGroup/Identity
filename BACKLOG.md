@@ -78,7 +78,7 @@ entry and/or ADR that closed it.
 | `T` — Conformance & interop testing   | `T10`     | `T9`       |
 | `U` — Frontend presentation platform  | `U27`     | `U26`      |
 | `S` — Secrets management              | `S21`     | `S20`      |
-| `X` — Tooling & agent customization   | `X10`     | `X9`       |
+| `X` — Tooling & agent customization   | `X11`     | `X10`      |
 | `R` — Review findings                 | `R114`    | `R113`     |
 
 ---
@@ -545,14 +545,26 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   `tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/LocalAccountLifecycleTests.cs`, ADR-0262,
   `.github/instructions/csharp-production.instructions.md`.
 
-- **`X9` — Require the `Commit attribution` check on `main` and the release lines.** The `Commit attribution` workflow
-  ([ADR-0128](docs/adr/0128-commits-are-attributed-to-people-not-agents.md)) reports on pull requests, in the merge
-  queue and on pushes, but no ruleset requires it yet, so it cannot stop a merge. After the pull request that adds it
-  merges, add `Commit attribution` to the required status checks of the `main` and `release-lines` rulesets. Then open
-  the first pull request from the Copilot cloud agent and confirm both that it fails the check until its commits are
-  re-authored and that the merge-queue run sees the `Co-authored-by:` trailers GitHub writes when it squashes; if it
-  does not, check the squashed commit in a push-triggered run instead. Touch points: the repository rulesets (admin
-  setting, not a file), `.github/workflows/commit-attribution.yml`, ADR-0128.
+- **`X10` — Adopt the project template here and in identity-platform.** Both repositories generate their agents, prompts
+  and skills with the project template's installer but are not Copier projects, so a template change — the executor on
+  Claude Sonnet 5.5 instead of Auto, the anchored "Generated with [Claude Code" pattern, Claude Code's commands —
+  reaches them only by hand. Adopt each with project-template's `Adopt-Project.ps1` (`v0.2.0` or later, `workflow_tools`
+  `claude, copilot`), then run the `/plan-migration` request it prints. This repository keeps its own `ci.yml`, so the
+  report asks for the template's commit-attribution job: instead, point `.github/workflows/commit-attribution.yml` at
+  `.template/Test-CommitAttribution.ps1` and remove `build/commit-attribution.ps1`, its tests and its Definition of Done
+  stage; the template's `.githooks/commit-msg` replaces this one. Amend
+  [ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md) —
+  the executor is Claude Sonnet 5.5, the files come from the template, and Claude Code is supported — and update the
+  workflow sections of `AGENTS.md` and `CONTRIBUTING.md`. identity-platform gets the template's `ci.yml` with the
+  `Commit attribution` job, the hook, and Claude Code's and VS Code's attribution settings, which closes its gap: today
+  only a Copilot-only hook run by pre-commit keeps agents out of its commits. Require `Commit attribution` in its
+  `default-branch` ruleset afterwards. Before adopting it, change the template: `Adopt-Project.ps1` sets
+  `core.hooksPath .githooks` whenever it is unset, which would silently turn off identity-platform's pre-commit hooks in
+  `.git/hooks`. Until the adoption, the executor stays on Auto (the Copilot CLI workaround is in `AGENTS.md`), and this
+  repository's hook and check match the advertising phrase anywhere in a line, so keep it out of commit messages. Touch
+  points: project-template's `Adopt-Project.ps1`; here `.github/`, `.githooks/`, `build/commit-attribution.ps1`,
+  `build/dod.ps1`, ADR-0170, `AGENTS.md`, `CONTRIBUTING.md`; in identity-platform `.github/`, `.githooks/`,
+  `.pre-commit-config.yaml`, `.claude/settings.json`, `.vscode/settings.json` and its `default-branch` ruleset.
 
 ## Review findings for the feature-gaps branch (group `R`)
 

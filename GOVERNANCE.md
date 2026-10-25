@@ -25,16 +25,17 @@ any one host feature.
   reach agreement on the issue and be recorded as an **ADR** under [`docs/adr/`](docs/adr/) before the pull request.
   Bug fixes, patches, and small changes go straight to a PR that references the issue.
 - `main` is the single trunk and accepts changes only through a pull request. A repository ruleset requires the pull
-  request, the `Definition of Done`, `Lint, typecheck, test, build`, `Lint and render the host chart` and
-  `Build host image` status checks, resolved review threads, and linear history; it forbids force pushes and deletion,
-  and nobody bypasses it. A pull request runs the fast gate: its `Definition of Done` check runs only the tests its
-  change reaches. A merge goes through the **merge queue**, which runs the full gate on the merged result and
-  squash-merges it, so a branch need not be up to date with `main`. An approval requirement is added when a second
-  maintainer exists
+  request, the `Definition of Done`, `Lint, typecheck, test, build`, `Lint and render the host chart`,
+  `Build host image` and `Commit attribution` status checks, resolved review threads, and linear history; it forbids
+  force pushes and deletion, and nobody bypasses it. A pull request runs the fast gate: its `Definition of Done` check
+  runs only the tests its change reaches. A merge goes through the **merge queue**, which runs the full gate on the
+  merged result and squash-merges it, so a branch need not be up to date with `main`. An approval requirement is added
+  when a second maintainer exists
   ([ADR-0261](docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md), which supersedes
   the unprotected trunk of [ADR-0125](docs/adr/0125-trunk-based-development-on-main.md);
   [ADR-0263](docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate
-  tiers and the merge queue).
+  tiers and the merge queue;
+  [ADR-0128](docs/adr/0128-commits-are-attributed-to-people-not-agents.md) for `Commit attribution`).
 - The [scripted Definition of Done](build/dod.ps1) must pass — it is the single entrypoint that CI and developers run,
   each place in the gate tier that ADR-0263 assigns it. See [CONTRIBUTING](CONTRIBUTING.md).
 - Versioning is **lockstep** across the whole family via Nerdbank.GitVersioning (one root `version.json`,

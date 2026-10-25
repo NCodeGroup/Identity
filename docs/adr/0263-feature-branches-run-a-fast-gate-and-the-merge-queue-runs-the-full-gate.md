@@ -57,20 +57,20 @@ on `main` and on the release lines.**
    "Advisories" means NuGet vulnerability advisories (NU1901–1904) fail the build; `-Fast` reports them as warnings.
    Compile warnings are errors in every tier.
 5. **Every workflow that reports a required check runs in the merge queue and on the release lines.** `.NET CI`,
-   `Frontend CI`, `Host chart` and `Host image` trigger on `merge_group` and on pushes to and pull requests into
-   `release/**`. Frontend CI's `Detect frontend changes` job runs the frontend job for every event other than
-   `pull_request`, so the queue runs it in full. The Codecov uploads are skipped on `merge_group`: the queue's run
+   `Frontend CI`, `Host chart`, `Host image` and `Commit attribution` trigger on `merge_group` and on pushes to and pull
+   requests into `release/**`. Frontend CI's `Detect frontend changes` job runs the frontend job for every event other
+   than `pull_request`, so the queue runs it in full. The Codecov uploads are skipped on `merge_group`: the queue's run
    duplicates the coverage that `main`'s push uploads.
 6. **Codecov's pull-request comment hides project coverage** (`comment.hide_project_coverage: true` in
    [`codecov.yml`](../../codecov.yml)). A pull request's run covers only the affected tests, so only its patch coverage
    is meaningful; `main`'s full runs keep reporting project coverage.
 7. **Three repository rulesets protect the trunk, the release lines and the release tags.** None has bypass actors.
-   - `main` (the default branch): a pull request with 0 required approvals; the four required checks
-     `Definition of Done`, `Lint, typecheck, test, build`, `Lint and render the host chart` and `Build host image`,
-     **without** requiring the branch to be up to date; a merge queue that squash-merges, groups only all-green entries,
-     builds at most 5 entries per group and times a check out after 60 minutes; linear history; no force push and no
-     deletion.
-   - `release-lines` (`refs/heads/release/v*`): a pull request, the same four checks with the branch required to be up
+   - `main` (the default branch): a pull request with 0 required approvals; the five required checks
+     `Definition of Done`, `Lint, typecheck, test, build`, `Lint and render the host chart`, `Build host image` and
+     `Commit attribution` ([ADR-0128](0128-commits-are-attributed-to-people-not-agents.md)), **without** requiring the
+     branch to be up to date; a merge queue that squash-merges, groups only all-green entries, builds at most 5 entries
+     per group and times a check out after 60 minutes; linear history; no force push and no deletion.
+   - `release-lines` (`refs/heads/release/v*`): a pull request, the same five checks with the branch required to be up
      to date, linear history, no force push and no deletion, and no merge queue. A merge queue does not apply to a
      wildcard branch pattern, and a release line takes few changes.
    - `release-tags` (`refs/tags/v*`): a tag can be created but not deleted or moved.

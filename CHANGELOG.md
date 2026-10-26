@@ -710,7 +710,7 @@ change to the public API is a **major** version bump.
 
 - **The plan-and-execute workflow comes from the project template, executes on Claude Sonnet 5.5, and runs in Claude
   Code too.** The repository adopted [project-template](https://github.com/polewskm/project-template) `v0.3.0` and
-  updated to `v0.10.0`: its agents, prompt files, skills, Claude Code commands, `CLAUDE.md`, `commit-msg` hook and
+  updated to `v0.12.0`: its agents, prompt files, skills, Claude Code commands, `CLAUDE.md`, `commit-msg` hook and
   `.template/` scripts are template-owned, `.copier-answers.yml` and `.template-version` record the version, and
   `./.template/Update-Project.ps1` takes a newer one. `v0.4.0` keeps the update from failing on Windows with
   `WinError 206` (the filename or extension is too long) when the repository's `.gitignore` ignores a folder the
@@ -718,7 +718,11 @@ change to the public API is a **major** version bump.
   a plan's first commit is an empty `Plan: <title>`, each step's checkpoint stages only the files the step lists, and a
   re-plan is an empty commit. From `v0.9.0`, an executor that cannot run a step's Done-when command says so and leaves
   the check to the coordinator, and `v0.10.0` adds `/finish-plan`, which retires a merged plan, fast-forwards `main` and
-  deletes the plan's branch and worktree. Plan steps execute on Claude Sonnet 5.5 instead of Auto in VS Code, Copilot
+  deletes the plan's branch and worktree. From `v0.11.0`, `/finish-plan` asks `gh` for the branch's merged pull
+  request, so a merge-queued plan no longer stops to ask, and the Claude Code executor runs commands with the
+  PowerShell tool, so a plan made of commands runs in its worktree; `v0.12.0` lets a plan name the issue it
+  implements on an `Issue:` line, posts the plan to that issue and ends the pull request description with
+  `Closes #<number>`. Plan steps execute on Claude Sonnet 5.5 instead of Auto in VS Code, Copilot
   CLI and Claude Code. The repository-wide agent rules moved from `.github/copilot-instructions.md` to
   `.github/instructions/repository.instructions.md`. The `Commit attribution` check now runs the template's
   `./.template/Test-CommitAttribution.ps1`, which replaces `./build/commit-attribution.ps1` and its Definition-of-Done

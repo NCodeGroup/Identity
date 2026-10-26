@@ -19,10 +19,10 @@ calls `ChallengeAsync(scheme)`, where `scheme` resolves from the `authorization_
 `"Identity.Application"`). No host in the family registers that scheme, so a challenge has nowhere to
 go. Two converging needs make this a concrete gap rather than a host's problem:
 
-- **Management end-to-end sign-in (`U1`/`U7`).** The Management console (`apps/mgmt`) performs the
+- **Management end-to-end sign-in ([#133](https://github.com/NCodeGroup/Identity/issues/133)/[#139](https://github.com/NCodeGroup/Identity/issues/139)).** The Management console (`apps/mgmt`) performs the
   browser authorization-code + PKCE flow, but the flow cannot complete because the authorize endpoint's
   challenge has no login surface to redirect to, and no public SPA client is seeded.
-- **Conformance (`T2`/[ADR-0062](0062-opt-in-interactive-login-consent-ui.md)).** Independent OIDC
+- **Conformance ([#125](https://github.com/NCodeGroup/Identity/issues/125)/[ADR-0062](0062-opt-in-interactive-login-consent-ui.md)).** Independent OIDC
   conformance drives the interactive flow with a headless Selenium `BrowserControl` that locates fields
   by stable id/name; a UI-less OP cannot complete an authorization-code flow under automation even when
   the wire protocol is correct.
@@ -80,7 +80,7 @@ Concretely:
   the same way so the login has a credential to verify.
 - **Consent is a decoupled stopgap (unchanged from ADR-0062).** The seeded clients auto-approve by
   default; `/account/consent` still exposes `consent-allow` / `consent-deny` for negative-path tests.
-  This remains independent of durable consent persistence (`F2`); when `F2` lands, the screen becomes a
+  This remains independent of durable consent persistence ([#40](https://github.com/NCodeGroup/Identity/issues/40)); when [#40](https://github.com/NCodeGroup/Identity/issues/40) lands, the screen becomes a
   thin front-end over the persisted decision.
 - **Build boundary.** `apps/auth` is built by the frontend toolchain, which stays **out of the hermetic
   `dod.ps1` inner loop** ([ADR-0064](0064-frontend-presentation-platform.md)); the host serves whatever
@@ -93,7 +93,7 @@ Concretely:
   pipeline, in `dod.ps1`, and fully satisfies the locator contract. Rejected as the surface because it
   forks rendering away from the React + MUI platform ([ADR-0064](0064-frontend-presentation-platform.md)):
   the login/consent screen is a genuine, long-lived **end-user** surface (every interactive sign-in and
-  the future `F2` consent screen render here), so it belongs on the shared design system, not as a second,
+  the future [#40](https://github.com/NCodeGroup/Identity/issues/40) consent screen render here), so it belongs on the shared design system, not as a second,
   parallel rendering stack the platform would eventually have to absorb or replace.
 - **React + MUI served from a separate origin (Vite dev server / CDN).** Keeps hot-reload for the auth
   app but breaks the same-origin cookie/antiforgery/`ReturnUrl` round-trip the challenge seam requires.
@@ -111,7 +111,7 @@ Concretely:
 ## Consequences
 
 - The OpenID Provider gains its first interactive surface, cohesive with the frontend platform and the
-  Management console. `U1`/`U7` end-to-end sign-in and `T2` conformance automation both become reachable
+  Management console. [#133](https://github.com/NCodeGroup/Identity/issues/133)/[#139](https://github.com/NCodeGroup/Identity/issues/139) end-to-end sign-in and [#125](https://github.com/NCodeGroup/Identity/issues/125) conformance automation both become reachable
   through one surface rather than two.
 - The stable-locator contract remains a maintenance invariant coupled to the conformance `browser` config
   ([`conformance-testing.md`](../conformance-testing.md) Appendices B/D): the ids are set explicitly in
@@ -119,11 +119,11 @@ Concretely:
 - The OP host now has a static-file root and a hard same-origin dependency on the `apps/auth` bundle: an
   interactive sign-in requires the bundle to be built and present. The C# module is independently
   testable, but a full browser round-trip needs the built surface.
-- Consent remains a stopgap until `F2`; the auto-approve default must converge onto the persisted-consent
-  decision when `F2` lands, or the two will drift.
+- Consent remains a stopgap until [#40](https://github.com/NCodeGroup/Identity/issues/40); the auto-approve default must converge onto the persisted-consent
+  decision when [#40](https://github.com/NCodeGroup/Identity/issues/40) lands, or the two will drift.
 - Full OIDC-conformance automation additionally depends on a reachable HTTPS host with a byte-matched
-  `issuer` (`T3`/[`reachable-host.md`](../conformance/reachable-host.md)) and deterministic conformance
-  tenant/client/user seeding (`T4`/[`conformance-seeding.md`](../conformance/conformance-seeding.md));
+  `issuer` ([#126](https://github.com/NCodeGroup/Identity/issues/126)/[`reachable-host.md`](../conformance/reachable-host.md)) and deterministic conformance
+  tenant/client/user seeding ([#127](https://github.com/NCodeGroup/Identity/issues/127)/[`conformance-seeding.md`](../conformance/conformance-seeding.md));
   those remain separate items. The admin user and public SPA client seeded here cover local Management
   sign-in, not the full conformance identity set.
 
@@ -135,7 +135,7 @@ Concretely:
   [ADR-0060](0060-local-account-one-store-seam-and-dependency-inverted-authentication.md) (local-account
   credential path), [ADR-0045](0045-tenant-provisioning-and-seeding-pipeline.md) (tenant seed fan-out),
   [ADR-0030](0030-userinfo-endpoint-and-subject-authentication-seam.md) (subject-authentication seam).
-- Backlog: `U1`, `U7`, `T2`, `U3` in [`BACKLOG.md`](../../BACKLOG.md); plan
+- Issues: [#133](https://github.com/NCodeGroup/Identity/issues/133), [#139](https://github.com/NCodeGroup/Identity/issues/139), [#125](https://github.com/NCodeGroup/Identity/issues/125), [#135](https://github.com/NCodeGroup/Identity/issues/135); plan
   [`login-consent-ui.md`](../conformance/login-consent-ui.md).
 - Code: [`Host/Program.cs`](../../src/NCode.Identity.OpenId.Host/Program.cs),
   [`BootstrapAdminSeedHandler`](../../src/NCode.Identity.Server/BootstrapAdminSeedHandler.cs).

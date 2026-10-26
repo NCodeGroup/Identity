@@ -12,7 +12,7 @@ create response ([ADR-0050](0050-secret-material-revealed-once-on-create.md)). R
 two calls, and an operator who lost the second call between them left the client with two live secrets, the old one
 still accepted. Auth0 rotates a client secret in one call.
 
-A secret's `expiresWhen` is recorded but not enforced: nothing rejects a secret past its expiry (backlog `S8`). A
+A secret's `expiresWhen` is recorded but not enforced: nothing rejects a secret past its expiry (issue [#166](https://github.com/NCodeGroup/Identity/issues/166)). A
 rotation that kept the old secret "until it expires" would keep it forever.
 
 ## Decision
@@ -39,7 +39,7 @@ rotation that kept the old secret "until it expires" would keep it forever.
 ## Options considered
 
 - **Keep the rotated secret until a grace period ends.** Rejected for now: expiry is not enforced, so the grace period
-  would never end. Overlapping validity belongs with key lifecycle (backlog `S8`); until then the two-call path gives
+  would never end. Overlapping validity belongs with key lifecycle (issue [#166](https://github.com/NCodeGroup/Identity/issues/166)); until then the two-call path gives
   an operator the overlap explicitly.
 - **Rotate keys too, generating a key pair of the same type.** Rejected: the server would hold the private key of a
   credential the client owns, and the persisted secret does not record an elliptic curve to repeat.

@@ -14,7 +14,7 @@
 
 [ADR-0066](0066-resource-server-settings-and-secret-owner.md) made resource servers (APIs, in Auth0
 terms) first-class **settings and secret owners** — but delivered **management (CRUD) only**. It
-explicitly deferred two follow-ups, both tracked as backlog `U7`:
+explicitly deferred two follow-ups, both tracked as issue [#139](https://github.com/NCodeGroup/Identity/issues/139):
 
 1. **Runtime consumption** — the stored per-audience secrets (notably a JWE key so tokens minted for an
    audience are readable only by it) were never used to actually encrypt access tokens. Resource servers
@@ -99,6 +99,6 @@ which already exists; JWE access tokens are the self-contained alternative for c
   audience-resolution read. Credential material is deserialized per request and disposed after issuance.
 - FAPI readiness is advanced on the signing axis (asymmetric-only). The larger FAPI items —
   sender-constrained tokens (DPoP / mTLS), PAR, and JAR/JARM — are a separate epic tracked in
-  [`BACKLOG.md`](../../BACKLOG.md).
+  [GitHub issues](https://github.com/NCodeGroup/Identity/issues).
 - New public surface: `IResourceServerCredentialResolver` and its resolution/result models. Greenfield,
   so `PublicAPI.Unshipped.txt` churn is expected ([ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md)).

@@ -13,7 +13,7 @@ collects their coverage ([ADR-0143](0143-ci-presents-test-results-and-coverage-i
 found that "green" claimed less than it appeared to:
 
 - **Warnings were noise, not failures.** A passing `pnpm test` logged eight React "An update to … inside a test was not
-  wrapped in act(...)" warnings (backlog `U17`). Each one is a test asserting before an async update has settled, so it
+  wrapped in act(...)" warnings (issue [#149](https://github.com/NCodeGroup/Identity/issues/149)). Each one is a test asserting before an async update has settled, so it
   can pass for the wrong reason, and any new warning was buried in the existing ones.
 - **Seven of eleven workspaces excluded their tests from `tsc`.** Vitest strips types without checking them, so a type
   error in a test or a Storybook story never failed anything.
@@ -65,7 +65,7 @@ found that "green" claimed less than it appeared to:
 
 ## Consequences
 
-- The eight `act(...)` warnings of backlog `U17` are fixed, and any new one fails its own test with the message that
+- The eight `act(...)` warnings of issue [#149](https://github.com/NCodeGroup/Identity/issues/149) are fixed, and any new one fails its own test with the message that
   explains it.
 - Closing the gaps raised frontend line coverage from 81% to 99% (1,713 of 2,114 lines to 2,172 of 2,195) and branch
   coverage from 74% to 98%; eight of the twelve workspaces are at 100%. What remains uncovered is defensive code the UI
@@ -78,7 +78,7 @@ found that "green" claimed less than it appeared to:
 - A workspace-wide refactor that drops coverage fails CI at the `Test` step rather than being noticed in Codecov later.
 - Build output is not yet held to the same standard. Turbo's "no output files" warning for the conformance runner's
   type-check-only build is gone (its package `turbo.json` declares no outputs), but Vite still warns that three SPA
-  bundles exceed 500 kB. Splitting them and then failing the build on that warning is backlog `U20`; raising the limit
+  bundles exceed 500 kB. Splitting them and then failing the build on that warning is issue [#152](https://github.com/NCodeGroup/Identity/issues/152); raising the limit
   would only hide it.
 - Adding a workspace means adding `@ncode/test-support` as a `devDependency`, a `vitest.setup.ts` that calls
   `failOnConsole`, `--max-warnings 0` on its `lint` script, and `expect.requireAssertions` plus coverage thresholds in

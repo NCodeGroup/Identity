@@ -9,7 +9,7 @@
 [ADR-0085](0085-ciba-grant.md) delivers an approval to a ping or push client, and
 [ADR-0225](0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md) denies an approval whose subject is
 refused. A denial reached no client, so a ping or push client waited for a request that cannot be approved until the
-request expired (backlog `R100`).
+request expired (issue [#291](https://github.com/NCodeGroup/Identity/issues/291)).
 
 ## Decision
 
@@ -38,7 +38,7 @@ carries an approval.**
 
 - A ping or push client learns of a denial at once, and it stops waiting for the request.
 - A durable dispatcher persists no tokens for a denial, because the job carries only the error.
-- This implements backlog `R100`.
+- This implements issue [#291](https://github.com/NCodeGroup/Identity/issues/291).
 
 ## References
 

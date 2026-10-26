@@ -28,7 +28,7 @@ The original end-session handler took the subject straight from the hint's `sub`
 `sub` is a per-sector pseudonym, not the stable `PrincipalId`. Consumed as if it were stable, it (1) matched **no**
 grants during revocation (silent no-op) and (2) was **double-projected** for each back-channel recipient, producing a
 `logout_token` `sub` no relying party could match — silently breaking back-channel logout for pairwise clients.
-This was tracked as backlog `F21`.
+This was tracked as issue [#59](https://github.com/NCodeGroup/Identity/issues/59).
 
 The naive fix — a stored, reversible pairwise map (pseudonym → principal) — was rejected: a reversible mapping of a
 privacy pseudonym back to the stable subject is a standing correlation/de-anonymization liability (a store compromise

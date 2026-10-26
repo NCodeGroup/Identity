@@ -74,7 +74,7 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
    with a client: its ceilings bound the settings the client and discovery read, and its requirements run against a
    client's request. A resource server's settings govern only the access tokens issued for it. A resource server that
    needs those tokens constrained — sender-constrained, short-lived, signed with particular algorithms — states that as
-   its own settings, combined with the client's at issuance by their lattice merges (backlog `F61` for encryption, `F62`
+   its own settings, combined with the client's at issuance by their lattice merges (issue [#100](https://github.com/NCodeGroup/Identity/issues/100) for encryption, [#101](https://github.com/NCodeGroup/Identity/issues/101)
    for the rest), not by selecting a profile whose requirements have no request to run against.
 6. **Previews show what governs the scope.** A management effective-settings preview lists only the settings that apply
    within the previewed scope, so a resource server's preview omits the client settings it inherits and a client's omits

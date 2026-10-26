@@ -1,6 +1,6 @@
 # 154. JWTs are validated as signed tokens under explicit algorithm and key policy
 
-- **Status:** Accepted (follow-up `F67` closed by
+- **Status:** Accepted (follow-up [#106](https://github.com/NCodeGroup/Identity/issues/106) closed by
   [ADR-0167](0167-the-server-validates-the-tokens-it-issued-under-one-policy.md): the server's readers of its own tokens
   state their policy through one seam)
 - **Date:** 2026-10-19
@@ -93,7 +93,7 @@ permit and names its decryption keys ([ADR-0155](0155-jwts-exchanged-with-a-clie
   and the four algorithm lists; the validator rejects an unsigned token, a JSON-serialized token, and an encrypted
   token without decryption keys or an enclosed signature.
 - The server cannot yet validate an access token it encrypted itself, because the callers that authenticate its own
-  access tokens name no decryption keys and no algorithm lists (backlog `F67`).
+  access tokens name no decryption keys and no algorithm lists (issue [#106](https://github.com/NCodeGroup/Identity/issues/106)).
 
 ## References
 

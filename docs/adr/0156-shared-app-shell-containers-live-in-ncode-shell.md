@@ -84,4 +84,4 @@ surface needs it.
   [ADR-0082](0082-playground-and-conformance-surfaces.md) (surface-aware bootstrap),
   [ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md) (open vocabularies),
   [ADR-0157](0157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md) (the shared build preset)
-- Backlog `U18`
+- Issue [#150](https://github.com/NCodeGroup/Identity/issues/150)

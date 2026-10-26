@@ -124,7 +124,7 @@ outer parameter such as `response_mode` could change a signed request.
   authenticated only by the keys it registers (`Jwks`, imported under the same client-key policy as a dynamically
   registered `jwks`) and the client's `SecurityProfiles`. The script generates each client's key and self-signed
   certificate on first use into a gitignored folder, so no private key is committed. Running the plans end to end and
-  committing their baseline is part of `T1`. The spec-coverage matrix gains a `profile-fapi1-advanced` row derived
+  committing their baseline is part of [#124](https://github.com/NCodeGroup/Identity/issues/124). The spec-coverage matrix gains a `profile-fapi1-advanced` row derived
   from discovery metadata.
 - A host that terminates TLS itself receives mutual-TLS client certificates by calling `AllowAnyClientCertificate()`
   in its own `ConfigureKestrel(k => k.ConfigureHttpsDefaults(...))`, as the reference host does. An endpoint that

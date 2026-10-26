@@ -303,7 +303,7 @@ rationale.
   namespace (`Logic`, `Helpers`, `Misc`, `Common`) — it is a grab-bag that grows without cohesion.** Name the group for
   the purpose it serves (`KeyTypes`, `Collections`, `KeyMaterial`, `Algorithms`, `Stores`, `Pkce`, `OutboundHttp`,
   `ResourceServers`, `Cryptography`); if a bucket has accreted several unrelated purposes, split it (no `Logic`
-  namespace remains in the family — see the backlog `D7` entry in [`CHANGELOG.md`](../../CHANGELOG.md)). A contract,
+  namespace remains in the family — see the issue [#27](https://github.com/NCodeGroup/Identity/issues/27) entry in [`CHANGELOG.md`](../../CHANGELOG.md)). A contract,
   its DTOs, and its `Default*` implementation share one purpose namespace across the `.Abstractions`/implementation
   pair, and that folder registers its own services (`AddPkceServices()`), never a catch-all registration. **An
   endpoint's own replaceable services live at that endpoint's root namespace** (`…Endpoints.Registration`, beside its
@@ -431,7 +431,7 @@ rationale.
   capability package replaces it via `TryAddSingleton`. A side-effecting **transport** (notification, back-channel
   delivery) stays an injectable service invoked **from** a handler, not a mediator command. Exemplars: the token,
   end-session, and CIBA ([ADR-0085](../../docs/adr/0085-ciba-grant.md)) endpoints; the device-authorization endpoint is
-  the pre-convention outlier (backlog `F18`), **not** a template to copy.
+  the pre-convention outlier (issue [#56](https://github.com/NCodeGroup/Identity/issues/56)), **not** a template to copy.
 - 👁 **Protocol endpoints are served under the tenant route.** The OpenID protocol group's prefix is the configured
   tenant route (`/{tenantId}`, a literal path, or empty), so an endpoint's own route is relative to the tenant; never
   hard-code an absolute protocol path into a published URL. Generate every URL that leaves the process with
@@ -444,7 +444,7 @@ rationale.
   that binds `[FromForm]`, `IFormFile` or `IFormCollection` sets
   `<EnableRequestDelegateGenerator>false</EnableRequestDelegateGenerator>`, because the generated form binding ignores
   a failed antiforgery validation and answers 500, and each such endpoint has an integration test that a POST without
-  the antiforgery token answers 4xx and changes nothing (backlog `X8` re-enables the generator). See
+  the antiforgery token answers 4xx and changes nothing (issue [#186](https://github.com/NCodeGroup/Identity/issues/186) re-enables the generator). See
   [ADR-0262](../../docs/adr/0262-minimal-api-request-delegates-are-generated-at-compile-time.md).
 - 👁 **A client authenticates only with its registered method, and its type is that one fact.** The registered
   `token_endpoint_auth_method` (RFC 7591 §2; `client_secret_basic` when none is registered) is the only method that

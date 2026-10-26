@@ -1,7 +1,7 @@
 # Backend for Frontend (BFF) — cookie sessions with server-side token custody
 
-- **Status:** Proposed. This is a design only, and nothing in it is implemented yet. The library is tracked as backlog
-  [`F84`](../BACKLOG.md), and moving the management console onto it is tracked as [`U26`](../BACKLOG.md). When each
+- **Status:** Proposed. This is a design only, and nothing in it is implemented yet. The library is tracked as issue
+  [#123](https://github.com/NCodeGroup/Identity/issues/123), and moving the management console onto it is tracked as [#158](https://github.com/NCodeGroup/Identity/issues/158). When each
   phase lands, its decisions ([§8](#8-decisions-and-options-considered)) become ADRs.
 - **Date:** 2026-10-20
 - **Scope:** a new **server-side** library that turns an ASP.NET Core application into the Backend for Frontend (BFF)
@@ -679,7 +679,7 @@ registration. Selection is an open strategy collection with two built-in rules:
 - `path` selects by path prefix. The cookie still uses `Path=/` as `__Host-` requires, so isolation comes from the
   cookie **name**.
 
-Naming the cookie per frontend applies the same rule backlog `F50` sets for the OP's own interactive surface: two
+Naming the cookie per frontend applies the same rule issue [#89](https://github.com/NCodeGroup/Identity/issues/89) sets for the OP's own interactive surface: two
 path-addressed surfaces on one origin must never share a session cookie.
 
 ### 5.11 Extensibility seams
@@ -959,7 +959,7 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
 | 2     | `NCode.Identity.Bff` core: the scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP. |
 | 3     | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and `NCode.Identity.Bff.Yarp`.                                                                           |
 | 4     | Multiple frontends, `UseBffSecurityHeaders()`, and the `/bff/jwks` endpoint.                                                                                                                                     |
-| 5     | `U26`: the management console moves onto the BFF. The reference host serves the console through the BFF as a confidential client of its own root tenant, and the console's `@ncode/auth` token custody is retired. The Playground stays a public client on purpose. |
+| 5     | [#158](https://github.com/NCodeGroup/Identity/issues/158): the management console moves onto the BFF. The reference host serves the console through the BFF as a confidential client of its own root tenant, and the console's `@ncode/auth` token custody is retired. The Playground stays a public client on purpose. |
 
 ---
 
@@ -976,7 +976,7 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
   - Rotating the BFF's keys keeps live sessions working.
 - **Interop.** One other OP runs in a container, so the library is proven not to depend on NCode behavior.
 - **OpenID Foundation conformance.** The relying-party test plans (OIDC Basic RP, and FAPI 2.0 client where it
-  applies) certify the protocol client from the other side of the suite the OP already targets (backlog `T1`).
+  applies) certify the protocol client from the other side of the suite the OP already targets (issue [#124](https://github.com/NCodeGroup/Identity/issues/124)).
 - **Browser end-to-end.** A Playwright suite checks the cookie attributes, `SameSite` behavior on cross-site
   navigation, CORS and preflight denial, and Fetch Metadata rejection in real browsers.
 
@@ -997,7 +997,7 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
    worth a separate package?
 5. **Package naming.** Should the packages be `NCode.Identity.Bff` or `NCode.Identity.OpenId.Bff`? The protocol client
    sits under `OpenId` because it is a protocol concern, and the BFF is an application pattern.
-6. **The reference host as its own BFF.** For `U26`, should the console's BFF run in the OP host process (simplest),
+6. **The reference host as its own BFF.** For [#158](https://github.com/NCodeGroup/Identity/issues/158), should the console's BFF run in the OP host process (simplest),
    or as a separate host (cleaner separation of the OP and its first-party client)?
 
 ---

@@ -15,7 +15,7 @@ foreign-key violation, and so did deregistering any dynamically registered clien
 registration access token references it. Deleting a tenant whose users had signed in failed the same way, because
 sessions and federated principals reference it (`500` on PostgreSQL). Local accounts reference their tenant by
 identifier and have no foreign key, so they outlived the tenant silently. The Entity Framework InMemory provider
-enforces no foreign key, so no test of the hermetic host saw any of it (backlog `R59`).
+enforces no foreign key, so no test of the hermetic host saw any of it (issue [#250](https://github.com/NCodeGroup/Identity/issues/250)).
 
 ## Decision
 
@@ -83,7 +83,7 @@ enforces no foreign key, so no test of the hermetic host saw any of it (backlog 
 - A deleted principal leaves no consent or grant.
 - **Breaking:** `IClientStore.HasDependentsAsync` is removed, and `RemoveAsync` of the client store, of the
   resource-server store, and of the tenant store removes what the resource owns.
-- This implements backlog `R59`, `R75` and `R82`.
+- This implements issues [#250](https://github.com/NCodeGroup/Identity/issues/250), [#266](https://github.com/NCodeGroup/Identity/issues/266) and [#273](https://github.com/NCodeGroup/Identity/issues/273).
 
 ## References
 

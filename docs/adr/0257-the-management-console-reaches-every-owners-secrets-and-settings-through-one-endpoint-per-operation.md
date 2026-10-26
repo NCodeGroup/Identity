@@ -10,7 +10,7 @@ The Management API serves the same secrets and settings operations for four kind
 client and a resource server. A console that addresses each owner through its own endpoints repeats the same code once
 per owner: 29 endpoints, each with its own hook and its own cache-tag scheme, and four copies of the secrets and
 settings tabs. A fix to one copy, such as the cache tags that keep one scope's data apart from another's
-([ADR-0064](0064-frontend-presentation-platform.md)), reaches one owner and misses the other three (backlog `R45`).
+([ADR-0064](0064-frontend-presentation-platform.md)), reaches one owner and misses the other three (issue [#236](https://github.com/NCodeGroup/Identity/issues/236)).
 
 The operations are the same for every owner except one: the Management API maps the one-call rotation of a secret
 (`/secrets/{secretId}/rotate`) for clients alone

@@ -7,7 +7,7 @@
 ## Context
 
 Two OpenID Connect authentication-context claims were still unimplemented, each blocked on "tracking that does not
-yet exist" per the token-claims handlers (backlog `F11`):
+yet exist" per the token-claims handlers (issue [#49](https://github.com/NCodeGroup/Identity/issues/49)):
 
 - **`acr` (Authentication Context Class Reference).** OpenID Connect Core 1.0 §2 defines `acr` as an opaque string,
   agreed between the OP and the relying party, that identifies the authentication context class the authentication
@@ -91,7 +91,7 @@ Concretely:
   `default_acr` baseline is configured (honest, but a deployment that wants an always-present `acr` must configure it or
   replace the resolver). **Enforcement** of a requested essential `acr` (denying when the satisfied `acr` is not among
   the requested essential values) was deferred at the time of this decision and is now **implemented** in
-  `DefaultValidateSubjectAuthenticationHandler` (backlog `F19`): an essential `id_token.acr` request with specific
+  `DefaultValidateSubjectAuthenticationHandler` (issue [#57](https://github.com/NCodeGroup/Identity/issues/57)): an essential `id_token.acr` request with specific
   `values` (OpenID Connect Core 1.0 §5.5.1.1) that the principal-stamped `acr` does not satisfy now yields
   `access_denied`, while voluntary requests (including the entire `acr_values` parameter) remain best-effort. MFA-driven
   `acr` will become meaningful once a multi-factor authentication subsystem exists; the seam is ready for it today.

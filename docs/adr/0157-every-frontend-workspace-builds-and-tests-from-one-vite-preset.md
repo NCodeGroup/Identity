@@ -76,8 +76,8 @@ configuration file is a single call to it with that workspace's coverage floors.
 
 ## Consequences
 
-- A gate, a glob, or a serving rule changes in one place for every workspace. Splitting the standalone bundles (backlog
-  `U20`) lands once in the preset.
+- A gate, a glob, or a serving rule changes in one place for every workspace. Splitting the standalone bundles (issue
+  [#152](https://github.com/NCodeGroup/Identity/issues/152)) lands once in the preset.
 - Every workspace collects and measures `.tsx` tests and sources, and the Management console refuses to start on any
   port but 5173.
 - Editing a shared package re-runs its dependents' `test` and `typecheck` locally, and editing the root TypeScript or
@@ -96,4 +96,4 @@ configuration file is a single call to it with that workspace's coverage floors.
   [ADR-0156](0156-shared-app-shell-containers-live-in-ncode-shell.md) (the shared shell)
 - Turborepo: "Dependent tasks that can be run in parallel" (transit nodes), `globalDependencies`
 - Node.js: [type stripping](https://nodejs.org/api/typescript.html#type-stripping)
-- Backlog `U18`
+- Issue [#150](https://github.com/NCodeGroup/Identity/issues/150)

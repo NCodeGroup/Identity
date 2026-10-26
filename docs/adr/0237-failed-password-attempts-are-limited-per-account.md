@@ -13,7 +13,7 @@
 
 The interactive sign-in, the password grant and the self-service change of a password
 ([ADR-0230](0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)) verify a password as often
-as they are asked, so a password can be guessed without end (backlog `R102`). The request rate limiter
+as they are asked, so a password can be guessed without end (issue [#293](https://github.com/NCodeGroup/Identity/issues/293)). The request rate limiter
 ([ADR-0196](0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)) counts requests per tenant, per
 address and per client, never per account, so a guesser that spreads its attempts across addresses is not limited by
 it.
@@ -131,7 +131,7 @@ of its first failure ends, with exactly the answer that a wrong password gets.**
 - A guesser that invents user names creates a counter for each of them, and each expires with its window.
 - **Breaking:** `IExpiringCounterSet` gains `RemoveAsync`, which a custom adapter implements, and
   `IPasswordAttemptLimiter` is added.
-- This implements backlog `R102`.
+- This implements issue [#293](https://github.com/NCodeGroup/Identity/issues/293).
 
 ## References
 

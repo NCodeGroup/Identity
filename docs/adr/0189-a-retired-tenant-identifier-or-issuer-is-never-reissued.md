@@ -78,4 +78,4 @@ row, so the server must remember an identity after the tenant that held it is go
 - [ADR-0129](./0129-the-tenant-issuer-is-the-single-authoritative-origin.md)
 - [ADR-0159](./0159-a-tenant-is-named-by-its-creator.md)
 - [ADR-0165](./0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)
-- Backlog `F70` ([`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLETED.md))
+- Issue [#109](https://github.com/NCodeGroup/Identity/issues/109)

@@ -1,12 +1,12 @@
-# T2 — Browser-automatable login + consent UI (with a seeded conformance identity)
+# Browser-automatable login + consent UI (with a seeded conformance identity)
 
-Status: **implemented.** Detailed plan for backlog item `T2`. Parent design:
+Status: **implemented.** Detailed plan for issue [#125](https://github.com/NCodeGroup/Identity/issues/125). Parent design:
 [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #2 and Appendix B). Decision
 records: [ADR-0062](../adr/0062-opt-in-interactive-login-consent-ui.md) (seam + stable-locator contract),
 [ADR-0065](../adr/0065-interactive-login-consent-op-hosted-auth-surface.md) (realized as the OP-hosted
 `apps/auth` surface), [ADR-0070](../adr/0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md)
 (leaf capability package + pluggable credential verifier). Catalog entry:
-[`BACKLOG.md`](../../BACKLOG.md) group `T`.
+[#125](https://github.com/NCodeGroup/Identity/issues/125).
 
 The interactive login/consent surface landed as the opt-in leaf capability package
 [`NCode.Identity.OpenId.Authentication.Interactive`](../../src/NCode.Identity.OpenId.Authentication.Interactive)
@@ -35,7 +35,7 @@ integration and unit tests
 Consent went beyond the auto-approve stopgap below: durable, granular consent now enforces through this
 same surface ([ADR-0076](../adr/0076-consent-persistence-and-enforcement.md),
 [ADR-0081](../adr/0081-granular-consent-and-authorized-applications.md)). The remaining conformance
-prerequisite is the reachable HTTPS host with a byte-matched `issuer` (`T3`).
+prerequisite is the reachable HTTPS host with a byte-matched `issuer` ([#126](https://github.com/NCodeGroup/Identity/issues/126)).
 
 The rest of this document is the original planning-time plan, retained as a record.
 
@@ -71,7 +71,7 @@ the wire protocol is correct.
   which reads an `X-Test-Subject` header. This is header-driven, not browser-drivable, so it cannot
   satisfy the suite's Selenium login task.
 - **Consent is an open feature gap.** `DefaultAuthorizeHandler` carries `// TODO: check consent`; durable
-  consent persistence/enforcement is tracked separately as `F2`. T2 does **not** depend on `F2` — see
+  consent persistence/enforcement is tracked separately as [#40](https://github.com/NCodeGroup/Identity/issues/40). [#125](https://github.com/NCodeGroup/Identity/issues/125) does **not** depend on [#40](https://github.com/NCodeGroup/Identity/issues/40) — see
   "Consent strategy" below.
 
 ## Approach
@@ -135,13 +135,13 @@ consent page for negative-path tests:
 - Provide `GET/POST /account/consent` exposing `id=consent-allow` and `id=consent-deny`.
 - For the seeded conformance client, auto-approve (skip the screen) by default; keep the deny control
   reachable for the suite's negative tests.
-- This is intentionally decoupled from `F2` (consent persistence). If/when `F2` lands, this dev consent
+- This is intentionally decoupled from [#40](https://github.com/NCodeGroup/Identity/issues/40) (consent persistence). If/when [#40](https://github.com/NCodeGroup/Identity/issues/40) lands, this dev consent
   screen becomes a thin front-end over the persisted-consent decision rather than a parallel mechanism.
 
 ### Seeded identity
 
-The login requires a deterministic user. That seeding is owned by `T4`
-([`conformance-seeding.md`](conformance-seeding.md)); T2 **consumes** it (fixed username/password in the
+The login requires a deterministic user. That seeding is owned by [#127](https://github.com/NCodeGroup/Identity/issues/127)
+([`conformance-seeding.md`](conformance-seeding.md)); [#125](https://github.com/NCodeGroup/Identity/issues/125) **consumes** it (fixed username/password in the
 conformance tenant) and must not re-seed independently.
 
 ## Work breakdown
@@ -153,7 +153,7 @@ conformance tenant) and must not re-seed independently.
 3. Implement `GET/POST /account/consent` (`id=consent-allow` / `id=consent-deny`) plus the auto-approve
    path for the conformance client.
 4. Confirm the end-to-end challenge → login → (auto-)consent → redirect-back loop against a locally
-   launched host (depends on `T3`).
+   launched host (depends on [#126](https://github.com/NCodeGroup/Identity/issues/126)).
 5. Keep the markup locators in sync with the Appendix B / Appendix D `browser` config contract.
 
 ## Acceptance criteria
@@ -168,7 +168,7 @@ conformance tenant) and must not re-seed independently.
 
 ## Dependencies & links
 
-- **Depends on** `T4` (seeded conformance identity) and `T3` (reachable host for end-to-end verification).
-- **Independent of** `F2` (consent persistence) and `F6` (DCR).
+- **Depends on** [#127](https://github.com/NCodeGroup/Identity/issues/127) (seeded conformance identity) and [#126](https://github.com/NCodeGroup/Identity/issues/126) (reachable host for end-to-end verification).
+- **Independent of** [#40](https://github.com/NCodeGroup/Identity/issues/40) (consent persistence) and [#44](https://github.com/NCodeGroup/Identity/issues/44) (DCR).
 - Locator contract: [`conformance-testing.md`](../conformance-testing.md) Appendix B; `browser` config:
   Appendix D.

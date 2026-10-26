@@ -24,7 +24,7 @@ path: the RP-Initiated Logout `end_session_endpoint`, which dispatched `OnEndSes
 revoke the session's grants and send back-channel logout notifications. That command was "the logout side-effect
 extension point".
 
-Session **lifecycle** then grew more termination causes ([F25](../../BACKLOG.md)): a sliding **idle timeout**, a
+Session **lifecycle** then grew more termination causes ([#63](https://github.com/NCodeGroup/Identity/issues/63)): a sliding **idle timeout**, a
 **concurrent-session limit** that evicts the oldest sessions, administrative **revocation**, and subject-wide **global
 sign-out**. The first implementations performed _bare_ grant revocations directly inside `DefaultSessionService`
 (`store.RevokeWhereAsync(...)`), bypassing the logout seam. That was wrong in three ways:

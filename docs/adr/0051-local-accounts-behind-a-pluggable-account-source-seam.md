@@ -200,7 +200,7 @@ Any other store (LDAP, a bespoke table, an external API) is a third implementati
 - The subject-validation handler of the local-account capability is `DefaultValidateLocalAccountSubjectHandler`, which
   enforces active status: it refuses a subject whose local account is disabled or gone
   ([ADR-0224](0224-deleting-or-disabling-an-account-ends-its-sessions.md)).
-- Known follow-ups deferred to [`BACKLOG.md`](../../BACKLOG.md): lockout/throttling policy, password-reset and
+- Known follow-ups deferred to [GitHub issues](https://github.com/NCodeGroup/Identity/issues): lockout/throttling policy, password-reset and
   verification flows, and whether the no-op default or the EF reference becomes the host's wired default.
 
 ## References

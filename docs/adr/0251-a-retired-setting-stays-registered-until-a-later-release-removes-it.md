@@ -14,7 +14,7 @@ leaves the settings documents.
 
 The `PromoteMtlsEndpointAliasAuthority` migration as first written copied each tenant's `mtls_endpoint_alias_authority`
 into the tenant's alias column and deleted the key. The previous release routes and advertises the alias from the key,
-so it lost every alias during the rollout and after a rollback, and `Down` did not restore it (backlog `R15`).
+so it lost every alias during the rollout and after a rollback, and `Down` did not restore it (issue [#206](https://github.com/NCodeGroup/Identity/issues/206)).
 
 ## Decision
 
@@ -43,7 +43,7 @@ it, and a later release removes it from the stored documents together with its d
    and is edited in place, copies each non-empty string value into the alias columns, gives each copied tenant a fresh
    concurrency token, and leaves `SettingsJson` untouched. Its `Down` writes each tenant's alias into the key, and
    removes a stale non-empty key from a tenant that has none, before it drops the columns. The contract step that
-   removes the key is tracked as backlog `D17`.
+   removes the key is tracked as issue [#37](https://github.com/NCodeGroup/Identity/issues/37).
 5. **A rename stays a contract step.** The previous release fails closed on a setting name it has no descriptor for, so
    a rename cannot expand.
 

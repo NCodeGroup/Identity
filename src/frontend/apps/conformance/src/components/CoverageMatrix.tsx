@@ -11,6 +11,8 @@ import Typography from '@mui/material/Typography';
 import type { CoverageChannel, CoverageReport, CoverageStatus } from '@ncode/conformance-core';
 import { CoverageStatusChip } from './CoverageStatusChip.js';
 
+const ISSUE_URL = 'https://github.com/NCodeGroup/Identity/issues/';
+
 export type CoverageMatrixProps = {
   readonly report: CoverageReport;
 };
@@ -45,7 +47,7 @@ function countByStatus(entries: CoverageCategory['entries']): Record<CoverageSta
  * Stateless spec-coverage matrix. Each catalog category is a collapsible panel whose header summarizes its status
  * counts; a category carrying a gap (missing or non-conformant) starts expanded so attention lands on it first. Within
  * a category, entries are ordered worst-status-first, showing the coverage status, the feature, its authoritative
- * reference, the channel that would exercise it, and the tracking backlog id for a gap. Classification reflects what
+ * reference, the channel that would exercise it, and the GitHub issue that tracks a gap. Classification reflects what
  * the provider *advertises* (Phase 1 semantics).
  */
 export function CoverageMatrix({ report }: CoverageMatrixProps) {
@@ -116,13 +118,18 @@ export function CoverageMatrix({ report }: CoverageMatrixProps) {
                             label={CHANNEL_LABEL[entry.channel]}
                             data-testid={`channel-${entry.channel}`}
                           />
-                          {entry.backlog ? (
+                          {entry.issue ? (
                             <Chip
                               size="small"
                               variant="outlined"
                               color="warning"
-                              label={entry.backlog}
-                              data-testid={`backlog-${entry.backlog}`}
+                              component="a"
+                              href={`${ISSUE_URL}${entry.issue}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              clickable
+                              label={`#${entry.issue}`}
+                              data-testid={`issue-${entry.issue}`}
                             />
                           ) : null}
                         </Stack>

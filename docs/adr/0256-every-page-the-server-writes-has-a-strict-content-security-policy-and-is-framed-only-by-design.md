@@ -16,7 +16,7 @@ response, the front-channel logout page and the `check_session_iframe`. Five for
 - Antiforgery is the only component that sets a framing policy on the interactive pages. ASP.NET Core antiforgery adds
   `X-Frame-Options: SAMEORIGIN` to a response only when it stores an antiforgery cookie. A browser that sends its
   cookie back is served the login, consent and account pages and the error page with no framing policy, so a page's
-  protection depends on whether the browser has visited before (backlog `R112`).
+  protection depends on whether the browser has visited before (issue [#303](https://github.com/NCodeGroup/Identity/issues/303)).
 - A page that writes its own headers carries what its author remembered. The `form_post` response's policy lists
   `default-src` and `script-src` but no `frame-ancestors`, and `frame-ancestors` does not fall back to `default-src`,
   so the page can be framed.
@@ -101,7 +101,7 @@ and the `form_post` response only by its client's origin.**
    severs `window.opener` for a pop-up sign-in (`display=popup`). `Permissions-Policy`: the pages use no powerful
    feature, and a frame gets none without an `allow` attribute. `Cross-Origin-Resource-Policy`: it applies to
    subresources, not pages. `Strict-Transport-Security`: it is a transport header that belongs to the host's pipeline
-   (backlog `R113`).
+   (issue [#304](https://github.com/NCodeGroup/Identity/issues/304)).
 8. **The interactive pages are wired through one type.** `InteractivePageSecurity.Create(branding)` returns the nonce
    and the policy of one response. Login, consent, the bundle pages and the error formatter each create one per response
    and pass its nonce to the renderer, and `InteractiveHtmlResult` writes the page through `SetHtmlPageSecurity`.
@@ -143,7 +143,7 @@ and the `form_post` response only by its client's origin.**
   by its client's origin; every other page refuses framing.
 - A page that submits a form to a client keeps `form-action` open, so its protection against an injected form rests on
   HTML encoding, the nonce and `base-uri`.
-- The reference host sends no `Strict-Transport-Security` header (backlog `R113`).
+- The reference host sends no `Strict-Transport-Security` header (issue [#304](https://github.com/NCodeGroup/Identity/issues/304)).
 
 ## References
 

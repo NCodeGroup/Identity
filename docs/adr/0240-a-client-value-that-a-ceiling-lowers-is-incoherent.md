@@ -11,8 +11,8 @@
 `Intersect` ceiling drops and a `true` that an `And` ceiling turns off, but a client's own value of a `Min` setting (a
 lifetime, a timeout, a size, a rate) is lowered to its tenant's, the server's or a selected security profile's ceiling
 without a report. A client that registers a one-hour `access_token_lifetime` receives tokens that live five minutes, the
-server's default, and its registration, the management write and the incoherent-client report all accept it (backlog
-`R71`).
+server's default, and its registration, the management write and the incoherent-client report all accept it (issue
+[#262](https://github.com/NCodeGroup/Identity/issues/262)).
 
 `SettingDescriptor.HasLatticeMerge` says that a setting merges with a meet or a join, not whether the merge can lower a
 value. A meet (`Min`, `And`, `Intersect`) never yields a value above either value, so a ceiling can lower what a child
@@ -82,7 +82,7 @@ value that a ceiling lowers is a coherence violation, reported wherever a droppe
   above the profile's ceiling of 60 seconds
   ([ADR-0148](0148-security-profiles-accumulate-down-the-settings-cascade.md)).
 - **Breaking:** `SettingDescriptor` declares the abstract `HasMeetMerge`, which a type that derives from it implements.
-- This implements backlog `R71`.
+- This implements issue [#262](https://github.com/NCodeGroup/Identity/issues/262).
 
 ## References
 

@@ -125,4 +125,4 @@ a static dev copy — so local dev consumes the real runtime bootstrap endpoint 
   versioning (SDK in `global.json`, packages in `Directory.Packages.props`).
 - Aspire JavaScript hosting (`Aspire.Hosting.JavaScript`: `AddViteApp`/`AddJavaScriptApp`, `WithPnpm`) and resource
   health checks (`WithHttpHealthCheck` + `WaitFor`).
-- [`BACKLOG.md`](../../BACKLOG.md) `U11` (the decision this ADR records).
+- Issue [#143](https://github.com/NCodeGroup/Identity/issues/143) (the decision this ADR records).

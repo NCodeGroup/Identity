@@ -13,7 +13,7 @@
 
 ## Context
 
-FAPI 2.0 readiness (backlog `F16`) is implemented in phases. The merge-lattice ceiling injection
+FAPI 2.0 readiness (issue [#54](https://github.com/NCodeGroup/Identity/issues/54)) is implemented in phases. The merge-lattice ceiling injection
 ([ADR-0108](0108-fapi-security-profile-merge-lattice-ceiling-injection.md)) covers every FAPI constraint that can be
 expressed as a floor/ceiling setting (algorithms, PKCE/PAR, response types, lifetimes, permitted client-auth methods).
 What remains are the FAPI behavioral rules that are **not** expressible as a single setting ceiling — they depend on

@@ -15,11 +15,11 @@ The intervals and the lifetimes that the server and the tenants run timers on ac
 `SecretsPeriodicRefreshInterval` and `TenantCacheLifetime`. A refresh interval that was not positive stopped a poll, a
 lease duration that was not positive kept the reconciliation from holding its lease
 ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)), and a cache lifetime that
-was not positive failed the first write to the tenant cache (backlog `R86`).
+was not positive failed the first write to the tenant cache (issue [#277](https://github.com/NCodeGroup/Identity/issues/277)).
 
 `TenantUsageOptions` was not validated, so a zero flush interval faulted its hosted service after the host started.
 Neither `GrantRetentionOptions` nor `TenantUsageOptions` bound to configuration, so an operator could not set the
-retention or the interval of either (backlog `R83`).
+retention or the interval of either (issue [#274](https://github.com/NCodeGroup/Identity/issues/274)).
 
 ## Decision
 
@@ -71,7 +71,7 @@ the retention options bind from configuration.**
   its configuration key.
 - An operator sets the grant retention, the prune interval, the usage flush interval, and the usage retention through
   configuration, and a misspelled key stops the host.
-- This implements backlog `R83` and `R86`.
+- This implements issues [#274](https://github.com/NCodeGroup/Identity/issues/274) and [#277](https://github.com/NCodeGroup/Identity/issues/277).
 
 ## References
 

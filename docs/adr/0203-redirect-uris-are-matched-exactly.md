@@ -13,7 +13,7 @@ one exception: a native app's loopback IP redirect URI may use any port, because
 it starts. FAPI 1.0 Part 1 §5.2.2-20 requires the redirect URI to be pre-registered and matched, and FAPI 2.0 §5.3.2.2
 requires the same exact match yet permits the native-app loopback form.
 
-A review (backlog `R11`) found three weaknesses in the comparison:
+A review (issue [#202](https://github.com/NCodeGroup/Identity/issues/202)) found three weaknesses in the comparison:
 
 - The query of the requested URI was not compared, so a request could add or change query parameters on a registered
   URI.
@@ -22,13 +22,13 @@ A review (backlog `R11`) found three weaknesses in the comparison:
 - The response writer kept the request-supplied query parameters, so those parameters travelled to the client's
   redirect endpoint inside an accepted response.
 
-A later review (backlog `R52`) found that an accepted redirect URI did not stay as written. The message model parsed
+A later review (issue [#243](https://github.com/NCodeGroup/Identity/issues/243)) found that an accepted redirect URI did not stay as written. The message model parsed
 `redirect_uri` into a `Uri`, so a parked continuation and a stored authorization code carried its normalized form
 (`myapp://callback` became `myapp://callback/`, and the host was lower-cased), the response went to the form that a
 `UriBuilder` produced, and the token endpoint compared with `Uri` equality, which ignores the case of the host and the
 user information, although RFC 6749 §4.1.3 requires the values to be identical.
 
-The same review (backlog `R53`) found that nothing enforced the redirect URI schemes of the FAPI profiles. FAPI 1.0
+The same review (issue [#244](https://github.com/NCodeGroup/Identity/issues/244)) found that nothing enforced the redirect URI schemes of the FAPI profiles. FAPI 1.0
 Part 1 §5.2.2-20 requires `https` and §7.5 refuses private-use and loopback redirection, and FAPI 1.0 Advanced inherits
 both. FAPI 2.0 Security Profile §5.3.2.2-8 refuses `http` except for the loopback redirect of a native client
 (RFC 8252 §7.3).

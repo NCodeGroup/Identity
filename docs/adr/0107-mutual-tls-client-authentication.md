@@ -8,7 +8,7 @@
 
 ## Context
 
-FAPI 2.0 readiness (backlog `F16`) requires **strong client authentication**: a confidential client proves its identity
+FAPI 2.0 readiness (issue [#54](https://github.com/NCodeGroup/Identity/issues/54)) requires **strong client authentication**: a confidential client proves its identity
 with asymmetric cryptography rather than a shared secret. `private_key_jwt`
 ([ADR-0102](0102-jwt-bearer-client-authentication.md)) is one of the two FAPI-permitted mechanisms; **mutual-TLS client
 authentication** ([RFC 8705](https://datatracker.ietf.org/doc/html/rfc8705) §2) is the other.
@@ -72,6 +72,6 @@ proof-of-possession service.
   `token_endpoint_auth_method` and five `tls_client_auth_*` settings, and `AsymmetricSecretKey.CertificateRawData`.
 - Clients using these methods are provisioned through the management API / seeding (which writes the settings directly),
   matching how `private_key_jwt` clients are provisioned today; accepting these methods through Dynamic Client
-  Registration (projecting the `tls_client_auth_*` metadata) is a deliberate follow-up (`F16` Phase 4 / conformance).
+  Registration (projecting the `tls_client_auth_*` metadata) is a deliberate follow-up ([#54](https://github.com/NCodeGroup/Identity/issues/54) Phase 4 / conformance).
 
 [DefaultClientSettingDescriptorDataSource]: ../../src/NCode.Identity.OpenId.Authentication/Settings/DefaultClientSettingDescriptorDataSource.cs

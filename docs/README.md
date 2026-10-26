@@ -24,4 +24,4 @@ hosted platform from scratch — accounts, the infrastructure repository, creden
 
 [`backend-for-frontend.md`](./backend-for-frontend.md) is the proposed design for a Backend for Frontend (BFF) library
 — browser cookie sessions with server-side token custody per RFC 10017 — contrasting it with the bearer-token pattern
-(backlog `F84`).
+(issue [#123](https://github.com/NCodeGroup/Identity/issues/123)).

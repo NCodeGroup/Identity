@@ -23,7 +23,7 @@ or another revocation, made the save of the revocation fail:
 
 The revocation of a refresh-token lineage read again and retried
 ([ADR-0211](0211-a-rotated-refresh-token-is-spent-with-its-successor.md) decision 5), and the other revocations did not
-(backlog `R78`).
+(issue [#269](https://github.com/NCodeGroup/Identity/issues/269)).
 
 ## Decision
 
@@ -91,7 +91,7 @@ a race.**
 - **Breaking:** `IPersistedGrantService.RevokeBySessionAsync` is removed, `IPersistedGrantService.RevokeWhereAsync` is
   added, `GrantFilter.GrantId` is added, and `DefaultRevokeGrantsOnSessionTerminatedHandler` depends on
   `IPersistedGrantService`, so every implementation of the service implements `RevokeWhereAsync`.
-- This implements backlog `R78`.
+- This implements issue [#269](https://github.com/NCodeGroup/Identity/issues/269).
 
 ## References
 

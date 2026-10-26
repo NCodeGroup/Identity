@@ -1,4 +1,4 @@
-# Frontend continuous integration (backlog U5).
+# Frontend continuous integration (issue #137).
 #
 # The frontend toolchain is deliberately OUTSIDE build/dod.ps1: that gate is the .NET Definition of Done, and making it
 # shell out to Node would couple a .NET contributor's inner loop to a pnpm install. This workflow gates the frontend

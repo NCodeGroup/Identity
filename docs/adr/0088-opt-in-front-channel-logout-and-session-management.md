@@ -21,7 +21,7 @@ and **deliberately declined** the two **browser-mediated** mechanisms:
 
 Both depend on the browser delivering each party's **third-party cookie inside an iframe**, which the browser platform
 (Safari ITP, Firefox partitioning, Chrome deprecation) is removing — so they are unreliable by construction going
-forward. ADR-0074 recorded the omission as backlog item `D2` behind a clean extensibility seam.
+forward. ADR-0074 recorded the omission as issue [#22](https://github.com/NCodeGroup/Identity/issues/22) behind a clean extensibility seam.
 
 Since then, a concrete need surfaced: some deployments still integrate relying parties that **only** support the
 iframe-based mechanisms and cannot (yet) be migrated to Back-Channel Logout. The question is therefore not "should the

@@ -22,7 +22,7 @@ password grants. Three grants that issue tokens for an end user did not send it:
 - CIBA push delivery issues the tokens at the approval, which has no protocol request to validate against.
 - The device verification endpoint authenticated its cookie without checking the server-side session of the cookie, so
   the cookie of a terminated session still approved a device request.
-- A device code or an `auth_req_id` was redeemed by whichever client presented it (backlog `R92`).
+- A device code or an `auth_req_id` was redeemed by whichever client presented it (issue [#283](https://github.com/NCodeGroup/Identity/issues/283)).
 
 ## Decision
 
@@ -94,7 +94,7 @@ that client.**
 - **Breaking:** `ValidateSubjectAuthenticationCommand.OpenIdRequest` is nullable, `ICibaRequestService.ApproveAsync`
   returns `false` for a refused subject, a device code or `auth_req_id` that another client presents is
   `invalid_grant`, and `DefaultAuthenticateSubjectHandler` depends on `ISessionService`.
-- This implements backlog `R92`.
+- This implements issue [#283](https://github.com/NCodeGroup/Identity/issues/283).
 
 ## References
 

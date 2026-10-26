@@ -63,7 +63,7 @@ pin by pnpm's own tooling, not by Corepack.
    pinned version by itself (`manage-package-manager-versions`).
 4. **pnpm stays on the newest major Dependabot supports, which is 10** — the same rule
    [ADR-0147](0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md) applies to TypeScript.
-   Dependabot does not bump `packageManager`, so the pin moves only by a deliberate change. Backlog `U21` tracks
+   Dependabot does not bump `packageManager`, so the pin moves only by a deliberate change. Issue [#153](https://github.com/NCodeGroup/Identity/issues/153) tracks
    pnpm 12.
 5. **Every pnpm setting lives in `pnpm-workspace.yaml`.** That is the only place pnpm 11 and later read settings from,
    so this replaces `.npmrc` and the `package.json` `pnpm` field.
@@ -80,7 +80,7 @@ pin by pnpm's own tooling, not by Corepack.
 - **Install Corepack from npm.** Rejected: it adds back to every machine and runner a shim layer that Node itself
   dropped. pnpm and its official action provision the pinned version directly.
 - **Let pnpm 12 manage Node as well** (`devEngines.runtime` with `pnpm/setup`), which would make the runtime a locked,
-  checksummed dependency and remove NVS and `setup-node`. Deferred to `U21`, not rejected: Dependabot supports neither
+  checksummed dependency and remove NVS and `setup-node`. Deferred to [#153](https://github.com/NCodeGroup/Identity/issues/153), not rejected: Dependabot supports neither
   pnpm 12 lockfiles nor `devEngines`, so adopting it now would stop security updates.
 - **Allow esbuild's build script.** Rejected: nothing needs it, and least privilege says a script runs only when a
   dependency cannot work without it.

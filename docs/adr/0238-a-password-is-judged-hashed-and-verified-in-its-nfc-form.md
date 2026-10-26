@@ -11,7 +11,7 @@
 Unicode writes the same text as different sequences of code points: `é` is U+00E9, or `e` followed by the combining
 acute accent U+0301. A device, an input method, a password manager or a paste produces either one, so a verifier that
 hashes the bytes as submitted holds two passwords for what an end user sees as one, and an end user who types the
-password on another device cannot sign in (backlog `R106`).
+password on another device cannot sign in (issue [#297](https://github.com/NCodeGroup/Identity/issues/297)).
 
 NIST SP 800-63B-4 §3.1.1.2 says that the verifier SHOULD apply the normalization process for stabilized strings with
 NFC (UAX #15 §12.1) before it hashes a password, and that each Unicode code point counts as one character.
@@ -28,7 +28,7 @@ The ASP.NET Core Identity adapter differs in what it refuses as well. The passwo
 (`CreateAsync(user, password)`, `ResetPasswordAsync`, `AddPasswordAsync` and `ChangePasswordAsync`) run every
 `IPasswordValidator<TUser>` first, and the default one requires a digit, an upper-case letter, a lower-case letter and a
 non-alphanumeric character. NIST forbids such composition rules, so those methods refuse passwords that the policy
-accepts, and the management API answers `500` (backlog `R105`).
+accepts, and the management API answers `500` (issue [#296](https://github.com/NCodeGroup/Identity/issues/296)).
 
 ## Decision
 
@@ -100,7 +100,7 @@ validator judges a password the server sets.**
   image (`noble-chiseled-extra`) carries ICU.
 - **Breaking:** an `IPasswordHasher` hashes and verifies the NFC form of the bytes it is given, with the fallback to the
   submitted form.
-- This implements backlog `R105` and `R106`.
+- This implements issues [#296](https://github.com/NCodeGroup/Identity/issues/296) and [#297](https://github.com/NCodeGroup/Identity/issues/297).
 
 ## References
 

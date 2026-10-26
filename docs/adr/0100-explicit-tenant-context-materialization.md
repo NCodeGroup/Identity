@@ -13,7 +13,7 @@ the request's own resolved tenant ([ADR-0017](0017-tenant-resolution-shared-abst
 That ambient scope is a **bare string**: enough to isolate data reads, but not a materialized `OpenIdTenant` (settings,
 secrets, issuer).
 
-That gap blocked the admin **sessions** surface ([F25](../../BACKLOG.md),
+That gap blocked the admin **sessions** surface ([#63](https://github.com/NCodeGroup/Identity/issues/63),
 [ADR-0098](0098-session-lifecycle-termination-seam.md)). `ISessionService` is bound to an `OpenIdContext` — it keys the
 session grant on `OpenIdContext.Tenant.TenantId` and dispatches the termination seam through `OpenIdContext.Mediator`,
 and that seam's **back-channel logout** handler must mint and sign a logout token with the **addressed tenant's** issuer

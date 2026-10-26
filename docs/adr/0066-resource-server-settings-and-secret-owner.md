@@ -15,10 +15,10 @@ effective settings) and **secret owners** (a nested secret collection under `...
 one-time reveal of [ADR-0050](0050-secret-material-revealed-once-on-create.md)). Resource servers (APIs,
 in Auth0 terms) were the exception: `PersistedResourceServer` carried `Settings` as a bare `JsonElement`
 with no independent concurrency token and no management endpoints, and had **no** secret collection at
-all. The management console (backlog `U2`) extended the settings/secrets surface to tenants and the
+all. The management console (issue [#134](https://github.com/NCodeGroup/Identity/issues/134)) extended the settings/secrets surface to tenants and the
 server but had to leave resource servers out because the backend owner did not exist.
 
-The open question ([`BACKLOG.md`](../../BACKLOG.md) `U2`) was whether an API should be a **secret** owner
+The open question (issue [#134](https://github.com/NCodeGroup/Identity/issues/134)) was whether an API should be a **secret** owner
 at all. Auth0 APIs do not authenticate with a client secret, which argued for "settings-only". But that
 framing is too narrow: in a comprehensive OpenID Provider a resource server owns **per-audience
 access-token material** —
@@ -67,7 +67,7 @@ resource servers have no runtime domain object today and are not yet resolved at
 Likewise, resource-server management operations are **not audited** yet: the resource-server handler emits
 no audit events for any operation (create/update/delete/scopes included), so auditing is deferred as a
 single uniform follow-up rather than bolted onto only the new leaves. Both are tracked in
-[`BACKLOG.md`](../../BACKLOG.md).
+[GitHub issues](https://github.com/NCodeGroup/Identity/issues).
 
 ## Consequences
 
@@ -79,4 +79,4 @@ single uniform follow-up rather than bolted onto only the new leaves. Both are t
   churn expected.
 - A new EF migration (`AddResourceServerSecrets`) adds two columns and the `ResourceServerSecrets` table.
 - The HS256-signing-secret storage question (hash-at-rest vs reversible) is **not** resolved here; it
-  rides on the existing `S5` fork and applies equally to every symmetric secret owner.
+  rides on the existing [#163](https://github.com/NCodeGroup/Identity/issues/163) fork and applies equally to every symmetric secret owner.

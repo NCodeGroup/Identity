@@ -15,7 +15,7 @@ a consent _page_ (`apps/auth`, the `consent-allow` / `consent-deny` locators fro
 [ADR-0062](0062-opt-in-interactive-login-consent-ui.md)), but it was a stopgap: it displayed a generic "an application
 is requesting access" message, posted a decision the server merely redirected on, and an unused
 `InteractiveAuthenticationOptions.AutoApproveConsent` placeholder stood in for real enforcement. Durable consent
-(backlog `F2`) and the remaining shared-platform surfaces (backlog `U3`) were the open work.
+(issue [#40](https://github.com/NCodeGroup/Identity/issues/40)) and the remaining shared-platform surfaces (issue [#135](https://github.com/NCodeGroup/Identity/issues/135)) were the open work.
 
 The natural temptation was to persist consent the way [ADR-0074](0074-session-management-and-logout.md) persisted the
 end-user **session** — as a `PersistedGrant` payload over the existing grant store, with no new table or migration. But
@@ -92,4 +92,4 @@ NormalizedSubjectId)` index for subject enumeration. `SaveAsync` **upserts** (wi
   pre-release); "skip the consent screen" is now simply `require_consent = false` for that client.
 - **Follow-ups remain.** Per-scope (granular) consent toggling, friendly scope descriptions / client display name on
   the consent screen, and the end-user "authorized applications" management + revocation surface are layered onto this
-  aggregate additively; they are tracked in [`BACKLOG.md`](../../BACKLOG.md).
+  aggregate additively; they are tracked in [GitHub issues](https://github.com/NCodeGroup/Identity/issues).

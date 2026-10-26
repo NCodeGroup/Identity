@@ -977,7 +977,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // max_concurrent_sessions: cap on the number of simultaneous sessions a subject may hold; the oldest beyond
             // the cap are revoked at sign-in. 0 disables the limit. Default 0. Not advertised. Override (Replace): a
-            // tenant fully replaces the value. (F25)
+            // tenant fully replaces the value. (issue #63)
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.MaxConcurrentSessions,
@@ -1931,7 +1931,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // subject_types_supported: subject identifier types the server supports (public, pairwise). Both are
-            // implemented (F9), so both are advertised by default. Ceiling (Intersect): a child narrows the parent's set.
+            // implemented (issue #47), so both are advertised by default. Ceiling (Intersect): a child narrows the parent's set.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.SubjectTypesSupported,

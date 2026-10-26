@@ -93,7 +93,7 @@ A host adds an `ICommandHandler` to read anything (including the structured bags
 `ClaimsPrincipal.TryGetMetadata` helper) and emit, transform, or drop arbitrary claims. That pipeline **is** the NCode
 equivalent of Auth0 Actions; the built-in whole-bag projection is just its off-the-shelf default. A richer first-class
 Actions surface (a strongly-typed shaping context, fresh-metadata reload, ordering UI) layers on this same pipeline
-additively and is recorded as pending work in [`BACKLOG.md`](../../BACKLOG.md).
+additively and is recorded as pending work in [GitHub issues](https://github.com/NCodeGroup/Identity/issues).
 
 ### Reserved claim names are constants, not settings
 
@@ -109,7 +109,7 @@ everywhere, remains an additive option.)
 
 Projection is a read path; it cannot enforce that `SystemMetadata` is server-only. That invariant —
 `SystemMetadata` is never end-user-writable — must be enforced by the management/provisioning layer, the same way Auth0
-protects `app_metadata`. It is called out here and tracked as management work (group `A`) in [`BACKLOG.md`](../../BACKLOG.md).
+protects `app_metadata`. It is called out here and tracked as management work in [GitHub issues](https://github.com/NCodeGroup/Identity/issues).
 
 ## Options considered
 
@@ -140,7 +140,7 @@ protects `app_metadata`. It is called out here and tracked as management work (g
 - Custom, Auth0-Actions-style claim shaping is a registered `ICommandHandler` away, with structured access to the bags;
   a first-class Actions surface is deferred.
 - The `SystemMetadata` write-path invariant (never end-user-writable) is the management layer's responsibility, tracked
-  in the backlog.
+  as an issue.
 
 ## References
 

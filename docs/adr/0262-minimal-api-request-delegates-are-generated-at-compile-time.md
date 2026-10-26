@@ -41,7 +41,7 @@ endpoints, which binds at runtime until the generated form binding honors antifo
    tokens, and under RDG a post whose token fails validation answers 500 instead of 400. Its project file sets
    `EnableRequestDelegateGenerator=false` and names the guard test and this ADR.
 3. **A project with form-bound endpoints opts out.** An endpoint that binds `[FromForm]`, `IFormFile` or
-   `IFormCollection` makes its project set `EnableRequestDelegateGenerator=false` until backlog `X8` re-enables the
+   `IFormCollection` makes its project set `EnableRequestDelegateGenerator=false` until issue [#186](https://github.com/NCodeGroup/Identity/issues/186) re-enables the
    generator after upstream closes the gap. Every form endpoint has an integration test that posts without the
    antiforgery token and expects a 4xx response and no change, as
    `LocalAccountLifecycleTests.ChangePassword_WithoutTheAntiforgeryToken_ChangesNothing` does for the change-password
@@ -68,7 +68,7 @@ endpoints, which binds at runtime until the generated form binding honors antifo
   suppression.
 - A new form-bound endpoint in a project that generates its delegates is the smell this decision guards against: move
   it, or opt the project out and add the no-token test.
-- Backlog `X8` tracks re-enabling the generator for the Interactive package once `dotnet/aspnetcore`'s generated form
+- Issue [#186](https://github.com/NCodeGroup/Identity/issues/186) tracks re-enabling the generator for the Interactive package once `dotnet/aspnetcore`'s generated form
   binding checks `IAntiforgeryValidationFeature`.
 
 ## References
@@ -78,7 +78,7 @@ endpoints, which binds at runtime until the generated form binding honors antifo
   — the opt-out.
 - [`LocalAccountLifecycleTests`](../../tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/LocalAccountLifecycleTests.cs)
   — the guard test `ChangePassword_WithoutTheAntiforgeryToken_ChangesNothing`.
-- [`BACKLOG.md`](../../BACKLOG.md) — item `X8`.
+- Issue [#186](https://github.com/NCodeGroup/Identity/issues/186).
 - [ADR-0043](0043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md) — the endpoint-group mechanism that maps the endpoints.
 - `dotnet/aspnetcore` `release/10.0`: `RequestDelegateGeneratorSources` (`TryResolveFormAsync`) and
   `RequestDelegateFactory`.

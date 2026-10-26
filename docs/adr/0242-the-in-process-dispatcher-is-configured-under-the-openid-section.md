@@ -11,7 +11,7 @@
 [ADR-0232](0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md)) without configuration, so
 `InProcessJobDispatcherOptions` (`QueueCapacity`, `FullMode`, `MaxConcurrentJobs`) is set only in code, and the
 reference host offers no key. An operator cannot size the queue or the concurrency of the deliveries without a code
-change (backlog `R103`).
+change (issue [#294](https://github.com/NCodeGroup/Identity/issues/294)).
 
 The configuration binder reads an enum from a number as well as from a name, and it accepts a number that no member has:
 `"7"` binds `BoundedChannelFullMode` to a value that `BoundedChannelOptions` refuses when the queue is built.
@@ -63,7 +63,7 @@ the host starts.**
 - A misspelled key or an invalid value stops the host when it starts and names the key.
 - A `Configure<InProcessJobDispatcherOptions>` that a host registers after `AddConfiguration` runs after the binding
   and wins.
-- This implements backlog `R103`.
+- This implements issue [#294](https://github.com/NCodeGroup/Identity/issues/294).
 
 ## References
 

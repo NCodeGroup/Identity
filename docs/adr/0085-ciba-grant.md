@@ -41,7 +41,7 @@ deployment-specific. Resolving an opaque `login_hint` to a local subject is like
 migration — and expose the two deployment-specific concerns (hint→subject resolution, authentication-device
 notification) plus the approval transition as injectable seams with safe defaults.** Scope the delivery modes to
 **poll and ping** (both complete by polling the token endpoint; ping adds a completion notification); **push** — which
-delivers tokens inside the notification — is deferred (backlog `F17`).
+delivers tokens inside the notification — is deferred (issue [#55](https://github.com/NCodeGroup/Identity/issues/55)).
 
 Concretely:
 
@@ -106,7 +106,7 @@ Concretely:
   property is that approval happens on a **separate** authentication device, not via a browser on the consumption
   device. The approval is an `ICibaRequestService` operation a deployment's device callback invokes, not an OP-hosted
   page.
-- **Implement push delivery now.** Deferred (`F17`): push delivers tokens inside the notification, which needs the
+- **Implement push delivery now.** Deferred ([#55](https://github.com/NCodeGroup/Identity/issues/55)): push delivers tokens inside the notification, which needs the
   notification channel to carry (and secure) a full token response. Poll and ping — which complete through the existing
   token endpoint — cover the common modes; push layers onto the same `ICibaNotificationService` seam when needed.
 
@@ -121,12 +121,12 @@ Concretely:
   then the endpoint is advertised but returns `unknown_user_id`, which is the honest, secure default.
 - CIBA and the device flow now share the pending-request model and `UpdatePayloadAsync`; a third such grant would
   justify promoting the shared "pending authorization" shape into a small helper, but two is not yet that signal.
-- Push delivery (`F17`) and signed/encrypted backchannel request objects
-  (`backchannel_authentication_request_signing_alg_values_supported`, a FAPI-CIBA concern) remain backlog follow-ups.
+- Push delivery ([#55](https://github.com/NCodeGroup/Identity/issues/55)) and signed/encrypted backchannel request objects
+  (`backchannel_authentication_request_signing_alg_values_supported`, a FAPI-CIBA concern) remain follow-up issues.
 
-## Update (2026-10-12) — push delivery and signed request objects (backlog `F17` complete)
+## Update (2026-10-12) — push delivery and signed request objects (issue [#55](https://github.com/NCodeGroup/Identity/issues/55) complete)
 
-The two deferrals above are now implemented, completing backlog `F17`:
+The two deferrals above are now implemented, completing issue [#55](https://github.com/NCodeGroup/Identity/issues/55):
 
 - **Push delivery (`mode=push`).** `backchannel_token_delivery_modes_supported` now advertises `push` by default. On
   approval, `ICibaRequestService` composes the token response (via the shared `ICibaTokenResponseService`, extracted
@@ -137,7 +137,7 @@ The two deferrals above are now implemented, completing backlog `F17`:
   authentication-device transport stays an inert seam). The `urn:openid:params:grant-type:ciba` token endpoint rejects a
   push-mode poll with `unauthorized_client`, since push clients never poll. Delivery was initially best-effort; it is
   now **durable and retryable** via the generic job-dispatch adapter in [ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md)
-  (a `CibaDeliveryJob` routed through `IJobDispatcher`), which closed backlog `D4`. The grant payload gained `Resources`
+  (a `CibaDeliveryJob` routed through `IJobDispatcher`), which closed issue [#24](https://github.com/NCodeGroup/Identity/issues/24). The grant payload gained `Resources`
   so push honors the originally requested resource indicators.
 - **Signed backchannel request objects.** The request message gained a `request` parameter; a new
   `LoadBackchannelAuthenticationRequestCommand` (default handler) validates the signed/encrypted JWT against the
@@ -145,7 +145,7 @@ The two deferrals above are now implemented, completing backlog `F17`:
   `backchannel_authentication_request_signing_alg_values_supported` (advertised in discovery), and uses the JWT claims
   as the authoritative request — reusing the JAR validation shape from the authorization endpoint. Encryption-alg
   advertisement (`backchannel_authentication_request_encryption_*`) and enforcement were since added in
-  [ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md), completing backlog `D4`.
+  [ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md), completing issue [#24](https://github.com/NCodeGroup/Identity/issues/24).
 
 ## References
 

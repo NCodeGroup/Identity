@@ -121,7 +121,7 @@ certificate.**
   fails every chain in a container, which holds none.
 - **Fetch each list and then validate with `X509RevocationMode.Offline`.** Rejected: .NET has no API to give `X509Chain`
   a revocation list, so a custom CRL store cannot feed the platform engine. The server checks the lists itself.
-- **Check OCSP in the default checker.** Deferred (backlog `R64`). The CA/Browser Forum made CRLs mandatory and OCSP
+- **Check OCSP in the default checker.** Deferred (issue [#255](https://github.com/NCodeGroup/Identity/issues/255)). The CA/Browser Forum made CRLs mandatory and OCSP
   optional, and a deployment whose PKI is OCSP-only replaces the checker.
 - **Compare the subject by DER bytes or by `X500DistinguishedName.Name` strings.** Rejected: both fail on the string
   type a CA chose (`PrintableString` or `UTF8String`) and on case, which RFC 4517 `distinguishedNameMatch` treats as

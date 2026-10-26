@@ -17,8 +17,8 @@ integrity-protected: anyone who can observe or tamper with the redirect can read
 client **pushes** its authorization request directly to the authorization server over an authenticated back channel
 **before** redirecting the user agent, and receives an opaque one-time `request_uri` it then hands to the authorization
 endpoint. The request parameters never traverse the front channel, the push is client-authenticated, and the server
-controls (and can revoke) the reference. PAR is also a hard prerequisite for the **FAPI** security profiles (backlog
-`F16`) and is the foundation the OAuth 2.1 direction and the Security BCP ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700))
+controls (and can revoke) the reference. PAR is also a hard prerequisite for the **FAPI** security profiles (issue
+[#54](https://github.com/NCodeGroup/Identity/issues/54)) and is the foundation the OAuth 2.1 direction and the Security BCP ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700))
 steer interactive clients toward.
 
 Two different mechanisms now use the `request_uri` authorization parameter, and they must not be conflated: a JAR
@@ -81,7 +81,7 @@ Concretely:
 
 - Clients gain an integrity-protected, client-authenticated, back-channel way to submit authorization requests, with no
   front-channel exposure of the parameters and no URL-length ceiling. This is the FAPI/OAuth 2.1-aligned default for
-  sensitive interactive clients and unblocks the FAPI readiness epic (`F16`).
+  sensitive interactive clients and unblocks the FAPI readiness epic ([#54](https://github.com/NCodeGroup/Identity/issues/54)).
 - Two `request_uri` semantics now coexist; they are kept unambiguous by the `urn:ietf:params:oauth:request_uri:`
   prefix. A JAR `request_uri` without that prefix continues to be fetched over HTTPS as before.
 - The pushed request is intentionally **single-use and short-lived**; a deployment that needs a longer window raises

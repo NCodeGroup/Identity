@@ -82,4 +82,4 @@ validated with the JWT library's default 5-minute clock skew rather than the cli
 - [FAPI 2.0 Message Signing](https://openid.net/specs/fapi-2_0-message-signing.html)
 - [FAPI 1.0 Advanced §5.2.2](https://openid.net/specs/openid-financial-api-part-2-1_0.html)
 - [OpenID Connect CIBA Core §7.1.1](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)
-- Backlog `F40` ([`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLETED.md))
+- Issue [#79](https://github.com/NCodeGroup/Identity/issues/79)

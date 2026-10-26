@@ -86,7 +86,7 @@ Concretely:
   implemented because they depend on third-party cookies the browser platform is removing. The session model and the
   logout pipeline leave the seam open (a session knows its participating clients; the logout command is a mediator
   pipeline others can extend), so a deployment that still needs front-channel behavior can add it without a redesign.
-  The omission is recorded as a deferred item in [`BACKLOG.md`](../../BACKLOG.md), with this ADR as the rationale.
+  The omission is recorded as a deferred item in [GitHub issues](https://github.com/NCodeGroup/Identity/issues), with this ADR as the rationale.
   **(Superseded by [ADR-0088](0088-opt-in-front-channel-logout-and-session-management.md): both mechanisms are now
   implemented as opt-in capabilities, available but disabled by default. The seam this ADR left open is exactly what
   made that an additive, migration-free change.)**
@@ -119,7 +119,7 @@ Concretely:
   `logout_token` and dispatches a `BackChannelLogoutDeliveryJob` rather than `POST`ing inline, so a failed delivery is
   retried (and becomes crash-durable under a durable dispatcher adapter, cf.
   [ADR-0048](0048-durable-audit-delivery-outbox.md)). `max_age` / re-authentication semantics and
-  the `auth_time` conditionality ([`BACKLOG.md`](../../BACKLOG.md) `F11`, `F13`) interact with the session's recorded
+  the `auth_time` conditionality ([#49](https://github.com/NCodeGroup/Identity/issues/49), [#51](https://github.com/NCodeGroup/Identity/issues/51)) interact with the session's recorded
   `auth_time`. Front-Channel Logout / Session Management remain unavailable **by default** (now implementable as an
   opt-in capability via [ADR-0088](0088-opt-in-front-channel-logout-and-session-management.md)); a deployment that
   requires them enables the corresponding setting.

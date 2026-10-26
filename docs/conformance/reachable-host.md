@@ -1,8 +1,8 @@
-# T3 — Reachable HTTPS host for the external harness
+# Reachable HTTPS host for the external harness
 
-Status: **implemented** (the `Conformance` launch profile). Detailed plan for backlog item `T3`. Parent
+Status: **implemented** (the `Conformance` launch profile). Detailed plan for issue [#126](https://github.com/NCodeGroup/Identity/issues/126). Parent
 design: [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #1, #5, and the "Windows
-developer notes"). Catalog entry: [`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLETED.md) group `T`.
+developer notes"). Catalog entry: [#126](https://github.com/NCodeGroup/Identity/issues/126).
 
 ## Goal
 
@@ -32,13 +32,13 @@ https://host.docker.internal:5001` makes the discovery `issuer` byte-match the o
   `https://localhost:5003`. Both conformance profiles serve their own `conformance` tenant (the overlay's
   `StaticSingle:TenantId`), so the Aspire instance never shares the development host's `default` tenant — and its stored
   issuer — in the shared Postgres.
-- **Reuses the conformance tenant/seed (`T4`) and the interactive UI (`T2`).** `ASPNETCORE_ENVIRONMENT =
+- **Reuses the conformance tenant/seed ([#127](https://github.com/NCodeGroup/Identity/issues/127)) and the interactive UI ([#125](https://github.com/NCodeGroup/Identity/issues/125)).** `ASPNETCORE_ENVIRONMENT =
 Conformance` loads `appsettings.Conformance.json` (the `ConformanceSeed` section → `AddConformanceSeed`),
   and `InteractiveAuthentication__BundleRootPath` serves the `apps/auth` login/consent bundle under the
   tenant's `/account/*`.
 
 Run it with `dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance` (the
-full orchestration script that also brings the suite up/down is `T1` Phase D, not T3).
+full orchestration script that also brings the suite up/down is [#124](https://github.com/NCodeGroup/Identity/issues/124) Phase D, not [#126](https://github.com/NCodeGroup/Identity/issues/126)).
 
 ## Current state (verified)
 
@@ -91,20 +91,20 @@ Expose the host on a single origin the suite containers can reach — on Windows
 ### Packaging
 
 - The dedicated **`Conformance` launch profile** fixes the port, pins the static tenant's issuer, selects the
-  conformance tenant/seeding (`T4`), and enables the interactive dev UI (`T2`). This profile is the single
+  conformance tenant/seeding ([#127](https://github.com/NCodeGroup/Identity/issues/127)), and enables the interactive dev UI ([#125](https://github.com/NCodeGroup/Identity/issues/125)). This profile is the single
   "run the OP for conformance" entry point; the full orchestration script (launch → compose up →
-  run-test-plan → teardown) is part of `T1` Phase D, not T3.
+  run-test-plan → teardown) is part of [#124](https://github.com/NCodeGroup/Identity/issues/124) Phase D, not [#126](https://github.com/NCodeGroup/Identity/issues/126).
 
 ## Work breakdown
 
 1. ✅ Define the `Conformance` launch profile: stable HTTPS port, all-interfaces bind, issuer
    pin, conformance tenant selection, dev-UI + seeding toggles.
 2. Verify the running OP is reachable from a container at `host.docker.internal:5001` and serves
-   `/.well-known/openid-configuration` + `/oauth2/jwks` — a `T1` Phase C step (needs the suite stack up).
+   `/.well-known/openid-configuration` + `/oauth2/jwks` — a [#124](https://github.com/NCodeGroup/Identity/issues/124) Phase C step (needs the suite stack up).
 3. Assert `issuer` in the discovery document byte-matches the origin in the Appendix D
-   `server.discoveryUrl` — guaranteed by the issuer pin above; re-confirm live in `T1` Phase C.
-4. Confirm the dev cert path works with the suite's dev-mode SSL relaxation — a `T1` Phase C step.
-5. Record the exact run recipe (above) in the orchestration notes consumed by `T1`.
+   `server.discoveryUrl` — guaranteed by the issuer pin above; re-confirm live in [#124](https://github.com/NCodeGroup/Identity/issues/124) Phase C.
+4. Confirm the dev cert path works with the suite's dev-mode SSL relaxation — a [#124](https://github.com/NCodeGroup/Identity/issues/124) Phase C step.
+5. Record the exact run recipe (above) in the orchestration notes consumed by [#124](https://github.com/NCodeGroup/Identity/issues/124).
 
 ## Acceptance criteria
 
@@ -113,12 +113,12 @@ Expose the host on a single origin the suite containers can reach — on Windows
 - ✅ The discovery `issuer` equals the origin the suite uses (`server.discoveryUrl` origin) — pinned to an
   exact byte match via the static tenant's issuer.
 - The suite (in Docker) can fetch `/.well-known/openid-configuration` and `/oauth2/jwks` from the
-  the host over HTTPS — exercised end-to-end when the suite stack lands in `T1` Phase C.
+  the host over HTTPS — exercised end-to-end when the suite stack lands in [#124](https://github.com/NCodeGroup/Identity/issues/124) Phase C.
 
 ## Dependencies & links
 
-- **Blocks** end-to-end verification in `T2` and the first live plans in `T1` (Phase C).
-- **Pairs with** `T4` (the reachable host must serve the seeded conformance tenant/clients) and `T5`
+- **Blocks** end-to-end verification in [#125](https://github.com/NCodeGroup/Identity/issues/125) and the first live plans in [#124](https://github.com/NCodeGroup/Identity/issues/124) (Phase C).
+- **Pairs with** [#127](https://github.com/NCodeGroup/Identity/issues/127) (the reachable host must serve the seeded conformance tenant/clients) and [#128](https://github.com/NCodeGroup/Identity/issues/128)
   (discovery must be correct on that origin).
 - Config/issuer specifics: [`conformance-testing.md`](../conformance-testing.md) Appendix D and
   "Windows developer notes".

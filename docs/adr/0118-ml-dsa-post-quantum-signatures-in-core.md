@@ -8,10 +8,10 @@
 
 The JOSE library implements RSA (`RS*`/`PS*`) and ECDSA (`ES*`) signatures, and the opt-in `NCode.Identity.Jose.EdDsa`
 package adds `EdDSA` ([ADR-0117](0117-eddsa-clean-room-implementation-opt-in-package.md)). The next algorithm on the
-security-practice roadmap (backlog `F28`) is **post-quantum signing** — **ML-DSA** (FIPS 204), the module-lattice
+security-practice roadmap (issue [#66](https://github.com/NCodeGroup/Identity/issues/66)) is **post-quantum signing** — **ML-DSA** (FIPS 204), the module-lattice
 scheme NIST standardized to replace RSA/ECDSA against a cryptographically-relevant quantum computer.
 
-Two facts settle how it should land, and both changed since `F28` was first written:
+Two facts settle how it should land, and both changed since [#66](https://github.com/NCodeGroup/Identity/issues/66) was first written:
 
 1. **ML-DSA's JOSE binding is a finalized RFC, not a draft.** [RFC 9964](https://datatracker.ietf.org/doc/rfc9964/)
    (May 2026) registers the `alg` values `ML-DSA-44` / `ML-DSA-65` / `ML-DSA-87` (IANA "Recommended: Yes"), the new
@@ -70,7 +70,7 @@ No").
 ## Consequences
 
 - Post-quantum signing is available out of the box with **no** third-party cryptographic dependency and **no** opt-in
-  package — the `F28` ML-DSA item is delivered. SLH-DSA and ML-KEM remain open in `F28` behind their own readiness
+  package — the [#66](https://github.com/NCodeGroup/Identity/issues/66) ML-DSA item is delivered. SLH-DSA and ML-KEM remain open in [#66](https://github.com/NCodeGroup/Identity/issues/66) behind their own readiness
   gates.
 - The one cost is a narrowly-scoped `#pragma warning disable SYSLIB5006` wherever the PKCS#8 / SPKI container formats
   are touched. When the BCL removes the `[Experimental]` flag (its spec is already published), the suppressions can be

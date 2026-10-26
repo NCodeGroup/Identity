@@ -14,7 +14,7 @@
 No grant row was ever removed. Every authorization code, token, rotation of a refresh token, and session left a row, so
 the grants table grew without bound. Deleting a client or a tenant loads all of its grants into one unit of work
 ([ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md)), so the growth also made the delete a larger unit of work
-(backlog `R76`).
+(issue [#267](https://github.com/NCodeGroup/Identity/issues/267)).
 
 A grant that is revoked or expired is still read: a rotated refresh token that is presented again is a reuse
 ([ADR-0087](0087-refresh-token-reuse-detection-and-family-revocation.md)), and a replayed authorization code revokes its
@@ -81,7 +81,7 @@ supports.**
   ([ADR-0221](0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)).
 - A long backlog of ended grants is removed in many small units of work, on every provider.
 - **Breaking:** `IGrantStore.RemoveEndedBeforeAsync` is added, so every implementation of the store implements it.
-- This implements backlog `R76`.
+- This implements issue [#267](https://github.com/NCodeGroup/Identity/issues/267).
 
 ## References
 

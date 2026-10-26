@@ -14,7 +14,7 @@ presents the rotated token again, and so do two tabs of one browser that refresh
 its session.
 
 Auth0 offers a reuse interval and Okta a grace period for this, and FAPI 2.0 §5.3.2.1 Note 1 requires an authorization
-server that rotates refresh tokens to let a client retry (backlog `R79`).
+server that rotates refresh tokens to let a client retry (issue [#270](https://github.com/NCodeGroup/Identity/issues/270)).
 
 ## Decision
 
@@ -89,15 +89,15 @@ a reuse.**
   both keep their session, when the client opts in.
 - A stolen rotated token that is used within the interval receives a branch. Reuse detection still revokes the whole
   lineage when a spent token is presented outside the interval, and revoking any token of the family ends every branch.
-- A retry that is answered is audited as a retry (`token.refresh.retry`, backlog `R84`), and a retry that is refused
+- A retry that is answered is audited as a retry (`token.refresh.retry`, issue [#275](https://github.com/NCodeGroup/Identity/issues/275)), and a retry that is refused
   records no event.
 - A client that requires a retry, as the FAPI 2.0 security profile does, and whose refresh tokens rotate has a reuse
   interval, because the coherence rule of decision 11 refuses a client without one
-  ([ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R81`).
+  ([ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issue [#272](https://github.com/NCodeGroup/Identity/issues/272)).
 - **Breaking:** `IPersistedGrantService` declares `AddToRefreshTokenLineageOrDefault`, `ITokenService` declares
   `ReissueRefreshTokenAsync`, `IGrantStore` declares `GetActiveByRefreshTokenLineageAsync`, and `IAuditEventRecorder`
   declares `RecordRefreshTokenRetryAsync`, so every implementation of one of them implements the member.
-- This implements backlog `R79`, `R81` and `R84`.
+- This implements issues [#270](https://github.com/NCodeGroup/Identity/issues/270), [#272](https://github.com/NCodeGroup/Identity/issues/272) and [#275](https://github.com/NCodeGroup/Identity/issues/275).
 
 ## References
 

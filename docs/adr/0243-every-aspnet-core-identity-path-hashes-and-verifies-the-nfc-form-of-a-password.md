@@ -13,7 +13,7 @@ password itself. A host's own pages do not go through the adapter: `SignInManage
 `ResetPasswordAsync`, which hash and verify the password as typed with the same `IPasswordHasher<TUser>`. A password
 that is not in NFC therefore fails at one of the two once the other has stored or replaced its hash: the adapter
 stores a hash of the NFC form, which a page that verifies the typed form does not match, and a page stores a hash of
-the typed form, which the adapter replaces at its next verification (backlog `R108`).
+the typed form, which the adapter replaces at its next verification (issue [#299](https://github.com/NCodeGroup/Identity/issues/299)).
 
 A host registers its `IPasswordHasher<TUser>` through `AddIdentityCore`, `AddIdentity` or `AddDefaultIdentity`, which
 register the default hasher with `TryAdd`, so an earlier registration stays and a later one wins. A decorator that the
@@ -75,7 +75,7 @@ ASP.NET Core Identity pages hash and verify the same form.**
 - The `SignInManager<TUser>` of ASP.NET Core Identity answers an unknown user name without verifying a hash. That is
   the host's page behavior, not the adapter's.
 - `NormalizingPasswordHasher<TUser>` is public API of the adapter package.
-- This implements backlog `R108`.
+- This implements issue [#299](https://github.com/NCodeGroup/Identity/issues/299).
 
 ## References
 

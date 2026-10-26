@@ -35,7 +35,7 @@ Several defaults over-advertised capabilities that modern guidance (the OAuth 2.
   `access_token_signing_alg_values_supported` advertised **every** registered signature algorithm, including the
   symmetric `HS256`/`HS384`/`HS512` — tokens that cross a trust boundary must not be symmetrically signed.
 
-This was a discovery over-advertisement audit (backlog item `T5`): the conformance Config OP profile fails on
+This was a discovery over-advertisement audit (issue [#128](https://github.com/NCodeGroup/Identity/issues/128)): the conformance Config OP profile fails on
 anything advertised that the OP will not deliver, and advertising deprecated/insecure flows contradicts the
 project's secure-by-default posture ([ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md)).
 

@@ -8,7 +8,7 @@
 
 A tag such as `aspnet:10.0-noble-chiseled-extra` moves: the registry repoints it at each rebuild of the image. Two
 builds of one commit can start from different base layers, and a compromised or broken tag reaches the host image
-without anyone reviewing it (backlog `R35`).
+without anyone reviewing it (issue [#226](https://github.com/NCodeGroup/Identity/issues/226)).
 
 A digest pins the layers, and two details of the tooling shape how it is written:
 
@@ -43,7 +43,7 @@ digests every week.**
    `.github/dependabot.yml` covers `/src/NCode.Identity.OpenId.Host`. It runs weekly, with at most five open pull
    requests, one group for version updates and one for security updates, and it ignores `version-update:semver-major`,
    so a runtime major moves deliberately. It runs although the version updates of the other ecosystems are paused
-   (backlog `D16`): a digest pin receives the operating-system and runtime fixes only through this stream, so pausing it
+   (issue [#36](https://github.com/NCodeGroup/Identity/issues/36)): a digest pin receives the operating-system and runtime fixes only through this stream, so pausing it
    would leave the image on the layers of the day it was pinned.
 5. **The `# syntax=docker/dockerfile:1` frontend stays unpinned.** It is the parser of the build and is never shipped in
    the image, and Dependabot cannot move a pin of it, so a digest would freeze the parser with nothing to update it.
@@ -67,7 +67,7 @@ digests every week.**
 - The `FROM` lines are longer than 120 columns, because a digest cannot wrap.
 - **Breaking:** the Dockerfile takes no `NODE_VERSION` or `DOTNET_VERSION` build argument, so an argument passed for
   either is ignored.
-- This implements backlog `R35`.
+- This implements issue [#226](https://github.com/NCodeGroup/Identity/issues/226).
 
 ## References
 

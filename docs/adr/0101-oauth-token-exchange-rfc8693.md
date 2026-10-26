@@ -50,7 +50,7 @@ Concretely:
   self-issued JWTs — validated against the resolved tenant's own signing keys, issuer, and lifetime — and rejects any
   other issuer. Accepted `subject_token_type` / `actor_token_type` values are the JWT token-type identifiers
   (`access_token`, `id_token`, `jwt`). External/enterprise-IdP tokens are explicitly **out of scope** and tracked as a
-  dedicated backlog epic; the seam exists so that epic can register additional validators (OIDC-brokered, SAML) without
+  dedicated epic issue; the seam exists so that epic can register additional validators (OIDC-brokered, SAML) without
   touching the grant handler.
 - **Requester entitlement.** The requesting client must be **confidential**, and the presented token must have been
   issued **to that client** (`client_id` claim match) or **name it in `aud`**. This prevents a client from exchanging a

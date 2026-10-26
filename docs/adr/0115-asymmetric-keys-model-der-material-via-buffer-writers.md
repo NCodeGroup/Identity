@@ -22,7 +22,7 @@ as **algorithm-specific** members, not a shared base.
 
 The same constraint applies to Edwards-curve **OKP** keys (Ed25519/Ed448): they have no `AsymmetricAlgorithm`
 representation in the BCL at all. An `AsymmetricAlgorithm`-centric model therefore **cannot** represent PQC or OKP keys
-as first-class `AsymmetricSecretKey` instances — which blocks the forward-looking algorithm roadmap (`F28`/`F29`).
+as first-class `AsymmetricSecretKey` instances — which blocks the forward-looking algorithm roadmap ([#66](https://github.com/NCodeGroup/Identity/issues/66)/[#68](https://github.com/NCodeGroup/Identity/issues/68)).
 
 ## Decision
 
@@ -47,11 +47,11 @@ destination) where TWriter : IBufferWriter<byte>, allows ref struct`) rather tha
 
 - The asymmetric key model is now forward-compatible with post-quantum (ML-DSA / SLH-DSA) and Edwards-curve **OKP**
   keys **without further base changes**: such a key derives from `AsymmetricSecretKey` and implements the DER primitive,
-  and its operations attach as algorithm-specific seams. This unblocks `F29` (EdDSA) and the PQC direction in `F28`.
+  and its operations attach as algorithm-specific seams. This unblocks [#68](https://github.com/NCodeGroup/Identity/issues/68) (EdDSA) and the PQC direction in [#66](https://github.com/NCodeGroup/Identity/issues/66).
 - `PublicAPI.Unshipped.txt` churn in `NCode.Identity.Secrets.Abstractions` (removed `ExportAsymmetricAlgorithm`; added
   the writer-based `ExportSubjectPublicKeyInfo<TWriter>`). Expected and acceptable under the greenfield posture
   ([ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md)); it supersedes the `ExportAsymmetricAlgorithm`-shaped
   surface described in [ADR-0067](0067-secret-type-capability-catalog-and-capabilities-discovery.md) and
   [ADR-0105](0105-secret-key-type-descriptor-first-class-seam.md).
 - This change adds **no** new algorithms or key types — only the enabling model and convention. The EdDSA (OKP)
-  implementation itself is tracked as backlog `F29`.
+  implementation itself is tracked as issue [#68](https://github.com/NCodeGroup/Identity/issues/68).

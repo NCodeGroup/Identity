@@ -35,7 +35,7 @@ Concretely:
   `NCode.Identity.AspNetCore.Abstractions`) exposes a lazily-allocated response-header collection plus a
   `SetResponseHeader` mutator. `IOpenIdError` extends it, so any error can carry protocol headers; `OpenIdResult<T>`
   writes them before rendering the JSON body. This is a general seam, not a one-off — the same mechanism carries the
-  `WWW-Authenticate: Bearer` challenge that sender-constrained/DPoP access tokens will need (backlog `F7`).
+  `WWW-Authenticate: Bearer` challenge that sender-constrained/DPoP access tokens will need (issue [#45](https://github.com/NCodeGroup/Identity/issues/45)).
 
 - **Scheme-local challenge via a virtual factory.** `CommonClientAuthenticationHandler` funnels every `invalid_client`
   outcome through a `CreateInvalidClientResult` virtual (default `400`). `ClientSecretBasicClientAuthenticationHandler`

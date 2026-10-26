@@ -57,7 +57,7 @@ var openIdDb = postgres.AddDatabase("openiddb");
 // within minutes. WithReference injects the 'valkey' connection string (with the generated password).
 var valkey = builder.AddValkey("valkey");
 
-// Dedicated migration resource (U12): applies the Npgsql migrations for both contexts, then exits. Dependents
+// Dedicated migration resource (issue #144): applies the Npgsql migrations for both contexts, then exits. Dependents
 // WaitForCompletion on it, so a migration failure surfaces as a failed dashboard resource that blocks the api — it
 // never manifests as an api crash. WaitFor(postgres) holds it until the database is accepting connections.
 var migrations = builder

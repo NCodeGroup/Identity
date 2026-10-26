@@ -16,7 +16,7 @@ way to ask for a token scoped to just one of them.
 [RFC 8707 (Resource Indicators for OAuth 2.0)](https://datatracker.ietf.org/doc/html/rfc8707) defines the
 `resource` request parameter precisely for this: a client names the protected resource(s) a token is for,
 the authorization server validates them, and the issued token's audience is **narrowed** to the requested
-resources. This is also a prerequisite for FAPI-grade deployments (backlog `F16`) where tokens must be
+resources. This is also a prerequisite for FAPI-grade deployments (issue [#54](https://github.com/NCodeGroup/Identity/issues/54)) where tokens must be
 tightly audience-bound.
 
 ## Decision

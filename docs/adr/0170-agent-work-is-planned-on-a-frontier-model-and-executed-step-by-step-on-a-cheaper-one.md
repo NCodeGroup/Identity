@@ -7,7 +7,7 @@
 ## Amendment (2026-10-25): the project template, Claude Sonnet 5.5 and Claude Code
 
 This repository adopted [project-template](https://github.com/polewskm/project-template) `v0.3.0` with its
-`Adopt-Project.ps1` (backlog `X10`), so the workflow files are template-owned files of a Copier project rather than an
+`Adopt-Project.ps1` (issue [#188](https://github.com/NCodeGroup/Identity/issues/188)), so the workflow files are template-owned files of a Copier project rather than an
 installer's output. Three parts of the decision change:
 
 - **The files come from the template.** The agents, prompt files and skills under `.github/`, Claude Code's commands
@@ -30,7 +30,7 @@ installer's output. Three parts of the decision change:
 
 The commit-attribution check is now the template's `.template/Test-CommitAttribution.ps1`, and the template tests it
 and the hook ([ADR-0128](0128-commits-are-attributed-to-people-not-agents.md)). identity-platform keeps the installer
-until it adopts the template too (backlog `X11`).
+until it adopts the template too (issue [#189](https://github.com/NCodeGroup/Identity/issues/189)).
 
 The adoption kept the files the template merges with this repository's own (`.editorconfig`, `.gitattributes`,
 `.gitignore`, `.vscode/settings.json`, `.claude/settings.json`, `Directory.Build.props` and `Directory.Packages.props`)
@@ -96,10 +96,10 @@ The rules:
 - **Review is part of the loop.** The reviewer compares the diff with the plan, rates every deviation from a step's
   text at least should-fix — a deviation means the executor improvised instead of escalating — and appends fixes as new
   steps for the executor.
-- **`PLAN.md` and its checkpoints are transient.** [`BACKLOG.md`](../../BACKLOG.md) is the single tracker of pending
+- **`PLAN.md` and its checkpoints are transient.** [GitHub issues](https://github.com/NCodeGroup/Identity/issues) are the single tracker of pending
   work and the ADRs carry the reasoning, so a plan never outlives its change. `PLAN.md` is a gitignored working file
   that no commit contains, and each step's checkpoint stages only the files the step lists. Its Decisions are promoted
-  into ADRs, instruction files, or the backlog, `PLAN.md` is deleted, and the `Plan` / `Plan step` / `Re-plan step`
+  into ADRs, instruction files, or issues, `PLAN.md` is deleted, and the `Plan` / `Plan step` / `Re-plan step`
   checkpoints are squashed into conventional commits before the change leaves the machine — before its topic branch is
   pushed here ([ADR-0261](0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), and before a
   pull request merges in `identity-platform`.
@@ -124,7 +124,7 @@ Implementation** handoff to Auto, so the built-in flow follows the same split.
 
 ### Dual-runtime customization contract
 
-**Retain both Local prompts and Copilot skills as the permanent supported design**, closing backlog item `X1`.
+**Retain both Local prompts and Copilot skills as the permanent supported design**, closing issue [#179](https://github.com/NCodeGroup/Identity/issues/179).
 The two files are runtime adapters for one workflow, not competing definitions awaiting a migration. The 16 generated
 workflow pairs come from the installer templates; the hand-written `audit-conventions` pair is maintained together.
 The adapter boundary is explicit:
@@ -160,7 +160,7 @@ That flag has also made explicit skill invocation fail
 ([github/copilot-cli#4438](https://github.com/github/copilot-cli/issues/4438), still open when checked on 2026-10-20).
 The bug explains the configuration choice, but its resolution is **not** a completion dependency or a scheduled
 follow-up: automatic skill availability is an intentional supported behavior. Any future change is a new design
-decision, not unfinished `X1` work. User-profile migration entries are outside this repository contract and require
+decision, not unfinished [#179](https://github.com/NCodeGroup/Identity/issues/179) work. User-profile migration entries are outside this repository contract and require
 individual review.
 
 ## Options considered

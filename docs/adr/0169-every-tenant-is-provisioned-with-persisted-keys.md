@@ -69,7 +69,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
 
    Public-only encodings (`spki`, `x509`) never count. An encoding this policy does not know — for example an external
    keystore's — is trusted rather than duplicated. A provisioned key carries no effective lifetime: nothing enforces a
-   key's expiry, and it is stamped a century out. Rollover (backlog `S8`) gives keys lifetimes.
+   key's expiry, and it is stamped a century out. Rollover (issue [#166](https://github.com/NCodeGroup/Identity/issues/166)) gives keys lifetimes.
 5. **An unreadable key fails the tenant.** A key the key ring can no longer unprotect still counts as held, so nothing
    is generated beside it. The tenant read path fails with a message that names the tenant and the lost or changed key
    ring. Only the development `PersistentSigningKey` mode removes such keys, through a pruning contributor that runs
@@ -100,7 +100,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
    - The configured set stays the ceiling: a client registering an algorithm outside it, such as `ES384`, still needs
      the algorithm configured or a key imported.
    - A held key the tenant's settings no longer use is kept: provisioning never removes a key, and retiring one is key
-     lifecycle (backlog `S8`).
+     lifecycle (issue [#166](https://github.com/NCodeGroup/Identity/issues/166)).
 10. **A committed tenant change re-seeds the tenant at once.** A tenant is seeded when it is materialized, and the
     tenant cache keeps a materialized tenant until its absolute lifetime ends, so a tenant whose settings later permit a
     configured algorithm would advertise it without a key until then. Every management write to a tenant — its record,
@@ -148,7 +148,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
 - **Seed a single RSA key, as the developer seeder did.** Rejected: FAPI 2.0 tenants cannot use RS256, and a fixed key
   shape is a closed vocabulary.
 - **One RSA key without `alg` for both RS256 and PS256.** Rejected: a key should be bound to one algorithm.
-- **Provision every configured algorithm for every tenant.** Rejected (originally adopted, revised by backlog `S12`): a
+- **Provision every configured algorithm for every tenant.** Rejected (originally adopted, revised by issue [#170](https://github.com/NCodeGroup/Identity/issues/170)): a
   tenant whose profile excludes an algorithm held and published a key for it that it never used.
 - **Provision the union of the configured set and each tenant's lists.** Rejected: the effective lists default to every
   registered asymmetric algorithm, so a tenant would hold a key for each; the configured set keeps the operator in
@@ -180,7 +180,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
 - A management write to a tenant evicts it, so the next request on that replica materializes the tenant again; a
   settings write returns after any key the new settings need has been provisioned.
 - A tenant whose keys cannot be unprotected stays unavailable until its key ring is restored, so the key ring's own
-  protection (backlog `S10`) matters more.
+  protection (issue [#168](https://github.com/NCodeGroup/Identity/issues/168)) matters more.
 - **Breaking:**
   - `AddDeveloperSigningKey` is `AddPersistentDeveloperKeys`, and it registers only the pruning contributor.
   - `Ephemeral` mode turns provisioning off.

@@ -11,7 +11,7 @@ state, so a tenant's `clients`, `resource-servers`, `grants` and `settings` surf
 reachable with back and forward. The tenant's own secrets, settings and usage are not: they are tabs held in React
 state beneath the one `settings` surface. A link to the tenant's usage opens the secrets, a reload returns to the first
 tab, and back returns to the previous surface instead of the previous tab. The "Settings" tab also opens on the
-secrets, so its label names one of the three views it holds (backlog `R45`).
+secrets, so its label names one of the three views it holds (issue [#236](https://github.com/NCodeGroup/Identity/issues/236)).
 
 ## Decision
 

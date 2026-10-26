@@ -131,7 +131,7 @@ built-in `crl` source processes CRLs as RFC 5280 §6.3.3 describes.**
   policy, and checking it through its CRLs keeps such a PKI working.
 - **Use a delta list when it can be retrieved, and the complete list alone otherwise.** Rejected: a CA publishes delta
   lists because its complete list lags, so blocking the delta location would hide every recent revocation.
-- **Configure the order of the sources.** Deferred (backlog `D18`): the names would have to be validated when the
+- **Configure the order of the sources.** Deferred (issue [#38](https://github.com/NCodeGroup/Identity/issues/38)): the names would have to be validated when the
   host starts without constructing the sources, which read the options being validated, and that needs registered
   descriptors, as client-authentication methods have
   ([ADR-0207](0207-client-authentication-methods-are-named-by-registered-descriptors.md)).

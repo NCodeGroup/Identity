@@ -27,7 +27,7 @@ The server honored almost none of it:
 - The request-object and UserInfo algorithm lists were read only by discovery, so they applied to tenants only
   ([ADR-0149](0149-settings-declare-the-scopes-they-apply-to.md)). A request object's `alg` was checked only against
   `none`, so the FAPI 2.0 profile's ceiling on request-object signing did not bind, and the UserInfo endpoint returned
-  only JSON while discovery advertised signed and encrypted responses (backlog `F63`).
+  only JSON while discovery advertised signed and encrypted responses (issue [#102](https://github.com/NCodeGroup/Identity/issues/102)).
 - The UserInfo endpoint accepted the end-user's session cookie in place of an access token. OpenID Connect Core §5.3
   defines it as an OAuth 2.0 protected resource, and a cookie names no client to address a protected response to.
 - The encryption lists offered every registered key-management algorithm: `RSA1_5`, which RFC 8725 §3.2 says to avoid,
@@ -99,7 +99,7 @@ never compresses.**
 
 ## Options considered
 
-- **Stop advertising and retire the UserInfo algorithm settings** (the alternative `F63` offered). Rejected: signed and
+- **Stop advertising and retire the UserInfo algorithm settings** (the alternative [#102](https://github.com/NCodeGroup/Identity/issues/102) offered). Rejected: signed and
   encrypted UserInfo responses are part of OpenID Connect Core and of the Auth0-parity-plus surface
   ([ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md)); implementing them is the complete model.
 - **Keep choosing algorithms from the lists.** Rejected: a client cannot predict the result, so it cannot pin the
@@ -131,7 +131,7 @@ never compresses.**
   A change to the host's configured settings is not checked against clients; issuance remains the backstop.
 - A server or tenant settings change checks clients only when a setting the rule reads changed, and it reads the
   tenants and clients as untracked, secret-free projections, so a change to an unrelated setting costs no client walk
-  (backlog `R21`).
+  (issue [#212](https://github.com/NCodeGroup/Identity/issues/212)).
 - A relying party that called UserInfo with only the end-user's session cookie must present an access token.
 - A dynamically registered client can narrow its assertion algorithm and use CIBA without the management API. Its
   `backchannel_token_delivery_mode` is checked against the tenant's `backchannel_token_delivery_modes_supported`; its
@@ -143,9 +143,9 @@ never compresses.**
   `RegisterClientRequest` and `RegisterClientResponse` gain the response and request-object metadata, the
   `token_endpoint_auth_signing_alg`, and the CIBA registration metadata (CIBA Core 1.0 §4). A deployment that
   stores settings documents in its own database applies the same migration there.
-- Follow-ups: request-object audience, typing, and lifetime (backlog `F40`); validating client key material at every
-  entry point (`F65`); the server validating access tokens it encrypted
-  (`F67`).
+- Follow-ups: request-object audience, typing, and lifetime (issue [#79](https://github.com/NCodeGroup/Identity/issues/79)); validating client key material at every
+  entry point ([#104](https://github.com/NCodeGroup/Identity/issues/104)); the server validating access tokens it encrypted
+  ([#106](https://github.com/NCodeGroup/Identity/issues/106)).
 
 ## References
 

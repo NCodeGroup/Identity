@@ -54,11 +54,12 @@ and [`.claude/rules/csharp-testing.md`](.claude/rules/csharp-testing.md) point i
 
 ## Known pending work
 
-[`BACKLOG.md`](BACKLOG.md) is the single source of truth for documented pending work — deferred decisions, feature
-gaps, and follow-ups. Record pending/deferred items **there** (and a non-obvious decision in an ADR), not in chat
-history or volatile agent memory ([ADR-0008](docs/adr/0008-conventions-and-lessons-live-in-the-repository.md)). When an
-item is fully done, **move** its text to the completed-items archive [`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)
-(don't just delete it) so completed work stays discoverable without git archaeology.
+Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as
+[GitHub issues](https://github.com/NCodeGroup/Identity/issues), the single source of truth for it
+([ADR-0264](docs/adr/0264-pending-work-is-tracked-as-github-issues.md)). Record a pending item as an issue labeled by
+its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
+([ADR-0008](docs/adr/0008-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an issue
+closes it with `Closes #<number>`.
 
 ## Plan-and-execute workflow
 
@@ -171,7 +172,7 @@ follows an **Auth0-parity-plus** philosophy — familiar Auth0 shapes with more 
 best long-term, cohesive design**: when a change forks between a minimal compatibility-preserving patch and the
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
 breakage, and surface a fork for the user only when the options are genuinely equal in quality. Full statement: the
-standing posture in [`BACKLOG.md`](BACKLOG.md).
+[design posture](.github/instructions/repository.instructions.md#design-posture-greenfield-pre-release).
 
 ## Copilot cloud agent sessions
 
@@ -179,7 +180,7 @@ A cloud-agent session stops at **59 minutes**, a hard limit that cannot be raise
 everything on it. Only commits pushed from the repository clone survive — work on any other branch or `git worktree`
 (for example under `/tmp`) is lost even when it is committed. So:
 
-- **Size a session to fit.** Give one session one dependency chain of backlog items (one to three items), not a whole
+- **Size a session to fit.** Give one session one dependency chain of issues (one to three issues), not a whole
   group. Run independent chains as separate sessions; each gets its own runner and its own 59 minutes.
 - **Read the deadline from the runner, not the agent.** The limit is the job's `timeout-minutes: 59` in
   `copilot-setup-steps.yml`, so it counts from when the job starts and includes the setup steps; the agent can begin

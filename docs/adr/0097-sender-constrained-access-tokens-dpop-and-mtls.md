@@ -15,7 +15,7 @@
 
 Every access token the server issued was a **bearer** token: possession alone authorizes use, so a token leaked from a
 log, a proxy, a browser, or a compromised resource server can be replayed by anyone. Modern guidance
-([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), the FAPI security profiles — backlog `F16`) steers high-value
+([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), the FAPI security profiles — issue [#54](https://github.com/NCodeGroup/Identity/issues/54)) steers high-value
 deployments toward **sender-constrained** (proof-of-possession) tokens, where the token is cryptographically bound to a
 key the legitimate client holds. The two standardized mechanisms are:
 
@@ -143,7 +143,7 @@ Concretely:
     `require_dpop_bound_access_tokens` in the server, tenant, and client settings documents. Configuration is not
     stored data: a deployment that sets `OpenId:Server:Settings:require_dpop` renames it to
     `OpenId:Server:Settings:require_dpop_bound_access_tokens`, because the server refuses the old name as a setting
-    that is not registered ([ADR-0139](0139-setting-names-are-a-closed-vocabulary.md)). This implements backlog `R65`.
+    that is not registered ([ADR-0139](0139-setting-names-are-a-closed-vocabulary.md)). This implements issue [#256](https://github.com/NCodeGroup/Identity/issues/256).
 
 - **Resource-server validation (RFC 9449 §7.1, RFC 8705 §3).** When a bound access token reaches a protected resource
   (the UserInfo endpoint, the management API), `IProofOfPossessionService.ValidateResourceAccessAsync` re-checks the
@@ -169,7 +169,7 @@ Concretely:
 ## Consequences
 
 - Access tokens are DPoP- or certificate-bound end to end — from issuance (grant handlers), through persistence
-  (refresh-token continuity), to resource-server validation — satisfying a core FAPI (`F16`) prerequisite and removing
+  (refresh-token continuity), to resource-server validation — satisfying a core FAPI ([#54](https://github.com/NCodeGroup/Identity/issues/54)) prerequisite and removing
   the single most-recurring code-local TODO theme.
 - New public surface: the `IProofOfPossessionService` (including `ValidateResourceAccessAsync`) /
   `IClientCertificateResolver` / `IDPoPProofReplayCache` / `IDPoPNonceService` seams, the `TokenConfirmation` /

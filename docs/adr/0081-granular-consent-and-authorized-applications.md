@@ -79,5 +79,4 @@ grantedScopes)` grows the decided set monotonically (`decided ∪ requested`) an
 - **The consent subsystem depends on client and scope resolution.** `DefaultConsentService` now resolves client display
   names (via the client resolver) and scope descriptions (via `IScopeDescriptionService`) for its presentation methods;
   this keeps presentation cohesive in one place at the cost of those dependencies.
-- **`F2` is complete.** The granular, friendly, and self-service follow-ups ADR-0076 deferred are delivered; the backlog
-  item is removed.
+- **[#40](https://github.com/NCodeGroup/Identity/issues/40) is complete.** The granular, friendly, and self-service follow-ups ADR-0076 deferred are delivered.

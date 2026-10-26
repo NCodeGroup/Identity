@@ -1,6 +1,6 @@
 # 158. An access token is bound by its client and every resource server it targets
 
-- **Status:** Accepted (follow-up `F67` closed by
+- **Status:** Accepted (follow-up [#106](https://github.com/NCodeGroup/Identity/issues/106) closed by
   [ADR-0167](0167-the-server-validates-the-tokens-it-issued-under-one-policy.md): the server reads the access tokens it
   encrypted)
 - **Date:** 2026-10-19
@@ -156,7 +156,7 @@ the request is refused. Nothing is silently weakened or redirected.**
   `ResourceServerCredentialResolution.SingleSecretsProvider`; the new `IAccessTokenPolicyService` and
   `AccessTokenPolicy`; the two new setting names and keys.
 - The server's own readers of access tokens — UserInfo, introspection, token exchange, the management API — do not yet
-  decrypt the tokens it encrypts (backlog `F67`).
+  decrypt the tokens it encrypts (issue [#106](https://github.com/NCodeGroup/Identity/issues/106)).
 
 ## References
 

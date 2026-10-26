@@ -3,24 +3,24 @@
     "test-name": "oidcc-idtoken-unsigned",
     "variant": "*",
     "configuration-filename": "oidcc-basic.json",
-    "comment": "Intentional, spec-conformant skip (BACKLOG T8). The OP does not advertise the OPTIONAL 'none' value in 'id_token_signing_alg_values_supported' (asymmetric signing is the secure default per RFC 9700 / FAPI), so the suite skips the unsigned-id_token test. OIDC Core permits an unsigned id_token only for flows that return no id_token from the authorization endpoint and only when the client registers it; the code flow always signs."
+    "comment": "Intentional, spec-conformant skip (issue #131). The OP does not advertise the OPTIONAL 'none' value in 'id_token_signing_alg_values_supported' (asymmetric signing is the secure default per RFC 9700 / FAPI), so the suite skips the unsigned-id_token test. OIDC Core permits an unsigned id_token only for flows that return no id_token from the authorization endpoint and only when the client registers it; the code flow always signs."
   },
   {
     "test-name": "oidcc-request-uri-unsigned-supported-correctly-or-rejected-as-unsupported",
     "variant": "*",
     "configuration-filename": "oidcc-basic.json",
-    "comment": "Intentional, spec-conformant skip (BACKLOG T8). 'none' is not listed in 'request_object_signing_alg_values_supported' (OIDC Discovery §3 makes 'none' OPTIONAL), so the suite assumes unsigned request objects are unsupported and skips. The OP implements and advertises JAR itself (request/request_uri supported)."
+    "comment": "Intentional, spec-conformant skip (issue #131). 'none' is not listed in 'request_object_signing_alg_values_supported' (OIDC Discovery §3 makes 'none' OPTIONAL), so the suite assumes unsigned request objects are unsupported and skips. The OP implements and advertises JAR itself (request/request_uri supported)."
   },
   {
     "test-name": "oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported",
     "variant": "*",
     "configuration-filename": "oidcc-basic.json",
-    "comment": "Intentional, spec-conformant skip (BACKLOG T8). Same root as oidcc-request-uri-unsigned-*: the OP does not advertise the OPTIONAL 'none' request-object signing alg, so the suite skips the unsigned-request-object test."
+    "comment": "Intentional, spec-conformant skip (issue #131). Same root as oidcc-request-uri-unsigned-*: the OP does not advertise the OPTIONAL 'none' request-object signing alg, so the suite skips the unsigned-request-object test."
   },
   {
     "test-name": "oidcc-ensure-request-object-with-redirect-uri",
     "variant": "*",
     "configuration-filename": "oidcc-basic.json",
-    "comment": "Intentional, spec-conformant skip (BACKLOG T8). The suite skips this because 'none' is not listed in 'request_object_signing_alg_values_supported'; it exercises an unsigned request object, which the OP does not advertise support for (asymmetric signing is the secure default)."
+    "comment": "Intentional, spec-conformant skip (issue #131). The suite skips this because 'none' is not listed in 'request_object_signing_alg_values_supported'; it exercises an unsigned request object, which the OP does not advertise support for (asymmetric signing is the secure default)."
   }
 ]

@@ -73,7 +73,7 @@ Concretely:
 - **Verification is a first-class interaction, not a new auth stack.** The user verification endpoint reuses the same
   subject-authentication and consent seam the authorization endpoint uses; approving a device request is the same
   "authenticate the user, capture a consent decision" operation, just keyed by `user_code` instead of an authorization
-  request. (Consent persistence itself remains backlog **F2**; the device flow consumes whatever consent decision the
+  request. (Consent persistence itself remains issue **[#40](https://github.com/NCodeGroup/Identity/issues/40)**; the device flow consumes whatever consent decision the
   interaction produces.)
 - **New error codes.** `OpenIdConstants.ErrorCodes` gains `authorization_pending`, `slow_down`, and `expired_token`
   (`access_denied` already exists), returned as `400` OAuth error responses from the token handler.

@@ -83,7 +83,7 @@ What the figure measures, and how a partially covered line counts, is set by
   accepted, because Codecov is not a gate.
 - Coverage figures change once stale runs stop being merged; the first figures after this change are the first
   accurate ones. Old `tests/*/TestResults/` folders on a developer machine are no longer read and can be deleted.
-- `@vitest/coverage-v8` must track the installed Vitest version, so it moves with every Vitest upgrade (backlog `U14`).
+- `@vitest/coverage-v8` must track the installed Vitest version, so it moves with every Vitest upgrade (issue [#146](https://github.com/NCodeGroup/Identity/issues/146)).
 - ReportGenerator's markdown is trimmed to its overall summary if it would exceed GitHub's 1 MiB step-summary limit.
 
 ## References

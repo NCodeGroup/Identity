@@ -5,8 +5,7 @@ Status: **harness committed; nightly CI pipeline deferred.** The committed, runn
 baselines), summarized in [`docs/conformance/external-suite.md`](conformance/external-suite.md); the
 appendices below are the reference material it was lifted from. This document remains the design and work plan
 for validating the NCode.Identity OpenID Provider (OP) against an **independent**, spec-author-maintained
-conformance harness, and for driving that harness **fully automated** in CI. It is linked from
-[`BACKLOG.md`](../BACKLOG.md) (group `T`) so the backlog stays lean.
+conformance harness, and for driving that harness **fully automated** in CI. It is linked from issue [#124](https://github.com/NCodeGroup/Identity/issues/124).
 
 ## Why an external harness (not just our own tests)
 
@@ -27,7 +26,7 @@ Apache-2 for libs), and self-hostable:
 prebuilt Docker images on the developer's machine; the suite reaches the OP over `host.docker.internal:5001`, so no
 public ingress is required. The OpenID Foundation's **hosted** instance (`https://www.certification.openid.net/`) is an
 optional alternative that _would_ require a publicly reachable OP — it is not the default path and not a prerequisite of
-backlog `T1`.
+issue [#124](https://github.com/NCodeGroup/Identity/issues/124).
 
 It is what Auth0, Okta, Keycloak, Ping, and Duende IdentityServer use to self-certify. There is **no
 separate official OAuth 2.0/2.1-only** suite; the OIDC **Basic/Config** OP profiles exercise the OAuth
@@ -87,7 +86,7 @@ Selected under "Test an OpenID Provider" in the suite:
 3. **Form Post OP** — only if `response_mode=form_post` is supported; run per auth profile.
 4. **Implicit OP / Hybrid OP** — only after confirming `id_token` / `token` / `code id_token` response
    types are fully implemented at the authorize endpoint (constants exist; flow support must be verified).
-5. **Dynamic OP** — requires Dynamic Client Registration (RFC 7591), **not yet implemented** (gap `F6`).
+5. **Dynamic OP** — requires Dynamic Client Registration (RFC 7591), **not yet implemented** (gap [#44](https://github.com/NCodeGroup/Identity/issues/44)).
 6. **FAPI 1/2** — deferred; only if we target open-finance ecosystems.
 
 ## What "full automation" requires in this repo
@@ -105,7 +104,7 @@ Prerequisites, roughly in dependency order:
     - seed the required clients (the manual path needs **three**: two `client_secret_basic`, one
       `client_secret_post` — the second basic client exists so the suite can prove auth codes are bound to
       the issuing client), **or**
-    - implement **Dynamic Client Registration** (gap `F6`), which removes manual seeding _and_ lets the
+    - implement **Dynamic Client Registration** (gap [#44](https://github.com/NCodeGroup/Identity/issues/44)), which removes manual seeding _and_ lets the
       suite run plan modules in parallel (it serialises when an `alias`/static client is used).
 4. **Discovery metadata alignment.** Ensure
    [`DefaultDiscoveryEndpointHandler`](../src/NCode.Identity.OpenId.Authentication/Endpoints/Discovery/DefaultDiscoveryEndpointHandler.cs)
@@ -141,7 +140,7 @@ connectaddress=localhost connectport=8443` (reset with `netsh interface portprox
 
 ## Known prerequisite gaps
 
-- **`F6` (new) — Dynamic Client Registration (RFC 7591).** No `registration_endpoint`. Not required for
+- **[#44](https://github.com/NCodeGroup/Identity/issues/44) (new) — Dynamic Client Registration (RFC 7591).** No `registration_endpoint`. Not required for
   Basic/Config (manual 3-client seeding works) but strongly desirable: it removes manual seeding and
   unlocks parallel plan execution; it is also its own certification profile (Dynamic OP).
 - **Automatable login/consent + seeded conformance user.** The interactive UI must expose stable
@@ -159,8 +158,7 @@ connectaddress=localhost connectport=8443` (reset with `netsh interface portprox
 - **Phase D — Full automation:** config templates with `browser` blocks + `run-test-plan.py` +
   orchestration script + baseline files; green locally end to end.
 - **Phase E — CI:** nightly/opt-in pipeline gated on the baseline; result zips published as artifacts.
-- **Phase F — Record outcomes:** close real gaps in code; capture residual items back in
-  [`BACKLOG.md`](../BACKLOG.md); if the tooling choice/baseline policy needs justification, add an
+- **Phase F — Record outcomes:** close real gaps in code; capture residual items as issues; if the tooling choice/baseline policy needs justification, add an
   [ADR](adr/).
 
 ## Open decisions
@@ -243,7 +241,7 @@ must register the suite callback as a redirect URI.
   `require_pkce` and attests its clients with `pkce_nonce_exemption`, because the suite's requests carry a `nonce` but
   send PKCE in only one module.
 
-> With DCR (gap `F6`) implemented, skip all of the above — remove `alias` from the config and the suite
+> With DCR (gap [#44](https://github.com/NCodeGroup/Identity/issues/44)) implemented, skip all of the above — remove `alias` from the config and the suite
 > registers clients itself and runs modules in parallel.
 
 ## Appendix D — Config template: Basic OP (`oidcc-basic.json`)
@@ -338,7 +336,7 @@ prints for any unexpected failure):
         "current-block": "<block name from the log>",
         "condition": "<ConditionClassName>",
         "expected-result": "failure",
-        "comment": "Why this deviation is intentional; link to BACKLOG item or ADR."
+        "comment": "Why this deviation is intentional; link to an issue or ADR."
     }
 ]
 ```

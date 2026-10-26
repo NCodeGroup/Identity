@@ -85,7 +85,7 @@ service.
   store, bills per identity or per secret, and from a cluster outside the vendor's cloud usually needs a stored
   credential. Rejected as the store; any of their key management services can be a root key provider.
 - **Sign and decrypt every key inside the key management service.** Strongest against a compromised replica, but adds a
-  network round trip and a fee to every token. Kept as an opt-in for signing keys (backlog `S7`), not the default.
+  network round trip and a fee to every token. Kept as an opt-in for signing keys (issue [#165](https://github.com/NCodeGroup/Identity/issues/165)), not the default.
 - **A server key above the tenant keys.** Adds no protection — every replica holds every tenant's keys — and would stop
   a tenant from bringing its own root later. Rejected.
 - **Stored per-purpose ("namespace") keys.** Allows rotating one purpose alone; rotating a master key already rewraps
@@ -108,9 +108,9 @@ service.
 - The Helm chart mounts AWS web identity credentials only in a pod that selects `aws-kms`, and refuses a malformed key
   ARN before the release renders.
 - Losing the root key without a recovery key loses every stored secret; Production makes operators decide.
-- A compromised replica still exposes the keys it has loaded; remote signing (`S7`) and key rollover (`S8`) address that.
+- A compromised replica still exposes the keys it has loaded; remote signing ([#165](https://github.com/NCodeGroup/Identity/issues/165)) and key rollover ([#166](https://github.com/NCodeGroup/Identity/issues/166)) address that.
 - Master key rotation, the rewrap and recovery tool, more providers, per-tenant root keys, client-secret hashing and
-  grant-payload encryption are follow-ups (`S5`, `S13`–`S20`).
+  grant-payload encryption are follow-ups ([#163](https://github.com/NCodeGroup/Identity/issues/163), [#171](https://github.com/NCodeGroup/Identity/issues/171)–[#178](https://github.com/NCodeGroup/Identity/issues/178)).
 - Supersedes [ADR-0177](0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md).
 
 ## References

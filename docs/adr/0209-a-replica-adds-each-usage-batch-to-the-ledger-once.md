@@ -10,12 +10,12 @@
 [ADR-0199](0199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) §3 returned the counts of a batch that failed to
 save to memory, and the next flush added them again. A save can commit and still fail at its caller: the connection
 drops after the commit, a timeout fires, or a shutdown cancels the call. The batch was then in the ledger and in memory,
-and the next flush added it a second time, so the ledger overcounted billed usage (backlog `R25`).
+and the next flush added it a second time, so the ledger overcounted billed usage (issue [#216](https://github.com/NCodeGroup/Identity/issues/216)).
 
 A host can also stop a service twice at once. `WebApplicationFactory` stops the host while the host's own `RunAsync`
 stops it too, and an application can call `StopAsync` while `RunAsync` waits. The stop that returned first let its
 caller dispose the host's services under the other stop's final flush. That flush failed, and its warning reached a
-logging provider that was already disposed (backlog `R54`).
+logging provider that was already disposed (issue [#245](https://github.com/NCodeGroup/Identity/issues/245)).
 
 ## Decision
 
@@ -71,7 +71,7 @@ the counts, and a failed batch is retried under its number.**
   unit of work as the counts, and remove the checkpoints with the expired days in `RemoveBeforeAsync`. An Entity
   Framework deployment applies the `AddTenantUsageCheckpoints` migration, which creates the `TenantUsageCheckpoints`
   table.
-- This implements backlog `R25` and the final-flush part of `R54`; the logging part of `R54` is
+- This implements issue [#216](https://github.com/NCodeGroup/Identity/issues/216) and the final-flush part of [#245](https://github.com/NCodeGroup/Identity/issues/245); the logging part of [#245](https://github.com/NCodeGroup/Identity/issues/245) is
   [ADR-0210](0210-the-reference-hosts-log-to-standard-output.md).
 
 ## References
@@ -82,7 +82,7 @@ the counts, and a failed batch is retried under its number.**
 - [ADR-0208](0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a store-neutral
   exception.
 - [ADR-0210](0210-the-reference-hosts-log-to-standard-output.md) — the reference hosts log to standard output, the
-  other part of `R54`.
+  other part of [#245](https://github.com/NCodeGroup/Identity/issues/245).
 - Code: `NCode.Identity.OpenId.Authentication.Usage.TenantUsageFlushService`,
   `NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.TenantUsageStore`,

@@ -102,7 +102,7 @@ that consumes it.**
   own keys. When a token is encrypted to an imported, public-only key, the server cannot decrypt it and reports it
   inactive; that resource server validates its tokens itself.
 - Under FAPI 2.0, whose ceiling excludes `RS256`, a resource-server client registers an explicit
-  `introspection_signed_response_alg`; this is the same gap backlog `F68` tracks for ID tokens.
+  `introspection_signed_response_alg`; this is the same gap issue [#107](https://github.com/NCodeGroup/Identity/issues/107) tracks for ID tokens.
 - Each introspection call by a resource-server client resolves its resource server and deserializes its keys.
 - **Breaking:** an integration that introspects access tokens as an ordinary client now receives `active: false` and
   must register a resource-server client. `IntrospectTokenCommand` gains the caller's `ResolvedResourceServer`;

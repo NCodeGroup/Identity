@@ -4,7 +4,7 @@
 # the inputs current so the gate has something honest to prove. Every ecosystem the repository actually ships or builds
 # from is covered; updates land as pull requests against the single `main` trunk (ADR-0125) and are gated by CI.
 #
-# VERSION UPDATES ARE PAUSED (backlog D16), except for the docker ecosystem. While the family is refactored heavily
+# VERSION UPDATES ARE PAUSED (issue #36), except for the docker ecosystem. While the family is refactored heavily
 # ahead of its first release, a weekly version bump is mostly churn against code that is about to move. Every other
 # ecosystem therefore sets `open-pull-requests-limit: 0`, which is GitHub's documented way to pause version updates
 # while keeping their configuration. The docker ecosystem keeps its limit of 5 because a digest pin receives its fixes
@@ -25,7 +25,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    # Version updates paused (backlog D16); 5 when resumed.
+    # Version updates paused (issue #36); 5 when resumed.
     open-pull-requests-limit: 0
     groups:
       # Patch/minor servicing moves together — this is the stream that clears NuGet advisories, which the full
@@ -45,7 +45,7 @@ updates:
     directory: /src/frontend
     schedule:
       interval: weekly
-    # Version updates paused (backlog D16); 5 when resumed.
+    # Version updates paused (issue #36); 5 when resumed.
     open-pull-requests-limit: 0
     # A version must be three days old before Dependabot proposes it. It is the same window as pnpm's
     # minimumReleaseAge in src/frontend/pnpm-workspace.yaml, and must not be longer: Dependabot enforces this cooldown
@@ -61,11 +61,11 @@ updates:
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
       # TypeScript 7 (the native compiler) no longer ships the JavaScript compiler API that typescript-eslint parses
-      # with, and typescript-eslint caps its peer range below it. Hold the 6.x line until it supports 7 (backlog U15).
+      # with, and typescript-eslint caps its peer range below it. Hold the 6.x line until it supports 7 (issue #147).
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
     groups:
-      # The toolchain (vitest/vite/esbuild and friends) is where dev-only advisories land (backlog U14 was cleared this
+      # The toolchain (vitest/vite/esbuild and friends) is where dev-only advisories land (issue #146 was cleared this
       # way); every one is a devDependency that never reaches the shipped bundle, so they are safe to move as a single
       # group. Its majors are coupled (vite + vitest + plugin-react; eslint + its plugins) and must move together anyway.
       frontend-dev-toolchain:
@@ -82,7 +82,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    # Version updates paused (backlog D16); 5 when resumed.
+    # Version updates paused (issue #36); 5 when resumed.
     open-pull-requests-limit: 0
     groups:
       github-actions:
@@ -92,7 +92,7 @@ updates:
         patterns: ['*']
 
   # The host image's base images (ADR-0249). A digest pin receives operating-system and runtime fixes only through this
-  # stream, so it runs while backlog D16 pauses the other ecosystems. A runtime major moves deliberately, together with
+  # stream, so it runs while issue #36 pauses the other ecosystems. A runtime major moves deliberately, together with
   # src/frontend/.node-version or the target framework, so semver-major updates are ignored.
   - package-ecosystem: docker
     directory: /src/NCode.Identity.OpenId.Host

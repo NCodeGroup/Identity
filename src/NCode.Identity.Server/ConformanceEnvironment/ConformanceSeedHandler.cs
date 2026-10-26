@@ -98,11 +98,11 @@ internal sealed class ConformanceSeedHandler(
             return;
         }
 
-        foreach (var client in Options.Clients)
+        foreach (var (clientId, client) in Options.Clients)
         {
-            if (client.ShouldSeed)
+            if (!string.IsNullOrEmpty(clientId) && client.ShouldSeed)
             {
-                await SeedClientAsync(context, client, cancellationToken);
+                await SeedClientAsync(context, clientId, client, cancellationToken);
             }
         }
 
@@ -114,16 +114,11 @@ internal sealed class ConformanceSeedHandler(
 
     private async ValueTask SeedClientAsync(
         TenantSeedContext context,
+        string clientId,
         ConformanceClientSeed client,
         CancellationToken cancellationToken
     )
     {
-        var clientId = client.ClientId;
-        if (string.IsNullOrEmpty(clientId))
-        {
-            return;
-        }
-
         var tenantId = context.TenantId;
 
         var store = context.StoreManager.GetStore<IClientStore>();

@@ -230,11 +230,13 @@ $failed = $false
 $OriginalLocation = Get-Location
 
 # The FAPI 1.0 Advanced Final plans, one per client-authentication method and response mode, each paired with the
-# suite configuration generated from its template.
+# suite configuration rendered from the one template. Each method renders it with alias 'ncode-fapi1-<Name>' and
+# clients 'fapi1-<Name>' and 'fapi1-<Name>-2'.
 $Fapi1PlanName = 'fapi1-advanced-final-test-plan'
+$Fapi1Template = 'fapi1-advanced.template.json'
 $Fapi1Configurations = @(
-    @{ Template = 'fapi1-advanced-private-key-jwt.template.json'; ClientAuthType = 'private_key_jwt' },
-    @{ Template = 'fapi1-advanced-mtls.template.json'; ClientAuthType = 'mtls' }
+    @{ Name = 'private-key-jwt'; ClientAuthType = 'private_key_jwt'; ClientAuthMethod = 'private_key_jwt' },
+    @{ Name = 'mtls'; ClientAuthType = 'mtls'; ClientAuthMethod = 'self_signed_tls_client_auth' }
 )
 $Fapi1ResponseModes = @('plain_response', 'jarm')
 $Fapi1KeyDir = Join-Path $PSScriptRoot '.fapi1-keys'
@@ -244,6 +246,8 @@ $Fapi1GeneratedConfigs = [System.Collections.Generic.List[string]]::new()
 function ConvertTo-Base64Url([byte[]] $Bytes) {
     return [Convert]::ToBase64String($Bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
 }
+
+function Get-Fapi1ConfigFileName([hashtable] $Configuration) { "fapi1-advanced-$($Configuration.Name).json" }
 
 function Get-Fapi1ClientCredential([string] $ClientId) {
     # A P-256 key and a self-signed certificate for it: the key signs the client's assertions and request objects, and
@@ -299,9 +303,9 @@ function Set-Fapi1Environment([string] $Name, [string] $Value) {
 
 function Initialize-Fapi1Run {
     # The seeded FAPI clients are listed in appsettings.Conformance.json without a key set, which leaves them unseeded;
-    # each one's public key set is supplied here, by its index in that list, through the environment the OP inherits.
+    # each one's public key set is supplied here, keyed by its client id, through the environment the OP inherits.
     $settingsPath = Join-Path $HostProject 'appsettings.Conformance.json'
-    $seededClients = @((Get-Content $settingsPath -Raw | ConvertFrom-Json).ConformanceSeed.Clients)
+    $seededClients = (Get-Content $settingsPath -Raw | ConvertFrom-Json -AsHashtable).ConformanceSeed.Clients
 
     # Request client certificates at the handshake, and advertise certificate-bound access tokens and the hybrid
     # response type the plain_response variant uses; a FAPI client's security profile narrows both to itself.
@@ -310,19 +314,30 @@ function Initialize-Fapi1Run {
     Set-Fapi1Environment 'OpenId__Server__Settings__response_types_supported__0' 'code'
     Set-Fapi1Environment 'OpenId__Server__Settings__response_types_supported__1' 'code id_token'
 
+    $templateText = Get-Content (Join-Path $ConfigDir $Fapi1Template) -Raw
     foreach ($configuration in $Fapi1Configurations) {
-        $suiteConfig = Get-Content (Join-Path $ConfigDir $configuration.Template) -Raw | ConvertFrom-Json -AsHashtable
+        $tokens = [ordered]@{
+            issuer = $IssuerUrl
+            alias = "ncode-fapi1-$($configuration.Name)"
+            client_auth_method = $configuration.ClientAuthMethod
+            client_id = "fapi1-$($configuration.Name)"
+            client2_id = "fapi1-$($configuration.Name)-2"
+        }
+        $text = $templateText
+        foreach ($token in $tokens.GetEnumerator()) {
+            $text = $text.Replace("{{$($token.Key)}}", [System.Text.Json.JsonEncodedText]::Encode($token.Value).ToString())
+        }
+        $suiteConfig = $text | ConvertFrom-Json -AsHashtable
         $suiteConfig.Remove('comment:template')
         foreach ($pair in @(@('client', 'mtls'), @('client2', 'mtls2'))) {
             $clientId = $suiteConfig[$pair[0]].client_id
-            $index = [array]::FindIndex($seededClients, [Predicate[object]] { param($c) $c.ClientId -eq $clientId })
-            if ($index -lt 0) { throw "The FAPI client '$clientId' is not listed in $settingsPath." }
+            if (-not $seededClients.Contains($clientId)) { throw "The FAPI client '$clientId' is not listed in $settingsPath." }
             $credential = Get-Fapi1ClientCredential $clientId
-            Set-Fapi1Environment "ConformanceSeed__Clients__${index}__Jwks" ($credential.PublicJwks | ConvertTo-Json -Depth 5 -Compress)
+            Set-Fapi1Environment "ConformanceSeed__Clients__${clientId}__Jwks" ($credential.PublicJwks | ConvertTo-Json -Depth 5 -Compress)
             $suiteConfig[$pair[0]].jwks = $credential.PrivateJwks
             $suiteConfig[$pair[1]] = [ordered]@{ cert = $credential.CertPem; key = $credential.KeyPem }
         }
-        $generated = Join-Path $ConfigDir ($configuration.Template -replace '\.template\.json$', '.json')
+        $generated = Join-Path $ConfigDir (Get-Fapi1ConfigFileName $configuration)
         Set-Content -Path $generated -Value ($suiteConfig | ConvertTo-Json -Depth 10)
         $Fapi1GeneratedConfigs.Add($generated)
     }
@@ -433,7 +448,7 @@ try {
             foreach ($configuration in $Fapi1Configurations) {
                 foreach ($responseMode in $Fapi1ResponseModes) {
                     $plansToRun += "$Fapi1PlanName[client_auth_type=$($configuration.ClientAuthType)][fapi_auth_request_method=pushed][fapi_profile=plain_fapi][fapi_response_mode=$responseMode]"
-                    $configsToRun += $configuration.Template -replace '\.template\.json$', '.json'
+                    $configsToRun += Get-Fapi1ConfigFileName $configuration
                 }
             }
         }

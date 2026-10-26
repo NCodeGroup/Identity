@@ -22,10 +22,11 @@ using NCode.Identity.OpenId;
 namespace NCode.Identity.Server.ConformanceEnvironment;
 
 /// <summary>
-/// Describes a single <strong>conformance-only</strong> confidential client to seed: its client id, its credential —
+/// Describes a single <strong>conformance-only</strong> confidential client to seed: its credential —
 /// a <c>Base64Url</c>-encoded secret, the public keys of a JSON Web Key Set, or both — and the exact-match redirect
 /// URIs, grant types, token-endpoint authentication method, PKCE code-challenge methods, and security profiles it
-/// registers. The scopes it may request are not part of the seed: they
+/// registers. The client id is its key in <see cref="ConformanceSeedOptions.Clients"/>. The scopes it may request
+/// are not part of the seed: they
 /// come from the tenant's resource servers, and the OpenID Connect scopes are available to every client.
 /// </summary>
 /// <remarks>
@@ -35,11 +36,6 @@ namespace NCode.Identity.Server.ConformanceEnvironment;
 [PublicAPI]
 public sealed class ConformanceClientSeed
 {
-    /// <summary>
-    /// Gets or sets the confidential client id. When empty, this entry is skipped.
-    /// </summary>
-    public string? ClientId { get; set; }
-
     /// <summary>
     /// Gets or sets the client secret, supplied <c>Base64Url</c>-encoded (not plaintext) so a raw process-memory
     /// snapshot does not expose it directly. The decoded bytes are the credential the conformance suite presents.
@@ -88,11 +84,9 @@ public sealed class ConformanceClientSeed
     public string[] SecurityProfiles { get; set; } = [];
 
     /// <summary>
-    /// Gets a value indicating whether this client should be seeded: it has a client id, a redirect URI, and a
-    /// credential.
+    /// Gets a value indicating whether this client should be seeded: it has a redirect URI and a credential.
     /// </summary>
     public bool ShouldSeed =>
-        !string.IsNullOrEmpty(ClientId)
-        && (!string.IsNullOrEmpty(ClientSecret) || !string.IsNullOrEmpty(Jwks))
+        (!string.IsNullOrEmpty(ClientSecret) || !string.IsNullOrEmpty(Jwks))
         && RedirectUris.Length > 0;
 }

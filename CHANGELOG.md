@@ -708,6 +708,12 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The conformance seed keys its clients by client id.** `ConformanceSeedOptions.Clients` is now an object keyed by
+  client id (`ConformanceSeed:Clients:<client_id>:…`), so an environment override names its client rather than an array
+  position. `ConformanceClientSeed.ClientId` is removed, and an entry that still sets it fails strict binding at
+  startup. `run-conformance.ps1 -Fapi1Advanced` supplies each key set through `ConformanceSeed__Clients__<client_id>__Jwks`,
+  renders both FAPI configurations from one `fapi1-advanced.template.json` and takes the OP's URLs from `-IssuerUrl`
+  ([#235](https://github.com/NCodeGroup/Identity/issues/235)).
 - **The plan-and-execute workflow comes from the project template, executes on Claude Sonnet 5.5, and runs in Claude
   Code too.** The repository adopted [project-template](https://github.com/polewskm/project-template) `v0.3.0` and
   updated to `v0.14.0`: its agents, prompt files, skills, Claude Code commands, `CLAUDE.md`, `commit-msg` hook and

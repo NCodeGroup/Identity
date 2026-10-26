@@ -8,4 +8,3 @@
 # configurations that carry them. Private keys are generated at run time and never committed.
 .fapi1-keys/
 fapi1-advanced-*.json
-!fapi1-advanced-*.template.json

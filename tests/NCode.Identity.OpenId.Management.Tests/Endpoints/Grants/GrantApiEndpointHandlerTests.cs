@@ -143,7 +143,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddHours(1),
             RevokedWhen = revokedWhen,
             ConsumedWhen = null,
-            PayloadJson = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            ProtectedPayload = "protected-payload",
         };
 
     #endregion

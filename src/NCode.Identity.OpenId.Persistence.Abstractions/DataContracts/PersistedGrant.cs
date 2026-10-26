@@ -19,7 +19,6 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Persistence;
 
@@ -113,7 +112,7 @@ public sealed class PersistedGrant : ISupportConcurrencyToken
     public required DateTimeOffset? ConsumedWhen { get; set; }
 
     /// <summary>
-    /// Gets or sets the serialized JSON for the payload.
+    /// Gets or sets the payload, protected under the tenant's master key (ADR-0265).
     /// </summary>
-    public required JsonElement PayloadJson { get; set; }
+    public required string ProtectedPayload { get; set; }
 }

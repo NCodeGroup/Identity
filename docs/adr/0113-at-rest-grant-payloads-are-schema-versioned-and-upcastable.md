@@ -1,6 +1,8 @@
 # 113. At-rest grant payloads are schema-versioned, upcastable, and preserve unknown members
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0265](0265-grant-payloads-are-protected-under-the-tenant-master-key.md): the versioned document is stored
+  protected)
 - **Date:** 2026-10-16
 - **Deciders:** NCode Group
 

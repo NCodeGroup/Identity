@@ -34,7 +34,7 @@ internal class DefaultPersistedGrantService(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     IStoreManagerFactory storeManagerFactory,
-    IPersistedPayloadSerializer payloadSerializer
+    IGrantPayloadProtector payloadProtector
 ) : IPersistedGrantService
 {
     // The attempts that a write which must not lose a race makes, each in a new unit of work. See ADR-0215.
@@ -47,7 +47,7 @@ internal class DefaultPersistedGrantService(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
-    private IPersistedPayloadSerializer PayloadSerializer { get; } = payloadSerializer;
+    private IGrantPayloadProtector PayloadProtector { get; } = payloadProtector;
 
     private static string GetHashInput(PersistedGrantId grantId) =>
         string.Concat(grantId.TenantId.AsSpan(), TenantDelimiter, grantId.GrantKey.AsSpan());
@@ -81,7 +81,14 @@ internal class DefaultPersistedGrantService(
         if (grant.Status != PersistedGrantStatus.Active)
             throw new InvalidOperationException("The grant must be active.");
 
-        var envelope = CreateEnvelope(openIdContext, grantId, grant, createdWhen, lifetime);
+        var envelope = await CreateEnvelopeAsync(
+            openIdContext,
+            grantId,
+            grant,
+            createdWhen,
+            lifetime,
+            cancellationToken
+        );
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IGrantStore>();
@@ -92,12 +99,13 @@ internal class DefaultPersistedGrantService(
         return envelope.GrantId;
     }
 
-    private PersistedGrant CreateEnvelope<TPayload>(
+    private async ValueTask<PersistedGrant> CreateEnvelopeAsync<TPayload>(
         OpenIdContext openIdContext,
         PersistedGrantId grantId,
         PersistedGrant<TPayload> grant,
         DateTimeOffset createdWhen,
-        TimeSpan? lifetime
+        TimeSpan? lifetime,
+        CancellationToken cancellationToken
     )
     {
         var openIdEnvironment = openIdContext.Environment;
@@ -106,9 +114,12 @@ internal class DefaultPersistedGrantService(
 
         var expiresWhen = createdWhen + lifetime;
 
-        var payloadJson = PayloadSerializer.Serialize(
+        var protectedPayload = await PayloadProtector.ProtectAsync(
+            grant.TenantId,
+            hashedKey,
             grant.Payload,
-            openIdEnvironment.JsonSerializerOptions
+            openIdEnvironment.JsonSerializerOptions,
+            cancellationToken
         );
 
         return new PersistedGrant
@@ -125,7 +136,7 @@ internal class DefaultPersistedGrantService(
             ExpiresWhen = expiresWhen,
             RevokedWhen = null,
             ConsumedWhen = null,
-            PayloadJson = payloadJson,
+            ProtectedPayload = protectedPayload,
         };
     }
 
@@ -164,10 +175,16 @@ internal class DefaultPersistedGrantService(
         if (!string.Equals(envelope.TenantId, grantId.TenantId, StringComparison.Ordinal))
             return null;
 
-        var payload = PayloadSerializer.Deserialize<TPayload>(
-            envelope.PayloadJson,
-            openIdEnvironment.JsonSerializerOptions
+        var payload = await PayloadProtector.UnprotectOrDefaultAsync<TPayload>(
+            envelope.TenantId,
+            envelope.GrantType,
+            envelope.HashedKey,
+            envelope.ProtectedPayload,
+            openIdEnvironment.JsonSerializerOptions,
+            cancellationToken
         );
+        if (payload is null)
+            return null;
 
         var status = GetStatus(utcNow, envelope);
         var persistedGrant = new PersistedGrant<TPayload>
@@ -180,7 +197,7 @@ internal class DefaultPersistedGrantService(
             RefreshTokenLineageId = envelope.RefreshTokenLineageId,
             ExpiresWhen = envelope.ExpiresWhen,
             ConsumedWhen = envelope.ConsumedWhen,
-            Payload = payload,
+            Payload = payload.Value,
         };
 
         return persistedGrant;
@@ -214,10 +231,16 @@ internal class DefaultPersistedGrantService(
         if (status != PersistedGrantStatus.Active || isConsumed)
             return null;
 
-        var payload = PayloadSerializer.Deserialize<TPayload>(
-            envelope.PayloadJson,
-            openIdEnvironment.JsonSerializerOptions
+        var payload = await PayloadProtector.UnprotectOrDefaultAsync<TPayload>(
+            envelope.TenantId,
+            envelope.GrantType,
+            envelope.HashedKey,
+            envelope.ProtectedPayload,
+            openIdEnvironment.JsonSerializerOptions,
+            cancellationToken
         );
+        if (payload is null)
+            return null;
 
         envelope.ConsumedWhen = utcNow;
 
@@ -244,7 +267,7 @@ internal class DefaultPersistedGrantService(
             RefreshTokenLineageId = envelope.RefreshTokenLineageId,
             ExpiresWhen = envelope.ExpiresWhen,
             ConsumedWhen = utcNow,
-            Payload = payload,
+            Payload = payload.Value,
         };
 
         return persistedGrant;
@@ -350,10 +373,16 @@ internal class DefaultPersistedGrantService(
             // The session is returned as this call revoked it, so its termination notifies every client it lists;
             // the payload is read after the save, so a payload that cannot be read never keeps a session active.
             // See ADR-0228.
-            var payload = PayloadSerializer.Deserialize<TPayload>(
-                envelope.PayloadJson,
-                openIdContext.Environment.JsonSerializerOptions
+            var payload = await PayloadProtector.UnprotectOrDefaultAsync<TPayload>(
+                envelope.TenantId,
+                envelope.GrantType,
+                envelope.HashedKey,
+                envelope.ProtectedPayload,
+                openIdContext.Environment.JsonSerializerOptions,
+                cancellationToken
             );
+            if (payload is null)
+                return null;
 
             return new PersistedGrant<TPayload>
             {
@@ -365,7 +394,7 @@ internal class DefaultPersistedGrantService(
                 RefreshTokenLineageId = envelope.RefreshTokenLineageId,
                 ExpiresWhen = envelope.ExpiresWhen,
                 ConsumedWhen = envelope.ConsumedWhen,
-                Payload = payload,
+                Payload = payload.Value,
             };
         }
     }
@@ -466,7 +495,14 @@ internal class DefaultPersistedGrantService(
             replaced.RevokedWhen = createdWhen;
             replaced.ConsumedWhen = createdWhen;
 
-            var envelope = CreateEnvelope(openIdContext, grantId, grant, createdWhen, lifetime);
+            var envelope = await CreateEnvelopeAsync(
+                openIdContext,
+                grantId,
+                grant,
+                createdWhen,
+                lifetime,
+                cancellationToken
+            );
 
             try
             {
@@ -533,7 +569,14 @@ internal class DefaultPersistedGrantService(
             if (active.Count == 0)
                 return null;
 
-            var envelope = CreateEnvelope(openIdContext, grantId, grant, createdWhen, lifetime);
+            var envelope = await CreateEnvelopeAsync(
+                openIdContext,
+                grantId,
+                grant,
+                createdWhen,
+                lifetime,
+                cancellationToken
+            );
 
             try
             {
@@ -714,10 +757,16 @@ internal class DefaultPersistedGrantService(
 
             var jsonSerializerOptions = openIdContext.Environment.JsonSerializerOptions;
 
-            var storedPayload = PayloadSerializer.Deserialize<TPayload>(
-                envelope.PayloadJson,
-                jsonSerializerOptions
+            var storedPayload = await PayloadProtector.UnprotectOrDefaultAsync<TPayload>(
+                envelope.TenantId,
+                envelope.GrantType,
+                envelope.HashedKey,
+                envelope.ProtectedPayload,
+                jsonSerializerOptions,
+                cancellationToken
             );
+            if (storedPayload is null)
+                return false;
 
             var stored = new PersistedGrant<TPayload>
             {
@@ -729,15 +778,18 @@ internal class DefaultPersistedGrantService(
                 RefreshTokenLineageId = envelope.RefreshTokenLineageId,
                 ExpiresWhen = envelope.ExpiresWhen,
                 ConsumedWhen = envelope.ConsumedWhen,
-                Payload = storedPayload,
+                Payload = storedPayload.Value,
             };
 
             if (update(stored) is not { } change)
                 return false;
 
-            envelope.PayloadJson = PayloadSerializer.Serialize(
+            envelope.ProtectedPayload = await PayloadProtector.ProtectAsync(
+                envelope.TenantId,
+                envelope.HashedKey,
                 change.Payload,
-                jsonSerializerOptions
+                jsonSerializerOptions,
+                cancellationToken
             );
 
             if (change.ExpiresWhen is { } expiresWhen)

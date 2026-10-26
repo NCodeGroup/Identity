@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Core.Tests.Persistence;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -53,7 +54,6 @@ public class DefaultSessionServiceTests : BaseTests
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<ISessionEvictionPolicy> MockEvictionPolicy { get; }
     private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
-    private static DefaultPersistedPayloadSerializer PayloadSerializer { get; } = new([]);
     private DefaultSessionService Service { get; }
 
     public DefaultSessionServiceTests()
@@ -68,7 +68,7 @@ public class DefaultSessionServiceTests : BaseTests
             MockTimeProvider.Object,
             MockCryptoService.Object,
             MockPersistedGrantService.Object,
-            PayloadSerializer,
+            new TestGrantPayloadProtector(),
             MockStoreManagerFactory.Object,
             MockEvictionPolicy.Object,
             MockAuditEventRecorder.Object,
@@ -1439,7 +1439,7 @@ public class DefaultSessionServiceTests : BaseTests
             ExpiresWhen = absoluteExpiresWhen ?? createdWhen.AddDays(30),
             RevokedWhen = revokedWhen,
             ConsumedWhen = null,
-            PayloadJson = PayloadSerializer.Serialize(
+            ProtectedPayload = TestGrantPayloadProtector.Protect(
                 new SessionGrant
                 {
                     AuthTime = createdWhen,
@@ -1499,6 +1499,28 @@ public class DefaultSessionServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task GetSessionsAsync_SkipsSessionsWhosePayloadIsUnreadable()
+    {
+        var mockContext = CreateStrictMock<OpenIdContext>();
+        MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
+        var unreadable = CreateEnvelope("unreadable", UtcNow.AddMinutes(-5));
+        unreadable.ProtectedPayload = "unreadable";
+        SetupSessionEnumeration(
+            mockContext,
+            unreadable,
+            CreateEnvelope("live", UtcNow.AddMinutes(-1))
+        );
+
+        var sessions = await Service.GetSessionsAsync(
+            mockContext.Object,
+            SubjectId,
+            CancellationToken.None
+        );
+
+        Assert.Equal(["live"], sessions.Select(session => session.SessionId));
+    }
+
+    [Fact]
     public async Task GetSessionsAsync_SkipsSessionsPastTheirAbsoluteEnd()
     {
         var mockContext = CreateStrictMock<OpenIdContext>();
@@ -1529,7 +1551,7 @@ public class DefaultSessionServiceTests : BaseTests
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();
         var withoutEnd = CreateEnvelope("without-end", UtcNow.AddMinutes(-5));
         withoutEnd.ExpiresWhen = null;
-        withoutEnd.PayloadJson = PayloadSerializer.Serialize(
+        withoutEnd.ProtectedPayload = TestGrantPayloadProtector.Protect(
             new SessionGrant
             {
                 AuthTime = UtcNow.AddMinutes(-5),

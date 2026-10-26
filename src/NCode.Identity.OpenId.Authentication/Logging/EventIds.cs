@@ -92,4 +92,5 @@ internal static class EventIds
     public const int PasswordAttemptLimitReached = Base + 60;
     public const int RevocationRetrievalSuppressed = Base + 61;
     public const int ClientCertificateRevocationUnknownAccepted = Base + 62;
+    public const int GrantPayloadUnreadable = Base + 63;
 }

@@ -573,4 +573,16 @@ internal static partial class Log
         string tenantId,
         int limit
     );
+
+    [LoggerMessage(
+        EventId = EventIds.GrantPayloadUnreadable,
+        Level = LogLevel.Warning,
+        Message = "The payload of a '{GrantType}' grant of tenant '{TenantId}' could not be unprotected, so the grant is treated as absent."
+    )]
+    internal static partial void GrantPayloadUnreadable(
+        this ILogger logger,
+        Exception exception,
+        string tenantId,
+        string grantType
+    );
 }

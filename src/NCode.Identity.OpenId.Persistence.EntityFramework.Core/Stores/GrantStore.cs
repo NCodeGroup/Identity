@@ -66,7 +66,7 @@ internal class GrantStore(
                 ExpiresWhen = entity.ExpiresWhen,
                 RevokedWhen = entity.RevokedWhen,
                 ConsumedWhen = entity.ConsumedWhen,
-                PayloadJson = entity.PayloadJson,
+                ProtectedPayload = entity.ProtectedPayload,
             }
         );
     }
@@ -415,7 +415,7 @@ internal class GrantStore(
             ExpiresWhen = persistedGrant.ExpiresWhen?.ToUniversalTime(),
             RevokedWhen = persistedGrant.RevokedWhen?.ToUniversalTime(),
             ConsumedWhen = persistedGrant.ConsumedWhen?.ToUniversalTime(),
-            PayloadJson = persistedGrant.PayloadJson,
+            ProtectedPayload = persistedGrant.ProtectedPayload,
             Tenant = tenantEntity,
             Client = clientEntity,
         };
@@ -458,7 +458,7 @@ internal class GrantStore(
         grantEntity.ExpiresWhen = persistedGrant.ExpiresWhen;
         grantEntity.RevokedWhen = persistedGrant.RevokedWhen;
         grantEntity.ConsumedWhen = persistedGrant.ConsumedWhen;
-        grantEntity.PayloadJson = persistedGrant.PayloadJson;
+        grantEntity.ProtectedPayload = persistedGrant.ProtectedPayload;
 
         DbContext.Grants.Update(grantEntity);
     }

@@ -47,6 +47,10 @@ internal static class DefaultRegistration
                 DefaultPersistedPayloadSerializer
             >();
             serviceCollection.TryAddSingleton<
+                IGrantPayloadProtector,
+                DefaultGrantPayloadProtector
+            >();
+            serviceCollection.TryAddSingleton<
                 IPersistedGrantService,
                 DefaultPersistedGrantService
             >();

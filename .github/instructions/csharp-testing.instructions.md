@@ -229,10 +229,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **A lost race through the store manager is `StoreConcurrencyException`;** only a test that calls
   `DbContext.SaveChangesAsync` directly sees EF's `DbUpdateConcurrencyException`. See
   [ADR-0208](../../docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).
-- 👁 **Build a stored grant's `PayloadJson` with the real `DefaultPersistedPayloadSerializer`**
-  (`new DefaultPersistedPayloadSerializer([])`), never `JsonSerializer.SerializeToElement(payload)`. The server stores a
-  versioned envelope, so a test that hands the code the bare payload passes while the code fails on every stored row
-  (`DefaultSessionServiceTests`).
+- 👁 **Build a stored grant's payload with `TestGrantPayloadProtector.Protect(...)`**
+  (which wraps the real `DefaultPersistedPayloadSerializer`), never a bare `JsonSerializer` call. The server stores a
+  protected, versioned envelope, so a test that hands the code the bare payload passes while the code fails on every
+  stored row (`DefaultSessionServiceTests`).
 - 👁 **Seed a settings document the vocabulary cannot honor through the store, and prove it unreadable first.** The
   management API refuses such a document, so `SeedPublicClientWithSettingsAsync` writes it with an unregistered
   setting name; assert that the incoherent-client report lists it with a `documentError` before the behavior under

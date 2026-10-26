@@ -37,4 +37,9 @@ public static class SecretProtectionPurposes
     /// Contains the purpose for the ASP.NET Core Data Protection key ring.
     /// </summary>
     public const string DataProtectionKeyRing = "data-protection-key-ring";
+
+    /// <summary>
+    /// The purpose of the payload of a persisted grant.
+    /// </summary>
+    public const string GrantPayload = "grant-payload";
 }

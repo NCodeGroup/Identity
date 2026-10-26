@@ -36,7 +36,7 @@ internal class DefaultSessionService(
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     IPersistedGrantService persistedGrantService,
-    IPersistedPayloadSerializer payloadSerializer,
+    IGrantPayloadProtector payloadProtector,
     IStoreManagerFactory storeManagerFactory,
     ISessionEvictionPolicy evictionPolicy,
     IAuditEventRecorder auditEventRecorder,
@@ -53,7 +53,7 @@ internal class DefaultSessionService(
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IPersistedGrantService PersistedGrantService { get; } = persistedGrantService;
-    private IPersistedPayloadSerializer PayloadSerializer { get; } = payloadSerializer;
+    private IGrantPayloadProtector PayloadProtector { get; } = payloadProtector;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ISessionEvictionPolicy EvictionPolicy { get; } = evictionPolicy;
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
@@ -492,10 +492,18 @@ internal class DefaultSessionService(
                 if (envelope.RevokedWhen is not null)
                     continue;
 
-                var payload = PayloadSerializer.Deserialize<SessionGrant>(
-                    envelope.PayloadJson,
-                    jsonOptions
+                var unprotected = await PayloadProtector.UnprotectOrDefaultAsync<SessionGrant>(
+                    envelope.TenantId,
+                    envelope.GrantType,
+                    envelope.HashedKey,
+                    envelope.ProtectedPayload,
+                    jsonOptions,
+                    cancellationToken
                 );
+                if (unprotected is null)
+                    continue;
+
+                var payload = unprotected.Value;
 
                 if (
                     GetAbsoluteEnd(payload, envelope.ExpiresWhen) is not { } absoluteEnd

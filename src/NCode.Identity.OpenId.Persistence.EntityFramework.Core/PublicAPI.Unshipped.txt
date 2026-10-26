@@ -182,8 +182,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.Norm
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.NormalizedSubjectId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.NormalizedTenantId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.NormalizedTenantId.init -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.PayloadJson.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.PayloadJson.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.ProtectedPayload.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.ProtectedPayload.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.RevokedWhen.get -> System.DateTimeOffset?
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.RevokedWhen.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.GrantEntity.SessionId.get -> string?

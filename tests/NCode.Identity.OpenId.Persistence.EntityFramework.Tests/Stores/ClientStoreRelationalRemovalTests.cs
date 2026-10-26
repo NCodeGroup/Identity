@@ -213,7 +213,7 @@ public sealed class ClientStoreRelationalRemovalTests : IDisposable
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddHours(1),
             RevokedWhen = null,
             ConsumedWhen = null,
-            PayloadJson = EmptyObject(),
+            ProtectedPayload = "protected-payload",
         };
 
     private async Task SeedAsync(bool withSecrets)

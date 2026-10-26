@@ -4,7 +4,9 @@
   [ADR-0247](0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md): a live key ring key the server's
   master key cannot decrypt stops the host; extended by
   [ADR-0260](0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md): the Azure Key Vault and Google Cloud
-  KMS root key providers)
+  KMS root key providers; amended by
+  [ADR-0265](0265-grant-payloads-are-protected-under-the-tenant-master-key.md): grant payloads are protected under the
+  tenant master key)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 
@@ -109,8 +111,8 @@ service.
   ARN before the release renders.
 - Losing the root key without a recovery key loses every stored secret; Production makes operators decide.
 - A compromised replica still exposes the keys it has loaded; remote signing ([#165](https://github.com/NCodeGroup/Identity/issues/165)) and key rollover ([#166](https://github.com/NCodeGroup/Identity/issues/166)) address that.
-- Master key rotation, the rewrap and recovery tool, more providers, per-tenant root keys, client-secret hashing and
-  grant-payload encryption are follow-ups ([#163](https://github.com/NCodeGroup/Identity/issues/163), [#171](https://github.com/NCodeGroup/Identity/issues/171)–[#178](https://github.com/NCodeGroup/Identity/issues/178)).
+- Master key rotation, the rewrap and recovery tool, more providers, per-tenant root keys and client-secret hashing
+  are follow-ups ([#163](https://github.com/NCodeGroup/Identity/issues/163), [#171](https://github.com/NCodeGroup/Identity/issues/171)–[#178](https://github.com/NCodeGroup/Identity/issues/178)).
 - Supersedes [ADR-0177](0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md).
 
 ## References

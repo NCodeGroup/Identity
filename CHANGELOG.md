@@ -1770,6 +1770,15 @@ change to the public API is a **major** version bump.
 
 ### Security
 
+- **Grant payloads are encrypted at rest.** A persisted grant's payload (authorization codes, refresh tokens,
+  sessions, device, CIBA and pushed authorization requests, DCR tokens and continue envelopes) is stored only as an
+  `nce1.` envelope under the master key of the grant's tenant, with purpose `grant-payload` and the grant's hashed key
+  as the item id, so a payload copied to another grant row does not decrypt. A payload that cannot be unprotected makes
+  the grant absent and logs a warning rather than failing the request. **Breaking:**
+  `PersistedGrant.PayloadJson`/`GrantEntity.PayloadJson` become `ProtectedPayload` (`string`), and the
+  `ProtectGrantPayloads` migration deletes every stored grant, so users sign in again
+  ([ADR-0265](docs/adr/0265-grant-payloads-are-protected-under-the-tenant-master-key.md), issue
+  [#175](https://github.com/NCodeGroup/Identity/issues/175)).
 - **Client-certificate revocation is checked through OCSP and every CRL form.** The default
   `IClientCertificateRevocationChecker` asks each registered `IClientCertificateRevocationSource` in registration
   order until one answers `Good` or `Revoked`. The `ocsp` source queries the responders that the certificate's

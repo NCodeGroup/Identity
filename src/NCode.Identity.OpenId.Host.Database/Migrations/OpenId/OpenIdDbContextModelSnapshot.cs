@@ -539,8 +539,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(300)");
 
-                    b.Property<string>("PayloadJson")
+                    b.Property<string>("ProtectedPayload")
                         .IsRequired()
+                        .IsUnicode(false)
                         .HasColumnType("text");
 
                     b.Property<string>("RefreshTokenLineageId")

@@ -14,8 +14,6 @@ NCode.Identity.Server.BootstrapAdminOptions.IsEnabled.get -> bool
 NCode.Identity.Server.BootstrapAdminOptions.TenantId.get -> string?
 NCode.Identity.Server.BootstrapAdminOptions.TenantId.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed
-NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ClientId.get -> string?
-NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ClientId.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ClientSecret.get -> string?
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ClientSecret.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.CodeChallengeMethods.get -> string![]!
@@ -33,7 +31,7 @@ NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ShouldSeed.ge
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.TokenEndpointAuthMethod.get -> string!
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.TokenEndpointAuthMethod.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions
-NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.Clients.get -> System.Collections.Generic.IList<NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed!>!
+NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.Clients.get -> System.Collections.Generic.IDictionary<string!, NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed!>!
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.Clients.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.ConformanceSeedOptions() -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.SeedTestUser.get -> bool

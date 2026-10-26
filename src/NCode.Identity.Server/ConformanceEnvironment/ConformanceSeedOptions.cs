@@ -44,9 +44,11 @@ public sealed class ConformanceSeedOptions
     /// Gets or sets the confidential clients the conformance suite exercises. The Basic OP plan needs two distinct
     /// <c>client_secret_basic</c> clients plus one <c>client_secret_post</c> client (which may be the same record if
     /// it accepts either method). Defaults to empty so the seeder stays inert unless the conformance profile supplies
-    /// the registrations.
+    /// the registrations. It is keyed by client id, so a later configuration source such as an environment variable
+    /// (<c>ConformanceSeed__Clients__&lt;client_id&gt;__Jwks</c>) adds to the named client.
     /// </summary>
-    public IList<ConformanceClientSeed> Clients { get; set; } = [];
+    public IDictionary<string, ConformanceClientSeed> Clients { get; set; } =
+        new Dictionary<string, ConformanceClientSeed>(StringComparer.Ordinal);
 
     /// <summary>
     /// Gets or sets the deterministic test user name the suite signs in as through the interactive login page. When

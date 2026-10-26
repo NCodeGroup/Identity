@@ -250,9 +250,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
     [Fact]
     public async Task HandleAsync_WhenNothingConfiguredToSeed_DoesNothing()
     {
-        var handler = CreateHandler(
-            new ConformanceSeedOptions { Clients = [], TestUserPassword = null }
-        );
+        var handler = CreateHandler(new ConformanceSeedOptions { TestUserPassword = null });
 
         await handler.HandleAsync(
             CreateCommand(WorkloadTenantId, TenantPlane.Workload),
@@ -293,7 +291,6 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         var options = new ConformanceSeedOptions
         {
             TenantId = WorkloadTenantId,
-            Clients = [],
             TestUserName = "conformance-user",
             TestUserEmail = "conformance-user@localhost",
             TestUserGivenName = "Conformance",
@@ -359,7 +356,6 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         var options = new ConformanceSeedOptions
         {
             TenantId = WorkloadTenantId,
-            Clients = [],
             TestUserName = "conformance-user",
             TestUserPassword = "short",
         };
@@ -422,16 +418,15 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         var options = new ConformanceSeedOptions
         {
             TenantId = WorkloadTenantId,
-            Clients =
-            [
-                new ConformanceClientSeed
+            Clients = new Dictionary<string, ConformanceClientSeed>(StringComparer.Ordinal)
+            {
+                ["client"] = new ConformanceClientSeed
                 {
-                    ClientId = "client",
                     ClientSecret = "Y29uZm9ybWFuY2Utc2VjcmV0LWNsaWVudA",
                     RedirectUris = ["https://client.example/callback"],
                     GrantTypes = ["authorisation_code"],
                 },
-            ],
+            },
             TestUserPassword = null,
         };
         var handler = CreateHandler(
@@ -490,16 +485,15 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         var options = new ConformanceSeedOptions
         {
             TenantId = WorkloadTenantId,
-            Clients =
-            [
-                new ConformanceClientSeed
+            Clients = new Dictionary<string, ConformanceClientSeed>(StringComparer.Ordinal)
+            {
+                ["client"] = new ConformanceClientSeed
                 {
-                    ClientId = "client",
                     ClientSecret = "Y29uZm9ybWFuY2Utc2VjcmV0LWNsaWVudA",
                     RedirectUris = ["https://client.example/callback"],
                     TokenEndpointAuthMethod = "client_secret_post",
                 },
-            ],
+            },
             TestUserPassword = null,
         };
         var handler = CreateHandler(
@@ -591,17 +585,16 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         var options = new ConformanceSeedOptions
         {
             TenantId = WorkloadTenantId,
-            Clients =
-            [
-                new ConformanceClientSeed
+            Clients = new Dictionary<string, ConformanceClientSeed>(StringComparer.Ordinal)
+            {
+                ["fapi1"] = new ConformanceClientSeed
                 {
-                    ClientId = "fapi1",
                     Jwks = jwks,
                     RedirectUris = ["https://client.example/callback"],
                     TokenEndpointAuthMethod = "private_key_jwt",
                     SecurityProfiles = ["fapi1-advanced"],
                 },
-            ],
+            },
             TestUserPassword = null,
         };
         var handler = CreateHandler(
@@ -677,16 +670,15 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         var options = new ConformanceSeedOptions
         {
             TenantId = WorkloadTenantId,
-            Clients =
-            [
-                new ConformanceClientSeed
+            Clients = new Dictionary<string, ConformanceClientSeed>(StringComparer.Ordinal)
+            {
+                ["fapi1"] = new ConformanceClientSeed
                 {
-                    ClientId = "fapi1",
                     Jwks = """{"keys":[{"kty":"EC","kid":"key-1","d":"private"}]}""",
                     RedirectUris = ["https://client.example/callback"],
                     TokenEndpointAuthMethod = "private_key_jwt",
                 },
-            ],
+            },
             TestUserPassword = null,
         };
         var handler = CreateHandler(
@@ -739,15 +731,14 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         var options = new ConformanceSeedOptions
         {
             TenantId = WorkloadTenantId,
-            Clients =
-            [
-                new ConformanceClientSeed
+            Clients = new Dictionary<string, ConformanceClientSeed>(StringComparer.Ordinal)
+            {
+                ["client"] = new ConformanceClientSeed
                 {
-                    ClientId = "client",
                     ClientSecret = "Y29uZm9ybWFuY2Utc2VjcmV0LWNsaWVudA",
                     RedirectUris = [redirectUri],
                 },
-            ],
+            },
             TestUserPassword = null,
         };
         var handler = CreateHandler(
@@ -808,16 +799,15 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         var options = new ConformanceSeedOptions
         {
             TenantId = WorkloadTenantId,
-            Clients =
-            [
-                new ConformanceClientSeed
+            Clients = new Dictionary<string, ConformanceClientSeed>(StringComparer.Ordinal)
+            {
+                ["client"] = new ConformanceClientSeed
                 {
-                    ClientId = "client",
                     ClientSecret = EncodedSecret,
                     RedirectUris = ["https://client.example/callback"],
                     TokenEndpointAuthMethod = "client_secret_post",
                 },
-            ],
+            },
             TestUserPassword = null,
         };
         var handler = CreateHandler(

@@ -28,11 +28,10 @@ public class ConformanceSeedOptionsTests
     #region ConformanceClientSeed Tests
 
     [Fact]
-    public void ShouldSeed_WhenClientIdSecretAndRedirectUrisPresent_IsTrue()
+    public void ShouldSeed_WhenSecretAndRedirectUrisPresent_IsTrue()
     {
         var client = new ConformanceClientSeed
         {
-            ClientId = "client",
             ClientSecret = "Y29uZm9ybWFuY2Utc2VjcmV0",
             RedirectUris = ["https://localhost.emobix.co.uk:8443/test/a/ncode-basic/callback"],
         };
@@ -41,24 +40,10 @@ public class ConformanceSeedOptionsTests
     }
 
     [Fact]
-    public void ShouldSeed_WhenClientIdEmpty_IsFalse()
-    {
-        var client = new ConformanceClientSeed
-        {
-            ClientId = null,
-            ClientSecret = "Y29uZm9ybWFuY2Utc2VjcmV0",
-            RedirectUris = ["https://localhost.emobix.co.uk:8443/test/a/ncode-basic/callback"],
-        };
-
-        Assert.False(client.ShouldSeed);
-    }
-
-    [Fact]
     public void ShouldSeed_WhenNeitherSecretNorKeySet_IsFalse()
     {
         var client = new ConformanceClientSeed
         {
-            ClientId = "client",
             ClientSecret = null,
             RedirectUris = ["https://localhost.emobix.co.uk:8443/test/a/ncode-basic/callback"],
         };
@@ -71,7 +56,6 @@ public class ConformanceSeedOptionsTests
     {
         var client = new ConformanceClientSeed
         {
-            ClientId = "fapi1",
             ClientSecret = null,
             Jwks = """{"keys":[]}""",
             RedirectUris = ["https://localhost.emobix.co.uk:8443/test/a/ncode-fapi1/callback"],
@@ -85,7 +69,6 @@ public class ConformanceSeedOptionsTests
     {
         var client = new ConformanceClientSeed
         {
-            ClientId = "client",
             ClientSecret = "Y29uZm9ybWFuY2Utc2VjcmV0",
             RedirectUris = [],
         };
@@ -111,10 +94,11 @@ public class ConformanceSeedOptionsTests
             .AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
-                    ["ConformanceSeed:Clients:0:ClientId"] = "client-secret-post",
-                    ["ConformanceSeed:Clients:0:GrantTypes:0"] = "authorization_code",
-                    ["ConformanceSeed:Clients:0:TokenEndpointAuthMethod"] = "client_secret_post",
-                    ["ConformanceSeed:Clients:0:CodeChallengeMethods:0"] = "S256",
+                    ["ConformanceSeed:Clients:client-secret-post:GrantTypes:0"] =
+                        "authorization_code",
+                    ["ConformanceSeed:Clients:client-secret-post:TokenEndpointAuthMethod"] =
+                        "client_secret_post",
+                    ["ConformanceSeed:Clients:client-secret-post:CodeChallengeMethods:0"] = "S256",
                 }
             )
             .Build();
@@ -122,10 +106,62 @@ public class ConformanceSeedOptionsTests
 
         configuration.GetSection(ConformanceSeedOptions.DefaultSectionName).BindStrictly(options);
 
-        var client = Assert.Single(options.Clients);
+        var (clientId, client) = Assert.Single(options.Clients);
+        Assert.Equal("client-secret-post", clientId);
         Assert.Equal(["authorization_code"], client.GrantTypes);
         Assert.Equal("client_secret_post", client.TokenEndpointAuthMethod);
         Assert.Equal(["S256"], client.CodeChallengeMethods);
+    }
+
+    [Fact]
+    public void Clients_WhenALaterSourceAddsAKeySet_MergesIntoTheClientWithThatId()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["ConformanceSeed:Clients:fapi1-mtls:RedirectUris:0"] =
+                        "https://client.example/callback",
+                    ["ConformanceSeed:Clients:fapi1-mtls:TokenEndpointAuthMethod"] =
+                        "self_signed_tls_client_auth",
+                }
+            )
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["ConformanceSeed:Clients:fapi1-mtls:Jwks"] = """{"keys":[]}""",
+                }
+            )
+            .Build();
+        var options = new ConformanceSeedOptions();
+
+        configuration.GetSection(ConformanceSeedOptions.DefaultSectionName).BindStrictly(options);
+
+        var (clientId, client) = Assert.Single(options.Clients);
+        Assert.Equal("fapi1-mtls", clientId);
+        Assert.Equal("""{"keys":[]}""", client.Jwks);
+        Assert.Equal(["https://client.example/callback"], client.RedirectUris);
+        Assert.True(client.ShouldSeed);
+    }
+
+    [Fact]
+    public void Clients_WhenAnEntryNamesAClientId_FailsToBind()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["ConformanceSeed:Clients:client:ClientId"] = "client",
+                }
+            )
+            .Build();
+        var options = new ConformanceSeedOptions();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            configuration
+                .GetSection(ConformanceSeedOptions.DefaultSectionName)
+                .BindStrictly(options)
+        );
     }
 
     #endregion

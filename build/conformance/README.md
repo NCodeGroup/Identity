@@ -104,8 +104,10 @@ requests ([ADR-0202](../../docs/adr/0202-fapi-1-0-advanced-is-a-second-registere
 `appsettings.Conformance.json` gets a P-256 key and a self-signed certificate for it. They are generated on first use
 into `./.fapi1-keys/` (gitignored, never committed) and reused, so the seeded clients keep matching a persistent
 database; delete the folder and purge the database together. The script writes each client's public key set to the
-environment the OP inherits, which seeds the client, and writes the suite configuration with the private keys and
-certificates beside its `fapi1-advanced-*.template.json` (gitignored, deleted when the run ends). FAPI tokens are
+environment variable `ConformanceSeed__Clients__<client_id>__Jwks`, which the OP inherits and which seeds the client.
+It renders the suite configuration for each method, with the private keys and certificates, from the one
+`fapi1-advanced.template.json`, filling in the issuer from `-IssuerUrl`, and writes `fapi1-advanced-<method>.json`
+beside it (gitignored, deleted when the run ends). FAPI tokens are
 certificate-bound, so the OP is launched requesting client certificates and advertising certificate-bound access
 tokens and the `code id_token` response type. That is why the switch needs a fresh OP (not `-UseRunningOp`) and skips
 the pre-flight, whose client holds no certificate.

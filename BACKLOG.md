@@ -546,50 +546,18 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   `.github/instructions/csharp-production.instructions.md`.
 
 - **`X11` — Adopt the project template in identity-platform.** This repository adopted project-template `v0.3.0`
-  (backlog `X10`). identity-platform still generates its agents, prompts and skills with the template's installer, so
-  a template change reaches it only by hand, and its executor stays on Auto (the Copilot CLI workaround is in its
-  `AGENTS.md`). First change the template: `Adopt-Project.ps1` and `.template/Update-Project.ps1` set
-  `core.hooksPath .githooks` whenever it is unset, which would silently turn off identity-platform's pre-commit hooks
-  in `.git/hooks`. Then adopt it with `Adopt-Project.ps1` (`workflow_tools` `claude, copilot`) and run the
-  `/plan-migration` request it prints. identity-platform gets the template's `ci.yml` with the `Commit attribution`
-  job, the hook, and Claude Code's and VS Code's attribution settings, which closes its gap: today only a Copilot-only
-  hook run by pre-commit keeps agents out of its commits. Require `Commit attribution` in its `default-branch` ruleset
-  afterwards. Touch points: project-template's `Adopt-Project.ps1` and `template/.template/Update-Project.ps1`; in
-  identity-platform `.github/`, `.githooks/`, `.pre-commit-config.yaml`, `.claude/settings.json`,
-  `.vscode/settings.json` and its `default-branch` ruleset.
-
-  This repository's adoption (pull request #15) and its updates found more template gaps; fix them in the same
-  template change:
-  - **The adoption breaks an allow-list Docker build context.** `Directory.Build.props` now imports
-    `build/ProjectTemplate.props`, and this repository's `.dockerignore` re-admits only named root build files, so the
-    host image failed to restore (`MSB4019`) until `!build/ProjectTemplate.props` was added. The Definition of Done
-    does not build the image, so only the `Host image` check caught it. The `/plan-migration` request that
-    `Adopt-Project.ps1` prints should name every allow-list build context (`.dockerignore`, a CI cache key) as a place
-    to re-admit the new file. Check identity-platform's Dockerfiles for the same gap when adopting.
-  - **The Claude Code executor cannot run its Done-when check.** In a session that works in a git worktree, Claude
-    Code refuses to let the `plan-executor` subagent run `pwsh`, because it cannot prove the command stays in the
-    worktree, so every executor reported a hand-made check instead. The coordinator's run of each Done-when is what
-    verified the steps. The template's `plan-executor` agent and `execute-step` command should say that the
-    coordinator runs the check when the executor cannot, rather than asking the executor to run it.
-  - **`Update-Project.ps1` never hands the update over to the newer script.** It clones the template with
-    `--filter=blob:none`, and in that clone `git checkout <tag> -- template/.template/Update-Project.ps1` fails
-    ("unable to read sha1 file") on Git 2.56.0.windows.3, while `git show <tag>:<path>` fetches the blob. The script
-    reads the failure as "no newer script" and runs the project's own copy, so every update runs the previous
-    version's update logic. Updating this repository to `v0.4.0` hit it: the `v0.3.0` copy ran, without the
-    `WinError 206` fix, and failed; running project-template's root `Update-Project.ps1 -Path <repository>` from a
-    `v0.4.0` clone worked. `v0.7.0` still has the bug: its script matches `v0.4.0`'s, so the update to `v0.7.0`
-    needed no hand-over, but the next version that changes the script will run the old copy again. Read the target
-    script with `git show`, and give `Test-Template.ps1` an update from a `file://` clone, so the blob filter applies
-    the way it does for a hosted template.
-  - **The update's output is rough in places.** `Update-Project.ps1` commits on whatever branch is checked out, so on
-    `main`, which accepts only pull requests, it leaves a local commit to undo: warn or refuse on the default branch.
-    Copier prints "Make sure Git >= 2.24 is installed" on Git 2.56.0.windows.3, apparently misreading the `.windows.N`
-    suffix: explain or filter it. The "project-owned files changed" listing shows the raw Jinja source
-    (`{% if 'claude' in workflow_tools %}`) rather than the rendered text. The rendered `CLAUDE.md` has no final
-    newline.
-
-  More touch points: project-template's `Adopt-Project.ps1` migration request,
-  `template/.claude/agents/plan-executor.md`, and the `execute-step` and `orchestrate-plan` sources.
+  (backlog `X10`) and updated to `v0.10.0`, which closed every template gap its adoption and updates found
+  ([`BACKLOG-COMPLETED.md`](BACKLOG-COMPLETED.md)). identity-platform still generates its agents, prompts and
+  skills with the template's installer, so a template change reaches it only by hand, and its executor stays on
+  Auto (the Copilot CLI workaround is in its `AGENTS.md`). Adopt it with project-template's `Adopt-Project.ps1`
+  (`v0.9.0` or later, `workflow_tools` `claude, copilot`), which leaves its pre-commit hooks in `.git/hooks`
+  working, and run the `/plan-migration` request it prints, re-admitting `Directory.Build.props` and
+  `build/ProjectTemplate.props` in each `.dockerignore` and CI file it names. identity-platform gets the template's
+  `ci.yml` with the `Commit attribution` job, the hook, and Claude Code's and VS Code's attribution settings, which
+  closes its gap: today only a Copilot-only hook run by pre-commit keeps agents out of its commits. Require
+  `Commit attribution` in its `default-branch` ruleset afterwards. Touch points: in identity-platform `.github/`,
+  `.githooks/`, `.pre-commit-config.yaml`, `.claude/settings.json`, `.vscode/settings.json`, its Dockerfiles and
+  its `default-branch` ruleset.
 
 ## Review findings for the feature-gaps branch (group `R`)
 

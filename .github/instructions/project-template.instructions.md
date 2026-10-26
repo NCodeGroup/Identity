@@ -19,6 +19,8 @@ Work in this repository is planned by a frontier model and executed by cheaper o
 - A finished step is committed as `Plan step N: <title>`, staging only the files the step lists (never `git add -A`, never `PLAN.md`); a re-planned step is recorded as an empty commit, `Re-plan step N: <title>`.
 - The workflow commands are in Claude Code (`.claude/commands/`), VS Code's Copilot Chat (`.github/prompts/` and `.github/agents/`) and Copilot CLI (`.github/skills/`), and `PLAN.md` is the only state they share: any of them can plan, execute, re-plan or review the same plan, whichever wrote the steps before.
 - Never push, force-push or open a pull request unless asked. `git push` always asks for approval. Before a push you were asked for, list what the unpushed commits contain (`git log --stat @{u}..`) and stop on anything unexpected, such as `PLAN.md`, secrets or large files.
+- Before that push, retire a finished plan: when every step in `PLAN.md` is marked `[x]`, the review's fix steps included, delete `PLAN.md`, so no finished plan is left in the checkout. When a step is still open, keep `PLAN.md` and say which steps remain before you push.
+- Once the plan's work is pushed or merged, `/finish-plan` closes it: it deletes `PLAN.md`, fast-forwards the default branch from `origin` and deletes the plan's merged branch, and in Claude Code removes the plan's worktree. It never pushes.
 - Dependabot opens a pull request each week for newer versions of dependencies and CI actions; CI tests it, and a person reviews and merges it.
 
 ## Conventions

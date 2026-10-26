@@ -2625,6 +2625,39 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   stages only the files the step lists, and `PLAN.md` stays untracked. The rest of `X11` stays in
   [`BACKLOG.md`](BACKLOG.md)._
 
+- **`X11` (part) — Template gaps found by this repository's adoption and updates.** `Adopt-Project.ps1` and
+  `.template/Update-Project.ps1` set `core.hooksPath .githooks` over hooks in `.git/hooks`, and:
+  - **The adoption breaks an allow-list Docker build context.** `Directory.Build.props` now imports
+    `build/ProjectTemplate.props`, and this repository's `.dockerignore` re-admits only named root build files, so the
+    host image failed to restore (`MSB4019`) until `!build/ProjectTemplate.props` was added. The Definition of Done
+    does not build the image, so only the `Host image` check caught it. The `/plan-migration` request that
+    `Adopt-Project.ps1` prints should name every allow-list build context (`.dockerignore`, a CI cache key) as a place
+    to re-admit the new file. Check identity-platform's Dockerfiles for the same gap when adopting.
+  - **The Claude Code executor cannot run its Done-when check.** In a session that works in a git worktree, Claude
+    Code refuses to let the `plan-executor` subagent run `pwsh`, because it cannot prove the command stays in the
+    worktree, so every executor reported a hand-made check instead. The coordinator's run of each Done-when is what
+    verified the steps. The template's `plan-executor` agent and `execute-step` command should say that the
+    coordinator runs the check when the executor cannot, rather than asking the executor to run it.
+  - **`Update-Project.ps1` never hands the update over to the newer script.** It clones the template with
+    `--filter=blob:none`, and in that clone `git checkout <tag> -- template/.template/Update-Project.ps1` fails
+    ("unable to read sha1 file") on Git 2.56.0.windows.3, while `git show <tag>:<path>` fetches the blob. The script
+    reads the failure as "no newer script" and runs the project's own copy, so every update runs the previous
+    version's update logic. Updating this repository to `v0.4.0` hit it: the `v0.3.0` copy ran, without the
+    `WinError 206` fix, and failed; running project-template's root `Update-Project.ps1 -Path <repository>` from a
+    `v0.4.0` clone worked. `v0.7.0` still has the bug: its script matches `v0.4.0`'s, so the update to `v0.7.0`
+    needed no hand-over, but the next version that changes the script will run the old copy again. Read the target
+    script with `git show`, and give `Test-Template.ps1` an update from a `file://` clone, so the blob filter applies
+    the way it does for a hosted template.
+  - **The update's output is rough in places.** `Update-Project.ps1` commits on whatever branch is checked out, so on
+    `main`, which accepts only pull requests, it leaves a local commit to undo: warn or refuse on the default branch.
+    Copier prints "Make sure Git >= 2.24 is installed" on Git 2.56.0.windows.3, apparently misreading the `.windows.N`
+    suffix: explain or filter it. The "project-owned files changed" listing shows the raw Jinja source
+    (`{% if 'claude' in workflow_tools %}`) rather than the rendered text. The rendered `CLAUDE.md` has no final
+    newline.
+
+  _Closed by project-template `v0.9.0`, which this repository took with the update to `v0.10.0`. The rest of `X11`
+  stays in [`BACKLOG.md`](BACKLOG.md)._
+
 ## Review findings for the feature-gaps branch (group `R`)
 
 - **`R1` — Merge `main` and reconcile clashing backlog IDs.** `BACKLOG.md` conflicts, and

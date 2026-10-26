@@ -3,14 +3,14 @@
 <#
 .SYNOPSIS
     Drives the external OpenID Foundation Conformance Suite against the NCode.Identity OpenID Provider,
-    with the in-house probe runner as a fast pre-flight (backlog `T6` Phase 4 / `T1`).
+    with the in-house probe runner as a fast pre-flight (issue #129 Phase 4 / #124).
 
 .DESCRIPTION
     This is the committed, runnable realization of the full-automation plan in
     `docs/conformance-testing.md` (Phase D) and `docs/conformance/external-suite.md`. It:
 
       1. launches the OpenID host on the reachable HTTPS host the suite drives (`host.docker.internal:5001`,
-         the `Conformance` launch profile — backlog `T3`);
+         the `Conformance` launch profile — issue #126);
       2. runs the in-house headless probe runner (`@ncode/app-conformance-runner`) as a fast pre-flight that
          exercises the confidential / server-initiated legs a browser cannot, failing early before the slower
          external suite is even started;
@@ -30,7 +30,7 @@
         pinned pnpm).
       - Hosts-file entries `127.0.0.1  localhost.emobix.co.uk` (the suite's external base URL) and
         `127.0.0.1  host.docker.internal` (the OP issuer, probed from the host).
-      - The seeded conformance clients / test user from `appsettings.Conformance.json` (backlog `T4`).
+      - The seeded conformance clients / test user from `appsettings.Conformance.json` (issue #127).
 
 .EXAMPLE
     ./build/conformance/run-conformance.ps1
@@ -46,7 +46,7 @@ param(
     # The local suite base URL (prebuilt-image default; resolves to 127.0.0.1 via the hosts file).
     [string] $SuiteBase = 'https://localhost.emobix.co.uk:8443',
 
-    # The origin the suite reaches the OP at; its discovery `issuer` must byte-match this (backlog `T3`).
+    # The origin the suite reaches the OP at; its discovery `issuer` must byte-match this (issue #126).
     [string] $IssuerUrl = 'https://host.docker.internal:5001',
 
     # Where the conformance-suite repo is cloned for its `scripts/` + `docker-compose-prebuilt.yml` (gitignored).
@@ -70,7 +70,7 @@ param(
     # (`registration_endpoint_allow_anonymous=true`, set in appsettings.Conformance.json).
     [switch] $IncludeBrowserPlans,
 
-    # Run the FAPI 1.0 Advanced Final plans instead of -Plans (backlog `T1`, ADR-0202): private_key_jwt and
+    # Run the FAPI 1.0 Advanced Final plans instead of -Plans (issue #124, ADR-0202): private_key_jwt and
     # self_signed_tls_client_auth clients, pushed authorization requests, and both plain and JARM responses. Each FAPI
     # client's key and self-signed certificate is generated on first use into the gitignored `.fapi1-keys/` (never
     # committed) and reused, so the seeded clients keep matching a persistent database. The OP is launched with the
@@ -96,7 +96,7 @@ param(
 
     # Hard wall-clock ceiling for a single `run-test-plan.py` invocation. If the suite container drops out mid-plan the
     # suite script retries with backoff; this watchdog kills a plan that blows past the deadline so a dead suite fails
-    # fast instead of hanging overnight (backlog `T8`). A healthy Basic/Config OP plan completes in a couple of minutes,
+    # fast instead of hanging overnight (issue #131). A healthy Basic/Config OP plan completes in a couple of minutes,
     # so the generous default never trips on a good run while still bounding a wedged one.
     [int] $PlanTimeoutSeconds = 1800
 )
@@ -184,7 +184,7 @@ function Invoke-WithDeadline([string] $FilePath, [string[]] $Arguments, [int] $T
     # redirection, so UseShellExecute=false inherits our stdout/stderr handles). ProcessStartInfo.ArgumentList adds each
     # argument verbatim, so paths with spaces or the plan's '[...]' variant brackets need no manual quoting. On overrun
     # the whole child tree is killed and a conventional timeout code (124) is returned so the caller fails fast rather
-    # than blocking forever on a suite that went unreachable mid-plan (backlog `T8`).
+    # than blocking forever on a suite that went unreachable mid-plan (issue #131).
     $psi = [System.Diagnostics.ProcessStartInfo]::new()
     $psi.FileName = $FilePath
     $psi.UseShellExecute = $false
@@ -453,7 +453,7 @@ try {
         $env:CONFORMANCE_DEV_MODE = '1'
         $env:DISABLE_SSL_VERIFY = '1'
         # Pin the suite script's own retry bounds explicitly instead of inheriting whatever defaults the freshly-cloned
-        # upstream happens to ship (backlog `T8`): cap each HTTP request's internal retry budget, the per-module restart
+        # upstream happens to ship (issue #131): cap each HTTP request's internal retry budget, the per-module restart
         # retries, and the consecutive-failure circuit breaker so the suite self-aborts quickly on a dead/flapping
         # server. The wrapper-level Invoke-WithDeadline watchdog below is the hard outer bound that does not depend on
         # any of these upstream knobs still existing.
@@ -495,7 +495,7 @@ try {
                 $planFailures = New-ScopedBaseline $expectedFailures $configsToRun[$i] 'failures'
                 $planSkips = New-ScopedBaseline $expectedSkips $configsToRun[$i] 'skips'
                 # Run under a hard wall-clock deadline so a suite that goes unreachable mid-plan fails fast instead of
-                # hanging the whole wrapper indefinitely (backlog `T8`).
+                # hanging the whole wrapper indefinitely (issue #131).
                 $exitCode = Invoke-WithDeadline -FilePath $venvPython -TimeoutSeconds $PlanTimeoutSeconds `
                     -Label "Plan '$($plansToRun[$i])'" -Arguments @(
                     $runTestPlan,

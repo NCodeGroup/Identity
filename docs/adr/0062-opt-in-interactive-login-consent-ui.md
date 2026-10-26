@@ -22,14 +22,14 @@ today has nowhere to redirect. Integration tests sidestep this entirely with
 [`TestSubjectAuthenticationHandler`](../../tests/NCode.Identity.OpenId.IntegrationTests/Infrastructure/TestSubjectAuthenticationHandler.cs),
 which fabricates a subject from an `X-Test-Subject` header.
 
-Independent conformance validation against the OpenID Foundation Conformance Suite (backlog `T1`,
+Independent conformance validation against the OpenID Foundation Conformance Suite (issue [#124](https://github.com/NCodeGroup/Identity/issues/124),
 [`conformance-testing.md`](../conformance-testing.md)) changes this from "host's problem" to "the
 reference OP must be certifiable out of the box." The suite drives the interactive flow with a headless
 Selenium `BrowserControl` that locates fields by stable id/name and completes login (and optionally
 consent) before the callback. A header-driven fake is not browser-drivable, and a UI-less OP cannot
 complete an authorization-code flow under automation even when the protocol is perfectly correct. The
 reference host therefore needs a real, scriptable login/consent surface — the one prerequisite neither
-Dynamic Client Registration (`F6`) nor any harness plumbing provides.
+Dynamic Client Registration ([#44](https://github.com/NCodeGroup/Identity/issues/44)) nor any harness plumbing provides.
 
 This is a genuinely new concern for a family that has, by design, been UI-free. The forces in tension:
 the surface must be driveable and deterministic, must not fork the existing authentication seam or the
@@ -66,17 +66,17 @@ is the invariant; the rendering technology is an implementation choice behind it
   and out of `dod.ps1`.
 - **Consent is a decoupled stopgap.** The conformance client auto-approves consent by default (fewer
   flaky selectors), with a consent page still exposing `consent-allow` / `consent-deny` for negative
-  tests. This is intentionally independent of durable consent persistence (`F2`,
-  `// TODO: check consent` in `DefaultAuthorizeHandler`); when `F2` lands, this screen becomes a thin
+  tests. This is intentionally independent of durable consent persistence ([#40](https://github.com/NCodeGroup/Identity/issues/40),
+  `// TODO: check consent` in `DefaultAuthorizeHandler`); when [#40](https://github.com/NCodeGroup/Identity/issues/40) lands, this screen becomes a thin
   front-end over the persisted decision rather than a parallel mechanism.
 - **Opt-in and dev-scoped.** The module is a single opt-in registration (e.g.
   `AddInteractiveDevAuthentication()`) the host enables under the conformance profile; it is not a
   production login experience and is never wired by default.
 
 The remaining conformance prerequisites — a reachable HTTPS host with a byte-matched `issuer`
-(`T3`/[`reachable-host.md`](../conformance/reachable-host.md)), deterministic tenant/client/user seeding
-(`T4`/[`conformance-seeding.md`](../conformance/conformance-seeding.md)), and discovery-metadata
-alignment (`T5`/[`discovery-alignment.md`](../conformance/discovery-alignment.md)) — are configuration and
+([#126](https://github.com/NCodeGroup/Identity/issues/126)/[`reachable-host.md`](../conformance/reachable-host.md)), deterministic tenant/client/user seeding
+([#127](https://github.com/NCodeGroup/Identity/issues/127)/[`conformance-seeding.md`](../conformance/conformance-seeding.md)), and discovery-metadata
+alignment ([#128](https://github.com/NCodeGroup/Identity/issues/128)/[`discovery-alignment.md`](../conformance/discovery-alignment.md)) — are configuration and
 operational work that reuse existing seams (the `tenant_issuer` setting, the bootstrap-admin-style
 seeder, the data-driven discovery handler) and need no architectural decision of their own.
 
@@ -104,26 +104,26 @@ seeder, the data-driven discovery handler) and need no architectural decision of
 
 - The OpenID Provider gains its first interactive surface. It is small, opt-in, and dev-scoped, but it is
   a new concern to maintain and an obvious future target for a production-grade replacement.
-- `T1` conformance automation becomes reachable: the authorize flow can complete end-to-end under
-  headless Selenium once `T3`/`T4` provide a reachable host and a seeded identity.
+- [#124](https://github.com/NCodeGroup/Identity/issues/124) conformance automation becomes reachable: the authorize flow can complete end-to-end under
+  headless Selenium once [#126](https://github.com/NCodeGroup/Identity/issues/126)/[#127](https://github.com/NCodeGroup/Identity/issues/127) provide a reachable host and a seeded identity.
 - The stable-selector contract becomes a maintenance invariant coupled to the suite's `browser` config —
   changing an id without updating the config (or vice versa) silently breaks automation. The ids live in
   one place and are reviewed with the config.
-- Consent here is a stopgap. Until `F2`, approval is not persisted; the auto-approve default must converge
-  onto the persisted-consent decision when `F2` lands, or the two will drift.
+- Consent here is a stopgap. Until [#40](https://github.com/NCodeGroup/Identity/issues/40), approval is not persisted; the auto-approve default must converge
+  onto the persisted-consent decision when [#40](https://github.com/NCodeGroup/Identity/issues/40) lands, or the two will drift.
 - Because the module reuses the existing scheme seam and local-account store, it adds no new
   authentication model, credential store, or persistence — only a cookie scheme and two endpoints.
 
 ## References
 
-- Backlog items `T1`–`T5`: [`BACKLOG.md`](../../BACKLOG.md) group `T`.
+- Issues [#124](https://github.com/NCodeGroup/Identity/issues/124), [#125](https://github.com/NCodeGroup/Identity/issues/125), [#126](https://github.com/NCodeGroup/Identity/issues/126), [#127](https://github.com/NCodeGroup/Identity/issues/127) and [#128](https://github.com/NCodeGroup/Identity/issues/128).
 - Conformance design and automation plan: [`conformance-testing.md`](../conformance-testing.md)
   (Appendix A discovery, Appendix B locator contract, Appendix C client seeding, Appendix D `browser`
   config).
-- Prerequisite plans: [`login-consent-ui.md`](../conformance/login-consent-ui.md) (`T2`),
-  [`reachable-host.md`](../conformance/reachable-host.md) (`T3`),
-  [`conformance-seeding.md`](../conformance/conformance-seeding.md) (`T4`),
-  [`discovery-alignment.md`](../conformance/discovery-alignment.md) (`T5`).
+- Prerequisite plans: [`login-consent-ui.md`](../conformance/login-consent-ui.md) ([#125](https://github.com/NCodeGroup/Identity/issues/125)),
+  [`reachable-host.md`](../conformance/reachable-host.md) ([#126](https://github.com/NCodeGroup/Identity/issues/126)),
+  [`conformance-seeding.md`](../conformance/conformance-seeding.md) ([#127](https://github.com/NCodeGroup/Identity/issues/127)),
+  [`discovery-alignment.md`](../conformance/discovery-alignment.md) ([#128](https://github.com/NCodeGroup/Identity/issues/128)).
 - Reused seams: [ADR-0060](0060-local-account-one-store-seam-and-dependency-inverted-authentication.md)
   (local-account store + dependency-inverted authentication),
   [ADR-0030](0030-userinfo-endpoint-and-subject-authentication-seam.md) (subject-authentication seam).

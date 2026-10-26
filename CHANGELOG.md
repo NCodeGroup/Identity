@@ -15,7 +15,7 @@ change to the public API is a **major** version bump.
   `InProcessJobDispatcher` subsection, which `InProcessJobDispatcherOptions.SectionName` names, and the host refuses to
   start on an unknown key, a capacity or concurrency below 1, or a `FullMode` that names no member of
   `BoundedChannelFullMode`; each failure names its key
-  ([ADR-0242](docs/adr/0242-the-in-process-dispatcher-is-configured-under-the-openid-section.md), backlog `R103`).
+  ([ADR-0242](docs/adr/0242-the-in-process-dispatcher-is-configured-under-the-openid-section.md), issue [#294](https://github.com/NCodeGroup/Identity/issues/294)).
 
 - **The management API lists a tenant's incoherent clients.** `GET api/tenants/{tenantId}/incoherent-clients` checks a
   page of the tenant's stored clients (`cursor`, `limit` up to 100) against the tenant's effective settings and returns
@@ -23,7 +23,7 @@ change to the public API is a **major** version bump.
   `description`), or the `documentError` of a settings document that cannot be honored; a page can list no client while
   `continuationToken` remains. `IClientCoherenceReporter` finds them for the API and for the reconciliation's report,
   and `IncoherentClient`, `IncoherentClientResource` and `ClientCoherenceViolationResource` describe them
-  ([ADR-0233](docs/adr/0233-the-management-api-lists-a-tenants-incoherent-clients.md), backlog `R87`).
+  ([ADR-0233](docs/adr/0233-the-management-api-lists-a-tenants-incoherent-clients.md), issue [#278](https://github.com/NCodeGroup/Identity/issues/278)).
 
 - **An end user can change their password.** The self-service page `account/password` takes the current password and
   a new one; a change ends every other session of the principal with `password_changed`, which sends back-channel
@@ -32,14 +32,14 @@ change to the public API is a **major** version bump.
   registering `IInteractivePasswordChanger`, as the local accounts do. **Breaking:** `IInteractivePasswordChanger`,
   `InteractivePasswordChangeResult`, `InteractiveAuthenticationDefaults.PasswordPath`,
   `SessionTerminationReasons.PasswordChanged` and `GrantFilter.WithoutSession` are added
-  ([ADR-0230](docs/adr/0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md), backlog `R99`).
+  ([ADR-0230](docs/adr/0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md), issue [#290](https://github.com/NCodeGroup/Identity/issues/290)).
 
 - **Secret protection key hierarchy** ([ADR-0235](docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
   Stored private and symmetric secrets are AES-256-GCM envelopes (`nce1.`) under a fresh data key, wrapped by an
   HKDF-derived purpose key of the owner's master key (the server or the tenant), which is wrapped by a root key held by a
   root key provider (`ephemeral`, `local`, or a registered one) and, optionally, by an offline recovery RSA key. New
   public contracts: `ISecretProtectorProvider`, `ISecretProtector`, `IRootKeyProvider`, `IMasterKeyStore`,
-  `SecretOwner`, `SecretProtectionOptions`. New `MasterKeys` table (migration `AddMasterKeys`). Implements backlog `S9`.
+  `SecretOwner`, `SecretProtectionOptions`. New `MasterKeys` table (migration `AddMasterKeys`). Implements issue [#167](https://github.com/NCodeGroup/Identity/issues/167).
 
 - **Protect your own data.** `ISecretProtector` is buffer-first (writes into caller-supplied `IBufferWriter<T>`s,
   with `GetProtectedLength` for sizing, and a `ProtectToString` helper for text columns), so applications protect any
@@ -65,34 +65,34 @@ change to the public API is a **major** version bump.
   `DefaultAzureCredential`), never from configuration; wired into the reference host and the Helm chart, whose
   `secretProtection.googleCloudKms` / `secretProtection.azureKeyVault` values mount workload identity credentials only
   for the selected provider and refuse a malformed key name, key identifier or workload identity pool provider
-  ([ADR-0260](docs/adr/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md), backlog `S15`).
+  ([ADR-0260](docs/adr/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md), issue [#173](https://github.com/NCodeGroup/Identity/issues/173)).
 
 - **An administrator can block any end user.** `POST api/tenants/{tenantId}/principals/{principalId}/block` blocks a
   principal whatever its connections, `POST api/tenants/{tenantId}/principals/{principalId}/unblock` lifts the block,
   and `GET api/tenants/{tenantId}/principals/{principalId}` reports it. Blocking terminates every session of the
   principal with `user_blocked`, which revokes its grants and sends back-channel logout, and keeps its consents; every
   grant refuses a blocked principal with `access_denied`, and the authorization request and the interactive sign-in
-  refuse it with `access_denied` (backlog `R98`). The change is audited as `PrincipalChangedAuditEvent` (resource type
+  refuse it with `access_denied` (issue [#289](https://github.com/NCodeGroup/Identity/issues/289)). The change is audited as `PrincipalChangedAuditEvent` (resource type
   `principal`). **Breaking:** `PersistedFederatedPrincipal.IsBlocked`, `FederatedPrincipalEntity.IsBlocked`,
   `SessionTerminationReasons.UserBlocked`, `OpenIdConstants.EndpointTags.Principals` and
   `ManagementResourceTypes.Principal` are added, and the `AddFederatedPrincipalIsBlocked` migration adds a column to the
   federated principals table
   ([ADR-0226](docs/adr/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
-  backlog `R93`).
+  issue [#284](https://github.com/NCodeGroup/Identity/issues/284)).
 
 - **`token.refresh.retry` audits a rotated refresh token retried within its reuse interval.** When the retry is
   answered with another refresh token of its rotation family, `RefreshTokenRetryAuditEvent` is published with outcome
   `success`, so an operator can tell a client's retry from a rotation and from a reuse (`token.refresh.replay`); a
   refused retry publishes none. **Breaking:** `IAuditEventRecorder.RecordRefreshTokenRetryAsync` is a member a custom
   recorder implements
-  ([ADR-0217](docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), backlog `R84`).
+  ([ADR-0217](docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), issue [#275](https://github.com/NCodeGroup/Identity/issues/275)).
 
 - **The grant retention and the usage ledger are configured through `OpenId:GrantRetention` and
   `OpenId:TenantUsage`.** `AddConfiguration` binds `GrantRetentionOptions` (`Retention`, `PruneInterval`) and
   `TenantUsageOptions` (`FlushInterval`, `Retention`) strictly and validates them when the host starts;
   `GrantRetentionOptions.SectionName` and `TenantUsageOptions.SectionName` name the subsections
   ([ADR-0221](docs/adr/0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md),
-  backlog `R83`).
+  issue [#274](https://github.com/NCodeGroup/Identity/issues/274)).
 
 - **The host refuses to start with an interval or a lifetime that a timer cannot run.** The server's and the tenants'
   settings and secrets refresh intervals, `OpenId:Server:ReconciliationLeaseDuration`,
@@ -100,7 +100,7 @@ change to the public API is a **major** version bump.
   must be between one millisecond and 4,294,967,294 milliseconds (about 49.7 days), and a retention must not be
   negative; the error names the option and its configuration key. `NCode.Time.TimerPeriod` states the range
   ([ADR-0221](docs/adr/0221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md),
-  backlog `R86`).
+  issue [#277](https://github.com/NCodeGroup/Identity/issues/277)).
 
 - **A client whose refresh tokens rotate under the FAPI 2.0 profile must be able to retry a rotation.** The client
   setting `refresh_token_rotation_retry_required` (`false` by default; a child scope cannot un-require it) is required
@@ -108,7 +108,7 @@ change to the public API is a **major** version bump.
   that requires it while its refresh tokens rotate (`refresh_token_rotation_policy` `always`, or `unbound` for a public
   client) and its `refresh_token_reuse_interval` is zero (FAPI 2.0 §5.3.2.1)
   ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md),
-  [ADR-0217](docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), backlog `R81`).
+  [ADR-0217](docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), issue [#272](https://github.com/NCodeGroup/Identity/issues/272)).
 
 - **A server settings write takes effect at once on every replica.** After the server settings PATCH commits, the
   replica that handled it reads the committed document again before it answers and announces the change on the
@@ -116,7 +116,7 @@ change to the public API is a **major** version bump.
   `OpenIdServer.RefreshSettingsAsync` reads the document on demand, and the poll
   (`OpenId:Server:SettingsPeriodicRefreshInterval`, 5 minutes) is the fallback for a replica that missed the
   announcement
-  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R57`).
+  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issue [#248](https://github.com/NCodeGroup/Identity/issues/248)).
 
 - **Every tenant and stored client is reconciled with the server's effective settings when they change.** Each replica
   runs `ServerSettingsReconciliationService`, which reacts to a management write, a configuration reload, and a
@@ -127,15 +127,15 @@ change to the public API is a **major** version bump.
   administrator included. `PersistedServer.ReconciledSettingsFingerprint`, which the
   `AddServerReconciledSettingsFingerprint` migration adds, records what was reconciled, so a pass that a restart
   interrupted runs again and a start that changes nothing runs none
-  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R61`
-  and `R72`).
+  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issues [#252](https://github.com/NCodeGroup/Identity/issues/252)
+  and [#263](https://github.com/NCodeGroup/Identity/issues/263)).
 
 - **A replica that may have missed a broadcast drops what the message would have invalidated.**
   `IReplicaBroadcastHandler.HandleMissedMessagesAsync` is called by the Valkey subscriber once it subscribes a channel
   and whenever its connection is restored. The tenant handler evicts every cached tenant through
   `IOpenIdTenantCache.ClearAsync`, and the server handler reads the server's settings again
   ([ADR-0205](docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md),
-  [ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R58`).
+  [ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issue [#249](https://github.com/NCodeGroup/Identity/issues/249)).
 
 - **`refresh_token_reuse_interval` lets a client retry a refresh with its rotated refresh token.** The interval is off
   by default and at most 60 seconds. A rotated refresh token that is presented within the interval is answered as the
@@ -144,14 +144,14 @@ change to the public API is a **major** version bump.
   revocation endpoint revokes the whole family of a refresh token.
   `IPersistedGrantService.AddToRefreshTokenLineageOrDefault`, `ITokenService.ReissueRefreshTokenAsync`, and
   `IGrantStore.GetActiveByRefreshTokenLineageAsync` store and read the branch
-  ([ADR-0217](docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), backlog `R79`).
+  ([ADR-0217](docs/adr/0217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md), issue [#270](https://github.com/NCodeGroup/Identity/issues/270)).
 
 - **Grants are removed after a retention period.** `GrantPruneService` runs hourly in every replica and removes, in
   bounded batches, the grants that expired or were revoked more than `GrantRetentionOptions.Retention` ago (14 days by
   default), so the grants table holds live grants and those that ended within the retention.
   `IGrantStore.RemoveEndedBeforeAsync` stages one batch for removal, and the `AddGrantRevokedWhenIndex` migration
   indexes `Grants.RevokedWhen`
-  ([ADR-0218](docs/adr/0218-ended-grants-are-removed-after-a-retention-period.md), backlog `R76`).
+  ([ADR-0218](docs/adr/0218-ended-grants-are-removed-after-a-retention-period.md), issue [#267](https://github.com/NCodeGroup/Identity/issues/267)).
 
 - **`ClientCoherenceContext` gives a coherence rule the settings a client registers and its effective settings, and
   three more built-in rules read it.** `IClientCoherenceRule.FindViolations` receives the client's own settings
@@ -163,7 +163,7 @@ change to the public API is a **major** version bump.
   no `id_token_encrypted_response_alg`. `BackchannelTokenDeliveryCoherenceRule` reports a client that has no
   `client_notification_endpoint` while its delivery mode is not `poll`, and a client that may use the CIBA grant while
   `backchannel_token_delivery_modes_supported` excludes its delivery mode
-  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R62`).
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issue [#253](https://github.com/NCodeGroup/Identity/issues/253)).
 
 - **Dynamic client registration reads and reports `dpop_bound_access_tokens`, and
   `DPoPBoundAccessTokenCoherenceRule` checks the requirement.** The RFC 9449 §5.2 client metadata member is the client's
@@ -172,13 +172,13 @@ change to the public API is a **major** version bump.
   tokens while its effective `dpop_signing_alg_values_supported` is set and empty, because that list is how a server
   advertises DPoP support (RFC 9449 §5.1), so no proof could be accepted
   ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md),
-  [ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R65`).
+  [ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issue [#256](https://github.com/NCodeGroup/Identity/issues/256)).
 
 - **`StoreConcurrencyException` reports a lost optimistic-concurrency race.** The store manager throws it from
   `SaveChangesAsync` when another unit of work changed an entity after it was read, and a store throws it when the
   concurrency token that its caller presents differs from the stored one. A caller handles a lost race without a
   reference to Entity Framework, and a store that is not built on it reports a lost race the same way
-  ([ADR-0208](docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), backlog `R66`).
+  ([ADR-0208](docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), issue [#257](https://github.com/NCodeGroup/Identity/issues/257)).
 
 - **`DistinguishedName` matches a distinguished name as RFC 4517 `distinguishedNameMatch` does.**
   `DistinguishedName.TryParse` reads an RFC 4514 string and what an operator pastes: whitespace around `=`, `,`, and
@@ -188,7 +188,7 @@ change to the public API is a **major** version bump.
   and a character-string value is compared after NFKC normalization, deletion of the characters that map to nothing,
   whitespace collapse, and case folding, while any other value is compared by its exact encoding. The
   `tls_client_auth_subject_dn` setting rule, the `tls_client_auth` handler, and the CRL issuer check use it
-  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R18`).
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), issue [#209](https://github.com/NCodeGroup/Identity/issues/209)).
 
 - **`IClientCertificateRevocationChecker` and `ClientCertificateRevocationStatus`.** `CheckAsync` answers whether an
   issuer revoked a certificate with `Good`, `Revoked`, or `Unknown`, and `Unknown` is the zero value, so a checker that
@@ -198,7 +198,7 @@ change to the public API is a **major** version bump.
   fetches each CRL through the named client `NCode.Identity.OpenId.ClientCertificateRevocation`, accepts only a current
   DER CRL that the issuing certificate signed, and caches it until its `nextUpdate` or one hour. It answers `Unknown`
   for a certificate with no usable CRL, such as an OCSP-only PKI or a delta, partitioned, or indirect CRL
-  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R16`, `R64`).
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), issues [#207](https://github.com/NCodeGroup/Identity/issues/207), [#255](https://github.com/NCodeGroup/Identity/issues/255)).
 
 - **`require_tls_client_certificate_bound_access_tokens` is a client's requirement that its access tokens be bound to
   its certificate.** As `require_dpop_bound_access_tokens` is separate from the server's advertised
@@ -211,7 +211,7 @@ change to the public API is a **major** version bump.
   `CertificateBoundAccessTokenCoherenceRule`, reports a client that requires binding while its effective support is
   `false`
   ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md),
-  [ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R42`).
+  [ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issue [#233](https://github.com/NCodeGroup/Identity/issues/233)).
 
 - **`IInitialAccessTokenValidator.TryConsumeAsync` spends an initial access token, and
   `PersistedGrant<TPayload>.ConsumedWhen` records when a grant was spent.** Dynamic registration spends the token once
@@ -221,7 +221,7 @@ change to the public API is a **major** version bump.
   replacement validator implements `TryConsumeAsync` and returns `false` when the token no longer authorizes
   registration
   ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md),
-  [ADR-0063](docs/adr/0063-dynamic-client-registration.md), backlog `R17`).
+  [ADR-0063](docs/adr/0063-dynamic-client-registration.md), issue [#208](https://github.com/NCodeGroup/Identity/issues/208)).
 
 - **Client coherence rules.** `IClientCoherenceRule` names the settings it reads and reports each value a client
   registers that an effective setting does not permit as a `ClientCoherenceViolation`, and `IClientCoherenceValidator`
@@ -229,13 +229,13 @@ change to the public API is a **major** version bump.
   rule reads. The four built-in rules check a client's response algorithms, its redirect URI kinds, its token endpoint
   authentication method, and a required certificate-bound access token against the server's support for it, and a
   package adds a rule by registering it with `TryAddEnumerable`
-  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R40`).
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issue [#231](https://github.com/NCodeGroup/Identity/issues/231)).
 
 - **Client-authentication method descriptors.** `ClientAuthenticationMethodDescriptor` names a method and says whether
   it requires a client secret. A package contributes one through
   `ICollectionDataSource<ClientAuthenticationMethodDescriptor>`, and `IClientAuthenticationMethodCatalog` lists the
   registered names and finds a descriptor without constructing a handler
-  ([ADR-0207](docs/adr/0207-client-authentication-methods-are-named-by-registered-descriptors.md), backlog `R60`).
+  ([ADR-0207](docs/adr/0207-client-authentication-methods-are-named-by-registered-descriptors.md), issue [#251](https://github.com/NCodeGroup/Identity/issues/251)).
 
 - **`IEffectiveSettingsResolver` resolves a scope's effective settings in one place.** Each caller used to rebuild the
   merge of the server's settings, a tenant's document, and a client's or resource server's document, with the security
@@ -243,7 +243,7 @@ change to the public API is a **major** version bump.
   document and merge it onto its parent's effective settings, and the two `ResolveServerAsync` overloads resolve a
   proposed or the committed server document onto the configured settings. Its default is registered with
   `TryAddSingleton`, so a host replaces it
-  ([ADR-0204](docs/adr/0204-a-scopes-effective-settings-are-resolved-by-one-service.md), backlog `R39`).
+  ([ADR-0204](docs/adr/0204-a-scopes-effective-settings-are-resolved-by-one-service.md), issue [#230](https://github.com/NCodeGroup/Identity/issues/230)).
 
 - **`IReplicaBroadcaster` and `IReplicaBroadcastHandler` announce a change to every replica.** A replica publishes a
   message on a channel, and every replica's handlers for that channel receive it, the publisher's included. Delivery is
@@ -251,16 +251,16 @@ change to the public API is a **major** version bump.
   reaches the publisher. `AddInProcessReplicaBroadcaster()` is the default, and `AddIdentityServer` registers it. The
   Valkey adapter publishes with `PUBLISH` and `SUBSCRIBE` on the key prefix plus the channel, so its access-control
   user needs both commands. The `tenant-changed` channel evicts a changed tenant on every replica
-  ([ADR-0205](docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md), backlog `R49`).
+  ([ADR-0205](docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md), issue [#240](https://github.com/NCodeGroup/Identity/issues/240)).
 
 - **`ServerSettingsChangedCommand`.** The server settings PATCH sends it after it commits, carrying the previous and the
   new document. Its default handler reads the document again on this replica and announces the change to every replica,
   and the reconciliation of the server's settings then seeds each tenant that holds keys but lacks one its lists name,
   outside the request ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R50`).
+  [ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issue [#241](https://github.com/NCodeGroup/Identity/issues/241)).
 
 - **`ITenantStore.GetSettingsPageAsync` and `IClientStore.GetSettingsPageAsync`.** Each reads a page of settings
-  documents without their secrets and without change tracking, for a pass over every tenant or client (backlog `R21`).
+  documents without their secrets and without change tracking, for a pass over every tenant or client (issue [#212](https://github.com/NCodeGroup/Identity/issues/212)).
 
 - **Redirect URI kinds, which a client's settings narrow.** The new `redirect_uri_kinds_supported` setting lists the
   kinds of redirect URI a client may register and use. It applies to tenants and clients, merges with `Intersect`,
@@ -269,7 +269,7 @@ change to the public API is a **major** version bump.
   `OpenIdConstants.RedirectUriKinds`, sort a redirect URI into at most one: `https`, `loopback` (an `http` URI whose
   host is `127.0.0.1` or `[::1]`, RFC 8252 §7.3), `http` (any other `http` URI, `localhost` included), and
   `private_use` (a reverse-domain scheme such as `com.example.app`, RFC 8252 §7.1)
-  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R53`).
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), issue [#244](https://github.com/NCodeGroup/Identity/issues/244)).
 
 - **`IOpenIdEndpointMeteredMetadata` and `WithOpenIdMetered(bool)` mark whether an endpoint is the tenant's metered
   usage.** A metered endpoint's requests spend the daily request quota and are recorded in the usage ledger; an
@@ -386,7 +386,7 @@ change to the public API is a **major** version bump.
   `OTEL_EXPORTER_OTLP_ENDPOINT` is set; the exporter is added to the metrics pipeline only, so logs and traces stay the
   host's choice. Every meter comes from `IMeterFactory`. The catalog is
   [`docs/metrics.md`](docs/metrics.md) ([ADR-0197](docs/adr/0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md),
-  backlog `F80`).
+  issue [#119](https://github.com/NCodeGroup/Identity/issues/119)).
 - **Per-tenant rate limits.** Three settings limit the requests per minute a tenant's protocol endpoints serve:
   `rate_limit_tenant_per_minute` (every request), `rate_limit_address_per_minute` (one remote address, an IPv6 address
   counted by its `/64`), and `rate_limit_client_per_minute` (one authenticated confidential client, set on the tenant or
@@ -395,15 +395,15 @@ change to the public API is a **major** version bump.
   shared `IExpiringCounterSet` with a two-window sliding estimate, so the limits hold across replicas that share Valkey.
   A refused request is answered `429 Too Many Requests` with `temporarily_unavailable`, `Retry-After`, and
   `Cache-Control: no-store`, and is neither handled nor audited. A counter store that fails admits the request and logs
-  a warning ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), backlog
-  `F45`).
+  a warning ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), issue
+  [#84](https://github.com/NCodeGroup/Identity/issues/84)).
 - **A shared expiring counter set for rate limiting.** `NCode.Identity.SharedState.Abstractions` adds
   `IExpiringCounterSet`: `IncrementAsync(key, expiresWhen)` atomically increments a counter that spans one fixed window
   and returns its count, and `GetAsync(key)` reads a count. `AddInProcessExpiringCounterSet` registers the in-process
   default, which `AddIdentityServer` now registers beside the in-process key set, and `AddValkey` replaces it with a
   Valkey adapter that runs `INCR` and `PEXPIRE` as one script, so every replica counts against one counter. It is the
   foundation of per-tenant rate limiting
-  ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), backlog `F45`).
+  ([ADR-0196](docs/adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), issue [#84](https://github.com/NCodeGroup/Identity/issues/84)).
 
 - **The management console shows and edits a tenant's mTLS endpoint alias (RFC 8705 §5).** The `@ncode/api` mirrors
   carry `mtlsEndpointAliasAuthority` on `TenantResource`, `CreateTenantRequest`, and `UpdateTenantFields`, and
@@ -412,7 +412,7 @@ change to the public API is a **major** version bump.
   default as its hint and placeholder, the tenant table shows it in its own column, and `TenantsPage` previews a
   proposed alias, re-judges an existing tenant's address only when its issuer or alias changes, and sends the alias on
   create and update, where an empty alias restores the derived one
-  ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), backlog `U25`).
+  ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), issue [#157](https://github.com/NCodeGroup/Identity/issues/157)).
 - **A tenant's mTLS endpoint alias takes a derived default, as its issuer does (RFC 8705 §5).** The new
   `DynamicByHost:MtlsEndpointAliasTemplate` (for example `https://{tenantId}.mtls.example`) gives every tenant written
   without an alias its expansion, and `Root:MtlsEndpointAliasAuthority` and `StaticSingle:MtlsEndpointAliasAuthority`
@@ -423,7 +423,7 @@ change to the public API is a **major** version bump.
   maps to itself and which differs from the issuer template's host. The address preview
   (`GET /tenants/{tenantId}/address`) takes an optional `mtlsEndpointAliasAuthority` and returns the effective
   `MtlsEndpointAliasAuthority` and `IsMtlsEndpointAliasAuthorityDerived` on `TenantAddressResource`
-  ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), backlog `F78`).
+  ([ADR-0195](docs/adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), issue [#117](https://github.com/NCodeGroup/Identity/issues/117)).
 - **A tenant's mTLS endpoint-alias host routes to the tenant (RFC 8705 §5).** The alias is now the tenant property
   `PersistedTenant.MtlsEndpointAliasAuthority` (an `https` origin), exposed as `OpenIdTenant.MtlsEndpointAliasAuthority`,
   and discovery builds `mtls_endpoint_aliases` from it. The host strategy routes a request to a tenant by its issuer host
@@ -488,20 +488,20 @@ change to the public API is a **major** version bump.
 - **The Management console rotates a client secret.** A client's shared secrets — the secret types the capabilities
   document reports as not asymmetric — carry a rotate action. After confirmation it replaces the secret with one that
   expires a year out and reveals the replacement once, as create does (`rotateClientSecret` in `@ncode/store`,
-  `RotateSecretRequest` in `@ncode/api`). Backlog `U23` is complete
+  `RotateSecretRequest` in `@ncode/api`). Issue [#155](https://github.com/NCodeGroup/Identity/issues/155) is complete
   ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)).
 - **A client secret is rotated in one call.** `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate`
   generates a replacement shared secret with the rotated secret's type, size, `use`, and `alg` and the expiry the
   request names (`RotateSecretRequest`), adds it and removes the rotated secret in one change, and returns the
   replacement's `CreatedSecretResource` — the only place its material appears. The caller must be allowed to create a
   secret for the client and to delete the rotated one; `If-Match` is honored, and a key answers `400`. The rotated
-  secret stops being accepted at once; a client that needs an overlap still creates and deletes in two calls. Backlog
-  `S1` is complete ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)).
+  secret stops being accepted at once; a client that needs an overlap still creates and deletes in two calls. Issue
+  [#159](https://github.com/NCodeGroup/Identity/issues/159) is complete ([ADR-0183](docs/adr/0183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md)).
 - **The end-session endpoint accepts an `id_token_hint` the client re-encrypted to the server.** OpenID Connect
   RP-Initiated Logout 1.0 §2 lets a relying party that received an encrypted ID token re-encrypt the signed token to
   the OP. The hint is decrypted with the tenant's keys under the tenant's advertised `id_token_encryption_*` lists,
   and the enclosed ID token is checked as before. A tenant without an encryption key still accepts only a signed hint,
-  and an ID token presented anywhere else is never decrypted. Backlog `F76` is complete
+  and an ID token presented anywhere else is never decrypted. Issue [#115](https://github.com/NCodeGroup/Identity/issues/115) is complete
   ([ADR-0167](docs/adr/0167-the-server-validates-the-tokens-it-issued-under-one-policy.md)).
 - **Dynamic client registration accepts the token endpoint and CIBA metadata.** A client registers
   `token_endpoint_auth_signing_alg` (OpenID Connect Dynamic Client Registration 1.0 §2) and
@@ -510,13 +510,13 @@ change to the public API is a **major** version bump.
   client information response reports them. Each algorithm narrows the client's own list to it, under the tenant's
   ceiling. A `ping` or `push` client must register an https notification endpoint, and a client may claim the
   `user_code` parameter only where the tenant supports it; otherwise registration answers `invalid_client_metadata`.
-  `backchannel_user_code_parameter_supported` now also applies to clients, where the registered flag is stored. Backlog
-  `F66` is complete
+  `backchannel_user_code_parameter_supported` now also applies to clients, where the registered flag is stored. Issue
+  [#105](https://github.com/NCodeGroup/Identity/issues/105) is complete
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
 - **A replacement token service can protect ID tokens as the client registered.** `IClientJwtCredentialSelector`,
   `ClientJwtCredentials`, and `ClientJwtProtectionSettings` are public in
   `NCode.Identity.OpenId.Authentication.Abstractions` (namespace unchanged). Every issuer of a JWT addressed to a client
-  resolves the selector, and a deployment can register its own before `AddIdentityServer()`. Backlog `F69` is complete
+  resolves the selector, and a deployment can register its own before `AddIdentityServer()`. Issue [#108](https://github.com/NCodeGroup/Identity/issues/108) is complete
   ([ADR-0181](docs/adr/0181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md)).
 - **The host's chart migrates the database before each rollout.** The host image now also carries the migration worker
   in `/app/migrations`, and the chart runs it as a Helm `pre-install` and `pre-upgrade` Job. A failed migration fails
@@ -524,7 +524,7 @@ change to the public API is a **major** version bump.
   `migrations.database.existingSecret` gives it a connection with schema rights that the server does not need. Set
   `migrations.enabled=false` to apply migrations another way. Every migration must keep the previous release working:
   add first, drop or rename in a later release. The chart's pods now carry `app.kubernetes.io/component: server`, so
-  the Service and PodDisruptionBudget never select the Job. Backlog `F46` is complete
+  the Service and PodDisruptionBudget never select the Job. Issue [#85](https://github.com/NCodeGroup/Identity/issues/85) is complete
   ([ADR-0180](docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)).
 - **The host has a Helm chart.** `charts/ncode-identity-host` deploys `NCode.Identity.OpenId.Host` under the
   restricted Pod Security Standard: non-root, read-only root filesystem, no capabilities, and no service-account token.
@@ -571,7 +571,7 @@ change to the public API is a **major** version bump.
   there (RFC 8705 §2.2). A key whose `x5c` is empty, malformed, or carries another key is refused.
   ([ADR-0161](docs/adr/0161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md))
 
-- **Local and Copilot workflow formats are intentionally supported together (`X1` closed).** Keep the Local prompts
+- **Local and Copilot workflow formats are intentionally supported together ([#179](https://github.com/NCodeGroup/Identity/issues/179) closed).** Keep the Local prompts
   and Copilot skills; no bulk prompt migration is needed. A new first Definition-of-Done stage checks every pair's
   name, description, and ordered workflow body, with fixture tests proving that missing adapters, drift, and unsupported
   skill settings fail. This covers the generated workflows and the hand-written audit pair. Skills use the session's
@@ -741,7 +741,7 @@ change to the public API is a **major** version bump.
   first request, and the integration tests run in 41 s instead of 5m58s.
   `NCode.Identity.OpenId.Authentication.Interactive` still binds its endpoints at runtime, because the generated form
   binding answers a form whose antiforgery validation failed with 500 instead of 400
-  ([ADR-0262](docs/adr/0262-minimal-api-request-delegates-are-generated-at-compile-time.md), backlog `X8`).
+  ([ADR-0262](docs/adr/0262-minimal-api-request-delegates-are-generated-at-compile-time.md), issue [#186](https://github.com/NCodeGroup/Identity/issues/186)).
 
 - **Feature branches run a fast gate, and the merge queue runs the full gate.** `./build/dod.ps1` gains `-Affected`
   (with `-Base`), which runs only the test projects a change reaches through the project graph, and `-Filter`, which
@@ -756,7 +756,7 @@ change to the public API is a **major** version bump.
   `useUpdateSettingsMutation`, each taking a `ManagementOwner` from `@ncode/api`, in place of a hook per owner type, and
   `OwnerSecretsTab` and `OwnerSettingsTab` serve every detail page
   ([ADR-0257](docs/adr/0257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),
-  backlog `R45`).
+  issue [#236](https://github.com/NCodeGroup/Identity/issues/236)).
 
 - **The `apps/auth` bundle's files are cached for a year and served without resolving the tenant.** The host serves
   only the bundle's content-hashed `assets` directory, at `GET|HEAD {tenant}/account/assets/{**asset}`, with
@@ -765,19 +765,19 @@ change to the public API is a **major** version bump.
   bundle's directory, such as `index.html`, are not served, and `@ncode/vite-config` pins `build.assetsDir` to
   `assets`
   ([ADR-0254](docs/adr/0254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md),
-  backlog `R30`).
+  issue [#221](https://github.com/NCodeGroup/Identity/issues/221)).
 
 - **The host embeds a tenant's branding in the page, and `GET {tenant}/account/branding` is removed.** Every page
   served with the `apps/auth` bundle carries the tenant's branding in a `<script type="application/json"
   id="branding">` block after its `<base>`, and the bundle themes itself from it without a request.
   `InteractiveAuthenticationDefaults.BrandingPath` is removed
-  ([ADR-0253](docs/adr/0253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), backlog
-  `R20`).
+  ([ADR-0253](docs/adr/0253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), issue
+  [#211](https://github.com/NCodeGroup/Identity/issues/211)).
 
 - **Each of a tenant's own surfaces in the management console has its own address.** The tenant's secrets,
   settings, and usage are tenant surfaces at `/tenants/{tenantId}/secrets`, `/settings`, and `/usage`, each with its
   own tab, so they can be bookmarked, shared, and restored with back and forward
-  ([ADR-0255](docs/adr/0255-each-tenant-surface-of-the-management-console-has-its-own-address.md), backlog `R45`).
+  ([ADR-0255](docs/adr/0255-each-tenant-surface-of-the-management-console-has-its-own-address.md), issue [#236](https://github.com/NCodeGroup/Identity/issues/236)).
 
 - **A migration classifies its data change, and a constraint added to an existing table is a contract step.**
   `ExpandOnlyRule.Check(Migration)` judges each host migration: one that runs raw SQL or changes seed data carries
@@ -787,7 +787,7 @@ change to the public API is a **major** version bump.
   constraint, primary key, check constraint or foreign key added to an existing table, and a foreign key that restricts
   deleting rows of an existing table
   ([ADR-0250](docs/adr/0250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md),
-  backlog `R14`).
+  issue [#205](https://github.com/NCodeGroup/Identity/issues/205)).
 
 - **Breaking: a retired setting stays registered until a later release removes it.** `SettingDescriptor.RetiredReason`
   and `IsRetired` retire a setting: reads ignore it, `ValidateSettings` and the configuration reader refuse it, and
@@ -795,7 +795,7 @@ change to the public API is a **major** version bump.
   value or removed; the management API's settings updates validate through it. `mtls_endpoint_alias_authority` is
   retired: `PromoteMtlsEndpointAliasAuthority` copies each tenant's value and keeps the setting for the previous
   release, and its `Down` writes the alias back
-  ([ADR-0251](docs/adr/0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md), backlog `R15`).
+  ([ADR-0251](docs/adr/0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md), issue [#206](https://github.com/NCodeGroup/Identity/issues/206)).
 
 - **Breaking: rate limits and quotas are registered descriptors judged in one round trip per stage.** Each limit is a
   `RateLimitDescriptor` (name, stage, order, window, sliding or fixed, limit and overage settings, metered only, usage
@@ -808,14 +808,14 @@ change to the public API is a **major** version bump.
   `counter.increment_until_exceeded`), and every implementation of the port implements it. Shared-state keys carry the
   tenant in braces as a hash tag, so counters and replay records in flight across the upgrade start over. The
   `QuotaExceeded` log event (2044) is retired, and `RateLimitExceeded` names the window
-  ([ADR-0246](docs/adr/0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md), backlog
-  `R41`).
+  ([ADR-0246](docs/adr/0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md), issue
+  [#232](https://github.com/NCodeGroup/Identity/issues/232)).
 
 - **The host image writes one-line JSON logs.** The image sets `Logging__Console__FormatterName=json`,
   `Logging__Console__FormatterOptions__UseUtcTimestamp=true` and
   `Logging__Console__FormatterOptions__TimestampFormat=O`, so every entry, the migration worker's included, is one JSON
   object on one line with a UTC timestamp; `Logging__Console__FormatterName=simple` restores text
-  ([ADR-0248](docs/adr/0248-the-host-image-writes-one-line-json-logs.md), backlog `R74`).
+  ([ADR-0248](docs/adr/0248-the-host-image-writes-one-line-json-logs.md), issue [#265](https://github.com/NCodeGroup/Identity/issues/265)).
 
 - **Breaking: a client value that a ceiling lowers is incoherent.** `RegisteredValueCoherenceRule` checks every
   setting a client registers whose merge is a meet (`Min`, `And` or `Intersect`, which the added abstract
@@ -825,13 +825,13 @@ change to the public API is a **major** version bump.
   it: `The 'access_token_lifetime' value '01:00:00' exceeds the effective 'access_token_lifetime' value '00:05:00'.` A
   value that a ceiling already lowers blocks no write that moves that ceiling, because a write matches a violation
   that predates it without its description. A floor (`Max`, `Or`, `Union`) is never reported
-  ([ADR-0240](docs/adr/0240-a-client-value-that-a-ceiling-lowers-is-incoherent.md), backlog `R71`).
+  ([ADR-0240](docs/adr/0240-a-client-value-that-a-ceiling-lowers-is-incoherent.md), issue [#262](https://github.com/NCodeGroup/Identity/issues/262)).
 
 - **The in-process dispatcher runs jobs concurrently.** Up to `InProcessJobDispatcherOptions.MaxConcurrentJobs` jobs
   (16 by default) run at once, so a delivery that waits on an unreachable endpoint holds one worker while the jobs
   behind it run on the others. `MaxConcurrentJobs` and `QueueCapacity` must be at least 1, which the host checks when it
   starts ([ADR-0232](docs/adr/0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md),
-  backlog `R85`).
+  issue [#276](https://github.com/NCodeGroup/Identity/issues/276)).
 
 - **Breaking: a reconciliation of the server's settings reaches only the tenants its change affects.**
   `PersistedServer.ReconciledSettings` records the effective settings every tenant and client was reconciled against
@@ -843,7 +843,7 @@ change to the public API is a **major** version bump.
   `UpdateReconciledSettingsFingerprintAsync`, and `IServerStore.UpdateSettingsAsync` keeps the recorded settings unless
   the settings of an earlier change were never reconciled
   ([ADR-0234](docs/adr/0234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md),
-  backlog `R88`).
+  issue [#279](https://github.com/NCodeGroup/Identity/issues/279)).
 
 - **Breaking:** `ISecretSerializer` and `ISecretGenerator` take an `ISecretProtector`; `ISecretSerializer` gains
   `DeserializePublicSecret`. Imported public keys (`spki`, `x509`) are stored as plain base64url.
@@ -867,41 +867,41 @@ change to the public API is a **major** version bump.
   `IPersistedGrantService.UpdatePayloadAndExpirationAsync` is a member a custom implementation implements; and
   `SessionInfo.ExpiresWhen`, `SessionResource.ExpiresWhen` and `expiresWhen` of `/account/sessions/list` are the time
   the session ends unless it is used again, never `null`
-  ([ADR-0220](docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), backlog `R80`).
+  ([ADR-0220](docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), issue [#271](https://github.com/NCodeGroup/Identity/issues/271)).
 
 - **Breaking: a cached tenant expires 15 minutes after it is materialized, however often it is used.**
   `OpenIdTenantOptions.TenantCacheLifetime` (`OpenId:Tenant:TenantCacheLifetime`) is an absolute lifetime that
   replaces the 4-hour sliding `TenantCacheExpiration`, so a replica that missed a tenant's change announcement serves
   the tenant at most that long
-  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R58`).
+  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issue [#249](https://github.com/NCodeGroup/Identity/issues/249)).
 
 - **Breaking: `OpenIdServer.RefreshSettingsAsync`, `IOpenIdTenantCache.ClearAsync`,
   `IReplicaBroadcastHandler.HandleMissedMessagesAsync`, and `IServerStore.UpdateReconciledSettingsFingerprintAsync`
   are members a custom implementation implements**, and `IServerStore.UpdateSettingsAsync` clears the server's
   `ReconciledSettingsFingerprint` in the same unit of work
-  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R57`,
-  `R58` and `R61`).
+  ([ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issues [#248](https://github.com/NCodeGroup/Identity/issues/248),
+  [#249](https://github.com/NCodeGroup/Identity/issues/249) and [#252](https://github.com/NCodeGroup/Identity/issues/252)).
 
 - **The tenant re-seed after a server settings change is part of the reconciliation, not a job on `IJobDispatcher`.**
   It also runs after a configuration reload and a deployment, it holds no dispatcher worker, and it evicts only the
   tenants that hold keys but lack one their settings use. `NCode.Identity.OpenId.Core` does not reference
   `NCode.Identity.Dispatch.Abstractions`
   ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), backlog `R61`).
+  [ADR-0219](docs/adr/0219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issue [#252](https://github.com/NCodeGroup/Identity/issues/252)).
 
 - **Breaking: refresh-token rotation goes through `ITokenService.RotateRefreshTokenAsync`, which stores the successor
   with `IPersistedGrantService.ReplaceOnceOrDefault`; `IPersistedGrantService.TryRevokeOnceAsync` spends a token that
   has no successor.** A custom implementation implements the three members
-  ([ADR-0211](docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md), backlog `R69`).
+  ([ADR-0211](docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md), issue [#260](https://github.com/NCodeGroup/Identity/issues/260)).
 
 - **Breaking: deleting a client removes everything that exists for it, and `IClientStore.HasDependentsAsync` is
   removed.** `IClientStore.RemoveAsync` removes its secrets, grants to resource servers, consents, and the grants issued
   to it in the same unit of work; the management API and RFC 7592 deregistration answer `204` whatever the client holds
-  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R59`).
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), issue [#250](https://github.com/NCodeGroup/Identity/issues/250)).
 
 - **Breaking: `ITenantUsageStore.RemoveBeforeAsync(day, limit, cancellationToken)` removes a bounded batch when the unit
   of work is saved,** and the flush service prunes in batches of 256 entries
-  ([ADR-0213](docs/adr/0213-the-usage-ledger-is-pruned-in-bounded-batches.md), backlog `R73`).
+  ([ADR-0213](docs/adr/0213-the-usage-ledger-is-pruned-in-bounded-batches.md), issue [#264](https://github.com/NCodeGroup/Identity/issues/264)).
 
 - **Breaking: `ITenantUsageStore.AddAsync` adds a numbered batch of one replica's usage, and the ledger adds each batch
   once.** `AddAsync(replicaId, batchNumber, usage, cancellationToken)` takes the identifier the replica drew when it
@@ -913,7 +913,7 @@ change to the public API is a **major** version bump.
   which still returns the count of usage entries removed. The Entity Framework store keeps the checkpoint in
   `TenantUsageCheckpointEntity`, and a deployment applies the migration `AddTenantUsageCheckpoints`, which creates the
   `TenantUsageCheckpoints` table
-  ([ADR-0209](docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), backlog `R25`).
+  ([ADR-0209](docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), issue [#216](https://github.com/NCodeGroup/Identity/issues/216)).
 
 - **The reference hosts write logs to standard output only.** `NCode.Identity.OpenId.Host` and
   `NCode.Identity.OpenId.Host.MigrationService` register the console and EventSource logging providers on every
@@ -921,7 +921,7 @@ change to the public API is a **major** version bump.
   console writes to standard output in the format that `Logging:Console:FormatterName` selects, and EventSource writes
   nothing until `dotnet-monitor` or `dotnet-trace` attaches. A reference host writes nothing to the Windows Event Log,
   and a deployment that needs another sink, such as the Event Log of a Windows service, adds it in its own composition
-  root ([ADR-0210](docs/adr/0210-the-reference-hosts-log-to-standard-output.md), backlog `R54`).
+  root ([ADR-0210](docs/adr/0210-the-reference-hosts-log-to-standard-output.md), issue [#245](https://github.com/NCodeGroup/Identity/issues/245)).
 
 - **Breaking: a coherence rule reads a `ClientCoherenceContext`, and the validator resolves a client's settings
   itself.** `IClientCoherenceRule.FindViolations(ClientCoherenceContext)` takes the client's registered and effective
@@ -931,13 +931,13 @@ change to the public API is a **major** version bump.
   governs a value as `GoverningSettingName`, because a setting that requires a companion is not a ceiling, and carries
   a `Description` that every caller reports. A custom rule implements the new `FindViolations`, and a caller passes the
   tenant's settings and the client's settings document to `Validate`
-  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R62`).
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issue [#253](https://github.com/NCodeGroup/Identity/issues/253)).
 
 - **Dynamic registration keeps no relation check of its own, and its error descriptions name client settings.** The
   checks of the supported metadata, the algorithms, and the backchannel metadata are coherence rules, so
   `ValidateCoherence` is its only relation check. A description names `grant_types_supported`, not `grant_types`, and
   the error codes are unchanged: `invalid_redirect_uri` for `redirect_uris`, else `invalid_client_metadata`
-  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R62`).
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issue [#253](https://github.com/NCodeGroup/Identity/issues/253)).
 
 - **Every configuration seeder checks the client it creates, and a validation problem lists at most ten errors per
   setting.** The bootstrap administrator, developer, and conformance seeders run the coherence validator on a client
@@ -945,7 +945,7 @@ change to the public API is a **major** version bump.
   seeder checks before it imports the secret, and a client that exists is left as it is. A management validation
   problem lists the first ten errors of each setting, in order, and adds `Errors not listed for '<name>': <n>.` for the
   rest, so a change that makes many clients incoherent answers a bounded response
-  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R63`).
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issue [#254](https://github.com/NCodeGroup/Identity/issues/254)).
 
 - **Breaking: every `ISecurityProfileCatalog.Expand` overload names its scope, and a profile's default applies only
   within it.** `Expand(scopeSettings, scopeName)` and `Expand(scopeSettings, scopeName, baselineSettings)` take the
@@ -955,7 +955,7 @@ change to the public API is a **major** version bump.
   `fapi1-advanced` supplies `tls_client_certificate_bound_access_tokens` and a client that alone selects it does not.
   Ceilings merge at every scope, because a bound only narrows. A caller passes its scope name
   ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md),
-  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R68`).
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), issue [#259](https://github.com/NCodeGroup/Identity/issues/259)).
 
 - **Breaking: `require_dpop_bound_access_tokens` is the client's requirement for DPoP-bound access tokens.** The
   setting is named `require_` plus the RFC 9449 §5.2 client metadata member `dpop_bound_access_tokens`, as the
@@ -966,14 +966,14 @@ change to the public API is a **major** version bump.
   stored data: a deployment that sets `OpenId:Server:Settings:require_dpop` renames the key to
   `OpenId:Server:Settings:require_dpop_bound_access_tokens`, or the configuration cannot be honored, because the old
   name is not a registered setting
-  ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md), backlog `R65`).
+  ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md), issue [#256](https://github.com/NCodeGroup/Identity/issues/256)).
 
 - **Breaking: an Entity Framework store reports a stale token as `StoreConcurrencyException`.**
   `IStoreManager.SaveChangesAsync` and the concurrency-token check of every store throw the store-neutral exception,
   not `DbUpdateConcurrencyException`. A caller that catches the Entity Framework type around a store method or around
   `SaveChangesAsync` catches `StoreConcurrencyException` instead, and a caller that saves through a `DbContext`
   directly still receives Entity Framework's type
-  ([ADR-0208](docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), backlog `R66`).
+  ([ADR-0208](docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), issue [#257](https://github.com/NCodeGroup/Identity/issues/257)).
 
 - **Breaking: `tls_client_certificate_bound_access_tokens` is the server's and a tenant's advertised support only.** The
   setting keeps its RFC 8705 §3.3 discovery name, applies to tenants, merges with `Replace`, and does not force a client
@@ -986,48 +986,48 @@ change to the public API is a **major** version bump.
   `true` under `OpenId:Server:Settings` to make every client bind its tokens also sets
   `require_tls_client_certificate_bound_access_tokens` to `true` there, or those clients receive bearer tokens
   ([ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md),
-  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R42`).
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), issue [#233](https://github.com/NCodeGroup/Identity/issues/233)).
 
 - **Breaking: the `offline` revocation mode is retired.** `tls_client_auth_revocation_mode` is `online` (the default) or
   `none`, because the server retrieves revocation data itself and the platform chain engine retrieves nothing. The same
   migration translates a stored `offline` to `online`. A PKI that publishes OCSP responses and no CRL sets `none` or
   replaces `IClientCertificateRevocationChecker`
-  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R16`).
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), issue [#207](https://github.com/NCodeGroup/Identity/issues/207)).
 
 - **Breaking: every initial access token has a lifetime of at most 30 days.** `lifetimeSeconds` is optional, defaults
   to one day, and a value outside 1 to 2 592 000 (30 days) is refused with `400`. `CreatedInitialAccessTokenResource`
   carries `ExpiresWhen` as a `DateTimeOffset`, not a `DateTimeOffset?`, for a scoped and an unscoped token alike. A
   token that an earlier release minted without a lifetime authorizes no registration; an administrator mints a new one
-  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md), backlog
-  `R17`).
+  ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md), issue
+  [#208](https://github.com/NCodeGroup/Identity/issues/208)).
 
 - **Every entry point checks a client through the coherence validator.** Dynamic registration, the management API, and
   the conformance seed apply the same rules. A tenant or server settings change that narrows
   `redirect_uri_kinds_supported`, selects `fapi2` or `fapi1-advanced`, or narrows
   `token_endpoint_auth_methods_supported` is refused while a client registers a value it would exclude. Registration
   error codes are unchanged, and their descriptions are uniform
-  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R40`, `R55`).
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issues [#231](https://github.com/NCodeGroup/Identity/issues/231), [#246](https://github.com/NCodeGroup/Identity/issues/246)).
 
 - **Breaking: a client-authentication handler needs a descriptor.** The host does not compose when the handlers and the
   descriptors differ, and options validation constructs no handler
-  ([ADR-0207](docs/adr/0207-client-authentication-methods-are-named-by-registered-descriptors.md), backlog `R60`).
+  ([ADR-0207](docs/adr/0207-client-authentication-methods-are-named-by-registered-descriptors.md), issue [#251](https://github.com/NCodeGroup/Identity/issues/251)).
 
 - **Breaking:** every copy of the effective-settings merge routes through `IEffectiveSettingsResolver`. The
   `DefaultOpenIdTenantFactory` and `EphemeralOpenIdTenantFactory` constructors take it instead of
   `ISecurityProfileCatalog`. Seeds and management previews read the server's committed settings rather than this
   replica's 5-minute poll of them
-  ([ADR-0204](docs/adr/0204-a-scopes-effective-settings-are-resolved-by-one-service.md), backlog `R39`).
+  ([ADR-0204](docs/adr/0204-a-scopes-effective-settings-are-resolved-by-one-service.md), issue [#230](https://github.com/NCodeGroup/Identity/issues/230)).
   A custom `ITenantStore` or `IClientStore` must implement the new `GetSettingsPageAsync`.
 
 - **Deleting a tenant removes its keys, its system resource servers, and its role assignments.** They are deleted with
   the tenant in one unit of work, so only a client or a resource server the tenant did not seed blocks the delete with
-  `409` ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), backlog `R51`).
+  `409` ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), issue [#242](https://github.com/NCodeGroup/Identity/issues/242)).
 
 - **Breaking:** `redirect_uri` is carried as the string the client wrote, never as a `Uri`.
   `OpenIdCommonParameters.RedirectUri` is a `KnownParameter<string>`, and `IBaseAuthorizationRequestValues`,
   `IAuthorizationRequest`, `ITokenRequest`, and `AuthorizationResponseDelivery` expose `RedirectUri` as a string.
   `UriParser` writes a parsed `Uri` parameter as its original string rather than `AbsoluteUri`
-  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R52`).
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), issue [#243](https://github.com/NCodeGroup/Identity/issues/243)).
 
 - **Breaking:** response modes resolve through one provider, and a handler declares its traits.
   `IAuthorizationResponseModeHandler` gains `SecuredResponseMode`, the plain mode whose JWT-secured form the handler
@@ -1037,8 +1037,8 @@ change to the public API is a **major** version bump.
   handlers that secure one mode, a `SecuredResponseMode` that names no registered handler, or a handler named `jwt`.
   `jwt`, the one shorthand JARM defines, resolves to the handler that secures the response type's default mode, and a
   handler that `DeliversInQuery` is refused for a response type that returns a token
-  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), backlog
-  `R37`).
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), issue
+  [#228](https://github.com/NCodeGroup/Identity/issues/228)).
 
 - **Breaking:** the authorization response is addressed through one public `AuthorizationResponseDelivery`, which
   replaces `ClientRedirectContext`. The new internal `IAuthorizationResponseDeliveryResolver` derives it once per
@@ -1055,13 +1055,13 @@ change to the public API is a **major** version bump.
   is ignored. The PAR endpoint now derives the delivery when a request is pushed (RFC 9126 §2.1), so it refuses a
   `redirect_uri` the client has not registered at push time rather than at the authorization endpoint
   ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md),
-  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R38`, `R47`).
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), issues [#229](https://github.com/NCodeGroup/Identity/issues/229), [#238](https://github.com/NCodeGroup/Identity/issues/238)).
 
 - **A JWT-secured authorization response lives for the client's `authorization_response_lifetime`.** The new
   client-scoped setting is a `TimeSpan` that defaults to 5 minutes, accepts 1 second to 10 minutes (JARM §2.1), merges
   with `Min` so a tenant can only lower it. It replaces the fixed 5 minutes the response JWT's `exp` used
-  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), backlog
-  `R47`).
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), issue
+  [#238](https://github.com/NCodeGroup/Identity/issues/238)).
 
 - **CI runs once per commit of a pull request.** The workflows ran for both the push to a branch and its pull request,
   so each check appeared twice. A push now runs CI only on `main`; any other branch is checked through its pull request
@@ -1158,7 +1158,7 @@ change to the public API is a **major** version bump.
   `DateTimeOffsetExtensions`, and `TimeProviderExtensions` (`WithPrecisionInSeconds`, `GetUtcNowWithPrecisionInSeconds`,
   `GetTimestampWithPrecisionInSeconds`) leave `NCode.Identity.Jose.Abstractions` and the `NCode.Identity.Jose.Extensions`
   namespace for namespace `NCode.Time`, so the abstractions package holds no logic. Replace
-  `using NCode.Identity.Jose.Extensions;` with `using NCode.Time;` and reference `NCode.Time`. Backlog `D11` is
+  `using NCode.Identity.Jose.Extensions;` with `using NCode.Time;` and reference `NCode.Time`. Issue [#31](https://github.com/NCodeGroup/Identity/issues/31) is
   complete ([ADR-0188](docs/adr/0188-general-time-helpers-live-in-a-dependency-free-package.md)).
 
 - **Tenant, server, and resource-server keys are imported and updated under the client-key policy.** Their import
@@ -1323,7 +1323,7 @@ change to the public API is a **major** version bump.
 - **The frontend toolchain is current, and its dev-only security advisories are gone.** The grouped Dependabot update
   moves Vite to 8, Vitest to 5, Storybook to 10, ESLint to 10, jsdom to 30, and their companions, and `pnpm audit`
   is now clean. TypeScript moves to 6.0, the newest version typescript-eslint supports; TypeScript 7 waits for it
-  (backlog `U15`).
+  (issue [#147](https://github.com/NCodeGroup/Identity/issues/147)).
 
   Lint now uses a flat `src/frontend/eslint.config.js`, because ESLint 9 and later no longer read `.eslintrc`.
   `@eslint-react/eslint-plugin` replaces `eslint-plugin-react`, which does not support ESLint 10, and
@@ -1344,7 +1344,7 @@ change to the public API is a **major** version bump.
   Node no longer ships Corepack, which used to provide pnpm. `build/frontend-install.ps1` now installs the exact pnpm
   the `packageManager` field pins, beside the pinned Node, after adding that Node through NVS if it is missing. CI uses
   `pnpm/action-setup`. pnpm moves from 9.12 to 10.34, the newest major Dependabot supports: Dependabot cannot read the
-  lockfile pnpm 12 writes, so moving further would silently stop security updates (backlog `U21`). Every pnpm setting
+  lockfile pnpm 12 writes, so moving further would silently stop security updates (issue [#153](https://github.com/NCodeGroup/Identity/issues/153)). Every pnpm setting
   now lives in `pnpm-workspace.yaml`. A dependency's install script fails `pnpm install` until it is allowed or denied
   there; esbuild's is denied because esbuild does not need it.
 
@@ -1364,7 +1364,7 @@ change to the public API is a **major** version bump.
 - **Dependabot version updates are paused; security updates continue.** While the family is refactored heavily ahead of
   its first release, weekly version bumps are mostly churn against code that is about to move. Every ecosystem in
   `.github/dependabot.yml` therefore sets `open-pull-requests-limit: 0`, GitHub's documented way to pause version
-  updates while keeping their configuration. Backlog `D16` tracks resuming them, no later than the first published
+  updates while keeping their configuration. Issue [#36](https://github.com/NCodeGroup/Identity/issues/36) tracks resuming them, no later than the first published
   release. Dependabot security updates are now on for the repository, with one group per ecosystem, so an advisory that
   affects a dependency still produces a fix pull request automatically.
 
@@ -1684,7 +1684,7 @@ change to the public API is a **major** version bump.
   it enters, like an unregistered name: configuration stops the host, a management create or settings patch returns
   `400`, dynamic client registration refuses it, a seeder stops naming the client, and a stored document fails the
   request that loads it. The error names the scopes the setting applies to. A resource server selects no security
-  profile; a constraint it needs on its access tokens is one of its own settings (backlog `F62`).
+  profile; a constraint it needs on its access tokens is one of its own settings (issue [#101](https://github.com/NCodeGroup/Identity/issues/101)).
   ([ADR-0149](docs/adr/0149-settings-declare-the-scopes-they-apply-to.md))
 
   Scopes are an open vocabulary, not a fixed set: each is a registered `SettingScopeDescriptor` (a name and the scope it
@@ -1785,7 +1785,7 @@ change to the public API is a **major** version bump.
   `IClientCertificateRevocationSource` and `ClientCertificateRevocationSourceNames` are added. Log events 2050 and 2061
   keep their IDs, but their messages name any revocation source and record the location as `Location` instead of
   `CrlUri`
-  ([ADR-0259](docs/adr/0259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md), backlog `R64`).
+  ([ADR-0259](docs/adr/0259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md), issue [#255](https://github.com/NCodeGroup/Identity/issues/255)).
 
 - **The server sends `Strict-Transport-Security` on every HTTPS response outside Development.**
   `AddStrictTransportSecurity` binds `StrictTransportSecurityOptions` strictly from the `StrictTransportSecurity`
@@ -1795,7 +1795,7 @@ change to the public API is a **major** version bump.
   `max-age=31536000; includeSubDomains`; `Preload` requires `IncludeSubDomains` and a `MaxAge` of at least 365 days;
   `localhost`, `127.0.0.1` and `[::1]` never receive it. A deployment whose TLS-terminating proxy sends the header sets
   `StrictTransportSecurity:Enabled` to `false`
-  ([ADR-0258](docs/adr/0258-the-server-sends-strict-transport-security-outside-development.md), backlog `R113`).
+  ([ADR-0258](docs/adr/0258-the-server-sends-strict-transport-security-outside-development.md), issue [#304](https://github.com/NCodeGroup/Identity/issues/304)).
 
 - **Every page the server writes has a strict Content-Security-Policy and cannot be framed, except the
   `check_session_iframe` and, by its client's origin, the `form_post` response.**
@@ -1810,7 +1810,7 @@ change to the public API is a **major** version bump.
   `InteractiveAuthentication:BundleRootPath` runs its scripts only when its build writes the nonce placeholder
   (`@ncode/vite-config`'s `CSP_NONCE_PLACEHOLDER`)
   ([ADR-0256](docs/adr/0256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),
-  backlog `R112`).
+  issue [#303](https://github.com/NCodeGroup/Identity/issues/303)).
 
 - **Client-certificate revocation retrieval is shared and remembers failures; RSA-PSS lists verify; soft-fail is
   opt-in.** `ClientCertificateRevocationOptions` from `OpenId:ClientCertificateRevocation` (`FetchTimeout`,
@@ -1820,21 +1820,21 @@ change to the public API is a **major** version bump.
   `online_soft_fail`, which refuses a revoked certificate and accepts an unknown status with a warning; `online` is the
   default
   ([ADR-0252](docs/adr/0252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
-  backlog `R64`).
+  issue [#255](https://github.com/NCodeGroup/Identity/issues/255)).
 
 - **A Data Protection key the server's master key cannot decrypt stops the host.** `DataProtectionKeyRingGate` checks
   the live keys after the server's protector loads and before Data Protection loads its key ring, and the host names
   each undecryptable key instead of letting Data Protection write a default key over them; a Development host revokes
   the key and logs a warning. `DataProtectionKeyRing:RevokedKeyIds` (`DataProtectionKeyRingOptions`) revokes keys by ID,
   and `AddConfiguration` registers Data Protection
-  ([ADR-0247](docs/adr/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md), backlog `R48`).
+  ([ADR-0247](docs/adr/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md), issue [#239](https://github.com/NCodeGroup/Identity/issues/239)).
 
 - **The host image's base images are pinned by digest and tracked by Dependabot.** Every `FROM` of the Dockerfile names
   its tag and the digest of its multi-architecture index, a weekly `docker` Dependabot stream moves the digests, and the
   `Host image` workflow checks the Node major against `.node-version`. **Breaking:** the Dockerfile takes no
   `NODE_VERSION` or `DOTNET_VERSION` build argument
-  ([ADR-0249](docs/adr/0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md), backlog
-  `R35`).
+  ([ADR-0249](docs/adr/0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md), issue
+  [#226](https://github.com/NCodeGroup/Identity/issues/226)).
 
 - **Every password a local account is given meets the password policy.** The management API's create and reset, the
   self-service change and the developer and conformance seeders judge the password with `IPasswordPolicy` against the
@@ -1846,7 +1846,7 @@ change to the public API is a **major** version bump.
   developer seed's administrator password is `dev-admin-password`. **Breaking:** `InteractivePasswordChangeResult` is a
   class carrying the page's error code (`InteractivePasswordChangeErrors`), and `IPasswordPolicy`, `IPasswordBlocklist`,
   `PasswordPolicyContext`, `PasswordPolicyResult` and `PasswordPolicyErrors` are added
-  ([ADR-0236](docs/adr/0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md), backlog `R101`).
+  ([ADR-0236](docs/adr/0236-a-password-is-judged-by-one-policy-wherever-it-is-set.md), issue [#292](https://github.com/NCodeGroup/Identity/issues/292)).
 
 - **Failed password attempts are limited per account.** The interactive sign-in, the password grant and the
   self-service change count failed passwords per account in `IExpiringCounterSet`; once
@@ -1854,22 +1854,22 @@ change to the public API is a **major** version bump.
   of the first (15 minutes by default), every password for the account is refused with the answer a wrong password
   gets until the window ends. A verified password, and a password an administrator sets, clear the count.
   **Breaking:** `IExpiringCounterSet` gains `RemoveAsync`, and `IPasswordAttemptLimiter` is added
-  ([ADR-0237](docs/adr/0237-failed-password-attempts-are-limited-per-account.md), backlog `R102`).
+  ([ADR-0237](docs/adr/0237-failed-password-attempts-are-limited-per-account.md), issue [#293](https://github.com/NCodeGroup/Identity/issues/293)).
 
 - **A password is judged, hashed and verified in its NFC form.** The policy counts the code points of a password's
   Unicode Normalization Form C (NFC) and its blocklists see that form, and the stores hash and verify it, so a password
   typed with another composition of the same characters, such as `e` and a combining accent for `é`, verifies; a stored
   hash of the password as submitted still verifies and is replaced by a hash of the NFC form. **Breaking:** an
   `IPasswordHasher` hashes and verifies the NFC form of the bytes it is given
-  ([ADR-0238](docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md), backlog `R106`).
+  ([ADR-0238](docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md), issue [#297](https://github.com/NCodeGroup/Identity/issues/297)).
 
 - **A wrong password takes as long whether or not an account has the user name.** When no account has the user name,
   the account has no password, the ASP.NET Core Identity user is locked out, or the default hasher cannot read the
   stored hash, the store verifies the password against a dummy hash of the current parameters and refuses it, so a
   wrong password costs the same hash verifications whether or not the account exists. **Breaking:** `IPasswordHasher`
   gains `DummyPasswordHash`
-  ([ADR-0239](docs/adr/0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md), backlog
-  `R107`).
+  ([ADR-0239](docs/adr/0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md), issue
+  [#298](https://github.com/NCodeGroup/Identity/issues/298)).
 
 - **A password refused at the attempt limit costs what a wrong one costs.** `ILocalAccountStore.VerifyCredentialAsync`
   looks the account up once and asks its caller's `isRefusedAsync` about the user name the account holds; the sign-in,
@@ -1879,7 +1879,7 @@ change to the public API is a **major** version bump.
   any spelling a database collation matches. **Breaking:** `VerifyCredentialAsync` takes `isRefusedAsync` and returns
   `LocalAccountVerificationResult` (`UserName`, `Account`, `IsRefused`, `IsVerified`), and a store that never calls
   `isRefusedAsync` fails every verification
-  ([ADR-0244](docs/adr/0244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md), backlog `R109`).
+  ([ADR-0244](docs/adr/0244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md), issue [#300](https://github.com/NCodeGroup/Identity/issues/300)).
 
 - **A blocked or disabled end user cannot sign in, and the client is answered `access_denied`.** The interactive
   sign-in validates the end user's standing before it creates a session, so a blocked principal or a disabled local
@@ -1891,8 +1891,8 @@ change to the public API is a **major** version bump.
   blocked-principal and local-account checks handle it (every subject validation still applies them),
   `IContinueProvider.RefuseAsync` and `IContinueRefusalService` are added, and
   `ILocalAccountStore.VerifyCredentialAsync` returns the disabled account of a valid credential
-  ([ADR-0229](docs/adr/0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md), backlog
-  `R98`).
+  ([ADR-0229](docs/adr/0229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md), issue
+  [#289](https://github.com/NCodeGroup/Identity/issues/289)).
 
 - A database dump or backup no longer reveals secret material without the root key. Production refuses the ephemeral
   root key provider, an inline local root key (whatever provider is selected), and running without a recovery-key
@@ -1908,14 +1908,14 @@ change to the public API is a **major** version bump.
   **Breaking:** `ValidateSubjectAuthenticationCommand.OpenIdRequest` is nullable (`null` outside a protocol request
   skips the request's `max_age`, `acr_values` and `claims` checks), and `ICibaRequestService.ApproveAsync` returns
   `false` for a refused approving subject
-  ([ADR-0225](docs/adr/0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md), backlog `R92`).
+  ([ADR-0225](docs/adr/0225-every-grant-that-issues-tokens-for-a-subject-validates-it.md), issue [#283](https://github.com/NCodeGroup/Identity/issues/283)).
 
 - **An administrator's password reset ends the account's sessions.** After the reset commits, every session of the
   account's principal is terminated with `password_reset`: its grants and refresh tokens are revoked, its relying
   parties receive back-channel logout, and its consents are kept. **Breaking:**
   `SessionTerminationReasons.PasswordReset` is added
   ([ADR-0226](docs/adr/0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
-  backlog `R94`).
+  issue [#285](https://github.com/NCodeGroup/Identity/issues/285)).
 
 - **Deleting or disabling a local account ends its sessions, and every token request checks the account.** Disabling an
   account terminates its principal's sessions with `account_disabled`, and deleting it terminates them with
@@ -1927,7 +1927,7 @@ change to the public API is a **major** version bump.
   `SessionTerminationReasons.AccountDeleted` and `AccountDisabled` are added, `IFederatedPrincipalStore.RemoveAsync`
   erases the principal's consents and grants, and `NCode.Identity.OpenId.Accounts.Management` references
   `NCode.Identity.OpenId.Authentication.Abstractions`
-  ([ADR-0224](docs/adr/0224-deleting-or-disabling-an-account-ends-its-sessions.md), backlog `R89`).
+  ([ADR-0224](docs/adr/0224-deleting-or-disabling-an-account-ends-its-sessions.md), issue [#280](https://github.com/NCodeGroup/Identity/issues/280)).
 
 - **A session that ends while no request uses it is terminated within a minute.** One replica in each
   `OpenId:EndedSessionTermination:Interval` (one minute by default) revokes the grants issued under each session that
@@ -1941,7 +1941,7 @@ change to the public API is a **major** version bump.
   `IPersistedGrantService.RevokeSessionOnceAsync`, `ISessionService.TerminateIfEndedAsync`,
   `IOpenIdContextFactory.CreateForBackgroundAsync` and `IMaterializedServerAccessor` are added, and the
   `AddGrantTypeRevokedWhenExpiresWhenIndex` migration adds an index to the grants table
-  ([ADR-0223](docs/adr/0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md), backlog `R90`).
+  ([ADR-0223](docs/adr/0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md), issue [#281](https://github.com/NCodeGroup/Identity/issues/281)).
 
 - **Every end-user session ends.** `session_absolute_lifetime` defaults to 30 days and accepts one second to 365 days,
   and `session_idle_timeout` defaults to 3 days and accepts one second to 100 days; a zero value is refused. A session's
@@ -1950,7 +1950,7 @@ change to the public API is a **major** version bump.
   ended session terminates it with `absolute_expiry` or `idle_timeout`, which revokes the grants issued under it and
   notifies its relying parties. The `BoundEndUserSessions` migration removes the stored values of both settings that the
   domains refuse and gives every unrevoked session grant without an expiry one 30 days after it was created
-  ([ADR-0220](docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), backlog `R80`).
+  ([ADR-0220](docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), issue [#271](https://github.com/NCodeGroup/Identity/issues/271)).
 
 - **A public client's refresh token is rotated unless it is sender-constrained.** `refresh_token_rotation_policy`
   (`unbound`, the default, or `always`) replaces `refresh_token_rotation_enabled`. `unbound` rotates a refresh token
@@ -1961,19 +1961,19 @@ change to the public API is a **major** version bump.
   `RenameRefreshTokenRotationSetting` migration rewrites stored settings documents (`true` becomes `always`, `false` is
   removed). The policy merges by replacement, so a tenant's `always` is a default that a client's own `unbound`
   replaces; a public client's unbound token rotates whatever the policy
-  ([ADR-0216](docs/adr/0216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md), backlog `R77`).
+  ([ADR-0216](docs/adr/0216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md), issue [#268](https://github.com/NCodeGroup/Identity/issues/268)).
 
 - **A refresh token that two requests present at once is spent once, and the other request is answered as a reuse.**
   With rotation on, the presented token is revoked and its successor stored in one unit of work before any token is
   issued. The losing request receives `invalid_grant` and the `token.refresh.replay` audit event, and under
   `refresh_token_reuse_policy` `revoke_all` (the default) the whole rotation family is revoked, the winner's new token
   included (RFC 9700 §4.14.2)
-  ([ADR-0211](docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md), backlog `R69`).
+  ([ADR-0211](docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md), issue [#260](https://github.com/NCodeGroup/Identity/issues/260)).
 
 - **Deleting a tenant erases the data of its end users.** Its local accounts and their claims, federated principals and
   identities, sessions and other grants are removed with it; the `409` for its clients and resource servers is
   unchanged and its usage is kept
-  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R59`).
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), issue [#250](https://github.com/NCodeGroup/Identity/issues/250)).
 
 - **Revocation data is fetched only through the outbound-request guard.** The platform chain engine retrieves nothing:
   certificate downloads are disabled and its own revocation check is off (`X509RevocationMode.NoCheck`), so no AIA, CRL,
@@ -1982,24 +1982,24 @@ change to the public API is a **major** version bump.
   which follows no redirect, and which times out after 5 seconds and reads at most 10 MiB, so a certificate cannot
   direct the server to an internal address. A CRL that is not DER, not current, not issued and signed by the issuing
   certificate, or not understood is `Unknown`, which the chain validator refuses
-  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R16`).
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), issue [#207](https://github.com/NCodeGroup/Identity/issues/207)).
 
 - **An initial access token authorizes one registration.** Every token, scoped or not, is spent by the registration it
   authorizes and expires within 30 days, so a leaked token registers at most one client, and only until it expires. A
   token that is spent, expired, or revoked is refused with `401` `invalid_token`. A registration that an earlier check
   refuses leaves the token unspent, and a failure storing the client after the spend leaves it spent
   ([ADR-0192](docs/adr/0192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md),
-  [ADR-0063](docs/adr/0063-dynamic-client-registration.md), backlog `R17`).
+  [ADR-0063](docs/adr/0063-dynamic-client-registration.md), issue [#208](https://github.com/NCodeGroup/Identity/issues/208)).
 
 - **A private-use redirect URI must be a reverse domain name, and a URI of no kind is never permitted.** A
   `private_use` URI has a scheme of at least two non-empty labels, such as `com.example.app`, so `javascript:`, `data:`,
   `ws:`, `file:`, and `myapp:` are no redirect target, even with `redirect_uri_kinds_supported` unset
-  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R56`).
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), issue [#247](https://github.com/NCodeGroup/Identity/issues/247)).
 
 - **The end-session redirect checks the post-logout URI's kind and escapes its `Location`.** A
   `post_logout_redirect_uri` is refused like an unregistered one when `redirect_uri_kinds_supported` excludes its kind,
   and the `Location` header is escaped as an authorization response's is
-  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R56`).
+  ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), issue [#247](https://github.com/NCodeGroup/Identity/issues/247)).
 
 - **A redirect URI is delivered and compared exactly as written.** A parked continuation and a stored authorization
   code carried `myapp://callback` as `myapp://callback/` with a lower-cased host, the response went to the form a
@@ -2008,7 +2008,7 @@ change to the public API is a **major** version bump.
   the client as registered, and only a character a header value cannot carry as written (a non-ASCII character, RFC
   3987 §3.1, or an ASCII control character or space) is percent-encoded in the `Location` header. The token endpoint
   compares `redirect_uri` ordinally with the authorization request's value (RFC 6749 §4.1.3) and refuses any other with
-  `invalid_grant` ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), backlog `R52`).
+  `invalid_grant` ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md), issue [#243](https://github.com/NCodeGroup/Identity/issues/243)).
 
 - **The FAPI profiles refuse an `http` redirect URI.** `fapi1-advanced` caps `redirect_uri_kinds_supported` at
   `https` (FAPI 1.0 Part 1 §5.2.2-20 and §7.5), and `fapi2` at `https`, `loopback`, and `private_use` (FAPI 2.0
@@ -2018,7 +2018,7 @@ change to the public API is a **major** version bump.
   conformance seed stops the host. The authorization and PAR endpoints refuse such a redirect URI with
   `invalid_request` and a `400` that is not redirected
   ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md),
-  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R53`).
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), issue [#244](https://github.com/NCodeGroup/Identity/issues/244)).
 
 - **A redirect URI is matched exactly, and only a registered loopback URI may vary its port.** The requested
   `redirect_uri` is compared ordinally, as written, to the client's registered strings, and more than one value is
@@ -2031,7 +2031,7 @@ change to the public API is a **major** version bump.
   under it registers the exact port; `fapi2` sets none. An unregistered URI is still refused with
   `unauthorized_client` and no redirect
   ([ADR-0203](docs/adr/0203-redirect-uris-are-matched-exactly.md),
-  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), backlog `R11`).
+  [ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md), issue [#202](https://github.com/NCodeGroup/Identity/issues/202)).
 
 - **A retired tenant identifier or issuer is never reissued.** Deleting a tenant retires its identifier and its issuer,
   and changing a tenant's issuer retires the previous one, so a new tenant can no longer take an identity that relying
@@ -2060,7 +2060,7 @@ change to the public API is a **major** version bump.
   that tenant is provisioned, it publishes its strategy's default issuer. When neither exists, the endpoint answers
   `500` rather than guess. The API base still defaults to the serving origin, which is where the management API is,
   and the response is `Cache-Control: no-store`. `Frontend:Issuer` and `Frontend:ApiBaseUrl` remain overrides.
-  Backlog `F74` is complete
+  Issue [#113](https://github.com/NCodeGroup/Identity/issues/113) is complete
   ([ADR-0182](docs/adr/0182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md)).
 
 - **The Data Protection key ring is encrypted at rest, and a Production host refuses an unprotected one.** The host
@@ -2181,8 +2181,8 @@ change to the public API is a **major** version bump.
   password fields, the field that had focus, and the consent scopes the end-user cleared carry into its forms, and a
   carried password is written to the input's `value` property, never to an attribute. The authorization error page
   served with the bundle shows its error instead of a login form
-  ([ADR-0253](docs/adr/0253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), backlog
-  `R20`).
+  ([ADR-0253](docs/adr/0253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), issue
+  [#211](https://github.com/NCodeGroup/Identity/issues/211)).
 
 - **A host's own ASP.NET Core Identity pages verify the password the adapter stores.**
   `AddAspNetIdentityLocalAccountStore<TUser>()` wraps the host's `IPasswordHasher<TUser>` registration, made before or
@@ -2191,8 +2191,8 @@ change to the public API is a **major** version bump.
   composition of a password. **Breaking:** a host that registers its `IPasswordHasher<TUser>` after the call, or
   replaces `UserManager<TUser>.PasswordHasher`, wraps it in `NormalizingPasswordHasher<TUser>`, because the adapter
   throws an `InvalidOperationException` instead of hashing or verifying through a hasher that does not normalize
-  ([ADR-0243](docs/adr/0243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md), backlog
-  `R108`).
+  ([ADR-0243](docs/adr/0243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md), issue
+  [#299](https://github.com/NCodeGroup/Identity/issues/299)).
 
 - **A management request answers `409` for a stored settings document it cannot honor.** The effective-settings reads,
   a client's create and settings update, the incoherent-client report, a local account's create and password reset,
@@ -2202,7 +2202,7 @@ change to the public API is a **major** version bump.
   `IEffectiveSettingsResolver` gains `ResolveStored`, and it and `ResolveServerAsync(CancellationToken)` throw
   `UnreadableSettingsException`, a `JsonException` that names the document
   ([ADR-0245](docs/adr/0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md),
-  backlog `R110`).
+  issue [#301](https://github.com/NCodeGroup/Identity/issues/301)).
 
 - **A settings write passes a stored document that cannot be honored.** A server or tenant settings write does not
   fail with `500` when a stored client's or tenant's settings document names a setting, a value or a scope the settings
@@ -2210,28 +2210,28 @@ change to the public API is a **major** version bump.
   3006 and 3007) and does not count it as a violation the change introduces, and a write that replaces such a document
   of its own checks no client and logs it (`ServerSettingsUnreadable`, 3008, or `TenantSettingsUnreadable`), so the
   management API can repair it; the incoherent-client report still lists the client
-  ([ADR-0241](docs/adr/0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md), backlog `R104`).
+  ([ADR-0241](docs/adr/0241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md), issue [#295](https://github.com/NCodeGroup/Identity/issues/295)).
 
 - **The ASP.NET Core Identity adapter stores a password the password policy accepts.** It hashes a password with the
   user manager's password hasher and stores the hash through `IUserPasswordStore<TUser>`, creating the user with
   `CreateAsync(user)` and rotating the security stamp on a reset, so ASP.NET Core Identity's password validators, whose
   default composition rules NIST SP 800-63B forbids, cannot refuse a password the policy accepted with `500`; a
   transparent rehash keeps the security stamp
-  ([ADR-0238](docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md), backlog `R105`).
+  ([ADR-0238](docs/adr/0238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md), issue [#296](https://github.com/NCodeGroup/Identity/issues/296)).
 
 - **A dispatched job whose handler times out is retried, and the host keeps running.** A handler's
   `OperationCanceledException` that does not come from the host stopping, such as the `TaskCanceledException` of an
   `HttpClient` timeout during a back-channel logout or CIBA delivery, fails the attempt and retries the job with
   back-off; it does not end the dispatcher's worker or stop the host. A job whose handlers fail is retried once per
   attempt, however many of them failed, and a handler that cannot be resolved fails the attempt
-  ([ADR-0232](docs/adr/0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md), backlog `R85`).
+  ([ADR-0232](docs/adr/0232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md), issue [#276](https://github.com/NCodeGroup/Identity/issues/276)).
 
 - **A replayed authorization code terminates its session through the termination seam.** A second redemption of a
   redeemed code terminates the code's session with `authorization_code_replay`, so its grants are revoked, its relying
   parties receive back-channel logout and the termination is audited; a code that expired unused terminates nothing.
   **Breaking:** `SessionTerminationReasons.AuthorizationCodeReplay` is added
   ([ADR-0228](docs/adr/0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md),
-  backlog `R96`).
+  issue [#287](https://github.com/NCodeGroup/Identity/issues/287)).
 
 - **A terminated session notifies every client it lists when it is claimed.**
   `IPersistedGrantService.RevokeSessionOnceAsync` returns the session grant as the call revoked it, and every
@@ -2239,12 +2239,12 @@ change to the public API is a **major** version bump.
   an earlier read receives back-channel logout. A subject-wide termination also claims a session that ended and awaits
   the background termination. **Breaking:** `RevokeSessionOnceAsync<TPayload>` returns `PersistedGrant<TPayload>?`
   ([ADR-0228](docs/adr/0228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md),
-  backlog `R97`).
+  issue [#288](https://github.com/NCodeGroup/Identity/issues/288)).
 
 - **A ping or push client is told that its CIBA request was denied.** A denial, also of an approval whose subject is
   refused, sends the ping notification, after which the token endpoint answers `access_denied`, or the push error
   payload with `error=access_denied`; only the call that decided the request notifies the client
-  ([ADR-0231](docs/adr/0231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md), backlog `R100`).
+  ([ADR-0231](docs/adr/0231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md), issue [#291](https://github.com/NCodeGroup/Identity/issues/291)).
 
 - **A session is terminated at most once on every path.** `ISessionService.RevokeAsync`, `RevokeAllAsync` and
   `RevokeAllExceptAsync`, the eviction at the concurrent-session limit and RP-initiated logout claim each session with
@@ -2253,7 +2253,7 @@ change to the public API is a **major** version bump.
   of work. `RevokeAllAsync` revokes every grant of the subject before it dispatches, and the sessions management API
   reports the sessions the request terminated. **Breaking:** `ISessionService.RevokeAsync` returns `bool`, and
   `RevokeAllAsync` and `RevokeAllExceptAsync` return the number of sessions the call terminated
-  ([ADR-0227](docs/adr/0227-a-session-is-terminated-at-most-once-on-every-path.md), backlog `R95`).
+  ([ADR-0227](docs/adr/0227-a-session-is-terminated-at-most-once-on-every-path.md), issue [#286](https://github.com/NCodeGroup/Identity/issues/286)).
 
 - **A change to a grant's payload loses no concurrent write.** The touch of a session, the addition of a client to it,
   and the polls and decisions of the device-code and CIBA grants apply their change to the grant as stored and read
@@ -2262,18 +2262,18 @@ change to the public API is a **major** version bump.
   `IPersistedGrantService.UpdatePayloadAndExpirationAsync` and the overload of `UpdatePayloadAsync` that takes a payload
   are removed, `UpdatePayloadAsync` takes the function that computes the change, `PersistedGrantUpdate<TPayload>` is
   added, and `ISessionService.AddClientAsync` reports whether this call added the client
-  ([ADR-0222](docs/adr/0222-a-grants-payload-is-changed-by-a-read-modify-write.md), backlog `R91`).
+  ([ADR-0222](docs/adr/0222-a-grants-payload-is-changed-by-a-read-modify-write.md), issue [#282](https://github.com/NCodeGroup/Identity/issues/282)).
 
 - **Listing a subject's sessions failed for every stored session.** The listing deserialized the versioned payload
   envelope of a stored session as the payload, so the active-sessions page, the management sessions API, sign-out
   everywhere and the concurrent-session limit failed for any subject with a session. The payload is read through
   `IPersistedPayloadSerializer`
-  ([ADR-0220](docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), backlog `R80`).
+  ([ADR-0220](docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md), issue [#271](https://github.com/NCodeGroup/Identity/issues/271)).
 
 - **Deleting a local account left its principal's role assignments, ownership included.** Removing a federated
   principal removes every role assignment it holds, in every tenant, in the same unit of work, and deleting a tenant
   removes the assignments its principals hold in other tenants
-  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R82`).
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), issue [#273](https://github.com/NCodeGroup/Identity/issues/273)).
 
 - **A revocation wins a concurrency race.** The revocation endpoint, the device user code, logout and session eviction,
   the replay of an authorization code, and the management revocations read the grants again in a new unit of work and
@@ -2281,54 +2281,54 @@ change to the public API is a **major** version bump.
   leave a grant active or reach the caller as `500` or `412`. **Breaking:** `IPersistedGrantService.RevokeWhereAsync`
   replaces `RevokeBySessionAsync`, `GrantFilter.GrantId` is added, and
   `DefaultRevokeGrantsOnSessionTerminatedHandler` revokes through `IPersistedGrantService`
-  ([ADR-0215](docs/adr/0215-a-revocation-wins-a-concurrency-race.md), backlog `R78`).
+  ([ADR-0215](docs/adr/0215-a-revocation-wins-a-concurrency-race.md), issue [#269](https://github.com/NCodeGroup/Identity/issues/269)).
 
 - **Deleting a client or a resource server removes the role assignments at its node.** The assignments of every role,
   ownership included, are removed in the same unit of work, also when a dynamically registered client is deregistered.
   The built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values, so a store that removes a resource finds
   the assignments at its node
-  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R75`).
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), issue [#266](https://github.com/NCodeGroup/Identity/issues/266)).
 
 - **Deleting a client that held grants, consents or resource-server grants, deregistering a dynamically registered
   client, or deleting a tenant whose users had signed in failed with a foreign-key violation (`500` on PostgreSQL).**
   The removal takes what exists for the owner in the same unit of work
-  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), backlog `R59`).
+  ([ADR-0212](docs/adr/0212-deleting-an-owner-removes-what-it-owns.md), issue [#250](https://github.com/NCodeGroup/Identity/issues/250)).
 
 - **A management write that lost a concurrency race reached its client as `500`;** it is answered
   `412 Precondition Failed`
-  ([ADR-0214](docs/adr/0214-a-management-write-that-loses-a-race-is-answered-412.md), backlog `R70`).
+  ([ADR-0214](docs/adr/0214-a-management-write-that-loses-a-race-is-answered-412.md), issue [#261](https://github.com/NCodeGroup/Identity/issues/261)).
 
 - **The usage ledger was never pruned on EF InMemory, and the failure was logged at every flush.** The prune removes
   bounded batches through the change tracker, which every provider supports
-  ([ADR-0213](docs/adr/0213-the-usage-ledger-is-pruned-in-bounded-batches.md), backlog `R73`).
+  ([ADR-0213](docs/adr/0213-the-usage-ledger-is-pruned-in-bounded-batches.md), issue [#264](https://github.com/NCodeGroup/Identity/issues/264)).
 
 - **A refresh that extended a sliding expiration at the same moment as another could reach its client as `500`.** The
   update keeps the other request's change
-  ([ADR-0211](docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md), backlog `R69`).
+  ([ADR-0211](docs/adr/0211-a-rotated-refresh-token-is-spent-with-its-successor.md), issue [#260](https://github.com/NCodeGroup/Identity/issues/260)).
 
 - **A usage batch whose save committed but reported a failure was added to the ledger twice.** A save can commit and
   still fail at its caller, for example when the connection drops after the commit, and the flush then added the same
   batch again, so a tenant's billed usage was overcounted. A replica numbers its batches, and the ledger skips a batch
   that its replica already added
-  ([ADR-0209](docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), backlog `R25`).
+  ([ADR-0209](docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), issue [#216](https://github.com/NCodeGroup/Identity/issues/216)).
 
 - **A host stopped twice at once could dispose its services under the usage ledger's final flush.** The stop that
   returned first let its caller dispose the service provider while the other stop's flush was still adding usage, and
   the flush failed. The final flush runs once and every stop waits for it, the usage it cannot add is logged as
   discarded (event 2051), and the stop does not throw
-  ([ADR-0209](docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), backlog `R54`).
+  ([ADR-0209](docs/adr/0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), issue [#245](https://github.com/NCodeGroup/Identity/issues/245)).
 
 - **A value that a client registers in a list, and that its tenant or a security profile excludes, was accepted and
   failed at the client's next request.** The effective list omitted the value silently, and nothing compared it with
   what the client registered. `RegisteredValueCoherenceRule` reports it, so the management API and the seeders refuse
   such a client, and a tenant or server change that would drop such a value is refused while a client registers it
-  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), backlog `R62`).
+  ([ADR-0206](docs/adr/0206-a-clients-settings-are-checked-by-registered-coherence-rules.md), issue [#253](https://github.com/NCodeGroup/Identity/issues/253)).
 
 - **A client that alone selected `fapi1-advanced` replaced its tenant's certificate-binding support.** The profile's
   default for `tls_client_certificate_bound_access_tokens` applied at every scope that selected the profile, including a
   client, where the setting does not apply. A default applies only within its scope, so the client takes its tenant's
   support, and `CertificateBoundAccessTokenCoherenceRule` reports the client while that support is off
-  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md), backlog `R68`).
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md), issue [#259](https://github.com/NCodeGroup/Identity/issues/259)).
 
 - **A concurrent second spend of a single-use grant reached its client as `500`.** Of two requests that spent one
   authorization code, device code, CIBA request, pushed authorization request, initial access token, or `state` of a
@@ -2336,7 +2336,7 @@ change to the public API is a **major** version bump.
   with an unhandled exception. `ConsumeOnceOrDefault` answers it as a second spend: `invalid_grant` for an authorization
   code, a device code, and a CIBA request, `invalid_request_uri` for a pushed request, `401` `invalid_token` for an
   initial access token, and `400` for the `state` of a paused authorization flow at the continue endpoint
-  ([ADR-0208](docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), backlog `R66`).
+  ([ADR-0208](docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), issue [#257](https://github.com/NCodeGroup/Identity/issues/257)).
 
 - **A `tls_client_auth` client whose certificate subject was encoded differently from its registered subject DN could
   not authenticate.** The handler compared DER bytes, so the same name written as a `UTF8String` or a
@@ -2345,7 +2345,7 @@ change to the public API is a **major** version bump.
   operator pastes. **Breaking:** a stored `tls_client_auth_subject_dn` written with `;` separators or in the
   `/C=US/O=Example` form does not parse, matches no certificate, and is refused by the setting rule; rewrite it as an
   RFC 4514 string such as `CN=client,O=Example`
-  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), backlog `R18`).
+  ([ADR-0173](docs/adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), issue [#209](https://github.com/NCodeGroup/Identity/issues/209)).
 
 - **A security profile selected in the server's configuration supplied no defaults at the server root.** The root wrote
   every setting's descriptor default into the collection that holds the configuration, and a profile's default sits
@@ -2355,38 +2355,38 @@ change to the public API is a **major** version bump.
   baseline, a profile's default replaces the baseline but never a configured value, and a ceiling bounds both. So
   `fapi1-advanced` advertises certificate-bound access token support, and the FAPI profiles' `PS256` signed-response
   defaults apply, when the server's configuration selects the profile
-  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md), backlog `R42`).
+  ([ADR-0148](docs/adr/0148-security-profiles-accumulate-down-the-settings-cascade.md), issue [#233](https://github.com/NCodeGroup/Identity/issues/233)).
 
 - **A server settings PATCH loaded every tenant and client with their secrets, even for an unrelated change.** It now
   walks the clients only when a setting that the client response-algorithm rule reads changed, and it reads tenants and
-  clients as untracked projections without their secrets (backlog `R21`).
+  clients as untracked projections without their secrets (issue [#212](https://github.com/NCodeGroup/Identity/issues/212)).
 
 - **A management write evicted the tenant only on its own replica.** Every other replica kept serving its cached tenant,
   disabled, deleted, or moved, until the entry expired. The write now announces the change, and every replica evicts the
-  tenant ([ADR-0205](docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md), backlog `R49`).
+  tenant ([ADR-0205](docs/adr/0205-replicas-announce-changes-through-a-broadcast-port.md), issue [#240](https://github.com/NCodeGroup/Identity/issues/240)).
 
 - **A server settings change that permitted a configured algorithm left running tenants without its key.** A
   background job now re-seeds each tenant that newly names the algorithm, so the key is provisioned without a restart
-  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), backlog `R50`).
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), issue [#241](https://github.com/NCodeGroup/Identity/issues/241)).
 
 - **A tenant with provisioned keys could not be deleted.** The delete answered `409` because the tenant's own secrets
   and system resource servers blocked it
-  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), backlog `R51`).
+  ([ADR-0169](docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md), issue [#242](https://github.com/NCodeGroup/Identity/issues/242)).
 
 - **`response_modes_supported` was checked inconsistently.** When the setting is set, the authorization endpoint now
   requires both the response mode as the request wrote it, so `jwt` itself must be listed, and the mode it resolves to
   to be listed, for an explicit and a default mode alike. The check runs once, when the delivery is derived, and the
   request validator no longer repeats it. A response mode that is not listed is refused with `invalid_request` and a
   `400`, and is not redirected
-  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), backlog
-  `R22`).
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), issue
+  [#213](https://github.com/NCodeGroup/Identity/issues/213)).
 
 - **A JWT-secured (JARM) response the server could not sign was refused only after the user had signed in.** The
   credentials that sign the response are now selected when the delivery is derived, before authentication and before a
   code is issued. A client with no signing credential, or a selector that fails, is refused with `server_error` and a
   `500` that is not redirected, instead of failing when the response was written
-  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), backlog
-  `R23`).
+  ([ADR-0201](docs/adr/0201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md), issue
+  [#214](https://github.com/NCodeGroup/Identity/issues/214)).
 
 - **A tenant whose settings later permitted a configured algorithm advertised it without a key until every replica
   restarted.** Every management write to a tenant (its record, its settings, a secret, or its deletion) now sends a
@@ -2782,7 +2782,7 @@ change to the public API is a **major** version bump.
   auto-detects the JSON serialization on the existing `IJoseSerializer.Decode` / `Deserialize` surface and
   verifies/decrypts against each signature/recipient until one matches the supplied key. This is a **breaking** change
   to the JOSE encode options: the former `JoseEncodingOptions` base and the single-credential `ExtraHeaders` shapes were
-  removed in favor of the unified model (greenfield clean cutover). Closes backlog `F36`.
+  removed in favor of the unified model (greenfield clean cutover). Closes issue [#75](https://github.com/NCodeGroup/Identity/issues/75).
 
 - **Explicit `typ` / media-type validation hardening (RFC 8725 §3.11 BCP + RFC 9068 `at+jwt`).** JWT validation can now
   enforce an explicit, expected `typ` JOSE header to defeat token-substitution / cross-JWT-confusion, via the new
@@ -2876,8 +2876,8 @@ change to the public API is a **major** version bump.
     reset is required** (no shipped data exists under the pre-release posture). See
     [ADR-0113](docs/adr/0113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md).
 
-- **Authorization-code replay now revokes the end-user session, and first-party resource endpoints enforce it (backlog
-  `T8`).** Per RFC 6749 §4.1.2 (reaffirmed by the OAuth Security BCP, RFC 9700), a second redemption of a one-time
+- **Authorization-code replay now revokes the end-user session, and first-party resource endpoints enforce it (issue
+  [#131](https://github.com/NCodeGroup/Identity/issues/131)).** Per RFC 6749 §4.1.2 (reaffirmed by the OAuth Security BCP, RFC 9700), a second redemption of a one-time
   authorization code is a replay/compromise signal. The token endpoint now treats it as such: on a replay it revokes the
   end-user **session's** grants — the access and refresh tokens issued from that code — via the same session-scoped
   grant revocation the logout seam uses, but without the back-channel-logout/audit side effects. The session identifier
@@ -2892,7 +2892,7 @@ change to the public API is a **major** version bump.
   [ADR-0028](docs/adr/0028-token-revocation-refresh-tokens-only.md).
 
 - **Scope-driven claims now return from UserInfo (not the ID token) when an access token is issued, sourced from the
-  local account (backlog `T8`).** Per OpenID Connect Core 1.0 §5.4, the `profile`/`email`/`address`/`phone` scope claims
+  local account (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).** Per OpenID Connect Core 1.0 §5.4, the `profile`/`email`/`address`/`phone` scope claims
   belong in the UserInfo response whenever an access token is issued (the authorization-code flow), and only in the ID
   token when no access token is issued (a bare `id_token` response). Three coordinated changes land this: (a)
   `DefaultGetIdTokenSubjectClaimsHandler` now gates the scope-driven claim set on no access token being issued
@@ -2911,7 +2911,7 @@ change to the public API is a **major** version bump.
   `oidcc-claims-essential` (`EnsureUserInfoContainsName`), and `oidcc-server`
   (`EnsureIdTokenDoesNotContainNonRequestedClaims`) warnings.
 
-- **The ID token no longer carries the `tid` and `client_id` claims (backlog `T8`).** Those are JWT access-token
+- **The ID token no longer carries the `tid` and `client_id` claims (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).** Those are JWT access-token
   claims (RFC 9068 §2.2), not ID-token claims — the ID-token claim set is defined by OpenID Connect Core 1.0 §2, and
   emitting a tenant id and a redundant client id the client never requested leaks data and tripped the suite's
   `oidcc-server` "id_token contains non-requested claim" warning. `DefaultGetIdTokenPayloadClaimsHandler` now emits only
@@ -2922,7 +2922,7 @@ change to the public API is a **major** version bump.
   3 REVIEW, 4 SKIPPED, 0 FAILED** with a clean gate (the former `oidcc-codereuse-30seconds` warning is now fixed — see
   the authorization-code-replay entry above).
 
-- **The UserInfo endpoint now accepts the access token in a form-encoded request body (backlog `T8`).** Per RFC 6750
+- **The UserInfo endpoint now accepts the access token in a form-encoded request body (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).** Per RFC 6750
   §2.2 / OpenID Connect Core 1.0 §5.3.1, a client may present the bearer access token as an `access_token` form
   parameter. `DefaultAuthenticateSubjectHandler` now honors it for a non-GET request whose body is
   `application/x-www-form-urlencoded`, in addition to the preferred `Authorization: Bearer` header (RFC 6750 §2.1) which
@@ -2959,7 +2959,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 ### Changed
 
-- **Every remaining `Logic` grab-bag namespace is split into purpose-based namespaces (backlog `D7`).** No `Logic`
+- **Every remaining `Logic` grab-bag namespace is split into purpose-based namespaces (issue [#27](https://github.com/NCodeGroup/Identity/issues/27)).** No `Logic`
   namespace or folder remains in the family. A contract, its DTOs, and its default implementation now share one purpose
   namespace across each `.Abstractions`/implementation pair: `NCode.Identity.Cryptography` (`ICryptoService`,
   `CryptoServiceExtensions`, and the `BinaryEncodingType` / `HashAlgorithmType` enums it takes, which move out of the
@@ -2985,7 +2985,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   this lands on `dev` as a clean cutover with no compatibility shim
   ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
-- **Claim dates parse only by declared type, through the now-public `NCode.Json.DateCoercion` (backlog `D12`,
+- **Claim dates parse only by declared type, through the now-public `NCode.Json.DateCoercion` (issue [#32](https://github.com/NCodeGroup/Identity/issues/32),
   [ADR-0121](docs/adr/0121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md)).** `DateCoercion` —
   the date/time policy shared by `ObjectJsonConverter`, `JsonElements`, and `ObjectGraphExtensions` — is public, exposing
   `TryParseDateTimeOffset` and `TryParseDateTime` so every package parses date strings under one lenient,
@@ -2999,7 +2999,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   `ClaimValueTypes.String` claim; parse it with `DateCoercion` where the claim is known to be a date. **Public surface:**
   adds `NCode.Json.DateCoercion` (`TryParseDateTimeOffset`, `TryParseDateTime`).
 
-- **JWT claim values map to and from JSON by declared type, losslessly, in one symmetric mapper (backlog `D14`,
+- **JWT claim values map to and from JSON by declared type, losslessly, in one symmetric mapper (issue [#34](https://github.com/NCodeGroup/Identity/issues/34),
   [ADR-0122](docs/adr/0122-jwt-claim-values-map-to-json-by-declared-type.md)).** Both directions of the JWT claim-value
   mapping — encoding a `Claim` into a payload value and decoding a payload value into a `Claim` — now live in one
   internal `ClaimValueMapper`, guarded by a decode → encode round-trip test over every JSON scalar kind. **Decode:** a
@@ -3015,7 +3015,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   a lone entry in `JwtEncodingParameters.ExtraPayloadClaims` (the guard required more than one), so an ID token whose
   only payload claim was `azp` lost it.
 
-- **RFC 7519 `NumericDate` values are read strictly and never fault the server (backlog `D13`,
+- **RFC 7519 `NumericDate` values are read strictly and never fault the server (issue [#33](https://github.com/NCodeGroup/Identity/issues/33),
   [ADR-0123](docs/adr/0123-numeric-date-is-read-strictly-and-range-guarded.md)).** `NCode.Json.DateCoercion` adds the
   public, non-throwing `TryFromNumericDate(long)`, `TryFromNumericDate(double)` (fractional seconds, kept to tick
   precision as RFC 7519 allows), and `TryParseNumericDate(string?)`; `JsonElements` adds the strict
@@ -3032,7 +3032,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   banned in shipping code (`RS0030`). **Public surface:** adds `DateCoercion.TryFromNumericDate` (two overloads),
   `DateCoercion.TryParseNumericDate`, `JsonElements.TryGetNumericDate`, and `JsonElements.TryGetPropertyNumericDate`.
 
-- **Client assertions have a bounded lifetime, and JWT lifetime validation reads `iat` (backlog `F39`,
+- **Client assertions have a bounded lifetime, and JWT lifetime validation reads `iat` (issue [#78](https://github.com/NCodeGroup/Identity/issues/78),
   [ADR-0124](docs/adr/0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md)).** A `private_key_jwt` /
   `client_secret_jwt` assertion was accepted for any `exp` that had not passed — up to the top of the `NumericDate`
   range, holding its `jti` in the replay cache effectively forever. It is now rejected with `invalid_client` when its
@@ -3052,7 +3052,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 
 - **The JWT library is renamed `NCode.Identity.JsonWebTokens` → `NCode.Identity.Jwt` (and the paired `.Abstractions`
   package likewise), its service is segregated, and validation is redesigned as ASP.NET Core-style
-  requirements/handlers.** (`D8`, [ADR-0120](docs/adr/0120-jwt-validation-requirements-and-handlers.md).) The package,
+  requirements/handlers.** ([#28](https://github.com/NCodeGroup/Identity/issues/28), [ADR-0120](docs/adr/0120-jwt-validation-requirements-and-handlers.md).) The package,
   assembly, directory, and root namespace were renamed to the shorter, family-consistent `Jwt` form — pairing with the
   sibling `NCode.Identity.Jose(.Abstractions)` and the dominant `Jwt*` type naming. The dual-purpose
   `IJsonWebTokenService` is **split** into `IJwtEncoder` (`Encode`) and `IJwtValidator` (`ValidateAsync`); of the OpenID
@@ -3105,7 +3105,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   shim ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
 - **The browser-driven Basic OP conformance plan keeps `parallel=2` — the earlier "cookie collision" concern was
-  mooted, not worked around by serializing (backlog `T8`).** An earlier run observed one module's scripted login
+  mooted, not worked around by serializing (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).** An earlier run observed one module's scripted login
   landing on another module's `continue` URL under `parallel=2`, which suggested dropping the plan to `parallel=1`.
   That would have forfeited the speed boost for no correctness gain: the suite already isolates browser state **per
   test module** (each module gets its own `BrowserControl`/`CookieManager`), the plan runs under
@@ -3116,7 +3116,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   green at `parallel=2` (`Conformance run PASSED`, 39 modules, `0 failures`). Harness-only (not a library/API change);
   details in [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md) § "Open follow-ups".
 
-- **The conformance harness fails fast when the external suite goes unreachable mid-run (backlog `T8`).** Previously, if
+- **The conformance harness fails fast when the external suite goes unreachable mid-run (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).** Previously, if
   the OpenID Foundation Conformance Suite's Docker container dropped out mid-plan, the suite's `run-test-plan.py`
   reconnect loop retried with backoff and [`build/conformance/run-conformance.ps1`](build/conformance/run-conformance.ps1)
   blocked indefinitely — an overnight hang. The wrapper now runs each plan invocation under a hard wall-clock watchdog
@@ -3152,7 +3152,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
     callers parse directly from the resulting `ReadOnlySequence<byte>`, so the capped read no longer allocates an
     intermediate array. New public surface: the three `request*uri*_`settings and the`IOutboundHttpContentReader`/`OutboundHttpReadResult` seam.
 
-- **FAPI 2.0 behavioral rules + an extensible security-profile registry — advances backlog `F16` (Phase 3)
+- **FAPI 2.0 behavioral rules + an extensible security-profile registry — advances issue [#54](https://github.com/NCodeGroup/Identity/issues/54) (Phase 3)
   ([ADR-0109](docs/adr/0109-fapi-behavioral-rules-and-discovery-validation-details.md)).** The FAPI behavioral rules
   that cannot be expressed as a floor/ceiling setting are now modeled as an **open registry of requirement objects**
   rather than scattered `security_profile == "fapi2"` checks. A profile is an `ISecurityProfile` (its name, its ceiling
@@ -3184,7 +3184,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   a client-secret issuer can no longer silently pick the wrong representation.
 
 - **`ISecretGenerator.ImportSharedSecret` — a correct-by-default primitive for persisting a _caller-supplied_ shared
-  secret — closes backlog `F30` ([ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md)).** The
+  secret — closes issue [#69](https://github.com/NCodeGroup/Identity/issues/69) ([ADR-0110](docs/adr/0110-shared-secret-vs-cryptographic-key-storage.md)).** The
   complement to `GenerateSharedSecret`: it persists a given `client_secret` value (supplied as the UTF-8 octets of its
   opaque string) in the identical `symmetric_raw` shape, deriving the bit length from the value and sharing a single
   internal construction with `GenerateSharedSecret` so the stored UTF-8 contract cannot drift between the two. The three
@@ -3192,7 +3192,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   seed handlers and the integration-test host factory — now route through it. New surface: `ImportSharedSecret` and the
   `ImportSharedSecretRequest` metadata type on `NCode.Identity.Secrets.Persistence`.
 
-- **FAPI 2.0 `security_profile` mechanism — advances backlog `F16` (Phase 2)
+- **FAPI 2.0 `security_profile` mechanism — advances issue [#54](https://github.com/NCodeGroup/Identity/issues/54) (Phase 2)
   ([ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).** A tenant or client opts into
   the OpenID Foundation FAPI 2.0 Security Profile with a single `security_profile=fapi2` setting. The profile expands
   into concrete ceiling settings at the scope that declares it, and the existing floor/ceiling merge lattice carries
@@ -3208,7 +3208,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   EdDSA signing implementation ships in the opt-in `NCode.Identity.Jose.EdDsa` package,
   [ADR-0117](docs/adr/0117-eddsa-clean-room-implementation-opt-in-package.md)).
 
-- **Mutual-TLS client authentication (`tls_client_auth` / `self_signed_tls_client_auth`) — advances backlog `F16`
+- **Mutual-TLS client authentication (`tls_client_auth` / `self_signed_tls_client_auth`) — advances issue [#54](https://github.com/NCodeGroup/Identity/issues/54)
   (Phase 1) ([ADR-0107](docs/adr/0107-mutual-tls-client-authentication.md)).** A confidential client can now authenticate
   at the token endpoint with a mutual-TLS client certificate (RFC 8705 §2), the second FAPI-permitted strong
   client-authentication mechanism alongside `private_key_jwt`. `self_signed_tls_client_auth` matches the presented
@@ -3221,8 +3221,8 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   settings, and `AsymmetricSecretKey.CertificateRawData` (raw DER access that avoids materializing a certificate to
   compute a thumbprint).
 
-- **Runtime `jwks_uri` client-key resolution and a shared, extensible outbound-fetch SSRF guard — advances backlog
-  `F16` (Phase 0) ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)).** A
+- **Runtime `jwks_uri` client-key resolution and a shared, extensible outbound-fetch SSRF guard — advances issue
+  [#54](https://github.com/NCodeGroup/Identity/issues/54) (Phase 0) ([ADR-0106](docs/adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)).** A
   client's **public** verification keys can now be resolved at runtime from its `jwks_uri` setting (previously stored but
   never consumed), so a FAPI client can authenticate via `private_key_jwt` — or present a signed request object (JAR) —
   with keys it rotates without re-registering. A new `IClientKeyResolver` seam merges the client's stored `SecretKeys`
@@ -3245,8 +3245,8 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   HtmlUnitDriver) get a working form, everyone else gets the SPA. This unblocks the browser-driven conformance profiles,
   whose no-JS driver previously saw only an empty `<div id="root">` and could not find the login fields.
 
-- **External conformance suite wired as the certified oracle behind the in-house pre-flight — advances backlog `T6`
-  (Phase 4 / `T1` Phase D), [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md).** A committed, runnable
+- **External conformance suite wired as the certified oracle behind the in-house pre-flight — advances issue [#129](https://github.com/NCodeGroup/Identity/issues/129)
+  (Phase 4 / [#124](https://github.com/NCodeGroup/Identity/issues/124) Phase D), [ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md).** A committed, runnable
   harness under [`build/conformance/`](build/conformance) drives the **OpenID Foundation Conformance Suite** against the
   OpenID host end to end: `run-conformance.ps1` launches the OP on the reachable HTTPS origin (the `Conformance`
   launch profile), runs the headless `@ncode/app-conformance-runner` probe runner as a fast pre-flight that fails early,
@@ -3255,11 +3255,11 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   everything down — surfacing one non-zero exit code. The config templates (`oidcc-basic.json` with its `browser`
   automation block, `oidcc-config.json`) are resolved against the deterministic `AddConformanceSeed` values. It is
   **not** part of `build/dod.ps1` (Docker + Python 3, slow) and runs as an opt-in / nightly gate; the nightly CI
-  pipeline itself remains the sole `T6` follow-up. Documented in
+  pipeline itself remains the sole [#129](https://github.com/NCodeGroup/Identity/issues/129) follow-up. Documented in
   [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md).
 
-- **Public-key import / BYOK across the management API and Dynamic Client Registration — closes backlog `S3`, advances
-  `F16` ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md)).** A relying party's **public**
+- **Public-key import / BYOK across the management API and Dynamic Client Registration — closes issue [#161](https://github.com/NCodeGroup/Identity/issues/161), advances
+  [#54](https://github.com/NCodeGroup/Identity/issues/54) ([ADR-0104](docs/adr/0104-import-public-asymmetric-secret-material.md)).** A relying party's **public**
   asymmetric key can now be imported — as a **JWK**, **PEM**, or **X.509 certificate** — and persisted as a first-class
   secret that round-trips and is consumed for client authentication / JAR verification. A new persisted `SecretEncoding`
   axis (`symmetric_raw` / `pkcs8` / `spki` / `x509`) records the stored form orthogonally to the crypto family, so a
@@ -3271,7 +3271,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   `CreateRsaSpki` / `CreateEccSpki`. Import is **public-only by construction** — a private or symmetric key is rejected —
   so the reveal-once model ([ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md)) remains the sole path
   a symmetric value leaves the server. DCR consumes an inline `jwks` set at registration; runtime `jwks_uri` resolution
-  stays deferred (`F16` Phase 0). An EF migration adds the `SecretEncoding` column and backfills existing rows.
+  stays deferred ([#54](https://github.com/NCodeGroup/Identity/issues/54) Phase 0). An EF migration adds the `SecretEncoding` column and backfills existing rows.
 
 - **The secret-key-type descriptor is now the first-class seam for every key operation
   ([ADR-0105](docs/adr/0105-secret-key-type-descriptor-first-class-seam.md)).** `ISecretKeyTypeDescriptor` owns the full
@@ -3284,7 +3284,7 @@ struct` returns the setting's value when present and `null` when absent, so a ca
   key type by deriving from them. Duplicated `SecretKey` state (metadata / key size / certificate handling) is lifted
   onto `AsymmetricSecretKey`, leaving the `Default*` / `Public*` concretes holding only their key material.
 
-- **JWT-bearer client authentication (`private_key_jwt` / `client_secret_jwt`) — advances backlog `F16`
+- **JWT-bearer client authentication (`private_key_jwt` / `client_secret_jwt`) — advances issue [#54](https://github.com/NCodeGroup/Identity/issues/54)
   ([ADR-0102](docs/adr/0102-jwt-bearer-client-authentication.md)).** The token endpoint now authenticates confidential
   clients that present a signed `client_assertion`
   (`client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer`, OpenID Connect Core §9 / RFC 7523).
@@ -3305,9 +3305,9 @@ struct` returns the setting's value when present and `null` when absent, so a ca
 X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-only key) instead of throwing, so a
   relying party's registered public certificate (persisted as an `x509` secret) becomes a usable verification key with
   no new secret type. This is the primitive that lets the OP hold a client's public key for `private_key_jwt`, JAR, and
-  the forthcoming `jwks_uri` / BYOK onboarding (`F16` Phase 0, `S3`).
+  the forthcoming `jwks_uri` / BYOK onboarding ([#54](https://github.com/NCodeGroup/Identity/issues/54) Phase 0, [#161](https://github.com/NCodeGroup/Identity/issues/161)).
 
-- **Node-`crypto` signer for the probe runner's asymmetric legs — completes backlog `T7`
+- **Node-`crypto` signer for the probe runner's asymmetric legs — completes issue [#130](https://github.com/NCodeGroup/Identity/issues/130)
   ([ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)).** The `@ncode/app-conformance-runner`
   `private_key_jwt` and DPoP probes gain a real signer instead of an injected fake: new `--private-key` / `--dpop-key`
   options load a PEM- or JWK-encoded private key, the JWA signature algorithm is inferred from the key (the curve for
@@ -3315,26 +3315,26 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `--dpop-key-alg` (e.g. `RS256`), and the signer builds the `private_key_jwt` client assertion (OIDC Core §9, carrying
   the JWK `kid` when present) and the DPoP proof (RFC 9449 §4, embedding the public JWK in the `dpop+jwt` header). ECDSA
   uses the JOSE raw `ieee-p1363` encoding and RSA-PSS uses digest-length salt. The asymmetric legs now exercise the OP
-  for real once it advertises the capability (`private_key_jwt`: `F16` / `S3`; DPoP: `F7`). Development/conformance
+  for real once it advertises the capability (`private_key_jwt`: [#54](https://github.com/NCodeGroup/Identity/issues/54) / [#161](https://github.com/NCodeGroup/Identity/issues/161); DPoP: [#45](https://github.com/NCodeGroup/Identity/issues/45)). Development/conformance
   tooling only, outside the .NET inner loop ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
-- **Headless conformance probe runner — advances backlog `T6` (Phase 3)
+- **Headless conformance probe runner — advances issue [#129](https://github.com/NCodeGroup/Identity/issues/129) (Phase 3)
   ([ADR-0084](docs/adr/0084-spec-coverage-conformance-harness.md)).** The spec-coverage harness gains the Node/backend
   **probe runner** for the confidential and server-initiated legs a browser cannot drive: a new
   `@ncode/app-conformance-runner` CLI exercises `client_credentials`, token **introspection** and **revocation** with
   client authentication, **device-code** issuance + polling, **CIBA**, `private_key_jwt`, **DPoP**/**mTLS**, and
   **back-channel logout**. Each probe reports `verified` / `failed` / `skipped` (with an actionable reason — an
-  unadvertised capability or a missing credential), so unimplemented backend features (`F3` CIBA, `F7` DPoP/mTLS, `F16`
-  / `S3` `private_key_jwt`) surface as explicit gaps and light up as they land; the runner exits non-zero on any
-  failure, making it a usable CI pre-flight for the external certified suite (Phase 4 / `T1`). The framework-free,
+  unadvertised capability or a missing credential), so unimplemented backend features ([#41](https://github.com/NCodeGroup/Identity/issues/41) CIBA, [#45](https://github.com/NCodeGroup/Identity/issues/45) DPoP/mTLS, [#54](https://github.com/NCodeGroup/Identity/issues/54)
+  / [#161](https://github.com/NCodeGroup/Identity/issues/161) `private_key_jwt`) surface as explicit gaps and light up as they land; the runner exits non-zero on any
+  failure, making it a usable CI pre-flight for the external certified suite (Phase 4 / [#124](https://github.com/NCodeGroup/Identity/issues/124)). The framework-free,
   injectable-fetch conformance logic (discovery fetch, the security audit, the spec-coverage catalog, and the
   browser-drivable probes) moved into a shared, unit-tested `@ncode/conformance-core` package consumed by both the
   dashboard (`apps/conformance`) and the runner — no behavior change to the dashboard. The asymmetric legs
-  (`private_key_jwt`, DPoP) take an injected signer, now wired to a real Node-`crypto` signer (`T7`, above).
+  (`private_key_jwt`, DPoP) take an injected signer, now wired to a real Node-`crypto` signer ([#130](https://github.com/NCodeGroup/Identity/issues/130), above).
   Development/conformance tooling only, outside the .NET inner loop
   ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
-- **OAuth 2.0 Token Exchange (RFC 8693) — completes backlog `F23`
+- **OAuth 2.0 Token Exchange (RFC 8693) — completes issue [#61](https://github.com/NCodeGroup/Identity/issues/61)
   ([ADR-0101](docs/adr/0101-oauth-token-exchange-rfc8693.md)).** The token endpoint gains a
   `DefaultTokenExchangeGrantHandler` for `urn:ietf:params:oauth:grant-type:token-exchange`, registered on the existing
   `ITokenGrantHandler` extension-grant seam (no endpoint change). A client presents a `subject_token` (and, for
@@ -3353,9 +3353,9 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `OpenIdConstants.TokenTypeIdentifiers.*`, the RFC 8693 `OpenIdConstants.Parameters.*` and `TokenTypes.NotApplicable`,
   `JoseClaimNames.Payload.MayAct`, `ITokenRequest` / `ITokenResponse` additions, `ISubjectTokenValidator` /
   `SubjectTokenValidationResult`, and `TokenExchangeGrant`. External / enterprise-IdP federation is intentionally out of
-  scope and tracked as backlog `F26` (the `ISubjectTokenValidator` seam is its extension point).
+  scope and tracked as issue [#64](https://github.com/NCodeGroup/Identity/issues/64) (the `ISubjectTokenValidator` seam is its extension point).
 
-- **Session claims & lifecycle enhancements (advances backlog `F25`).** The end-user session subsystem
+- **Session claims & lifecycle enhancements (advances issue [#63](https://github.com/NCodeGroup/Identity/issues/63)).** The end-user session subsystem
   ([ADR-0074](docs/adr/0074-session-management-and-logout.md)) gains server-authoritative lifecycle controls, modeled as
   **tenant settings** (a session spans every client, so its policy is tenant-scoped, not per-client):
   `session_absolute_lifetime`, `session_idle_timeout` (a sliding inactivity window, renewed on each authorize request
@@ -3373,7 +3373,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   back-channel logout notifications, and audit — so an idle/evicted/admin-revoked session now notifies its relying
   parties and audits exactly like an RP-initiated logout, closing a correctness gap. Applications extend termination by
   registering another `ICommandHandler<OnSessionTerminatedCommand>`.
-- **Self-service active-sessions surface (completes backlog `F25`).** The OP-hosted `apps/auth` account surface gains an
+- **Self-service active-sessions surface (completes issue [#63](https://github.com/NCodeGroup/Identity/issues/63)).** The OP-hosted `apps/auth` account surface gains an
   **active sessions** page: the end-user reviews every session they hold (device/browser and origin IP captured at
   sign-in, plus last-active and sign-in times), with the request's own session marked, and can sign out of an individual
   session, **everywhere else** (retaining the current session), or **everywhere**. New same-origin endpoints
@@ -3383,7 +3383,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `SessionGrant` / `CreateSessionRequest` capture the sign-in `UserAgent` and `RemoteIpAddress`, a new
   `SessionTerminationReason.UserInitiated` distinguishes self-service revocation in the audit trail, and
   `ISessionService` gains `RevokeAllExceptAsync` (and `RevokeAllAsync` now takes the termination reason).
-- **Tenant-addressed admin sessions management endpoint (completes backlog `F25`,
+- **Tenant-addressed admin sessions management endpoint (completes issue [#63](https://github.com/NCodeGroup/Identity/issues/63),
   [ADR-0100](docs/adr/0100-explicit-tenant-context-materialization.md)).** `/api/tenants/{tenantId}/sessions` lists a
   subject's active sessions (`GET ?subjectId=…` → `SessionResource`) and revokes a single session (`DELETE /{sessionId}`)
   or every session a subject holds (`DELETE ?subjectId=…`). Unlike bulk grant revocation, each revocation runs the full
@@ -3395,7 +3395,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Changed
 
-- **An unsigned (`alg:none`) JWT-secured authorization request now returns `request_not_supported` (backlog `T8`).**
+- **An unsigned (`alg:none`) JWT-secured authorization request now returns `request_not_supported` (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).**
   Per OpenID Connect Core 1.0 §6.1, an OP that does not support unsigned request objects must answer exactly
   `request_not_supported`. `DefaultLoadAuthorizationRequestHandler` previously surfaced a generic
   `invalid_request_object` for any request-object decode failure; it now detects an `alg:none` request object (inline
@@ -3415,7 +3415,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   selection criterion is a source-compatible change rather than a breaking signature change. The grants management
   query gains a `grantType` filter.
 
-- **Forward-compatible store pagination — `PageRequest` (completes backlog `D6`,
+- **Forward-compatible store pagination — `PageRequest` (completes issue [#26](https://github.com/NCodeGroup/Identity/issues/26),
   [ADR-0099](docs/adr/0099-forward-compatible-evolving-parameters.md)).** The positional `(cursor, limit)` pagination
   pair is replaced by a shared `PageRequest { Cursor, Limit }` init-only record struct (in `NCode.Persistence.Stores`,
   beside `PagedResult<T>`) across every store `GetPageAsync` — `IGrantStore`, `IClientStore`, `IClientGrantStore`,
@@ -3423,8 +3423,8 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   pagination can grow (e.g. a future sort direction) without a breaking signature change, the same forward-compatible
   shape the filter DTOs already use.
 
-- **Sender-constrained access tokens — DPoP (RFC 9449) + mutual-TLS (RFC 8705), issuance side (advances backlog
-  `F7`).** Access tokens can now be bound to a proof-of-possession key instead of being plain bearer tokens. A single
+- **Sender-constrained access tokens — DPoP (RFC 9449) + mutual-TLS (RFC 8705), issuance side (advances issue
+  [#45](https://github.com/NCodeGroup/Identity/issues/45)).** Access tokens can now be bound to a proof-of-possession key instead of being plain bearer tokens. A single
   `IProofOfPossessionService` evaluates, once per token request, an optional **DPoP proof** (the `DPoP` header — a JWS
   with `typ: dpop+jwt` and an embedded public JWK, validated for signature, `htm`/`htu`/`iat`/`jti` and replay against
   the asymmetric `dpop_signing_alg_values_supported` set) and/or a **mutual-TLS client certificate**, then binds the
@@ -3456,7 +3456,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `mtls_endpoint_alias_authority` setting. Design and rationale:
   [ADR-0097](docs/adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md).
 
-- **Reachable HTTPS host for the external conformance suite (completes backlog `T3`).** A dedicated
+- **Reachable HTTPS host for the external conformance suite (completes issue [#126](https://github.com/NCodeGroup/Identity/issues/126)).** A dedicated
   `Conformance` launch profile turns the OpenID host into a real, externally reachable HTTPS process for the OpenID
   Foundation Conformance Suite. It binds all interfaces on the stable port (`https://0.0.0.0:5001;http://0.0.0.0:5000`)
   so the suite's Docker containers reach it via `host.docker.internal:5001` (a `localhost`-only bind is unreachable
@@ -3465,13 +3465,13 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `server.discoveryUrl`. The pin rides the parent-owned (`Keep`) `tenant_issuer` setting, so the server-level value
   flows down to the single static tenant deterministically; it lives in the launch profile (not
   `appsettings.Conformance.json`) so the Aspire-orchestrated `ConformanceAspire` dashboard instance on `:5003` keeps its
-  own request-derived issuer. The profile reuses the conformance tenant/seed (`T4` — `AddConformanceSeed`) and the
-  interactive login/consent UI (`T2`). Run with
+  own request-derived issuer. The profile reuses the conformance tenant/seed ([#127](https://github.com/NCodeGroup/Identity/issues/127) — `AddConformanceSeed`) and the
+  interactive login/consent UI ([#125](https://github.com/NCodeGroup/Identity/issues/125)). Run with
   `dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance`. Detailed plan:
   [`docs/conformance/reachable-host.md`](docs/conformance/reachable-host.md).
 
-- **Registration-time `sector_identifier_uri` fetch + validation with an SSRF-guarded client (completes backlog
-  `F20`).** Dynamic Client Registration (RFC 7591/7592) now accepts, validates, persists, and round-trips `subject_type`
+- **Registration-time `sector_identifier_uri` fetch + validation with an SSRF-guarded client (completes issue
+  [#58](https://github.com/NCodeGroup/Identity/issues/58)).** Dynamic Client Registration (RFC 7591/7592) now accepts, validates, persists, and round-trips `subject_type`
   and `sector_identifier_uri` client metadata, and performs the OpenID Connect Core 1.0 §8.1 remote step that
   [ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md) deferred: it **fetches** the JSON document the
   `sector_identifier_uri` references and **verifies** it lists every one of the client's `redirect_uris`, so a pairwise
@@ -3503,7 +3503,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   and documented as holding the resolved principal id. See
   [ADR-0094](docs/adr/0094-resolve-principal-at-every-authentication-entry-point.md).
 
-- **`Subject.sub == PrincipalId` enforced by construction at every ticket site (completes backlog `F22`).** Every
+- **`Subject.sub == PrincipalId` enforced by construction at every ticket site (completes issue [#60](https://github.com/NCodeGroup/Identity/issues/60)).** Every
   authentication entry point now builds its `SubjectAuthentication` through the shared `SubjectAuthentication.Create`
   factory, which normalizes the raw credential principal's subject claim to the resolved `PrincipalId` before
   constructing the ticket — so the ROPC and bearer/UserInfo paths can no longer leave the raw `sub` claim
@@ -3515,7 +3515,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   the two-sources-of-truth trap cannot return. See
   [ADR-0094](docs/adr/0094-resolve-principal-at-every-authentication-entry-point.md).
 
-- **Pairwise subject identifiers (PPID) via the `subject_type` setting (completes backlog `F9`).** A client registered
+- **Pairwise subject identifiers (PPID) via the `subject_type` setting (completes issue [#47](https://github.com/NCodeGroup/Identity/issues/47)).** A client registered
   with `subject_type = pairwise` now receives a per-sector Pairwise Pseudonymous Identifier as its `sub` instead of the
   stable public subject, so colluding relying parties in different sectors cannot correlate the same end-user (OpenID
   Connect Core 1.0 §8). The projection is a **stateless, deterministic** derivation —
@@ -3530,14 +3530,14 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `public`. See [ADR-0093](docs/adr/0093-pairwise-subject-identifiers.md).
 
 - **Token-endpoint `401` + `WWW-Authenticate` challenge on failed `Authorization`-header client authentication (completes
-  backlog `F10`).** A failed `client_secret_basic` authentication now answers with `401 Unauthorized` and a
+  issue [#48](https://github.com/NCodeGroup/Identity/issues/48)).** A failed `client_secret_basic` authentication now answers with `401 Unauthorized` and a
   `WWW-Authenticate: Basic realm="<issuer>"` challenge, as [RFC 6749 §5.2](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2)
   requires when the client authenticated via the HTTP `Authorization` header; body-based (`client_secret_post`) and
   assertion-based methods stay `400`. The challenge rides a new general response-header seam — `ISupportResponseHeaders`
   (sibling of `ISupportStatusCode`) that `IOpenIdError` now implements and `OpenIdResult<T>` renders — so the fix covers
   the token endpoint and every other client-authenticating endpoint (introspection, revocation, device-authorization,
   CIBA, PAR) through the shared `IClientAuthenticationService` funnel, and the same seam will carry the
-  `WWW-Authenticate: Bearer` challenge for sender-constrained tokens (backlog `F7`). Extension grants
+  `WWW-Authenticate: Bearer` challenge for sender-constrained tokens (issue [#45](https://github.com/NCodeGroup/Identity/issues/45)). Extension grants
   ([RFC 6749 §4.5](https://datatracker.ietf.org/doc/html/rfc6749#section-4.5)) need no endpoint change: registering an
   `ITokenGrantHandler` whose `GrantTypes` includes the extension grant's absolute-URI identifier is the seam. See
   [ADR-0092](docs/adr/0092-token-endpoint-401-www-authenticate-challenge.md).
@@ -3562,7 +3562,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   locked down; only the dedicated conformance instance opts in. Development/conformance convenience only
   ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
-- **Essential `acr` enforcement (completes backlog `F19`).** When an authorization request asks for `id_token.acr` as
+- **Essential `acr` enforcement (completes issue [#57](https://github.com/NCodeGroup/Identity/issues/57)).** When an authorization request asks for `id_token.acr` as
   an **essential** claim with specific `values` (OpenID Connect Core 1.0 §5.5.1.1), the subject-authentication
   validator (`DefaultValidateSubjectAuthenticationHandler`) now denies with `access_denied` unless the satisfied `acr`
   on the subject principal is among the requested values — previously such a mismatch silently issued a token whose
@@ -3570,8 +3570,8 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   voluntary), remain best-effort and impose no constraint. This builds directly on the emitted, principal-stamped `acr`
   from [ADR-0091](docs/adr/0091-acr-emission-and-conditional-auth-time.md).
 
-- **`acr` claim emission via a replaceable resolver, `amr` recording, and conditional `auth_time` (completes backlog
-  `F11`).** The authorization server now tracks the authentication context at the two authentication entry points (local
+- **`acr` claim emission via a replaceable resolver, `amr` recording, and conditional `auth_time` (completes issue
+  [#49](https://github.com/NCodeGroup/Identity/issues/49)).** The authorization server now tracks the authentication context at the two authentication entry points (local
   interactive sign-in and the ROPC subject handler): it records `amr=["pwd"]` (RFC 8176) — previously wired through the
   token pipeline but never actually recorded — and resolves an `acr` (Authentication Context Class Reference) value
   through a new **async, DI-overridable** seam `IAuthenticationContextReferenceResolver`. OpenID Connect defers the
@@ -3587,7 +3587,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   [ADR-0091](docs/adr/0091-acr-emission-and-conditional-auth-time.md).
 
 - **Generic background job-dispatch subsystem with a BYO-orchestration adapter port — and durable CIBA push/ping
-  delivery (completes backlog `D4`).** New packages `NCode.Identity.Dispatch(.Abstractions)` provide a small, reusable
+  delivery (completes issue [#24](https://github.com/NCodeGroup/Identity/issues/24)).** New packages `NCode.Identity.Dispatch(.Abstractions)` provide a small, reusable
   way to run deferred, at-least-once work: a serializable `IDispatchJob`, an `IDispatchJobHandler<TJob>` (throw to
   retry), and the adapter port `IJobDispatcher` (`DispatchAsync<TJob>(job, DispatchOptions?, …)`). The default,
   registered via `AddDispatchServices().AddInProcessJobDispatcher()`, is an **in-process, self-scheduling** adapter: a
@@ -3605,7 +3605,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   ([ADR-0048](docs/adr/0048-durable-audit-delivery-outbox.md))
   is now framed as one adapter of this port ([ADR-0090](docs/adr/0090-durable-outbound-delivery-dispatch-adapter.md)).
 
-- **CIBA request-object encryption advertisement and enforcement (completes backlog `D4`).** New server settings
+- **CIBA request-object encryption advertisement and enforcement (completes issue [#24](https://github.com/NCodeGroup/Identity/issues/24)).** New server settings
   `backchannel_authentication_request_encryption_alg_values_supported` / `…_enc_values_supported` /
   `…_zip_values_supported` are advertised in discovery alongside the existing signing-alg setting. The backchannel
   request-object loader now enforces them: an encrypted (JWE) request object must use an advertised key-management
@@ -3613,7 +3613,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   (also fixing a latent case where a JWE's key-management `alg` was checked against the signing set)
   ([ADR-0090](docs/adr/0090-durable-outbound-delivery-dispatch-adapter.md)).
 
-- **Pushed Authorization Requests (PAR, RFC 9126) — completes backlog `F8`.** The OP now exposes a
+- **Pushed Authorization Requests (PAR, RFC 9126) — completes issue [#46](https://github.com/NCodeGroup/Identity/issues/46).** The OP now exposes a
   `pushed_authorization_request_endpoint` (`/oauth2/par`) where a client authenticates (identically to the token
   endpoint) and POSTs its authorization request parameters as `application/x-www-form-urlencoded`; the request is
   loaded and validated exactly as the authorization endpoint would, then persisted as a single-use grant and answered
@@ -3627,7 +3627,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `pushed_authorization_request_lifetime` (default 90 seconds). The endpoint is auto-advertised in discovery metadata
   ([ADR-0089](docs/adr/0089-pushed-authorization-requests.md)).
 
-- **Front-Channel Logout 1.0 and Session Management 1.0, available but disabled by default — completes backlog `D2`.**
+- **Front-Channel Logout 1.0 and Session Management 1.0, available but disabled by default — completes issue [#22](https://github.com/NCodeGroup/Identity/issues/22).**
   The OP now implements both browser-mediated session mechanisms behind opt-in server settings, complementing the
   cookie-independent RP-Initiated and Back-Channel Logout it already shipped. **Front-Channel Logout:** when
   `frontchannel_logout_supported` is enabled, the `end_session_endpoint` renders a hidden iframe per participating client
@@ -3642,7 +3642,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `frontchannel_logout_session_supported`, per-client `frontchannel_logout_uri` /
   `frontchannel_logout_session_required`, and `session_management_supported`.
 
-- **Supporting index for resource-server scope lookups — completes backlog `D3`.** The resource-server runtime reads
+- **Supporting index for resource-server scope lookups — completes issue [#23](https://github.com/NCodeGroup/Identity/issues/23).** The resource-server runtime reads
   push their scope-value predicate to the DBMS ([ADR-0080](docs/adr/0080-store-query-methods-push-filtering-to-dbms.md)),
   but the scope-driven `SelectMany` join could not seek on scope value: the only index leading with `NormalizedValue`
   was the composite unique `(ResourceServerId, NormalizedValue)`, whose leading column is the owner. A standalone
@@ -3652,7 +3652,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   chosen by the query planner and would only add write cost; the selective scope-value index above is what carries those
   queries.
 
-- **Refresh-token reuse detection with family revocation — completes backlog `F4`.** A revoked refresh token presented
+- **Refresh-token reuse detection with family revocation — completes issue [#42](https://github.com/NCodeGroup/Identity/issues/42).** A revoked refresh token presented
   again is a replay signal; the OP already detected and audited it (`token.refresh.replay`), and now responds per the
   new per-client `refresh_token_reuse_policy` setting: `revoke_all` (the secure default) revokes the entire **rotation
   family** — every refresh token descended from the same authorization grant — so a stolen token cannot be exchanged
@@ -3666,7 +3666,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `IPersistedGrantService.RevokeByRefreshTokenLineageAsync`, and the `RefreshTokenLineageId` members on `PersistedGrant`,
   `PersistedGrant<TPayload>`, `CreateSecurityTokenRequest`, and `GrantEntity`.
 
-- **Device-authorization endpoint migrated to the canonical endpoint shape — completes backlog `F18`.** The
+- **Device-authorization endpoint migrated to the canonical endpoint shape — completes issue [#56](https://github.com/NCodeGroup/Identity/issues/56).** The
   `/oauth2/device_authorization` endpoint (`DefaultDeviceAuthorizationEndpointHandler`) is now a thin orchestrator over
   a strongly-typed `DeviceAuthorizationRequest : OpenIdMessage<…>` and mediator commands
   (`ValidateDeviceAuthorizationRequestCommand`, `CreateDeviceAuthorizationRequestCommand` →
@@ -3676,7 +3676,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   New public surface across `NCode.Identity.OpenId.Authentication(.Abstractions)`: the `IDeviceAuthorizationRequest` /
   `DeviceAuthorizationRequest` messages and the two mediator commands.
 
-- **CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication) — completes backlog `F3` and `F17`.** The
+- **CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication) — completes issues [#41](https://github.com/NCodeGroup/Identity/issues/41) and [#55](https://github.com/NCodeGroup/Identity/issues/55).** The
   OP gains a decoupled backchannel-authentication flow (**poll, ping, and push** delivery) that reuses the device flow's
   pending-authorization-as-persisted-grant pattern with **no new table or EF migration**
   ([ADR-0085](docs/adr/0085-ciba-grant.md)). A new `backchannel_authentication_endpoint` (`/oauth2/bc-authorize`) accepts
@@ -3706,10 +3706,10 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `LoadBackchannelAuthenticationRequestCommand`, and the `ICibaNotificationService` (with push token delivery) /
   `ICibaRequestService` seams).
 
-- **Spec-coverage conformance harness + exercisable consent — advances backlog `T6`.** The conformance surface
+- **Spec-coverage conformance harness + exercisable consent — advances issue [#129](https://github.com/NCodeGroup/Identity/issues/129).** The conformance surface
   (`apps/conformance`) gained a **spec-coverage matrix** that measures the OP against the full published
-  OAuth/OIDC/CIBA/FAPI catalog — independent of what is implemented — so missing functionality (CIBA `F3`, DPoP/mTLS
-  `F7`, PAR `F8`, token exchange, pairwise `F9`, `acr` `F11`, the FAPI 2.0 profile `F16`) surfaces as explicit,
+  OAuth/OIDC/CIBA/FAPI catalog — independent of what is implemented — so missing functionality (CIBA [#41](https://github.com/NCodeGroup/Identity/issues/41), DPoP/mTLS
+  [#45](https://github.com/NCodeGroup/Identity/issues/45), PAR [#46](https://github.com/NCodeGroup/Identity/issues/46), token exchange, pairwise [#47](https://github.com/NCodeGroup/Identity/issues/47), `acr` [#49](https://github.com/NCodeGroup/Identity/issues/49), the FAPI 2.0 profile [#54](https://github.com/NCodeGroup/Identity/issues/54)) surfaces as explicit,
   attributable gap rows classified from the **live discovery document**; because the classifier is pure over discovery,
   the same matrix is a **regression** detector (a capability that stops being advertised, or flips to non-conformant,
   changes its row). It also adds a user-triggered **active-probe** panel (Phase 2) that exercises the browser-reachable
@@ -3724,7 +3724,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `@mui/icons-material` to the app. Development/conformance convenience only
   ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
-- **Deterministic conformance tenant, clients, and test-user seeding — completes backlog `T4`.** A new
+- **Deterministic conformance tenant, clients, and test-user seeding — completes issue [#127](https://github.com/NCodeGroup/Identity/issues/127).** A new
   **conformance-only**, config-driven startup seeder provisions the confidential clients and a fixed test user the
   OpenID Foundation conformance suite drives, into each workload tenant, so a launched host always exposes
   the same identities with **no manual API calls**. `AddConformanceSeed(IConfiguration)` (chained off
@@ -3737,7 +3737,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `Base64Url`-encoded and never linger on the GC heap. Must not be used in production. Development/conformance
   convenience only ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
-- **Playground flow explorer and conformance posture dashboard — completes backlog `U3`.** The two frontend scaffolds
+- **Playground flow explorer and conformance posture dashboard — completes issue [#135](https://github.com/NCodeGroup/Identity/issues/135).** The two frontend scaffolds
   became real surfaces on the shared `@ncode/*` platform
   ([ADR-0082](docs/adr/0082-playground-and-conformance-surfaces.md)). `apps/playground` is an interactive OAuth 2.1 /
   OpenID Connect **authorization-code + PKCE (S256) flow explorer** that discovers the provider and walks the flow end
@@ -3760,7 +3760,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
       `NCode.Identity.Server.Frontend` namespace, one type per file under a `Frontend/` folder. Greenfield, pre-release
       — no compatibility shims ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
-- **Resource-server runtime reads push filtering into the DBMS — completes backlog `D3`.** The six runtime readers that
+- **Resource-server runtime reads push filtering into the DBMS — completes issue [#23](https://github.com/NCodeGroup/Identity/issues/23).** The six runtime readers that
   previously paged the tenant's **entire** resource-server set and filtered in memory
   (`DefaultDiscoverScopesHandler`, `DefaultClientScopeService.GetAllowedScopesAsync` / `ResolveAudiencesAsync` /
   `GetEnabledResourceServerIdentifiersAsync`, `DefaultScopeDescriptionService.DescribeScopesAsync`, and
@@ -3774,7 +3774,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   in memory. Greenfield, pre-release — no compatibility shims
   ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
-- **Token-request validation hardening — completes backlog `F12`.** Three related gaps in the authorization-code
+- **Token-request validation hardening — completes issue [#50](https://github.com/NCodeGroup/Identity/issues/50).** Three related gaps in the authorization-code
   grant validator are closed. (1) **Resource indicators (RFC 8707)** are now a first-class, multi-valued `resource`
   parameter on the authorization and token requests
   ([ADR-0078](docs/adr/0078-resource-indicators-rfc-8707.md)): the authorization endpoint rejects an unknown or disabled
@@ -3795,8 +3795,8 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `IResourceServerCredentialResolver.ResolveAsync` gains a `requestedResources` parameter. Greenfield, pre-release — no
   compatibility shims ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)).
 
-- **Granular per-scope consent, friendly consent screen, and self-service authorized applications — completes backlog
-  `F2`.** Durable consent ([ADR-0076](docs/adr/0076-consent-persistence-and-enforcement.md)) becomes **granular**: the
+- **Granular per-scope consent, friendly consent screen, and self-service authorized applications — completes issue
+  [#40](https://github.com/NCodeGroup/Identity/issues/40).** Durable consent ([ADR-0076](docs/adr/0076-consent-persistence-and-enforcement.md)) becomes **granular**: the
   end-user grants a **subset** of the requested scopes and the OP issues only that subset (OIDC down-scoping), reviews
   and revokes standing consent from a new surface, and sees friendly names instead of raw identifiers
   ([ADR-0081](docs/adr/0081-granular-consent-and-authorized-applications.md)). The consent record now tracks both the
@@ -3813,7 +3813,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   surface (`/account/applications` page, `/account/applications/list` JSON, and an antiforgery-protected
   `/account/applications/revoke` POST, backed by `IConsentService.GetAuthorizedApplicationsAsync` / `RevokeConsentAsync`)
   lets the end-user review and revoke the applications they have authorized.
-- **Session-scoped grant revocation on logout — completes backlog `F17`.** Logout now revokes **only the terminating
+- **Session-scoped grant revocation on logout — completes issue [#55](https://github.com/NCodeGroup/Identity/issues/55).** Logout now revokes **only the terminating
   session's grants** instead of every grant the subject holds, so signing out of one login no longer invalidates the
   subject's other sessions ([ADR-0077](docs/adr/0077-session-scoped-grant-revocation-on-logout.md)). A grant records the
   opaque `sid` of the session it was issued under: `PersistedGrant` (and the typed `PersistedGrant<TPayload>` envelope)
@@ -3842,8 +3842,8 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
     as apps on the shared `@ncode/*` platform. The unused `InteractiveAuthenticationOptions.AutoApproveConsent` placeholder
     is **removed** (use `require_consent = false`).
 
-- **Runtime consumption of resource-server secrets/settings and uniform resource-server auditing — completes backlog
-  `U7`.** Access tokens now consume the per-audience material a resource server owns
+- **Runtime consumption of resource-server secrets/settings and uniform resource-server auditing — completes issue
+  [#139](https://github.com/NCodeGroup/Identity/issues/139).** Access tokens now consume the per-audience material a resource server owns
   ([ADR-0075](docs/adr/0075-runtime-consumption-of-resource-server-secrets.md)): at issuance the OP resolves the
   resource servers a token targets (a new `IResourceServerCredentialResolver`) and, when the token targets **exactly
   one** whose settings require it, **encrypts** the token to that resource server's own key so only it can read the
@@ -3855,7 +3855,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   matching the client/tenant/server handlers; new `ResourceServerChangedAuditEvent`, `ResourceServerScopeChangedAuditEvent`,
   and `ResourceServerSecretChangedAuditEvent` carry the non-sensitive snapshots.
 
-- **PostgreSQL developer database orchestrated by Aspire, with a dedicated migration worker — completes backlog `U12`.**
+- **PostgreSQL developer database orchestrated by Aspire, with a dedicated migration worker — completes issue [#144](https://github.com/NCodeGroup/Identity/issues/144).**
   The host's local database is now **PostgreSQL** run by the Aspire AppHost
   ([ADR-0073](docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md)), replacing the in-process
   SQLite/SQL Server/in-memory provider selection. A stable **named data volume** makes data persist across restarts; a
@@ -3869,8 +3869,8 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   together, with nothing left on the filesystem. A container runtime (Docker or Podman) is now required to run the
   AppHost.
 
-- **End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout — completes backlog `F1` and the `sid`
-  portion of `F11`.** The OpenID Provider now establishes a first-class, server-side **session** at interactive
+- **End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout — completes issue [#39](https://github.com/NCodeGroup/Identity/issues/39) and the `sid`
+  portion of [#49](https://github.com/NCodeGroup/Identity/issues/49).** The OpenID Provider now establishes a first-class, server-side **session** at interactive
   sign-in (persisted as a `PersistedGrant` of type `session` keyed by an opaque `sid`, with no new table or migration),
   mints the `sid` onto the login cookie, and emits the `sid` claim into ID tokens. A new RP-Initiated Logout
   `end_session_endpoint` (self-advertised in discovery) validates the `id_token_hint`, clears the OP login, revokes the
@@ -3899,7 +3899,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   the session and grants and fires back-channel notifications ([ADR-0074](docs/adr/0074-session-management-and-logout.md)).
   The `apps/auth` shell now resolves its surface (account/consent/login) through a small **declarative route table**
   instead of nested conditionals.
-- **Runtime frontend bootstrap endpoint on the OpenID Provider host — completes backlog `U4`.** The tier-agnostic
+- **Runtime frontend bootstrap endpoint on the OpenID Provider host — completes issue [#136](https://github.com/NCodeGroup/Identity/issues/136).** The tier-agnostic
   frontend bundles ([ADR-0064](docs/adr/0064-frontend-presentation-platform.md)) discover their deployment coordinates
   at boot from `/config/bootstrap.json` on their serving host; previously only a static dev copy existed.
   `NCode.Identity.Server` now exposes a first-class
@@ -3913,7 +3913,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   **proxies** `/config/bootstrap.json` to the host (the Aspire service-discovery target injected via
   `WithReference(api)`, [ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)), so local dev consumes the real
   runtime endpoint and cannot drift.
-- **Algorithm capabilities discovery drives the create-secret form — completes backlog `S6`.** The management
+- **Algorithm capabilities discovery drives the create-secret form — completes issue [#164](https://github.com/NCodeGroup/Identity/issues/164).** The management
   capabilities document ([ADR-0067](docs/adr/0067-secret-type-capability-catalog-and-capabilities-discovery.md)) grows
   an `algorithms` section published by a new `AlgorithmCapabilitiesProvider`
   (`ICommandHandler<DiscoverManagementCapabilitiesCommand>`). It projects every supported signature and key-management
@@ -3924,7 +3924,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   offers only algorithms compatible with the chosen secret type, selecting one derives the read-only use and clamps the
   key size into the algorithm's legal range (min/max/step). A new capability is still added only by registering a
   provider, never by editing the endpoint or resource type.
-- **Server create/edit management across the stack — completes backlog `U9`.** The Servers surface is no longer
+- **Server create/edit management across the stack — completes issue [#141](https://github.com/NCodeGroup/Identity/issues/141).** The Servers surface is no longer
   read-only: an OpenID server now carries an editable top-level **display name**, and the management console lists
   servers with a **Create server** action plus row-level **edit/delete** (mirroring tenants and resource servers) in
   addition to the existing drill-in to a server's secrets/settings. Backend: `ServerResource`/`CreateServerRequest`
@@ -3955,7 +3955,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   create-secret form offers a server-driven curve picker. Applications add a curve by registering one
   `EccCurveSpecification`.
 
-- **Management console resource-server secrets/settings (`apps/mgmt`) — completes backlog `U2`.** Selecting a resource
+- **Management console resource-server secrets/settings (`apps/mgmt`) — completes issue [#134](https://github.com/NCodeGroup/Identity/issues/134).** Selecting a resource
   server (API) in a tenant scope now drills into a `ResourceServerDetailPage` with **Scopes**/**Secrets**/**Settings**
   tabs, reusing the shared owner-agnostic `SecretsManager`/`SettingsManager` containers so the resource server behaves
   exactly like clients/tenants/the server. The tabs wire the backend owner endpoints added in
@@ -3963,11 +3963,11 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   endpoints (`listResourceServerSecrets`/`createResourceServerSecret`/`deleteResourceServerSecret`,
   `getResourceServerSettings`/`getResourceServerEffectiveSettings`/`updateResourceServerSettings`), honoring the
   one-time secret reveal ([ADR-0050](docs/adr/0050-secret-material-revealed-once-on-create.md)) and the top-level
-  add/remove/replace JSON Patch `diffPatch` save with the owner `concurrencyToken` as `If-Match`. This closes `U2`
+  add/remove/replace JSON Patch `diffPatch` save with the owner `concurrencyToken` as `If-Match`. This closes [#134](https://github.com/NCodeGroup/Identity/issues/134)
   (management console secrets/settings for every backend-supported owner + the initial-access-token mint); runtime
-  consumption of resource-server secrets and resource-server audit events remain tracked under `U7`.
-- **Resource servers are first-class settings and secret owners (backend).** Completes the backend half of backlog
-  `U2`: a resource server (an API, in Auth0 terms) now owns a wrapped settings object (its own concurrency token) and a
+  consumption of resource-server secrets and resource-server audit events remain tracked under [#139](https://github.com/NCodeGroup/Identity/issues/139).
+- **Resource servers are first-class settings and secret owners (backend).** Completes the backend half of issue
+  [#134](https://github.com/NCodeGroup/Identity/issues/134): a resource server (an API, in Auth0 terms) now owns a wrapped settings object (its own concurrency token) and a
   secret collection, structurally identical to clients/tenants/servers. New management endpoints —
   `GET`/`PATCH api/tenants/{tenantId}/resource-servers/{id}/settings`, `GET .../effective-settings` (server → tenant →
   resource-server merge), and the full `.../secrets` CRUD honoring the one-time reveal
@@ -3979,7 +3979,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   (migration `AddResourceServerSecrets`); deleting a resource server cascades its scopes and secrets. A
   `resource_server_secrets` scope family is seeded. Rationale and the "an API _is_ a secret owner (per-audience HS256 /
   JWE material)" decision: [ADR-0066](docs/adr/0066-resource-server-settings-and-secret-owner.md). Runtime consumption
-  of resource-server secrets and resource-server audit events are deferred (see [`BACKLOG.md`](BACKLOG.md)).
+  of resource-server secrets and resource-server audit events are deferred (see [GitHub issues](https://github.com/NCodeGroup/Identity/issues)).
 - **Management console secrets/settings for tenants + the server, and initial-access-token mint (`apps/mgmt`).**
   Extends the client **Secrets**/**Settings** pattern to the remaining backend-supported settings/secret owners and
   surfaces protected dynamic-client-registration bootstrap. The client secrets/settings tab logic was factored into
@@ -3993,9 +3993,9 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   Patch `diffPatch` save with the owner `concurrencyToken` as `If-Match`. **Initial access token (RFC 7591):** the
   **Grants** tab gained a **Mint initial access token** action (`createInitialAccessToken`, `Grant`-tag invalidation)
   with a form (optional description + lifetime) and a one-time `RevealInitialAccessTokenDialog` that shows the plaintext
-  token exactly once. Fourth slice of backlog `U2`; the only `U2` remnant is resource-server (API) settings/secrets,
+  token exactly once. Fourth slice of issue [#134](https://github.com/NCodeGroup/Identity/issues/134); the only [#134](https://github.com/NCodeGroup/Identity/issues/134) remnant is resource-server (API) settings/secrets,
   which is blocked on backend owner endpoints that do not yet exist.
-- **Management console grants, secrets, and settings write operations (`apps/mgmt`).** Advances backlog `U2` by
+- **Management console grants, secrets, and settings write operations (`apps/mgmt`).** Advances issue [#134](https://github.com/NCodeGroup/Identity/issues/134) by
   extending the shared platform to the remaining management surfaces. **Grants:** a new tenant **Grants** tab lists
   persisted grants with subject/client filters and revokes them one-by-one or in a filtered bulk operation
   (`listGrants`/`revokeGrant`/`revokeGrants` with `Grant`-tag invalidation; the server requires a bulk revoke to carry
@@ -4020,20 +4020,20 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `replace`-only JSON Patch) while a scope update is a whole-resource `PUT` (the value is immutable), and system-owned
   resource servers/scopes expose no delete control. The tenant workspace switches between **Clients** and **Resource
   servers** via tabs. All addressed on the tenant-nested path so a tenant administrator can never reach another tenant.
-  Third slice of backlog `U2`.
+  Third slice of issue [#134](https://github.com/NCodeGroup/Identity/issues/134).
 - **Management console client write operations (`apps/mgmt`).** Within a tenant scope the console now creates/edits/
   deletes clients: scoped RTK Query mutations (`createClient`/`updateClient`/`deleteClient`) with `Client`-tag
   invalidation, a stateless MUI `ClientTable` (id + status + row actions) and `ClientFormDialog`, reusing the shared
   `ConfirmDialog`. Writes honor optimistic concurrency (`concurrencyToken` → `If-Match` over a `replace`-only JSON
   Patch) and the tenant-nested path (`api/tenants/{tenantId}/clients/...`), so a tenant administrator can never address
-  another tenant. Second slice of backlog `U2`.
+  another tenant. Second slice of issue [#134](https://github.com/NCodeGroup/Identity/issues/134).
 - **Management console tenant write operations (`apps/mgmt`).** The console gained full tenant create/edit/delete on
   the shared frontend platform: RTK Query mutations (`createTenant`/`updateTenant`/`deleteTenant`) with tenant-scoped
   cache-tag invalidation, a stateless MUI `TenantFormDialog` and reusable `ConfirmDialog` (Storybook-driven), and
   row-level edit/delete actions on the tenant table. Edits honor optimistic concurrency by sending the resource's
   `concurrencyToken` as an `If-Match` header over a `replace`-only JSON Patch document; a UI-free `replacePatch` helper
   (`@ncode/api`) and an RFC 7807-aware `apiErrorMessage` helper (`@ncode/store`) are unit-tested directly. First slice
-  of backlog `U2`.
+  of issue [#134](https://github.com/NCodeGroup/Identity/issues/134).
 - **Interactive login/consent surface (`apps/auth`, OP-hosted).** The OpenID Provider gained its first interactive
   surface: a React + Material UI login/consent app (`@ncode/app-auth`) on the shared frontend platform, served by the
   host as same-origin static assets under `/account/*`, backed by an opt-in leaf capability package
@@ -4049,15 +4049,15 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   open by [ADR-0062](docs/adr/0062-opt-in-interactive-login-consent-ui.md); the surface is hosted per
   [ADR-0065](docs/adr/0065-interactive-login-consent-op-hosted-auth-surface.md) and extracted into its own leaf package
   with the pluggable verifier seam per
-  [ADR-0070](docs/adr/0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md). Backlog `T2`, `U3`.
+  [ADR-0070](docs/adr/0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md). Issues [#125](https://github.com/NCodeGroup/Identity/issues/125), [#135](https://github.com/NCodeGroup/Identity/issues/135).
 - **Silent access-token renewal for the Management console.** `@ncode/auth` gained a framework-agnostic renewal loop
   (`createTokenRenewer`) that refreshes the access token ahead of expiry, re-arms itself from each new token, and falls
   back to interactive sign-in when renewal is no longer possible; the console's `AuthGate` drives it while signed in.
-  Backlog `U1`.
+  Issue [#133](https://github.com/NCodeGroup/Identity/issues/133).
 - **Development seeding for end-to-end sign-in (`AddDeveloperInteractiveSeed`).** A development-only, idempotent seeder
   provisions a public (PKCE-only) single-page-application client (`mgmt-spa`, with redirect URIs) and a deterministic
   administrator user into each workload tenant, so the authorization-code + PKCE flow and the management console sign in
-  end to end. Inert unless configured; the administrator password has no default. Backlog `U7`, `U1`.
+  end to end. Inert unless configured; the administrator password has no default. Issues [#139](https://github.com/NCodeGroup/Identity/issues/139), [#133](https://github.com/NCodeGroup/Identity/issues/133).
 
 - **Management console sign-in (authorization-code + PKCE).** The frontend gained a framework-free `@ncode/auth`
   package implementing OAuth 2.0 authorization-code with PKCE (S256) — verifier/challenge generation, the authorize
@@ -4065,7 +4065,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   unit-tested (including the RFC 7636 test vector). The Management console (`@ncode/app-mgmt`) wires an `AuthGate` that
   completes the redirect callback for a `urn:ncode:management`-audience token and populates the auth slice, or renders a
   sign-in screen to start the flow; when no client id is discovered it runs open (local dev). The SPA's public client
-  id and login scopes are discovered at runtime via the bootstrap document (tier-agnostic). Backlog `U1`.
+  id and login scopes are discovered at runtime via the bootstrap document (tier-agnostic). Issue [#133](https://github.com/NCodeGroup/Identity/issues/133).
 - **One-stop full-stack dev launch via .NET Aspire ([ADR-0071](docs/adr/0071-aspire-local-dev-orchestrator.md)).** A
   sibling AppHost project (`NCode.Identity.OpenId.LocalDev`) orchestrates the whole local stack — the
   OpenID host host (`api`), the interactive-login build-watcher (`auth`), and the Management console Vite dev server
@@ -4077,7 +4077,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   build-watcher (no endpoint) whose `dist` the host serves. The AppHost is never packed. This replaces the VS
   Code `API + UI (F5)` compound; the old `build/dev-ui.ps1` is relegated to `build/frontend-install.ps1`, a one-time
   pnpm-workspace bootstrap, now that Aspire owns `pnpm dev`. Backing SQL Server/Redis remain opt-in (SQLite/in-memory
-  stays the default, so there is no container-runtime prerequisite). Backlog `U11`.
+  stays the default, so there is no container-runtime prerequisite). Issue [#143](https://github.com/NCodeGroup/Identity/issues/143).
 - **Opt-in developer CORS for the OpenID server (`AddDeveloperCors` / `UseDeveloperCors`).** A reusable
   development-oriented registration (in `NCode.Identity.Server`, beside `AddDeveloperKeys`) lets a local SPA dev server
   read discovery and call the management API cross-origin. Allowed origins come from the `Cors:AllowedOrigins`
@@ -4161,13 +4161,13 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
 
 ### Fixed
 
-- **The token endpoint now sends `Cache-Control: no-store` on every response (backlog `T8`).** RFC 6749 §5.1/§5.2
+- **The token endpoint now sends `Cache-Control: no-store` on every response (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).** RFC 6749 §5.1/§5.2
   require the token endpoint to return `Cache-Control: no-store` (and `Pragma: no-cache`) so issued tokens are never
   cached by the client or an intermediary; the OP omitted them. Both headers are now set up front so the success and
   error responses carry them. Surfaced by `oidcc-refresh-token` (its `CheckTokenEndpointCacheHeaders` check) once the
   consent fix below let the refresh flow run to the refresh request.
 
-- **The consent screen now grants the requested scopes instead of silently dropping them (backlog `T8`).** The no-JS
+- **The consent screen now grants the requested scopes instead of silently dropping them (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).** The no-JS
   consent form and the SPA consent form rendered each requested scope's checkbox pre-checked only when it was
   _previously_ granted, so on a first-time consent every box was unchecked and clicking **Allow** posted an empty
   `scope` set — the recorded grant (and therefore the issued tokens) lost `openid`, `offline_access`, and every other
@@ -4176,14 +4176,14 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   OpenID Foundation Conformance Suite's `oidcc-refresh-token` Basic OP module (it uses `prompt=consent` +
   `offline_access`).
 
-- **Authorization error responses created outside the command pipeline now echo `state` (backlog `T8`).** The
+- **Authorization error responses created outside the command pipeline now echo `state` (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).** The
   `prompt=none` → `login_required` and the no-consent-surface → `interaction_required` errors are built inline in the
   authorization endpoint (not via the `AuthenticateCommand` / `AuthorizeCommand`, whose post-processors stamp `state`),
   so they were returned to the client without the request's `state` — violating OIDC Core §3.1.2.6. Both now carry the
   request `state`. Surfaced by `oidcc-prompt-none-not-logged-in`.
 
 - **`max_age` / `subject_max_age` authentication-age freshness is enforced only at the authorization endpoint, with no
-  clock-skew leeway (backlog `T8`).** Two defects compounded: (1) the freshness check added the client's `clock_skew`
+  clock-skew leeway (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).** Two defects compounded: (1) the freshness check added the client's `clock_skew`
   (default 5 min, intended for validating token time claims across parties) to the window, so a small `max_age` such as
   `max_age=1` never forced re-authentication; and (2) the same check was re-evaluated at the token endpoint (and on
   refresh) against a _later_ clock, so once the (un-inflated) window elapsed a valid authorization-code / refresh
@@ -4194,7 +4194,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   `ValidateSubjectAuthenticationCommand` gains a required `EnforceAuthenticationAge` parameter.
 
 - **A value-type setting with no explicit default no longer materializes `default(TValue)` into the settings lattice,
-  which had intermittently forced `prompt=none` to return `login_required` (backlog `T8`).** `SettingDescriptor<TValue>`
+  which had intermittently forced `prompt=none` to return `login_required` (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).** `SettingDescriptor<TValue>`
   reported `HasDefault` as `DefaultOrNull is not null`, but for a value-type `TValue` (e.g. `TimeSpan`) the
   `notnull`-constrained `TValue?` is **not** `Nullable<TValue>`, so `DefaultOrNull` was never null and `HasDefault` was
   always `true`. The root settings data source therefore loaded `default(TValue)` for every value-type descriptor that
@@ -4205,7 +4205,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   no constraint. Surfaced by the intermittent `oidcc-prompt-none-logged-in` / `oidcc-id-token-hint` conformance
   failures.
 
-- **A rejected client request (4xx `OpenIdException`) is logged at Warning, not Error (backlog `T8`).** The OpenID
+- **A rejected client request (4xx `OpenIdException`) is logged at Warning, not Error (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).** The OpenID
   exception handler logged every unhandled exception — including an expected client-side validation failure such as an
   unregistered `redirect_uri` (`unauthorized_client`, HTTP 400) — at Error level as "an unexpected error", polluting
   logs and tripping false alerts. A 4xx-status `OpenIdException` now logs at Warning with its error code; only genuine
@@ -4268,7 +4268,7 @@ X509Certificate2)` now accepts a **public-only certificate** (yielding a verify-
   in-house conformance probe runner's `client_credentials` probe.
 
 - **Resource-owner-password tickets now carry the authentication's `AuthenticationProperties` from the start of the
-  token-request flow instead of a fresh empty instance (completes backlog `F24`).** `DefaultAuthenticatePasswordGrantHandler`
+  token-request flow instead of a fresh empty instance (completes issue [#62](https://github.com/NCodeGroup/Identity/issues/62)).** `DefaultAuthenticatePasswordGrantHandler`
   previously built its `SubjectAuthentication` with a freshly-constructed empty `new AuthenticationProperties()`, so the
   issued-authentication metadata the other entry points propagate (notably `IssuedUtc`, which drives the subject's
   `auth_time`) was dropped on the ROPC path. `DefaultPasswordGrantHandler` now captures the authentication instant once
@@ -4360,7 +4360,7 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
   defects was corrected (including a copy-paste error where the access-token payload-claims handler's summary described
   an ID token). No API or behavior change.
 
-- **Discovery metadata is now secure-by-default, operator-overridable — completes backlog `T5`.** The OpenID Provider
+- **Discovery metadata is now secure-by-default, operator-overridable — completes issue [#128](https://github.com/NCodeGroup/Identity/issues/128).** The OpenID Provider
   no longer advertises deprecated/insecure flows out of the box
   ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)). `response_types_supported` defaults to
   `["code"]` (dropping the implicit/hybrid combinations the formatter expands), `grant_types_supported` drops
@@ -4452,7 +4452,7 @@ invalid_token`. The handler now validates a presented `Authorization: Bearer` to
   backend-agnostic: it depends on an `IInteractiveCredentialVerifier` seam (in the `.Abstractions` package), whose
   local-account implementation lives in `NCode.Identity.OpenId.Accounts.Authentication` and is registered by
   `AddLocalAccountInteractiveAuthentication()`. The old `NCode.Identity.Server.InteractiveAuthentication.*` public
-  surface is removed and reintroduced under `NCode.Identity.OpenId.Authentication.Interactive.*`. Resolves backlog `U10`.
+  surface is removed and reintroduced under `NCode.Identity.OpenId.Authentication.Interactive.*`. Resolves issue [#142](https://github.com/NCodeGroup/Identity/issues/142).
 
 - **`IPersistedGrantService.AddAsync` now returns the server-generated grant id.** Its return type changes from
   `ValueTask` to `ValueTask<string>`, handing back the opaque public `GrantId` of the persisted grant so callers (such

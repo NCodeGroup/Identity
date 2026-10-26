@@ -128,7 +128,7 @@ client key enters.**
   certificate-lifetime requirement those validations add, with the usual clock skew). A key published without `x5c` is
   unaffected. The certificate's validity is compared with the UTC clock, so the host's time zone does not shift it.
 - Tenant, server, and resource-server key imports and updates keep their existing checks; applying the key-to-algorithm
-  rule to them is a follow-up recorded in the backlog.
+  rule to them is a follow-up recorded as an issue.
 
 ## References
 

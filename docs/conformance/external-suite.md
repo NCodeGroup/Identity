@@ -1,10 +1,10 @@
-# T6 / T1 — External conformance suite as the oracle (full automation)
+# External conformance suite as the oracle (full automation)
 
 Status: **implemented (committed harness); nightly CI pipeline deferred.** Detailed plan for the remaining
-Phase 4 of backlog `T6` and Phase D of `T1`. Parent design:
+Phase 4 of issue [#129](https://github.com/NCodeGroup/Identity/issues/129) and Phase D of [#124](https://github.com/NCodeGroup/Identity/issues/124). Parent design:
 [`docs/conformance-testing.md`](../conformance-testing.md). Decision record:
 [ADR-0084](../adr/0084-spec-coverage-conformance-harness.md) (the `browser` / `probe-runner` / `external-suite`
-exercise boundary). Catalog entry: [`BACKLOG.md`](../../BACKLOG.md) group `T`.
+exercise boundary).
 
 ## Goal
 
@@ -19,18 +19,18 @@ The committed harness is [`build/conformance/`](../../build/conformance):
 
 - **[`run-conformance.ps1`](../../build/conformance/run-conformance.ps1)** — the orchestration (Phase D). It
   launches the OpenID host on the reachable HTTPS origin (`host.docker.internal:5001`, the `Conformance`
-  launch profile — `T3`), asserts the discovery `issuer` byte-matches that origin, runs the in-house probe
+  launch profile — [#126](https://github.com/NCodeGroup/Identity/issues/126)), asserts the discovery `issuer` byte-matches that origin, runs the in-house probe
   runner as a **fast pre-flight** that fails early before the slow external suite is started, brings the suite
   up from **prebuilt Docker images** (no Java build), drives the Config OP + Basic OP plans headlessly via the
   suite's `run-test-plan.py` gated on the committed baselines, and tears everything down — surfacing one
   non-zero exit code on any unexpected failure.
-- **Config templates** resolved against the deterministic seed (`T4`):
+- **Config templates** resolved against the deterministic seed ([#127](https://github.com/NCodeGroup/Identity/issues/127)):
   [`oidcc-basic.json`](../../build/conformance/oidcc-basic.json) (with the `browser` automation block whose
-  selectors — `username` / `password` / `login` / `consent-allow` — match the `apps/auth` surface, `T2`) and
+  selectors — `username` / `password` / `login` / `consent-allow` — match the `apps/auth` surface, [#125](https://github.com/NCodeGroup/Identity/issues/125)) and
   [`oidcc-config.json`](../../build/conformance/oidcc-config.json).
 - **Baselines** [`expected-failures.json`](../../build/conformance/expected-failures.json) /
   [`expected-skips.json`](../../build/conformance/expected-skips.json) (start empty; an entry codifies only a
-  documented, intentional deviation and must link a `BACKLOG.md` item or ADR).
+  documented, intentional deviation and must link an issue or ADR).
 
 The pre-flight is the already-shipped `@ncode/app-conformance-runner` (ADR-0084 Phase 3), which exercises the
 confidential and server-initiated legs a browser cannot (`client_credentials`, introspection/revocation with
@@ -56,7 +56,7 @@ hermetic [`build/dod.ps1`](../../build/dod.ps1) inner loop — consistent with
 
 ## Remaining
 
-- **Nightly CI pipeline** (a `T6` remainder). No `.github/workflows` exists yet; a separate, opt-in /
+- **Nightly CI pipeline** (a [#129](https://github.com/NCodeGroup/Identity/issues/129) remainder). No `.github/workflows` exists yet; a separate, opt-in /
   nightly job (`docker compose` + Python 3, no local Java) that invokes `run-conformance.ps1` and publishes the
   `.results/` zips as artifacts is the last step. It is intentionally deferred from the committed harness so the
   wiring is introduced alongside the repo's broader CI bootstrap rather than as a one-off.
@@ -76,15 +76,15 @@ hermetic [`build/dod.ps1`](../../build/dod.ps1) inner loop — consistent with
   the `Verify Complete` callback match uses `/test/*/callback*` (DCR has no `/a/<alias>/` segment), and the `Login` task
   is `optional` (so no-login `prompt=none` / `max_age` flows do not error). **First full Basic OP (DCR) run:**
   `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` across 38 modules with no mass-abort. Triaging those dispositions is
-  tracked as backlog `T8`.
+  tracked as issue [#131](https://github.com/NCodeGroup/Identity/issues/131).
 - **Profile expansion** beyond Basic + Config (Form Post / Dynamic OP / FAPI) as those capabilities are
   verified end-to-end. The FAPI 1.0 Advanced Final plans are wired (`run-conformance.ps1 -Fapi1Advanced`, see the
   [harness README](../../build/conformance/README.md#run)) but have not yet been run against the suite; their first
-  run and baseline are tracked as backlog `T1`.
+  run and baseline are tracked as issue [#124](https://github.com/NCodeGroup/Identity/issues/124).
 
-## Live-run dispositions (`T8`) — fixes applied and open follow-ups
+## Live-run dispositions ([#131](https://github.com/NCodeGroup/Identity/issues/131)) — fixes applied and open follow-ups
 
-Backlog catalog entry: [`BACKLOG.md`](../../BACKLOG.md) `T8`. This section is the detailed disposition log for the
+Catalog entry: [#131](https://github.com/NCodeGroup/Identity/issues/131). This section is the detailed disposition log for the
 Basic OP (DCR) browser-driven run — the module verdicts produced by the external suite, each investigated against the
 suite's per-module log and classified as a **backend gap to fix**, a **harness/config refinement**, or a **documented,
 intentional deviation** codified in [`expected-failures.json`](../../build/conformance/expected-failures.json) /

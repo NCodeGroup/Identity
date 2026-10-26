@@ -9,15 +9,15 @@ endpoints, this runner exercises the **confidential and server-initiated legs a 
 - `client_credentials` grant (RFC 6749 §4.4)
 - token **introspection** and **revocation** with client authentication (RFC 7662 / RFC 7009)
 - **device-code** issuance + polling (RFC 8628)
-- **CIBA** backchannel authentication (gap: `F3`)
-- `private_key_jwt` client authentication (gap: `F16` / `S3` — needs a configured client key)
-- **DPoP** sender-constrained tokens and **mTLS** (gap: `F7`)
+- **CIBA** backchannel authentication (gap: [#41](https://github.com/NCodeGroup/Identity/issues/41))
+- `private_key_jwt` client authentication (gap: [#54](https://github.com/NCodeGroup/Identity/issues/54) / [#161](https://github.com/NCodeGroup/Identity/issues/161) — needs a configured client key)
+- **DPoP** sender-constrained tokens and **mTLS** (gap: [#45](https://github.com/NCodeGroup/Identity/issues/45))
 - **back-channel logout** advertisement
 
 Each probe reports `verified`, `failed`, or `skipped` (with an actionable reason — unadvertised capability, or a
 missing credential). Unimplemented backend features surface as `skipped`, and light up automatically as they land, so
 the runner is both a gap finder and a regression detector. It exits non-zero when any probe **fails**, so it is a
-usable CI pre-flight for the external OpenID Foundation Conformance Suite (Phase 4 / `T1`).
+usable CI pre-flight for the external OpenID Foundation Conformance Suite (Phase 4 / [#124](https://github.com/NCodeGroup/Identity/issues/124)).
 
 ## Run
 
@@ -43,7 +43,7 @@ private key via `--private-key` (the `private_key_jwt` client assertion, with `-
 (e.g. `RS256`). RSA keys must be ordinary `rsaEncryption` keys: an RSA-PSS-restricted (`id-RSASSA-PSS`) key is rejected
 up front because its public key cannot be published as a JWK — `PS256`/`PS384`/`PS512` already sign an ordinary RSA key
 with PSS padding. The DPoP proof embeds the key's public JWK in its header (RFC 9449 §4). These legs still `skip` until
-the backend advertises the capability (`private_key_jwt`: `F16` / `S3`; DPoP: `F7`).
+the backend advertises the capability (`private_key_jwt`: [#54](https://github.com/NCodeGroup/Identity/issues/54) / [#161](https://github.com/NCodeGroup/Identity/issues/161); DPoP: [#45](https://github.com/NCodeGroup/Identity/issues/45)).
 
 The process exits `0` when no probe fails, `1` when any probe fails, and `2` for invalid arguments or a run that could
 not complete (for example, unreachable discovery metadata or an unloadable key).

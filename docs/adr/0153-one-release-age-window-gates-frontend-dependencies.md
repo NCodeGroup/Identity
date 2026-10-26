@@ -63,7 +63,7 @@ runs it.
   lockfile as it is. The versions it held when this was decided that were younger than three days make Dependabot's npm
   version update fail until 2026-10-22, which is before the next weekly run.
 - pnpm 11 and later read the same setting from the same file and add `minimumReleaseAgeStrict` and `trustLockfile`;
-  backlog `U21` revisits those.
+  issue [#153](https://github.com/NCodeGroup/Identity/issues/153) revisits those.
 
 ## References
 

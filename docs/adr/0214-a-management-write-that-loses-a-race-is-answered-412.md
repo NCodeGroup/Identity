@@ -9,7 +9,7 @@
 
 A store reports a lost concurrency race as a `StoreConcurrencyException`
 ([ADR-0208](0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md)). The management endpoints let the
-exception reach the client as `500`, although the caller can recover by reading the resource again (backlog `R70`).
+exception reach the client as `500`, although the caller can recover by reading the resource again (issue [#261](https://github.com/NCodeGroup/Identity/issues/261)).
 
 ## Decision
 
@@ -42,7 +42,7 @@ spend or rotation handles it
 - No management write reaches its client as `500` for a lost race.
 - Work that a write starts after its own save, such as the key seed of a tenant, is answered `412` as well when it loses
   a race, and the re-read of the caller shows the change that was committed.
-- This implements backlog `R70`.
+- This implements issue [#261](https://github.com/NCodeGroup/Identity/issues/261).
 
 ## References
 

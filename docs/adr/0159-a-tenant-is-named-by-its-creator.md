@@ -53,7 +53,7 @@ domain (`{tenant}.{region}.auth0.com`); a separate friendly name is for display 
 - **Keep opaque identifiers and derive a path tenant's issuer from a configured base address** (the Microsoft Entra
   `/{tenant-guid}/v2.0` shape). Rejected as the model: issuers become unreadable, operators cannot address a tenant by a
   name they know, and the hosted platform's tenant hostnames are names anyway. Deriving an issuer from a template remains
-  worthwhile on top of names (backlog `F71`, realized by
+  worthwhile on top of names (issue [#110](https://github.com/NCodeGroup/Identity/issues/110), realized by
   [ADR-0165](0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
 - **Create without an issuer, then set it once the identifier is known.** Rejected: the tenant exists for a while with no
   address, and every client of the API needs two calls for one intent.
@@ -76,7 +76,7 @@ domain (`{tenant}.{region}.auth0.com`); a separate friendly name is for display 
 - A tenant cannot be renamed. A tenant that needs a different name is recreated, just as its issuer — which carries the
   name under path tenancy — could not change without breaking its relying parties.
 - A deleted tenant's name, and its issuer, can be given to a new tenant, which relying parties that trusted the old one
-  would then trust. Never reissuing a retired name or issuer is tracked as backlog `F70`.
+  would then trust. Never reissuing a retired name or issuer is tracked as issue [#109](https://github.com/NCodeGroup/Identity/issues/109).
 - The admin console asks for the identifier when a tenant is created and locks it when one is edited.
 
 ## References

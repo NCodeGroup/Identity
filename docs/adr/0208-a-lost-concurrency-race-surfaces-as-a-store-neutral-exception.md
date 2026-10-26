@@ -15,8 +15,8 @@ spend atomic across replicas without a shared-state adapter
 spend one grant at the same moment, at most one save succeeds, because the `UPDATE` of the other carries a stale token
 ([ADR-0012](0012-interceptor-managed-concurrency-tokens.md)).
 
-Entity Framework reports the lost race as a `DbUpdateConcurrencyException`, and nothing caught it. A review (backlog
-`R66`) found the consequence: the request that lost the race reached its client as `500`, where a sequential second
+Entity Framework reports the lost race as a `DbUpdateConcurrencyException`, and nothing caught it. A review (issue
+[#257](https://github.com/NCodeGroup/Identity/issues/257)) found the consequence: the request that lost the race reached its client as `500`, where a sequential second
 spend of the same grant is answered with its protocol error. The exception is also the type of one store technology.
 `NCode.Identity.OpenId.Authentication` does not reference Entity Framework, and a store need not be built on it, so a
 caller that wanted to handle the race would have to depend on the technology of the store.
@@ -71,7 +71,7 @@ caller that wanted to handle the race would have to depend on the technology of 
   `DbUpdateConcurrencyException`. A caller that catches the Entity Framework type around a store method or around
   `IStoreManager.SaveChangesAsync` catches the store-neutral type instead. A caller that saves through a `DbContext`
   directly still receives Entity Framework's type.
-- This implements backlog `R66`.
+- This implements issue [#257](https://github.com/NCodeGroup/Identity/issues/257).
 
 ## References
 

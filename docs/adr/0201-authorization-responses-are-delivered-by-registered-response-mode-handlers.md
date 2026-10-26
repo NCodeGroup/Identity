@@ -14,7 +14,7 @@ the vocabulary was closed although nothing made it provably closed
 JWT Secured Authorization Response Mode (JARM) adds `query.jwt`, `fragment.jwt`, `form_post.jwt`, and the `jwt`
 shorthand. The response parameters travel as the claims of one JWT in a single `response` parameter. The JWT is issued
 by the authorization server, addressed to the client, short-lived, signed, and optionally encrypted. FAPI 2.0 does not
-need JARM: its responses carry only `code` and `iss`. FAPI 1.0 Advanced (backlog `F83`) uses JARM as one of its two
+need JARM: its responses carry only `code` and `iss`. FAPI 1.0 Advanced (issue [#122](https://github.com/NCodeGroup/Identity/issues/122)) uses JARM as one of its two
 permitted responses, and JARM is useful on its own because it lets a client verify the response's origin and integrity.
 
 ## Decision
@@ -67,7 +67,7 @@ permitted responses, and JARM is useful on its own because it lets a client veri
 
 - The default discovery document advertises the four JARM response modes and the authorization signing and encryption
   algorithms. The conformance coverage row `sec-jarm` therefore reports JARM as implemented.
-- FAPI 1.0 Advanced (`F83`) can default its tenants to `jwt`-secured responses without further response-mode work.
+- FAPI 1.0 Advanced ([#122](https://github.com/NCodeGroup/Identity/issues/122)) can default its tenants to `jwt`-secured responses without further response-mode work.
 - A custom response mode, such as `web_message`, is a handler registration and the value in
   `response_modes_supported`. It needs no edit to the library.
 - A selector failure, such as a registered algorithm the tenant does not permit or a missing key, raises a

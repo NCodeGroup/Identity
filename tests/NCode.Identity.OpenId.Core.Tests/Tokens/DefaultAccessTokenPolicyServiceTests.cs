@@ -534,7 +534,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
     [Fact]
     public void Evaluate_WhenTheClientRequiresEncryptionForAResourceServerWithAKey_EncryptsToItsKey()
     {
-        // The client's requirement binds once a resource server is targeted (backlog F61).
+        // The client's requirement binds once a resource server is targeted (issue #100).
         var client = CreateClient(Values((OpenIdSettingNames.AccessTokenEncryptionRequired, true)));
         var resourceServer = CreateResourceServer("rs-api", null, ResourceServerKey);
 

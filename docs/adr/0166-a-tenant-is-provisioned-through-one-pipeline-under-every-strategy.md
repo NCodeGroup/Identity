@@ -64,13 +64,13 @@ tenant seeds exactly that tenant.**
 - **Default a seeder's tenant to the root tenant, or to the static tenant.** Rejected: the right tenant depends on the
   strategy, and a default that silently varies is the kind of guess that seeded every tenant. Naming it is one setting.
 - **Leave management-created tenants unseeded until their first request.** Rejected: the tenant's resource servers would
-  be missing from the management API until then, and S11's production signing keys would have nowhere to be provisioned.
+  be missing from the management API until then, and [#169](https://github.com/NCodeGroup/Identity/issues/169)'s production signing keys would have nowhere to be provisioned.
 
 ## Consequences
 
 - A dynamic deployment boots from configuration alone: the first request to the root tenant's address creates and seeds
   it, including the bootstrap administrator named into it, and that administrator creates every other tenant.
-- Every tenant created at runtime starts seeded; production key provisioning (backlog `S11`) can seed keys into each.
+- Every tenant created at runtime starts seeded; production key provisioning (issue [#169](https://github.com/NCodeGroup/Identity/issues/169)) can seed keys into each.
 - Each cache miss runs the seed contributors once for the tenant and once for the root tenant, as the static strategy did
   before; contributors stay idempotent.
 - **Breaking:** `ITenantProvisioner.ProvisionAsync` is replaced; `TenantResolutionOptions.RootTenantId` moves to

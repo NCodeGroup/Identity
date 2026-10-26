@@ -306,7 +306,7 @@ describe('probePar', () => {
   it('skips when no PAR endpoint is advertised (the common gap)', async () => {
     const result = await probePar(discovery, vi.fn(), 'playground-spa');
     expect(result.outcome).toBe('skipped');
-    expect(result.detail).toContain('F8');
+    expect(result.detail).toContain('#46');
   });
 
   it('verifies a 201 with a request_uri when PAR is advertised', async () => {

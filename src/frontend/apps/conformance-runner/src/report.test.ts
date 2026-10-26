@@ -15,7 +15,7 @@ const report: ProbeReport = {
       id: 'runner-ciba',
       feature: 'CIBA backchannel authentication issues an auth_req_id',
       outcome: 'skipped',
-      detail: "'backchannel_authentication_endpoint' is not advertised (gap: F3).",
+      detail: "'backchannel_authentication_endpoint' is not advertised (gap: #41).",
       reference: 'OpenID Connect CIBA Core §7.3',
     },
   ],

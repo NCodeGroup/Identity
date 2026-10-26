@@ -1,8 +1,7 @@
-# T4 — Deterministic conformance tenant, clients, and test user seeding
+# Deterministic conformance tenant, clients, and test user seeding
 
-Status: **implemented.** Detailed plan for backlog item `T4`. Parent design:
-[`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #3 and Appendix C). Catalog
-entry: [`BACKLOG.md`](../../BACKLOG.md) group `T`.
+Status: **implemented.** Detailed plan for issue [#127](https://github.com/NCodeGroup/Identity/issues/127). Parent design:
+[`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #3 and Appendix C).
 
 The config-driven startup seeder landed as `AddConformanceSeed(IConfiguration)` in `NCode.Identity.Server`
 ([`ConformanceSeedRegistration`](../../src/NCode.Identity.Server/ConformanceSeedRegistration.cs),
@@ -14,13 +13,13 @@ wired into the host
 launch profile plus the
 [`appsettings.Conformance.json`](../../src/NCode.Identity.OpenId.Host/appsettings.Conformance.json)
 overlay, which seeds the three Basic-OP clients and the `conformance-user`. The remaining conformance
-prerequisite is the reachable HTTPS host with a byte-matched `issuer` (`T3`).
+prerequisite is the reachable HTTPS host with a byte-matched `issuer` ([#126](https://github.com/NCodeGroup/Identity/issues/126)).
 
 ## Goal
 
 Make a running host start up with a **deterministic conformance tenant**, the **client
 registrations** the Basic OP plan needs, and a **fixed test user** — reproducibly, with no manual API
-calls — so the suite and the login UI (`T2`) always see the same identities.
+calls — so the suite and the login UI ([#125](https://github.com/NCodeGroup/Identity/issues/125)) always see the same identities.
 
 ## Current state (verified)
 
@@ -62,7 +61,7 @@ client registrations (all registering the suite callback as a redirect URI):
   authenticates with ([ADR-0145](../adr/0145-a-client-authenticates-only-with-its-registered-method.md)).
 
 Plus a **deterministic test user** (e.g. `conformance-user` + fixed password) in the conformance tenant,
-consumed by the `T2` login page.
+consumed by the [#125](https://github.com/NCodeGroup/Identity/issues/125) login page.
 
 ## Approach
 
@@ -71,14 +70,14 @@ admin seeder (idempotent, declarative, dev/conformance-only), reusing the same s
 test factory already exercises.
 
 - Introduce a `Conformance` seeding section (clients + user + redirect URIs) bound from
-  configuration, enabled only under the conformance profile from `T3`. Keep secrets as dev-only fixed
+  configuration, enabled only under the conformance profile from [#126](https://github.com/NCodeGroup/Identity/issues/126). Keep secrets as dev-only fixed
   values.
 - Make seeding **idempotent**: on startup, upsert the tenant, the three clients, and the test user; a
   second run must not duplicate or fail.
 - Reuse the credential/store paths behind `SeedConfidentialClientAsync` / `SeedLocalAccountAsync` so the
-  seeded identities are byte-for-byte what the login (`T2`) and token endpoints expect — do not fork a
+  seeded identities are byte-for-byte what the login ([#125](https://github.com/NCodeGroup/Identity/issues/125)) and token endpoints expect — do not fork a
   second seeding mechanism.
-- **If/when `F6` (Dynamic Client Registration) lands**, the three static client registrations become
+- **If/when [#44](https://github.com/NCodeGroup/Identity/issues/44) (Dynamic Client Registration) lands**, the three static client registrations become
   unnecessary (the suite registers clients itself and can run modules in parallel); the **tenant + test
   user** seeding is still required. Keep the client-seeding portion cleanly separable so it can be
   dropped once DCR is available.
@@ -89,23 +88,23 @@ test factory already exercises.
    redirect URIs, test user credentials).
 2. Implement an idempotent startup seeder (bootstrap-admin-style) that upserts the tenant, the three
    clients, and the test user, gated on the conformance profile.
-3. Wire the seeder into the `T3` conformance launch profile; confirm it runs against the chosen database
+3. Wire the seeder into the [#126](https://github.com/NCodeGroup/Identity/issues/126) conformance launch profile; confirm it runs against the chosen database
    provider (in-memory vs. persistent).
 4. Verify the seeded clients satisfy Appendix C (two `client_secret_basic` distinct clients + one
    `client_secret_post`, correct redirect URI, `S256`).
-5. Keep the client-seeding portion isolated so `F6` can retire it without touching tenant/user seeding.
+5. Keep the client-seeding portion isolated so [#44](https://github.com/NCodeGroup/Identity/issues/44) can retire it without touching tenant/user seeding.
 
 ## Acceptance criteria
 
 - A freshly launched conformance host exposes the conformance tenant, the three required clients, and the
   fixed test user with no manual API calls.
 - Re-running startup is idempotent (no duplicates, no failures).
-- The seeded test user authenticates through the `T2` login page; the seeded clients complete a Basic OP
+- The seeded test user authenticates through the [#125](https://github.com/NCodeGroup/Identity/issues/125) login page; the seeded clients complete a Basic OP
   authorization-code exchange.
 
 ## Dependencies & links
 
-- **Provides** the seeded identity consumed by `T2` and the clients used by `T1` (Phase C).
-- **Runs on** the `T3` reachable host/profile.
-- **Narrowed by** `F6` (DCR) — DCR removes the static client-seeding half but not tenant/user seeding.
+- **Provides** the seeded identity consumed by [#125](https://github.com/NCodeGroup/Identity/issues/125) and the clients used by [#124](https://github.com/NCodeGroup/Identity/issues/124) (Phase C).
+- **Runs on** the [#126](https://github.com/NCodeGroup/Identity/issues/126) reachable host/profile.
+- **Narrowed by** [#44](https://github.com/NCodeGroup/Identity/issues/44) (DCR) — DCR removes the static client-seeding half but not tenant/user seeding.
 - Registration details: [`conformance-testing.md`](../conformance-testing.md) Appendix C.

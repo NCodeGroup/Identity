@@ -77,7 +77,7 @@ axis so public keys round-trip cohesively.**
       material to reveal for a public import) and recording the same `…SecretChanged` audit event.
     - **DCR** consumes an **inline `jwks`** JWK Set at registration, importing each public key as a persisted `spki` /
       `x509` secret so the registered client's `SecretKeys` actually carry its verification keys. **Runtime `jwks_uri`
-      fetch + cache + SSRF guard remains deferred** to `F16` Phase 0 — this ADR covers static import only.
+      fetch + cache + SSRF guard remains deferred** to [#54](https://github.com/NCodeGroup/Identity/issues/54) Phase 0 — this ADR covers static import only.
     - **Capabilities** (`GET /api/capabilities`, [ADR-0067](0067-secret-type-capability-catalog-and-capabilities-discovery.md))
       advertises the supported import formats per secret type.
 
@@ -110,14 +110,14 @@ axis so public keys round-trip cohesively.**
   discriminators (`SecretType` is explicit, and `x509` is an explicit container marker).
 
 - **Accept private-key import now.** Rejected (scope). A reversible-at-rest private import is a separate threat model
-  (`S5` storage fork, escrow, key-ceremony) and is not needed for the public-key onboarding that `private_key_jwt` /
+  ([#163](https://github.com/NCodeGroup/Identity/issues/163) storage fork, escrow, key-ceremony) and is not needed for the public-key onboarding that `private_key_jwt` /
   mTLS / JAR require.
 
 ## Consequences
 
 - A relying party's public key — as a **JWK**, **PEM**, or **certificate** — becomes a first-class persisted
   `SecretKey` that round-trips through the store and is consumed by client authentication and JAR verification,
-  unblocking `private_key_jwt` / `self_signed_tls_client_auth` end-to-end onboarding (`F16` Phase 1).
+  unblocking `private_key_jwt` / `self_signed_tls_client_auth` end-to-end onboarding ([#54](https://github.com/NCodeGroup/Identity/issues/54) Phase 1).
 - **Breaking persistence change:** `PersistedSecret` / `SecretEntity` gain a required `SecretEncoding` column (an EF
   migration backfills existing rows: `symmetric` → `symmetric_raw`, `x509` → `x509`, `rsa` / `ecc` → `pkcs8`). Accepted
   under the greenfield, pre-release posture ([ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md)).
@@ -126,7 +126,7 @@ axis so public keys round-trip cohesively.**
 - The importer is **public-only by construction**, so no private or symmetric material is ever accepted on an import
   path — the reveal-once model ([ADR-0050](0050-secret-material-revealed-once-on-create.md)) remains the sole way a
   symmetric secret value leaves the server, and private asymmetric keys are still never caller-supplied.
-- Runtime `jwks_uri` resolution stays out of scope (deferred to `F16` Phase 0), so import is a deterministic,
+- Runtime `jwks_uri` resolution stays out of scope (deferred to [#54](https://github.com/NCodeGroup/Identity/issues/54) Phase 0), so import is a deterministic,
   SSRF-free operation over caller-supplied bytes.
   </content>
   </invoke>

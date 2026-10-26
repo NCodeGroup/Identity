@@ -13,12 +13,12 @@ page's `<base href>` resolves the bundle's relative URLs
 
 - A request served by the surface's own group passes the environment filter, which materializes the tenant and opens
   its scope. A file that is the same for every tenant does not need either, and an unknown tenant's request for it
-  fails for no reason (backlog `R30`).
+  fails for no reason (issue [#221](https://github.com/NCodeGroup/Identity/issues/221)).
 - Validators alone, `ETag` and `Last-Modified`, give a browser no freshness lifetime, so it sends a conditional request
   for every file of every page load.
 - The .NET gate installs no Node and never builds the bundle. The host's split of the bundle's `index.html` around its
   mount point is tested only against hand-written HTML, so a change to the build output that breaks the split passes
-  that gate (backlog `R36`).
+  that gate (issue [#227](https://github.com/NCodeGroup/Identity/issues/227)).
 
 ## Decision
 

@@ -15,7 +15,7 @@ satisfied ([ADR-0206](0206-a-clients-settings-are-checked-by-registered-coherenc
 refused while it would make a stored client incoherent. A change of the server's settings that is not a write, a
 configuration reload or a deployment, cannot be refused, so the reconciliation logs each stored client that the change
 makes incoherent ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)). An
-operator without the logs cannot find those clients, and each of them fails at its next request (backlog `R87`).
+operator without the logs cannot find those clients, and each of them fails at its next request (issue [#278](https://github.com/NCodeGroup/Identity/issues/278)).
 
 A stored settings document that the current setting vocabulary cannot honor makes a client incoherent too: the
 validator throws a `JsonException` for it, and it cannot say which relation the client breaks.
@@ -78,7 +78,7 @@ API lists it on demand.**
 - When the tenant's or the server's own document cannot be honored, the report answers `409` with a problem that names
   that document
   ([ADR-0245](0245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)).
-- This implements backlog `R87`.
+- This implements issue [#278](https://github.com/NCodeGroup/Identity/issues/278).
 
 ## References
 

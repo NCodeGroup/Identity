@@ -65,7 +65,7 @@ with it, or the one its strategy derives for it — and that issuer is stored wi
    or would be given, whether it is derived, whether the tenant exists, and every reason it could not be served there,
    through the same seam that judges the write. It authorizes as a read when the tenant exists and as a create otherwise.
    The management console previews the address as the operator types, so a taken name or an unusable issuer is seen
-   before the tenant exists — which matters once a deleted name cannot be reused (backlog `F70`).
+   before the tenant exists — which matters once a deleted name cannot be reused (issue [#109](https://github.com/NCodeGroup/Identity/issues/109)).
 
 ## Options considered
 

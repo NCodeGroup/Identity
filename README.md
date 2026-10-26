@@ -25,7 +25,7 @@ through public contracts.
 | **Stage**      | Pre-1.0, greenfield, actively developed                                                           |
 | **Published**  | Nothing — no NuGet packages, no releases, no tags                                                 |
 | **Stability**  | None promised; public API, schema, and token formats are all free to change                       |
-| **Certified**  | Not yet — OpenID Foundation conformance work is in progress (`T1` in [`BACKLOG.md`](BACKLOG.md))  |
+| **Certified**  | Not yet — OpenID Foundation conformance work is in progress ([#124](https://github.com/NCodeGroup/Identity/issues/124))  |
 | **Target**     | .NET 10                                                                                           |
 | **Repository** | A **monorepo** for now; the packages may split into separate repositories at GA                   |
 
@@ -78,7 +78,7 @@ Ed448) as a clean-room opt-in package, and **ML-DSA** post-quantum signatures th
 payloads, tenant-scoped data access enforced at the persistence layer, and a management API with resource-based
 ownership authorization.
 
-Known gaps, deferred decisions, and follow-ups are tracked in [`BACKLOG.md`](BACKLOG.md) — including the fact that
+Known gaps, deferred decisions, and follow-ups are tracked in [GitHub issues](https://github.com/NCodeGroup/Identity/issues) — including the fact that
 independent **OpenID Foundation conformance certification** is still in progress, so nothing here claims to be
 certified.
 
@@ -139,7 +139,7 @@ annotated in place, and coverage history and pull-request diff coverage live on
 | Document                             | What it is                                                                     |
 | ------------------------------------ | ------------------------------------------------------------------------------ |
 | [`docs/adr/`](docs/adr/)             | Architecture Decision Records — the reasoning behind every non-obvious decision |
-| [`BACKLOG.md`](BACKLOG.md)           | The single source of truth for known pending work                              |
+| [GitHub issues](https://github.com/NCodeGroup/Identity/issues)           | The single source of truth for known pending work                              |
 | [`CHANGELOG.md`](CHANGELOG.md)       | Consumer-visible changes                                                       |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Build, conventions, and the change workflow                                    |
 | [`GOVERNANCE.md`](GOVERNANCE.md)     | Ownership, versioning, releases, and publishing                                |

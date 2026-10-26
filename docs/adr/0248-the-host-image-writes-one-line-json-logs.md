@@ -11,7 +11,7 @@ the configuration names another formatter
 ([ADR-0210](0210-the-reference-hosts-log-to-standard-output.md)). The `simple` format spreads one entry over several
 lines: a line for the level and the category, a line for the message, and the lines of an exception and its stack
 trace. A container log collector reads standard output a line at a time, so it splits one entry into several records,
-and the exception that explains an error is in another record than the one that reports it (backlog `R74`).
+and the exception that explains an error is in another record than the one that reports it (issue [#265](https://github.com/NCodeGroup/Identity/issues/265)).
 
 The image is the artifact that the hosted platform and a self-hoster both run
 ([ADR-0133](0133-we-ship-and-run-the-same-deployment-artifacts.md),
@@ -58,7 +58,7 @@ so every log entry is one JSON object on one line.**
 - The three settings are a contract of the image. A change that drops one fails the `Host image` workflow, and
   `ProgramTests` pins that the formatter they select writes an entry with a multi-line exception as one line that parses
   as JSON.
-- This implements backlog `R74`.
+- This implements issue [#265](https://github.com/NCodeGroup/Identity/issues/265).
 
 ## References
 

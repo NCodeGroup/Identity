@@ -13,8 +13,7 @@ long-term, cohesive design.** When a change forks between a minimal, compatibili
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
 breakage — PublicAPI churn, setting renames/removals, signature changes, moved types, and clean cutovers are expected
 and preferred over shims. Surface a fork for the user to decide **only** when the options are genuinely equal in quality
-(a real value/security/semantics trade-off), not when one is merely more work. Full statement: the standing posture in
-[`BACKLOG.md`](../../BACKLOG.md).
+(a real value/security/semantics trade-off), not when one is merely more work.
 
 ### Extensibility is the goal — nothing closed by default
 
@@ -64,18 +63,20 @@ files, **never** left only in an agent's volatile memory or chat history: promot
 during a task into the instruction files or an ADR as part of the same change. See
 [ADR-0008](../../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md).
 
-Documented pending work (deferred decisions, feature gaps, follow-ups) is cataloged in [`BACKLOG.md`](../../BACKLOG.md)
-— the single source of truth for known pending work, and the primary, default view of the backlog (pending items only).
-Record pending items there, not in chat history or volatile memory. When an item is fully done, **move** its text to the
-completed-items archive [`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLETED.md) (don't just delete it) so completed work
-stays discoverable.
+Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as
+[GitHub issues](https://github.com/NCodeGroup/Identity/issues), the single source of truth for it
+([ADR-0264](../../docs/adr/0264-pending-work-is-tracked-as-github-issues.md)). Record a pending item as an issue
+labeled by its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
+([ADR-0008](../../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an
+issue closes it with `Closes #<number>`. Read open issues with `gh issue list`; reference one as
+`[#123](https://github.com/NCodeGroup/Identity/issues/123)` in Markdown and as `issue #123` elsewhere.
 
 **Completion status is one fact, the same everywhere.** "Done" is binary and global: report an item as done — in a
-message, a todo list, or by archiving it — only when no work remains **and** nothing still frames it as pending
-(`BACKLOG.md`, a todo list, a "remaining" / "still open" bullet in a doc, the `CHANGELOG.md`). Any remainder, even
-"live verification remaining", makes it partial: say so, and rewrite its `BACKLOG.md` entry to describe only the
-remaining work. Before claiming done, re-read the item's home and reconcile every tracker first; a completed item moves
-to `BACKLOG-COMPLETED.md` in the same change, so it is never both done and listed.
+message, a todo list, or by closing its issue — only when no work remains **and** nothing still frames it as pending
+(an open issue, a todo list, a "remaining" / "still open" bullet in a doc, the `CHANGELOG.md`). Any remainder, even
+"live verification remaining", makes it partial: say so, and edit its issue to describe only the remaining work.
+Before claiming done, re-read the item's issue and reconcile every tracker first; the pull request that completes an
+item closes its issue, so it is never both done and open.
 
 ## Commit attribution
 
@@ -111,9 +112,8 @@ these gates **before** pushing:
    after the check rejects the push instead of being dropped.
 2. **Persist lessons.** Promote every lesson learned in the session into durable repository content — a convention
    into the scoped instruction files, a non-obvious decision into an ADR under [`docs/adr/`](../../docs/adr/), a
-   consumer-visible change into [`CHANGELOG.md`](../../CHANGELOG.md), and pending work into
-   [`BACKLOG.md`](../../BACKLOG.md) (moving any item completed this session into
-   [`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLETED.md)).
+   consumer-visible change into [`CHANGELOG.md`](../../CHANGELOG.md), and pending work into a
+   GitHub issue (naming each issue the change completes as `Closes #<number>` in the pull request description).
 3. **Drain volatile memory.** No durable knowledge may remain only in agent memory (`/memories/…`) or chat history:
    migrate anything durable into the repository and clear the memory so nothing survives solely as a volatile note.
 4. **Pass the local pre-push gate.** Run `./build/dod.ps1 -Fast -Affected` — the local-development pre-push gate, which
@@ -128,8 +128,8 @@ these gates **before** pushing:
 
 After the push, the pull request merges through the merge queue, which runs the full gate on its merged result. An
 item is done only when the merge queue merges the pull request and every GitHub Actions run for the resulting `main`
-commit succeeds. Remediate any failure in the same change, and archive a completed backlog item in a commit on the same
-branch before the pull request merges. Once it merges, retire the plan's branch and worktree with `/finish-plan`
+commit succeeds. Remediate any failure in the same change, and name every issue it completes with `Closes #<number>`
+so the merge closes it. Once it merges, retire the plan's branch and worktree with `/finish-plan`
 ([`AGENTS.md`](../../AGENTS.md#plan-and-execute-workflow)).
 
 This upholds [ADR-0008](../../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md): conventions, reasoning,

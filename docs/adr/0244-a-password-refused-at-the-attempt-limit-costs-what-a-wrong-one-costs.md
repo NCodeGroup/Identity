@@ -10,7 +10,7 @@ The limit on failed password attempts ([ADR-0237](0237-failed-password-attempts-
 under the user name that the store holds for the submitted one, and a store verifies a password against a dummy hash
 when it holds no hash it may verify
 ([ADR-0239](0239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md)). ADR-0239 recorded
-three differences that remained between a refusal at the limit and a wrong password (backlog `R109`):
+three differences that remained between a refusal at the limit and a wrong password (issue [#300](https://github.com/NCodeGroup/Identity/issues/300)):
 
 - The lookup that named the counted user name read the account's claims only when an account had the name, so the
   ASP.NET Core Identity adapter ran one more database query on that path, where no hash hides it.
@@ -87,7 +87,7 @@ is counted under that user name.**
 - **Breaking:** `ILocalAccountStore.VerifyCredentialAsync` takes `isRefusedAsync` and returns
   `LocalAccountVerificationResult`, which a custom store implements: it calls `isRefusedAsync` once, between its lookup
   and its verification, and a store that never calls it fails every verification.
-- This implements backlog `R109`.
+- This implements issue [#300](https://github.com/NCodeGroup/Identity/issues/300).
 
 ## References
 

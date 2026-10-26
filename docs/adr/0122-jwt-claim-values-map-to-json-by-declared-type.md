@@ -86,4 +86,4 @@ value's declared type.**
 - [ADR-0121](0121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md) — the date rule
 - [XML Schema Part 2: Datatypes](https://www.w3.org/TR/xmlschema-2/) — the `ClaimValueTypes` lexical spaces
 - [RFC 8259 §6 — Numbers](https://datatracker.ietf.org/doc/html/rfc8259#section-6)
-- Backlog `D14` ([`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLETED.md))
+- Issue [#34](https://github.com/NCodeGroup/Identity/issues/34)

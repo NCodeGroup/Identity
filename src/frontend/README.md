@@ -26,7 +26,7 @@ runner uses the exact same pnpm. Node no longer bundles Corepack, so nothing act
 [`build/frontend-install.ps1`](../../build/frontend-install.ps1) installs the pinned version with the pinned Node's
 npm, and CI installs it with `pnpm/action-setup`. A globally installed pnpm 10 or later also switches to the pinned
 version by itself. The pin stays on the newest pnpm major Dependabot supports (10), and Dependabot does not bump it, so
-it moves only by a deliberate change (backlog `U21`,
+it moves only by a deliberate change (issue [#153](https://github.com/NCodeGroup/Identity/issues/153),
 [ADR-0152](../../docs/adr/0152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
 
 Every pnpm setting lives in [`pnpm-workspace.yaml`](pnpm-workspace.yaml), not `.npmrc` or the `package.json` `pnpm`
@@ -289,7 +289,7 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
 > Dev connectivity: the Playground opts into `AddDeveloperCors` so the browser UI (`http://localhost:5173`) can read
 > discovery and call the management API cross-origin. Without a seeded public SPA client the UI renders in **open
 > mode** and management calls return `401`; the development seeder (`AddDeveloperInteractiveSeed`) and the interactive
-> login surface (`T2`, done) close that gap for local end-to-end sign-in (backlog `U1`/`U7`).
+> login surface ([#125](https://github.com/NCodeGroup/Identity/issues/125), done) close that gap for local end-to-end sign-in (issues [#133](https://github.com/NCodeGroup/Identity/issues/133)/[#139](https://github.com/NCodeGroup/Identity/issues/139)).
 
 ## Gotchas (hard-won)
 
@@ -335,7 +335,7 @@ one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
   chunk. A debounced input takes its delay as a prop that tests set to `0` (`TenantsPage`'s `addressPreviewDelayMs`),
   so a test never waits out a real debounce. A test awaits the request mock or the settled UI, never a duration.
   Testing Library's `waitFor` recognizes only Jest's fake timers, so Vitest's fake timers stall it and MUI transitions
-  and are not an option (backlog `R111`).
+  and are not an option (issue [#302](https://github.com/NCodeGroup/Identity/issues/302)).
 - **The interactive bundle mounts over the page the host rendered.** `mountSurface`
   ([`apps/auth/src/mount.tsx`](apps/auth/src/mount.tsx)) runs when the bundle's module runs and fetches nothing: it
   reads the `#branding` block and the page's state with `readServerPage`

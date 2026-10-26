@@ -37,9 +37,9 @@ rules need to live in the repository rather than be rediscovered per update.
 1. **`@types/node` tracks the runtime major in `.node-version`.** The root `devDependency` is the single source of the
    range. A `pnpm.overrides` entry (`"@types/node": "$@types/node"`) forces every transitive and auto-installed copy
    to it, and Dependabot ignores its major updates. Moving to a new Node major updates `.node-version`, the CI
-   `node-version`, `engines.node`, and this range together (backlog `U16`).
+   `node-version`, `engines.node`, and this range together (issue [#148](https://github.com/NCodeGroup/Identity/issues/148)).
 2. **TypeScript stays on the newest version typescript-eslint supports.** Dependabot ignores TypeScript majors, and the
-   6.x line is held until typescript-eslint supports TypeScript 7 (backlog `U15`).
+   6.x line is held until typescript-eslint supports TypeScript 7 (issue [#147](https://github.com/NCodeGroup/Identity/issues/147)).
 3. **Lint uses one flat `eslint.config.js` at the workspace root**, built from maintained plugins:
    - `typescript-eslint` for TypeScript rules (`recommended`, no type information).
    - `@eslint-react/eslint-plugin` (`recommended-typescript`) replaces `eslint-plugin-react`. It is flat-config
@@ -62,7 +62,7 @@ rules need to live in the repository rather than be rediscovered per update.
   for the Rules of Hooks and the only source of the React Compiler diagnostics (`refs`, `immutability`, `globals`,
   `preserve-manual-memoization`, and others).
 - **Move the runtime to Node 26 to match the types.** Deferred: Node 26 enters Active LTS on 2026-10-28, and changing the
-  runtime is its own deliberate change (backlog `U16`), not a side effect of a types bump.
+  runtime is its own deliberate change (issue [#148](https://github.com/NCodeGroup/Identity/issues/148)), not a side effect of a types bump.
 - **Split npm majors into their own Dependabot group, as NuGet does.** Not adopted: the frontend majors are coupled
   (Vite, Vitest, and `@vitejs/plugin-react`; ESLint and its plugins) and have to be upgraded together anyway. The
   ignore rules stop the two known-incompatible majors from failing the group every week.
@@ -70,12 +70,12 @@ rules need to live in the repository rather than be rediscovered per update.
 ## Consequences
 
 - The grouped toolchain PR can be merged when CI is green, without someone having to re-derive these constraints each time.
-- `pnpm audit` is clean. The Vitest/Vite/esbuild advisories in backlog `U14` are gone.
+- `pnpm audit` is clean. The Vitest/Vite/esbuild advisories in issue [#146](https://github.com/NCodeGroup/Identity/issues/146) are gone.
 - The stricter React rules surfaced real findings that are now fixed. Two presentational tables read the clock during
   render; they now receive `now` from their container, which reads it once in a state initializer. The conformance
   dashboard derives `isLoading` instead of setting it synchronously in an effect. Refs and state setters follow the
   `…Ref` / `setIs…` naming conventions.
-- TypeScript 7's faster type checking is not used until `U15` is resolved.
+- TypeScript 7's faster type checking is not used until [#147](https://github.com/NCodeGroup/Identity/issues/147) is resolved.
 - Storybook 10 folds the former `addon-essentials` into core, so that addon and the direct `@storybook/react` dependency
   are gone. Stories import their types from the framework package (`@storybook/react-vite`).
 

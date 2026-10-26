@@ -150,10 +150,10 @@ that selects it.**
   clients' ID tokens with `PS256` even when the server's default is another permitted algorithm, unless the tenant sets
   its own. A setting that applies only to a scope above the expanding scope is not defaulted there, so a client that
   alone selects `fapi1-advanced` takes its tenant's `tls_client_certificate_bound_access_tokens` and not the profile's
-  default (backlog `R68`). A profile whose default names a lattice setting fails when a scope selects it.
+  default (issue [#259](https://github.com/NCodeGroup/Identity/issues/259)). A profile whose default names a lattice setting fails when a scope selects it.
 - Follow-ups: a resource-server document accepts `security_profiles` but neither expands nor evaluates it, which is part
-  of making the setting vocabulary scope-aware (backlog `F60`); and a single targeted resource server governs
-  access-token encryption with its own effective settings, without combining the client's (backlog `F61`).
+  of making the setting vocabulary scope-aware (issue [#99](https://github.com/NCodeGroup/Identity/issues/99)); and a single targeted resource server governs
+  access-token encryption with its own effective settings, without combining the client's (issue [#100](https://github.com/NCodeGroup/Identity/issues/100)).
 - **Breaking:** the setting, its name and key constants, `ISecurityProfile.ApplyCeilingSettings`, and the abstract
   `SettingDescriptor.HasLatticeMerge` change the public surface; a deployment that stores settings documents in its own
   database applies the same rewrite there.

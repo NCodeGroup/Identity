@@ -9,7 +9,7 @@
 ## Context
 
 Before this change the token endpoint recognized only `client_secret_basic`, `client_secret_post`, and `none`
-client authentication. The **FAPI** security profiles (backlog `F16`) require **strong client authentication** —
+client authentication. The **FAPI** security profiles (issue [#54](https://github.com/NCodeGroup/Identity/issues/54)) require **strong client authentication** —
 `private_key_jwt` or mutual-TLS — and OpenID Connect Core §9 /
 [RFC 7523](https://datatracker.ietf.org/doc/html/rfc7523) define the JWT-bearer family (`private_key_jwt` and
 `client_secret_jwt`), where the client proves its identity by presenting a signed JWT **`client_assertion`** rather than
@@ -65,16 +65,16 @@ family, validated against the client's registered keys, and single-use by `jti`.
   §9 already pins `iss == sub == client_id`, so reading `sub` is both sufficient and spec-aligned.
 
 - **Accept only the issuer as `aud` (strict FAPI).** Rejected as the default. Accepting the issuer **or** the endpoint
-  URL interoperates with both OIDC-generic and FAPI clients; a FAPI **profile** (backlog `F16`) can tighten this to
+  URL interoperates with both OIDC-generic and FAPI clients; a FAPI **profile** (issue [#54](https://github.com/NCodeGroup/Identity/issues/54)) can tighten this to
   issuer-only where required.
 
 ## Consequences
 
 - The OP authenticates confidential clients via `private_key_jwt` and `client_secret_jwt`, advancing the strong-client-
-  authentication leg of FAPI readiness (`F16`); both methods are advertised automatically.
+  authentication leg of FAPI readiness ([#54](https://github.com/NCodeGroup/Identity/issues/54)); both methods are advertised automatically.
 - `private_key_jwt` requires the OP to hold the client's **public** verification key. That capability is provided by the
   verify-only asymmetric key primitive ([ADR-0103](0103-public-only-asymmetric-secret-keys.md)); onboarding a client's
-  public key via its `jwks_uri` remains the Phase-0 follow-up in `F16`.
+  public key via its `jwks_uri` remains the Phase-0 follow-up in [#54](https://github.com/NCodeGroup/Identity/issues/54).
 - New public surface: `OpenIdConstants.ClientAssertionTypes.JwtBearer` and the
   `IClientAssertionReplayCache` seam (a cluster swaps in a shared `IDistributedCache`).
 - The replay guard is correct per-instance and across a cluster only when a distributed cache is registered — the same

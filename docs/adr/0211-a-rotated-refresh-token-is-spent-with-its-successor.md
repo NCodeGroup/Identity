@@ -15,7 +15,7 @@ the presented grant with `SetRevokedOnceAsync`, which does nothing when the gran
 successor in a later unit of work. Two concurrent refreshes of one token could therefore both receive tokens, so the
 reuse went undetected (RFC 9700 §4.14.2), or the save of the loser failed and it received `500`. A lineage revocation
 that answered a reuse could also run before the successor of the winner existed, which left that successor active
-(backlog `R69`).
+(issue [#260](https://github.com/NCodeGroup/Identity/issues/260)).
 
 ## Decision
 
@@ -67,7 +67,7 @@ the spend is answered as a reuse.**
   unit tests cover it.
 - **Breaking:** `IPersistedGrantService` declares `TryRevokeOnceAsync` and `ReplaceOnceOrDefault`, and `ITokenService`
   declares `RotateRefreshTokenAsync`, so every implementation of either interface implements them.
-- This implements backlog `R69`.
+- This implements issue [#260](https://github.com/NCodeGroup/Identity/issues/260).
 
 ## References
 

@@ -10,7 +10,7 @@
 forgery (SSRF) defenses for the OP's outbound fetches of **client-supplied URLs** behind one shared, injectable
 `IOutboundHttpForgeryGuard` and gave the `jwks_uri` and `sector_identifier_uri` fetches a uniform bound set — an
 `https`-only scheme check, an optional host allow-list, a wall-clock fetch timeout, and a streamed response-size cap.
-It left two gaps, tracked as backlog item `F28`:
+It left two gaps, tracked as issue [#67](https://github.com/NCodeGroup/Identity/issues/67):
 
 1. **The JAR `request_uri` fetch** (RFC 9101, `DefaultLoadAuthorizationRequestHandler`) was already routed through the
    shared guard (socket pinned away from private addresses, no auto-redirect), but it read the response body with

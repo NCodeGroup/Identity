@@ -12,15 +12,15 @@
 
 The frontend presentation platform ([ADR-0064](0064-frontend-presentation-platform.md)) landed with the Management
 console (`apps/mgmt`) and the interactive login/consent surface (`apps/auth`), plus two **scaffold** apps —
-`apps/playground` and `apps/conformance` — that only rendered a placeholder card. Backlog item `U3` is to flesh those
+`apps/playground` and `apps/conformance` — that only rendered a placeholder card. Issue [#135](https://github.com/NCodeGroup/Identity/issues/135) is to flesh those
 two scaffolds into real surfaces and give them a serving model.
 
 Two design questions had to be settled first:
 
 - **What should each surface actually be?** The Playground is clearly "an interactive OAuth/OIDC flow explorer". The
-  conformance surface was described in point-in-time backlog text as "the browser-drivable harness control surface
-  that `T1`/`T2` drive" — but the Selenium-driven login/consent surface the external suite automates is already
-  `apps/auth` (`T2`). Per the greenfield, security-practice-default posture
+  conformance surface was described in point-in-time issue text as "the browser-drivable harness control surface
+  that [#124](https://github.com/NCodeGroup/Identity/issues/124)/[#125](https://github.com/NCodeGroup/Identity/issues/125) drive" — but the Selenium-driven login/consent surface the external suite automates is already
+  `apps/auth` ([#125](https://github.com/NCodeGroup/Identity/issues/125)). Per the greenfield, security-practice-default posture
   ([repository instructions](../../.github/instructions/repository.instructions.md),
   [ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md)),
   existing prose is a point-in-time artifact, so the surface was (re)defined by what a modern, security-aware identity
@@ -51,7 +51,7 @@ document surface-aware so one endpoint can hand each surface its own coordinates
   metadata. It derives Basic/Config **OP profile readiness** from the findings and surfaces the external OpenID
   Foundation Conformance Suite's configuration (issuer, alias, the RP callback URL the OP must accept). It is
   read-only and discovery-driven, so it needs **no** OAuth client. It does **not** re-implement the Selenium-driven
-  login/consent surface — that remains `apps/auth` (`T2`).
+  login/consent surface — that remains `apps/auth` ([#125](https://github.com/NCodeGroup/Identity/issues/125)).
 - **Serving model — standalone Vite SPAs, like `apps/mgmt`.** Both are pinned-port Vite dev servers (`playground` →
   `5174`, `conformance` → `5175`) that proxy `/config/bootstrap.json` to the OP host and join the Aspire AppHost graph
   as one `AddViteApp` line each, health-gated on the API ([ADR-0071](0071-aspire-local-dev-orchestrator.md)). The
@@ -66,7 +66,7 @@ document surface-aware so one endpoint can hand each surface its own coordinates
 
 ## Options considered
 
-- **Conformance surface = the login/consent locator surface.** Rejected: that is `apps/auth` (`T2`); duplicating it
+- **Conformance surface = the login/consent locator surface.** Rejected: that is `apps/auth` ([#125](https://github.com/NCodeGroup/Identity/issues/125)); duplicating it
   would fork the stable-locator contract. A read-only posture/readiness dashboard is the non-overlapping, modern
   value-add.
 - **Backend-served bundles (like `apps/auth`) instead of standalone Vite.** Rejected: both surfaces are operator/dev
@@ -89,14 +89,14 @@ document surface-aware so one endpoint can hand each surface its own coordinates
   `SpaRedirectUris`/`SeedSpaClient` members were removed) — expected `PublicAPI.Unshipped` churn under the pre-release
   posture.
 - The conformance dashboard encodes our reading of the security specs in `audit.ts`; it complements, but does not
-  replace, the independent external OpenID Foundation Conformance Suite run (`T1`). The suite remains the authoritative
+  replace, the independent external OpenID Foundation Conformance Suite run ([#124](https://github.com/NCodeGroup/Identity/issues/124)). The suite remains the authoritative
   oracle; this dashboard is the fast, local pre-flight.
 - The Aspire full-stack launch now brings up four UI surfaces (`mgmt`, `auth`, `playground`, `conformance`) behind the
   health-gated API.
 
 ## References
 
-- Backlog: [`BACKLOG.md`](../../BACKLOG.md) group `U` (`U3`), group `T` (`T1`/`T2`, conformance).
+- Issues: [#135](https://github.com/NCodeGroup/Identity/issues/135) (frontend), [#124](https://github.com/NCodeGroup/Identity/issues/124)/[#125](https://github.com/NCodeGroup/Identity/issues/125) (conformance).
 - Platform: [ADR-0064](0064-frontend-presentation-platform.md) (presentation platform and its invariants),
   [ADR-0071](0071-aspire-local-dev-orchestrator.md) (Aspire local-dev orchestrator),
   [ADR-0062](0062-opt-in-interactive-login-consent-ui.md) / [ADR-0065](0065-interactive-login-consent-op-hosted-auth-surface.md)

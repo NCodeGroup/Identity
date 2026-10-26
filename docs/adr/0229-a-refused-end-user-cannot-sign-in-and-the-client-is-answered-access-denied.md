@@ -11,7 +11,7 @@ and a disabled local account ([ADR-0224](0224-deleting-or-disabling-an-account-e
 by handlers of `ValidateSubjectAuthenticationCommand`. The interactive sign-in applied neither, so a blocked principal
 got a session. The authorization request challenged a refused subject again, which is a login loop for a host whose
 sign-in is another scheme. The self-service pages served a cookie whose session had ended, a disabled account looked
-like a wrong password, and a consent denial left the client unanswered (backlog `R98`).
+like a wrong password, and a consent denial left the client unanswered (issue [#289](https://github.com/NCodeGroup/Identity/issues/289)).
 
 ## Decision
 
@@ -71,7 +71,7 @@ sign-in sends before it creates a session, and whose refusal answers the client 
 - **Breaking:** `ValidateSubjectStandingCommand`, `IContinueProvider.RefuseAsync` and `IContinueRefusalService` are
   added, the two handlers handle the standing command, and `ILocalAccountStore.VerifyCredentialAsync` returns the
   disabled account of a valid credential.
-- This implements backlog `R98`.
+- This implements issue [#289](https://github.com/NCodeGroup/Identity/issues/289).
 
 ## References
 

@@ -24,7 +24,7 @@ const report: CoverageReport = {
           status: 'missing',
           detail: "'backchannel_authentication_endpoint' is not advertised.",
           channel: 'probe-runner',
-          backlog: 'F3',
+          issue: 41,
         },
       ],
     },
@@ -33,12 +33,16 @@ const report: CoverageReport = {
 };
 
 describe('CoverageMatrix', () => {
-  it('renders each category and entry with status, channel, and backlog chips', () => {
+  it('renders each category and entry with status, channel, and issue chips', () => {
     const { getByTestId, getByText } = render(<CoverageMatrix report={report} />);
     expect(getByTestId('coverage-category-endpoints')).toBeInTheDocument();
     expect(getByText('Authorization endpoint')).toBeInTheDocument();
     expect(getByText('CIBA backchannel authentication')).toBeInTheDocument();
-    expect(getByTestId('backlog-F3')).toBeInTheDocument();
+    expect(getByTestId('issue-41')).toBeInTheDocument();
+    expect(getByTestId('issue-41')).toHaveAttribute(
+      'href',
+      'https://github.com/NCodeGroup/Identity/issues/41',
+    );
     expect(getByTestId('channel-probe-runner')).toBeInTheDocument();
   });
 
@@ -137,7 +141,7 @@ describe('CoverageMatrix', () => {
       );
       expect(screen.getByTestId('channel-external-suite')).toHaveTextContent('external suite');
       expect(screen.getByTestId('channel-probe-runner')).toHaveTextContent('probe runner');
-      expect(screen.queryByTestId(/^backlog-/)).not.toBeInTheDocument();
+      expect(screen.queryByTestId(/^issue-/)).not.toBeInTheDocument();
     });
   });
 });

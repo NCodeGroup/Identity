@@ -13,7 +13,7 @@ OpenID Connect Core 1.0 §8 defines two `subject_type` values a client may be re
   colluding relying parties in different sectors cannot determine that two tokens describe the same end-user.
 
 Only `public` was implemented: every issuance path emitted the raw, stable principal identifier as `sub`, the
-`subject_type` setting was never read, and discovery advertised `subject_types_supported = ["public"]` (backlog `F9`;
+`subject_type` setting was never read, and discovery advertised `subject_types_supported = ["public"]` (issue [#47](https://github.com/NCodeGroup/Identity/issues/47);
 `// TODO: use the subject_type setting to support PPID` in `DefaultAuthenticateHandler`).
 
 Two facts about the existing architecture shaped the design:
@@ -75,7 +75,7 @@ Concretely:
 - Because the derivation is one-way and unstored, the OP cannot recover the stable principal from a pairwise `sub`
   presented **back** to it. This is immaterial for the framework flows (UserInfo re-resolution is not needed — claims
   ride the access token; grants/sessions are keyed by the internal id). Two second-order surfaces are affected and
-  tracked in [`BACKLOG.md`](../../BACKLOG.md): a `sector_identifier_uri` whose JSON document is **fetched and validated**
+  tracked in [GitHub issues](https://github.com/NCodeGroup/Identity/issues): a `sector_identifier_uri` whose JSON document is **fetched and validated**
   at registration (now done — [ADR-0095](0095-sector-identifier-uri-fetch-and-ssrf-guard.md) performs the §8.1
   fetch-and-validate behind an SSRF-guarded client), and RP-initiated end-session when an `id_token_hint` carries a
   pairwise `sub` (now done — [ADR-0096](0096-end-session-subject-from-server-state.md) recovers the stable subject from

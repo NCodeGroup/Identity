@@ -89,10 +89,10 @@ scheme is otherwise unchanged; after that point the apex is permanent.
 
 ## Consequences
 
-- Customers' load tests share hardware with every tenant's production, so per-tenant rate limits and quotas (`F45`,
-  `F79`) are a launch prerequisite.
-- Per-tenant mTLS alias hosts need host-strategy routing for the alias authority (`F47`), in-app chain validation
-  (`F43`), and Traefik's forwarded-chain format (`F44`).
+- Customers' load tests share hardware with every tenant's production, so per-tenant rate limits and quotas ([#84](https://github.com/NCodeGroup/Identity/issues/84),
+  [#118](https://github.com/NCodeGroup/Identity/issues/118)) are a launch prerequisite.
+- Per-tenant mTLS alias hosts need host-strategy routing for the alias authority ([#86](https://github.com/NCodeGroup/Identity/issues/86)), in-app chain validation
+  ([#82](https://github.com/NCodeGroup/Identity/issues/82)), and Traefik's forwarded-chain format ([#83](https://github.com/NCodeGroup/Identity/issues/83)).
 - The lab is cheaper and differs from production (OKE Basic, arm64, in-cluster CloudNativePG vs. managed Kubernetes,
   x86, managed Postgres); every release is verified on the production `canary` tenant before customers see it.
 - Each function gets one wildcard certificate, and the management plane can carry its own CORS, rate-limit, and

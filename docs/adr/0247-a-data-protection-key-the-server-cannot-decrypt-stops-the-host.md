@@ -13,7 +13,7 @@ survives, such as after restoring part of a backup, the server's master key cann
 
 Data Protection does not stop on such a ring. It treats the keys it cannot decrypt as ineligible, silently writes a
 default key of its own, and carries on. What the old keys protected, the sign-in cookies and the anti-forgery tokens, is
-unreadable, and the operator learns it from the users who are signed out, not from the host (backlog `R48`).
+unreadable, and the operator learns it from the users who are signed out, not from the host (issue [#239](https://github.com/NCodeGroup/Identity/issues/239)).
 
 ## Decision
 
@@ -74,7 +74,7 @@ decrypt, and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
 - A key that has expired or been revoked is ignored however unreadable it is, so it never stops the host.
 - A Development host without a database still keeps its key ring in the default key directory, where the gate revokes
   the keys of earlier runs.
-- This implements backlog `R48`.
+- This implements issue [#239](https://github.com/NCodeGroup/Identity/issues/239).
 
 ## References
 

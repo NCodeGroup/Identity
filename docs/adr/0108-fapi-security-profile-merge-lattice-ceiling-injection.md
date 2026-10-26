@@ -13,7 +13,7 @@
 
 ## Context
 
-FAPI 2.0 readiness (backlog `F16`) needs a way for a tenant or client to opt into the OpenID Foundation **FAPI 2.0
+FAPI 2.0 readiness (issue [#54](https://github.com/NCodeGroup/Identity/issues/54)) needs a way for a tenant or client to opt into the OpenID Foundation **FAPI 2.0
 Security Profile** as a single switch, rather than configuring a dozen individual settings correctly and consistently.
 The profile constrains many things the OP already models as settings — signing algorithms, required PKCE/PAR, response
 types, code/PAR lifetimes, permitted client-authentication methods — plus a few behavioral rules.
@@ -52,7 +52,7 @@ un-loosenably, so discovery and request-time enforcement read one source of trut
     > exposes the same `Expand(…)` entry points. The mechanism and guarantees described here are unchanged.
 
 - **The FAPI 2.0 ceiling.** Signing algorithms → `PS256` / `ES256` / `EdDSA` (`Intersect`; `EdDSA` is listed
-  forward-compatibly and only takes effect once EdDSA signing is implemented, backlog `F29`); strong client
+  forward-compatibly and only takes effect once EdDSA signing is implemented, issue [#68](https://github.com/NCodeGroup/Identity/issues/68)); strong client
   authentication only — `private_key_jwt` / `tls_client_auth` / `self_signed_tls_client_auth` (`Intersect` on
   `token_endpoint_auth_methods_supported`); `response_type=code` only and PKCE `S256` only (`Intersect`); require PKCE
   and require PAR (`Or` floors); a 60-second authorization-code ceiling and a 90-second PAR `request_uri` ceiling
@@ -75,7 +75,7 @@ un-loosenably, so discovery and request-time enforcement read one source of trut
 - New public surface: the `security_profile` setting, the `OpenIdConstants.SecurityProfiles.Fapi2` constant, and
   `ISecurityProfileSettingsExpander` (the latter superseded by `ISecurityProfileCatalog` in
   [ADR-0109](0109-fapi-behavioral-rules-and-discovery-validation-details.md)).
-- Remaining FAPI behavioral rules not expressible as setting ceilings are follow-ups (backlog `F16` Phase 3): the
+- Remaining FAPI behavioral rules not expressible as setting ceilings are follow-ups (issue [#54](https://github.com/NCodeGroup/Identity/issues/54) Phase 3): the
   client-assertion `aud` must equal the issuer; sender-constrained access tokens must be required (DPoP **or** mTLS
   binding, so not a single setting); and a public client must be rejected at the authorization endpoint (the token
   endpoint already rejects it via permitted-method enforcement).

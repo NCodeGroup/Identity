@@ -15,7 +15,7 @@
 
 They truncate an instant to whole seconds, so a time the server stores equals the RFC 7519 `NumericDate` it
 round-trips through a JWT. An `*.Abstractions` package holds contracts only and no logic, so they did not belong there.
-`D9` moved the JOSE dictionary accessor to `NCode.Json` for the same reason, but these helpers are not about JSON.
+[#29](https://github.com/NCodeGroup/Identity/issues/29) moved the JOSE dictionary accessor to `NCode.Json` for the same reason, but these helpers are not about JSON.
 
 Their consumers are two implementation packages: `NCode.Identity.Jwt` (the lifetime and certificate-lifetime handlers
 and the encoder) and `NCode.Identity.OpenId.Authentication` (about 25 grant, session, and endpoint handlers). Neither
@@ -54,4 +54,4 @@ references the other, so the helpers need a home both can reference.
 - `tests/NCode.Time.Tests/`
 - [ADR-0016](./0016-implementation-packages-depend-only-on-abstractions.md)
 - [ADR-0055](./0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md)
-- Backlog `D9` and `D11` ([`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLETED.md))
+- Issues [#29](https://github.com/NCodeGroup/Identity/issues/29) and [#31](https://github.com/NCodeGroup/Identity/issues/31)

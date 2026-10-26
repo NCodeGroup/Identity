@@ -19,7 +19,7 @@ enhancement). Two forces decide how that replacement happens:
   page, and loses the focus and any consent scope they cleared. The fetch also needs a time-out that has to hold on
   every network, and a reply that arrives after it themes the page a second time.
 - The route table selects a surface by path. The authorization error page is served at the protocol endpoint, which is
-  outside the surface's paths, so the bundle's login fallback replaces an error page with a login form (backlog `R20`).
+  outside the surface's paths, so the bundle's login fallback replaces an error page with a login form (issue [#211](https://github.com/NCodeGroup/Identity/issues/211)).
 
 ## Decision
 

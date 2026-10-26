@@ -7,7 +7,7 @@
 ## Context
 
 [ADR-0184](0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) reads the schema operations
-of a migration and leaves raw SQL to review (backlog `R14`). The rule leaves four gaps:
+of a migration and leaves raw SQL to review (issue [#205](https://github.com/NCodeGroup/Identity/issues/205)). The rule leaves four gaps:
 
 - It passes a column made required with a default. EF Core writes an explicit NULL for every column the previous
   release maps as nullable, so a default never protects that release's inserts, and rows holding NULL block the change.

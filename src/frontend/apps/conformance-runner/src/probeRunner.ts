@@ -459,7 +459,7 @@ async function pollDeviceToken(
 /**
  * Verifies the CIBA backchannel-authentication endpoint (OpenID Connect CIBA Core §7): a request returns an
  * `auth_req_id`, or a structured error proving the endpoint is live. Skipped until the endpoint is advertised
- * (backlog `F3`).
+ * (issue #41).
  */
 export async function probeCiba(
   raw: RawDiscovery,
@@ -475,7 +475,7 @@ export async function probeCiba(
       id,
       feature,
       reference,
-      "'backchannel_authentication_endpoint' is not advertised (gap: F3).",
+      "'backchannel_authentication_endpoint' is not advertised (gap: #41).",
     );
   }
   const clientId = context.client?.clientId ?? context.publicClientId;
@@ -542,7 +542,7 @@ export async function probePrivateKeyJwt(
     return skip(id, feature, reference, "'token_endpoint' is not advertised.");
   }
   if (!asStringArray(raw, 'token_endpoint_auth_methods_supported').includes('private_key_jwt')) {
-    return skip(id, feature, reference, "'private_key_jwt' is not advertised (gap: F16 / S3).");
+    return skip(id, feature, reference, "'private_key_jwt' is not advertised (gap: #54 / #161).");
   }
   if (!context.signClientAssertion || !context.publicClientId) {
     return skip(
@@ -606,7 +606,7 @@ export async function probePrivateKeyJwt(
 /**
  * Verifies DPoP sender-constrained tokens (RFC 9449): a token request carrying a DPoP proof yields a `DPoP`-typed
  * token, or a `use_dpop_nonce` challenge (both prove the endpoint honors the proof). Skipped when DPoP is not
- * advertised (backlog `F7`) or no DPoP key is configured.
+ * advertised (issue #45) or no DPoP key is configured.
  */
 export async function probeDpop(
   raw: RawDiscovery,
@@ -625,7 +625,7 @@ export async function probeDpop(
       id,
       feature,
       reference,
-      "'dpop_signing_alg_values_supported' is not advertised (gap: F7).",
+      "'dpop_signing_alg_values_supported' is not advertised (gap: #45).",
     );
   }
   if (!context.createDpopProof || !context.client) {
@@ -689,7 +689,7 @@ export async function probeDpop(
 /**
  * Reports mutual-TLS client authentication / certificate-bound tokens (RFC 8705). A plain HTTP client cannot present
  * a client certificate on the TLS handshake, so active verification is deferred to the external certified suite
- * (Phase 4 / `T1`); this probe records whether the capability is advertised. Skipped when it is not (gap: `F7`).
+ * (Phase 4 / #124); this probe records whether the capability is advertised. Skipped when it is not (gap: #45).
  */
 export function probeMutualTls(raw: RawDiscovery): ProbeResult {
   const id = 'runner-mtls';
@@ -700,21 +700,21 @@ export function probeMutualTls(raw: RawDiscovery): ProbeResult {
   );
   const boundTokens = raw.tls_client_certificate_bound_access_tokens === true;
   if (methods.length === 0 && !boundTokens) {
-    return skip(id, feature, reference, 'No mutual-TLS capability is advertised (gap: F7).');
+    return skip(id, feature, reference, 'No mutual-TLS capability is advertised (gap: #45).');
   }
   const advertised = [...methods, ...(boundTokens ? ['certificate-bound access tokens'] : [])];
   return skip(
     id,
     feature,
     reference,
-    `Advertised (${advertised.join(', ')}); active verification needs a client certificate and is deferred to the external suite (T1).`,
+    `Advertised (${advertised.join(', ')}); active verification needs a client certificate and is deferred to the external suite (#124).`,
   );
 }
 
 /**
  * Reports Back-Channel Logout (OpenID Connect Back-Channel Logout §2). Receiving a `logout_token` requires hosting an
  * RP logout endpoint and an authenticated session, which a stateless CLI cannot drive, so active receipt is deferred
- * to the external certified suite (Phase 4 / `T1`); this probe records whether the capability is advertised.
+ * to the external certified suite (Phase 4 / #124); this probe records whether the capability is advertised.
  */
 export function probeBackChannelLogout(raw: RawDiscovery): ProbeResult {
   const id = 'runner-backchannel-logout';
@@ -728,7 +728,7 @@ export function probeBackChannelLogout(raw: RawDiscovery): ProbeResult {
     id,
     feature,
     reference,
-    `Advertised${session}; active logout-token receipt needs a hosted RP endpoint and is deferred to the external suite (T1).`,
+    `Advertised${session}; active logout-token receipt needs a hosted RP endpoint and is deferred to the external suite (#124).`,
   );
 }
 

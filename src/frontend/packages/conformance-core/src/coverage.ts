@@ -35,8 +35,8 @@ export type CoverageEntry = {
   readonly detail: string;
   /** How a harness would exercise this feature end to end. */
   readonly channel: CoverageChannel;
-  /** The tracking backlog id for a missing feature (for example, `F3`), when one exists. */
-  readonly backlog?: string;
+  /** The GitHub issue number that tracks a missing feature, when one exists. */
+  readonly issue?: number;
 };
 
 /** A named group of catalog entries (endpoints, grants, client auth, etc.). */
@@ -73,7 +73,7 @@ type CatalogEntry = {
   readonly feature: string;
   readonly reference: string;
   readonly channel: CoverageChannel;
-  readonly backlog?: string;
+  readonly issue?: number;
   readonly classify: (raw: RawDiscovery) => { status: CoverageStatus; detail: string };
 };
 
@@ -90,14 +90,14 @@ function endpoint(
   key: string,
   reference: string,
   channel: CoverageChannel,
-  backlog?: string,
+  issue?: number,
 ): CatalogEntry {
   return {
     id,
     feature,
     reference,
     channel,
-    ...(backlog ? { backlog } : {}),
+    ...(issue ? { issue } : {}),
     classify: (raw) =>
       hasString(raw, key)
         ? { status: 'implemented', detail: `'${key}' is advertised.` }
@@ -112,14 +112,14 @@ function grant(
   grantType: string,
   reference: string,
   channel: CoverageChannel,
-  backlog?: string,
+  issue?: number,
 ): CatalogEntry {
   return {
     id,
     feature,
     reference,
     channel,
-    ...(backlog ? { backlog } : {}),
+    ...(issue ? { issue } : {}),
     classify: (raw) =>
       asStringArray(raw, 'grant_types_supported').includes(grantType)
         ? { status: 'implemented', detail: `The '${grantType}' grant is advertised.` }
@@ -134,14 +134,14 @@ function flag(
   key: string,
   reference: string,
   channel: CoverageChannel,
-  backlog?: string,
+  issue?: number,
 ): CatalogEntry {
   return {
     id,
     feature,
     reference,
     channel,
-    ...(backlog ? { backlog } : {}),
+    ...(issue ? { issue } : {}),
     classify: (raw) =>
       isTrue(raw, key)
         ? { status: 'implemented', detail: `'${key}' is advertised as supported.` }
@@ -210,7 +210,7 @@ const ENDPOINTS: Catalog = {
       'pushed_authorization_request_endpoint',
       'RFC 9126 §5',
       'probe-runner',
-      'F8',
+      46,
     ),
     endpoint(
       'ep-ciba',
@@ -225,7 +225,7 @@ const ENDPOINTS: Catalog = {
       'check_session_iframe',
       'OpenID Connect Session Management §3',
       'browser',
-      'D2',
+      22,
     ),
   ],
 };
@@ -318,7 +318,7 @@ const CLIENT_AUTH: Catalog = {
       feature: 'private_key_jwt (asymmetric client auth)',
       reference: 'OIDC Core §9',
       channel: 'probe-runner',
-      backlog: 'F16',
+      issue: 54,
       classify: (raw) =>
         asStringArray(raw, 'token_endpoint_auth_methods_supported').includes('private_key_jwt')
           ? { status: 'implemented', detail: "'private_key_jwt' is advertised." }
@@ -329,7 +329,7 @@ const CLIENT_AUTH: Catalog = {
       feature: 'tls_client_auth / mutual-TLS client auth',
       reference: 'RFC 8705 §2',
       channel: 'probe-runner',
-      backlog: 'F7',
+      issue: 45,
       classify: (raw) => {
         const methods = asStringArray(raw, 'token_endpoint_auth_methods_supported');
         const present = methods.filter(
@@ -376,7 +376,7 @@ const SECURITY: Catalog = {
       feature: 'DPoP — sender-constrained tokens',
       reference: 'RFC 9449',
       channel: 'probe-runner',
-      backlog: 'F7',
+      issue: 45,
       classify: (raw) =>
         asStringArray(raw, 'dpop_signing_alg_values_supported').length > 0
           ? { status: 'implemented', detail: "'dpop_signing_alg_values_supported' is advertised." }
@@ -387,7 +387,7 @@ const SECURITY: Catalog = {
       feature: 'mTLS-bound access tokens',
       reference: 'RFC 8705 §3',
       channel: 'probe-runner',
-      backlog: 'F7',
+      issue: 45,
       classify: (raw) =>
         isTrue(raw, 'tls_client_certificate_bound_access_tokens')
           ? {
@@ -468,7 +468,7 @@ const OIDC: Catalog = {
       feature: 'Pairwise subject identifiers (PPID)',
       reference: 'OIDC Core §8',
       channel: 'browser',
-      backlog: 'F9',
+      issue: 47,
       classify: (raw) =>
         asStringArray(raw, 'subject_types_supported').includes('pairwise')
           ? {
@@ -485,7 +485,7 @@ const OIDC: Catalog = {
       feature: 'acr_values / acr claim',
       reference: 'OIDC Core §2 / §3.1.2.1',
       channel: 'browser',
-      backlog: 'F11',
+      issue: 49,
       classify: (raw) =>
         asStringArray(raw, 'acr_values_supported').length > 0
           ? { status: 'implemented', detail: "'acr_values_supported' is advertised." }
@@ -539,7 +539,7 @@ const OIDC: Catalog = {
       feature: 'Front-Channel Logout',
       reference: 'OpenID Connect Front-Channel Logout §3',
       channel: 'browser',
-      backlog: 'D2',
+      issue: 22,
       classify: (raw) =>
         isTrue(raw, 'frontchannel_logout_supported')
           ? { status: 'implemented', detail: "'frontchannel_logout_supported' is advertised." }
@@ -608,7 +608,7 @@ const PROFILES: Catalog = {
       feature: 'FAPI 2.0 Security Profile',
       reference: 'FAPI 2.0 Security Profile',
       channel: 'external-suite',
-      backlog: 'F16',
+      issue: 54,
       classify: (raw) => {
         // FAPI 2.0 requires PAR, a sender-constraining mechanism (DPoP or mTLS-bound tokens), PKCE S256, and
         // asymmetric-only signing. Derive readiness from those discovery signals.
@@ -633,7 +633,7 @@ const PROFILES: Catalog = {
       feature: 'FAPI 1.0 Advanced Security Profile',
       reference: 'FAPI 1.0 Part 2: Advanced',
       channel: 'external-suite',
-      backlog: 'T1',
+      issue: 124,
       classify: (raw) => {
         // FAPI 1.0 Advanced (as the fapi1-advanced profile serves it) requires PAR, mTLS-bound tokens, PKCE S256,
         // PS256/ES256-signed request objects, and JARM for a code response. Derive readiness from those signals.
@@ -700,7 +700,7 @@ export function buildCoverageReport(raw: RawDiscovery): CoverageReport {
         status,
         detail,
         channel: entry.channel,
-        ...(entry.backlog ? { backlog: entry.backlog } : {}),
+        ...(entry.issue ? { issue: entry.issue } : {}),
       };
     }),
   }));

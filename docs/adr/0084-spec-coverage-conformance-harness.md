@@ -26,7 +26,7 @@ shape the design:
   of a browser's reach: `client_credentials`, introspection/revocation *with client authentication*, `private_key_jwt`,
   device-code polling, back-channel logout receipt, DPoP proof signing, mTLS client certificates, and CIBA ping/push
   all require a secret, a client certificate, or a server-to-server call that CORS and the browser secret model forbid.
-- **An authoritative oracle already exists.** The OpenID Foundation Conformance Suite (`T1`,
+- **An authoritative oracle already exists.** The OpenID Foundation Conformance Suite ([#124](https://github.com/NCodeGroup/Identity/issues/124),
   [`docs/conformance-testing.md`](../conformance-testing.md)) is the certified "tests all published specs" harness. The
   in-house harness must **complement** it — a fast, always-on, self-hosted gap dashboard — not re-implement a certified
   suite's judgment.
@@ -41,7 +41,7 @@ classification to active probing without re-architecture.** Concretely:
   the published protocol surface — endpoints, grant types, client-authentication methods, sender-constraining and
   request-integrity features, OIDC subject/claims/prompt/ACR features, response modes, and the FAPI profile — each
   entry carrying its authoritative `reference` (RFC / OIDC section), the `channel` that would exercise it, and, where
-  known, the tracking `backlog` id (e.g. `F3`, `F7`, `F8`, `F16`). A classifier maps each entry over the published
+  known, the tracking `issue` number (e.g. [#41](https://github.com/NCodeGroup/Identity/issues/41), [#45](https://github.com/NCodeGroup/Identity/issues/45), [#46](https://github.com/NCodeGroup/Identity/issues/46), [#54](https://github.com/NCodeGroup/Identity/issues/54)). A classifier maps each entry over the published
   discovery document to one of four statuses: **`implemented`** (advertised), **`partial`**, **`missing`** (a published
   feature the OP does not advertise), or **`non-conformant`** (advertised but insecure/deprecated — implicit/hybrid,
   `plain` PKCE, symmetric/`none` signing). The catalog is the single source of truth for "what exists in the specs";
@@ -58,9 +58,9 @@ classification to active probing without re-architecture.** Concretely:
   server-initiated legs) without reshaping the model.
 - **Phased delivery.** (1) catalog + coverage matrix UI (this ADR's shipped slice); (2) browser-drivable active probes
   (PAR construction, response-mode matrix, `prompt`/`max_age`/`acr`/`claims` behavior, negative/error paths);
-  (3) a Node/backend probe runner for the confidential and back-channel legs, including CIBA poll/ping once `F3` lands;
-  (4) wire the external OpenID Foundation Conformance Suite (`T1`) as the certified oracle, with this matrix as the fast
-  pre-flight. The harness is a measurement surface: it tracks backend gaps (`F3` CIBA, `F7` DPoP/mTLS, `F8` PAR, `F16`
+  (3) a Node/backend probe runner for the confidential and back-channel legs, including CIBA poll/ping once [#41](https://github.com/NCodeGroup/Identity/issues/41) lands;
+  (4) wire the external OpenID Foundation Conformance Suite ([#124](https://github.com/NCodeGroup/Identity/issues/124)) as the certified oracle, with this matrix as the fast
+  pre-flight. The harness is a measurement surface: it tracks backend gaps ([#41](https://github.com/NCodeGroup/Identity/issues/41) CIBA, [#45](https://github.com/NCodeGroup/Identity/issues/45) DPoP/mTLS, [#46](https://github.com/NCodeGroup/Identity/issues/46) PAR, [#54](https://github.com/NCodeGroup/Identity/issues/54)
   FAPI, token exchange) but does not itself implement them.
 
   **Status:** Phase 1 (catalog + matrix), Phase 2 (browser-drivable probes), and Phase 3 (the headless probe runner)
@@ -68,14 +68,14 @@ classification to active probing without re-architecture.** Concretely:
   browser dashboard is `apps/conformance` and the Phase-3 runner is the `@ncode/app-conformance-runner` CLI, which
   exercises `client_credentials`, introspection/revocation with client auth, device-code polling, CIBA, `private_key_jwt`,
   DPoP/mTLS, and back-channel logout, exiting non-zero on any `failed` probe so it is a usable CI pre-flight. The
-  runner's asymmetric legs (`private_key_jwt`, DPoP) are driven by a real Node-`crypto` signer (`T7`) that loads a
+  runner's asymmetric legs (`private_key_jwt`, DPoP) are driven by a real Node-`crypto` signer ([#130](https://github.com/NCodeGroup/Identity/issues/130)) that loads a
   PEM/JWK private key (algorithm inferred from the key, overridable) via `--private-key` / `--dpop-key` and builds the
   compact-JWS client assertion (OIDC Core §9) and DPoP proof (RFC 9449 §4). Phase 4 (wiring the external certified suite
   as the oracle behind this pre-flight) is
   now committed as the runnable harness under [`build/conformance/`](../../build/conformance) — `run-conformance.ps1`
   launches the OP, runs the probe-runner pre-flight, brings up the prebuilt-image suite, and drives the Config/Basic OP
   plans gated on committed baselines (see [`docs/conformance/external-suite.md`](../conformance/external-suite.md)); only
-  its nightly/opt-in CI pipeline remains, deferred to `T1` until the repo's CI bootstrap lands.
+  its nightly/opt-in CI pipeline remains, deferred to [#124](https://github.com/NCodeGroup/Identity/issues/124) until the repo's CI bootstrap lands.
 
 ## Options considered
 
@@ -86,7 +86,7 @@ classification to active probing without re-architecture.** Concretely:
   sender-constraining, and server-initiated legs cannot run in a browser (secrets, client certificates, CORS). The
   `browser` / `probe-runner` boundary is intrinsic, so the model encodes it rather than pretending it away.
 - **Re-implement the OpenID Foundation Conformance Suite in-house.** Rejected: duplicating a certified oracle is high
-  cost and low trust. The in-house matrix is the fast local pre-flight; the external suite (`T1`) remains the
+  cost and low trust. The in-house matrix is the fast local pre-flight; the external suite ([#124](https://github.com/NCodeGroup/Identity/issues/124)) remains the
   authoritative certification.
 - **Replace the security audit with the coverage matrix.** Rejected: the two answer different questions ("is the
   advertised config secure?" vs "how much of the spec surface exists?"). They are complementary panels on the same
@@ -99,7 +99,7 @@ classification to active probing without re-architecture.** Concretely:
 
 - The conformance surface now answers protocol **coverage** as well as **security posture**: CIBA, DPoP, PAR, token
   exchange, pairwise subjects, JAR/JARM, and the FAPI profile render as explicit `missing` rows linked to their RFC and
-  their tracking backlog id, so missing functionality is visible and attributable at a glance.
+  their tracking issue, so missing functionality is visible and attributable at a glance.
 - Because every row is classified from **live discovery metadata**, the matrix is also a **regression** detector, not
   only a gap finder: a capability that silently stops being advertised (or an advertised value that flips to
   non-conformant) flips its row, so the harness guards *shipped* features as well as tracking *missing* ones — which is
@@ -108,18 +108,18 @@ classification to active probing without re-architecture.** Concretely:
   OP may implement but not advertise a capability; the matrix says so, and later-phase active probes close the gap. The
   UI labels the semantics so the distinction is not mistaken for a false negative.
 - The `browser` / `probe-runner` / `external-suite` boundary is now a first-class field, establishing the seam for the
-  future headless probe runner (Phase 3) and the external-suite wiring (Phase 4, `T1`) without a model change.
+  future headless probe runner (Phase 3) and the external-suite wiring (Phase 4, [#124](https://github.com/NCodeGroup/Identity/issues/124)) without a model change.
 - The catalog is the durable, versioned home for "the published spec surface we measure against"; extending coverage to
   a newly published spec is a catalog row plus a classifier, keeping the knowledge in the repository
   ([ADR-0008](0008-conventions-and-lessons-live-in-the-repository.md)).
-- This complements, and does not replace, the external OpenID Foundation Conformance Suite (`T1`); that suite remains
+- This complements, and does not replace, the external OpenID Foundation Conformance Suite ([#124](https://github.com/NCodeGroup/Identity/issues/124)); that suite remains
   the authoritative oracle and this matrix the fast, local pre-flight.
 
 ## References
 
-- Backlog: [`BACKLOG.md`](../../BACKLOG.md) group `T` (the `T6` spec-coverage harness epic and its phases), the backend
-  gaps it measures — `F3` (CIBA), `F7` (DPoP/mTLS), `F8` (PAR), `F9` (pairwise subjects), `F11` (`acr`), `F16` (FAPI) —
-  and group `U` (`U3`, the surface this extends).
+- Issues: [#129](https://github.com/NCodeGroup/Identity/issues/129) (the spec-coverage harness epic and its phases), the backend
+  gaps it measures — [#41](https://github.com/NCodeGroup/Identity/issues/41) (CIBA), [#45](https://github.com/NCodeGroup/Identity/issues/45) (DPoP/mTLS), [#46](https://github.com/NCodeGroup/Identity/issues/46) (PAR), [#47](https://github.com/NCodeGroup/Identity/issues/47) (pairwise subjects), [#49](https://github.com/NCodeGroup/Identity/issues/49) (`acr`), [#54](https://github.com/NCodeGroup/Identity/issues/54) (FAPI) —
+  and group `U` ([#135](https://github.com/NCodeGroup/Identity/issues/135), the surface this extends).
 - Surfaces: [ADR-0082](0082-playground-and-conformance-surfaces.md) (the Playground and conformance surfaces this
   builds on), [ADR-0064](0064-frontend-presentation-platform.md) (the presentation platform and its invariants).
 - Discovery: [ADR-0083](0083-secure-by-default-discovery-metadata.md) (why the OP advertises a secure-by-default subset,

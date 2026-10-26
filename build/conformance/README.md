@@ -1,6 +1,6 @@
 # Conformance automation harness
 
-Committed, runnable realization of backlog `T6` Phase 4 / `T1` Phase D: it wires the external **OpenID
+Committed, runnable realization of issue [#129](https://github.com/NCodeGroup/Identity/issues/129) Phase 4 / [#124](https://github.com/NCodeGroup/Identity/issues/124) Phase D: it wires the external **OpenID
 Foundation Conformance Suite** (the certified oracle) behind the in-house probe-runner **pre-flight**, so one
 command drives both against the OpenID host. Design and the manual-triage plan live in
 [`docs/conformance-testing.md`](../../docs/conformance-testing.md) and
@@ -23,7 +23,7 @@ is slow, so it runs as an opt-in / nightly gate while the `dod.ps1` inner loop s
 The `conformance-user` login identity in the configs and the `client` credentials the pre-flight uses match the
 deterministic seed in
 [`appsettings.Conformance.json`](../../src/NCode.Identity.OpenId.Host/appsettings.Conformance.json)
-(`AddConformanceSeed`, backlog `T4`); the Basic OP plan registers its own client per module via Dynamic Client
+(`AddConformanceSeed`, issue [#127](https://github.com/NCodeGroup/Identity/issues/127)); the Basic OP plan registers its own client per module via Dynamic Client
 Registration. Secrets are the dev-only conformance credentials — this is a local test harness, never production.
 
 ## Prerequisites
@@ -120,7 +120,7 @@ would otherwise retry with backoff and hang the wrapper indefinitely, so a plan 
 killed (process tree) and the run fails fast. The harness also pins the suite script's own retry bounds
 (`CONFORMANCE_RETRY_TIMEOUT`, `CONFORMANCE_RESTART_RETRIES`, `CONFORMANCE_MAX_CONSECUTIVE_FAILURES`) so the suite
 self-aborts quickly on a dead/flapping server rather than relying on whatever defaults the freshly-cloned
-upstream ships (backlog `T8`).
+upstream ships (issue [#131](https://github.com/NCodeGroup/Identity/issues/131)).
 
 On first run the script shallow-clones the suite repo into `./.conformance-suite/` (gitignored) for its
 `scripts/run-test-plan.py` and `docker-compose-prebuilt.yml`, and creates a Python venv there for the suite's
@@ -149,6 +149,6 @@ silently rot.
 ## Baselines
 
 Start empty (`[]`); add an entry only for a **documented, intentional** deviation, with a `comment` linking the
-[`BACKLOG.md`](../../BACKLOG.md) item or ADR that justifies it. The entry shape (matched by test name / variant
+issue or ADR that justifies it. The entry shape (matched by test name / variant
 / config / block / condition) is in [`docs/conformance-testing.md`](../../docs/conformance-testing.md)
 Appendix F — fill it from the `--verbose` template the runner prints for any unexpected failure.

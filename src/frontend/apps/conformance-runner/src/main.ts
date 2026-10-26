@@ -2,7 +2,7 @@
  * Node entry point for the headless conformance probe runner. Binds the real process — argv, environment, filesystem,
  * network, stdout/stderr, and exit code — to {@link runCli}, which parses the arguments, runs the probe-runner suite,
  * prints the report, and returns a non-zero exit code when any probe fails, so the runner is a usable CI pre-flight for
- * the external certified suite (Phase 4 / `T1`). All logic lives in the UI-free, unit-tested modules; this file only
+ * the external certified suite (Phase 4 / #124). All logic lives in the UI-free, unit-tested modules; this file only
  * wires the process to them.
  */
 

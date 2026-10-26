@@ -181,7 +181,7 @@ To upgrade a package, change its single `Version` in `Directory.Packages.props` 
 [`.github/dependabot.yml`](.github/dependabot.yml) groups updates per ecosystem (NuGet minor/patch, NuGet majors,
 frontend dev toolchain, frontend production, GitHub Actions). CI gates them like any other change, so a green
 Dependabot PR can be merged as-is. **Weekly version updates are paused** while the family is refactored ahead of its
-first release (backlog `D16`): every ecosystem sets `open-pull-requests-limit: 0`. Security updates still arrive as
+first release (issue [#36](https://github.com/NCodeGroup/Identity/issues/36)): every ecosystem sets `open-pull-requests-limit: 0`. Security updates still arrive as
 pull requests (one group per ecosystem) whenever a published advisory affects a dependency.
 
 When one is red, the fix belongs **on its branch**: check out the PR branch, commit the code or config the new versions
@@ -196,7 +196,7 @@ directories. Dependabot starts with no cache, and a warm local metadata cache ca
 `dependabot.yml` starts an update run for every ecosystem right away, so expect one when you change it.
 
 When an upgrade **cannot land yet** (the upstream ecosystem has not caught up), hold it with an `ignore` rule in
-`dependabot.yml` that explains why, plus a backlog item for lifting it. That is how TypeScript majors and `@types/node`
+`dependabot.yml` that explains why, plus an issue for lifting it. That is how TypeScript majors and `@types/node`
 majors are held today
 ([ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Without the rule,
 every weekly group PR fails on the same package.

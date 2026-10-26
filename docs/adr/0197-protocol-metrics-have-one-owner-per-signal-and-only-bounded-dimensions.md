@@ -156,7 +156,7 @@ renaming an instrument or attribute is a deliberate change.
 
 ## Consequences
 
-- The design is implemented (backlog `F80`): the endpoint, error, and grant-type attributes on
+- The design is implemented (issue [#119](https://github.com/NCodeGroup/Identity/issues/119)): the endpoint, error, and grant-type attributes on
   `http.server.request.duration`, the rate-limiting counter, the event metric's attributes, the Valkey shared-state
   histogram, the reference host's OpenTelemetry wiring, and the instrument catalog.
 - An operator gets latency, traffic, and errors per endpoint and per OAuth error code from one histogram, and can build

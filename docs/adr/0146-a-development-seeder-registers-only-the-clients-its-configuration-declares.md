@@ -14,7 +14,7 @@ required). That shape had three problems.
 
 - **Configuration could extend the list but never replace it.** The configuration binder appends configured entries to
   a list that already holds some, so `DeveloperInteractiveSeed:SpaClients` added clients beside the two built-in ones
-  and could not remove or replace them (backlog `F59`). This is the same defect that was fixed for
+  and could not remove or replace them (issue [#98](https://github.com/NCodeGroup/Identity/issues/98)). This is the same defect that was fixed for
   `ConformanceClientSeed`'s grant types, and it breaks the binding convention of
   [ADR-0137](0137-configuration-binds-strictly-and-is-validated-at-startup.md): a bound collection starts empty.
 - **The seed was never inert.** `AddDevelopmentEnvironment` documents that each development convenience does nothing
@@ -47,7 +47,7 @@ library has no default; the host's environment overlay declares the entries.
 
 ## Options considered
 
-- **Start the list empty and apply the two clients when none are configured.** This was the backlog's suggested fix,
+- **Start the list empty and apply the two clients when none are configured.** This was the issue's suggested fix,
   and it is the shape of the developer CORS default. Rejected: configuration could then replace the clients, but the
   seed would still persist clients in hosts that never asked for them. The client ids would stay split from the
   `Frontend` section that publishes them. And configuration could not ask for no clients at all, because an empty
@@ -73,7 +73,7 @@ library has no default; the host's environment overlay declares the entries.
 
 ## References
 
-- Backlog: `F59` (archived in [`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLETED.md)).
+- Issue: [#98](https://github.com/NCodeGroup/Identity/issues/98).
 - [ADR-0082](0082-playground-and-conformance-surfaces.md): the surfaces and the list-shaped seed this amends.
 - [ADR-0137](0137-configuration-binds-strictly-and-is-validated-at-startup.md): strict binding, and why a bound
   collection starts empty.

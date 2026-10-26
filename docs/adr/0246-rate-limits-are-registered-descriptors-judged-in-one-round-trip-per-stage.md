@@ -158,7 +158,7 @@ billed.**
   host.
 - A stage that a package judges inside an endpoint of the OpenID endpoint group bills the request through the same
   filter; a package that judges a stage elsewhere records its own usage.
-- This implements backlog `R41`.
+- This implements issue [#232](https://github.com/NCodeGroup/Identity/issues/232).
 
 ## References
 

@@ -15,7 +15,7 @@ output
 On Windows, every warning and error from a developer host or a test host went to the machine's Application log,
 thousands of entries a day on a machine that runs the integration suite. The Event Log provider also throws on a write
 after it is disposed, and the integration fixtures failed at random when a host's last warning reached it during
-teardown (backlog `R54`, [ADR-0209](0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
+teardown (issue [#245](https://github.com/NCodeGroup/Identity/issues/245), [ADR-0209](0209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
 
 ## Decision
 

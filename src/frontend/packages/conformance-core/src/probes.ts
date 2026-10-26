@@ -215,7 +215,7 @@ export async function probeUserInfoUnauthorized(
 
 /**
  * Verifies the Pushed Authorization Request endpoint (when advertised) accepts a PKCE request and returns a
- * `request_uri`. Skipped when the provider advertises no PAR endpoint (the common case until backlog `F8` lands).
+ * `request_uri`. Skipped when the provider advertises no PAR endpoint (the common case until issue #46 lands).
  */
 export async function probePar(
   raw: RawDiscovery,
@@ -232,7 +232,7 @@ export async function probePar(
       id,
       feature,
       reference,
-      "'pushed_authorization_request_endpoint' is not advertised (gap: F8).",
+      "'pushed_authorization_request_endpoint' is not advertised (gap: #46).",
     );
   }
   if (!clientId) {

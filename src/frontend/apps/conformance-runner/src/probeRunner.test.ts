@@ -546,10 +546,10 @@ describe('probeDeviceAuthorization', () => {
 });
 
 describe('probeCiba', () => {
-  it('skips when the endpoint is not advertised (gap F3)', async () => {
+  it('skips when the endpoint is not advertised (gap #41)', async () => {
     const result = await probeCiba(discovery, routedFetch({}).fetchFn, confidential);
     expect(result.outcome).toBe('skipped');
-    expect(result.detail).toContain('F3');
+    expect(result.detail).toContain('#41');
   });
 
   it('verifies when an auth_req_id is issued', async () => {
@@ -773,7 +773,7 @@ describe('probePrivateKeyJwt', () => {
 });
 
 describe('probeDpop', () => {
-  it('skips when DPoP is not advertised (gap F7)', async () => {
+  it('skips when DPoP is not advertised (gap #45)', async () => {
     const result = await probeDpop(discovery, routedFetch({}).fetchFn, {
       ...confidential,
       createDpopProof: () => Promise.resolve('proof'),

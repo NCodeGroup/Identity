@@ -23,7 +23,7 @@ hand-deleting the SQLite files **and** the key-ring directory, and keeping the t
 other and the stored signing key becomes undecryptable.
 
 The AppHost ([ADR-0071](0071-aspire-local-dev-orchestrator.md)) already orchestrates the local stack but had no
-database resource, and U12 ([`BACKLOG.md`](../../BACKLOG.md)) tracked relocating the database bootstrap out of the
+database resource, and [#144](https://github.com/NCodeGroup/Identity/issues/144) tracked relocating the database bootstrap out of the
 `api` process into a dedicated Aspire resource so a migration failure surfaces as a failed dashboard resource rather
 than an `api` crash.
 
@@ -42,7 +42,7 @@ worker; and persist the **Data Protection key ring in that same database** so al
   (`ncode-identity-openiddb-data`), so data **survives restarts** by default. A single
   [`build/dev-db-reset.ps1`](../../build/dev-db-reset.ps1) removes that volume for an **on-demand purge**; the next run
   rebuilds the schema and re-seeds. The script auto-detects Docker or Podman, matching Aspire's own runtime detection.
-- **Dedicated migration worker (U12).** A new `NCode.Identity.OpenId.Host.MigrationService` worker applies the
+- **Dedicated migration worker ([#144](https://github.com/NCodeGroup/Identity/issues/144)).** A new `NCode.Identity.OpenId.Host.MigrationService` worker applies the
   migrations and exits. The `api` `WaitForCompletion`s on it, so a migration failure is a **failed dashboard resource**
   that blocks the `api` instead of crashing it. Schema application leaves the `api`; **seeding** (admin, SPA client,
   signing key) stays in the `api` as idempotent seed handlers.

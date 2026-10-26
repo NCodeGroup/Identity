@@ -63,19 +63,19 @@ describe('buildCoverageReport — implemented baseline', () => {
   });
 });
 
-describe('buildCoverageReport — gaps surface as missing with backlog ids', () => {
+describe('buildCoverageReport — gaps surface as missing with issue numbers', () => {
   it('marks CIBA, PAR, DPoP, token exchange, and FAPI as missing against the baseline', () => {
     const report = buildCoverageReport(baseline);
     expect(entry(report, 'ep-ciba')?.status).toBe('missing');
     expect(entry(report, 'ep-par')?.status).toBe('missing');
-    expect(entry(report, 'ep-par')?.backlog).toBe('F8');
+    expect(entry(report, 'ep-par')?.issue).toBe(46);
     expect(entry(report, 'sec-dpop')?.status).toBe('missing');
-    expect(entry(report, 'sec-dpop')?.backlog).toBe('F7');
+    expect(entry(report, 'sec-dpop')?.issue).toBe(45);
     expect(entry(report, 'grant-token-exchange')?.status).toBe('missing');
     expect(entry(report, 'profile-fapi2')?.status).toBe('missing');
     expect(entry(report, 'profile-fapi2')?.detail).toContain('PAR');
     expect(entry(report, 'profile-fapi1-advanced')?.status).toBe('missing');
-    expect(entry(report, 'profile-fapi1-advanced')?.backlog).toBe('T1');
+    expect(entry(report, 'profile-fapi1-advanced')?.issue).toBe(124);
   });
 
   it('lights up FAPI 1.0 Advanced once every prerequisite is advertised', () => {
@@ -246,12 +246,12 @@ describe('buildCoverageReport — empty discovery document', () => {
     expect(entry(report, 'grant-insecure')?.status).toBe('implemented');
   });
 
-  it('carries backlog ids only for rows that track one', () => {
-    expect(entry(report, 'ep-check-session')?.backlog).toBe('D2');
-    expect(entry(report, 'ep-authorize')).not.toHaveProperty('backlog');
-    expect(entry(report, 'grant-code')).not.toHaveProperty('backlog');
-    expect(entry(report, 'sec-jar')).not.toHaveProperty('backlog');
-    expect(entry(report, 'sec-jarm')).not.toHaveProperty('backlog');
+  it('carries issue numbers only for rows that track one', () => {
+    expect(entry(report, 'ep-check-session')?.issue).toBe(22);
+    expect(entry(report, 'ep-authorize')).not.toHaveProperty('issue');
+    expect(entry(report, 'grant-code')).not.toHaveProperty('issue');
+    expect(entry(report, 'sec-jar')).not.toHaveProperty('issue');
+    expect(entry(report, 'sec-jarm')).not.toHaveProperty('issue');
   });
 
   it('assigns each row the channel that can exercise it', () => {

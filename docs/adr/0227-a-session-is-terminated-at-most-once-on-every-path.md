@@ -16,7 +16,7 @@ once. The other paths that terminate a named session dispatched `OnSessionTermin
 `ISessionService.RevokeAsync`, `RevokeAllExceptAsync`, `RevokeAllAsync`, the eviction at the concurrent-session limit
 and the RP-initiated logout. A session that two paths ended at once notified its relying parties twice and was audited
 twice, and a subject-wide termination revoked the grants of the subject only in its dispatch, so a dispatch that failed
-left them active (backlog `R95`).
+left them active (issue [#286](https://github.com/NCodeGroup/Identity/issues/286)).
 
 ## Decision
 
@@ -74,7 +74,7 @@ dispatches.**
   decides.
 - **Breaking:** `ISessionService.RevokeAsync` returns `bool`, and `RevokeAllAsync` and `RevokeAllExceptAsync` return the
   number of sessions that the call terminated.
-- This implements backlog `R95`.
+- This implements issue [#286](https://github.com/NCodeGroup/Identity/issues/286).
 
 ## References
 

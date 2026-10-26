@@ -97,7 +97,7 @@ small components composed into opinionated stacks, and the supported set is limi
   process, and release notes; stacks stay thin wiring over them.
 - Self-hosting documentation becomes part of the product, and issues from other environments must be triaged within the
   supported tiers.
-- Work is tracked in the backlog as `F48`, building on the host deployment artifacts in `F46`.
+- Work is tracked as issue [#87](https://github.com/NCodeGroup/Identity/issues/87), building on the host deployment artifacts in [#85](https://github.com/NCodeGroup/Identity/issues/85).
 
 ## References
 

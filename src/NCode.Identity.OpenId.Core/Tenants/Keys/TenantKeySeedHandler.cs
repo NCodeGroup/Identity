@@ -55,7 +55,7 @@ internal class TenantKeySeedHandler(
     ILogger<TenantKeySeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
-    // A provisioned key has no lifetime of its own: nothing enforces a key's expiry, and key rollover (backlog S8) is
+    // A provisioned key has no lifetime of its own: nothing enforces a key's expiry, and key rollover (issue #166) is
     // what will give provisioned keys one.
     private const int KeyLifetimeYears = 100;
 

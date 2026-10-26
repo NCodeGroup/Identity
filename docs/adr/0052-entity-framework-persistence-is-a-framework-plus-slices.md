@@ -127,7 +127,7 @@ tenant-scoped.
   `…Persistence.EntityFramework.Accounts`.
 - Adding a new persistence slice is additive: a package of entities, stores, a contributor, and registrations against
   the framework — no change to the framework or other slices.
-- A deliberately deferred option ([`BACKLOG.md`](../../BACKLOG.md)): if the framework is ever wanted without the OpenID
+- A deliberately deferred option ([GitHub issues](https://github.com/NCodeGroup/Identity/issues)): if the framework is ever wanted without the OpenID
   schema, a context-agnostic layer can be extracted below it; there is no current goal for that.
 
 ## References

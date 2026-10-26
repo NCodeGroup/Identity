@@ -144,7 +144,7 @@ public class HtmlPageSecurityTests
         using var second = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
-        // Antiforgery reuses the cookie it was sent, so it adds no frame option of its own (R112).
+        // Antiforgery reuses the cookie it was sent, so it adds no frame option of its own (issue #303).
         Assert.Null(ReadAntiforgeryCookie(second));
         Assert.Matches(SurfacePolicyPattern, AssertFramingForbidden(second));
     }

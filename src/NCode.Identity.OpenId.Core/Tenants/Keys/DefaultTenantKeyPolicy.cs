@@ -37,7 +37,7 @@ internal class DefaultTenantKeyPolicy(
 ) : ITenantKeyPolicy
 {
     // RSA keys are 3072 bits because NIST SP 800-57 accepts 2048-bit RSA only through 2030, and a provisioned key has
-    // no lifetime of its own until key rollover exists (backlog S8).
+    // no lifetime of its own until key rollover exists (issue #166).
     private const int DefaultRsaKeySizeBits = 3072;
 
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =

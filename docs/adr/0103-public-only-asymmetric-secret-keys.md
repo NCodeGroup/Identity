@@ -56,7 +56,7 @@ certificate without a private key.**
 
 - The OP can hold a relying party's public key as a first-class `SecretKey`, unblocking `private_key_jwt`
   ([ADR-0102](0102-jwt-bearer-client-authentication.md)) and JAR verification against a client's registered keys, and
-  providing the primitive the client `jwks_uri` / BYOK onboarding (`F16` Phase 0, `S3`) builds on.
+  providing the primitive the client `jwks_uri` / BYOK onboarding ([#54](https://github.com/NCodeGroup/Identity/issues/54) Phase 0, [#161](https://github.com/NCodeGroup/Identity/issues/161)) builds on.
 - A client registered with a **public certificate** (`x509` secret) now authenticates via `private_key_jwt` with no new
   secret type: `DefaultSecretSerializer` deserializes the certificate through the relaxed `Create`, producing a
   verify-only key. (When persisting such a secret, `KeySizeBits` must be the public key's size — e.g. 2048 for RSA —

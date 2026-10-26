@@ -197,8 +197,9 @@ export function ConformanceDashboard({
             <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
               Coverage of the full published OAuth&nbsp;2.x / OpenID&nbsp;Connect / CIBA / FAPI
               surface, classified from the live discovery document (semantics: <em>advertised</em>).
-              Categories with a gap start expanded; missing rows link to their tracking backlog id,
-              and the channel tag records which actor can exercise each feature end to end.
+              Categories with a gap start expanded; missing rows link to the GitHub issue that
+              tracks them, and the channel tag records which actor can exercise each feature end to
+              end.
             </Typography>
             <CoverageMatrix report={coverage} />
           </TabPanel>

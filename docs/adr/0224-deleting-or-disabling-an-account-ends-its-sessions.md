@@ -20,7 +20,7 @@ Deleting a local account removed the account, its self-issued identity and, with
 its role assignments ([ADR-0212](0212-deleting-an-owner-removes-what-it-owns.md)), but the sessions, the refresh
 tokens and the consents of the principal remained. Disabling an account kept all of them as well. No handler of
 `ValidateSubjectAuthenticationCommand` checked the account, so a refresh token of a deleted or disabled account was
-redeemed until it expired (backlog `R89`).
+redeemed until it expired (issue [#280](https://github.com/NCodeGroup/Identity/issues/280)).
 
 ## Decision
 
@@ -92,7 +92,7 @@ disabled or gone.**
 - **Breaking:** `SessionTerminationReasons.AccountDeleted` and `SessionTerminationReasons.AccountDisabled` are added,
   `IFederatedPrincipalStore.RemoveAsync` erases the consents and the grants of the principal, and
   `NCode.Identity.OpenId.Accounts.Management` references `NCode.Identity.OpenId.Authentication.Abstractions`.
-- This implements backlog `R89`.
+- This implements issue [#280](https://github.com/NCodeGroup/Identity/issues/280).
 
 ## References
 

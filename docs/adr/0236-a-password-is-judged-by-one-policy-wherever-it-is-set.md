@@ -12,7 +12,7 @@ Four paths set the password of a local account: the management API's create and 
 ([ADR-0226](0226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md)), the
 self-service change ([ADR-0230](0230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)), and the
 developer and conformance seeders. Each of them accepts any non-empty value, so an account can hold a password that
-anyone guesses at the first attempt (backlog `R101`).
+anyone guesses at the first attempt (issue [#292](https://github.com/NCodeGroup/Identity/issues/292)).
 
 NIST SP 800-63B-4 §3.1.1.2 sets what a verifier requires of a password:
 
@@ -136,7 +136,7 @@ lists.**
     `IInteractivePasswordChanger` returns its static results or `Refused(code)`.
   - `IPasswordPolicy`, `IPasswordBlocklist`, `PasswordPolicyContext`, `PasswordPolicyResult`, `PasswordPolicyErrors` and
     `InteractivePasswordChangeErrors` are added.
-- This implements backlog `R101`.
+- This implements issue [#292](https://github.com/NCodeGroup/Identity/issues/292).
 
 ## References
 

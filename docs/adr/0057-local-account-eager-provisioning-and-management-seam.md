@@ -22,7 +22,7 @@ the `ILocalAccountSource` (read) / `ILocalAccountProvisioner` (write) seams, but
 resource-owner password grant. `ILocalAccountProvisioner` exposed a single `CreateAsync` that persisted the account row
 and nothing else, and it had **no caller at all** — an operator could only _seed_ accounts directly through the store.
 There was no management surface to create, update, disable, reset the credential of, or set the metadata of a local
-account. This gap is tracked as item `A1` in [`BACKLOG.md`](../../BACKLOG.md).
+account.
 
 Two facts about the existing model made a straightforward "add CRUD endpoints" increment insufficient:
 
@@ -31,7 +31,7 @@ Two facts about the existing model made a straightforward "add CRUD endpoints" i
   created **lazily**, by `DefaultPrincipalResolver`, on the first authentication. But
   [ADR-0055](0055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md) moved the `ProfileMetadata` /
   `SystemMetadata` bags onto the **principal**. A freshly-created account that had never logged in therefore had **no
-  principal to carry metadata** — so a `set-metadata` operation (an explicit `A1` requirement, which must also enforce
+  principal to carry metadata** — so a `set-metadata` operation (an explicit requirement, which must also enforce
   the ADR-0054 invariant that `SystemMetadata` is server/admin-only) had no target. Resource ownership (the management
   authorization model) is likewise keyed to a principal.
 - **`CreateAsync` owned its own unit of work and only wrote the account row.** It opened a store manager, added the

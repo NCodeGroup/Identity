@@ -77,5 +77,5 @@ The platform's values live in a public repository
   for more than one replica. The chart's `README.md` lists them.
 - The chart migrates the database in a pre-deploy Job
   ([ADR-0180](0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). It does not yet publish
-  itself: `F48` tracks publishing it with the image as a signed OCI artifact.
+  itself: [#87](https://github.com/NCodeGroup/Identity/issues/87) tracks publishing it with the image as a signed OCI artifact.
 - An ingress other than the chart's generic `Ingress`, such as a Traefik `IngressRoute`, is the operator's to add.

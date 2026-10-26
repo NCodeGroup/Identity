@@ -9,7 +9,7 @@
 The reconciliation of the server's effective settings
 ([ADR-0219](0219-server-settings-converge-on-every-replica-through-one-reconciliation.md)) records only a fingerprint
 of the settings it reconciled against. It cannot tell what a change moved, so each change reads the keys of every
-tenant that uses a configured algorithm and checks every client of every tenant (backlog `R88`), however small the
+tenant that uses a configured algorithm and checks every client of every tenant (issue [#279](https://github.com/NCodeGroup/Identity/issues/279)), however small the
 change is.
 
 Whether a change affects a tenant depends on the tenant's own document: its overrides and the security profiles it
@@ -86,7 +86,7 @@ handler reaches only the tenants and clients that the difference affects.**
   - `PersistedServer.ReconciledSettings` and `ServerEntity.ReconciledSettingsJson` hold the settings, and the
     `AddServerReconciledSettings` migration adds the `Servers.ReconciledSettingsJson` column.
   - `ReconcileServerSettingsCommand` carries `PreviousSettings`.
-- This implements backlog `R88`.
+- This implements issue [#279](https://github.com/NCodeGroup/Identity/issues/279).
 
 ## References
 

@@ -60,7 +60,7 @@ fails closed.**
 - A token with an unreadable `nbf`/`exp` is rejected, and a date-string `exp` is no longer honored.
 - A fractional `NumericDate` is accepted everywhere, with sub-second precision preserved.
 - A client assertion whose `exp` is far in the future is still accepted (only the overflow is fixed); capping assertion
-  lifetime, which RFC 7523 §3 permits, is a separate hardening item (backlog `F39`) — since delivered by
+  lifetime, which RFC 7523 §3 permits, is a separate hardening item (issue [#78](https://github.com/NCodeGroup/Identity/issues/78)) — since delivered by
   [ADR-0124](0124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md).
 
 ## References
@@ -72,4 +72,4 @@ fails closed.**
 - [RFC 7523 §3 — JWT assertion `exp`](https://datatracker.ietf.org/doc/html/rfc7523#section-3)
 - [ADR-0121](0121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md) — the string-date half of
   `DateCoercion`
-- Backlog `D13` ([`BACKLOG-COMPLETED.md`](../../BACKLOG-COMPLETED.md))
+- Issue [#33](https://github.com/NCodeGroup/Identity/issues/33)

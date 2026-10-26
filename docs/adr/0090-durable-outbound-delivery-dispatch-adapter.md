@@ -17,7 +17,7 @@ keep trying until it succeeds:
   their authentication device, the OP must `POST` a completion ping — or, for push, the issued tokens — to the client's
   `client_notification_endpoint`. The original implementation did this **inline on the approval request, best-effort**:
   a failed `POST` was logged and dropped, with no retry and (for push) no way for the client to recover, since a
-  push-mode client never polls. That is the gap recorded in backlog `D4`.
+  push-mode client never polls. That is the gap recorded in issue [#24](https://github.com/NCodeGroup/Identity/issues/24).
 - **Back-channel logout notification** ([ADR-0074](0074-session-management-and-logout.md)): the same best-effort,
   single-attempt HTTP `POST` shape, with the same "a failed delivery is silently lost" weakness.
 - **Durable audit delivery** ([ADR-0048](0048-durable-audit-delivery-outbox.md)): the proposed transactional outbox
@@ -40,7 +40,7 @@ textbook shape for the **adapter (port/adapter) pattern**.
 single port, `IJobDispatcher`, is the adapter seam for *how* deferred work runs, and route CIBA client delivery through
 it as the first consumer.** Ship an **in-process, self-scheduling** default adapter with retry and exponential
 back-off; let a deployment replace it wholesale with a durable or distributed backend by registering its own
-`IJobDispatcher`, with **no change to the producing code or the job handlers**. Also complete the second half of `D4`
+`IJobDispatcher`, with **no change to the producing code or the job handlers**. Also complete the second half of [#24](https://github.com/NCodeGroup/Identity/issues/24)
 by advertising the CIBA request-object **encryption** capability.
 
 ### The dispatch subsystem (generic, not CIBA-specific)
@@ -82,7 +82,7 @@ by advertising the CIBA request-object **encryption** capability.
   former `NotifyClientAsync` / `DeliverTokensAsync` HTTP methods are **removed** (clean cutover): client-facing delivery
   is now the dispatch job.
 
-### Request-object encryption advertisement (the second half of `D4`)
+### Request-object encryption advertisement (the second half of [#24](https://github.com/NCodeGroup/Identity/issues/24))
 
 New server settings `backchannel_authentication_request_encryption_alg_values_supported` /
 `…_enc_values_supported` / `…_zip_values_supported` join the discovery catalog next to the existing
@@ -124,7 +124,7 @@ JWE's key-management `alg` was previously checked against the _signing_ set.
 ## Consequences
 
 - CIBA ping/push delivery is **retried with back-off** and is **pluggable**: a deployment that needs at-least-once
-  across crashes registers a durable `IJobDispatcher` and changes nothing else. Backlog `D4` is closed (delivery
+  across crashes registers a durable `IJobDispatcher` and changes nothing else. Issue [#24](https://github.com/NCodeGroup/Identity/issues/24) is closed (delivery
   durability **and** encryption advertisement).
 - A new, small, reusable subsystem (`NCode.Identity.Dispatch(.Abstractions)`) exists for *any* deferred, reliable work.
   **Back-channel logout ([ADR-0074](0074-session-management-and-logout.md)) already adopts it** — its default notifier
@@ -143,7 +143,7 @@ JWE's key-management `alg` was previously checked against the _signing_ set.
 ## References
 
 - [ADR-0085](0085-ciba-grant.md) — the CIBA grant whose push/ping delivery this makes durable and whose request-object
-  encryption advertisement this completes (closing backlog `D4`).
+  encryption advertisement this completes (closing issue [#24](https://github.com/NCodeGroup/Identity/issues/24)).
 - [ADR-0048](0048-durable-audit-delivery-outbox.md) — the durable-audit outbox, now unified as a durable `IJobDispatcher`
   adapter rather than a parallel mechanism.
 - [ADR-0074](0074-session-management-and-logout.md) — back-channel logout, now a consumer of the dispatch port (its

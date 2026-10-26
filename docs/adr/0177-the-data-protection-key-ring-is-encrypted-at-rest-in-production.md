@@ -54,5 +54,5 @@ replica is replaced. The fallback happens inside the key manager, so `KeyManagem
   it, matched by thumbprint, so a renewal written in place over the current certificate, which is cert-manager's
   default, leaves the ring unreadable after the next restart. The host chart's README describes the rotation steps and
   warns against in-place renewal.
-- Envelope encryption of individual stored secrets (`S9`) and external keystores (`S7`) remain separate, complementary
+- Envelope encryption of individual stored secrets ([#167](https://github.com/NCodeGroup/Identity/issues/167)) and external keystores ([#165](https://github.com/NCodeGroup/Identity/issues/165)) remain separate, complementary
   work. This decision protects only the ring itself.

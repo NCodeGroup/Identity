@@ -64,7 +64,7 @@ The two hashes EdDSA needs â€” **SHA-512** (Ed25519) and **SHAKE256** (Ed448) â€
 ## Consequences
 
 - EdDSA signing and verification are available with **no** third-party cryptographic dependency and **no** EOL-TFM or
-  native-library audit exposure. `F29` is delivered; `F28`'s EdDSA item is unblocked.
+  native-library audit exposure. [#68](https://github.com/NCodeGroup/Identity/issues/68) is delivered; [#66](https://github.com/NCodeGroup/Identity/issues/66)'s EdDSA item is unblocked.
 - Correctness is pinned by differential tests that cross-check the clean-room output **byte-for-byte** against an
   independent implementation used solely as a **test oracle** (never referenced by shipping code), plus the structural
   group/field/scalar invariants. The oracle lives only in the test project.

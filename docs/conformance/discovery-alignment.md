@@ -1,4 +1,4 @@
-# T5 — Discovery-metadata alignment audit
+# Discovery-metadata alignment audit
 
 Status: **implemented** ([ADR-0083](../adr/0083-secure-by-default-discovery-metadata.md)). The OpenID Provider now
 advertises secure-by-default, verified capabilities, overridable by operators through configuration. This document is
@@ -53,11 +53,11 @@ Verify each discoverable field against actual support for the Basic/Config profi
 
 | Metadata field                                                           | Target (Basic/Config)                          | Note                                                  |
 | ------------------------------------------------------------------------ | ---------------------------------------------- | ----------------------------------------------------- |
-| `issuer`                                                                 | exact reached origin                           | Owned by `T3` (byte-match)                            |
+| `issuer`                                                                 | exact reached origin                           | Owned by [#126](https://github.com/NCodeGroup/Identity/issues/126) (byte-match)                            |
 | `authorization_endpoint`/`token_endpoint`/`jwks_uri`/`userinfo_endpoint` | origin-relative, present                       | Emitted from `EndpointDataSource`                     |
 | `response_types_supported`                                               | `["code"]`                                     | **Drop `implicit`/hybrid** until those flows verified |
 | `grant_types_supported`                                                  | `["authorization_code","refresh_token"]`       | **Drop `implicit`**; match the seeded client's grants |
-| `subject_types_supported`                                                | `["public","pairwise"]`                        | Both implemented (`F9`, ADR-0093)                     |
+| `subject_types_supported`                                                | `["public","pairwise"]`                        | Both implemented ([#47](https://github.com/NCodeGroup/Identity/issues/47), ADR-0093)                     |
 | `id_token_signing_alg_values_supported`                                  | `["RS256"]`                                    | Must match the key served at `jwks_uri`               |
 | `scopes_supported`                                                       | incl. `openid`, `profile`, `email`             | Suite requests these in standard-claims tests         |
 | `claims_supported`                                                       | the claims actually returned                   | Over-advertising triggers warnings                    |
@@ -66,7 +66,7 @@ Verify each discoverable field against actual support for the Basic/Config profi
 
 ## Approach
 
-- Treat this as a **configuration/settings audit**, driven from the conformance profile (`T3`), not a
+- Treat this as a **configuration/settings audit**, driven from the conformance profile ([#126](https://github.com/NCodeGroup/Identity/issues/126)), not a
   handler rewrite. Override discoverable settings to the Basic/Config target values for the conformance
   run.
 - **Remove `implicit`** (and any hybrid response types) from the conformance profile's
@@ -77,7 +77,7 @@ Verify each discoverable field against actual support for the Basic/Config profi
   matching the active `jwks_uri` key, and `claims_supported` matching what the claims handlers actually
   emit.
 - Where the OP intentionally does **not** support something the suite probes, that becomes a baseline
-  entry (`expected-skips.json` / `expected-failures.json`) in `T1`, not an advertised capability.
+  entry (`expected-skips.json` / `expected-failures.json`) in [#124](https://github.com/NCodeGroup/Identity/issues/124), not an advertised capability.
 
 ## Work breakdown
 
@@ -87,7 +87,7 @@ Verify each discoverable field against actual support for the Basic/Config profi
 3. Verify each advertised value against actual behavior (scopes, auth methods, signing alg vs. jwks,
    claims).
 4. Diff the live discovery document against the Appendix A checklist; record any intentional deviation as
-   a `T1` baseline entry rather than silently advertising it.
+   a [#124](https://github.com/NCodeGroup/Identity/issues/124) baseline entry rather than silently advertising it.
 
 ## Acceptance criteria
 
@@ -100,7 +100,7 @@ Verify each discoverable field against actual support for the Basic/Config profi
 
 ## Dependencies & links
 
-- **Depends on** `T3` for the `issuer` byte-match; **pairs with** `T4` (advertised grants must match the
+- **Depends on** [#126](https://github.com/NCodeGroup/Identity/issues/126) for the `issuer` byte-match; **pairs with** [#127](https://github.com/NCodeGroup/Identity/issues/127) (advertised grants must match the
   seeded clients).
-- Feeds `T1` (Config OP) and informs the `T1` baseline files for any intentional non-support.
+- Feeds [#124](https://github.com/NCodeGroup/Identity/issues/124) (Config OP) and informs the [#124](https://github.com/NCodeGroup/Identity/issues/124) baseline files for any intentional non-support.
 - Field-by-field reference: [`conformance-testing.md`](../conformance-testing.md) Appendix A.

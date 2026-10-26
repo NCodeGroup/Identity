@@ -11,7 +11,7 @@
 The in-process dispatcher ([ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md)) delivers the back-channel
 logout notifications ([ADR-0074](0074-session-management-and-logout.md)) and the CIBA ping and push notifications
 ([ADR-0085](0085-ciba-grant.md)) to the endpoints that clients register, and it retries a failed delivery with back-off.
-Three properties of its worker (backlog `R85`) make the behavior of one endpoint the problem of every delivery:
+Three properties of its worker (issue [#276](https://github.com/NCodeGroup/Identity/issues/276)) make the behavior of one endpoint the problem of every delivery:
 
 - A worker that runs one job at a time is held by an endpoint that does not answer until the HTTP client's timeout, and
   every job queued behind the delivery waits that long.
@@ -51,7 +51,7 @@ that fails for any reason but the host stopping is retried once.**
   for the semaphore.
 - **A shorter HTTP timeout only.** Rejected: it shortens the wait but not its cause. A delivery still holds the only
   worker, and a timeout still ends a worker that treats it as shutdown.
-- **A durable adapter** (backlog `D5`). Deferred: it answers a delivery that survives a restart, not a slow endpoint
+- **A durable adapter** (issue [#25](https://github.com/NCodeGroup/Identity/issues/25)). Deferred: it answers a delivery that survives a restart, not a slow endpoint
   that holds the in-process worker. A deployment that needs it registers its own `IJobDispatcher`
   ([ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md)).
 - **Options set only in code.** Rejected: an operator tunes the dispatcher through configuration, which
@@ -71,7 +71,7 @@ that fails for any reason but the host stopping is retried once.**
 - A handler's timeout is a logged, retried attempt. It ends neither the consumer nor the host.
 - A retry runs every handler of the job again, so each handler is idempotent, as
   [ADR-0090](0090-durable-outbound-delivery-dispatch-adapter.md) requires.
-- This implements backlog `R85`.
+- This implements issue [#276](https://github.com/NCodeGroup/Identity/issues/276).
 
 ## References
 

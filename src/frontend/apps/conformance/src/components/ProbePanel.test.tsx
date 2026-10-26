@@ -19,7 +19,7 @@ const report: ProbeReport = {
       id: 'probe-par',
       feature: 'PAR endpoint accepts a pushed request',
       outcome: 'skipped',
-      detail: 'Not advertised (gap: F8).',
+      detail: 'Not advertised (gap: #46).',
       reference: 'RFC 9126',
     },
   ],

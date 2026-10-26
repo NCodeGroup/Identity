@@ -109,7 +109,8 @@ marked tool-enforced or review-only. The highlights:
 An agent-assisted change of more than a few steps runs as **plan-and-execute**: Claude Opus plans it into `PLAN.md`,
 Claude Sonnet 5.5 executes one verified step at a time, and Opus re-plans any step that comes back — in VS Code,
 Copilot CLI or Claude Code. The workflow files come from the project template; update them with
-`./.template/Update-Project.ps1`, never by hand. See [AGENTS.md](AGENTS.md#plan-and-execute-workflow) and
+`/plan-template-update`, which plans and runs `./.template/Update-Project.ps1`, never by hand. See
+[AGENTS.md](AGENTS.md#plan-and-execute-workflow) and
 [ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md).
 
 See [GOVERNANCE.md](GOVERNANCE.md) for ownership, the release lifecycle, and how versions map onto tags.

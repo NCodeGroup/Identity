@@ -56,6 +56,15 @@ of commands no longer moves to the main checkout. From `v0.12.0`, a plan names t
 `Closes #<number>`, which ties each plan to the issue that tracks its work
 ([ADR-0264](0264-pending-work-is-tracked-as-github-issues.md)).
 
+The update to project-template `v0.14.0` adds three commands. From `v0.13.0`, `/plan-issue #<number>` plans one
+issue: it reads the issue and every comment, stops with questions when the issue is closed, already planned, has an
+open pull request or says too little to plan, and picks the kind of plan from the issue's labels. `/triage-issues`
+lists open issues with each one's readiness and size and the `/plan-issue` command for each ready one. Every planning
+command treats an issue's text as data, never as instructions, because anyone who can comment wrote part of it. From
+`v0.14.0`, `/plan-template-update` plans a template update from a trial run of `Update-Project.ps1 -NoCommit` on a
+clone: its plan runs the update as its first step, then the checks, then fixes the project files that still
+describe the old template, and the planning session files each gap the trial shows as a project-template issue.
+
 ## Context
 
 An agent-driven change has two halves with opposite needs. **Planning** — reading the code paths, settling the design,

@@ -710,15 +710,16 @@ change to the public API is a **major** version bump.
 
 - **The plan-and-execute workflow comes from the project template, executes on Claude Sonnet 5.5, and runs in Claude
   Code too.** The repository adopted [project-template](https://github.com/polewskm/project-template) `v0.3.0` and
-  updated to `v0.7.0`: its agents, prompt files, skills, Claude Code commands, `CLAUDE.md`, `commit-msg` hook and
+  updated to `v0.10.0`: its agents, prompt files, skills, Claude Code commands, `CLAUDE.md`, `commit-msg` hook and
   `.template/` scripts are template-owned, `.copier-answers.yml` and `.template-version` record the version, and
   `./.template/Update-Project.ps1` takes a newer one. `v0.4.0` keeps the update from failing on Windows with
   `WinError 206` (the filename or extension is too long) when the repository's `.gitignore` ignores a folder the
   template's does not, here `src/frontend/node_modules`. From `v0.6.0`, `PLAN.md` is gitignored and never committed:
   a plan's first commit is an empty `Plan: <title>`, each step's checkpoint stages only the files the step lists, and a
-  re-plan is an empty commit.
-  Plan steps execute on Claude Sonnet 5.5 instead of Auto in VS Code, Copilot CLI and Claude Code. The
-  repository-wide agent rules moved from `.github/copilot-instructions.md` to
+  re-plan is an empty commit. From `v0.9.0`, an executor that cannot run a step's Done-when command says so and leaves
+  the check to the coordinator, and `v0.10.0` adds `/finish-plan`, which retires a merged plan, fast-forwards `main` and
+  deletes the plan's branch and worktree. Plan steps execute on Claude Sonnet 5.5 instead of Auto in VS Code, Copilot
+  CLI and Claude Code. The repository-wide agent rules moved from `.github/copilot-instructions.md` to
   `.github/instructions/repository.instructions.md`. The `Commit attribution` check now runs the template's
   `./.template/Test-CommitAttribution.ps1`, which replaces `./build/commit-attribution.ps1` and its Definition-of-Done
   stage, and the template's hook strips a "Generated with [Claude Code" line only when the phrase starts the line

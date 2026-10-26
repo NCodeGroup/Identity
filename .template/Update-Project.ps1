@@ -18,7 +18,8 @@
                       changes are merged with the project's edits, like a Git merge; the same lines changed on
                       both sides conflict.
       Project-owned   Written once, never touched again (copier.yml's _skip_if_exists). When the template changed
-                      one since the project's version, the script shows the template's change.
+                      one since the project's version, the script shows the template's change, rendered with
+                      the project's answers.
 
     The update runs `copier recopy` at the project's current template version, which resets the template-owned
     files and shows any local edits, then `copier update --defaults` to the newest version (or -Ref), which merges
@@ -27,6 +28,10 @@
     Without conflicts the result is one commit, "Update from project-template <version>"; -NoCommit stages it
     instead. With a conflict it commits nothing, says how to finish or abandon the update, and exits 1. On any
     other failure the project is reset to where it was.
+
+    On the default branch (the branch origin/HEAD names) it refuses to run unless -NoCommit is given, because it
+    commits. It enables the template's hooks (core.hooksPath .githooks) unless the clone already has a hooks path or
+    hooks in .git/hooks.
 
     Every version of this script accepts -Path, -Ref, -Data, -NoCommit, -TemplateClone and -HandedOff, so any
     version can hand over to any later one.
@@ -48,16 +53,29 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
+# Copier says "Make sure Git >= 2.24 is installed" whenever Git rejects `diff-tree --inter-hunk-context=-1`,
+# which Git 2.55 and later always do (copier-org/copier#2759), so the filter swaps in an accurate note.
 function Invoke-Copier {
-    if (Get-Command copier -ErrorAction SilentlyContinue) { & copier @args }
-    elseif (Get-Command uvx -ErrorAction SilentlyContinue) { & uvx --from copier copier @args }
+    $gitNote = 'Copier''s "Make sure Git >= 2.24 is installed" is a false alarm: Git 2.55 and later reject an option its update uses, so Copier falls back, and nearby changes to a merged file may conflict as one block (copier-org/copier#2759).'
+    $ErrorActionPreference = 'Continue'   # Copier's stderr lines arrive as error records through 2>&1
+    $prefix = @()
+    $command = if (Get-Command copier -ErrorAction SilentlyContinue) { 'copier' }
+    elseif (Get-Command uvx -ErrorAction SilentlyContinue) { $prefix = '--from', 'copier', 'copier'; 'uvx' }
     else { throw 'Copier not found. Install it with: uv tool install copier' }
+    & $command @prefix @args 2>&1 | ForEach-Object { if ("$_" -match 'Make sure Git >= 2\.24 is installed') { $gitNote } else { "$_" } }
     if ($LASTEXITCODE) { throw "copier $($args[0]) exited with code $LASTEXITCODE." }
 }
 
 # Copier reads --data values as YAML, so a list answer goes as a flow sequence: [claude, copilot].
 function ConvertTo-CopierValue($Value) {
     if ($Value -is [Collections.IList]) { '[' + ($Value -join ', ') + ']' } else { "$Value" }
+}
+
+# Render the template at a version into a folder with the project's answers; false when Copier can't.
+function Invoke-TemplateRender([string]$Version, [string]$Folder) {
+    $renderArgs = @('copy', '--defaults', '--quiet', '--vcs-ref', $Version, '--data-file', (Join-Path $project '.copier-answers.yml'))
+    foreach ($k in $Data.Keys) { $renderArgs += '--data', "$k=$(ConvertTo-CopierValue $Data[$k])" }
+    try { Invoke-Copier @renderArgs $TemplateClone $Folder | Out-Null; $true } catch { $false }
 }
 
 function Get-Answer([string]$Key) {
@@ -99,6 +117,7 @@ function Get-Change {
 
 $project = (Resolve-Path -LiteralPath $Path).Path
 $ownClone = -not $TemplateClone
+$scratch = Join-Path ([IO.Path]::GetTempPath()) "project-template-update-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
 $outputEncoding = [Console]::OutputEncoding
 Push-Location -LiteralPath $project
 try {
@@ -112,18 +131,27 @@ try {
 
     if ($ownClone) {
         $TemplateClone = Join-Path ([IO.Path]::GetTempPath()) "project-template-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
-        git clone --quiet --no-checkout --filter=blob:none -- $src $TemplateClone 2>$null
+        # A full clone: Copier renders versions from it and can't clone a blob-filtered clone; the template is small.
+        git clone --quiet --no-checkout -- $src $TemplateClone 2>$null
         if ($LASTEXITCODE) { throw "Can't read the project template at $src. Updating needs read access to it; for its owner, Git's credentials (gh auth setup-git). Without access the project still works as it is: only template updates are unavailable." }
     }
     $to = if ($Ref) { $Ref } else { Get-NewestTag $TemplateClone }
     if (-not $to) { throw "The template at $src has no version tags." }
 
+    # The update commits, and the default branch may accept changes only through pull requests.
+    $branch = git branch --show-current
+    $defaultRef = git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>$null
+    $default = if ($defaultRef) { $defaultRef -replace '^origin/' } elseif ($branch -in 'main', 'master' -and (git rev-parse --quiet --verify "refs/remotes/origin/$branch" 2>$null)) { $branch }
+    if ($branch -and $branch -eq $default -and -not $NoCommit) { throw "$project is on $branch, its default branch, and the update commits. Update on a branch of its own: git switch -c build/project-template-$to — or stage the update here with -NoCommit." }
+
     # Hand over to the target version's copy of this script when it differs, so the newest update logic runs.
+    # git show, not git checkout: checkout doesn't fetch the file in a blob-filtered clone, but show does.
     if (-not $HandedOff) {
-        git -C $TemplateClone checkout --quiet $to -- template/.template/Update-Project.ps1 2>$null
-        $next = Join-Path $TemplateClone 'template\.template\Update-Project.ps1'
-        if (-not $LASTEXITCODE -and (Test-Path -LiteralPath $next) -and
-            [IO.File]::ReadAllText($next).Replace("`r`n", "`n") -ne [IO.File]::ReadAllText($PSCommandPath).Replace("`r`n", "`n")) {
+        $nextText = (git -C $TemplateClone show "${to}:template/.template/Update-Project.ps1" 2>$null) -join "`n"
+        if (-not $LASTEXITCODE -and $nextText -and $nextText.TrimEnd() -ne [IO.File]::ReadAllText($PSCommandPath).Replace("`r`n", "`n").TrimEnd()) {
+            New-Item -ItemType Directory -Force $scratch | Out-Null
+            $next = Join-Path $scratch 'Update-Project.ps1'
+            [IO.File]::WriteAllText($next, "$nextText`n", [Text.UTF8Encoding]::new($false))
             "Handing the update over to the $to version of Update-Project.ps1."
             & $next -Path $project -Ref $to -Data $Data -NoCommit:$NoCommit -TemplateClone $TemplateClone -HandedOff
             exit $LASTEXITCODE
@@ -182,8 +210,13 @@ try {
         # Executable on Linux and macOS; Windows doesn't record the bit on its own.
         if (Test-Path -LiteralPath .githooks/commit-msg) { git update-index --chmod=+x .githooks/commit-msg }
     }
-    # Enable the template's versioned hooks in this clone, unless it already uses hooks of its own.
-    if ((Test-Path -LiteralPath .githooks) -and -not (git config --get core.hooksPath)) { git config core.hooksPath .githooks }
+    # Enable the template's versioned hooks in this clone, unless it already uses hooks of its own:
+    # a hooks path, or hooks in .git/hooks, which a hooks path would turn off.
+    if ((Test-Path -LiteralPath .githooks) -and -not (git config --get core.hooksPath)) {
+        $ownHooks = @(Get-ChildItem -LiteralPath (git rev-parse --path-format=absolute --git-path hooks) -File -ErrorAction SilentlyContinue | Where-Object Extension -NE '.sample' | ForEach-Object Name)
+        if ($ownHooks) { "Git hooks: .githooks not enabled. This clone has hooks of its own in .git/hooks ($($ownHooks -join ', ')), and core.hooksPath would turn them off. To run both, call .githooks/commit-msg from your commit-msg hook, or move your hooks into .githooks and run: git config core.hooksPath .githooks"; '' }
+        else { git config core.hooksPath .githooks }
+    }
     $changes = @(Get-Change)
     $jinjaTag = '\{' + '%.*?%' + '\}'
     $projectOwnedChanged = @(if ($from -ne $to) {
@@ -202,16 +235,31 @@ try {
     if ($edited) { ''; 'Local edits discarded — these files are the template''s; make the change in a project file instead:'; $edited | ForEach-Object { "  $_" } }
     if ($restored) { ''; 'Restored — these files are the template''s, so the project can''t delete them:'; $restored | ForEach-Object { "  $_" } }
     if ($projectOwnedChanged) {
-        ''
-        "The template changed these project-owned files since ${from}. They weren't touched; copy over what you want:"
-        foreach ($changed in $projectOwnedChanged) {
-            ''
-            "  $($changed.File), from $($changed.Source):"
-            $inHunk = $false
-            foreach ($line in git -C $TemplateClone diff --no-color --unified=1 $from $to -- $changed.Source) {
-                if ($line.StartsWith('@@')) { $inHunk = $true }
-                if ($inHunk) { "    $line" }
+        # Render both versions with the project's answers, so the diffs show what the project would get, not Jinja.
+        New-Item -ItemType Directory -Force $scratch | Out-Null
+        $renderedFrom = Join-Path $scratch 'rendered\from'
+        $renderedTo = Join-Path $scratch 'rendered\to'
+        $rendered = (Invoke-TemplateRender $from $renderedFrom) -and (Invoke-TemplateRender $to $renderedTo)
+        $empty = Join-Path $scratch 'empty'
+        [IO.File]::WriteAllText($empty, '')
+        $shown = foreach ($changed in $projectOwnedChanged) {
+            if ($rendered) {
+                $old = Join-Path $renderedFrom $changed.File
+                $new = Join-Path $renderedTo $changed.File
+                $diff = git diff --no-index --no-color --unified=1 -- $(if (Test-Path -LiteralPath $old) { $old } else { $empty }) $(if (Test-Path -LiteralPath $new) { $new } else { $empty })
+                $title = "  $($changed.File):"
             }
+            else {
+                $diff = git -C $TemplateClone diff --no-color --unified=1 $from $to -- $changed.Source
+                $title = "  $($changed.File), from the template source $($changed.Source), which Copier couldn't render with this project's answers:"
+            }
+            $hunk = @($diff | Where-Object { $_ -is [string] } | ForEach-Object -Begin { $inHunk = $false } -Process { if ($_.StartsWith('@@')) { $inHunk = $true }; if ($inHunk) { "    $_" } })
+            if ($hunk) { [pscustomobject]@{ Title = $title; Lines = $hunk } }
+        }
+        if ($shown) {
+            ''
+            "The template changed these project-owned files since ${from}. They weren't touched; copy over what you want:"
+            foreach ($file in $shown) { ''; $file.Title; $file.Lines }
         }
     }
 
@@ -235,4 +283,5 @@ finally {
     Pop-Location
     try { [Console]::OutputEncoding = $outputEncoding } catch { }
     if ($ownClone -and $TemplateClone -and (Test-Path -LiteralPath $TemplateClone)) { Remove-Item -LiteralPath $TemplateClone -Recurse -Force -ErrorAction SilentlyContinue }
+    if (Test-Path -LiteralPath $scratch) { Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue }
 }

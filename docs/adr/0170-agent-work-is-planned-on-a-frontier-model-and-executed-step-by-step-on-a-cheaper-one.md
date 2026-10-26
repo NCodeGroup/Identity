@@ -44,6 +44,12 @@ generic `csharp.instructions.md` applies too, and `csharp-production.instruction
 `csharp-testing.instructions.md` win where they differ; `.claude/rules/` points Claude Code at them by path, because
 it ignores `applyTo`.
 
+The update to project-template `v0.10.0` adds `/finish-plan`, which retires a plan once its pull request merges: it
+deletes `PLAN.md`, fast-forwards `main`, deletes the plan's branch and, in Claude Code, removes its worktree. The
+merge queue squash-merges, so the command cannot find the plan's commits on `main` and asks to confirm the merge
+before it deletes the branch. From `v0.9.0`, an executor that cannot run a step's Done-when command says so and
+leaves the check to the coordinator, which runs every step's check anyway.
+
 ## Context
 
 An agent-driven change has two halves with opposite needs. **Planning** — reading the code paths, settling the design,

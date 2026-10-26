@@ -129,7 +129,8 @@ these gates **before** pushing:
 After the push, the pull request merges through the merge queue, which runs the full gate on its merged result. An
 item is done only when the merge queue merges the pull request and every GitHub Actions run for the resulting `main`
 commit succeeds. Remediate any failure in the same change, and archive a completed backlog item in a commit on the same
-branch before the pull request merges.
+branch before the pull request merges. Once it merges, retire the plan's branch and worktree with `/finish-plan`
+([`AGENTS.md`](../../AGENTS.md#plan-and-execute-workflow)).
 
 This upholds [ADR-0008](../../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md): conventions, reasoning,
 and recurring gotchas live in the repository.

@@ -92,7 +92,9 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   Claude Opus 5.5. Each plan lives in its own git worktree, `.claude/worktrees/<name>/` on the branch
   `worktree-<name>`; `/orchestrate-plan` (from another session, `/orchestrate-plan <name>`) delegates each step to
   the `plan-executor` subagent on Claude Sonnet 5.5, and `/review-plan-diff` reviews the result.
-  [`CLAUDE.md`](CLAUDE.md) imports this file.
+  [`CLAUDE.md`](CLAUDE.md) imports this file. In a worktree, Claude Code refuses to let the subagent run `pwsh` at
+  all, not only its Done-when check, so a plan whose steps run commands rather than edit files — a template update,
+  `gh` calls — runs in the main checkout on a topic branch instead.
 - **Done-when commands** prove one step: the narrowest test that fails until the step is done, such as
   `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>" -- RunConfiguration.TreatNoTestsAsError=true`
   (xUnit v2 on VSTest). Keep the trailing setting: without it a filter that matches no test exits `0`, so the check
@@ -100,13 +102,19 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
 - **`PLAN.md` is transient:** it is gitignored and never committed, and the push protocol in
   [`repository.instructions.md`](.github/instructions/repository.instructions.md) promotes its Decisions, deletes it,
   and squashes the `Plan: <title>` / `Plan step N` / `Re-plan step N` checkpoint commits before anything is pushed.
+- **Finishing a plan:** once the merge queue has merged the plan's pull request, run `/finish-plan` (in Claude Code
+  from the plan's session, or `/finish-plan <name>` from the main checkout). It deletes `PLAN.md`, fast-forwards
+  `main`, deletes the plan's branch and, in Claude Code, removes its worktree. The merge queue squash-merges, so the
+  plan's own commits never reach `main` and the command stops to ask whether they did: confirm once the pull
+  request shows **Merged**, and it deletes the branch with `git branch -D`.
 - The agents, prompts and skills under `.github/`, the commands under `.claude/commands/`,
   `.claude/agents/plan-executor.md` and `CLAUDE.md` **come from the project template**
   ([`polewskm/project-template`](https://github.com/polewskm/project-template); the version is in
   [`.copier-answers.yml`](.copier-answers.yml)), which owns them: never hand-edit them. Change the workflow in
-  project-template, then pull the new version in with `./.template/Update-Project.ps1`. Repository rules belong in the
-  instruction files, which every agent in the loop already loads. The hand-written `audit-conventions` prompt and
-  skill are the exception; edit both together.
+  project-template, then pull the new version in with `./.template/Update-Project.ps1`. Report a gap in the template's
+  workflow as an issue in project-template, where it is fixed and tagged. Repository rules belong in the instruction
+  files, which every agent in the loop already loads. The hand-written `audit-conventions` prompt and skill are the
+  exception; edit both together.
 
 ### Local and Copilot customizations
 

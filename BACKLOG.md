@@ -581,6 +581,12 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
     needed no hand-over, but the next version that changes the script will run the old copy again. Read the target
     script with `git show`, and give `Test-Template.ps1` an update from a `file://` clone, so the blob filter applies
     the way it does for a hosted template.
+  - **The update's output is rough in places.** `Update-Project.ps1` commits on whatever branch is checked out, so on
+    `main`, which accepts only pull requests, it leaves a local commit to undo: warn or refuse on the default branch.
+    Copier prints "Make sure Git >= 2.24 is installed" on Git 2.56.0.windows.3, apparently misreading the `.windows.N`
+    suffix: explain or filter it. The "project-owned files changed" listing shows the raw Jinja source
+    (`{% if 'claude' in workflow_tools %}`) rather than the rendered text. The rendered `CLAUDE.md` has no final
+    newline.
 
   More touch points: project-template's `Adopt-Project.ps1` migration request,
   `template/.claude/agents/plan-executor.md`, and the `execute-step` and `orchestrate-plan` sources.

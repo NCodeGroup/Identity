@@ -93,9 +93,13 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   Claude Opus 5.5. Each plan lives in its own git worktree, `.claude/worktrees/<name>/` on the branch
   `worktree-<name>`; `/orchestrate-plan` (from another session, `/orchestrate-plan <name>`) delegates each step to
   the `plan-executor` subagent on Claude Sonnet 5.5, and `/review-plan-diff` reviews the result.
-  [`CLAUDE.md`](CLAUDE.md) imports this file. In a worktree, Claude Code refuses to let the subagent run `pwsh` at
-  all, not only its Done-when check, so a plan whose steps run commands rather than edit files — a template update,
-  `gh` calls — runs in the main checkout on a topic branch instead.
+  [`CLAUDE.md`](CLAUDE.md) imports this file. The subagent runs every command, its Done-when check included, with
+  the PowerShell tool, which Claude Code allows in a worktree, so a plan whose steps run commands rather than edit
+  files runs in its worktree like any other.
+- **Planning from an issue:** name the issue in the planning request (`/plan-feature #123 …`). The plan records it
+  on an `Issue:` line, the planning session posts the finished plan to the issue as one collapsed comment, and a
+  re-plan that changes the Decisions or the steps posts a short follow-up; the executor never calls `gh`. At push
+  time the pull request description summarizes the plan and ends with `Closes #123`.
 - **Done-when commands** prove one step: the narrowest test that fails until the step is done, such as
   `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>" -- RunConfiguration.TreatNoTestsAsError=true`
   (xUnit v2 on VSTest). Keep the trailing setting: without it a filter that matches no test exits `0`, so the check
@@ -106,8 +110,9 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
 - **Finishing a plan:** once the merge queue has merged the plan's pull request, run `/finish-plan` (in Claude Code
   from the plan's session, or `/finish-plan <name>` from the main checkout). It deletes `PLAN.md`, fast-forwards
   `main`, deletes the plan's branch and, in Claude Code, removes its worktree. The merge queue squash-merges, so the
-  plan's own commits never reach `main` and the command stops to ask whether they did: confirm once the pull
-  request shows **Merged**, and it deletes the branch with `git branch -D`.
+  plan's own commits never reach `main`: the command asks `gh` for the branch's merged pull request, accepts it when
+  its merge commit is on `main` and its head matches the branch, and deletes the branch with `git branch -D`.
+  Without `gh`, or without such a pull request, it stops to ask.
 - The agents, prompts and skills under `.github/`, the commands under `.claude/commands/`,
   `.claude/agents/plan-executor.md` and `CLAUDE.md` **come from the project template**
   ([`polewskm/project-template`](https://github.com/polewskm/project-template); the version is in
@@ -148,6 +153,8 @@ are separate: review any such entries individually rather than assuming the repo
 Run [`./build/dod.ps1`](build/dod.ps1) — the single Definition of Done (tool-restore, CSharpier check, restore,
 build + pack, test + coverage) that CI and developers both run. It fails fast on the first broken gate and prints
 `Definition of Done: PASSED` as its final line on success — that line (not any generated file) is the pass signal.
+A script or Done-when command that captures its output should test the exit code (`0` on success) instead: in a
+merged stream (`2>&1`) build output can arrive after that line.
 For local development — including any protocol or validation step that runs the Definition of Done — use
 `./build/dod.ps1 -Fast`: it parallelizes project builds and skips the non-correctness stages (coverage + packing) while
 keeping compile warnings-as-errors and analyzers; test assemblies run in parallel in every mode. In the inner loop,

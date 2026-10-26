@@ -46,9 +46,15 @@ it ignores `applyTo`.
 
 The update to project-template `v0.10.0` adds `/finish-plan`, which retires a plan once its pull request merges: it
 deletes `PLAN.md`, fast-forwards `main`, deletes the plan's branch and, in Claude Code, removes its worktree. The
-merge queue squash-merges, so the command cannot find the plan's commits on `main` and asks to confirm the merge
-before it deletes the branch. From `v0.9.0`, an executor that cannot run a step's Done-when command says so and
-leaves the check to the coordinator, which runs every step's check anyway.
+merge queue squash-merges, so the plan's commits never reach `main`; from `v0.11.0` the command asks `gh` for the
+branch's merged pull request, deletes the branch once that pull request's merge commit is on `main`, and asks to
+confirm the merge only when `gh` finds none. From `v0.9.0`, an executor that cannot run a step's Done-when command
+says so and leaves the check to the coordinator, which runs every step's check anyway. From `v0.11.0`, the Claude
+Code executor runs commands with the PowerShell tool, which Claude Code allows in a plan's worktree, so a plan made
+of commands no longer moves to the main checkout. From `v0.12.0`, a plan names the issue it implements on an
+`Issue:` line, the planning session posts the plan to that issue, and the pull request description ends with
+`Closes #<number>`, which ties each plan to the issue that tracks its work
+([ADR-0264](0264-pending-work-is-tracked-as-github-issues.md)).
 
 ## Context
 

@@ -25,7 +25,7 @@ RUN pnpm exec turbo run build --filter=@ncode/app-auth
 
 # The host and its migration worker, published framework-dependent for the target architecture. The worker ships in
 # the host's image so the schema a release migrates to is always the schema that release's host reads (ADR-0180).
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-noble@sha256:afd0ccff9d306812a69ef0f47458376b6acb544ae866cfc4b8d28ff0eef35ea7 AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-noble@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b AS build
 ARG TARGETARCH
 # The build context carries no .git directory, so the version comes from version.json alone rather than commit height.
 ENV NBGV_GitEngine=Disabled
@@ -51,7 +51,7 @@ RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages,sharing=locked \
 
 # Visual Studio's container fast mode debugs against this stage (DockerfileFastModeStage defaults to "base"), which
 # needs a shell; the production image below is built FROM the chiseled variant instead.
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble@sha256:d247d17dd429d96580eeb96cfce220c1089d860dbbf9f94d599ca64cf3604fe4 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble@sha256:de0ee358cdd672f7017a003bed21e9ac9ed48a27c922a59b18175b6e82fa7fee AS base
 WORKDIR /app
 USER $APP_UID
 EXPOSE 8080

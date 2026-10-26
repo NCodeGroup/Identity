@@ -17,7 +17,6 @@
 #endregion
 
 using System.Security.Cryptography;
-using System.Text;
 using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Secrets.KeyMaterial;
@@ -112,11 +111,11 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
         var secretMaterial = Base64Url.Encode(entropy);
 
         using var utf8Lease = BufferFactory.Rent(
-            Encoding.UTF8.GetByteCount(secretMaterial),
+            SecureEncoding.UTF8.GetByteCount(secretMaterial),
             isSensitive: true,
             out Span<byte> utf8
         );
-        Encoding.UTF8.GetBytes(secretMaterial, utf8);
+        SecureEncoding.UTF8.GetBytes(secretMaterial, utf8);
 
         var secret = CreateSharedSecret(
             request.SecretId,

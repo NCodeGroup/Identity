@@ -20,10 +20,10 @@ using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using NCode.Buffers;
 
 namespace NCode.Json;
 
@@ -160,7 +160,7 @@ public sealed class ObjectJsonConverter(ObjectJsonConverterOptions options) : Js
             }
         }
 
-        var text = Encoding.UTF8.GetString(utf8);
+        var text = SecureEncoding.UTF8.GetString(utf8);
         return BigInteger.TryParse(
             text,
             NumberStyles.Integer,

@@ -39,8 +39,8 @@ on `main` and on the release lines.**
    - The changed paths are `git diff --name-only --no-renames` against the merge base of `HEAD` and `-Base`, which
      compares with the working tree and so counts committed, staged and unstaged changes, plus untracked files.
    - A global build input selects all tests: anything under `build/` or `.config/`, `global.json`, `nuget.config`,
-     `version.json`, `NCode.Identity.slnx`, `.editorconfig`, `BannedSymbols.txt`, any `Directory.*` file and any
-     `.runsettings` file.
+     `version.json`, `NCode.Identity.slnx`, `.editorconfig`, any `BannedSymbols*.txt` file, any `Directory.*` file and
+     any `.runsettings` file.
    - Every other path maps to the `.csproj` under `src/` or `tests/` whose directory is its longest prefix. A path under
      no project (`docs/`, `charts/`, `src/frontend/`, `.github/`) selects nothing; the checks of Frontend CI, the host
      chart and the host image gate those paths.

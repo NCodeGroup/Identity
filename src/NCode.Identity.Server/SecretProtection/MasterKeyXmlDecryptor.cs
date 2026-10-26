@@ -84,7 +84,12 @@ internal class MasterKeyXmlDecryptor : IXmlDecryptor
         };
 
         using var stream = plaintext.AsReadOnlySequence.AsStream();
-        using var reader = XmlReader.Create(stream, settings);
+        using var textReader = new StreamReader(
+            stream,
+            SecureEncoding.UTF8,
+            detectEncodingFromByteOrderMarks: false
+        );
+        using var reader = XmlReader.Create(textReader, settings);
 
         return XElement.Load(reader);
     }

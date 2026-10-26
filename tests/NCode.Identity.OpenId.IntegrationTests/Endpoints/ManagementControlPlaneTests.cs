@@ -20,8 +20,8 @@ using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -50,7 +50,7 @@ public class ManagementControlPlaneTests
             {
                 ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                 ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    Encoding.UTF8.GetBytes(BootstrapClientSecret)
+                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
                 ),
                 ["BootstrapAdmin:TenantId"] = "root",
             }
@@ -86,7 +86,9 @@ public class ManagementControlPlaneTests
     {
         var client = factory.CreateClient();
 
-        var credentials = Encoding.UTF8.GetBytes($"{BootstrapClientId}:{BootstrapClientSecret}");
+        var credentials = SecureEncoding.UTF8.GetBytes(
+            $"{BootstrapClientId}:{BootstrapClientSecret}"
+        );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, tokenPath)
         {
             Headers =

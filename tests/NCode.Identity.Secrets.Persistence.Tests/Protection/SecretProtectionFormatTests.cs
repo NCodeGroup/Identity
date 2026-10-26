@@ -19,6 +19,7 @@
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
+using NCode.Buffers;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
@@ -52,7 +53,7 @@ public class SecretProtectionFormatTests
 
     private static byte[] LengthPrefixed(string value)
     {
-        var bytes = Encoding.UTF8.GetBytes(value);
+        var bytes = SecureEncoding.UTF8.GetBytes(value);
         byte[] length =
         [
             (byte)(bytes.Length >> 24),
@@ -462,7 +463,7 @@ public class SecretProtectionFormatTests
         [
             .. "ncode-identity/secret-protection/v1/kek"u8,
             0x00,
-            .. Encoding.UTF8.GetBytes(purpose),
+            .. SecureEncoding.UTF8.GetBytes(purpose),
         ];
         var expected = HKDF.DeriveKey(
             HashAlgorithmName.SHA256,
@@ -475,6 +476,19 @@ public class SecretProtectionFormatTests
         var actual = DeriveKeyEncryptionKey(masterKey, masterKeyId, purpose);
 
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void DeriveKeyEncryptionKey_WhenPurposeHasLoneSurrogate_Throws()
+    {
+        Assert.Throws<EncoderFallbackException>(() =>
+            SecretProtectionFormat.DeriveKeyEncryptionKey(
+                new byte[32],
+                Guid.NewGuid(),
+                "purpose\uD800",
+                new byte[32]
+            )
+        );
     }
 
     [Fact]

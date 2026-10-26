@@ -17,9 +17,9 @@
 #endregion
 
 using System.Net;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -47,7 +47,7 @@ public class TokenEndpointTests(HostApplicationFactory factory)
     {
         var client = CreateClient();
 
-        using var content = new StringContent("{}", Encoding.UTF8, "application/json");
+        using var content = new StringContent("{}", SecureEncoding.UTF8, "application/json");
         using var response = await client.PostAsync(TokenPath, content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

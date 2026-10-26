@@ -21,11 +21,11 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jwt.Encoding;
@@ -199,7 +199,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var credentials = Uri.EscapeDataString(clientId) + ":" + Uri.EscapeDataString(clientSecret);
         request.Headers.Authorization = new AuthenticationHeaderValue(
             "Basic",
-            Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials))
+            Convert.ToBase64String(SecureEncoding.UTF8.GetBytes(credentials))
         );
         request.Content = new FormUrlEncodedContent([
             new("request", requestObject),

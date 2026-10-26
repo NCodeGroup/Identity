@@ -18,9 +18,9 @@
 
 using System.Net;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -45,7 +45,7 @@ public class TokenEndpointClientAuthenticationTests
     private static AuthenticationHeaderValue BasicHeader(string clientId, string clientSecret)
     {
         var raw = $"{clientId}:{clientSecret}";
-        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
+        var encoded = Convert.ToBase64String(SecureEncoding.UTF8.GetBytes(raw));
         return new AuthenticationHeaderValue("Basic", encoded);
     }
 

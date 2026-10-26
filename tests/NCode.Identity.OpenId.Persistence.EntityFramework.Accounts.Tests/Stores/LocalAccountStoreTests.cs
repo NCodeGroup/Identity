@@ -16,10 +16,10 @@
 
 #endregion
 
-using System.Text;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Accounts.Credentials;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Persistence.Stores;
@@ -107,7 +107,11 @@ public sealed class LocalAccountStoreTests : IDisposable
         string password
     )
     {
-        await store.AddAsync(account, Encoding.UTF8.GetBytes(password), CancellationToken.None);
+        await store.AddAsync(
+            account,
+            SecureEncoding.UTF8.GetBytes(password),
+            CancellationToken.None
+        );
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
     }
@@ -244,7 +248,7 @@ public sealed class LocalAccountStoreTests : IDisposable
 
         var result = await store.VerifyCredentialAsync(
             "alice",
-            Encoding.UTF8.GetBytes("secret"),
+            SecureEncoding.UTF8.GetBytes("secret"),
             NotRefused,
             CancellationToken.None
         );
@@ -266,7 +270,7 @@ public sealed class LocalAccountStoreTests : IDisposable
 
         var result = await store.VerifyCredentialAsync(
             "alice",
-            Encoding.UTF8.GetBytes("wrong"),
+            SecureEncoding.UTF8.GetBytes("wrong"),
             NotRefused,
             CancellationToken.None
         );
@@ -283,7 +287,7 @@ public sealed class LocalAccountStoreTests : IDisposable
 
         var result = await store.VerifyCredentialAsync(
             "alice",
-            Encoding.UTF8.GetBytes("secret"),
+            SecureEncoding.UTF8.GetBytes("secret"),
             NotRefused,
             CancellationToken.None
         );
@@ -299,7 +303,7 @@ public sealed class LocalAccountStoreTests : IDisposable
 
         var result = await store.VerifyCredentialAsync(
             "nobody",
-            Encoding.UTF8.GetBytes("secret"),
+            SecureEncoding.UTF8.GetBytes("secret"),
             NotRefused,
             CancellationToken.None
         );
@@ -316,7 +320,7 @@ public sealed class LocalAccountStoreTests : IDisposable
 
         var result = await store.VerifyCredentialAsync(
             "nobody",
-            Encoding.UTF8.GetBytes("secret"),
+            SecureEncoding.UTF8.GetBytes("secret"),
             NotRefused,
             CancellationToken.None
         );
@@ -333,7 +337,7 @@ public sealed class LocalAccountStoreTests : IDisposable
 
         var result = await store.VerifyCredentialAsync(
             "alice",
-            Encoding.UTF8.GetBytes("secret"),
+            SecureEncoding.UTF8.GetBytes("secret"),
             NotRefused,
             CancellationToken.None
         );
@@ -350,7 +354,7 @@ public sealed class LocalAccountStoreTests : IDisposable
 
         var result = await store.VerifyCredentialAsync(
             "alice",
-            Encoding.UTF8.GetBytes("secret"),
+            SecureEncoding.UTF8.GetBytes("secret"),
             static (_, _) => ValueTask.FromResult(true),
             CancellationToken.None
         );
@@ -370,7 +374,7 @@ public sealed class LocalAccountStoreTests : IDisposable
 
         var result = await store.VerifyCredentialAsync(
             "ALICE",
-            Encoding.UTF8.GetBytes("secret"),
+            SecureEncoding.UTF8.GetBytes("secret"),
             (userName, _) =>
             {
                 askedUserNames.Add(userName);
@@ -392,7 +396,7 @@ public sealed class LocalAccountStoreTests : IDisposable
 
         var result = await store.VerifyCredentialAsync(
             "Nobody",
-            Encoding.UTF8.GetBytes("secret"),
+            SecureEncoding.UTF8.GetBytes("secret"),
             (userName, _) =>
             {
                 askedUserNames.Add(userName);

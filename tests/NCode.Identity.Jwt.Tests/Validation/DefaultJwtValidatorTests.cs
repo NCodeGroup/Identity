@@ -19,6 +19,7 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
@@ -171,7 +172,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     private static string CreateUnsecuredToken()
     {
         static string Encode(string json) =>
-            System.Buffers.Text.Base64Url.EncodeToString(System.Text.Encoding.UTF8.GetBytes(json));
+            System.Buffers.Text.Base64Url.EncodeToString(SecureEncoding.UTF8.GetBytes(json));
 
         var header = Encode("{\"alg\":\"none\",\"typ\":\"JWT\"}");
         var payload = Encode($"{{\"iss\":\"{Issuer}\",\"sub\":\"attacker\"}}");

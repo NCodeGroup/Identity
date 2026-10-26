@@ -18,10 +18,10 @@
 
 using System.Buffers.Text;
 using System.Net;
-using System.Text;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -96,10 +96,10 @@ public class AuthorizationContinuationTests
         var segments = jwt.Split('.');
         Assert.Equal(3, segments.Length);
         var header = JsonElement.Parse(
-            Encoding.UTF8.GetString(Base64Url.DecodeFromChars(segments[0]))
+            SecureEncoding.UTF8.GetString(Base64Url.DecodeFromChars(segments[0]))
         );
         var payload = JsonElement.Parse(
-            Encoding.UTF8.GetString(Base64Url.DecodeFromChars(segments[1]))
+            SecureEncoding.UTF8.GetString(Base64Url.DecodeFromChars(segments[1]))
         );
         return (header, payload);
     }

@@ -18,9 +18,9 @@
 
 using System.Buffers.Text;
 using System.Net;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
 using Xunit;
@@ -146,7 +146,7 @@ public class RetiredSettingTests
             {
                 ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                 ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    Encoding.UTF8.GetBytes(BootstrapClientSecret)
+                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
                 ),
                 ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
             }
@@ -172,7 +172,7 @@ public class RetiredSettingTests
         {
             Content = new StringContent(
                 JsonSerializer.Serialize(operations),
-                Encoding.UTF8,
+                SecureEncoding.UTF8,
                 "application/json-patch+json"
             ),
         };
@@ -192,7 +192,7 @@ public class RetiredSettingTests
         {
             Content = new StringContent(
                 JsonSerializer.Serialize(operations),
-                Encoding.UTF8,
+                SecureEncoding.UTF8,
                 "application/json-patch+json"
             ),
         };

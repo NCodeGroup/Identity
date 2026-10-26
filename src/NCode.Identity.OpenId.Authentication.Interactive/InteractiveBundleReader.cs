@@ -18,6 +18,7 @@
 
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
+using NCode.Buffers;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
@@ -139,7 +140,7 @@ internal sealed class InteractiveBundleReader(
         // A rebuild that lands between the metadata read and this read is cached under the older metadata, so the
         // next request sees a mismatch and reads the file again.
         // The document is split once per version, so each page render writes its slices rather than searching it.
-        var html = await File.ReadAllTextAsync(IndexPath, cancellationToken);
+        var html = await File.ReadAllTextAsync(IndexPath, SecureEncoding.UTF8, cancellationToken);
         var index = new InteractiveBundleIndex(
             lastWriteTimeUtc,
             length,

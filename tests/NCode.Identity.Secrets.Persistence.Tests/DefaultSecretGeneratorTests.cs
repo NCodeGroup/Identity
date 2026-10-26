@@ -20,8 +20,8 @@
 using System.Buffers;
 using System.Collections.Frozen;
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.DataProtection;
+using NCode.Buffers;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
@@ -166,7 +166,7 @@ public class DefaultSecretGeneratorTests
         var imported = _generator.ImportSharedSecret(
             protector,
             CreateImportRequest("import-3"),
-            Encoding.UTF8.GetBytes(generated.SecretMaterial!)
+            SecureEncoding.UTF8.GetBytes(generated.SecretMaterial!)
         );
 
         Assert.Equal(generated.Secret.SecretType, imported.SecretType);
@@ -386,7 +386,7 @@ public class DefaultSecretGeneratorTests
         // The core contract (CommonClientAuthenticationHandler.IsSecretEqual): client authentication compares the UTF-8
         // bytes of the presented secret against the stored key material, so the stored material must be exactly the
         // UTF-8 bytes of the revealed opaque string — otherwise a generated client_secret can never authenticate.
-        var expected = Encoding.UTF8.GetBytes(generated.SecretMaterial);
+        var expected = SecureEncoding.UTF8.GetBytes(generated.SecretMaterial);
         Assert.Equal(expected, writer.WrittenSpan.ToArray());
         Assert.Equal(expected.Length * 8, persisted.KeySizeBits);
     }
@@ -395,7 +395,7 @@ public class DefaultSecretGeneratorTests
     public void ImportSharedSecret_StoresTheGivenUtf8BytesVerbatim()
     {
         var protector = CreateProtector();
-        var secretValue = Encoding.UTF8.GetBytes("my-chosen-client-secret");
+        var secretValue = SecureEncoding.UTF8.GetBytes("my-chosen-client-secret");
 
         var persisted = _generator.ImportSharedSecret(
             protector,

@@ -19,6 +19,7 @@
 
 using System.Security.Cryptography;
 using System.Text;
+using NCode.Buffers;
 
 namespace NCode.Identity.Cryptography;
 
@@ -185,7 +186,7 @@ public class DefaultCryptoServiceTests
 
         var result = _service.HashValue(data, HashAlgorithmName.SHA256, BinaryEncodings.Hex);
 
-        var expected = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(data)));
+        var expected = Convert.ToHexString(SHA256.HashData(SecureEncoding.UTF8.GetBytes(data)));
         Assert.Equal(expected, result);
     }
 
@@ -196,7 +197,7 @@ public class DefaultCryptoServiceTests
 
         var result = _service.HashValue(data, HashAlgorithmName.SHA256, BinaryEncodings.Hex);
 
-        var expected = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(data)));
+        var expected = Convert.ToHexString(SHA256.HashData(SecureEncoding.UTF8.GetBytes(data)));
         Assert.Equal(expected, result);
     }
 
@@ -204,15 +205,15 @@ public class DefaultCryptoServiceTests
     public void HashValue_String_WithCustomEncoding_UsesEncoding()
     {
         const string data = "hello";
-
-        var result = _service.HashValue(
-            data,
-            HashAlgorithmName.SHA256,
-            BinaryEncodings.Hex,
-            Encoding.Unicode
+        var utf16 = new UnicodeEncoding(
+            bigEndian: false,
+            byteOrderMark: false,
+            throwOnInvalidBytes: true
         );
 
-        var expected = Convert.ToHexString(SHA256.HashData(Encoding.Unicode.GetBytes(data)));
+        var result = _service.HashValue(data, HashAlgorithmName.SHA256, BinaryEncodings.Hex, utf16);
+
+        var expected = Convert.ToHexString(SHA256.HashData(utf16.GetBytes(data)));
         Assert.Equal(expected, result);
     }
 

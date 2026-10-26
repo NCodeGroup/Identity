@@ -17,12 +17,12 @@
 #endregion
 
 using System.Buffers.Text;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Environments;
@@ -51,7 +51,7 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
 
     // The option holds the Base64Url of the secret's UTF-8 bytes.
     private static readonly string EncodedSecret = Base64Url.EncodeToString(
-        Encoding.UTF8.GetBytes(SecretText)
+        SecureEncoding.UTF8.GetBytes(SecretText)
     );
 
     private BootstrapAdminSeedHandler CreateHandler(

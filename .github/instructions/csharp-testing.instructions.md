@@ -83,6 +83,10 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   request is refused (credentials checked before sign-in rather than when the response is written), send a request the
   old code accepts and parks, for example an authorization request without `prompt=none`, which the old code answers
   with the login challenge (`302`). A request the old code also refuses at the end passes with the fix removed.
+- ✅ **Tests encode text through a strict encoding too.** Use `SecureEncoding.UTF8` / `SecureEncoding.ASCII`; the build
+  enforces it with `RS0030`. A test that needs UTF-16 or a byte-order mark builds a strict encoding, such as
+  `new UnicodeEncoding(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true)`. See
+  [ADR-0266](../../docs/adr/0266-text-is-encoded-and-decoded-only-through-strict-encodings.md).
 
 ## Isolation & mocking
 

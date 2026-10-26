@@ -17,9 +17,9 @@
 #endregion
 
 using System.Buffers;
-using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
@@ -153,6 +153,9 @@ public abstract class SecretProtectionTestBase : BaseTests
         var symmetric = Assert.IsAssignableFrom<SymmetricSecretKey>(secretKey);
         var writer = new ArrayBufferWriter<byte>();
         symmetric.ExportPrivateKey(ref writer);
-        Assert.Equal(Encoding.UTF8.GetBytes(expectedSecretText), writer.WrittenSpan.ToArray());
+        Assert.Equal(
+            SecureEncoding.UTF8.GetBytes(expectedSecretText),
+            writer.WrittenSpan.ToArray()
+        );
     }
 }

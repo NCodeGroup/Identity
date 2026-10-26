@@ -20,6 +20,7 @@
 using System.Buffers;
 using System.Globalization;
 using System.Security.Cryptography;
+using NCode.Buffers;
 
 // ASPIRE ORCHESTRATION-ONLY HOST (ADR-0071): a flat resource graph that is the single one-stop entry to build, run,
 // and debug the whole local stack (the OpenID host + the frontend apps) with deterministic startup ordering.
@@ -202,7 +203,10 @@ static void EnsurePinnedNodeOnPath(string frontendDirectory)
         return;
 
     // .node-version holds the major ("26"), optionally a full version or a leading "v"; only the major selects.
-    var pinned = File.ReadAllText(Path.Combine(frontendDirectory, ".node-version"))
+    var pinned = File.ReadAllText(
+            Path.Combine(frontendDirectory, ".node-version"),
+            SecureEncoding.UTF8
+        )
         .Trim()
         .TrimStart('v');
     var major = int.Parse(pinned.Split('.')[0], NumberStyles.None, CultureInfo.InvariantCulture);

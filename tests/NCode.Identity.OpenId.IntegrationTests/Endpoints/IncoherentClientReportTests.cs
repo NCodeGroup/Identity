@@ -18,8 +18,8 @@
 
 using System.Buffers.Text;
 using System.Net;
-using System.Text;
 using System.Text.Json;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
 using Xunit;
@@ -152,7 +152,7 @@ public class IncoherentClientReportTests
             {
                 ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                 ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    Encoding.UTF8.GetBytes(BootstrapClientSecret)
+                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
                 ),
                 ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
             }

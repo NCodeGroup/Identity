@@ -18,7 +18,7 @@
 
 using System.Buffers.Text;
 using System.Security.Cryptography;
-using System.Text;
+using NCode.Buffers;
 using Xunit;
 
 namespace NCode.Identity.Jwk.Tests;
@@ -74,7 +74,9 @@ public class JsonWebKeyThumbprintTests
         var jwk = JsonWebKey.Parse($$"""{"kty":"EC","crv":"P-256","x":"{{x}}","y":"{{y}}"}""");
 
         var canonical = $$"""{"crv":"P-256","kty":"EC","x":"{{x}}","y":"{{y}}"}""";
-        var expected = Base64Url.EncodeToString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+        var expected = Base64Url.EncodeToString(
+            SHA256.HashData(SecureEncoding.UTF8.GetBytes(canonical))
+        );
 
         Assert.Equal(expected, jwk.ComputeThumbprint());
     }

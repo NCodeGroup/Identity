@@ -21,12 +21,12 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
@@ -113,7 +113,7 @@ public class UserInfoEndpointTests
     }
 
     private static JsonElement DecodeSegment(string segment) =>
-        JsonElement.Parse(Encoding.UTF8.GetString(Base64Url.DecodeFromChars(segment)));
+        JsonElement.Parse(SecureEncoding.UTF8.GetString(Base64Url.DecodeFromChars(segment)));
 
     // Verifies an RS256 JWS against the tenant's published JWKS and returns its payload.
     private static async Task<JsonElement> VerifyWithTenantJwksAsync(HttpClient client, string jws)
@@ -137,7 +137,7 @@ public class UserInfoEndpointTests
                 Exponent = Base64Url.DecodeFromChars(jwk.GetProperty("e").GetString()),
             }
         );
-        var signingInput = Encoding.ASCII.GetBytes($"{segments[0]}.{segments[1]}");
+        var signingInput = SecureEncoding.ASCII.GetBytes($"{segments[0]}.{segments[1]}");
         var signature = Base64Url.DecodeFromChars(segments[2]);
         Assert.True(
             rsa.VerifyData(

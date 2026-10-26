@@ -18,7 +18,6 @@
 
 using System.Net;
 using System.Runtime.ExceptionServices;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Buffers;
@@ -381,7 +380,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
                     .AsException();
 
             using var lease = buffer.GetSpanLease(isSensitive: false);
-            return Encoding.UTF8.GetString(lease.Span);
+            return SecureEncoding.UTF8.GetString(lease.Span);
         }
         catch (OpenIdException)
         {

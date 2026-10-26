@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Consent;
 using NCode.Identity.OpenId.Authentication.Endpoints;
@@ -1141,7 +1142,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             "The interactive login bundle is not available. Build the 'apps/auth' surface and configure "
                 + "'InteractiveAuthentication:BundleRootPath' to its 'dist' directory.",
             "text/plain",
-            contentEncoding: null,
+            contentEncoding: SecureEncoding.UTF8,
             statusCode: StatusCodes.Status503ServiceUnavailable
         );
 

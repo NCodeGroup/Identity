@@ -357,7 +357,7 @@ internal class DefaultDPoPProofService(
                 isSensitive: false,
                 out Span<byte> signingInput
             );
-            Encoding.ASCII.GetBytes(encodedSigningInput, signingInput);
+            SecureEncoding.ASCII.GetBytes(encodedSigningInput, signingInput);
             verified =
                 signature.Length == signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits)
                 && signatureAlgorithm.Verify(secretKey, signingInput, signature);
@@ -410,7 +410,8 @@ internal class DefaultDPoPProofService(
         if (
             !string.IsNullOrEmpty(parameters.AccessToken)
             && (
-                !payload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Ath, out var ath)
+                !Ascii.IsValid(parameters.AccessToken)
+                || !payload.TryGetPropertyValue<string>(JoseClaimNames.Payload.Ath, out var ath)
                 || !string.Equals(
                     ath,
                     ComputeAccessTokenHash(parameters.AccessToken),
@@ -455,7 +456,7 @@ internal class DefaultDPoPProofService(
     }
 
     private static string ComputeAccessTokenHash(string accessToken) =>
-        Base64Url.Encode(SHA256.HashData(Encoding.ASCII.GetBytes(accessToken)));
+        Base64Url.Encode(SHA256.HashData(SecureEncoding.ASCII.GetBytes(accessToken)));
 
     // Scheme, authority, and path, ignoring query and fragment (RFC 9449 §4.2, §4.3).
     private static bool TryGetRequestUri(string? value, [NotNullWhen(true)] out string? requestUri)

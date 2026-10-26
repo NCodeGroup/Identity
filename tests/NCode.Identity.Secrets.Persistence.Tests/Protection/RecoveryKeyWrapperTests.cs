@@ -19,6 +19,7 @@
 using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
+using NCode.Buffers;
 using NCode.Identity.Secrets.Persistence.Options;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
@@ -66,7 +67,7 @@ public class RecoveryKeyWrapperTests : IDisposable
     private string WritePemFile(string pem)
     {
         var path = Path.Combine(_tempDirectory, $"{Guid.NewGuid():N}.pem");
-        File.WriteAllText(path, pem);
+        File.WriteAllText(path, pem, SecureEncoding.UTF8);
         return path;
     }
 

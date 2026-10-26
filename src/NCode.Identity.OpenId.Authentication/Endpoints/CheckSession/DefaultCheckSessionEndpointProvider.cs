@@ -19,6 +19,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Registration.AspNetCore;
 
@@ -91,6 +92,6 @@ internal class DefaultCheckSessionEndpointProvider : IEndpointProvider
     internal virtual IResult HandleRouteAsync(HttpContext httpContext)
     {
         httpContext.Response.SetHtmlPageSecurity(Policy);
-        return TypedResults.Content(Html, "text/html; charset=utf-8");
+        return TypedResults.Content(Html, "text/html; charset=utf-8", SecureEncoding.UTF8);
     }
 }

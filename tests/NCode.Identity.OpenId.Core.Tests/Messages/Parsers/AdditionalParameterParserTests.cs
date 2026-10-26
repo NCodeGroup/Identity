@@ -19,6 +19,7 @@
 
 using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
@@ -112,7 +113,7 @@ public class AdditionalParameterParserTests : BaseTests
     {
         // A request object (RFC 9101) carries max_age and the JWT's iat/exp as JSON numbers.
         var parser = new StringParser();
-        var reader = new System.Text.Json.Utf8JsonReader(System.Text.Encoding.UTF8.GetBytes(json));
+        var reader = new System.Text.Json.Utf8JsonReader(SecureEncoding.UTF8.GetBytes(json));
         reader.Read();
 
         var parameter = parser.Read(

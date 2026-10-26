@@ -221,7 +221,7 @@ internal class DefaultIntrospectionEndpointProvider(
                 cancellationToken
             );
 
-            return TypedResults.Text(jwt, JwtResponseContentType);
+            return Utf8TextResults.Create(jwt, JwtResponseContentType);
         }
 
         return TypedResults.Json(result, openIdEnvironment.JsonSerializerOptions);

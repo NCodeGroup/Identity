@@ -17,10 +17,10 @@
 #endregion
 
 using System.Net;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Interactive;
@@ -71,9 +71,17 @@ public class InteractiveTenantRouteTests
     private static DirectoryInfo CreateBundle()
     {
         var bundleRoot = Directory.CreateTempSubdirectory("bundle-");
-        File.WriteAllText(Path.Combine(bundleRoot.FullName, "index.html"), BundleIndexHtml);
+        File.WriteAllText(
+            Path.Combine(bundleRoot.FullName, "index.html"),
+            BundleIndexHtml,
+            SecureEncoding.UTF8
+        );
         var assets = bundleRoot.CreateSubdirectory("assets");
-        File.WriteAllText(Path.Combine(assets.FullName, "app.js"), BundleScript);
+        File.WriteAllText(
+            Path.Combine(assets.FullName, "app.js"),
+            BundleScript,
+            SecureEncoding.UTF8
+        );
         return bundleRoot;
     }
 
@@ -557,7 +565,7 @@ public class InteractiveTenantRouteTests
                     Claims = [],
                     ConcurrencyToken = string.Empty,
                 },
-                Encoding.UTF8.GetBytes(Password),
+                SecureEncoding.UTF8.GetBytes(Password),
                 CancellationToken.None
             );
         await storeManager.SaveChangesAsync(CancellationToken.None);

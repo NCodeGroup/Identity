@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Diagnostics;
-using System.Text;
 using NCode.Buffers;
 using NCode.Disposables;
 using NCode.Encoders;
@@ -231,10 +230,10 @@ partial class JoseSerializer
 
         // Input Data for Signature
         // b64 true:  ASCII( BASE64URL(UTF8(JWS Protected Header)) || '.' || BASE64URL(JWS Payload) )
-        // b64 false: ASCII( BASE64URL(UTF8(JWS Protected Header)) || '.' ) || JWS Payload
+        // b64 false: ASCII( BASE64URL(UTF8(JWS Protected Header)) || '.' ) || UTF8(JWS Payload)
 
-        var headerByteCount = Encoding.ASCII.GetByteCount(encodedHeaderPart);
-        var payloadByteCount = Encoding.ASCII.GetByteCount(encodedPayloadPart);
+        var headerByteCount = SecureEncoding.ASCII.GetByteCount(encodedHeaderPart);
+        var payloadByteCount = SecureEncoding.UTF8.GetByteCount(encodedPayloadPart);
 
         var inputByteCount = headerByteCount + payloadByteCount;
         using var inputLease = BufferFactory.Rent(
@@ -243,10 +242,10 @@ partial class JoseSerializer
             out Span<byte> inputData
         );
 
-        var headerWritten = Encoding.ASCII.GetBytes(encodedHeaderPart, inputData);
+        var headerWritten = SecureEncoding.ASCII.GetBytes(encodedHeaderPart, inputData);
         Debug.Assert(headerWritten == headerByteCount);
 
-        var payloadWritten = Encoding.ASCII.GetBytes(
+        var payloadWritten = SecureEncoding.UTF8.GetBytes(
             encodedPayloadPart,
             inputData[headerByteCount..]
         );

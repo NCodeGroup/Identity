@@ -17,6 +17,7 @@
 #endregion
 
 using System.Net;
+using NCode.Buffers;
 
 namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 
@@ -37,7 +38,7 @@ internal sealed class StubJsonHttpMessageHandler(Func<HttpRequestMessage, string
         var json = Responder(request);
         var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
+            Content = new StringContent(json, SecureEncoding.UTF8, "application/json"),
         };
         return Task.FromResult(response);
     }

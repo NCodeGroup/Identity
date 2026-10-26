@@ -21,8 +21,8 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
+using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets.KeyMaterial;
@@ -330,7 +330,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         int keySizeBits
     )
     {
-        var algorithmByteCount = Encoding.ASCII.GetByteCount(algorithm);
+        var algorithmByteCount = SecureEncoding.ASCII.GetByteCount(algorithm);
         var apuByteCount = string.IsNullOrEmpty(apu)
             ? 0
             : Base64Url.GetByteCountForDecode(apu.Length);
@@ -368,7 +368,7 @@ internal class EcdhKeyManagementAlgorithm : CommonKeyManagementAlgorithm
         pos = pos[sizeof(int)..];
 
         // algorithm ASCII bytes
-        var bytesWritten = Encoding.ASCII.GetBytes(algorithm, pos);
+        var bytesWritten = SecureEncoding.ASCII.GetBytes(algorithm, pos);
         Debug.Assert(bytesWritten == algorithmByteCount);
         pos = pos[algorithmByteCount..];
 

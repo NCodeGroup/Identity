@@ -170,7 +170,7 @@ internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IDisposable
         string pem;
         try
         {
-            pem = File.ReadAllText(path);
+            pem = File.ReadAllText(path, SecureEncoding.UTF8);
         }
         catch (Exception exception)
             when (exception

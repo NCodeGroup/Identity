@@ -882,7 +882,9 @@ rationale.
 - ✅ **Banned APIs** (`Microsoft.CodeAnalysis.BannedApiAnalyzers`, `RS0030`) from
   [`BannedSymbols.txt`](../../BannedSymbols.txt) — no `Newtonsoft.Json` (use `System.Text.Json`), no legacy
   `JwtSecurityTokenHandler` / `JwtSecurityToken` (use `JsonWebTokenHandler`), and no
-  sync-over-async. Add house rules to that file as they emerge.
+  sync-over-async. Add house rules to that file as they emerge. `BannedSymbols.Encoding.txt` bans lenient text
+  encodings in every project, tests included
+  ([ADR-0266](../../docs/adr/0266-text-is-encoded-and-decoded-only-through-strict-encodings.md)).
 - ⏳ **Warnings-as-errors in _every_ project — including tests and the host projects** — and **NuGet vulnerability
   advisories (`NU190x`) as errors in CI**. See
   [ADR-0127](../../docs/adr/0127-warnings-are-errors-in-every-project.md): the criterion is "code we maintain", not
@@ -1191,6 +1193,13 @@ straight to a PR. Record consumer-visible changes in [`CHANGELOG.md`](../../CHAN
   that enters from configuration (already an unavoidable managed `string`) is supplied **pre-encoded** (Base64Url) and
   decoded straight into the secure buffer, so a raw process-memory snapshot does not expose the plaintext directly. See
   [ADR-0011](../../docs/adr/0011-secret-management-api.md).
+- ✅ **Encode and decode text only through a strict encoding.** Use `SecureEncoding.UTF8` / `SecureEncoding.ASCII`
+  (`NCode.Buffers`), which throw on invalid input, never `Encoding.UTF8`, `Encoding.ASCII` or `Encoding.Default`, which
+  substitute `?` or U+FFFD silently. An overload that takes no encoding (`File.ReadAllText(path)`,
+  `new StreamReader(stream)`, `new StringContent(text)`) is replaced by the one that takes `SecureEncoding.UTF8`;
+  `TypedResults.Text`/`Content` always pass `contentEncoding: SecureEncoding.UTF8`, except a media type without a
+  charset parameter (`application/jwt`), which is written through `Utf8TextResults.Create`. See
+  [ADR-0266](../../docs/adr/0266-text-is-encoded-and-decoded-only-through-strict-encodings.md).
 - 👁 **Prefer `Span<byte>` / `ReadOnlyMemory<byte>` / `IBufferWriter<byte>` over `byte[]` for binary and key material.**
   A producer writes into a caller-supplied writer — `void Export…<TWriter>(ref TWriter destination) where TWriter :
 IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivateKey` /

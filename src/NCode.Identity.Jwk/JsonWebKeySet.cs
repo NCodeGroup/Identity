@@ -18,10 +18,10 @@
 
 using System.Buffers;
 using System.Collections.Immutable;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using NCode.Buffers;
 
 namespace NCode.Identity.Jwk;
 
@@ -136,7 +136,7 @@ public sealed class JsonWebKeySet
             WriteTo(writer);
         }
 
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+        return SecureEncoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
     internal void WriteTo(Utf8JsonWriter writer)

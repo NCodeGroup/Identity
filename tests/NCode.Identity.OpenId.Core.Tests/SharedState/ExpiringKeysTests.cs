@@ -19,6 +19,7 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
+using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.OpenId.Authentication.SharedState;
 using Xunit;
@@ -44,7 +45,7 @@ public sealed class ExpiringKeysTests
     public void Create_DigestsTheLengthPrefixedUtf8OfEachComponent()
     {
         const string Component = "caf\u00e9";
-        var bytes = Encoding.UTF8.GetBytes(Component);
+        var bytes = SecureEncoding.UTF8.GetBytes(Component);
         var input = new byte[sizeof(int) + bytes.Length];
         BinaryPrimitives.WriteInt32BigEndian(input, bytes.Length);
         bytes.CopyTo(input, sizeof(int));
@@ -96,6 +97,14 @@ public sealed class ExpiringKeysTests
         var second = ExpiringKeys.Create("purpose-2", "tenant-1", "a");
 
         Assert.NotEqual(first, second);
+    }
+
+    [Fact]
+    public void Create_WhenComponentHasLoneSurrogate_Throws()
+    {
+        Assert.Throws<EncoderFallbackException>(() =>
+            ExpiringKeys.Create("purpose", "tenant-1", "a\uD800")
+        );
     }
 
     [Fact]

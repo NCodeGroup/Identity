@@ -19,9 +19,9 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
@@ -74,8 +74,8 @@ public class TokenEndpointClientAssertionTests
         var encodedPayload = Base64Url.Encode(JsonSerializer.SerializeToUtf8Bytes(payload));
         var signingInput = $"{encodedHeader}.{encodedPayload}";
 
-        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(clientSecret));
-        var signature = hmac.ComputeHash(Encoding.ASCII.GetBytes(signingInput));
+        using var hmac = new HMACSHA256(SecureEncoding.UTF8.GetBytes(clientSecret));
+        var signature = hmac.ComputeHash(SecureEncoding.ASCII.GetBytes(signingInput));
 
         return $"{signingInput}.{Base64Url.Encode(signature)}";
     }
@@ -104,7 +104,7 @@ public class TokenEndpointClientAssertionTests
         var signingInput = $"{encodedHeader}.{encodedPayload}";
 
         var signature = privateKey.SignData(
-            Encoding.ASCII.GetBytes(signingInput),
+            SecureEncoding.ASCII.GetBytes(signingInput),
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1
         );

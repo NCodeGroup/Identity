@@ -18,7 +18,7 @@
 
 using System.Buffers;
 using System.Net;
-using System.Text;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using Xunit;
 
@@ -29,7 +29,7 @@ public class DefaultOutboundHttpContentReaderTests : BaseTests
     private DefaultOutboundHttpContentReader Subject { get; } = new();
 
     private static HttpResponseMessage StringResponse(string body) =>
-        new(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8) };
+        new(HttpStatusCode.OK) { Content = new StringContent(body, SecureEncoding.UTF8) };
 
     #region ReadCappedAsync Tests
 
@@ -47,7 +47,7 @@ public class DefaultOutboundHttpContentReaderTests : BaseTests
         );
 
         Assert.Equal(OutboundHttpReadResult.Completed, result);
-        Assert.Equal("hello", Encoding.UTF8.GetString(destination.WrittenSpan));
+        Assert.Equal("hello", SecureEncoding.UTF8.GetString(destination.WrittenSpan));
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class DefaultOutboundHttpContentReaderTests : BaseTests
         // No advertised Content-Length, so the early reject is bypassed and the streaming cap is exercised.
         using var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new UnknownLengthContent(Encoding.UTF8.GetBytes("0123456789")),
+            Content = new UnknownLengthContent(SecureEncoding.UTF8.GetBytes("0123456789")),
         };
         var destination = new ArrayBufferWriter<byte>();
 

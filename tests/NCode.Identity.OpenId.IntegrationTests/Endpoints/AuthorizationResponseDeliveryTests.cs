@@ -18,10 +18,10 @@
 
 using System.Buffers.Text;
 using System.Net;
-using System.Text;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
 using Xunit;
@@ -70,7 +70,9 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         var segments = jwt.Split('.');
         Assert.Equal(3, segments.Length);
 
-        return JsonElement.Parse(Encoding.UTF8.GetString(Base64Url.DecodeFromChars(segments[1])));
+        return JsonElement.Parse(
+            SecureEncoding.UTF8.GetString(Base64Url.DecodeFromChars(segments[1]))
+        );
     }
 
     #endregion

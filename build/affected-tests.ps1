@@ -10,8 +10,8 @@
     untracked files), maps each path to the project under src/ or tests/ whose directory is its longest prefix, and
     selects the test projects (under tests/) in the reverse ProjectReference closure of those projects. A change to a
     global build input (build/, .config/, global.json, nuget.config, version.json, the solution, .editorconfig,
-    BannedSymbols.txt, any Directory.* file, any .runsettings file) selects all tests. A path under no project, such as
-    docs/, charts/, src/frontend/ or .github/, selects nothing (ADR-0263).
+    any BannedSymbols*.txt, any Directory.* file, any .runsettings file) selects all tests. A path under no project,
+    such as docs/, charts/, src/frontend/ or .github/, selects nothing (ADR-0263).
 
     Outputs one object with All (true when a global trigger matched), Projects (repository-relative test .csproj paths
     with / separators, sorted ordinal, empty when All is true) and Reasons (one line per changed path).
@@ -42,7 +42,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $Root = [IO.Path]::GetFullPath($Root)
-$globalTrigger = '^(build/|\.config/|global\.json$|nuget\.config$|version\.json$|NCode\.Identity\.slnx$|\.editorconfig$|BannedSymbols\.txt$)|(^|/)Directory\.[^/]+$|\.runsettings$'
+$globalTrigger = '^(build/|\.config/|global\.json$|nuget\.config$|version\.json$|NCode\.Identity\.slnx$|\.editorconfig$|BannedSymbols(\.[^/]+)?\.txt$)|(^|/)Directory\.[^/]+$|\.runsettings$'
 
 function ConvertTo-RelativePath([string]$FullPath) {
     return [IO.Path]::GetRelativePath($Root, $FullPath).Replace('\', '/')

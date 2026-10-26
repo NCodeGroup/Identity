@@ -567,9 +567,9 @@ partial class JoseSerializer
     )
     {
         if (encodedAad is null)
-            return Encode(Encoding.ASCII, encodedProtected, out associatedData);
+            return Encode(SecureEncoding.ASCII, encodedProtected, out associatedData);
 
         var combined = string.Concat(encodedProtected, ".", encodedAad);
-        return Encode(Encoding.ASCII, combined.AsSpan(), out associatedData);
+        return Encode(SecureEncoding.ASCII, combined.AsSpan(), out associatedData);
     }
 }

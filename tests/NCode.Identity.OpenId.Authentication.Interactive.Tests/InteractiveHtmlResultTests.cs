@@ -17,8 +17,8 @@
 #endregion
 
 using System.Buffers;
-using System.Text;
 using Microsoft.AspNetCore.Http;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Endpoints;
 using Xunit;
 
@@ -41,7 +41,7 @@ public class InteractiveHtmlResultTests
         await result.ExecuteAsync(httpContext);
 
         Assert.Equal(InteractiveHtmlResult.HtmlContentType, httpContext.Response.ContentType);
-        Assert.Equal(Page, Encoding.UTF8.GetString(body.ToArray()));
+        Assert.Equal(Page, SecureEncoding.UTF8.GetString(body.ToArray()));
     }
 
     [Fact]

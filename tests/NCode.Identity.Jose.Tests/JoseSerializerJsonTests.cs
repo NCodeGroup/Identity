@@ -233,6 +233,25 @@ public class JoseSerializerJsonTests : BaseTests
     }
 
     [Fact]
+    public void EncodeJws_CompactUnencodedNonAsciiPayload_RoundTrips()
+    {
+        const string NonAsciiPayload = "{\"name\":\"café\"}";
+
+        var credentials = RsaSigningCredentials("rsa-1");
+        var options = new JoseSigningOptions(new JoseSignatureOptions(credentials))
+        {
+            Format = JoseSerializationFormat.Compact,
+            EncodePayload = false,
+        };
+
+        var token = JoseSerializer.CreateEncoder(options).Encode(NonAsciiPayload);
+
+        var parsed = JoseSerializer.Parse(token);
+        var decoded = JoseSerializer.Decode(parsed, credentials.SecretKey);
+        Assert.Equal(NonAsciiPayload, decoded);
+    }
+
+    [Fact]
     public void EncodeJws_CompactFormatWithMultipleSignatures_Throws()
     {
         var options = new JoseSigningOptions

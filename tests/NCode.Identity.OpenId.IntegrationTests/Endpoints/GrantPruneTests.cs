@@ -17,7 +17,6 @@
 #endregion
 
 using System.Diagnostics;
-using System.Text.Json;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Authentication.Persistence;
@@ -60,7 +59,7 @@ public class GrantPruneTests
             ExpiresWhen = expiresWhen,
             RevokedWhen = revokedWhen,
             ConsumedWhen = null,
-            PayloadJson = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            ProtectedPayload = "protected-payload",
         };
 
     private static async Task AddAsync(IServiceProvider services, params PersistedGrant[] grants)

@@ -768,11 +768,12 @@ rationale.
   `IOpenIdContextFactory.CreateForBackgroundAsync` in its own DI scope.** The context has no endpoint, connection or
   user, and it is disposed before the scope. See
   [ADR-0223](../../docs/adr/0223-a-session-that-ends-unused-is-terminated-once-in-the-background.md).
-- 👁 **Read a stored grant's payload through `IPersistedGrantService` or `IPersistedPayloadSerializer`, never
-  `PayloadJson.Deserialize<T>()`.** A grant's `PayloadJson` is a schema-versioned envelope (`$ver`, `$payload`), so
-  deserializing it as the payload reads none of the payload's members and throws for a `required` one; a session
+- 👁 **Read a stored grant's payload through `IPersistedGrantService` or `IGrantPayloadProtector`, never from
+  `ProtectedPayload` directly.** A grant's `ProtectedPayload` is an `nce1.` envelope over the schema-versioned document
+  (`$ver`, `$payload`), so reading it as the payload yields no members and throws for a `required` one; a session
   listing that did so failed for every stored session. See
-  [ADR-0220](../../docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md).
+  [ADR-0220](../../docs/adr/0220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) and
+  [ADR-0265](../../docs/adr/0265-grant-payloads-are-protected-under-the-tenant-master-key.md).
 - 👁 **A fetch of a URL a tenant or certificate supplies uses a named client whose primary handler has the
   `IOutboundHttpForgeryGuard` connect callback, and the platform `X509Chain` retrieves nothing.** Use
   `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through

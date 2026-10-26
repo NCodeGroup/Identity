@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -112,7 +111,7 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
             ExpiresWhen = Now.AddMinutes(-1),
             RevokedWhen = null,
             ConsumedWhen = null,
-            PayloadJson = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            ProtectedPayload = "protected-payload",
         };
 
     private Mock<OpenIdContext> CreateContext()

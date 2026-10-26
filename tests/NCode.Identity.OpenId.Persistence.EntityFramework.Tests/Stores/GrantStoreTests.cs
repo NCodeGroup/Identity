@@ -117,7 +117,7 @@ public sealed class GrantStoreTests : IDisposable
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddHours(1),
             RevokedWhen = null,
             ConsumedWhen = null,
-            PayloadJson = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            ProtectedPayload = "protected-payload",
         };
 
     #region AddAsync Tests

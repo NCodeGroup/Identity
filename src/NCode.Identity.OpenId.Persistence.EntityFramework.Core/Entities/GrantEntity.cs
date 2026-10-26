@@ -18,7 +18,6 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
@@ -163,9 +162,10 @@ public sealed class GrantEntity : ISupportTenantEntity, ISupportConcurrencyToken
     public required DateTimeOffset? ConsumedWhen { get; set; }
 
     /// <summary>
-    /// Gets or sets the serialized JSON for the payload.
+    /// Gets or sets the payload, protected under the tenant's master key (ADR-0265).
     /// </summary>
-    public required JsonElement PayloadJson { get; set; }
+    [Unicode(false)]
+    public required string ProtectedPayload { get; set; }
 
     //
 

@@ -63,4 +63,13 @@ public readonly record struct SecretProtectionContext
     /// <returns>The <see cref="SecretProtectionContext"/> for the persisted secret.</returns>
     public static SecretProtectionContext ForPersistedSecret(string secretId) =>
         new(SecretProtectionPurposes.PersistedSecret, secretId);
+
+    /// <summary>
+    /// Creates the context for the payload of a single persisted grant. The item identifier is the hashed key of the
+    /// grant.
+    /// </summary>
+    /// <param name="hashedKey">The hashed key of the grant.</param>
+    /// <returns>The <see cref="SecretProtectionContext"/> for the grant payload.</returns>
+    public static SecretProtectionContext ForGrantPayload(string hashedKey) =>
+        new(SecretProtectionPurposes.GrantPayload, hashedKey);
 }

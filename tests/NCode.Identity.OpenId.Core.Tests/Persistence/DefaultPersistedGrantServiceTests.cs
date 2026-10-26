@@ -44,7 +44,7 @@ public class DefaultPersistedGrantServiceTests : BaseTests
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockGrantStore = CreateStrictMock<IGrantStore>();
-        MockPayloadSerializer = CreateStrictMock<IPersistedPayloadSerializer>();
+        MockPayloadProtector = CreateStrictMock<IGrantPayloadProtector>();
         MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
 
         MockContext = CreateStrictMock<OpenIdContext>();
@@ -54,7 +54,7 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             TimeProvider.System,
             MockCryptoService.Object,
             MockStoreManagerFactory.Object,
-            MockPayloadSerializer.Object
+            MockPayloadProtector.Object
         );
     }
 
@@ -62,7 +62,7 @@ public class DefaultPersistedGrantServiceTests : BaseTests
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IGrantStore> MockGrantStore { get; }
-    private Mock<IPersistedPayloadSerializer> MockPayloadSerializer { get; }
+    private Mock<IGrantPayloadProtector> MockPayloadProtector { get; }
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private Mock<OpenIdContext> MockContext { get; }
     private OpenIdContext OpenIdContext { get; }
@@ -93,7 +93,7 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             ExpiresWhen = DateTimeOffset.UtcNow.AddHours(1),
             RevokedWhen = revokedWhen,
             ConsumedWhen = consumedWhen,
-            PayloadJson = JsonElement.Parse("{}"),
+            ProtectedPayload = "protected",
         };
 
     private static PersistedGrant<string> CreateSuccessor() =>
@@ -171,9 +171,18 @@ public class DefaultPersistedGrantServiceTests : BaseTests
 
         MockEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(JsonOptions).Verifiable();
 
-        MockPayloadSerializer
-            .Setup(x => x.Deserialize<string>(It.IsAny<JsonElement>(), JsonOptions))
-            .Returns("payload")
+        MockPayloadProtector
+            .Setup(x =>
+                x.UnprotectOrDefaultAsync<string>(
+                    TenantId,
+                    GrantType,
+                    HashedKey,
+                    It.IsAny<string>(),
+                    JsonOptions,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(new GrantPayload<string>("payload"))
             .Verifiable();
     }
 
@@ -183,9 +192,17 @@ public class DefaultPersistedGrantServiceTests : BaseTests
 
         MockEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(JsonOptions).Verifiable();
 
-        MockPayloadSerializer
-            .Setup(x => x.Serialize("successor", JsonOptions))
-            .Returns(JsonElement.Parse("{}"))
+        MockPayloadProtector
+            .Setup(x =>
+                x.ProtectAsync(
+                    TenantId,
+                    It.IsAny<string>(),
+                    "successor",
+                    JsonOptions,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync("protected-successor")
             .Verifiable();
     }
 
@@ -195,9 +212,38 @@ public class DefaultPersistedGrantServiceTests : BaseTests
 
         MockEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(JsonOptions).Verifiable();
 
-        MockPayloadSerializer
-            .Setup(x => x.Serialize("payload", JsonOptions))
-            .Returns(JsonElement.Parse("{\"a\":1}"))
+        MockPayloadProtector
+            .Setup(x =>
+                x.ProtectAsync(
+                    TenantId,
+                    HashedKey,
+                    "payload",
+                    JsonOptions,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync("protected-updated")
+            .Verifiable();
+    }
+
+    private void SetupUnreadable()
+    {
+        SetupEnvironment();
+
+        MockEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(JsonOptions).Verifiable();
+
+        MockPayloadProtector
+            .Setup(x =>
+                x.UnprotectOrDefaultAsync<string>(
+                    TenantId,
+                    GrantType,
+                    HashedKey,
+                    It.IsAny<string>(),
+                    JsonOptions,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((GrantPayload<string>?)null)
             .Verifiable();
     }
 
@@ -234,6 +280,26 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             )
             .ReturnsAsync(2L)
             .Verifiable(times);
+
+    #endregion
+
+    #region GetOrDefaultAsync Tests
+
+    [Fact]
+    public async Task GetOrDefaultAsync_WhenThePayloadIsUnreadable_ReturnsNull()
+    {
+        var envelope = CreateEnvelope();
+        SetupLookup(envelope);
+        SetupUnreadable();
+
+        var result = await Service.GetOrDefaultAsync<string>(
+            OpenIdContext,
+            CreateGrantId(),
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+    }
 
     #endregion
 
@@ -310,6 +376,23 @@ public class DefaultPersistedGrantServiceTests : BaseTests
         );
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ConsumeOnceOrDefault_WhenThePayloadIsUnreadable_ReturnsNullWithoutConsuming()
+    {
+        var envelope = CreateEnvelope();
+        SetupLookup(envelope);
+        SetupUnreadable();
+
+        var result = await Service.ConsumeOnceOrDefault<string>(
+            OpenIdContext,
+            CreateGrantId(),
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+        Assert.Null(envelope.ConsumedWhen);
     }
 
     #endregion
@@ -457,6 +540,31 @@ public class DefaultPersistedGrantServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task RevokeSessionOnceAsync_WhenThePayloadIsUnreadable_RevokesTheSessionAndReturnsNull()
+    {
+        var envelope = CreateEnvelope(sessionId: "sid-1");
+        var revokedWhen = DateTimeOffset.UtcNow;
+        SetupLookup(envelope);
+        SetupUpdate(envelope, ValueTask.CompletedTask);
+        SetupRevokeSessionGrants("sid-1", revokedWhen, Times.Once());
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once());
+        SetupUnreadable();
+
+        var result = await Service.RevokeSessionOnceAsync<string>(
+            OpenIdContext,
+            CreateGrantId(),
+            revokedWhen,
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+        Assert.Equal(revokedWhen, envelope.RevokedWhen);
+    }
+
+    [Fact]
     public async Task RevokeSessionOnceAsync_WhenTheGrantCarriesNoSessionId_RevokesOnlyTheGrant()
     {
         var envelope = CreateEnvelope();
@@ -568,7 +676,7 @@ public class DefaultPersistedGrantServiceTests : BaseTests
     {
         var first = CreateEnvelope(sessionId: "sid-1");
         var second = CreateEnvelope(sessionId: "sid-1");
-        second.PayloadJson = JsonElement.Parse("\"second\"");
+        second.ProtectedPayload = "protected-second";
         var revokedWhen = DateTimeOffset.UtcNow;
         SetupLookupSequence(first, second);
         MockGrantStore
@@ -582,14 +690,18 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask);
         SetupEnvironment();
         MockEnvironment.SetupGet(x => x.JsonSerializerOptions).Returns(JsonOptions).Verifiable();
-        MockPayloadSerializer
+        MockPayloadProtector
             .Setup(x =>
-                x.Deserialize<string>(
-                    It.Is<JsonElement>(e => e.GetString() == "second"),
-                    JsonOptions
+                x.UnprotectOrDefaultAsync<string>(
+                    TenantId,
+                    GrantType,
+                    HashedKey,
+                    "protected-second",
+                    JsonOptions,
+                    It.IsAny<CancellationToken>()
                 )
             )
-            .Returns("second")
+            .ReturnsAsync(new GrantPayload<string>("second"))
             .Verifiable();
 
         var result = await Service.RevokeSessionOnceAsync<string>(
@@ -1169,7 +1281,7 @@ public class DefaultPersistedGrantServiceTests : BaseTests
         Assert.True(updated);
         Assert.Equal("payload", received);
         Assert.Equal(expiresWhen, envelope.ExpiresWhen);
-        Assert.Equal("{\"a\":1}", envelope.PayloadJson.GetRawText());
+        Assert.Equal("protected-updated", envelope.ProtectedPayload);
     }
 
     [Fact]
@@ -1192,7 +1304,7 @@ public class DefaultPersistedGrantServiceTests : BaseTests
 
         Assert.True(updated);
         Assert.Equal(expiresWhen, envelope.ExpiresWhen);
-        Assert.Equal("{\"a\":1}", envelope.PayloadJson.GetRawText());
+        Assert.Equal("protected-updated", envelope.ProtectedPayload);
     }
 
     [Fact]
@@ -1206,6 +1318,23 @@ public class DefaultPersistedGrantServiceTests : BaseTests
             OpenIdContext,
             CreateGrantId(),
             _ => null,
+            CancellationToken.None
+        );
+
+        Assert.False(updated);
+    }
+
+    [Fact]
+    public async Task UpdatePayloadAsync_WhenThePayloadIsUnreadable_ReturnsFalseWithoutSaving()
+    {
+        var envelope = CreateEnvelope();
+        SetupLookup(envelope);
+        SetupUnreadable();
+
+        var updated = await Service.UpdatePayloadAsync<string>(
+            OpenIdContext,
+            CreateGrantId(),
+            _ => throw new InvalidOperationException("The update must not be called."),
             CancellationToken.None
         );
 
@@ -1265,7 +1394,7 @@ public class DefaultPersistedGrantServiceTests : BaseTests
 
         Assert.True(updated);
         Assert.Equal(2, calls);
-        Assert.Equal("{\"a\":1}", second.PayloadJson.GetRawText());
+        Assert.Equal("protected-updated", second.ProtectedPayload);
     }
 
     [Fact]

@@ -132,7 +132,7 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddHours(1),
             RevokedWhen = null,
             ConsumedWhen = null,
-            PayloadJson = EmptyObject(),
+            ProtectedPayload = "protected-payload",
         };
 
     [Fact]

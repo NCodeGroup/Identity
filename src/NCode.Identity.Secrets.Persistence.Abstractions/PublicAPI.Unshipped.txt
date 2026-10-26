@@ -121,6 +121,7 @@ const NCode.Identity.Secrets.Persistence.Protection.RootKeyProviderNames.Local =
 const NCode.Identity.Secrets.Persistence.Protection.SecretOwnerTypes.Server = "server" -> string!
 const NCode.Identity.Secrets.Persistence.Protection.SecretOwnerTypes.Tenant = "tenant" -> string!
 const NCode.Identity.Secrets.Persistence.Protection.SecretProtectionPurposes.DataProtectionKeyRing = "data-protection-key-ring" -> string!
+const NCode.Identity.Secrets.Persistence.Protection.SecretProtectionPurposes.GrantPayload = "grant-payload" -> string!
 const NCode.Identity.Secrets.Persistence.Protection.SecretProtectionPurposes.PersistedSecret = "persisted-secret" -> string!
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.ConcurrencyToken.get -> string!
@@ -214,4 +215,5 @@ NCode.Identity.Secrets.Persistence.Protection.SecretProtectorProviderExtensions.
 override NCode.Identity.Secrets.Persistence.Protection.SecretOwner.ToString() -> string!
 static NCode.Identity.Secrets.Persistence.Protection.SecretOwner.ForServer(string! serverId) -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
 static NCode.Identity.Secrets.Persistence.Protection.SecretOwner.ForTenant(string! tenantId) -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
+static NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext.ForGrantPayload(string! hashedKey) -> NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext
 static NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext.ForPersistedSecret(string! secretId) -> NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext

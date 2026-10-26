@@ -558,7 +558,8 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
   identity-platform `.github/`, `.githooks/`, `.pre-commit-config.yaml`, `.claude/settings.json`,
   `.vscode/settings.json` and its `default-branch` ruleset.
 
-  This repository's adoption (pull request #15) found three more template gaps; fix them in the same template change:
+  This repository's adoption (pull request #15) and its updates found more template gaps; fix them in the same
+  template change:
   - **The adoption breaks an allow-list Docker build context.** `Directory.Build.props` now imports
     `build/ProjectTemplate.props`, and this repository's `.dockerignore` re-admits only named root build files, so the
     host image failed to restore (`MSB4019`) until `!build/ProjectTemplate.props` was added. The Definition of Done
@@ -570,18 +571,16 @@ Follow-ups surfaced while implementing [ADR-0050](docs/adr/0050-secret-material-
     worktree, so every executor reported a hand-made check instead. The coordinator's run of each Done-when is what
     verified the steps. The template's `plan-executor` agent and `execute-step` command should say that the
     coordinator runs the check when the executor cannot, rather than asking the executor to run it.
-  - **Parallel steps leak into each other's checkpoint commits.** `orchestrate-plan` commits each step with
-    `git add -A`, and `git rm` or `git mv` stage at once, so when independent steps ran in parallel one step's commit
-    picked up another's deletions and rename. Either say that steps run one at a time, or commit each step's own
-    paths (`git commit -- <paths> PLAN.md`) and tell executors not to edit `PLAN.md`.
   - **`Update-Project.ps1` never hands the update over to the newer script.** It clones the template with
     `--filter=blob:none`, and in that clone `git checkout <tag> -- template/.template/Update-Project.ps1` fails
     ("unable to read sha1 file") on Git 2.56.0.windows.3, while `git show <tag>:<path>` fetches the blob. The script
     reads the failure as "no newer script" and runs the project's own copy, so every update runs the previous
     version's update logic. Updating this repository to `v0.4.0` hit it: the `v0.3.0` copy ran, without the
     `WinError 206` fix, and failed; running project-template's root `Update-Project.ps1 -Path <repository>` from a
-    `v0.4.0` clone worked. Read the target script with `git show`, and give `Test-Template.ps1` an update from a
-    `file://` clone, so the blob filter applies the way it does for a hosted template.
+    `v0.4.0` clone worked. `v0.7.0` still has the bug: its script matches `v0.4.0`'s, so the update to `v0.7.0`
+    needed no hand-over, but the next version that changes the script will run the old copy again. Read the target
+    script with `git show`, and give `Test-Template.ps1` an update from a `file://` clone, so the blob filter applies
+    the way it does for a hosted template.
 
   More touch points: project-template's `Adopt-Project.ps1` migration request,
   `template/.claude/agents/plan-executor.md`, and the `execute-step` and `orchestrate-plan` sources.

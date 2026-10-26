@@ -97,9 +97,9 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>" -- RunConfiguration.TreatNoTestsAsError=true`
   (xUnit v2 on VSTest). Keep the trailing setting: without it a filter that matches no test exits `0`, so the check
   passes before its test exists. `./build/dod.ps1 -Fast -Affected` stays the gate for the whole change.
-- **`PLAN.md` is transient:** the push protocol in
+- **`PLAN.md` is transient:** it is gitignored and never committed, and the push protocol in
   [`repository.instructions.md`](.github/instructions/repository.instructions.md) promotes its Decisions, deletes it,
-  and squashes the `Plan step N` / `Re-plan step N` checkpoint commits before anything is pushed.
+  and squashes the `Plan: <title>` / `Plan step N` / `Re-plan step N` checkpoint commits before anything is pushed.
 - The agents, prompts and skills under `.github/`, the commands under `.claude/commands/`,
   `.claude/agents/plan-executor.md` and `CLAUDE.md` **come from the project template**
   ([`polewskm/project-template`](https://github.com/polewskm/project-template); the version is in

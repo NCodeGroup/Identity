@@ -101,9 +101,9 @@ with `gh pr merge <number> --auto --squash`, which adds the pull request to the 
 these gates **before** pushing:
 
 1. **Retire the plan.** If a `PLAN.md` exists, every step is `[x]` and its review (`/review-plan-diff`) has run with
-   every queued fix step done. Promote its Decisions in gate 2, delete `PLAN.md`, and squash its `Plan step N` /
-   `Re-plan step N` checkpoint commits into the conventional commit(s) they belong to — neither the plan nor its
-   checkpoints reach `origin`
+   every queued fix step done. Promote its Decisions in gate 2, delete `PLAN.md` (gitignored, so it is never in a
+   commit), and squash its `Plan: <title>` / `Plan step N` / `Re-plan step N` checkpoint commits into the
+   conventional commit(s) they belong to — neither the plan nor its checkpoints reach `origin`
    ([ADR-0170](../../docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
    Before force-pushing the squash, fetch and confirm that every commit on `origin` past the plan's base is one of the
    plan's own checkpoint commits. Replay any other commit, which someone else pushed, onto the squash so the push keeps

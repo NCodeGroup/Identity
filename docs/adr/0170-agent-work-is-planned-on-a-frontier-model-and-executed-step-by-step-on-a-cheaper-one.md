@@ -91,10 +91,12 @@ The rules:
   text at least should-fix — a deviation means the executor improvised instead of escalating — and appends fixes as new
   steps for the executor.
 - **`PLAN.md` and its checkpoints are transient.** [`BACKLOG.md`](../../BACKLOG.md) is the single tracker of pending
-  work and the ADRs carry the reasoning, so a plan never outlives its change: its Decisions are promoted into ADRs,
-  instruction files, or the backlog, `PLAN.md` is deleted, and the `Plan step` / `Re-plan step` checkpoints are squashed
-  into conventional commits before the change leaves the machine — before a push to `main` here
-  ([ADR-0125](0125-trunk-based-development-on-main.md)), and before a pull request merges in `identity-platform`.
+  work and the ADRs carry the reasoning, so a plan never outlives its change. `PLAN.md` is a gitignored working file
+  that no commit contains, and each step's checkpoint stages only the files the step lists. Its Decisions are promoted
+  into ADRs, instruction files, or the backlog, `PLAN.md` is deleted, and the `Plan` / `Plan step` / `Re-plan step`
+  checkpoints are squashed into conventional commits before the change leaves the machine — before its topic branch is
+  pushed here ([ADR-0261](0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), and before a
+  pull request merges in `identity-platform`.
 - **Repository rules reach every agent.** The planner and the executor both load
   [`repository.instructions.md`](../../.github/instructions/repository.instructions.md), [`AGENTS.md`](../../AGENTS.md),
   and the scoped instruction files, so a plan restates only what a step needs, and the Definition of Done stays the

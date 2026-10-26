@@ -2616,6 +2616,15 @@ private/loopback/link-local addresses, auto-redirect disabled), so a registered 
   amendment of 2026-10-25 and the [`CHANGELOG.md`](CHANGELOG.md) entry "The plan-and-execute workflow comes from the
   project template". The template's `core.hooksPath` change and identity-platform's adoption continue as `X11`._
 
+- **`X11` (part) — Parallel steps leak into each other's checkpoint commits.** `orchestrate-plan` committed each step
+  with `git add -A`, and `git rm` or `git mv` stage at once, so when independent steps ran in parallel one step's
+  commit picked up another's deletions and rename. Either say that steps run one at a time, or commit each step's own
+  paths and tell executors not to edit `PLAN.md`.
+
+  _Closed by project-template `v0.6.0`, which this repository took with the update to `v0.7.0`: a step's commit
+  stages only the files the step lists, and `PLAN.md` stays untracked. The rest of `X11` stays in
+  [`BACKLOG.md`](BACKLOG.md)._
+
 ## Review findings for the feature-gaps branch (group `R`)
 
 - **`R1` — Merge `main` and reconcile clashing backlog IDs.** `BACKLOG.md` conflicts, and

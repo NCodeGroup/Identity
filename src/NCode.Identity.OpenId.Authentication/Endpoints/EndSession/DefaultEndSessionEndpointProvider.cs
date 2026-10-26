@@ -21,6 +21,7 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
 using NCode.Identity.OpenId.Contexts;
@@ -103,7 +104,7 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
                     disposition.RedirectUri
                 )
             );
-            return TypedResults.Content(html, "text/html; charset=utf-8");
+            return TypedResults.Content(html, "text/html; charset=utf-8", SecureEncoding.UTF8);
         }
 
         if (!string.IsNullOrEmpty(disposition.RedirectUri))
@@ -112,7 +113,7 @@ internal class DefaultEndSessionEndpointProvider : IEndpointProvider
             return TypedResults.Redirect(RedirectLocation.Escape(disposition.RedirectUri));
         }
 
-        return TypedResults.Content("You have been logged out.", "text/plain");
+        return TypedResults.Content("You have been logged out.", "text/plain", SecureEncoding.UTF8);
     }
 
     // Builds the Front-Channel Logout 1.0 page: a hidden iframe per participating client, then a scripted redirect to

@@ -53,10 +53,10 @@ internal static class ExpiringKeys
 
         foreach (var component in components)
         {
-            var length = Encoding.UTF8.GetByteCount(component);
+            var length = SecureEncoding.UTF8.GetByteCount(component);
             BinaryPrimitives.WriteInt32BigEndian(buffer.GetSpan(sizeof(int)), length);
             buffer.Advance(sizeof(int));
-            Encoding.UTF8.GetBytes(component, buffer);
+            SecureEncoding.UTF8.GetBytes(component, buffer);
         }
 
         using var lease = buffer.GetSpanLease(isSensitive: false);

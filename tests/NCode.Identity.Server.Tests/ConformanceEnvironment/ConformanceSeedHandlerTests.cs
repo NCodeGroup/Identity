@@ -17,11 +17,11 @@
 #endregion
 
 using System.Buffers.Text;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Accounts.DataContracts;
@@ -51,7 +51,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
 
     // The option holds the Base64Url of the secret's UTF-8 bytes.
     private static readonly string EncodedSecret = Base64Url.EncodeToString(
-        Encoding.UTF8.GetBytes(SecretText)
+        SecureEncoding.UTF8.GetBytes(SecretText)
     );
 
     private ConformanceSeedHandler CreateHandler(ConformanceSeedOptions options) =>

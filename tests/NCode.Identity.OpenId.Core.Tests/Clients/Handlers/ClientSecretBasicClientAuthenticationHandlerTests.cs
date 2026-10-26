@@ -16,8 +16,8 @@
 
 #endregion
 
-using System.Text;
 using Microsoft.AspNetCore.Http;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
 using NCode.Identity.OpenId.Tenants;
 using Xunit;
@@ -41,7 +41,7 @@ public class ClientSecretBasicClientAuthenticationHandlerTests : ClientAuthentic
 
     private void SetupBasicCredentials(string credentials)
     {
-        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+        var encoded = Convert.ToBase64String(SecureEncoding.UTF8.GetBytes(credentials));
         HttpContext.Request.Method = HttpMethods.Post;
         HttpContext.Request.Headers.Authorization = $"Basic {encoded}";
     }

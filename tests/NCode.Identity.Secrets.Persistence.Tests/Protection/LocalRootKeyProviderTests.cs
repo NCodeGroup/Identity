@@ -19,6 +19,7 @@
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
+using NCode.Buffers;
 using NCode.Identity.Secrets.Persistence.Options;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
@@ -54,7 +55,7 @@ public class LocalRootKeyProviderTests : IDisposable
     private string WriteKeyFile(string content)
     {
         var path = Path.Combine(_tempDirectory, $"{Guid.NewGuid():N}.key");
-        File.WriteAllText(path, content);
+        File.WriteAllText(path, content, SecureEncoding.UTF8);
         return path;
     }
 
@@ -132,7 +133,7 @@ public class LocalRootKeyProviderTests : IDisposable
         File.WriteAllText(
             path,
             Base64Url.EncodeToString(CreateKey()) + Environment.NewLine,
-            new UTF8Encoding(encoderShouldEmitUTF8Identifier: true)
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: true, throwOnInvalidBytes: true)
         );
         Assert.Equal(new byte[] { 0xEF, 0xBB, 0xBF }, File.ReadAllBytes(path)[..3]);
         using var provider = CreateProvider(new LocalRootKeyOptions { KeyPath = path });
@@ -317,7 +318,11 @@ public class LocalRootKeyProviderTests : IDisposable
     public async Task Wrap_KeyFileUtf16_Throws()
     {
         var path = Path.Combine(_tempDirectory, $"{Guid.NewGuid():N}.key");
-        File.WriteAllText(path, Base64Url.EncodeToString(CreateKey()), Encoding.Unicode);
+        File.WriteAllText(
+            path,
+            Base64Url.EncodeToString(CreateKey()),
+            new UnicodeEncoding(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true)
+        );
         using var provider = CreateProvider(new LocalRootKeyOptions { KeyPath = path });
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>

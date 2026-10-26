@@ -21,6 +21,7 @@ using System.Buffers;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
+using NCode.Buffers;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Secrets.Keys;
 
@@ -75,7 +76,7 @@ public class DefaultSecretKeyFactoryTests : BaseTests
     {
         var factory = CreateSecretKeyFactory();
         const string password = "correct horse battery staple";
-        byte[] expected = System.Text.Encoding.UTF8.GetBytes(password);
+        byte[] expected = SecureEncoding.UTF8.GetBytes(password);
 
         var key = factory.CreateSymmetric(new KeyMetadata(), password);
 

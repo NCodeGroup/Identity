@@ -16,9 +16,9 @@
 
 #endregion
 
-using System.Text;
 using System.Text.Json;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
@@ -63,12 +63,12 @@ public class DurationSecondsParserTests : BaseTests
             );
             writer.WriteEndObject();
         }
-        return Encoding.UTF8.GetString(stream.ToArray());
+        return SecureEncoding.UTF8.GetString(stream.ToArray());
     }
 
     private TimeSpan? Read(string json)
     {
-        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(json));
+        var reader = new Utf8JsonReader(SecureEncoding.UTF8.GetBytes(json));
         Assert.True(reader.Read());
         var parameter = _parser.Read(
             ref reader,

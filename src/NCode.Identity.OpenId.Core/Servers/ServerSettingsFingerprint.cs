@@ -19,8 +19,8 @@
 using System.Buffers.Binary;
 using System.Buffers.Text;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
+using NCode.Buffers;
 using NCode.Identity.Settings;
 
 namespace NCode.Identity.OpenId.Servers;
@@ -51,7 +51,7 @@ internal static class ServerSettingsFingerprint
             )
         )
         {
-            var name = Encoding.UTF8.GetBytes(setting.Descriptor.Name);
+            var name = SecureEncoding.UTF8.GetBytes(setting.Descriptor.Name);
             AppendLengthPrefixed(hash, name);
 
             // A list is a set for every rule that reads it, so its order does not change the fingerprint.

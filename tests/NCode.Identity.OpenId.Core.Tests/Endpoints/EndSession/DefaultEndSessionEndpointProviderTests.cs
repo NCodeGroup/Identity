@@ -17,11 +17,11 @@
 #endregion
 
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Messages;
@@ -116,7 +116,7 @@ public class DefaultEndSessionEndpointProviderTests : BaseTests
             + scriptStart.Length;
         var end = content.ResponseContent.IndexOf("</script>", start, StringComparison.Ordinal);
         var script = content.ResponseContent[start..end];
-        var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(script)));
+        var hash = Convert.ToBase64String(SHA256.HashData(SecureEncoding.UTF8.GetBytes(script)));
 
         var headers = HttpContext.Response.Headers;
         Assert.Equal(

@@ -17,6 +17,7 @@
 #endregion
 
 using System.Buffers;
+using NCode.Buffers;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;
@@ -80,7 +81,10 @@ public class InteractiveBundleShellTests
     public void TryCreate_WhenGivenTheBuiltBundlesIndex_SplitsItSoTheLoginPageLoadsTheBundleBeneathTheSurface()
     {
         var shell = InteractiveBundleShell.TryCreate(
-            File.ReadAllText(BuiltAuthBundleFactAttribute.IndexPath ?? string.Empty)
+            File.ReadAllText(
+                BuiltAuthBundleFactAttribute.IndexPath ?? string.Empty,
+                SecureEncoding.UTF8
+            )
         );
         Assert.NotNull(shell);
 

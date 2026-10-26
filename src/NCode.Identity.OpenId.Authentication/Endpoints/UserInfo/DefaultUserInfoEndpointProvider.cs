@@ -172,7 +172,7 @@ internal class DefaultUserInfoEndpointProvider(
 
         var jwt = EncodeUserInfoJwt(openIdContext, openIdClient, credentials, result);
 
-        return TypedResults.Text(jwt, JwtContentType);
+        return Utf8TextResults.Create(jwt, JwtContentType);
     }
 
     // OpenID Connect Core 1.0 §5.3.2: a signed UserInfo response carries 'iss' and 'aud'; an encrypted one is the same

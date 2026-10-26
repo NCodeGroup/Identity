@@ -19,7 +19,6 @@
 
 using System.Buffers;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Encoders;
@@ -286,12 +285,12 @@ partial class JoseSerializer
         if (additionalAuthenticatedData is null)
         {
             encodedAad = null;
-            return Encode(Encoding.ASCII, encodedProtected, out associatedData);
+            return Encode(SecureEncoding.ASCII, encodedProtected, out associatedData);
         }
 
         encodedAad = Base64Url.Encode(additionalAuthenticatedData.Value.Span);
         var combined = string.Concat(encodedProtected, ".", encodedAad);
-        return Encode(Encoding.ASCII, combined.AsSpan(), out associatedData);
+        return Encode(SecureEncoding.ASCII, combined.AsSpan(), out associatedData);
     }
 
     private static string ToBase64UrlString(ReadOnlySequence<byte> data)

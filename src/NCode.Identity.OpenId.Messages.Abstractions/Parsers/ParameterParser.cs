@@ -20,6 +20,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Primitives;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Messages.Parameters;
 
@@ -100,7 +101,7 @@ public abstract class ParameterParser<T> : ParameterLoader, IParameterParser<T>
                     var rawValue = reader.HasValueSequence
                         ? System.Buffers.BuffersExtensions.ToArray(reader.ValueSequence)
                         : reader.ValueSpan;
-                    var stringValue = System.Text.Encoding.UTF8.GetString(rawValue);
+                    var stringValue = SecureEncoding.UTF8.GetString(rawValue);
                     var parsedValue = Parse(openIdEnvironment, descriptor, stringValue);
                     return Create(openIdEnvironment, descriptor, this, parsedValue);
                 }

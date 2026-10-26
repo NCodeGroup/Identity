@@ -2182,6 +2182,13 @@ change to the public API is a **major** version bump.
   (in the `Authorization` header or the form body) whose audience includes the OpenID resource server, issued to an
   enabled client; anything else is `401` `invalid_token`.
   ([ADR-0155](docs/adr/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md))
+- **Text is encoded and decoded only through strict encodings.** The compact `b64=false` JWS signature now covers the
+  payload's real UTF-8 bytes (previously non-ASCII characters were signed as `?`). DPoP proof validation rejects a
+  non-ASCII access token instead of hashing it as `?`. `request_uri` request objects and other inbound text are decoded
+  strictly. JWT UserInfo and introspection responses are written as strict UTF-8 bytes and keep
+  `Content-Type: application/jwt`, and `text/plain` responses now declare `charset=utf-8`. The build bans lenient
+  encodings with `RS0030` in every project.
+  ([ADR-0266](docs/adr/0266-text-is-encoded-and-decoded-only-through-strict-encodings.md))
 
 ### Fixed
 

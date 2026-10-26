@@ -1,0 +1,53 @@
+# Lenient text encodings are banned in every project, tests included (RS0030, ADR-0266). Use NCode.Buffers.SecureEncoding.
+P:System.Text.Encoding.ASCII;Use NCode.Buffers.SecureEncoding.ASCII (ADR-0266).
+P:System.Text.Encoding.UTF8;Use NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+P:System.Text.Encoding.Unicode;Use new UnicodeEncoding(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true) (ADR-0266).
+P:System.Text.Encoding.BigEndianUnicode;Use new UnicodeEncoding(bigEndian: true, byteOrderMark: true, throwOnInvalidBytes: true) (ADR-0266).
+P:System.Text.Encoding.UTF32;Use new UTF32Encoding(bigEndian: false, byteOrderMark: true, throwOnInvalidCharacters: true) (ADR-0266).
+P:System.Text.Encoding.Latin1;Latin-1 is lossy and lenient; use NCode.Buffers.SecureEncoding (ADR-0266).
+P:System.Text.Encoding.Default;Use NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.Text.Encoding.GetEncoding(System.Int32);Use NCode.Buffers.SecureEncoding (ADR-0266).
+M:System.Text.Encoding.GetEncoding(System.String);Use NCode.Buffers.SecureEncoding (ADR-0266).
+M:System.Text.UTF8Encoding.#ctor;Use NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.Text.UTF8Encoding.#ctor(System.Boolean);Use NCode.Buffers.SecureEncoding.UTF8, or pass throwOnInvalidBytes: true (ADR-0266).
+M:System.Text.ASCIIEncoding.#ctor;Use NCode.Buffers.SecureEncoding.ASCII (ADR-0266).
+M:System.Text.UnicodeEncoding.#ctor;Pass throwOnInvalidBytes: true (ADR-0266).
+M:System.Text.UnicodeEncoding.#ctor(System.Boolean,System.Boolean);Pass throwOnInvalidBytes: true (ADR-0266).
+M:System.Text.UTF32Encoding.#ctor;Pass throwOnInvalidCharacters: true (ADR-0266).
+M:System.Text.UTF32Encoding.#ctor(System.Boolean,System.Boolean);Pass throwOnInvalidCharacters: true (ADR-0266).
+M:System.IO.File.ReadAllText(System.String);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.ReadAllTextAsync(System.String,System.Threading.CancellationToken);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.ReadAllLines(System.String);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.ReadAllLinesAsync(System.String,System.Threading.CancellationToken);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.ReadLines(System.String);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.ReadLinesAsync(System.String,System.Threading.CancellationToken);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.WriteAllText(System.String,System.String);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.WriteAllText(System.String,System.ReadOnlySpan{System.Char});Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.WriteAllTextAsync(System.String,System.String,System.Threading.CancellationToken);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.WriteAllTextAsync(System.String,System.ReadOnlyMemory{System.Char},System.Threading.CancellationToken);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.WriteAllLines(System.String,System.String[]);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.WriteAllLines(System.String,System.Collections.Generic.IEnumerable{System.String});Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.WriteAllLinesAsync(System.String,System.Collections.Generic.IEnumerable{System.String},System.Threading.CancellationToken);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.AppendAllText(System.String,System.String);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.AppendAllText(System.String,System.ReadOnlySpan{System.Char});Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.AppendAllTextAsync(System.String,System.String,System.Threading.CancellationToken);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.AppendAllTextAsync(System.String,System.ReadOnlyMemory{System.Char},System.Threading.CancellationToken);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.AppendAllLines(System.String,System.Collections.Generic.IEnumerable{System.String});Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.AppendAllLinesAsync(System.String,System.Collections.Generic.IEnumerable{System.String},System.Threading.CancellationToken);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.File.OpenText(System.String);Use new StreamReader(path, NCode.Buffers.SecureEncoding.UTF8) (ADR-0266).
+M:System.IO.File.CreateText(System.String);Use new StreamWriter(path, false, NCode.Buffers.SecureEncoding.UTF8) (ADR-0266).
+M:System.IO.File.AppendText(System.String);Use new StreamWriter(path, true, NCode.Buffers.SecureEncoding.UTF8) (ADR-0266).
+M:System.IO.StreamReader.#ctor(System.IO.Stream);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.StreamReader.#ctor(System.IO.Stream,System.Boolean);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.StreamReader.#ctor(System.String);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.StreamReader.#ctor(System.String,System.Boolean);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.StreamReader.#ctor(System.String,System.IO.FileStreamOptions);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.StreamWriter.#ctor(System.IO.Stream);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.StreamWriter.#ctor(System.String);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.StreamWriter.#ctor(System.String,System.Boolean);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.StreamWriter.#ctor(System.String,System.IO.FileStreamOptions);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.BinaryReader.#ctor(System.IO.Stream);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.IO.BinaryWriter.#ctor(System.IO.Stream);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.Net.Http.StringContent.#ctor(System.String);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.Net.Http.StringContent.#ctor(System.String,System.Net.Http.Headers.MediaTypeHeaderValue);Pass NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).
+M:System.Xml.XmlReader.Create(System.IO.Stream,System.Xml.XmlReaderSettings);Wrap the stream in a StreamReader over NCode.Buffers.SecureEncoding.UTF8 (ADR-0266).

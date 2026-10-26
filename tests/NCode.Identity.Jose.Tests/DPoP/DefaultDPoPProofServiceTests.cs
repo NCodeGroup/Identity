@@ -18,9 +18,9 @@
 #endregion
 
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
@@ -121,7 +121,7 @@ public class DefaultDPoPProofServiceTests : BaseTests
         var encodedPayload = Base64Url.Encode(JsonSerializer.SerializeToUtf8Bytes(payload));
         var signingInput = $"{encodedHeader}.{encodedPayload}";
         var signature = ecdsa.SignData(
-            Encoding.ASCII.GetBytes(signingInput),
+            SecureEncoding.ASCII.GetBytes(signingInput),
             HashAlgorithmName.SHA256,
             DSASignatureFormat.IeeeP1363FixedFieldConcatenation
         );
@@ -211,7 +211,7 @@ public class DefaultDPoPProofServiceTests : BaseTests
         Assert.Equal(HttpUri, payload.GetProperty("htu").GetString());
         Assert.Equal(StartTime.ToUnixTimeSeconds(), payload.GetProperty("iat").GetInt64());
         Assert.Equal(
-            Base64Url.Encode(SHA256.HashData(Encoding.ASCII.GetBytes("access-token"))),
+            Base64Url.Encode(SHA256.HashData(SecureEncoding.ASCII.GetBytes("access-token"))),
             payload.GetProperty("ath").GetString()
         );
         Assert.False(payload.TryGetProperty("nonce", out _));
@@ -250,6 +250,14 @@ public class DefaultDPoPProofServiceTests : BaseTests
         );
     }
 
+    [Fact]
+    public void CreateProof_WhenAccessTokenIsNotAscii_Throws()
+    {
+        Assert.ThrowsAny<ArgumentException>(() =>
+            CreateProof(CreateCredentials("ES256"), accessToken: "accéss-token")
+        );
+    }
+
     #endregion
 
     #region TryValidateProof Tests
@@ -276,6 +284,14 @@ public class DefaultDPoPProofServiceTests : BaseTests
         var proof = CreateProof(CreateCredentials("ES256"), accessToken: "access-token");
 
         AssertRejected(proof, CreateParameters(accessToken: "other-token"), "'ath'");
+    }
+
+    [Fact]
+    public void TryValidateProof_WhenAccessTokenIsNotAscii_Fails()
+    {
+        var proof = CreateProof(CreateCredentials("ES256"), accessToken: "acc?ss-token");
+
+        AssertRejected(proof, CreateParameters(accessToken: "accéss-token"), "'ath'");
     }
 
     [Fact]
@@ -463,7 +479,7 @@ public class DefaultDPoPProofServiceTests : BaseTests
         var encodedPayload = Base64Url.Encode(JsonSerializer.SerializeToUtf8Bytes(CreatePayload()));
         var signingInput = $"{encodedHeader}.{encodedPayload}";
         var signature = rsa.SignData(
-            Encoding.ASCII.GetBytes(signingInput),
+            SecureEncoding.ASCII.GetBytes(signingInput),
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1
         );

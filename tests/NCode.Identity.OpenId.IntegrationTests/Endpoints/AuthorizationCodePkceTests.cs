@@ -19,10 +19,10 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -158,7 +158,7 @@ public class AuthorizationCodePkceTests
     )
     {
         var credentials = $"{Uri.EscapeDataString(clientId)}:{Uri.EscapeDataString(clientSecret)}";
-        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+        var encoded = Convert.ToBase64String(SecureEncoding.UTF8.GetBytes(credentials));
         return new AuthenticationHeaderValue("Basic", encoded);
     }
 

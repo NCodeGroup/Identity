@@ -18,12 +18,12 @@
 
 using System.Net;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Models;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
@@ -109,7 +109,7 @@ public class HtmlPageSecurityTests
         Assert.True(endIndex >= 0, html);
 
         var script = html[scriptIndex..endIndex];
-        return Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(script)));
+        return Convert.ToBase64String(SHA256.HashData(SecureEncoding.UTF8.GetBytes(script)));
     }
 
     #endregion
@@ -223,7 +223,8 @@ public class HtmlPageSecurityTests
         {
             File.WriteAllText(
                 Path.Combine(bundleRoot.FullName, "index.html"),
-                NonceBundleIndexHtml
+                NonceBundleIndexHtml,
+                SecureEncoding.UTF8
             );
             using var factory = new ConfiguredHostApplicationFactory(
                 new Dictionary<string, string?>

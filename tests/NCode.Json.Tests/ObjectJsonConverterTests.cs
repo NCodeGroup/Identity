@@ -18,8 +18,8 @@
 
 using System.Globalization;
 using System.Numerics;
-using System.Text;
 using System.Text.Json;
+using NCode.Buffers;
 
 namespace NCode.Json.Tests;
 
@@ -373,7 +373,7 @@ public class ObjectJsonConverterTests
         writer.Flush();
 
         var bytes = stream.ToArray();
-        var json = Encoding.UTF8.GetString(bytes);
+        var json = SecureEncoding.UTF8.GetString(bytes);
         Assert.Equal(expected, json);
 
         var reader = new Utf8JsonReader(bytes);

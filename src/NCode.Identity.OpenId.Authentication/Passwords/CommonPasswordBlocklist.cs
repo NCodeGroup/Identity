@@ -17,7 +17,7 @@
 #endregion
 
 using System.Collections.Frozen;
-using System.Text;
+using NCode.Buffers;
 
 namespace NCode.Identity.OpenId.Authentication.Passwords;
 
@@ -54,7 +54,7 @@ internal class CommonPasswordBlocklist : IPasswordBlocklist
             ?? throw new InvalidOperationException(
                 $"The embedded resource '{ResourceName}' is missing."
             );
-        using var reader = new StreamReader(stream, Encoding.UTF8);
+        using var reader = new StreamReader(stream, SecureEncoding.UTF8);
 
         var passwords = new List<string>(46_483);
         while (reader.ReadLine() is { } line)

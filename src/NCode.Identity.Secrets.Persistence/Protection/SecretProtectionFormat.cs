@@ -18,7 +18,6 @@
 
 using System.Buffers.Binary;
 using System.Security.Cryptography;
-using System.Text;
 using NCode.Buffers;
 using NCode.Encoders;
 
@@ -215,10 +214,10 @@ internal static class SecretProtectionFormat
         Span<byte> salt = stackalloc byte[KeyIdSizeBytes];
         WriteMasterKeyId(masterKeyId, salt);
 
-        var infoSize = KeyEncryptionKeyLabel.Length + 1 + Encoding.UTF8.GetByteCount(purpose);
+        var infoSize = KeyEncryptionKeyLabel.Length + 1 + SecureEncoding.UTF8.GetByteCount(purpose);
         using var lease = BufferFactory.Rent(infoSize, isSensitive: false, out Span<byte> info);
         var offset = WriteLabel(info, KeyEncryptionKeyLabel);
-        Encoding.UTF8.GetBytes(purpose, info[offset..]);
+        SecureEncoding.UTF8.GetBytes(purpose, info[offset..]);
 
         HKDF.DeriveKey(HashAlgorithmName.SHA256, masterKey, destination, salt, info);
     }
@@ -427,17 +426,17 @@ internal static class SecretProtectionFormat
     }
 
     private static int GetLengthPrefixedSize(ReadOnlySpan<char> value) =>
-        sizeof(int) + Encoding.UTF8.GetByteCount(value);
+        sizeof(int) + SecureEncoding.UTF8.GetByteCount(value);
 
     // Writes the 4-byte big-endian length of the UTF-8 bytes of the value followed by those bytes, and returns the
     // number of bytes written.
     private static int WriteLengthPrefixed(Span<byte> destination, ReadOnlySpan<char> value)
     {
-        var byteCount = Encoding.UTF8.GetByteCount(value);
+        var byteCount = SecureEncoding.UTF8.GetByteCount(value);
         EnsureCapacity(destination, sizeof(int) + byteCount);
 
         BinaryPrimitives.WriteInt32BigEndian(destination, byteCount);
-        Encoding.UTF8.GetBytes(value, destination[sizeof(int)..]);
+        SecureEncoding.UTF8.GetBytes(value, destination[sizeof(int)..]);
         return sizeof(int) + byteCount;
     }
 

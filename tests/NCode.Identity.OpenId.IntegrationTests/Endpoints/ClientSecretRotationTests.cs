@@ -20,11 +20,11 @@ using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -104,7 +104,9 @@ public class ClientSecretRotationTests
     )
     {
         var client = CreateHttpClient(factory);
-        var credentials = Encoding.UTF8.GetBytes($"{BootstrapClientId}:{BootstrapClientSecret}");
+        var credentials = SecureEncoding.UTF8.GetBytes(
+            $"{BootstrapClientId}:{BootstrapClientSecret}"
+        );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
             Headers =
@@ -216,7 +218,7 @@ public class ClientSecretRotationTests
                     {
                         ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                         ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            Encoding.UTF8.GetBytes(BootstrapClientSecret)
+                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
                         ),
                         ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
                     }

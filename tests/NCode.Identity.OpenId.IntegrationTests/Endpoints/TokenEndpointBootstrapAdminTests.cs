@@ -19,11 +19,11 @@
 using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -36,7 +36,7 @@ public class TokenEndpointBootstrapAdminTests
 
     // The server reads the configured secret Base64Url-encoded (the client still presents the plaintext).
     private static readonly string BootstrapClientSecretConfig = Base64Url.EncodeToString(
-        Encoding.UTF8.GetBytes(BootstrapClientSecret)
+        SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
     );
     private const string ManagementAudience = "urn:ncode:management";
     private const string ManagementScope = "read:clients";
@@ -206,7 +206,9 @@ public class TokenEndpointBootstrapAdminTests
     // The bootstrap client registers client_secret_basic, so it presents its secret with HTTP Basic authentication.
     private static HttpRequestMessage CreateBootstrapTokenRequest()
     {
-        var credentials = Encoding.UTF8.GetBytes($"{BootstrapClientId}:{BootstrapClientSecret}");
+        var credentials = SecureEncoding.UTF8.GetBytes(
+            $"{BootstrapClientId}:{BootstrapClientSecret}"
+        );
         return new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
             Headers =

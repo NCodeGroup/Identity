@@ -61,6 +61,8 @@ try {
     Assert-Selection 'nested Directory file selects all' $result $true ''
     $result = & $selector -Root $fixture -ChangedPath 'build/x.ps1'
     Assert-Selection 'build script selects all' $result $true ''
+    $result = & $selector -Root $fixture -ChangedPath 'BannedSymbols.Encoding.txt'
+    Assert-Selection 'banned-symbols file selects all' $result $true ''
 
     $gitFixture = New-Fixture 'git'
     Invoke-Git $gitFixture @('init', '-q')

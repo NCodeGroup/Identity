@@ -21,11 +21,11 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
 
@@ -82,7 +82,9 @@ public class TokenIntrospectionEndpointTests
     )
     {
         var client = CreateHttpClient(factory);
-        var credentials = Encoding.UTF8.GetBytes($"{BootstrapClientId}:{BootstrapClientSecret}");
+        var credentials = SecureEncoding.UTF8.GetBytes(
+            $"{BootstrapClientId}:{BootstrapClientSecret}"
+        );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, TokenPath)
         {
             Headers =
@@ -484,7 +486,7 @@ public class TokenIntrospectionEndpointTests
         {
             Content = new StringContent(
                 """[{ "op": "replace", "path": "/isDisabled", "value": true }]""",
-                Encoding.UTF8,
+                SecureEncoding.UTF8,
                 "application/json-patch+json"
             ),
         };
@@ -1128,7 +1130,7 @@ public class TokenIntrospectionEndpointTests
                         ["OpenId:Tenant:KeyProvisioning:Keys:1:Algorithm"] = "RSA-OAEP-256",
                         ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                         ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            Encoding.UTF8.GetBytes(BootstrapClientSecret)
+                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
                         ),
                         ["BootstrapAdmin:TenantId"] = TenantId,
                     }

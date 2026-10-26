@@ -18,9 +18,9 @@
 
 using System.Net;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
@@ -78,7 +78,7 @@ public class TokenEndpointClientJwksUriTests
         var signingInput = $"{encodedHeader}.{encodedPayload}";
 
         var signature = privateKey.SignData(
-            Encoding.ASCII.GetBytes(signingInput),
+            SecureEncoding.ASCII.GetBytes(signingInput),
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1
         );

@@ -19,8 +19,8 @@
 using System.Buffers.Text;
 using System.Globalization;
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.Extensions.Options;
+using NCode.Buffers;
 
 namespace NCode.Identity.OpenId.Accounts.Credentials;
 
@@ -41,7 +41,7 @@ public sealed class DefaultPasswordHasherTests
     private static string HashSubmittedForm(string password, int iterations)
     {
         byte[] salt = "0123456789abcdef"u8.ToArray();
-        var passwordBytes = Encoding.UTF8.GetBytes(password);
+        var passwordBytes = SecureEncoding.UTF8.GetBytes(password);
         var key = Rfc2898DeriveBytes.Pbkdf2(
             passwordBytes,
             salt,

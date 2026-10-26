@@ -17,7 +17,7 @@
 #endregion
 
 using System.Buffers.Text;
-using System.Text;
+using NCode.Buffers;
 
 namespace NCode.Identity.Server.DevelopmentEnvironment;
 
@@ -37,7 +37,7 @@ internal static class BootstrapAdminOptionsExtensions
         /// <returns>The decoded plaintext secret, or <c>null</c> when no secret is configured.</returns>
         public string? GetPresentableClientSecretOrDefault() =>
             options.ClientSecret is { Length: > 0 } encoded
-                ? Encoding.UTF8.GetString(Base64Url.DecodeFromChars(encoded))
+                ? SecureEncoding.UTF8.GetString(Base64Url.DecodeFromChars(encoded))
                 : null;
     }
 }

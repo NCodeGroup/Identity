@@ -301,3 +301,4 @@ standards.
 | [0263](./0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) | Feature branches run a fast gate and the merge queue runs the full gate | Accepted |
 | [0264](./0264-pending-work-is-tracked-as-github-issues.md) | Pending work is tracked as GitHub issues | Accepted |
 | [0265](./0265-grant-payloads-are-protected-under-the-tenant-master-key.md) | Grant payloads are protected under the tenant master key | Accepted |
+| [0266](./0266-text-is-encoded-and-decoded-only-through-strict-encodings.md) | Text is encoded and decoded only through strict encodings | Accepted |

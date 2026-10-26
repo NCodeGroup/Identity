@@ -20,11 +20,11 @@ using System.Buffers.Text;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
@@ -64,7 +64,7 @@ public class TenantUsageTests
         {
             ["BootstrapAdmin:ClientId"] = BootstrapClientId,
             ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                Encoding.UTF8.GetBytes(BootstrapClientSecret)
+                SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
             ),
             ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
         };
@@ -102,7 +102,9 @@ public class TenantUsageTests
     )
     {
         var client = CreateClient(factory);
-        var credentials = Encoding.UTF8.GetBytes($"{BootstrapClientId}:{BootstrapClientSecret}");
+        var credentials = SecureEncoding.UTF8.GetBytes(
+            $"{BootstrapClientId}:{BootstrapClientSecret}"
+        );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
             Headers =
@@ -244,7 +246,9 @@ public class TenantUsageTests
         using var administrator = await CreateAdministratorClientAsync(factory);
         var client = CreateClient(factory);
 
-        var credentials = Encoding.UTF8.GetBytes($"{BootstrapClientId}:{BootstrapClientSecret}");
+        var credentials = SecureEncoding.UTF8.GetBytes(
+            $"{BootstrapClientId}:{BootstrapClientSecret}"
+        );
         using var refusedRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
             Headers =

@@ -21,11 +21,11 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -49,7 +49,7 @@ public class TenantKeyProvisioningTests
     private const string JwksPath = "/oauth2/jwks";
 
     private static string BootstrapClientSecretConfig { get; } =
-        Base64Url.EncodeToString(Encoding.UTF8.GetBytes(BootstrapClientSecret));
+        Base64Url.EncodeToString(SecureEncoding.UTF8.GetBytes(BootstrapClientSecret));
 
     // The signing lists of the server's settings, each of which names the algorithms a tenant uses.
     private static string[] SigningListNames { get; } =
@@ -397,7 +397,9 @@ public class TenantKeyProvisioningTests
     // The bootstrap client registers client_secret_basic, so it presents its secret with HTTP Basic authentication.
     private static async Task<string> GetBootstrapTokenAsync(HttpClient client)
     {
-        var credentials = Encoding.UTF8.GetBytes($"{BootstrapClientId}:{BootstrapClientSecret}");
+        var credentials = SecureEncoding.UTF8.GetBytes(
+            $"{BootstrapClientId}:{BootstrapClientSecret}"
+        );
         using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
             Headers =
@@ -453,7 +455,7 @@ public class TenantKeyProvisioningTests
         {
             Content = new StringContent(
                 JsonSerializer.Serialize(operations),
-                Encoding.UTF8,
+                SecureEncoding.UTF8,
                 "application/json-patch+json"
             ),
         };

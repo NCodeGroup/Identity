@@ -20,7 +20,6 @@ using System.Buffers.Text;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -30,6 +29,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
@@ -414,7 +414,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                     CreatedWhen = DateTimeOffset.UnixEpoch,
                     ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
                 },
-                Encoding.UTF8.GetBytes(clientSecret)
+                SecureEncoding.UTF8.GetBytes(clientSecret)
             );
 
         var settings = new Dictionary<string, object>();
@@ -820,7 +820,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
 
         var secretId = $"{clientId}-secret";
-        var secretBytes = Encoding.UTF8.GetBytes(clientSecret);
+        var secretBytes = SecureEncoding.UTF8.GetBytes(clientSecret);
 
         var persistedSecret = new PersistedSecret
         {
@@ -980,7 +980,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             .GetRequiredService<ISecretProtectorProvider>()
             .GetProtectorAsync(SecretOwner.ForTenant(TenantId), [], CancellationToken.None);
         var secretId = $"{clientId}-secret";
-        var secretBytes = Encoding.UTF8.GetBytes(storedSecret);
+        var secretBytes = SecureEncoding.UTF8.GetBytes(storedSecret);
 
         var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
             new Dictionary<string, object>()
@@ -1071,7 +1071,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 Claims = [],
                 ConcurrencyToken = string.Empty,
             },
-            Encoding.UTF8.GetBytes(password),
+            SecureEncoding.UTF8.GetBytes(password),
             CancellationToken.None
         );
         await storeManager.SaveChangesAsync(CancellationToken.None);
@@ -1150,7 +1150,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         var client = CreateClient(
             new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
         );
-        var credentials = Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}");
+        var credentials = SecureEncoding.UTF8.GetBytes($"{clientId}:{clientSecret}");
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
             Headers =

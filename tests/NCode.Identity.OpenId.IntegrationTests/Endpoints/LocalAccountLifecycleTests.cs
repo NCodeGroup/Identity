@@ -20,13 +20,13 @@ using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Accounts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
@@ -68,7 +68,9 @@ public class LocalAccountLifecycleTests
     )
     {
         var client = CreateHttpClient(factory);
-        var credentials = Encoding.UTF8.GetBytes($"{BootstrapClientId}:{BootstrapClientSecret}");
+        var credentials = SecureEncoding.UTF8.GetBytes(
+            $"{BootstrapClientId}:{BootstrapClientSecret}"
+        );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
             Headers =
@@ -324,7 +326,7 @@ public class LocalAccountLifecycleTests
                     {
                         ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                         ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                            Encoding.UTF8.GetBytes(BootstrapClientSecret)
+                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
                         ),
                         ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
                     }

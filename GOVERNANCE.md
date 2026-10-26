@@ -79,7 +79,8 @@ The [`build/dod.ps1`](build/dod.ps1) script is the contract. It enforces:
 
 - **CSharpier** formatting (`dotnet csharpier check .`).
 - Restore + build on **net10**, with warnings-as-errors and vulnerability advisories as errors in CI.
-- **Banned APIs** (`BannedApiAnalyzers`, `RS0030`) from `BannedSymbols.txt` — no `Newtonsoft.Json`, no sync-over-async.
+- **Banned APIs** (`BannedApiAnalyzers`, `RS0030`) from `BannedSymbols.txt` — no `Newtonsoft.Json`, no sync-over-async —
+  and from `BannedSymbols.Encoding.txt` in every project, tests included — no lenient text encodings (ADR-0266).
 - **Public API surface guard** (`PublicApiAnalyzers`) — the declared surface in each packable project's
   `PublicAPI.{Shipped,Unshipped}.txt`.
 - Tests with coverage — the full suite in the full gate; a pull request into `main` runs the affected tests (ADR-0263).

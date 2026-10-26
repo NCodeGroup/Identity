@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.DataProtection.XmlEncryption;
@@ -53,7 +52,7 @@ internal class MasterKeyXmlEncryptor(ServerSecretProtectorHolder holder) : IXmlE
 
         var settings = new XmlWriterSettings
         {
-            Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+            Encoding = SecureEncoding.UTF8,
             OmitXmlDeclaration = true,
             CloseOutput = false,
         };

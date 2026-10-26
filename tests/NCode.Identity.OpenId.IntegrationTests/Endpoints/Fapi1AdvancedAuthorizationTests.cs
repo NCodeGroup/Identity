@@ -19,11 +19,11 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Buffers;
 using NCode.Encoders;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using Xunit;
@@ -116,7 +116,7 @@ public sealed class Fapi1AdvancedAuthorizationTests : IDisposable
         var signingInput = $"{encodedHeader}.{encodedPayload}";
 
         var signature = ClientRsa.SignData(
-            Encoding.ASCII.GetBytes(signingInput),
+            SecureEncoding.ASCII.GetBytes(signingInput),
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pss
         );

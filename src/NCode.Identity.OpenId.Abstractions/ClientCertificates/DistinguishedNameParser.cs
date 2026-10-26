@@ -19,6 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Formats.Asn1;
 using System.Text;
+using NCode.Buffers;
 
 namespace NCode.Identity.OpenId.ClientCertificates;
 
@@ -29,8 +30,6 @@ namespace NCode.Identity.OpenId.ClientCertificates;
 internal static class DistinguishedNameParser
 {
     private const string EscapableLiterals = "\"+,;<>\\=# ";
-
-    private static readonly UTF8Encoding StrictUtf8 = new(false, throwOnInvalidBytes: true);
 
     /// <summary>
     /// Attempts to parse the string representation of a distinguished name.
@@ -241,7 +240,7 @@ internal static class DistinguishedNameParser
         if (pendingBytes.Count == 0)
             return;
 
-        builder.Append(StrictUtf8.GetString(pendingBytes.ToArray()));
+        builder.Append(SecureEncoding.UTF8.GetString(pendingBytes.ToArray()));
         pendingBytes.Clear();
     }
 

@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jwt.Encoding;
@@ -246,9 +247,12 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
 
         var result = await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
 
-        var content = Assert.IsType<ContentHttpResult>(result);
+        var content = Assert.IsType<Utf8ContentHttpResult>(result);
         Assert.Equal("application/jwt", content.ContentType);
-        Assert.Equal("header.payload.signature", content.ResponseContent);
+        Assert.Equal(
+            "header.payload.signature",
+            SecureEncoding.UTF8.GetString(content.ResponseContent.Span)
+        );
         Assert.NotNull(encoded);
         Assert.Same(signingCredentials, encoded.SigningCredentials);
         Assert.Equal(Issuer, encoded.Issuer);

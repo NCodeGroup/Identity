@@ -19,8 +19,8 @@
 using System.Buffers.Text;
 using System.Globalization;
 using System.Security.Cryptography;
-using System.Text;
 using JetBrains.Annotations;
+using NCode.Buffers;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints;
 
@@ -67,7 +67,7 @@ public static class ContentSecurityPolicySources
     public static string Sha256(string script)
     {
         ArgumentNullException.ThrowIfNull(script);
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(script));
+        var hash = SHA256.HashData(SecureEncoding.UTF8.GetBytes(script));
         return $"'sha256-{Convert.ToBase64String(hash)}'";
     }
 

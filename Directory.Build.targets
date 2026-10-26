@@ -36,12 +36,15 @@
     </PackageReference>
   </ItemGroup>
 
-  <!-- Bans disallowed APIs on shipping code (RS0030), from the shared BannedSymbols.txt. -->
-  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+  <!-- Bans disallowed APIs (RS0030): BannedSymbols.Encoding.txt in every project (ADR-0266), BannedSymbols.txt on shipping code only (ADR-0127). -->
+  <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.Encoding.txt" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
   </ItemGroup>
 

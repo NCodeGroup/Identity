@@ -19,8 +19,8 @@
 using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
 using Xunit;
@@ -174,7 +174,7 @@ public class UnreadableSettingsDocumentTests
             {
                 ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                 ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    Encoding.UTF8.GetBytes(BootstrapClientSecret)
+                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
                 ),
                 ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
             }
@@ -248,7 +248,7 @@ public class UnreadableSettingsDocumentTests
         {
             Content = new StringContent(
                 JsonSerializer.Serialize(operations),
-                Encoding.UTF8,
+                SecureEncoding.UTF8,
                 "application/json-patch+json"
             ),
         };
@@ -268,7 +268,7 @@ public class UnreadableSettingsDocumentTests
         {
             Content = new StringContent(
                 JsonSerializer.Serialize(operations),
-                Encoding.UTF8,
+                SecureEncoding.UTF8,
                 "application/json-patch+json"
             ),
         };

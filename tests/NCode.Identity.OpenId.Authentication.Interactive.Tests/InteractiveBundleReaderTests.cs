@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.Extensions.Options;
+using NCode.Buffers;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Authentication.Interactive.Tests;
@@ -45,7 +46,7 @@ public sealed class InteractiveBundleReaderTests : IDisposable
 
     private void WriteIndex(string html, DateTime lastWriteTimeUtc)
     {
-        File.WriteAllText(IndexPath, html);
+        File.WriteAllText(IndexPath, html, SecureEncoding.UTF8);
         File.SetLastWriteTimeUtc(IndexPath, lastWriteTimeUtc);
     }
 
@@ -167,7 +168,11 @@ public sealed class InteractiveBundleReaderTests : IDisposable
     public void TryGetAsset_WhenTheAssetsDirectoryHasTheFile_ReturnsIt()
     {
         Directory.CreateDirectory(Path.Combine(BundleRoot.FullName, "assets"));
-        File.WriteAllText(Path.Combine(BundleRoot.FullName, "assets", "index.js"), "x");
+        File.WriteAllText(
+            Path.Combine(BundleRoot.FullName, "assets", "index.js"),
+            "x",
+            SecureEncoding.UTF8
+        );
         using var reader = CreateReader(BundleRoot.FullName);
 
         var file = reader.TryGetAsset("index.js");
@@ -187,9 +192,21 @@ public sealed class InteractiveBundleReaderTests : IDisposable
         // The bundle is nested, so the file outside it is still cleaned up with the test's directory.
         var bundleRootPath = Path.Combine(BundleRoot.FullName, "dist");
         Directory.CreateDirectory(Path.Combine(bundleRootPath, "assets"));
-        File.WriteAllText(Path.Combine(bundleRootPath, "index.html"), IndexHtml);
-        File.WriteAllText(Path.Combine(bundleRootPath, "assets", ".hidden"), "x");
-        File.WriteAllText(Path.Combine(BundleRoot.FullName, "outside.js"), "x");
+        File.WriteAllText(
+            Path.Combine(bundleRootPath, "index.html"),
+            IndexHtml,
+            SecureEncoding.UTF8
+        );
+        File.WriteAllText(
+            Path.Combine(bundleRootPath, "assets", ".hidden"),
+            "x",
+            SecureEncoding.UTF8
+        );
+        File.WriteAllText(
+            Path.Combine(BundleRoot.FullName, "outside.js"),
+            "x",
+            SecureEncoding.UTF8
+        );
         using var reader = CreateReader(bundleRootPath);
 
         var file = reader.TryGetAsset(assetPath);
@@ -215,7 +232,11 @@ public sealed class InteractiveBundleReaderTests : IDisposable
         Assert.Null(reader.TryGetAsset("index.js"));
 
         Directory.CreateDirectory(Path.Combine(bundleRootPath, "assets"));
-        File.WriteAllText(Path.Combine(bundleRootPath, "assets", "index.js"), "x");
+        File.WriteAllText(
+            Path.Combine(bundleRootPath, "assets", "index.js"),
+            "x",
+            SecureEncoding.UTF8
+        );
 
         Assert.NotNull(reader.TryGetAsset("index.js"));
     }

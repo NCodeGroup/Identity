@@ -17,10 +17,10 @@
 #endregion
 
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Net.Http.Headers;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Endpoints.CheckSession;
 using Xunit;
 
@@ -46,7 +46,7 @@ public class DefaultCheckSessionEndpointProviderTests : BaseTests
             + scriptStart.Length;
         var end = content.ResponseContent.IndexOf("</script>", start, StringComparison.Ordinal);
         var script = content.ResponseContent[start..end];
-        var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(script)));
+        var hash = Convert.ToBase64String(SHA256.HashData(SecureEncoding.UTF8.GetBytes(script)));
 
         var headers = httpContext.Response.Headers;
         Assert.Equal(

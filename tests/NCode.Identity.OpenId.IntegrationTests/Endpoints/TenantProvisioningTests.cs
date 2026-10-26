@@ -20,9 +20,9 @@ using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -61,7 +61,7 @@ public class TenantProvisioningTests
                 ["OpenId:TenantResolution:DynamicByHost:IssuerTemplate"] = IssuerTemplate,
                 ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                 ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
-                    Encoding.UTF8.GetBytes(BootstrapClientSecret)
+                    SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
                 ),
                 ["BootstrapAdmin:TenantId"] = "root",
             }
@@ -75,7 +75,9 @@ public class TenantProvisioningTests
 
         // The TestServer's own host is the root tenant's: nothing is seeded, so this request bootstraps the control
         // plane, and with it the bootstrap administrator.
-        var credentials = Encoding.UTF8.GetBytes($"{BootstrapClientId}:{BootstrapClientSecret}");
+        var credentials = SecureEncoding.UTF8.GetBytes(
+            $"{BootstrapClientId}:{BootstrapClientSecret}"
+        );
         using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
         {
             Headers =

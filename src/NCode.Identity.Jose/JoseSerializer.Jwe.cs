@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -20,7 +20,6 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
-using System.Text;
 using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.Compression;
@@ -155,7 +154,7 @@ partial class JoseSerializer
             out var plainText
         );
         using var headerLease = EncodeJose(b64: true, header, out var encodedHeader);
-        using var aadLease = Encode(Encoding.ASCII, encodedHeader, out var aad);
+        using var aadLease = Encode(SecureEncoding.ASCII, encodedHeader, out var aad);
 
         var cipherTextSizeBytes = authenticatedEncryptionAlgorithm.GetCipherTextSizeBytes(
             plainText.Length
@@ -326,7 +325,7 @@ partial class JoseSerializer
         */
 
         using var associatedDataLease = Encode(
-            Encoding.ASCII,
+            SecureEncoding.ASCII,
             encodedProtectedHeader,
             out var associatedDataBytes
         );

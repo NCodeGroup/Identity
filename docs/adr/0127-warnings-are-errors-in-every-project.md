@@ -73,7 +73,9 @@ This asymmetry is a decision, not an oversight:
 - **`Microsoft.CodeAnalysis.BannedApiAnalyzers` (`RS0030`)** — tests legitimately use banned APIs as *cross-validation
   oracles*. `NCode.Identity.Jose.Tests` references the third-party `jose-jwt` package precisely to check our output
   against an independent implementation; banning it would defeat the test strategy. (Oracles carry their own
-  correctness obligation — see [ADR-0126](0126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md).)
+  correctness obligation — see [ADR-0126](0126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md).) The analyzer itself runs in every project so that `BannedSymbols.Encoding.txt` also
+  binds tests ([ADR-0266](0266-text-is-encoded-and-decoded-only-through-strict-encodings.md)); `BannedSymbols.txt`
+  remains shipping-only.
 - **`Nullable.Extended.Analyzer` (`NX000x`, the `!` ban)** — tests need `null!` to exercise guard clauses. Production
   code remains bound by the ban.
 - **`Microsoft.CodeAnalysis.PublicApiAnalyzers`** — not applicable; test assemblies have no tracked public surface.

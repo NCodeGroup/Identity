@@ -17,8 +17,8 @@
 #endregion
 
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
+using NCode.Buffers;
 using NCode.Identity.Dispatch;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Delivery;
@@ -75,7 +75,7 @@ internal sealed class CibaDeliveryJobHandler(IHttpClientFactory httpClientFactor
             body[OpenIdConstants.Parameters.Scope] = job.Scope;
 
         var json = JsonSerializer.Serialize(body);
-        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+        using var content = new StringContent(json, SecureEncoding.UTF8, "application/json");
 
         using var requestMessage = new HttpRequestMessage(HttpMethod.Post, job.EndpointUrl)
         {

@@ -17,13 +17,13 @@
 #endregion
 
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Contexts;
@@ -126,7 +126,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
 
         Assert.Equal("text/html; charset=utf-8", httpContext.Response.ContentType);
         body.Position = 0;
-        return await new StreamReader(body).ReadToEndAsync();
+        return await new StreamReader(body, SecureEncoding.UTF8).ReadToEndAsync();
     }
 
     #endregion
@@ -217,7 +217,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
         await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
 
         body.Position = 0;
-        var html = await new StreamReader(body).ReadToEndAsync();
+        var html = await new StreamReader(body, SecureEncoding.UTF8).ReadToEndAsync();
 
         Assert.Contains(NormalName, html, StringComparison.Ordinal);
         Assert.Contains(NormalValue, html, StringComparison.Ordinal);
@@ -236,13 +236,13 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
         await Executor.ExecuteAsync(httpContext, result, CancellationToken.None);
 
         body.Position = 0;
-        var html = await new StreamReader(body).ReadToEndAsync();
+        var html = await new StreamReader(body, SecureEncoding.UTF8).ReadToEndAsync();
 
         const string scriptStart = "<script>";
         var start = html.IndexOf(scriptStart, StringComparison.Ordinal) + scriptStart.Length;
         var end = html.IndexOf("</script>", start, StringComparison.Ordinal);
         var script = html[start..end];
-        var hash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(script)));
+        var hash = Convert.ToBase64String(SHA256.HashData(SecureEncoding.UTF8.GetBytes(script)));
 
         var headers = httpContext.Response.Headers;
         Assert.Equal(

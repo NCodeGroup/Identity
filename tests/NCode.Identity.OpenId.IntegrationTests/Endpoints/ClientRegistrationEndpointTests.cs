@@ -21,10 +21,10 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
+using NCode.Buffers;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 using NCode.Identity.OpenId.Settings;
 using Xunit;
@@ -709,7 +709,7 @@ public class ClientRegistrationEndpointTests
         var encodedPayload = Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(payload));
         var signingInput = $"{encodedHeader}.{encodedPayload}";
         var signature = privateKey.SignData(
-            Encoding.ASCII.GetBytes(signingInput),
+            SecureEncoding.ASCII.GetBytes(signingInput),
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1
         );

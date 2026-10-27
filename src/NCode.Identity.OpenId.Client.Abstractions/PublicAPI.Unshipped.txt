@@ -31,6 +31,8 @@ NCode.Identity.OpenId.Client.ClientRegistration.AuthenticationMethod.get -> stri
 NCode.Identity.OpenId.Client.ClientRegistration.Authority.get -> string!
 NCode.Identity.OpenId.Client.ClientRegistration.ClientId.get -> string!
 NCode.Identity.OpenId.Client.ClientRegistration.ClientRegistration(string! authority, string! clientId, string! authenticationMethod) -> void
+NCode.Identity.OpenId.Client.ClientRegistration.IdTokenSigningAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.OpenId.Client.ClientRegistration.IdTokenSigningAlgorithms.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.KeyRing.get -> string?
 NCode.Identity.OpenId.Client.ClientRegistration.KeyRing.init -> void
 NCode.Identity.OpenId.Client.IClientAuthenticator

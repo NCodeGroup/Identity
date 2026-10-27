@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 
@@ -29,7 +28,6 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// </summary>
 // See ADR-0068.
 [PublicAPI]
-[ExcludeFromCodeCoverage]
 public sealed class EccCurveSpecification
 {
     /// <summary>
@@ -46,4 +44,32 @@ public sealed class EccCurveSpecification
     /// Gets the underlying <see cref="System.Security.Cryptography.ECCurve"/>.
     /// </summary>
     public required ECCurve Curve { get; init; }
+
+    /// <summary>
+    /// Determines whether two named curves are the same curve, compared by OID value when both have one and otherwise
+    /// by friendly name; an explicit (unnamed) curve never matches.
+    /// </summary>
+    /// <param name="left">The first curve to compare.</param>
+    /// <param name="right">The second curve to compare.</param>
+    /// <returns><see langword="true"/> when both curves are named and identify the same curve; otherwise, <see langword="false"/>.</returns>
+    public static bool IsSameNamedCurve(ECCurve left, ECCurve right)
+    {
+        if (!left.IsNamed || !right.IsNamed)
+        {
+            return false;
+        }
+
+        var leftValue = left.Oid?.Value;
+        var rightValue = right.Oid?.Value;
+        if (!string.IsNullOrEmpty(leftValue) && !string.IsNullOrEmpty(rightValue))
+        {
+            return string.Equals(leftValue, rightValue, StringComparison.Ordinal);
+        }
+
+        var leftName = left.Oid?.FriendlyName;
+        var rightName = right.Oid?.FriendlyName;
+        return !string.IsNullOrEmpty(leftName)
+            && !string.IsNullOrEmpty(rightName)
+            && string.Equals(leftName, rightName, StringComparison.OrdinalIgnoreCase);
+    }
 }

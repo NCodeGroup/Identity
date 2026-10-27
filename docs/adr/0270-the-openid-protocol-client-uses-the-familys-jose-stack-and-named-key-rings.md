@@ -25,7 +25,9 @@ This ADR covers phase 1a. Phase 1b remains: PAR, DPoP with nonces, mTLS client a
    `NCode.Identity.Jwt.Abstractions` only, because an implementation package depends only on abstractions
    ([ADR-0016](0016-implementation-packages-depend-only-on-abstractions.md)). This is why the design table's
    `.Jose, .Jwt, .Secrets, .SharedState` becomes `.Jwt.Abstractions`; SharedState arrives in phase 1b for the
-   logout-token `jti` replay check. The namespace is `NCode.Identity.OpenId.Client`, and the options are in
+   logout-token `jti` replay check. The implementation package also references the ASP.NET Core shared framework, as
+   the family's other server packages do, for `StatusCodes` and the `Microsoft.Extensions.*` abstractions, so a consumer
+   runs on an ASP.NET Core runtime. The namespace is `NCode.Identity.OpenId.Client`, and the options are in
    `NCode.Identity.OpenId.Client.Options`.
 2. **Which client a call is for.** A consumer builds a `ClientRegistration(authority, clientId, authenticationMethod)`
    with an optional `KeyRing` and passes it to every call. The protocol client binds no configuration; the BFF binds its

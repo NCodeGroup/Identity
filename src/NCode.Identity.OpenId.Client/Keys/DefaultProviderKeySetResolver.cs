@@ -16,9 +16,9 @@
 
 #endregion
 
-using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Client.Caching;
@@ -128,7 +128,7 @@ internal class DefaultProviderKeySetResolver(
             throw;
         }
 
-        if (response.StatusCode != (int)HttpStatusCode.OK)
+        if (response.StatusCode != StatusCodes.Status200OK)
             throw Fail(jwksUri, $"The jwks_uri returned status {response.StatusCode}.");
 
         if (response.Json is not { ValueKind: JsonValueKind.Object } json)

@@ -13,11 +13,12 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- https://learn.microsoft.com/en-us/aspnet/core/fundamentals/target-aspnetcore -->
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-        <PackageReference Include="Microsoft.Extensions.Http" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-        <PackageReference Include="Microsoft.Extensions.Options" />
         <PackageReference Include="NCode.Base64Url" />
         <PackageReference Include="NCode.Buffers" />
     </ItemGroup>

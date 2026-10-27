@@ -17,6 +17,7 @@
 #endregion
 
 using System.Net;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Options;
@@ -62,7 +63,7 @@ public class ProviderHttpClientTests : BaseTests
 
         var response = await client.SendAsync(CreateRequest(), CancellationToken.None);
 
-        Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
         Assert.NotNull(response.Json);
         Assert.Equal("x", response.Json.Value.GetProperty("issuer").GetString());
     }
@@ -79,7 +80,7 @@ public class ProviderHttpClientTests : BaseTests
 
         var response = await client.SendAsync(CreateRequest(), CancellationToken.None);
 
-        Assert.Equal((int)HttpStatusCode.BadGateway, response.StatusCode);
+        Assert.Equal(StatusCodes.Status502BadGateway, response.StatusCode);
         Assert.Null(response.Json);
     }
 
@@ -91,7 +92,7 @@ public class ProviderHttpClientTests : BaseTests
 
         var response = await client.SendAsync(CreateRequest(), CancellationToken.None);
 
-        Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
         Assert.Null(response.Json);
     }
 

@@ -18,6 +18,7 @@
 
 using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Options;
@@ -90,7 +91,7 @@ public class ClientRequestSenderTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Post, request.Method);
         Assert.Equal(Endpoint, request.RequestUri?.AbsoluteUri);
@@ -157,7 +158,7 @@ public class ClientRequestSenderTests : BaseTests
     public void TryRead_WithErrorObject_ReturnsError()
     {
         var response = new ProviderHttpResponse(
-            (int)HttpStatusCode.BadRequest,
+            StatusCodes.Status400BadRequest,
             JsonDocument.Parse("""{"error":"invalid_grant","error_description":"d"}""").RootElement
         );
 
@@ -168,14 +169,14 @@ public class ClientRequestSenderTests : BaseTests
         Assert.Equal("invalid_grant", error.Error);
         Assert.Equal("d", error.ErrorDescription);
         Assert.Null(error.ErrorUri);
-        Assert.Equal((int)HttpStatusCode.BadRequest, error.StatusCode);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
     }
 
     [Fact]
     public void TryRead_WithEmptyObject_ReturnsFalse()
     {
         var response = new ProviderHttpResponse(
-            (int)HttpStatusCode.BadRequest,
+            StatusCodes.Status400BadRequest,
             JsonDocument.Parse("{}").RootElement
         );
 
@@ -188,7 +189,7 @@ public class ClientRequestSenderTests : BaseTests
     [Fact]
     public void TryRead_WithNullJson_ReturnsFalse()
     {
-        var response = new ProviderHttpResponse((int)HttpStatusCode.BadRequest, null);
+        var response = new ProviderHttpResponse(StatusCodes.Status400BadRequest, null);
 
         var result = ProtocolErrorReader.TryRead(response, out var error);
 

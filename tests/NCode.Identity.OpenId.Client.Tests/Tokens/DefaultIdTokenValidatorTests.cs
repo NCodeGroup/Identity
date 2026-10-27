@@ -388,6 +388,21 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     }
 
     [Fact]
+    public async Task ValidateAsync_WhenMaxAgeIsNotExceeded_ReturnsPayload()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+        var authTime = DateTimeOffset.UtcNow.AddMinutes(-10).ToUnixTimeSeconds();
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(extraClaims: Claims("auth_time", authTime)),
+            maxAge: TimeSpan.FromHours(1)
+        );
+
+        Assert.True(result.IsValid, result.FailureReason);
+    }
+
+    [Fact]
     public async Task ValidateAsync_WhenMaxAgeAndAuthTimeIsMissing_Fails()
     {
         var validator = CreateValidator(CreateKeySetMock());
@@ -448,6 +463,52 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.Equal("The ID token 'at_hash' does not match.", result.FailureReason);
+    }
+
+    [Theory]
+    [InlineData("PS256")]
+    [InlineData("Ed25519")]
+    [InlineData("Ed448")]
+    public async Task ValidateAsync_WhenCHashDiffers_Fails(string alg)
+    {
+        var key = GetKey(alg);
+        var validator = CreateValidator(CreateKeySetMock(key));
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(
+                alg: alg,
+                extraClaims: Claims("c_hash", ExpectedHash(alg, "other")),
+                signingKey: key
+            ),
+            authorizationCode: "auth-code"
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal("The ID token 'c_hash' does not match.", result.FailureReason);
+    }
+
+    [Theory]
+    [InlineData("PS256")]
+    [InlineData("Ed25519")]
+    [InlineData("Ed448")]
+    public async Task ValidateAsync_WhenSHashDiffers_Fails(string alg)
+    {
+        var key = GetKey(alg);
+        var validator = CreateValidator(CreateKeySetMock(key));
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(
+                alg: alg,
+                extraClaims: Claims("s_hash", ExpectedHash(alg, "other")),
+                signingKey: key
+            ),
+            state: "state-1"
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal("The ID token 's_hash' does not match.", result.FailureReason);
     }
 
     [Fact]
@@ -546,6 +607,40 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.Equal(SignatureFailure, result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenSignatureIsTampered_FailsWithoutTokenText()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+        var token = CreateIdToken();
+        var segments = token.Split('.');
+        var signature = segments[2];
+        var last = signature[^1] == 'A' ? 'B' : 'A';
+        segments[2] = signature[..^1] + last;
+        var tampered = string.Join('.', segments);
+
+        var result = await ValidateAsync(validator, tampered);
+
+        Assert.False(result.IsValid);
+        Assert.Equal(SignatureFailure, result.FailureReason);
+        Assert.DoesNotContain(tampered, result.FailureReason);
+        Assert.DoesNotContain(token, result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenCancelled_ThrowsOperationCanceledException()
+    {
+        var mockKeySet = CreateStrictMock<IProviderKeySetResolver>();
+        mockKeySet
+            .Setup(x => x.GetSigningKeysAsync(Issuer, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException())
+            .Verifiable();
+        var validator = CreateValidator(mockKeySet);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await ValidateAsync(validator, CreateIdToken())
+        );
     }
 
     [Fact]

@@ -13,7 +13,7 @@ change to the public API is a **major** version bump.
 - **The OpenID protocol client validates ID tokens.** `IIdTokenValidator.ValidateAsync` takes a `ClientRegistration`
   and an `IdTokenValidationRequest` and returns an `IdTokenValidationResult` with `IsValid`, the `Payload` and a
   `FailureReason`; `AddOpenIdClientLibrary()` registers it. The signature algorithm policy is asymmetric-only, never
-  `none` or HMAC, and is limited by `OpenIdClientOptions.IdTokenSigningAlgorithms` and the provider's
+  `none` or HMAC, and is limited by `ClientRegistration.IdTokenSigningAlgorithms` and the provider's
   `id_token_signing_alg_values_supported`. An unknown `kid` triggers one rate-limited JWKS refresh. The
   `at_hash`/`c_hash`/`s_hash` claims are checked in constant time through `SignatureAlgorithm.GetTokenHashFunction`.
   The shared `TokenHash` helper in `NCode.Identity.Jose.Algorithms` does that check, and the server's ID-token payload

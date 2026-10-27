@@ -32,19 +32,23 @@ OpenID Connect claims, and returns an invalid token as data.**
 3. **Constant-time comparison.** `Verify` builds the expected base64url string and compares its ASCII bytes with the
    claim's bytes using `CryptographicOperations.FixedTimeEquals`. The hash covers the ASCII octets (OIDC Core §3.1.3.6).
    A non-ASCII value or claim makes `Verify` return `false`, and `Compute` throws `ArgumentException` for a non-ASCII
-   value.
+   value. The hash functions take a caller-supplied buffer sized to the hash function's output, so the three claims of
+   a token share one stack buffer, and `Verify` makes no heap allocation for the comparison.
 4. **Hash claims: present means it must match, absent is accepted.** For each pair (`at_hash`, access token),
    (`c_hash`, authorization code) and (`s_hash`, state): when the request supplies the value and the claim is present,
    the claim must be a string that verifies. An absent claim is accepted, because these claims are optional in the
    code flow (OIDC Core §3.1.3.6, §3.1.3.8). The hybrid and implicit flows, which require them, are not supported.
 5. **Asymmetric-only algorithm policy.** The permitted `alg` values are the registered `SignatureAlgorithm`s whose key
    type is an `AsymmetricSecretKey`, never `none`, so a symmetric or unsecured ID token is never accepted. The list is
-   intersected with `OpenIdClientOptions.IdTokenSigningAlgorithms` when that is non-empty, and with the provider's
+   intersected with `ClientRegistration.IdTokenSigningAlgorithms` when that is non-empty, and with the provider's
    `id_token_signing_alg_values_supported` when the provider advertises it. An empty result fails validation. The
    validator passes the result as the JWT validator's valid signature algorithms, so the header is checked before any
    cryptography.
-6. **New option.** `OpenIdClientOptions.IdTokenSigningAlgorithms` (default empty) is validated like
-   `ClientAssertionSigningAlgorithms`: no blank, no `none`, no duplicate.
+6. **Per-client algorithms.** `ClientRegistration.IdTokenSigningAlgorithms` (default `null`) lists the `alg` values
+   this client's ID tokens may use, mirroring the `id_token_signed_response_alg` the client registered at the
+   provider. It is per client, not process-wide configuration, because two clients of one process can register
+   different algorithms and ADR-0270 says the protocol client binds no configuration. Its `init` accessor rejects a
+   blank entry, `none` and a duplicate.
 7. **Keys and rotation.** The provider's keys come from `IProviderKeySetResolver`. When the header names a `kid` the
    set lacks, the validator refreshes the signing keys once, which the cache's minimum refresh interval rate-limits
    ([ADR-0270](0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)), and uses the key

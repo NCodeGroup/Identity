@@ -85,49 +85,31 @@ internal sealed class OpenIdClientOptionsValidator : IValidateOptions<OpenIdClie
             );
         }
 
-        ValidateAlgorithms(
-            nameof(OpenIdClientOptions.ClientAssertionSigningAlgorithms),
-            options.ClientAssertionSigningAlgorithms,
-            failures
-        );
-        ValidateAlgorithms(
-            nameof(OpenIdClientOptions.IdTokenSigningAlgorithms),
-            options.IdTokenSigningAlgorithms,
-            failures
-        );
-
-        return failures.Count == 0
-            ? ValidateOptionsResult.Success
-            : ValidateOptionsResult.Fail(failures);
-    }
-
-    private static void ValidateAlgorithms(
-        string propertyName,
-        IEnumerable<string>? algorithms,
-        List<string> failures
-    )
-    {
         var seenAlgorithms = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var algorithm in algorithms ?? [])
+        foreach (var algorithm in options.ClientAssertionSigningAlgorithms ?? [])
         {
             if (string.IsNullOrWhiteSpace(algorithm))
             {
                 failures.Add(
-                    $"{nameof(OpenIdClientOptions)}.{propertyName} must not contain a null, empty or whitespace entry."
+                    $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.ClientAssertionSigningAlgorithms)} must not contain a null, empty or whitespace entry."
                 );
             }
             else if (string.Equals(algorithm, "none", StringComparison.OrdinalIgnoreCase))
             {
                 failures.Add(
-                    $"{nameof(OpenIdClientOptions)}.{propertyName} must not contain 'none'; an unsecured token is never acceptable."
+                    $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.ClientAssertionSigningAlgorithms)} must not contain 'none'; an unsecured client assertion is never acceptable."
                 );
             }
             else if (!seenAlgorithms.Add(algorithm))
             {
                 failures.Add(
-                    $"{nameof(OpenIdClientOptions)}.{propertyName} must not contain duplicates; '{algorithm}' appears more than once."
+                    $"{nameof(OpenIdClientOptions)}.{nameof(OpenIdClientOptions.ClientAssertionSigningAlgorithms)} must not contain duplicates; '{algorithm}' appears more than once."
                 );
             }
         }
+
+        return failures.Count == 0
+            ? ValidateOptionsResult.Success
+            : ValidateOptionsResult.Fail(failures);
     }
 }

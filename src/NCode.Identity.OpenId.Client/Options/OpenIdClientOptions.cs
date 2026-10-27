@@ -63,12 +63,4 @@ public sealed class OpenIdClientOptions
     /// client holds a compatible asymmetric key.
     /// </summary>
     public List<string> ClientAssertionSigningAlgorithms { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the JOSE <c>alg</c> names that an ID token may be signed with. When empty (the default), any
-    /// registered asymmetric signature algorithm that the OpenID Provider advertises in
-    /// <c>id_token_signing_alg_values_supported</c> is accepted. <c>none</c> and symmetric algorithms are never
-    /// accepted.
-    /// </summary>
-    public List<string> IdTokenSigningAlgorithms { get; set; } = [];
 }

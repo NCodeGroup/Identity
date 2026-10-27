@@ -18,6 +18,7 @@
 
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Extensions.DataProtection;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.EdDsa.Algorithms;
 using NCode.Identity.Jose.EdDsa.Keys;
 using NCode.Identity.Jose.EdDsa.KeyTypes;
@@ -43,7 +44,14 @@ public class OkpIntegrationTests
     private static OkpSecretKeyTypeDescriptor CreateDescriptor() =>
         new(new IdentityDataProtectorFactory());
 
-    private static EdDsaSignatureAlgorithm CreateAlgorithm() => new();
+    private static EdDsaSignatureAlgorithm CreateAlgorithm() =>
+        new(AlgorithmCodes.DigitalSignature.EdDsa, curve: null);
+
+    private static EdDsaSignatureAlgorithm CreateFixedAlgorithm(string code, string curveName)
+    {
+        Assert.True(OkpCurves.TryGetByName(curveName, out var curve));
+        return new(code, curve);
+    }
 
     private static OkpSecretKey GeneratePrivateKey(
         OkpSecretKeyTypeDescriptor descriptor,
@@ -127,6 +135,57 @@ public class OkpIntegrationTests
         signature[^1] ^= 0xFF;
 
         Assert.False(algorithm.Verify(secretKey, message, signature));
+    }
+
+    [Fact]
+    public void IsKeyCompatible_WhenFixedCurveMatches_ReturnsTrue()
+    {
+        var descriptor = CreateDescriptor();
+        var algorithm = CreateFixedAlgorithm(
+            AlgorithmCodes.DigitalSignature.Ed25519,
+            OkpCurves.Ed25519Name
+        );
+        var secretKey = GeneratePrivateKey(descriptor, OkpCurves.Ed25519Name, 256);
+
+        Assert.True(algorithm.IsKeyCompatible(secretKey));
+    }
+
+    [Fact]
+    public void IsKeyCompatible_WhenFixedCurveDiffers_ReturnsFalse()
+    {
+        var descriptor = CreateDescriptor();
+        var algorithm = CreateFixedAlgorithm(
+            AlgorithmCodes.DigitalSignature.Ed25519,
+            OkpCurves.Ed25519Name
+        );
+        var secretKey = GeneratePrivateKey(descriptor, OkpCurves.Ed448Name, 456);
+
+        Assert.False(algorithm.IsKeyCompatible(secretKey));
+    }
+
+    [Theory]
+    [InlineData(AlgorithmCodes.DigitalSignature.EdDsa, OkpCurves.Ed25519Name, 256, 64)]
+    [InlineData(AlgorithmCodes.DigitalSignature.EdDsa, OkpCurves.Ed448Name, 456, 114)]
+    [InlineData(AlgorithmCodes.DigitalSignature.Ed25519, OkpCurves.Ed25519Name, 256, 64)]
+    [InlineData(AlgorithmCodes.DigitalSignature.Ed448, OkpCurves.Ed448Name, 456, 114)]
+    public void GetTokenHashFunction_ReturnsCurveHashSize(
+        string code,
+        string keyCurveName,
+        int keySizeBits,
+        int expected
+    )
+    {
+        var descriptor = CreateDescriptor();
+        var algorithm =
+            code == AlgorithmCodes.DigitalSignature.EdDsa
+                ? CreateAlgorithm()
+                : CreateFixedAlgorithm(code, keyCurveName);
+        var secretKey = GeneratePrivateKey(descriptor, keyCurveName, keySizeBits);
+
+        var hashFunction = algorithm.GetTokenHashFunction(secretKey, out var hashSizeBytes);
+
+        Assert.NotNull(hashFunction);
+        Assert.Equal(expected, hashSizeBytes);
     }
 
     #endregion

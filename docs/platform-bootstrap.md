@@ -2,11 +2,11 @@
 
 - **Status:** Living runbook — update it in the same change as anything it describes.
 - **Audience:** anyone reproducing the hosted platform from scratch — the maintainers, or a self-hoster running the
-  published stacks ([ADR-0133](adr/0133-we-ship-and-run-the-same-deployment-artifacts.md)).
+  published stacks ([ADR-0133](decisions/0133-we-ship-and-run-the-same-deployment-artifacts.md)).
 - **Scope:** the **manual** operations only — the steps no API can do (creating accounts, proving identity, payment,
   registrar delegation, clicking verification links). Everything after them is the OpenTofu bootstrap stack and then
-  GitOps ([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md),
-  [ADR-0134](adr/0134-cloud-native-operating-principles.md)).
+  GitOps ([ADR-0132](decisions/0132-platform-infrastructure-as-code-is-public-on-github.md),
+  [ADR-0134](decisions/0134-cloud-native-operating-principles.md)).
 
 Each step says **what** to do, **why** it is manual, and how to **verify** it. Placeholders are in angle brackets; the
 values used by the NCode hosted platform are listed once here.
@@ -85,12 +85,12 @@ settings declaratively.
      **Secret Protection** click **Enable**, then turn on **Push protection**. After the first push, set up **CodeQL**
      (default setup) — it analyzes the GitHub Actions workflows.
    - Settings → General: turn on **Enable release immutability** (releases and their tags can't be changed after
-     publishing — [ADR-0133](adr/0133-we-ship-and-run-the-same-deployment-artifacts.md)); disable **Wikis**; under Pull
+     publishing — [ADR-0133](decisions/0133-we-ship-and-run-the-same-deployment-artifacts.md)); disable **Wikis**; under Pull
      Requests, allow **squash merging** only and **automatically delete head branches**.
 4. **Clone it:** `git clone https://github.com/<github-org>/<infra-repo>.git`.
 
 Only one new repository is needed: components, stacks, and live configuration share it, and the host's Helm chart lives
-in the library repository ([ADR-0133](adr/0133-we-ship-and-run-the-same-deployment-artifacts.md)).
+in the library repository ([ADR-0133](decisions/0133-we-ship-and-run-the-same-deployment-artifacts.md)).
 
 **Verify:** the repository is public and empty; a test push of a file containing a fake AWS key is **blocked** by push
 protection.
@@ -133,7 +133,7 @@ Manual because AWS accounts and the identity used to administer them must exist 
 2. **Member account:** Organizations → *Add an AWS account* → *Create an AWS account*: name `nidentity-platform`, email
    a unique alias of `<recovery-email>` (for example a `+aws-platform` sub-address), IAM role name left as
    `OrganizationAccountAccessRole`, tags `application` = `ncode-identity` and `owner_email` = `platform@<domain>`
-   ([ADR-0135](adr/0135-one-resource-tagging-strategy-across-every-vendor.md)). Leave it directly under *Root* — one
+   ([ADR-0135](decisions/0135-one-resource-tagging-strategy-across-every-vendor.md)). Leave it directly under *Root* — one
    workload account needs no organizational units. It is billed to the management account — no new payment method.
    Record its account ID: it goes into `live/bootstrap/terraform.tfvars` as `aws_account_id`.
 3. **Root access management:** in IAM (management account) → *Root access management* → **Enable** both capabilities,
@@ -158,7 +158,7 @@ Manual because AWS accounts and the identity used to administer them must exist 
      dashboard.
 
    Create **no IAM users or access keys** — CI uses GitHub OIDC
-   ([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md)). Then sign out of root, sign in
+   ([ADR-0132](decisions/0132-platform-infrastructure-as-code-is-public-on-github.md)). Then sign out of root, sign in
    through the access portal to the management account, and in IAM → *Root access management* confirm that
    `nidentity-platform` shows root user credentials **Not present** — an account created through Organizations never
    had any, so *Delete root user credentials* is greyed out — and that password recovery is **not** allowed for it.

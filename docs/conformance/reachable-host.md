@@ -23,7 +23,7 @@ is the single "run the OP for the external suite" entry point:
 https://host.docker.internal:5001` makes the discovery `issuer` byte-match the origin in the Appendix D
   `server.discoveryUrl`, deterministically and independent of request host / proxy headers. Every served tenant has an
   issuer and nothing derives one from the request
-  ([ADR-0165](../adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), so the pin is
+  ([ADR-0165](../decisions/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), so the pin is
   required, not optional. The issuer is stored on the static tenant when it is first provisioned, so a database that
   already holds the tenant keeps its stored issuer until it is reset
   ([`build/dev-db-reset.ps1`](../../build/dev-db-reset.ps1)). The pin lives in the launch profile (not
@@ -77,10 +77,10 @@ Expose the host on a single origin the suite containers can reach — on Windows
 - **Pin the issuer (chosen, explicit):** the static tenant's issuer is set to the exact reached origin
   (`https://host.docker.internal:5001`) via the `Conformance` launch profile's
   `OpenId__TenantResolution__StaticSingle__Issuer` environment variable. The issuer is a property of the tenant
-  ([ADR-0129](../adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)), and every published URL is
+  ([ADR-0129](../decisions/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)), and every published URL is
   anchored to it. Deterministic and independent of proxy headers.
 - **Follow the request host (no longer possible):** the request-derived issuer was removed
-  ([ADR-0165](../adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)); a tenant is
+  ([ADR-0165](../decisions/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)); a tenant is
   published only under its own issuer.
 
 ### TLS trust

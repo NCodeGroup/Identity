@@ -10,8 +10,8 @@ first page is [Encryption at Rest](./capabilities/encryption-at-rest.md).
 
 ## Architecture Decision Records (ADRs)
 
-Architecturally significant decisions are captured as ADRs under [`adr/`](./adr). See the
-[ADR index](./adr/README.md) for the list and the process we follow.
+Architecturally significant decisions are captured as ADRs under [`decisions/`](./decisions). See the
+[ADR index](./decisions/README.md) for the list and the process we follow.
 
 ## Metrics
 

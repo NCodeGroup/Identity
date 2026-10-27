@@ -2,9 +2,9 @@
 
 Status: **implemented.** Detailed plan for issue [#125](https://github.com/NCodeGroup/Identity/issues/125). Parent design:
 [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #2 and Appendix B). Decision
-records: [ADR-0062](../adr/0062-opt-in-interactive-login-consent-ui.md) (seam + stable-locator contract),
-[ADR-0065](../adr/0065-interactive-login-consent-op-hosted-auth-surface.md) (realized as the OP-hosted
-`apps/auth` surface), [ADR-0070](../adr/0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md)
+records: [ADR-0062](../decisions/0062-opt-in-interactive-login-consent-ui.md) (seam + stable-locator contract),
+[ADR-0065](../decisions/0065-interactive-login-consent-op-hosted-auth-surface.md) (realized as the OP-hosted
+`apps/auth` surface), [ADR-0070](../decisions/0070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md)
 (leaf capability package + pluggable credential verifier). Catalog entry:
 [#125](https://github.com/NCodeGroup/Identity/issues/125).
 
@@ -15,7 +15,7 @@ The interactive login/consent surface landed as the opt-in leaf capability packa
 ([`DefaultRegistration`](../../src/NCode.Identity.OpenId.Authentication.Interactive/DefaultRegistration.cs))
 registers the `Identity.Application` cookie scheme (`LoginPath = /account/login`) the authorize challenge
 redirects into, and maps the `/account/*` endpoints, which also serve the bundle's files, beneath the tenant route
-([ADR-0193](../adr/0193-the-interactive-surface-is-served-under-the-tenant-route.md)) through an `IEndpointProvider`
+([ADR-0193](../decisions/0193-the-interactive-surface-is-served-under-the-tenant-route.md)) through an `IEndpointProvider`
 ([`InteractiveAuthenticationEndpointHandler`](../../src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs)).
 Credential verification is a pluggable `IInteractiveCredentialVerifier` seam whose local-account
 implementation ([`LocalAccountInteractiveCredentialVerifier`](../../src/NCode.Identity.OpenId.Accounts.Authentication/LocalAccountInteractiveCredentialVerifier.cs),
@@ -33,8 +33,8 @@ integration and unit tests
 [`InteractiveLogoutTests`](../../tests/NCode.Identity.OpenId.IntegrationTests/Endpoints/InteractiveLogoutTests.cs),
 [`InteractiveAuthenticationEndpointHandlerTests`](../../tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/InteractiveAuthenticationEndpointHandlerTests.cs)).
 Consent went beyond the auto-approve stopgap below: durable, granular consent now enforces through this
-same surface ([ADR-0076](../adr/0076-consent-persistence-and-enforcement.md),
-[ADR-0081](../adr/0081-granular-consent-and-authorized-applications.md)). The remaining conformance
+same surface ([ADR-0076](../decisions/0076-consent-persistence-and-enforcement.md),
+[ADR-0081](../decisions/0081-granular-consent-and-authorized-applications.md)). The remaining conformance
 prerequisite is the reachable HTTPS host with a byte-matched `issuer` ([#126](https://github.com/NCodeGroup/Identity/issues/126)).
 
 The rest of this document is the original planning-time plan, retained as a record.

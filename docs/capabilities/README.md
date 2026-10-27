@@ -5,7 +5,7 @@ What NCode.Identity does, what it promises, and why it's built the way it is.
 Each page here covers one capability. The top half is written for anyone evaluating the product: the promises, the
 reasons they matter, and how the design compares with the usual alternatives. The bottom half is written for engineers
 and operators: how the capability works and where its limits are. Each page links to the
-[ADRs](../adr/README.md) that record the decisions and to the code that implements them, and those stay the source of
+[ADRs](../decisions/README.md) that record the decisions and to the code that implements them, and those stay the source of
 truth.
 
 | Capability                                       | In one line                                                                                                         |

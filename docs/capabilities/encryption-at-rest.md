@@ -9,7 +9,7 @@
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Status**           | Available. Grant payloads, private keys, client secrets and the Data Protection key ring are all covered.                                                                                                                                                                                                                |
 | **Packages**         | `NCode.Identity.Secrets.Persistence(.Abstractions)`, plus one opt-in package per cloud: `.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms`                                                                                                                                                                                   |
-| **Key decisions**    | [ADR-0235](../adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) key hierarchy · [ADR-0260](../adr/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) cloud root keys · [ADR-0265](../adr/0265-grant-payloads-are-protected-under-the-tenant-master-key.md) grant payloads · [ADR-0116](../adr/0116-memory-allocations-and-buffer-operations.md) secure buffers |
+| **Key decisions**    | [ADR-0235](../decisions/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) key hierarchy · [ADR-0260](../decisions/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) cloud root keys · [ADR-0265](../decisions/0265-grant-payloads-are-protected-under-the-tenant-master-key.md) grant payloads · [ADR-0116](../decisions/0116-memory-allocations-and-buffer-operations.md) secure buffers |
 | **Operator guide**   | [Helm chart: Secret protection](../../charts/ncode-identity-host/README.md#secret-protection)                                                                                                                                                                                                                            |
 
 ## Contents
@@ -105,7 +105,7 @@ flowchart TB
 | --------------------------------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Server and tenant **private signing and encryption keys**                               | Server / tenant      | `nce1.` envelope                                                                                           |
 | **Client secrets** and resource-server keys                                             | Tenant               | `nce1.` envelope                                                                                           |
-| **Grant payloads**: authorization codes, refresh tokens, sessions, device, CIBA and PAR requests, DCR tokens | Tenant               | `nce1.` envelope ([ADR-0265](../adr/0265-grant-payloads-are-protected-under-the-tenant-master-key.md))     |
+| **Grant payloads**: authorization codes, refresh tokens, sessions, device, CIBA and PAR requests, DCR tokens | Tenant               | `nce1.` envelope ([ADR-0265](../decisions/0265-grant-payloads-are-protected-under-the-tenant-master-key.md))     |
 | ASP.NET Core **Data Protection key ring** (sign-in cookies, anti-forgery tokens)        | Server               | Each key in an `nce1.` envelope                                                                            |
 | Your own application's sensitive data                                                   | Server / tenant      | `nce1.` envelope ([see below](#protect-your-own-data-with-it))                                             |
 | **Public keys** (`spki`, `x509`)                                                        | n/a                  | Clear text, by design: they are public                                                                     |
@@ -138,7 +138,7 @@ namespace key → data key), so it should feel familiar. It also improves on it 
 - **The payload isn't bound to a master key.** Rotating a master key only rewraps 32-byte data keys and never
   re-encrypts payloads.
 - **Open provider model.** Any KMS can be a root key provider by registering an `IRootKeyProvider`
-  ([ADR-0150](../adr/0150-vocabularies-are-open-unless-provably-closed.md)).
+  ([ADR-0150](../decisions/0150-vocabularies-are-open-unless-provably-closed.md)).
 - **Keyless cloud credentials.** Every cloud provider authenticates with workload identity federation, so no cloud
   credential is stored in the cluster.
 
@@ -147,7 +147,7 @@ namespace key → data key), so it should feel familiar. It also improves on it 
 
 - **Keep the certificate-wrapped Data Protection ring.** It gives one key to every tenant, that key is long-lived and
   rotated by hand, renewing it in place breaks it silently, and it offers no tenant isolation or deletion. It was
-  superseded ([ADR-0177](../adr/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)).
+  superseded ([ADR-0177](../decisions/0177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md)).
 - **A secrets manager (Infisical, Doppler, cloud secret managers) as the store.** It duplicates the store the server
   already has, bills per secret or per identity, and from outside the vendor's cloud it usually needs a stored
   credential. Their KMS offerings can still be root key providers.
@@ -157,7 +157,7 @@ namespace key → data key), so it should feel familiar. It also improves on it 
 - **A server key above the tenant keys.** It adds no protection, because every replica holds every tenant's keys
   anyway, and it would block per-tenant root keys (bring your own key) later.
 
-Full reasoning: [ADR-0235 § Options considered](../adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md#options-considered).
+Full reasoning: [ADR-0235 § Options considered](../decisions/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md#options-considered).
 
 </details>
 
@@ -191,7 +191,7 @@ right one for its owner and version. A partial unique index guarantees **exactly
 **Failing closed.** If a grant's payload doesn't decrypt (it was altered, it comes from a foreign row, or its master
 key was lost), the server treats the grant as **absent** and logs `GrantPayloadUnreadable`. An unreadable row never
 authorizes anything, and never turns into a 500
-([ADR-0265](../adr/0265-grant-payloads-are-protected-under-the-tenant-master-key.md)).
+([ADR-0265](../decisions/0265-grant-payloads-are-protected-under-the-tenant-master-key.md)).
 
 > [!TIP]
 > Envelope layout and binding are specified in
@@ -205,7 +205,7 @@ Encryption at rest is only as strong as the way the process handles plaintext. I
 `byte[]` or a `string`) leaks: the garbage collector **moves** objects during compaction and leaves stale copies
 behind, a `string` is immutable and can't be wiped, and nothing is cleared before memory is reused, swapped or written
 to a crash dump. NCode.Identity treats secret memory as a resource with an explicit lifetime
-([ADR-0116](../adr/0116-memory-allocations-and-buffer-operations.md)):
+([ADR-0116](../decisions/0116-memory-allocations-and-buffer-operations.md)):
 
 | What                                   | Where it lives                                                                                      | When it is wiped                                                       |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -280,8 +280,8 @@ keep unwrapping under their own version.
 > [!TIP]
 > Setting each provider up (key policies, workload identity, chart values) is covered in the
 > [Helm chart README](../../charts/ncode-identity-host/README.md#secret-protection). The design is in
-> [ADR-0235](../adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) and
-> [ADR-0260](../adr/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md).
+> [ADR-0235](../decisions/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) and
+> [ADR-0260](../decisions/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md).
 
 ## Recovery
 
@@ -295,14 +295,14 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
 - **Data Protection key ring gate.** If the server's master key can't decrypt a live key in the Data Protection key
   ring (for example after a partial restore), the host **stops** instead of silently signing everyone out. The error
   names each affected key, and one setting revokes them
-  ([ADR-0247](../adr/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).
+  ([ADR-0247](../decisions/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).
 
 ## Safe by default
 
 | Environment     | Behavior                                                                                                                                                                                       |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Production**  | Refuses to start with the `ephemeral` provider, with a root key written inline in configuration (even if unused), or with no recovery decision. It reports every finding together.              |
-| **Helm chart**  | Refuses to render a malformed KMS key ARN, key name or key id, and mounts cloud credentials only for the selected provider ([ADR-0179](../adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). |
+| **Helm chart**  | Refuses to render a malformed KMS key ARN, key name or key id, and mounts cloud credentials only for the selected provider ([ADR-0179](../decisions/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). |
 | **Development** | No root key is ever committed. The LocalDev AppHost generates one per machine, outside the repository. If the root key changes, development pruning heals affected tenants automatically.       |
 
 ## Protect your own data with it
@@ -351,12 +351,12 @@ We'd rather say what this doesn't do yet:
 
 **Decisions**
 
-- [ADR-0235](../adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): stored secrets are protected by a key hierarchy under an external root key
-- [ADR-0260](../adr/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md): Azure Key Vault and Google Cloud KMS are root key providers
-- [ADR-0265](../adr/0265-grant-payloads-are-protected-under-the-tenant-master-key.md): grant payloads are protected under the tenant master key
-- [ADR-0247](../adr/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md): a Data Protection key the server can't decrypt stops the host
-- [ADR-0116](../adr/0116-memory-allocations-and-buffer-operations.md): spans, pooled writers and secure lifetimes
-- [ADR-0050](../adr/0050-secret-material-revealed-once-on-create.md): secret material is revealed once, on create
+- [ADR-0235](../decisions/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): stored secrets are protected by a key hierarchy under an external root key
+- [ADR-0260](../decisions/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md): Azure Key Vault and Google Cloud KMS are root key providers
+- [ADR-0265](../decisions/0265-grant-payloads-are-protected-under-the-tenant-master-key.md): grant payloads are protected under the tenant master key
+- [ADR-0247](../decisions/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md): a Data Protection key the server can't decrypt stops the host
+- [ADR-0116](../decisions/0116-memory-allocations-and-buffer-operations.md): spans, pooled writers and secure lifetimes
+- [ADR-0050](../decisions/0050-secret-material-revealed-once-on-create.md): secret material is revealed once, on create
 
 **Code**
 

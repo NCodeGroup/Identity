@@ -1,6 +1,6 @@
 # Discovery-metadata alignment audit
 
-Status: **implemented** ([ADR-0083](../adr/0083-secure-by-default-discovery-metadata.md)). The OpenID Provider now
+Status: **implemented** ([ADR-0083](../decisions/0083-secure-by-default-discovery-metadata.md)). The OpenID Provider now
 advertises secure-by-default, verified capabilities, overridable by operators through configuration. This document is
 retained as the field-by-field reference and rationale. Parent design:
 [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #4 and Appendix A).

@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The EdDSA package registers the fully-specified `Ed25519` and `Ed448` algorithms.** RFC 9864 deprecates the
+  polymorphic `EdDSA`, which stays registered for interop. One `EdDsaSignatureAlgorithm` serves all three codes, and
+  `KeyedAlgorithm.IsKeyCompatible(SecretKey)` now decides whether a key fits an algorithm, for the credential selector
+  and DPoP proofs alike. `SignatureAlgorithm.GetTokenHashFunction` supplies the ID-token `at_hash`/`c_hash`/`s_hash`
+  hash: SHA-512 for Ed25519 and SHAKE256 with 114 bytes of output for Ed448. The FAPI 2.0 signing ceiling becomes PS256,
+  ES256, EdDSA and Ed25519
+  ([ADR-0272](docs/adr/0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md)).
+
 - **An OpenID protocol client exists.** Phase 1a of the BFF adds `NCode.Identity.OpenId.Client`, which
   `AddOpenIdClientLibrary()` registers on the JWT library builder. `ITokenClient` makes token requests and
   `ITokenRevocationClient` makes revocation requests; `IProviderMetadataResolver` and `IProviderKeySetResolver` resolve
@@ -1826,6 +1834,11 @@ change to the public API is a **major** version bump.
   (supersedes ADR-0177).
 
 ### Security
+
+- **ES256, ES384 and ES512 accept only their own curve.** RFC 7518 §3.4 binds them to P-256, P-384 and P-521, so a
+  256-bit key on another curve no longer signs as ES256, and `EccSecretKey.GetECCurve()` reads the actual curve from
+  the key material instead of inferring it from the key size
+  ([ADR-0272](docs/adr/0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md)).
 
 - **Grant payloads are encrypted at rest.** A persisted grant's payload (authorization codes, refresh tokens,
   sessions, device, CIBA and pushed authorization requests, DCR tokens and continue envelopes) is stored only as an

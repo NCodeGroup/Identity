@@ -18,10 +18,8 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using AlgorithmType = NCode.Identity.Jose.Algorithms.AlgorithmType;
 using IAlgorithmCollection = NCode.Identity.Jose.Algorithms.IAlgorithmCollection;
@@ -46,14 +44,6 @@ internal class DefaultCredentialSelector : ICredentialSelector
         string algorithmCode
     ) => secretKey.Metadata.Algorithm is null || secretKey.Metadata.Algorithm == algorithmCode;
 
-    private static bool IsSecretKeyTypeCompatible(Secrets.Keys.SecretKey secretKey, Type keyType) =>
-        keyType.IsInstanceOfType(secretKey);
-
-    private static bool IsSecretKeySizeCompatible(
-        Secrets.Keys.SecretKey secretKey,
-        IEnumerable<KeySizes> legalBitSizes
-    ) => KeySizesUtility.IsLegalSize(legalBitSizes, secretKey.KeySizeBits);
-
     private static bool IsSecretKeyCompatible(
         Secrets.Keys.SecretKey secretKey,
         KeyedAlgorithm algorithm,
@@ -61,8 +51,7 @@ internal class DefaultCredentialSelector : ICredentialSelector
     ) =>
         IsSecretKeyUseCompatible(secretKey, expectedUse)
         && IsSecretKeyAlgorithmCompatible(secretKey, algorithm.Code)
-        && IsSecretKeyTypeCompatible(secretKey, algorithm.KeyType)
-        && IsSecretKeySizeCompatible(secretKey, algorithm.KeyBitSizes);
+        && algorithm.IsKeyCompatible(secretKey);
 
     private static bool TryGetAlgorithm<T>(
         AlgorithmType algorithmType,

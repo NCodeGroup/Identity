@@ -114,10 +114,13 @@ The rules:
 - **`PLAN.md` and its checkpoints are transient.** [GitHub issues](https://github.com/NCodeGroup/Identity/issues) are the single tracker of pending
   work and the ADRs carry the reasoning, so a plan never outlives its change. `PLAN.md` is a gitignored working file
   that no commit contains, and each step's checkpoint stages only the files the step lists. Its Decisions are promoted
-  into ADRs, instruction files, or issues, `PLAN.md` is deleted, and the `Plan` / `Plan step` / `Re-plan step`
-  checkpoints are squashed into conventional commits before the change leaves the machine — before its topic branch is
-  pushed here ([ADR-0261](0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), and before a
-  pull request merges in `identity-platform`.
+  into ADRs, instruction files, or issues before the plan's final review. Here `/ship-plan` drops the empty `Plan` and
+  `Re-plan step` checkpoints before the topic branch is first pushed
+  ([ADR-0261](0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)); the `Plan step`
+  checkpoints ride the pull request's branch, and the merge queue's squash merge, whose subject is the pull request's
+  title and so the plan's conventional-commit title, keeps them off `main`. `/finish-plan` deletes `PLAN.md` once the
+  pull request merges. In `identity-platform`, the checkpoints are squashed into conventional commits before a pull
+  request merges.
 - **Repository rules reach every agent.** The planner and the executor both load
   [`repository.instructions.md`](../../.github/instructions/repository.instructions.md), [`AGENTS.md`](../../AGENTS.md),
   and the scoped instruction files, so a plan restates only what a step needs, and the Definition of Done stays the

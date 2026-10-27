@@ -178,12 +178,12 @@ try {
     Invoke-Step 'tool-restore' { dotnet tool restore }
     Invoke-Step 'format (csharpier check)' { dotnet csharpier check . }
 
-    # ADR index gate: the index in docs/adr/README.md is maintained by hand, and hand-maintenance demonstrably fails --
+    # ADR index gate: the index in docs/decisions/README.md is maintained by hand, and hand-maintenance demonstrably fails --
     # ten ADRs sat unindexed and a malformed delimiter row (which silently degrades the whole table to a paragraph)
     # survived dozens of commits before anyone noticed. An unindexed ADR is an ADR nobody finds, which defeats the
     # point of writing it (ADR-0008). Cheap and build-free, so it runs before the slow stages.
     Invoke-Step 'adr index' {
-        $adrDir = Join-Path $repoRoot 'docs/adr'
+        $adrDir = Join-Path $repoRoot 'docs/decisions'
         $indexPath = Join-Path $adrDir 'README.md'
         $indexLines = Get-Content $indexPath
         $problems = @()
@@ -194,7 +194,7 @@ try {
             if ($indexLines[$i].StartsWith('|')) {
                 $columns = $indexLines[$i].TrimEnd().Split('|').Count - 2
                 if ($columns -ne 3) {
-                    $problems += "docs/adr/README.md($($i + 1)): table row has $columns columns, expected 3."
+                    $problems += "docs/decisions/README.md($($i + 1)): table row has $columns columns, expected 3."
                 }
             }
         }
@@ -208,10 +208,10 @@ try {
             ForEach-Object { $_.Matches[0].Groups[1].Value }
 
         foreach ($file in $onDisk | Where-Object { $_ -notin $indexed }) {
-            $problems += "docs/adr/$file is not listed in docs/adr/README.md."
+            $problems += "docs/decisions/$file is not listed in docs/decisions/README.md."
         }
         foreach ($entry in $indexed | Where-Object { $_ -notin $onDisk }) {
-            $problems += "docs/adr/README.md links ./$entry, which does not exist."
+            $problems += "docs/decisions/README.md links ./$entry, which does not exist."
         }
 
         if ($problems.Count -gt 0) {

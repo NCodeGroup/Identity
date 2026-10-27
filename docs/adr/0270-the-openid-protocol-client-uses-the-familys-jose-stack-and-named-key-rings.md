@@ -1,6 +1,6 @@
 # 270. The OpenID protocol client uses the family's JOSE stack and named key rings
 
-- **Status:** Accepted
+- **Status:** Accepted (phase 1b's ID-token validation: [ADR-0273](0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md))
 - **Date:** 2026-10-26
 - **Deciders:** NCode Group
 

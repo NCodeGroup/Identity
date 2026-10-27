@@ -79,6 +79,7 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
         Assert.NotNull(provider.GetRequiredService<IClientKeyRingProvider>());
         Assert.NotNull(provider.GetRequiredService<ITokenClient>());
         Assert.NotNull(provider.GetRequiredService<ITokenRevocationClient>());
+        Assert.NotNull(provider.GetRequiredService<IIdTokenValidator>());
     }
 
     [Fact]

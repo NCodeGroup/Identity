@@ -27,3 +27,11 @@ package. If this comes up again, the decision has already been made — see
 The resolution is to ship the rich, behavior-bearing JWK model as **its own dedicated, logic-bearing library** —
 neither an abstractions package nor folded into Secrets or JOSE. Consumers that need JWK depend on this package
 directly; there is no contracts-only companion to depend on, by design.
+
+## Contributing a key type
+
+A `JsonWebKey` carries a `JsonWebKeyTypeDescriptor` that names its thumbprint members and its private members. The IANA
+key types (`RSA`, `EC`, `OKP`, `oct` and `AKP`) are built in as `JsonWebKeyTypeDescriptors`. A contributed key type
+returns its own descriptor from `ISecretKeyTypeDescriptor.JwkKeyType`, and code that resolved it constructs
+`new JsonWebKey(element, descriptor)` so the key uses that type's rules. The standard private member names stay private
+for every key type. See [ADR-0271](../../docs/adr/0271-a-key-type-registers-its-json-web-key-rules.md).

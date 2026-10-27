@@ -17,6 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 
@@ -44,11 +45,12 @@ public interface ISecretKeyTypeDescriptor
     Type KeyClrType { get; }
 
     /// <summary>
-    /// Gets the JSON Web Key <c>kty</c> value that represents keys of this type (for example <c>RSA</c>, <c>EC</c>,
-    /// <c>OKP</c>, <c>AKP</c>, or <c>oct</c>), or <c>null</c> when keys of this type have no JSON Web Key form. A key
-    /// supplied as a JSON Web Key is matched to its descriptor by this value.
+    /// Gets the JSON Web Key key type of keys of this type: its <c>kty</c> name, its RFC 7638 thumbprint members and
+    /// its private members. Returns <c>null</c> when keys of this type have no JSON Web Key form. A key supplied as a
+    /// JSON Web Key is matched to its descriptor by <see cref="JsonWebKeyTypeDescriptor.Name"/>. A key type a package
+    /// contributes supplies its own descriptor; see ADR-0271.
     /// </summary>
-    string? JwkKeyType { get; }
+    JsonWebKeyTypeDescriptor? JwkKeyType { get; }
 
     /// <summary>
     /// Gets a value indicating whether this key type uses asymmetric cryptography (its <see cref="KeyClrType"/>

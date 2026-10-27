@@ -19,7 +19,9 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using NCode.Encoders;
+using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Client.Keys;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyTypes;
@@ -93,6 +95,26 @@ public class ProviderKeySetImporterTests : BaseTests, IAsyncLifetime
         Assert.False(result);
         Assert.Null(keys);
         Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void TryImport_WithContributedTypesPrivateMember_RefusesTheSet()
+    {
+        var keyType = new JsonWebKeyTypeDescriptor("XKP", ["pub"], ["sk"]);
+        ISecretKeyTypeDescriptor? descriptor = Mock.Of<ISecretKeyTypeDescriptor>(x =>
+            x.KeyType == "xkp" && x.JwkKeyType == keyType
+        );
+        var catalog = new Mock<ISecretKeyTypeCatalog>();
+        catalog.Setup(x => x.TryGetByJwkKeyType("XKP", out descriptor)).Returns(true);
+
+        var result = new ProviderKeySetImporter(catalog.Object).TryImport(
+            Parse("""{"keys":[{"kty":"XKP","pub":"AAAA","sk":"AAAA"}]}"""),
+            out _,
+            out var error
+        );
+
+        Assert.False(result);
+        Assert.Contains("private", error, StringComparison.Ordinal);
     }
 
     [Fact]

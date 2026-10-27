@@ -22,6 +22,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Json;
@@ -49,7 +50,7 @@ internal sealed class EccSecretKeyTypeDescriptor(
     public override Type KeyClrType => typeof(EccSecretKey);
 
     /// <inheritdoc />
-    public override string JwkKeyType => "EC";
+    public override JsonWebKeyTypeDescriptor JwkKeyType => JsonWebKeyTypeDescriptors.Ec;
 
     /// <inheritdoc />
     public override string? ValidateGeneration(SecretKeyGenerationParameters parameters) =>
@@ -164,7 +165,7 @@ internal sealed class EccSecretKeyTypeDescriptor(
 
         return new JsonObject
         {
-            ["kty"] = "EC",
+            ["kty"] = JwkKeyType.Name,
             ["crv"] = specification.CurveName,
             ["x"] = parameters.Q.X is { } x
                 ? Base64Url.EncodeToString(x)

@@ -21,6 +21,7 @@ using NCode.Extensions.DataProtection;
 using NCode.Identity.Jose.EdDsa.Algorithms;
 using NCode.Identity.Jose.EdDsa.Keys;
 using NCode.Identity.Jose.EdDsa.KeyTypes;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -247,7 +248,7 @@ public class OkpIntegrationTests
     [Fact]
     public void JwkKeyType_IsOkp()
     {
-        Assert.Equal("OKP", CreateDescriptor().JwkKeyType);
+        Assert.Same(JsonWebKeyTypeDescriptors.Okp, CreateDescriptor().JwkKeyType);
     }
 
     [Theory]

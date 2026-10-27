@@ -18,6 +18,7 @@
 
 using System.Buffers.Text;
 using System.Security.Cryptography;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 
@@ -67,19 +68,19 @@ public class SecretKeyTypeDescriptorTests
     [Fact]
     public void Symmetric_JwkKeyType_IsOct()
     {
-        Assert.Equal("oct", Symmetric().JwkKeyType);
+        Assert.Same(JsonWebKeyTypeDescriptors.Oct, Symmetric().JwkKeyType);
     }
 
     [Fact]
     public void Rsa_JwkKeyType_IsRsa()
     {
-        Assert.Equal("RSA", Rsa().JwkKeyType);
+        Assert.Same(JsonWebKeyTypeDescriptors.Rsa, Rsa().JwkKeyType);
     }
 
     [Fact]
     public void Ecc_JwkKeyType_IsEc()
     {
-        Assert.Equal("EC", Ecc().JwkKeyType);
+        Assert.Same(JsonWebKeyTypeDescriptors.Ec, Ecc().JwkKeyType);
     }
 
     [Theory]

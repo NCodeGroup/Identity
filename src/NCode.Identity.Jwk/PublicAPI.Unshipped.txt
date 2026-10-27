@@ -28,9 +28,12 @@ NCode.Identity.Jwk.JsonWebKey.ComputeThumbprintUri(System.Security.Cryptography.
 NCode.Identity.Jwk.JsonWebKey.ContainsPrivateKeyMaterial.get -> bool
 NCode.Identity.Jwk.JsonWebKey.GetMember(string! name) -> string?
 NCode.Identity.Jwk.JsonWebKey.JsonWebKey(System.Text.Json.JsonElement element) -> void
+NCode.Identity.Jwk.JsonWebKey.JsonWebKey(System.Text.Json.JsonElement element, NCode.Identity.Jwk.JsonWebKeyTypeDescriptor! keyTypeDescriptor) -> void
 NCode.Identity.Jwk.JsonWebKey.JsonWebKey(System.Text.Json.Nodes.JsonObject! members) -> void
+NCode.Identity.Jwk.JsonWebKey.JsonWebKey(System.Text.Json.Nodes.JsonObject! members, NCode.Identity.Jwk.JsonWebKeyTypeDescriptor! keyTypeDescriptor) -> void
 NCode.Identity.Jwk.JsonWebKey.KeyId.get -> string?
 NCode.Identity.Jwk.JsonWebKey.KeyOperations.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.Jwk.JsonWebKey.KeyTypeDescriptor.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor?
 NCode.Identity.Jwk.JsonWebKey.KeyType.get -> string!
 NCode.Identity.Jwk.JsonWebKey.PublicKeyUse.get -> string?
 NCode.Identity.Jwk.JsonWebKey.ToJsonString() -> string!
@@ -47,8 +50,20 @@ NCode.Identity.Jwk.JsonWebKeySet.JsonWebKeySet(System.Text.Json.JsonElement elem
 NCode.Identity.Jwk.JsonWebKeySet.Keys.get -> System.Collections.Immutable.ImmutableArray<NCode.Identity.Jwk.JsonWebKey!>
 NCode.Identity.Jwk.JsonWebKeySet.ToJsonString() -> string!
 NCode.Identity.Jwk.JsonWebKeySet.TryGetKey(string! keyId, out NCode.Identity.Jwk.JsonWebKey? key) -> bool
+NCode.Identity.Jwk.JsonWebKeyTypeDescriptor
+NCode.Identity.Jwk.JsonWebKeyTypeDescriptor.JsonWebKeyTypeDescriptor(string! name, System.Collections.Generic.IEnumerable<string!>! thumbprintMembers, System.Collections.Generic.IEnumerable<string!>! privateMembers) -> void
+NCode.Identity.Jwk.JsonWebKeyTypeDescriptor.Name.get -> string!
+NCode.Identity.Jwk.JsonWebKeyTypeDescriptor.PrivateMembers.get -> System.Collections.Frozen.FrozenSet<string!>!
+NCode.Identity.Jwk.JsonWebKeyTypeDescriptor.ThumbprintMembers.get -> System.Collections.Immutable.ImmutableArray<string!>
+NCode.Identity.Jwk.JsonWebKeyTypeDescriptors
 override NCode.Identity.Jwk.JsonWebKey.ToString() -> string!
 override NCode.Identity.Jwk.JsonWebKeySet.ToString() -> string!
 static NCode.Identity.Jwk.JsonWebKey.Parse(string! json) -> NCode.Identity.Jwk.JsonWebKey!
 static NCode.Identity.Jwk.JsonWebKeySet.Empty.get -> NCode.Identity.Jwk.JsonWebKeySet!
 static NCode.Identity.Jwk.JsonWebKeySet.Parse(string! json) -> NCode.Identity.Jwk.JsonWebKeySet!
+static NCode.Identity.Jwk.JsonWebKeyTypeDescriptors.Akp.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!
+static NCode.Identity.Jwk.JsonWebKeyTypeDescriptors.Ec.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!
+static NCode.Identity.Jwk.JsonWebKeyTypeDescriptors.Oct.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!
+static NCode.Identity.Jwk.JsonWebKeyTypeDescriptors.Okp.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!
+static NCode.Identity.Jwk.JsonWebKeyTypeDescriptors.Rsa.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!
+static NCode.Identity.Jwk.JsonWebKeyTypeDescriptors.TryGetStandard(string! keyType, out NCode.Identity.Jwk.JsonWebKeyTypeDescriptor? descriptor) -> bool

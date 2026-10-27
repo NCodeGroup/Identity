@@ -50,8 +50,6 @@ public sealed class AkpSecretKeyTypeDescriptor(
     IDataProtectorFactory<SecretKey> dataProtectorFactory
 ) : ISecretKeyTypeDescriptor
 {
-    private const string AkpJwkKeyType = "AKP";
-
     private IDataProtector DataProtector { get; } = dataProtectorFactory.CreateDataProtector();
 
     /// <inheritdoc />
@@ -61,7 +59,7 @@ public sealed class AkpSecretKeyTypeDescriptor(
     public Type KeyClrType => typeof(AkpSecretKey);
 
     /// <inheritdoc />
-    public string JwkKeyType => AkpJwkKeyType;
+    public JsonWebKeyTypeDescriptor JwkKeyType => JsonWebKeyTypeDescriptors.Akp;
 
     /// <inheritdoc />
     public bool IsAsymmetric => true;
@@ -207,7 +205,7 @@ public sealed class AkpSecretKeyTypeDescriptor(
 
         var jwk = new JsonObject
         {
-            ["kty"] = AkpJwkKeyType,
+            ["kty"] = JsonWebKeyTypeDescriptors.Akp.Name,
             ["alg"] = akp.AlgorithmName,
             ["pub"] = Base64Url.EncodeToString(publicKey),
         };
@@ -216,7 +214,7 @@ public sealed class AkpSecretKeyTypeDescriptor(
 
         return new ExportedPublicKey
         {
-            Jwk = new JsonWebKey(jwk),
+            Jwk = new JsonWebKey(jwk, JsonWebKeyTypeDescriptors.Akp),
             Pem = akp.ExportSubjectPublicKeyInfoPem(),
         };
     }
@@ -284,13 +282,16 @@ public sealed class AkpSecretKeyTypeDescriptor(
             throw new ArgumentException("The supplied JWK material is not a JSON object.");
         }
 
-        if (!root.TryGetPropertyValue<string>("kty", out var kty) || kty != AkpJwkKeyType)
+        if (
+            !root.TryGetPropertyValue<string>("kty", out var kty)
+            || kty != JsonWebKeyTypeDescriptors.Akp.Name
+        )
         {
             throw new ArgumentException("The supplied JWK is not an 'AKP' key.");
         }
 
         // A JWK carrying any private or secret component is rejected: only public keys may be imported.
-        if (new JsonWebKey(root).ContainsPrivateKeyMaterial)
+        if (new JsonWebKey(root, JsonWebKeyTypeDescriptors.Akp).ContainsPrivateKeyMaterial)
         {
             throw new ArgumentException(
                 "Importing private key material is not supported; supply a public JWK."

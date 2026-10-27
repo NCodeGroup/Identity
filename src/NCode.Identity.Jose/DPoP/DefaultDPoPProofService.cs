@@ -282,18 +282,24 @@ internal class DefaultDPoPProofService(
             return false;
         }
 
-        if (jwk.ContainsPrivateKeyMaterial)
-        {
-            error = "The DPoP proof 'jwk' header must not contain private key material.";
-            return false;
-        }
-
         if (
             !SecretKeyTypeCatalog.TryGetByJwkKeyType(jwk.KeyType, out var descriptor)
+            || descriptor.JwkKeyType is not { } jwkKeyType
             || !descriptor.PublicKeyImportFormats.Contains(SecretKeyImportFormats.Jwk)
         )
         {
             error = $"The DPoP proof 'jwk' key type '{jwk.KeyType}' is not supported.";
+            jwk = null;
+            return false;
+        }
+
+        jwk = new JsonWebKey(jwkElement, jwkKeyType);
+
+        // The key type's own private members count too, not only the standard private names.
+        if (jwk.ContainsPrivateKeyMaterial)
+        {
+            error = "The DPoP proof 'jwk' header must not contain private key material.";
+            jwk = null;
             return false;
         }
 

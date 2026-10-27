@@ -49,7 +49,7 @@ public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secret
     /// <summary>
     /// Gets the <c>JWK</c> <c>kty</c> value this key type accepts (for example <c>RSA</c> or <c>EC</c>).
     /// </summary>
-    public abstract override string JwkKeyType { get; }
+    public abstract override JsonWebKeyTypeDescriptor JwkKeyType { get; }
 
     /// <inheritdoc />
     public override IReadOnlyCollection<string> PublicKeyImportFormats { get; } =
@@ -107,7 +107,7 @@ public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secret
 
         return new ExportedPublicKey
         {
-            Jwk = new JsonWebKey(jwk),
+            Jwk = new JsonWebKey(jwk, JwkKeyType),
             Pem = asymmetricSecretKey.ExportSubjectPublicKeyInfoPem(),
         };
     }
@@ -143,19 +143,19 @@ public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secret
                 nameof(keyMaterial)
             );
 
-        // A JWK carrying any private or secret component is rejected: only public keys may be imported.
-        var jwk = new JsonWebKey(root);
-        if (jwk.ContainsPrivateKeyMaterial)
+        root.TryGetPropertyValue<string>(JsonWebKeyParameterNames.KeyType, out var kty);
+        if (!string.Equals(kty, JwkKeyType.Name, StringComparison.Ordinal))
             throw new ArgumentException(
-                "Importing private key material is not supported; supply a public JWK.",
+                $"The JWK key type '{kty}' does not match the expected '{JwkKeyType.Name}' for a "
+                    + $"'{KeyType}' secret.",
                 nameof(keyMaterial)
             );
 
-        var kty = jwk.KeyType;
-        if (!string.Equals(kty, JwkKeyType, StringComparison.Ordinal))
+        // A JWK carrying any private or secret component is rejected: only public keys may be imported.
+        var jwk = new JsonWebKey(root, JwkKeyType);
+        if (jwk.ContainsPrivateKeyMaterial)
             throw new ArgumentException(
-                $"The JWK key type '{kty}' does not match the expected '{JwkKeyType}' for a "
-                    + $"'{KeyType}' secret.",
+                "Importing private key material is not supported; supply a public JWK.",
                 nameof(keyMaterial)
             );
 

@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 
@@ -40,7 +41,7 @@ internal sealed class RsaSecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFact
     public override Type KeyClrType => typeof(RsaSecretKey);
 
     /// <inheritdoc />
-    public override string JwkKeyType => "RSA";
+    public override JsonWebKeyTypeDescriptor JwkKeyType => JsonWebKeyTypeDescriptors.Rsa;
 
     /// <inheritdoc />
     public override string? ValidateGeneration(SecretKeyGenerationParameters parameters) =>
@@ -138,7 +139,7 @@ internal sealed class RsaSecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFact
             ?? throw new InvalidOperationException("The RSA key is missing its exponent.");
         return new JsonObject
         {
-            ["kty"] = "RSA",
+            ["kty"] = JwkKeyType.Name,
             ["n"] = Base64Url.EncodeToString(modulus),
             ["e"] = Base64Url.EncodeToString(exponent),
         };

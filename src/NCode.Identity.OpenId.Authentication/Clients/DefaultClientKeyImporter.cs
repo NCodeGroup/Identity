@@ -251,7 +251,7 @@ internal class DefaultClientKeyImporter(
         return false;
     }
 
-    private static bool TryGetKey(JsonElement element, [NotNullWhen(true)] out JsonWebKey? key)
+    private bool TryGetKey(JsonElement element, [NotNullWhen(true)] out JsonWebKey? key)
     {
         if (
             element.ValueKind == JsonValueKind.Object
@@ -260,6 +260,16 @@ internal class DefaultClientKeyImporter(
         )
         {
             key = new JsonWebKey(element);
+
+            // A key of a registered type carries that type's JWK rules, so its own private members are detected.
+            if (
+                SecretKeyTypeCatalog.TryGetByJwkKeyType(key.KeyType, out var descriptor)
+                && descriptor.JwkKeyType is { } jwkKeyType
+            )
+            {
+                key = new JsonWebKey(element, jwkKeyType);
+            }
+
             return true;
         }
 
@@ -267,7 +277,7 @@ internal class DefaultClientKeyImporter(
         return false;
     }
 
-    private static bool TryParseKey(string keyMaterial, [NotNullWhen(true)] out JsonWebKey? key)
+    private bool TryParseKey(string keyMaterial, [NotNullWhen(true)] out JsonWebKey? key)
     {
         JsonElement element;
         try

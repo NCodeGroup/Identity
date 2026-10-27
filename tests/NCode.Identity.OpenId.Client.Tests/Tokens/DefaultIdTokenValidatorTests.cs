@@ -616,8 +616,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var token = CreateIdToken();
         var segments = token.Split('.');
         var signature = segments[2];
-        var last = signature[^1] == 'A' ? 'B' : 'A';
-        segments[2] = signature[..^1] + last;
+        segments[2] = (signature[0] == 'A' ? 'B' : 'A') + signature[1..];
         var tampered = string.Join('.', segments);
 
         var result = await ValidateAsync(validator, tampered);

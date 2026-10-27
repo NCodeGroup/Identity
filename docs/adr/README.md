@@ -305,3 +305,4 @@ standards.
 | [0267](./0267-replicas-share-versioned-expiring-values-and-membership-indexes.md) | Replicas share versioned expiring values and membership indexes | Accepted |
 | [0268](./0268-a-generated-private-key-stores-its-public-key-beside-it.md) | A generated private key stores its public key beside it | Accepted |
 | [0269](./0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md) | A pull request stays a draft until its author reviews it | Accepted |
+| [0270](./0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) | The OpenID protocol client uses the family's JOSE stack and named key rings | Accepted |

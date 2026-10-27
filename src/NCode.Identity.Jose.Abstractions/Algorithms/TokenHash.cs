@@ -17,6 +17,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
@@ -37,6 +38,8 @@ namespace NCode.Identity.Jose.Algorithms;
 [PublicAPI]
 public static class TokenHash
 {
+    private const int StackAllocLimit = 256;
+
     /// <summary>
     /// Computes a token hash claim value: the base64url encoding of the left-most half of the hash of the ASCII
     /// octets of <paramref name="value"/> (OpenID Connect Core 1.0 section 3.1.3.6).
@@ -104,5 +107,137 @@ public static class TokenHash
             SecureEncoding.ASCII.GetBytes(expected),
             SecureEncoding.ASCII.GetBytes(tokenHash)
         );
+    }
+
+    /// <summary>
+    /// Computes a token hash claim value into a caller-supplied buffer: the base64url encoding of the left-most half
+    /// of the hash of the ASCII octets of <paramref name="value"/> (OpenID Connect Core 1.0 section 3.1.3.6).
+    /// </summary>
+    /// <param name="hashFunction">The hash function to apply to the value.</param>
+    /// <param name="value">The access token, authorization code or state to hash. It must be ASCII.</param>
+    /// <param name="hashBuffer">
+    /// The buffer that receives the full hash. Its length is the output size of <paramref name="hashFunction"/>, as
+    /// <see cref="SignatureAlgorithm.GetTokenHashFunction"/> reports it. The buffer is overwritten, so a caller can
+    /// reuse one buffer for several values.
+    /// </param>
+    /// <returns>The value of the token hash claim.</returns>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="hashBuffer"/> is empty, or <paramref name="value"/> contains a character that is not ASCII.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// <paramref name="hashFunction"/> failed or did not produce as many bytes as the length of
+    /// <paramref name="hashBuffer"/>.
+    /// </exception>
+    public static string Compute(
+        HashFunctionDelegate hashFunction,
+        ReadOnlySpan<char> value,
+        Span<byte> hashBuffer
+    )
+    {
+        ArgumentNullException.ThrowIfNull(hashFunction);
+
+        HashAscii(hashFunction, value, hashBuffer);
+
+        return Base64Url.EncodeToString(hashBuffer[..(hashBuffer.Length / 2)]);
+    }
+
+    /// <summary>
+    /// Verifies a token hash claim value against the value that it covers, using a caller-supplied buffer. The
+    /// comparison runs in constant time.
+    /// </summary>
+    /// <param name="hashFunction">The hash function to apply to the value.</param>
+    /// <param name="value">The access token, authorization code or state that the claim covers.</param>
+    /// <param name="tokenHash">The value of the token hash claim.</param>
+    /// <param name="hashBuffer">
+    /// The buffer that receives the full hash. Its length is the output size of <paramref name="hashFunction"/>, as
+    /// <see cref="SignatureAlgorithm.GetTokenHashFunction"/> reports it. The buffer is overwritten, so a caller can
+    /// reuse one buffer for several values.
+    /// </param>
+    /// <returns>
+    /// <c>true</c> if <paramref name="tokenHash"/> is the token hash of <paramref name="value"/>; otherwise,
+    /// <c>false</c>, including when <paramref name="hashBuffer"/> is empty or either argument is not ASCII.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// <paramref name="hashFunction"/> failed or did not produce as many bytes as the length of
+    /// <paramref name="hashBuffer"/>.
+    /// </exception>
+    public static bool Verify(
+        HashFunctionDelegate hashFunction,
+        ReadOnlySpan<char> value,
+        ReadOnlySpan<char> tokenHash,
+        Span<byte> hashBuffer
+    )
+    {
+        ArgumentNullException.ThrowIfNull(hashFunction);
+
+        if (hashBuffer.IsEmpty || !Ascii.IsValid(value) || !Ascii.IsValid(tokenHash))
+            return false;
+
+        // The length of the claim is not secret, so a difference in length returns early.
+        var halfLength = hashBuffer.Length / 2;
+        var encodedLength = Base64Url.GetEncodedLength(halfLength);
+        if (tokenHash.Length != encodedLength)
+            return false;
+
+        HashAscii(hashFunction, value, hashBuffer);
+
+        Span<byte> expected =
+            encodedLength <= StackAllocLimit
+                ? stackalloc byte[encodedLength]
+                : new byte[encodedLength];
+        Base64Url.EncodeToUtf8(hashBuffer[..halfLength], expected, out _, out _);
+
+        Span<byte> claim =
+            encodedLength <= StackAllocLimit
+                ? stackalloc byte[encodedLength]
+                : new byte[encodedLength];
+        Ascii.FromUtf16(tokenHash, claim, out _);
+
+        return CryptographicOperations.FixedTimeEquals(expected, claim);
+    }
+
+    private static void HashAscii(
+        HashFunctionDelegate hashFunction,
+        ReadOnlySpan<char> value,
+        Span<byte> hashBuffer
+    )
+    {
+        if (hashBuffer.IsEmpty)
+            throw new ArgumentException("The hash buffer must not be empty.", nameof(hashBuffer));
+
+        IDisposable? lease = null;
+        try
+        {
+            // ReSharper disable once UseCollectionExpression
+            Span<byte> source = stackalloc byte[0];
+
+            if (value.Length <= StackAllocLimit)
+            {
+                source = stackalloc byte[StackAllocLimit];
+            }
+            else
+            {
+                lease = BufferFactory.Rent(value.Length, isSensitive: false, out source);
+            }
+
+            var status = Ascii.FromUtf16(value, source, out var written);
+            if (status != OperationStatus.Done)
+                throw new ArgumentException(
+                    "The value must contain only ASCII characters.",
+                    nameof(value)
+                );
+
+            if (
+                !hashFunction(source[..written], hashBuffer, out var bytesWritten)
+                || bytesWritten != hashBuffer.Length
+            )
+                throw new InvalidOperationException(
+                    "The hash function did not produce the expected number of bytes."
+                );
+        }
+        finally
+        {
+            lease?.Dispose();
+        }
     }
 }

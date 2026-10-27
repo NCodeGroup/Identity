@@ -382,7 +382,9 @@ override NCode.Identity.Jose.JsonJwt.ProtectionType.get -> string!
 override NCode.Identity.Jose.JsonJwt.SerializationFormat.get -> NCode.Identity.Jose.JoseSerializationFormat
 override NCode.Identity.Jose.JsonJwt.ToString() -> string!
 static NCode.Identity.Jose.Algorithms.TokenHash.Compute(NCode.Identity.Jose.Algorithms.HashFunctionDelegate! hashFunction, int hashSizeBytes, string! value) -> string!
+static NCode.Identity.Jose.Algorithms.TokenHash.Compute(NCode.Identity.Jose.Algorithms.HashFunctionDelegate! hashFunction, System.ReadOnlySpan<char> value, System.Span<byte> hashBuffer) -> string!
 static NCode.Identity.Jose.Algorithms.TokenHash.Verify(NCode.Identity.Jose.Algorithms.HashFunctionDelegate! hashFunction, int hashSizeBytes, string! value, string! tokenHash) -> bool
+static NCode.Identity.Jose.Algorithms.TokenHash.Verify(NCode.Identity.Jose.Algorithms.HashFunctionDelegate! hashFunction, System.ReadOnlySpan<char> value, System.ReadOnlySpan<char> tokenHash, System.Span<byte> hashBuffer) -> bool
 static NCode.Identity.Jose.JoseTokenTypes.AreSame(string? left, string? right) -> bool
 static NCode.Identity.Jose.JoseTokenTypes.Normalize(string! tokenType) -> string!
 virtual NCode.Identity.Jose.Algorithms.KeyedAlgorithm.IsKeyCompatible(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> bool

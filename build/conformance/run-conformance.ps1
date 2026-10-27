@@ -75,8 +75,9 @@ param(
     # client's key and self-signed certificate is generated on first use into the gitignored `.fapi1-keys/` (never
     # committed) and reused, so the seeded clients keep matching a persistent database. The OP is launched with the
     # client keys and the FAPI tenant overrides (client certificates requested, certificate-bound access tokens and the
-    # `code id_token` response type advertised), so the run needs a fresh OP and skips the pre-flight, whose client
-    # holds no certificate.
+    # `code id_token` response type advertised), so the run needs a fresh OP. The pre-flight still runs first:
+    # advertised certificate binding requires a certificate only from a client whose security profile requires
+    # binding (#233), and the pre-flight's client selects none.
     [switch] $Fapi1Advanced,
 
     # Skip the in-house probe-runner pre-flight (step 2).
@@ -377,7 +378,7 @@ try {
     Assert-IssuerMatches -DiscoveryUrl $discoveryUrl -ExpectedIssuer $IssuerUrl
 
     # --- 2) In-house probe-runner pre-flight (fast, confidential/server-initiated legs). -----------
-    if ($SkipPreflight -or $Fapi1Advanced) {
+    if ($SkipPreflight) {
         Write-Step 'Skipping the in-house probe-runner pre-flight.'
     }
     else {

@@ -1,6 +1,6 @@
 # 119. First-class JWK / JWKS / thumbprint live in a dedicated logic-bearing package
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0271](0271-a-key-type-registers-its-json-web-key-rules.md): a key type's thumbprint and private members are registered data, not a table in `JsonWebKey`)
 - **Date:** 2026-10-16
 - **Deciders:** NCode.Identity maintainers
 

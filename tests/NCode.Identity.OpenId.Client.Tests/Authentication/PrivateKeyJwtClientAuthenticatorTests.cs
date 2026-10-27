@@ -27,6 +27,7 @@ using NCode.Identity.Jwt;
 using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.OpenId.Client.Authentication;
+using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.KeyMaterial;
@@ -68,6 +69,12 @@ public class PrivateKeyJwtClientAuthenticatorTests : BaseTests, IAsyncLifetime
     private PrivateKeyJwtClientAuthenticator CreateAuthenticator(
         string? keyRing,
         params SecretKey[] keys
+    ) => CreateAuthenticator(new OpenIdClientOptions(), keyRing, keys);
+
+    private PrivateKeyJwtClientAuthenticator CreateAuthenticator(
+        OpenIdClientOptions options,
+        string? keyRing,
+        params SecretKey[] keys
     )
     {
         var mockKeyRingProvider = new Mock<IClientKeyRingProvider>(MockBehavior.Strict);
@@ -86,8 +93,18 @@ public class PrivateKeyJwtClientAuthenticatorTests : BaseTests, IAsyncLifetime
             mockKeyRingProvider.Object,
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             ServiceProvider.GetRequiredService<ICredentialSelector>(),
-            ServiceProvider.GetRequiredService<IJwtEncoder>()
+            ServiceProvider.GetRequiredService<IJwtEncoder>(),
+            Microsoft.Extensions.Options.Options.Create(options)
         );
+    }
+
+    private static string GetAssertionAlgorithm(List<KeyValuePair<string, string>> parameters)
+    {
+        var assertion = Assert.Single(parameters, p => p.Key == "client_assertion").Value;
+        using var header = JsonDocument.Parse(
+            System.Buffers.Text.Base64Url.DecodeFromChars(assertion.Split('.')[0])
+        );
+        return header.RootElement.GetProperty("alg").GetString()!;
     }
 
     private static ClientAuthenticationContext CreateContext(
@@ -183,6 +200,38 @@ public class PrivateKeyJwtClientAuthenticatorTests : BaseTests, IAsyncLifetime
         await authenticator.AuthenticateAsync(context, CancellationToken.None);
 
         await AssertAssertionValidatesAsync(parameters);
+        Assert.Equal("PS256", GetAssertionAlgorithm(parameters));
+    }
+
+    [Fact]
+    public async Task AuthenticateAsync_WithConfiguredAlgorithm_SignsWithConfiguredAlgorithm()
+    {
+        var authenticator = CreateAuthenticator(
+            new OpenIdClientOptions { ClientAssertionSigningAlgorithms = ["RS256"] },
+            "ring",
+            RsaKey
+        );
+        var parameters = new List<KeyValuePair<string, string>>();
+        var context = CreateContext("ring", algorithms: null, parameters);
+
+        await authenticator.AuthenticateAsync(context, CancellationToken.None);
+
+        Assert.Equal("RS256", GetAssertionAlgorithm(parameters));
+    }
+
+    [Fact]
+    public async Task AuthenticateAsync_WithConfiguredAlgorithmWithoutCompatibleKey_Throws()
+    {
+        var authenticator = CreateAuthenticator(
+            new OpenIdClientOptions { ClientAssertionSigningAlgorithms = ["ES256"] },
+            "ring",
+            RsaKey
+        );
+        var context = CreateContext("ring", algorithms: null, []);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await authenticator.AuthenticateAsync(context, CancellationToken.None)
+        );
     }
 
     [Fact]

@@ -67,8 +67,10 @@ This ADR covers phase 1a. Phase 1b remains: PAR, DPoP with nonces, mTLS client a
      (`urn:ietf:params:oauth:client-assertion-type:jwt-bearer`), `client_assertion` and `client_id`. The assertion has
      `iss` and `sub` equal to the client id, **`aud` equal to the OP's issuer as a single string**, a `jti` of 16 random
      bytes in base64url, `iat` and `nbf` at now, and `exp` 60 seconds later. The lifetime is fixed and has no option.
-9. **`private_key_jwt` algorithm choice.** The client's order is `PS256, ES256, PS384, ES384, PS512, ES512, RS256, RS384,
-   RS512`. It is filtered to what the OP advertises in `token_endpoint_auth_signing_alg_values_supported`, then
+9. **`private_key_jwt` algorithm choice.** The default client order is `PS256, ES256, PS384, ES384, PS512, ES512, RS256,
+   RS384, RS512`; `OpenIdClientOptions.ClientAssertionSigningAlgorithms` replaces it when set (entries are validated: no
+   blank, no `none`, no duplicate). The order is filtered to what the OP advertises in
+   `token_endpoint_auth_signing_alg_values_supported`, then
    followed by the OP's other advertised values except `none`. When the OP advertises none, the client's list is used
    as is. Only `AsymmetricSecretKey`s from the ring are candidates, so a MAC is never used to sign an assertion.
 10. **Errors.** An OAuth error response (a JSON object with a string `error`, at any status) is data: it is returned in

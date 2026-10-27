@@ -54,4 +54,13 @@ public sealed class OpenIdClientOptions
     /// The default is 524288 (512 KiB).
     /// </summary>
     public int MaxResponseSizeBytes { get; set; } = 524288;
+
+    /// <summary>
+    /// Gets or sets the signing algorithms that the client prefers for a <c>private_key_jwt</c> client assertion, most
+    /// preferred first, as JOSE <c>alg</c> names. When empty (the default), the client prefers <c>PS256, ES256, PS384,
+    /// ES384, PS512, ES512, RS256, RS384, RS512</c>. The list is filtered to what the OpenID Provider advertises in
+    /// <c>token_endpoint_auth_signing_alg_values_supported</c>, and an algorithm is only used when the key ring of the
+    /// client holds a compatible asymmetric key.
+    /// </summary>
+    public List<string> ClientAssertionSigningAlgorithms { get; set; } = [];
 }

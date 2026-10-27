@@ -17,11 +17,13 @@
 #endregion
 
 using System.Security.Cryptography;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NCode.Encoders;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jwt.Encoding;
+using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.OpenId.Client.Authentication;
@@ -35,7 +37,8 @@ internal class PrivateKeyJwtClientAuthenticator(
     IClientKeyRingProvider keyRingProvider,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,
-    IJwtEncoder jwtEncoder
+    IJwtEncoder jwtEncoder,
+    IOptions<OpenIdClientOptions> options
 ) : IClientAuthenticator
 {
     private const string AssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
@@ -43,17 +46,17 @@ internal class PrivateKeyJwtClientAuthenticator(
 
     private static readonly TimeSpan AssertionLifetime = TimeSpan.FromSeconds(60);
 
-    private static readonly string[] PreferredAlgorithms =
+    private static readonly string[] DefaultPreferredAlgorithms =
     [
-        "PS256",
-        "ES256",
-        "PS384",
-        "ES384",
-        "PS512",
-        "ES512",
-        "RS256",
-        "RS384",
-        "RS512",
+        AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
+        AlgorithmCodes.DigitalSignature.EcdsaSha256,
+        AlgorithmCodes.DigitalSignature.RsaSsaPssSha384,
+        AlgorithmCodes.DigitalSignature.EcdsaSha384,
+        AlgorithmCodes.DigitalSignature.RsaSsaPssSha512,
+        AlgorithmCodes.DigitalSignature.EcdsaSha512,
+        AlgorithmCodes.DigitalSignature.RsaSha256,
+        AlgorithmCodes.DigitalSignature.RsaSha384,
+        AlgorithmCodes.DigitalSignature.RsaSha512,
     ];
 
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -62,6 +65,7 @@ internal class PrivateKeyJwtClientAuthenticator(
         algorithmCollectionProvider;
     private ICredentialSelector CredentialSelector { get; } = credentialSelector;
     private IJwtEncoder JwtEncoder { get; } = jwtEncoder;
+    private OpenIdClientOptions Options { get; } = options.Value;
 
     /// <inheritdoc />
     public string MethodName => ClientAuthenticationMethods.PrivateKeyJwt;
@@ -134,13 +138,18 @@ internal class PrivateKeyJwtClientAuthenticator(
         return ValueTask.CompletedTask;
     }
 
-    private static List<string> BuildPreferredAlgorithms(List<string>? supported)
+    private List<string> BuildPreferredAlgorithms(List<string>? supported)
     {
+        IReadOnlyList<string> preferred = Options.ClientAssertionSigningAlgorithms
+            is { Count: > 0 } configured
+            ? configured
+            : DefaultPreferredAlgorithms;
+
         if (supported is null || supported.Count == 0)
-            return [.. PreferredAlgorithms];
+            return [.. preferred];
 
         var result = new List<string>();
-        foreach (var algorithm in PreferredAlgorithms)
+        foreach (var algorithm in preferred)
         {
             if (supported.Contains(algorithm, StringComparer.Ordinal))
                 result.Add(algorithm);

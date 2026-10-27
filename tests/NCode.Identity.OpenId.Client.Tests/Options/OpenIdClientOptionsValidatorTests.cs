@@ -76,5 +76,66 @@ public class OpenIdClientOptionsValidatorTests : BaseTests
         Assert.Contains(nameof(OpenIdClientOptions.MaxResponseSizeBytes), result.FailureMessage);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void Validate_WithBlankSigningAlgorithm_Fails(string? algorithm)
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { ClientAssertionSigningAlgorithms = ["ES256", algorithm!] }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            nameof(OpenIdClientOptions.ClientAssertionSigningAlgorithms),
+            result.FailureMessage
+        );
+    }
+
+    [Theory]
+    [InlineData("none")]
+    [InlineData("NONE")]
+    public void Validate_WithNoneSigningAlgorithm_Fails(string algorithm)
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { ClientAssertionSigningAlgorithms = [algorithm] }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            nameof(OpenIdClientOptions.ClientAssertionSigningAlgorithms),
+            result.FailureMessage
+        );
+    }
+
+    [Fact]
+    public void Validate_WithDuplicateSigningAlgorithm_Fails()
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { ClientAssertionSigningAlgorithms = ["ES256", "ES256"] }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            nameof(OpenIdClientOptions.ClientAssertionSigningAlgorithms),
+            result.FailureMessage
+        );
+    }
+
+    [Fact]
+    public void Validate_WithValidSigningAlgorithms_Succeeds()
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { ClientAssertionSigningAlgorithms = ["ES256", "RS256"] }
+        );
+
+        Assert.True(result.Succeeded);
+    }
+
     #endregion
 }

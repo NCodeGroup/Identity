@@ -1,0 +1,19 @@
+#nullable enable
+NCode.Identity.OpenId.Client.ClientAuthenticatorRegistration
+NCode.Identity.OpenId.Client.ClientAuthenticatorRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!)
+NCode.Identity.OpenId.Client.ClientAuthenticatorRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!).AddClientAuthenticator<TAuthenticator>() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!
+NCode.Identity.OpenId.Client.DefaultRegistration
+NCode.Identity.OpenId.Client.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!)
+NCode.Identity.OpenId.Client.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jwt.JwtLibrary>!).AddOpenIdClientLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.OpenId.Client.OpenIdClientLibrary>!
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.MaxResponseSizeBytes.get -> int
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.MaxResponseSizeBytes.set -> void
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.MetadataRefreshInterval.get -> System.TimeSpan
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.MetadataRefreshInterval.set -> void
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.MinimumRefreshInterval.get -> System.TimeSpan
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.MinimumRefreshInterval.set -> void
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.OpenIdClientOptions() -> void
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.RequestTimeout.get -> System.TimeSpan
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.RequestTimeout.set -> void
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.StaleLifetime.get -> System.TimeSpan
+NCode.Identity.OpenId.Client.Options.OpenIdClientOptions.StaleLifetime.set -> void

@@ -32,6 +32,8 @@
         <Project Path="src/NCode.Identity.OpenId.Authentication.Interactive.Abstractions/NCode.Identity.OpenId.Authentication.Interactive.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Authentication.Interactive/NCode.Identity.OpenId.Authentication.Interactive.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Authentication/NCode.Identity.OpenId.Authentication.csproj" />
+        <Project Path="src/NCode.Identity.OpenId.Client.Abstractions/NCode.Identity.OpenId.Client.Abstractions.csproj" />
+        <Project Path="src/NCode.Identity.OpenId.Client/NCode.Identity.OpenId.Client.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Core/NCode.Identity.OpenId.Core.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Host.Database/NCode.Identity.OpenId.Host.Database.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Host.MigrationService/NCode.Identity.OpenId.Host.MigrationService.csproj" />
@@ -77,6 +79,7 @@
         <Project Path="tests/NCode.Identity.OpenId.Accounts.Tests/NCode.Identity.OpenId.Accounts.Tests.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.Accounts.Management.Tests/NCode.Identity.OpenId.Accounts.Management.Tests.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/NCode.Identity.OpenId.Authentication.Interactive.Tests.csproj" />
+        <Project Path="tests/NCode.Identity.OpenId.Client.Tests/NCode.Identity.OpenId.Client.Tests.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.Core.Tests/NCode.Identity.OpenId.Core.Tests.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.Host.Database.Tests/NCode.Identity.OpenId.Host.Database.Tests.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.IntegrationTests/NCode.Identity.OpenId.IntegrationTests.csproj" />

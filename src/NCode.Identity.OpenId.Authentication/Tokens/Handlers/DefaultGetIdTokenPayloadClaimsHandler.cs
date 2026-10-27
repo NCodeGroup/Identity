@@ -111,6 +111,8 @@ internal class DefaultGetIdTokenPayloadClaimsHandler(ISessionService sessionServ
             out var hashSizeBytes
         );
 
+        Span<byte> hashBuffer = stackalloc byte[hashSizeBytes];
+
         /*
             Specification from `c_hash` but also applies to `at_hash` and `s_hash`...
 
@@ -125,8 +127,8 @@ internal class DefaultGetIdTokenPayloadClaimsHandler(ISessionService sessionServ
         {
             payloadClaims[JoseClaimNames.Payload.CHash] = TokenHash.Compute(
                 hashFunction,
-                hashSizeBytes,
-                authorizationCode
+                authorizationCode,
+                hashBuffer
             );
         }
 
@@ -135,8 +137,8 @@ internal class DefaultGetIdTokenPayloadClaimsHandler(ISessionService sessionServ
         {
             payloadClaims[JoseClaimNames.Payload.AtHash] = TokenHash.Compute(
                 hashFunction,
-                hashSizeBytes,
-                accessToken
+                accessToken,
+                hashBuffer
             );
         }
 
@@ -145,8 +147,8 @@ internal class DefaultGetIdTokenPayloadClaimsHandler(ISessionService sessionServ
         {
             payloadClaims[JoseClaimNames.Payload.SHash] = TokenHash.Compute(
                 hashFunction,
-                hashSizeBytes,
-                state
+                state,
+                hashBuffer
             );
         }
     }

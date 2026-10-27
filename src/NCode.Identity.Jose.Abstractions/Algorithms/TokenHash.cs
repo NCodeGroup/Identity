@@ -33,81 +33,13 @@ namespace NCode.Identity.Jose.Algorithms;
 /// The value of a token hash claim is the base64url encoding of the left-most half of the hash of the octets of the
 /// ASCII representation of the value, where the hash function is the one that the <c>alg</c> header parameter of the
 /// ID token defines (OpenID Connect Core 1.0 section 3.1.3.6). Obtain the hash function and its output size from
-/// <see cref="SignatureAlgorithm.GetTokenHashFunction"/>.
+/// <see cref="SignatureAlgorithm.GetTokenHashFunction"/>, and allocate a buffer of that size once: the overloads
+/// take it as <c>hashBuffer</c>, so a caller can reuse it for the several values of one ID token.
 /// </remarks>
 [PublicAPI]
 public static class TokenHash
 {
     private const int StackAllocLimit = 256;
-
-    /// <summary>
-    /// Computes a token hash claim value: the base64url encoding of the left-most half of the hash of the ASCII
-    /// octets of <paramref name="value"/> (OpenID Connect Core 1.0 section 3.1.3.6).
-    /// </summary>
-    /// <param name="hashFunction">The hash function to apply to the value.</param>
-    /// <param name="hashSizeBytes">The number of bytes that <paramref name="hashFunction"/> produces.</param>
-    /// <param name="value">The access token, authorization code or state to hash. It must be ASCII.</param>
-    /// <returns>The value of the token hash claim.</returns>
-    /// <exception cref="ArgumentException"><paramref name="value"/> contains a character that is not ASCII.</exception>
-    /// <exception cref="InvalidOperationException">
-    /// <paramref name="hashFunction"/> failed or did not produce <paramref name="hashSizeBytes"/> bytes.
-    /// </exception>
-    public static string Compute(HashFunctionDelegate hashFunction, int hashSizeBytes, string value)
-    {
-        ArgumentNullException.ThrowIfNull(hashFunction);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(hashSizeBytes);
-        ArgumentNullException.ThrowIfNull(value);
-
-        if (!Ascii.IsValid(value))
-            throw new ArgumentException(
-                "The value must contain only ASCII characters.",
-                nameof(value)
-            );
-
-        var source = SecureEncoding.ASCII.GetBytes(value);
-
-        Span<byte> hash = stackalloc byte[hashSizeBytes];
-        if (!hashFunction(source, hash, out var bytesWritten) || bytesWritten != hashSizeBytes)
-            throw new InvalidOperationException(
-                "The hash function did not produce the expected number of bytes."
-            );
-
-        return Base64Url.EncodeToString(hash[..(hashSizeBytes / 2)]);
-    }
-
-    /// <summary>
-    /// Verifies a token hash claim value against the value that it covers. The comparison runs in constant time.
-    /// </summary>
-    /// <param name="hashFunction">The hash function to apply to the value.</param>
-    /// <param name="hashSizeBytes">The number of bytes that <paramref name="hashFunction"/> produces.</param>
-    /// <param name="value">The access token, authorization code or state that the claim covers.</param>
-    /// <param name="tokenHash">The value of the token hash claim.</param>
-    /// <returns>
-    /// <c>true</c> if <paramref name="tokenHash"/> is the token hash of <paramref name="value"/>; otherwise,
-    /// <c>false</c>, including when either argument is not ASCII.
-    /// </returns>
-    public static bool Verify(
-        HashFunctionDelegate hashFunction,
-        int hashSizeBytes,
-        string value,
-        string tokenHash
-    )
-    {
-        ArgumentNullException.ThrowIfNull(hashFunction);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(hashSizeBytes);
-        ArgumentNullException.ThrowIfNull(value);
-        ArgumentNullException.ThrowIfNull(tokenHash);
-
-        if (!Ascii.IsValid(value) || !Ascii.IsValid(tokenHash))
-            return false;
-
-        var expected = Compute(hashFunction, hashSizeBytes, value);
-
-        return CryptographicOperations.FixedTimeEquals(
-            SecureEncoding.ASCII.GetBytes(expected),
-            SecureEncoding.ASCII.GetBytes(tokenHash)
-        );
-    }
 
     /// <summary>
     /// Computes a token hash claim value into a caller-supplied buffer: the base64url encoding of the left-most half

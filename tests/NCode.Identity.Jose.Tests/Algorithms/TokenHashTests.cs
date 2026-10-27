@@ -35,65 +35,6 @@ public class TokenHashTests : BaseTests
             SHA256.HashData(SecureEncoding.ASCII.GetBytes(value)).AsSpan(0, 16)
         );
 
-    #region Compute Tests
-
-    [Fact]
-    public void Compute_WhenSha256_ReturnsLeftHalfBase64Url()
-    {
-        const string value = "access-token";
-
-        var result = TokenHash.Compute(Sha256, Sha256SizeBytes, value);
-
-        Assert.Equal(ExpectedHash(value), result);
-    }
-
-    [Fact]
-    public void Compute_WhenNonAscii_Throws()
-    {
-        const string value = "tökén";
-
-        Assert.Throws<ArgumentException>(() => TokenHash.Compute(Sha256, Sha256SizeBytes, value));
-    }
-
-    #endregion
-
-    #region Verify Tests
-
-    [Fact]
-    public void Verify_WhenMatches_ReturnsTrue()
-    {
-        const string value = "access-token";
-        var tokenHash = ExpectedHash(value);
-
-        var result = TokenHash.Verify(Sha256, Sha256SizeBytes, value, tokenHash);
-
-        Assert.True(result);
-    }
-
-    [Fact]
-    public void Verify_WhenDiffers_ReturnsFalse()
-    {
-        const string value = "access-token";
-        var tokenHash = ExpectedHash("other");
-
-        var result = TokenHash.Verify(Sha256, Sha256SizeBytes, value, tokenHash);
-
-        Assert.False(result);
-    }
-
-    [Fact]
-    public void Verify_WhenTokenHashNonAscii_ReturnsFalse()
-    {
-        const string value = "access-token";
-        const string tokenHash = "tökén";
-
-        var result = TokenHash.Verify(Sha256, Sha256SizeBytes, value, tokenHash);
-
-        Assert.False(result);
-    }
-
-    #endregion
-
     #region Span Overload Tests
 
     [Fact]

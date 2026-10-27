@@ -42,4 +42,27 @@ public class JsonWebKeyTypeDescriptorTests
     {
         Assert.Throws<ArgumentException>(() => new JsonWebKeyTypeDescriptor("EC", ["x"], ["kty"]));
     }
+
+    [Fact]
+    public void TryGetStandard_WhenAkp_ThumbprintsAlgKtyPub()
+    {
+        var found = JsonWebKeyTypeDescriptors.TryGetStandard("AKP", out var descriptor);
+
+        Assert.True(found);
+        Assert.NotNull(descriptor);
+        Assert.Equal(["alg", "kty", "pub"], descriptor.ThumbprintMembers.ToArray());
+    }
+
+    [Fact]
+    public void TryGetStandard_WhenUnknown_ReturnsFalse()
+    {
+        Assert.False(JsonWebKeyTypeDescriptors.TryGetStandard("XKP", out var descriptor));
+        Assert.Null(descriptor);
+    }
+
+    [Fact]
+    public void TryGetStandard_WhenCaseDiffers_ReturnsFalse()
+    {
+        Assert.False(JsonWebKeyTypeDescriptors.TryGetStandard("rsa", out _));
+    }
 }

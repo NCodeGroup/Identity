@@ -283,8 +283,9 @@ change to the public API is a **major** version bump.
 
 - **FAPI 1.0 Advanced conformance harness.** `build/conformance/run-conformance.ps1 -Fapi1Advanced` runs the
   conformance suite's `fapi1-advanced-final-test-plan` with `private_key_jwt` and `self_signed_tls_client_auth`
-  clients, pushed authorization requests, and plain and JARM responses. It generates each client's key and self-signed
-  certificate on first use into a gitignored folder, so no private key is committed
+  clients, pushed authorization requests, and plain and JARM responses.
+  Like the default run, it runs the in-house probe-runner pre-flight first (`-SkipPreflight` skips it). It generates
+  each client's key and self-signed certificate on first use into a gitignored folder, so no private key is committed
   ([ADR-0202](docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
   - `ConformanceClientSeed` gains `Jwks`, the public key set a client registers by value, and `SecurityProfiles`. A
     client with a key set and no secret is seeded with exactly the keys the client-key policy imports, and a key set

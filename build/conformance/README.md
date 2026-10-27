@@ -109,8 +109,11 @@ It renders the suite configuration for each method, with the private keys and ce
 `fapi1-advanced.template.json`, filling in the issuer from `-IssuerUrl`, and writes `fapi1-advanced-<method>.json`
 beside it (gitignored, deleted when the run ends). FAPI tokens are
 certificate-bound, so the OP is launched requesting client certificates and advertising certificate-bound access
-tokens and the `code id_token` response type. That is why the switch needs a fresh OP (not `-UseRunningOp`) and skips
-the pre-flight, whose client holds no certificate.
+tokens and the `code id_token` response type; that is why the switch needs a fresh OP (not `-UseRunningOp`).
+The pre-flight still runs first, as in the default run: advertised certificate binding requires a certificate only
+from a client whose security profile requires binding (issue
+[#233](https://github.com/NCodeGroup/Identity/issues/233)), and the pre-flight's `client` selects none.
+`-Fapi1Advanced -PreflightOnly` runs only that pre-flight against the FAPI-configured OP, without Docker or Python.
 
 The pre-flight step bootstraps the frontend pnpm workspace via
 [`build/frontend-install.ps1`](../frontend-install.ps1) (idempotent; also self-heals a partially-installed

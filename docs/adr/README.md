@@ -304,3 +304,4 @@ standards.
 | [0266](./0266-text-is-encoded-and-decoded-only-through-strict-encodings.md) | Text is encoded and decoded only through strict encodings | Accepted |
 | [0267](./0267-replicas-share-versioned-expiring-values-and-membership-indexes.md) | Replicas share versioned expiring values and membership indexes | Accepted |
 | [0268](./0268-a-generated-private-key-stores-its-public-key-beside-it.md) | A generated private key stores its public key beside it | Accepted |
+| [0269](./0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md) | A pull request stays a draft until its author reviews it | Accepted |

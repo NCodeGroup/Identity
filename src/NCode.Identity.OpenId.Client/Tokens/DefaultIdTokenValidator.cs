@@ -18,11 +18,9 @@
 
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
-using Microsoft.Extensions.Options;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jwt.Validation;
-using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.OpenId.Client.Tokens;
@@ -33,19 +31,15 @@ namespace NCode.Identity.OpenId.Client.Tokens;
 /// </summary>
 internal class DefaultIdTokenValidator(
     TimeProvider timeProvider,
-    IOptions<OpenIdClientOptions> options,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     IProviderMetadataResolver metadataResolver,
     IProviderKeySetResolver keySetResolver,
     IJwtValidator jwtValidator
 ) : IIdTokenValidator
 {
-    private const string NoneAlgorithm = "none";
-
     private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
 
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private OpenIdClientOptions Options { get; } = options.Value;
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
     private IProviderMetadataResolver MetadataResolver { get; } = metadataResolver;
@@ -76,7 +70,7 @@ internal class DefaultIdTokenValidator(
                 "The discovery document of the provider lacks the issuer."
             );
 
-        var algorithms = GetPermittedAlgorithms(metadata);
+        var algorithms = GetPermittedAlgorithms(registration, metadata);
         if (algorithms.Count == 0)
             return Fail(
                 "No ID-token signing algorithm is both permitted by the client and advertised by the provider."
@@ -266,9 +260,12 @@ internal class DefaultIdTokenValidator(
 
     private static IdTokenValidationResult Fail(string reason) => new(reason);
 
-    private List<string> GetPermittedAlgorithms(OpenIdProviderMetadata metadata)
+    private List<string> GetPermittedAlgorithms(
+        ClientRegistration registration,
+        OpenIdProviderMetadata metadata
+    )
     {
-        var configured = Options.IdTokenSigningAlgorithms;
+        var configured = registration.IdTokenSigningAlgorithms;
         var advertised = metadata.IdTokenSigningAlgValuesSupported;
 
         var result = new List<string>();
@@ -279,7 +276,7 @@ internal class DefaultIdTokenValidator(
                 || !typeof(AsymmetricSecretKey).IsAssignableFrom(signatureAlgorithm.KeyType)
                 || string.Equals(
                     signatureAlgorithm.Code,
-                    NoneAlgorithm,
+                    AlgorithmCodes.DigitalSignature.None,
                     StringComparison.OrdinalIgnoreCase
                 )
             )

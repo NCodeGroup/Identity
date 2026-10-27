@@ -29,7 +29,6 @@ using NCode.Identity.Jose.EdDsa;
 using NCode.Identity.Jwt;
 using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.Jwt.Validation;
-using NCode.Identity.OpenId.Client.Options;
 using NCode.Identity.OpenId.Client.Tokens;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
@@ -133,8 +132,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
 
     private DefaultIdTokenValidator CreateValidator(
         Mock<IProviderKeySetResolver>? keySetMock,
-        List<string>? advertised = null,
-        OpenIdClientOptions? options = null
+        List<string>? advertised = null
     )
     {
         var mockMetadata = CreateStrictMock<IProviderMetadataResolver>();
@@ -155,7 +153,6 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
 
         return new DefaultIdTokenValidator(
             TimeProvider.System,
-            Microsoft.Extensions.Options.Options.Create(options ?? new OpenIdClientOptions()),
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             mockMetadata.Object,
             keySetMock.Object,
@@ -214,6 +211,14 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     private static Dictionary<string, object> Claims(string name, object value) =>
         new() { [name] = value };
 
+    private static ClientRegistration CreateRegistration(
+        IReadOnlyList<string> idTokenSigningAlgorithms
+    ) =>
+        new(Issuer, ClientId, ClientAuthenticationMethods.PrivateKeyJwt)
+        {
+            IdTokenSigningAlgorithms = idTokenSigningAlgorithms,
+        };
+
     private async ValueTask<IdTokenValidationResult> ValidateAsync(
         DefaultIdTokenValidator validator,
         string idToken,
@@ -222,10 +227,11 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         string? subject = null,
         string? accessToken = null,
         string? authorizationCode = null,
-        string? state = null
+        string? state = null,
+        ClientRegistration? registration = null
     ) =>
         await validator.ValidateAsync(
-            Registration,
+            registration ?? Registration,
             new IdTokenValidationRequest
             {
                 IdToken = idToken,
@@ -558,16 +564,31 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     }
 
     [Fact]
-    public async Task ValidateAsync_WhenOptionPermitsOnlyAnotherAlgorithm_Fails()
+    public async Task ValidateAsync_WhenRegistrationPermitsOnlyAnotherAlgorithm_Fails()
     {
-        var validator = CreateValidator(
-            null,
-            options: new OpenIdClientOptions { IdTokenSigningAlgorithms = ["RS256"] }
+        var validator = CreateValidator(null);
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(),
+            registration: CreateRegistration(["RS256"])
         );
 
-        var result = await ValidateAsync(validator, CreateIdToken());
-
         Assert.False(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenRegistrationPermitsTheAlgorithm_ReturnsPayload()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(),
+            registration: CreateRegistration(["PS256"])
+        );
+
+        Assert.True(result.IsValid);
     }
 
     [Fact]

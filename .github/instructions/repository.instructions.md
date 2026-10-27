@@ -96,10 +96,12 @@ squash merge credits every commit author. See
 When the user authorizes a push (says "push"), it pushes the current **topic branch** — never `main`, which accepts
 changes only by pull request through the merge queue
 ([ADR-0261](../../docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
-[ADR-0263](../../docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) — opens its
-pull request against `main` if none exists (a push to an open pull request's branch updates it), and enables auto-merge
-with `gh pr merge <number> --auto --squash`, which adds the pull request to the merge queue once its checks pass. Run
-these gates **before** pushing:
+[ADR-0263](../../docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) — and opens its
+pull request against `main` as a **draft** (`gh pr create --draft`) if none exists (a push to an open pull request's
+branch updates it). The agent stops there: it never marks the pull request ready for review and never enables
+auto-merge, because the user self-reviews the draft and that step is the approval
+([ADR-0269](../../docs/adr/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). Run these gates
+**before** pushing:
 
 1. **Retire the plan.** If a `PLAN.md` exists, every step is `[x]` and its review (`/review-plan-diff`) has run with
    every queued fix step done. Promote its Decisions in gate 2, delete `PLAN.md` (gitignored, so it is never in a
@@ -126,7 +128,10 @@ these gates **before** pushing:
    build file imports, re-admit it in [`.dockerignore`](../../.dockerignore) too, or only the `Host image` check on the
    pull request finds it.
 
-After the push, the pull request merges through the merge queue, which runs the full gate on its merged result. An
+The user then reviews the draft: a comment left as an unresolved thread requests changes, and resolving every thread,
+clicking **Ready for review** and enabling auto-merge (`gh pr merge <number> --auto --squash`) approves it. Once
+approved, the pull request merges through the merge queue, which runs the full gate on its merged result; to change a
+pull request that is already in the queue, remove it from the queue first. An
 item is done only when the merge queue merges the pull request and every GitHub Actions run for the resulting `main`
 commit succeeds. Remediate any failure in the same change, and name every issue it completes with `Closes #<number>`
 so the merge closes it. Once it merges, retire the plan's branch and worktree with `/finish-plan`

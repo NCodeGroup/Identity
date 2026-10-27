@@ -28,6 +28,7 @@ using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.Secrets.Keys;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Tokens.Handlers;
@@ -55,16 +56,22 @@ public class DefaultGetIdTokenPayloadClaimsHandlerTests : BaseTests
     private (
         GetIdTokenPayloadClaimsCommand command,
         Dictionary<string, object> payloadClaims
-    ) CreateCommand(CreateSecurityTokenRequest tokenRequest)
+    ) CreateCommand(
+        CreateSecurityTokenRequest tokenRequest,
+        HashFunctionDelegate? tokenHashFunction = null,
+        int tokenHashSizeBytes = 32
+    )
     {
+        HashFunctionDelegate sha256 = SHA256.TryHashData;
+
         var mockContext = CreateStrictMock<OpenIdContext>();
         var mockClient = CreateStrictMock<OpenIdClient>();
         var mockSigAlg = CreateStrictMock<SignatureAlgorithm>();
 
         mockClient.SetupGet(x => x.ClientId).Returns(ClientId).Verifiable();
         mockSigAlg
-            .SetupGet(x => x.HashAlgorithmName)
-            .Returns(HashAlgorithmName.SHA256)
+            .Setup(x => x.GetTokenHashFunction(It.IsAny<SecretKey>(), out tokenHashSizeBytes))
+            .Returns(tokenHashFunction ?? sha256)
             .Verifiable();
 
         var signingCredentials = new JoseSigningCredentials(SecretKey: null!, mockSigAlg.Object);
@@ -153,6 +160,31 @@ public class DefaultGetIdTokenPayloadClaimsHandlerTests : BaseTests
         Assert.True(payloadClaims.ContainsKey(JoseClaimNames.Payload.CHash));
         Assert.True(payloadClaims.ContainsKey(JoseClaimNames.Payload.AtHash));
         Assert.True(payloadClaims.ContainsKey(JoseClaimNames.Payload.SHash));
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenAccessToken_UsesAlgorithmTokenHashFunction()
+    {
+        HashFunctionDelegate fake = (
+            ReadOnlySpan<byte> source,
+            Span<byte> destination,
+            out int bytesWritten
+        ) =>
+        {
+            destination[..4].Fill(0x01);
+            bytesWritten = 4;
+            return true;
+        };
+
+        var (command, payloadClaims) = CreateCommand(
+            CreateTokenRequest(accessToken: "access-token"),
+            fake,
+            tokenHashSizeBytes: 4
+        );
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.Equal("AQE", payloadClaims[JoseClaimNames.Payload.AtHash]);
     }
 
     #endregion

@@ -109,11 +109,10 @@ internal class DefaultGetIdTokenPayloadClaimsHandler(ISessionService sessionServ
         JoseSigningCredentials signingCredentials
     )
     {
-        var hashAlgorithmName = signingCredentials.SignatureAlgorithm.HashAlgorithmName;
-        var hashSizeBits = hashAlgorithmName.GetHashSizeBits();
-        var hashFunction = hashAlgorithmName.GetHashFunction();
-
-        var hashSizeBytes = (hashSizeBits + 7) >> 3;
+        var hashFunction = signingCredentials.SignatureAlgorithm.GetTokenHashFunction(
+            signingCredentials.SecretKey,
+            out var hashSizeBytes
+        );
         Span<byte> hashBuffer = stackalloc byte[hashSizeBytes];
 
         // c_hash

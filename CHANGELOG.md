@@ -2234,6 +2234,11 @@ change to the public API is a **major** version bump.
 
 ### Fixed
 
+- **`client_secret_basic` accepts a secret that contains `%` or `+`.** The handler unescaped the form-urlencoded
+  secret over a pooled buffer larger than the secret, so any secret with an escape or a `+` failed with `401`
+  `invalid_client`; it now decodes the client id and secret to exactly what the client sent, as RFC 6749 §2.3.1
+  form-urlencoding defines (issue [#319](https://github.com/NCodeGroup/Identity/issues/319)).
+
 - **A client assertion whose header or payload is not a JSON object is answered with `400` `invalid_client`.** A
   `client_assertion` whose header or payload decoded to a JSON array, string, or number raised an unhandled exception
   and a `500`; the JWT-bearer handlers now treat it like any other malformed assertion.

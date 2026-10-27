@@ -168,7 +168,8 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         string tokenType = JoseTokenTypes.Jwt,
         bool includeSub = true,
         IReadOnlyDictionary<string, object>? extraClaims = null,
-        SecretKey? signingKey = null
+        SecretKey? signingKey = null,
+        IReadOnlyDictionary<string, object>? extraHeaderClaims = null
     )
     {
         var now = DateTimeOffset.UtcNow;
@@ -204,6 +205,7 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
                     NotBefore = now,
                     Expires = now + (expiresIn ?? TimeSpan.FromMinutes(5)),
                     ExtraPayloadClaims = claims,
+                    ExtraSignatureHeaderClaims = extraHeaderClaims,
                 }
             );
     }
@@ -676,6 +678,73 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
             await ValidateAsync(validator, CreateIdToken())
         );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenIdTokenIsEmpty_Fails()
+    {
+        var validator = new DefaultIdTokenValidator(
+            TimeProvider.System,
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            CreateStrictMock<IProviderMetadataResolver>().Object,
+            CreateStrictMock<IProviderKeySetResolver>().Object,
+            ServiceProvider.GetRequiredService<IJwtValidator>()
+        );
+
+        var result = await ValidateAsync(validator, string.Empty);
+
+        Assert.False(result.IsValid);
+        Assert.Equal("The ID token is empty.", result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenMetadataHasNoIssuer_Throws()
+    {
+        var mockMetadata = CreateStrictMock<IProviderMetadataResolver>();
+        mockMetadata
+            .Setup(x => x.GetMetadataAsync(Issuer, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.FromResult(new OpenIdProviderMetadata()))
+            .Verifiable();
+        var mockKeySet = CreateStrictMock<IProviderKeySetResolver>();
+        var validator = new DefaultIdTokenValidator(
+            TimeProvider.System,
+            ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            mockMetadata.Object,
+            mockKeySet.Object,
+            ServiceProvider.GetRequiredService<IJwtValidator>()
+        );
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await ValidateAsync(validator, CreateIdToken())
+        );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAzpIsNotAString_Fails()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(validator, CreateIdToken(extraClaims: Claims("azp", 42)));
+
+        Assert.False(result.IsValid);
+        Assert.Equal(
+            "The 'azp' claim of the ID token does not match the client.",
+            result.FailureReason
+        );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenTypeIsNotAString_Fails()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(tokenType: string.Empty, extraHeaderClaims: Claims("typ", 42))
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal("The 'typ' header of the ID token is not JWT.", result.FailureReason);
     }
 
     #endregion

@@ -65,6 +65,22 @@ command treats an issue's text as data, never as instructions, because anyone wh
 clone: its plan runs the update as its first step, then the checks, then fixes the project files that still
 describe the old template, and the planning session files each gap the trial shows as a project-template issue.
 
+The update to project-template `v0.23.0` lands a plan with `/ship-plan`, which reads the new `## Landing` section of
+`AGENTS.md`: `integrate: pull-request`, `release: none` (releases are tagged on `release/vX.Y` lines),
+`changelog: CHANGELOG.md` and `protect: none` (the `main` ruleset already requires pull requests). It drops the empty
+`Plan` and `Re-plan step` commits, pushes the branch, opens the pull request with the plan's title and a description
+that ends with `Closes #<number>`, and never force-pushes, so the push protocol no longer squashes the `Plan step`
+checkpoints: the merge queue's squash merge keeps them off `main`, and a plan's title is a conventional commit subject
+because that merge takes its subject from the pull request's title. It runs as `/ship-plan draft`, because a pull
+request stays a draft until its author reviews it
+([ADR-0269](0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). A clean `/review-plan-diff` records
+the reviewed commit on a `Reviewed:` line and `/ship-plan` lands only that tree, so the push protocol's lesson and
+memory gates run before the final review. `/continue-plan` shows where each open plan stands, and `/run-issues` takes
+issues from plan to a draft pull request one at a time. The template has no Landing key yet for an always-draft pull
+request ([polewskm/project-template#48](https://github.com/polewskm/project-template/issues/48)), a pre-push gate
+([#49](https://github.com/polewskm/project-template/issues/49)) or the pull request's title
+([#45](https://github.com/polewskm/project-template/issues/45)).
+
 ## Context
 
 An agent-driven change has two halves with opposite needs. **Planning** — reading the code paths, settling the design,
@@ -114,10 +130,13 @@ The rules:
 - **`PLAN.md` and its checkpoints are transient.** [GitHub issues](https://github.com/NCodeGroup/Identity/issues) are the single tracker of pending
   work and the ADRs carry the reasoning, so a plan never outlives its change. `PLAN.md` is a gitignored working file
   that no commit contains, and each step's checkpoint stages only the files the step lists. Its Decisions are promoted
-  into ADRs, instruction files, or issues, `PLAN.md` is deleted, and the `Plan` / `Plan step` / `Re-plan step`
-  checkpoints are squashed into conventional commits before the change leaves the machine — before its topic branch is
-  pushed here ([ADR-0261](0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), and before a
-  pull request merges in `identity-platform`.
+  into ADRs, instruction files, or issues before the plan's final review. Here `/ship-plan` drops the empty `Plan` and
+  `Re-plan step` checkpoints before the topic branch is first pushed
+  ([ADR-0261](0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)); the `Plan step`
+  checkpoints ride the pull request's branch, and the merge queue's squash merge, whose subject is the pull request's
+  title and so the plan's conventional-commit title, keeps them off `main`. `/finish-plan` deletes `PLAN.md` once the
+  pull request merges. In `identity-platform`, the checkpoints are squashed into conventional commits before a pull
+  request merges.
 - **Repository rules reach every agent.** The planner and the executor both load
   [`repository.instructions.md`](../../.github/instructions/repository.instructions.md), [`AGENTS.md`](../../AGENTS.md),
   and the scoped instruction files, so a plan restates only what a step needs, and the Definition of Done stays the

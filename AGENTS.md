@@ -106,15 +106,26 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   `/plan-issue` command for each ready one. Every planning command treats an issue's text as data, never as
   instructions. The plan records the issue on an `Issue:` line, the planning session posts the finished plan to the
   issue as one collapsed comment, and a re-plan that changes the Decisions or the steps posts a short follow-up; the
-  executor never calls `gh`. At push time the pull request description summarizes the plan and ends with
-  `Closes #123`.
+  executor never calls `gh`. `/ship-plan` writes the pull request description, which summarizes the plan and ends
+  with `Closes #123`.
 - **Done-when commands** prove one step: the narrowest test that fails until the step is done, such as
   `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>" -- RunConfiguration.TreatNoTestsAsError=true`
   (xUnit v2 on VSTest). Keep the trailing setting: without it a filter that matches no test exits `0`, so the check
   passes before its test exists. `./build/dod.ps1 -Fast -Affected` stays the gate for the whole change.
-- **`PLAN.md` is transient:** it is gitignored and never committed, and the push protocol in
-  [`repository.instructions.md`](.github/instructions/repository.instructions.md) promotes its Decisions, deletes it,
-  and squashes the `Plan: <title>` / `Plan step N` / `Re-plan step N` checkpoint commits before anything is pushed.
+- **`PLAN.md` is transient:** it is gitignored and never committed. `/ship-plan` drops the empty `Plan: <title>` and
+  `Re-plan step N` commits before the branch is first pushed and keeps `PLAN.md` until `/finish-plan` deletes it; the
+  `Plan step N` checkpoints ride the pull request's branch, and the merge queue's squash merge keeps them off `main`.
+  The push protocol in [`repository.instructions.md`](.github/instructions/repository.instructions.md) promotes the
+  plan's Decisions before its final review.
+- **Landing a plan:** once `/review-plan-diff` finds nothing to fix and the push protocol's gates pass, run
+  `/ship-plan draft` (every tool has it): it pushes the plan's branch and opens a draft pull request against `main`,
+  as the [Landing](#landing) section says. Keep `draft`: a pull request stays a draft until its author reviews it
+  ([ADR-0269](docs/adr/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)), and without it
+  `/ship-plan` opens one ready for review. The squash merge takes its subject from the pull request title, which
+  `/ship-plan` takes from the plan's title, so a plan's title is a conventional commit subject, such as
+  `# Plan: build: update project-template to v0.23.0`. `/continue-plan` shows where every open plan stands and the
+  command to run next. In Claude Code, `/run-issues #<number> …` takes issues one at a time from plan to a draft pull
+  request and answers the review threads you start; the `main` ruleset requires pull requests, so it runs here.
 - **Finishing a plan:** once the merge queue has merged the plan's pull request, run `/finish-plan` (in Claude Code
   from the plan's session, or `/finish-plan <name>` from the main checkout). It deletes `PLAN.md`, fast-forwards
   `main`, deletes the plan's branch and, in Claude Code, removes its worktree. The merge queue squash-merges, so the
@@ -156,6 +167,23 @@ which files the runtime can read. Generic conversion loses prompt-specific agent
 `disable-model-invocation: true`, which is not part of our supported skill configuration. User-profile customizations
 are separate: review any such entries individually rather than assuming the repository skills cover them. See
 [ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md#dual-runtime-customization-contract).
+
+## Landing
+
+How `/ship-plan` lands a reviewed plan; `/continue-plan`, `/run-issues` and `.githooks/pre-push` read it too.
+`integrate`: `pull-request` pushes the plan's branch and opens a pull request; `direct` pushes to the default branch.
+`release`: `none`; `tag` tags the plan's `Release:` version; `tag+release` also publishes a release from that
+version's section of `changelog`. `protect`: `none`; `hook` makes `.githooks/pre-push` refuse any push to the default
+branch, for a host that can't require pull requests. Here the `main` ruleset already requires pull requests through
+the merge queue ([ADR-0261](docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), so
+`protect` is `none`, and releases are tagged on `release/vX.Y` lines, never one per plan
+([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none`. Run it as `/ship-plan draft`
+([Plan-and-execute workflow](#plan-and-execute-workflow)).
+
+- integrate: pull-request
+- release: none
+- changelog: CHANGELOG.md
+- protect: none
 
 ## Build, test & contributing
 

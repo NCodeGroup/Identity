@@ -65,6 +65,22 @@ command treats an issue's text as data, never as instructions, because anyone wh
 clone: its plan runs the update as its first step, then the checks, then fixes the project files that still
 describe the old template, and the planning session files each gap the trial shows as a project-template issue.
 
+The update to project-template `v0.23.0` lands a plan with `/ship-plan`, which reads the new `## Landing` section of
+`AGENTS.md`: `integrate: pull-request`, `release: none` (releases are tagged on `release/vX.Y` lines),
+`changelog: CHANGELOG.md` and `protect: none` (the `main` ruleset already requires pull requests). It drops the empty
+`Plan` and `Re-plan step` commits, pushes the branch, opens the pull request with the plan's title and a description
+that ends with `Closes #<number>`, and never force-pushes, so the push protocol no longer squashes the `Plan step`
+checkpoints: the merge queue's squash merge keeps them off `main`, and a plan's title is a conventional commit subject
+because that merge takes its subject from the pull request's title. It runs as `/ship-plan draft`, because a pull
+request stays a draft until its author reviews it
+([ADR-0269](0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). A clean `/review-plan-diff` records
+the reviewed commit on a `Reviewed:` line and `/ship-plan` lands only that tree, so the push protocol's lesson and
+memory gates run before the final review. `/continue-plan` shows where each open plan stands, and `/run-issues` takes
+issues from plan to a draft pull request one at a time. The template has no Landing key yet for an always-draft pull
+request ([polewskm/project-template#48](https://github.com/polewskm/project-template/issues/48)), a pre-push gate
+([#49](https://github.com/polewskm/project-template/issues/49)) or the pull request's title
+([#45](https://github.com/polewskm/project-template/issues/45)).
+
 ## Context
 
 An agent-driven change has two halves with opposite needs. **Planning** — reading the code paths, settling the design,

@@ -1,0 +1,167 @@
+#nullable enable
+abstract NCode.Identity.OpenId.Client.TokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
+abstract NCode.Identity.OpenId.Client.TokenRequest.GrantType.get -> string!
+const NCode.Identity.OpenId.Client.ClientAuthenticationMethods.ClientSecretBasic = "client_secret_basic" -> string!
+const NCode.Identity.OpenId.Client.ClientAuthenticationMethods.ClientSecretPost = "client_secret_post" -> string!
+const NCode.Identity.OpenId.Client.ClientAuthenticationMethods.PrivateKeyJwt = "private_key_jwt" -> string!
+const NCode.Identity.OpenId.Client.OpenIdClientDefaults.HttpClientName = "NCode.Identity.OpenId.Client" -> string!
+const NCode.Identity.OpenId.Client.TokenTypeHints.AccessToken = "access_token" -> string!
+const NCode.Identity.OpenId.Client.TokenTypeHints.RefreshToken = "refresh_token" -> string!
+const NCode.Identity.OpenId.Client.TokenTypeIdentifiers.AccessToken = "urn:ietf:params:oauth:token-type:access_token" -> string!
+const NCode.Identity.OpenId.Client.TokenTypeIdentifiers.IdToken = "urn:ietf:params:oauth:token-type:id_token" -> string!
+const NCode.Identity.OpenId.Client.TokenTypeIdentifiers.Jwt = "urn:ietf:params:oauth:token-type:jwt" -> string!
+const NCode.Identity.OpenId.Client.TokenTypeIdentifiers.RefreshToken = "urn:ietf:params:oauth:token-type:refresh_token" -> string!
+NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest
+NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.AuthorizationCodeTokenRequest(string! code, string! redirectUri, string! codeVerifier) -> void
+NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.Code.get -> string!
+NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.CodeVerifier.get -> string!
+NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.RedirectUri.get -> string!
+NCode.Identity.OpenId.Client.ClientAuthenticationContext
+NCode.Identity.OpenId.Client.ClientAuthenticationContext.ClientAuthenticationContext(NCode.Identity.OpenId.Client.ClientRegistration! registration, NCode.Identity.OpenId.Client.OpenIdProviderMetadata! metadata, string! endpoint, System.Net.Http.HttpRequestMessage! request, System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
+NCode.Identity.OpenId.Client.ClientAuthenticationContext.Endpoint.get -> string!
+NCode.Identity.OpenId.Client.ClientAuthenticationContext.Metadata.get -> NCode.Identity.OpenId.Client.OpenIdProviderMetadata!
+NCode.Identity.OpenId.Client.ClientAuthenticationContext.Parameters.get -> System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>!
+NCode.Identity.OpenId.Client.ClientAuthenticationContext.Registration.get -> NCode.Identity.OpenId.Client.ClientRegistration!
+NCode.Identity.OpenId.Client.ClientAuthenticationContext.Request.get -> System.Net.Http.HttpRequestMessage!
+NCode.Identity.OpenId.Client.ClientAuthenticationMethods
+NCode.Identity.OpenId.Client.ClientCredentialsTokenRequest
+NCode.Identity.OpenId.Client.ClientCredentialsTokenRequest.ClientCredentialsTokenRequest() -> void
+NCode.Identity.OpenId.Client.ClientRegistration
+NCode.Identity.OpenId.Client.ClientRegistration.AuthenticationMethod.get -> string!
+NCode.Identity.OpenId.Client.ClientRegistration.Authority.get -> string!
+NCode.Identity.OpenId.Client.ClientRegistration.ClientId.get -> string!
+NCode.Identity.OpenId.Client.ClientRegistration.ClientRegistration(string! authority, string! clientId, string! authenticationMethod) -> void
+NCode.Identity.OpenId.Client.ClientRegistration.KeyRing.get -> string?
+NCode.Identity.OpenId.Client.ClientRegistration.KeyRing.init -> void
+NCode.Identity.OpenId.Client.IClientAuthenticator
+NCode.Identity.OpenId.Client.IClientAuthenticator.AuthenticateAsync(NCode.Identity.OpenId.Client.ClientAuthenticationContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Client.IClientAuthenticator.MethodName.get -> string!
+NCode.Identity.OpenId.Client.IClientKeyRingProvider
+NCode.Identity.OpenId.Client.IClientKeyRingProvider.GetKeyRing(string! keyRing) -> NCode.Identity.Secrets.Collections.ISecretKeyCollection!
+NCode.Identity.OpenId.Client.IProviderKeySetResolver
+NCode.Identity.OpenId.Client.IProviderKeySetResolver.GetSigningKeysAsync(string! authority, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Collections.ISecretKeyCollection!>
+NCode.Identity.OpenId.Client.IProviderKeySetResolver.RefreshSigningKeysAsync(string! authority, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Collections.ISecretKeyCollection!>
+NCode.Identity.OpenId.Client.IProviderMetadataResolver
+NCode.Identity.OpenId.Client.IProviderMetadataResolver.GetMetadataAsync(string! authority, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Client.OpenIdProviderMetadata!>
+NCode.Identity.OpenId.Client.ITokenClient
+NCode.Identity.OpenId.Client.ITokenClient.RequestTokenAsync(NCode.Identity.OpenId.Client.ClientRegistration! registration, NCode.Identity.OpenId.Client.TokenRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Client.TokenResult!>
+NCode.Identity.OpenId.Client.ITokenRevocationClient
+NCode.Identity.OpenId.Client.ITokenRevocationClient.RevokeTokenAsync(NCode.Identity.OpenId.Client.ClientRegistration! registration, NCode.Identity.OpenId.Client.TokenRevocationRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Client.ProtocolError?>
+NCode.Identity.OpenId.Client.OpenIdClientDefaults
+NCode.Identity.OpenId.Client.OpenIdClientLibrary
+NCode.Identity.OpenId.Client.OpenIdClientLibrary.OpenIdClientLibrary() -> void
+NCode.Identity.OpenId.Client.OpenIdProviderException
+NCode.Identity.OpenId.Client.OpenIdProviderException.OpenIdProviderException(string! message) -> void
+NCode.Identity.OpenId.Client.OpenIdProviderException.OpenIdProviderException(string! message, System.Exception! innerException) -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.AuthorizationEndpoint.get -> string?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.AuthorizationEndpoint.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.AuthorizationResponseIssParameterSupported.get -> bool
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.AuthorizationResponseIssParameterSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.BackchannelLogoutSessionSupported.get -> bool
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.BackchannelLogoutSessionSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.BackchannelLogoutSupported.get -> bool
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.BackchannelLogoutSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.CodeChallengeMethodsSupported.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.CodeChallengeMethodsSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DpopSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.DpopSigningAlgValuesSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.EndSessionEndpoint.get -> string?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.EndSessionEndpoint.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.ExtensionData.set -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.GrantTypesSupported.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.GrantTypesSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.IdTokenSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.IdTokenSigningAlgValuesSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.Issuer.get -> string?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.Issuer.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.JwksUri.get -> string?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.JwksUri.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.OpenIdProviderMetadata() -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.PushedAuthorizationRequestEndpoint.get -> string?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.PushedAuthorizationRequestEndpoint.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.RequirePushedAuthorizationRequests.get -> bool
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.RequirePushedAuthorizationRequests.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.ResponseTypesSupported.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.ResponseTypesSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.RevocationEndpoint.get -> string?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.RevocationEndpoint.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.ScopesSupported.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.ScopesSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.TokenEndpoint.get -> string?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.TokenEndpoint.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.TokenEndpointAuthMethodsSupported.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.TokenEndpointAuthMethodsSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.TokenEndpointAuthSigningAlgValuesSupported.get -> System.Collections.Generic.List<string!>?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.TokenEndpointAuthSigningAlgValuesSupported.init -> void
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.UserInfoEndpoint.get -> string?
+NCode.Identity.OpenId.Client.OpenIdProviderMetadata.UserInfoEndpoint.init -> void
+NCode.Identity.OpenId.Client.ProtocolError
+NCode.Identity.OpenId.Client.ProtocolError.Error.get -> string!
+NCode.Identity.OpenId.Client.ProtocolError.ErrorDescription.get -> string?
+NCode.Identity.OpenId.Client.ProtocolError.ErrorDescription.init -> void
+NCode.Identity.OpenId.Client.ProtocolError.ErrorUri.get -> string?
+NCode.Identity.OpenId.Client.ProtocolError.ErrorUri.init -> void
+NCode.Identity.OpenId.Client.ProtocolError.ProtocolError(string! error, int statusCode) -> void
+NCode.Identity.OpenId.Client.ProtocolError.StatusCode.get -> int
+NCode.Identity.OpenId.Client.RefreshTokenRequest
+NCode.Identity.OpenId.Client.RefreshTokenRequest.RefreshToken.get -> string!
+NCode.Identity.OpenId.Client.RefreshTokenRequest.RefreshTokenRequest(string! refreshToken) -> void
+NCode.Identity.OpenId.Client.TokenExchangeTokenRequest
+NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.ActorToken.get -> string?
+NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.ActorToken.init -> void
+NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.ActorTokenType.get -> string?
+NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.ActorTokenType.init -> void
+NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.Audiences.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.Audiences.init -> void
+NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.RequestedTokenType.get -> string?
+NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.RequestedTokenType.init -> void
+NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.SubjectToken.get -> string!
+NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.SubjectTokenType.get -> string!
+NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.TokenExchangeTokenRequest(string! subjectToken, string! subjectTokenType) -> void
+NCode.Identity.OpenId.Client.TokenRequest
+NCode.Identity.OpenId.Client.TokenRequest.Resources.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.OpenId.Client.TokenRequest.Resources.init -> void
+NCode.Identity.OpenId.Client.TokenRequest.Scope.get -> string?
+NCode.Identity.OpenId.Client.TokenRequest.Scope.init -> void
+NCode.Identity.OpenId.Client.TokenRequest.TokenRequest() -> void
+NCode.Identity.OpenId.Client.TokenResponse
+NCode.Identity.OpenId.Client.TokenResponse.AccessToken.get -> string?
+NCode.Identity.OpenId.Client.TokenResponse.AccessToken.init -> void
+NCode.Identity.OpenId.Client.TokenResponse.ExpiresIn.get -> int?
+NCode.Identity.OpenId.Client.TokenResponse.ExpiresIn.init -> void
+NCode.Identity.OpenId.Client.TokenResponse.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Client.TokenResponse.ExtensionData.set -> void
+NCode.Identity.OpenId.Client.TokenResponse.IdToken.get -> string?
+NCode.Identity.OpenId.Client.TokenResponse.IdToken.init -> void
+NCode.Identity.OpenId.Client.TokenResponse.IssuedTokenType.get -> string?
+NCode.Identity.OpenId.Client.TokenResponse.IssuedTokenType.init -> void
+NCode.Identity.OpenId.Client.TokenResponse.RefreshToken.get -> string?
+NCode.Identity.OpenId.Client.TokenResponse.RefreshToken.init -> void
+NCode.Identity.OpenId.Client.TokenResponse.Scope.get -> string?
+NCode.Identity.OpenId.Client.TokenResponse.Scope.init -> void
+NCode.Identity.OpenId.Client.TokenResponse.TokenResponse() -> void
+NCode.Identity.OpenId.Client.TokenResponse.TokenType.get -> string?
+NCode.Identity.OpenId.Client.TokenResponse.TokenType.init -> void
+NCode.Identity.OpenId.Client.TokenResult
+NCode.Identity.OpenId.Client.TokenResult.Error.get -> NCode.Identity.OpenId.Client.ProtocolError?
+NCode.Identity.OpenId.Client.TokenResult.IsSuccess.get -> bool
+NCode.Identity.OpenId.Client.TokenResult.Response.get -> NCode.Identity.OpenId.Client.TokenResponse?
+NCode.Identity.OpenId.Client.TokenResult.TokenResult(NCode.Identity.OpenId.Client.ProtocolError! error) -> void
+NCode.Identity.OpenId.Client.TokenResult.TokenResult(NCode.Identity.OpenId.Client.TokenResponse! response) -> void
+NCode.Identity.OpenId.Client.TokenRevocationRequest
+NCode.Identity.OpenId.Client.TokenRevocationRequest.Token.get -> string!
+NCode.Identity.OpenId.Client.TokenRevocationRequest.TokenRevocationRequest(string! token) -> void
+NCode.Identity.OpenId.Client.TokenRevocationRequest.TokenTypeHint.get -> string?
+NCode.Identity.OpenId.Client.TokenRevocationRequest.TokenTypeHint.init -> void
+NCode.Identity.OpenId.Client.TokenTypeHints
+NCode.Identity.OpenId.Client.TokenTypeIdentifiers
+override NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
+override NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.GrantType.get -> string!
+override NCode.Identity.OpenId.Client.ClientCredentialsTokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
+override NCode.Identity.OpenId.Client.ClientCredentialsTokenRequest.GrantType.get -> string!
+override NCode.Identity.OpenId.Client.RefreshTokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
+override NCode.Identity.OpenId.Client.RefreshTokenRequest.GrantType.get -> string!
+override NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
+override NCode.Identity.OpenId.Client.TokenExchangeTokenRequest.GrantType.get -> string!

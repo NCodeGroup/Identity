@@ -10,6 +10,15 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **An OpenID protocol client exists.** Phase 1a of the BFF adds `NCode.Identity.OpenId.Client`, which
+  `AddOpenIdClientLibrary()` registers on the JWT library builder. `ITokenClient` makes token requests and
+  `ITokenRevocationClient` makes revocation requests; `IProviderMetadataResolver` and `IProviderKeySetResolver` resolve
+  and cache a provider's discovery document and JWKS. Client authentication is an open `IClientAuthenticator`
+  collection with `client_secret_basic`, `client_secret_post` and `private_key_jwt`. A `ClientRegistration` names its
+  signing keys through a `KeyRing`, which selects a keyed `ISecretKeyCollectionProvider`. PAR, DPoP, mTLS and ID-token
+  and logout-token validation are phase 1b, and the BFF itself is not yet delivered
+  ([ADR-0270](docs/adr/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md), issue [#123](https://github.com/NCodeGroup/Identity/issues/123)).
+
 - **Shared state holds versioned expiring values and membership indexes.** `IExpiringValueSet` stores an opaque,
   versioned `ExpiringValue` with an atomic take and a compare-and-replace, and `IExpiringIndexSet` keeps expiring
   membership indexes. `AddInProcessExpiringValueSet` and `AddInProcessExpiringIndexSet` register the in-process

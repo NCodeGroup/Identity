@@ -20,6 +20,7 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Jose.Algorithms.Signature;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -283,7 +284,7 @@ public class AkpIntegrationTests
     [Fact]
     public void JwkKeyType_IsAkp()
     {
-        Assert.Equal("AKP", CreateDescriptor().JwkKeyType);
+        Assert.Same(JsonWebKeyTypeDescriptors.Akp, CreateDescriptor().JwkKeyType);
     }
 
     [Theory]

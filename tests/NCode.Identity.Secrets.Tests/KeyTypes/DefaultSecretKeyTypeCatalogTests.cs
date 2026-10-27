@@ -16,6 +16,7 @@
 
 #endregion
 
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 
 namespace NCode.Identity.Secrets.KeyTypes;
@@ -28,7 +29,10 @@ public class DefaultSecretKeyTypeCatalogTests : BaseTests
     {
         var mockDescriptor = CreateStrictMock<ISecretKeyTypeDescriptor>();
         mockDescriptor.Setup(x => x.KeyType).Returns(keyType).Verifiable();
-        mockDescriptor.Setup(x => x.JwkKeyType).Returns(jwkKeyType).Verifiable();
+        mockDescriptor
+            .Setup(x => x.JwkKeyType)
+            .Returns(jwkKeyType is null ? null : new JsonWebKeyTypeDescriptor(jwkKeyType, [], []))
+            .Verifiable();
         return mockDescriptor;
     }
 
@@ -74,6 +78,19 @@ public class DefaultSecretKeyTypeCatalogTests : BaseTests
 
         Assert.True(found);
         Assert.Same(ecc, descriptor);
+    }
+
+    [Fact]
+    public void TryGetByJwkKeyType_WhenContributedKeyType_ReturnsDescriptor()
+    {
+        var rsa = new RsaSecretKeyTypeDescriptor(Factory);
+        var contributed = CreateDescriptor("xkp", "XKP");
+        var catalog = new DefaultSecretKeyTypeCatalog([rsa, contributed.Object]);
+
+        var found = catalog.TryGetByJwkKeyType("XKP", out var descriptor);
+
+        Assert.True(found);
+        Assert.Same(contributed.Object, descriptor);
     }
 
     [Fact]

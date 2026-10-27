@@ -22,9 +22,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
@@ -424,6 +426,43 @@ public sealed class DefaultClientKeyImporterTests : IAsyncLifetime
 
         Assert.False(imported);
         Assert.Null(secrets);
+        Assert.Contains("private or symmetric", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TryImportPublishedKeySet_WhenAContributedKeyCarriesItsPrivateMember_RefusesTheSet()
+    {
+        var keyType = new JsonWebKeyTypeDescriptor("XKP", ["pub"], ["sk"]);
+        ISecretKeyTypeDescriptor? descriptor = Mock.Of<ISecretKeyTypeDescriptor>(x =>
+            x.KeyType == "xkp" && x.JwkKeyType == keyType
+        );
+        var catalog = new Mock<ISecretKeyTypeCatalog>();
+        catalog.Setup(x => x.TryGetByJwkKeyType("XKP", out descriptor)).Returns(true);
+        var importer = new DefaultClientKeyImporter(
+            _serviceProvider.GetRequiredService<ILogger<DefaultClientKeyImporter>>(),
+            _serviceProvider.GetRequiredService<ICryptoService>(),
+            catalog.Object,
+            _serviceProvider.GetRequiredService<ISecretImporter>(),
+            _serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>()
+        );
+        var keySet = KeySet(
+            new JsonObject
+            {
+                ["kty"] = "XKP",
+                ["kid"] = "x-1",
+                ["pub"] = "AAAA",
+                ["sk"] = "AAAA",
+            }
+        );
+
+        var imported = importer.TryImportPublishedKeySet(
+            keySet,
+            DateTimeOffset.UnixEpoch,
+            out _,
+            out var error
+        );
+
+        Assert.False(imported);
         Assert.Contains("private or symmetric", error, StringComparison.Ordinal);
     }
 

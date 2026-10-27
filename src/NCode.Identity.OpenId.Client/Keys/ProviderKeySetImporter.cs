@@ -69,9 +69,13 @@ internal class ProviderKeySetImporter(ISecretKeyTypeCatalog secretKeyTypeCatalog
                 continue;
 
             JsonWebKey jwk;
+            ISecretKeyTypeDescriptor? descriptor;
             try
             {
                 jwk = new JsonWebKey(element);
+                SecretKeyTypeCatalog.TryGetByJwkKeyType(jwk.KeyType, out descriptor);
+                if (descriptor?.JwkKeyType is { } jwkKeyType)
+                    jwk = new JsonWebKey(element, jwkKeyType);
             }
             catch (ArgumentException)
             {
@@ -100,7 +104,7 @@ internal class ProviderKeySetImporter(ISecretKeyTypeCatalog secretKeyTypeCatalog
                 continue;
 
             if (
-                !SecretKeyTypeCatalog.TryGetByJwkKeyType(jwk.KeyType, out var descriptor)
+                descriptor is null
                 || !descriptor.IsAsymmetric
                 || !descriptor.PublicKeyImportFormats.Contains(SecretKeyImportFormats.Jwk)
             )

@@ -20,6 +20,7 @@ using System.Buffers.Text;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 using NCode.Buffers;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 
@@ -43,7 +44,7 @@ public abstract class SecretKeyTypeDescriptor : ISecretKeyTypeDescriptor
     public abstract Type KeyClrType { get; }
 
     /// <inheritdoc />
-    public abstract string? JwkKeyType { get; }
+    public abstract JsonWebKeyTypeDescriptor? JwkKeyType { get; }
 
     /// <inheritdoc />
     public bool IsAsymmetric => typeof(AsymmetricSecretKey).IsAssignableFrom(KeyClrType);

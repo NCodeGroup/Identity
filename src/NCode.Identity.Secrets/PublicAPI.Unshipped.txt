@@ -9,7 +9,7 @@ NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.ExportPublicKey(NCode
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.GenerateKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial!
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial!
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.IsAsymmetric.get -> bool
-NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.JwkKeyType.get -> string!
+NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.JwkKeyType.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.KeyType.get -> string!
 NCode.Identity.Secrets.KeyTypes.AkpSecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
@@ -23,9 +23,9 @@ NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.SecretKeyTypeDescriptor(
 NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.SecretKeyFactory.get -> NCode.Identity.Secrets.KeyMaterial.ISecretKeyFactory!
 NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.IsAsymmetric.get -> bool
 abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
-abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.JwkKeyType.get -> string?
+abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.JwkKeyType.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor?
 abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.KeyType.get -> string!
-override abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.JwkKeyType.get -> string!
+override abstract NCode.Identity.Secrets.KeyTypes.AsymmetricSecretKeyTypeDescriptor.JwkKeyType.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!
 virtual NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.SupportsPublicKeyExport.get -> bool
 virtual NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.PublicKeyImportFormats.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 abstract NCode.Identity.Secrets.KeyTypes.SecretKeyTypeDescriptor.ValidateGeneration(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters) -> string?

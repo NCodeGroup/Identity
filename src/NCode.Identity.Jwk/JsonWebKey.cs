@@ -18,7 +18,6 @@
 
 using System.Buffers;
 using System.Buffers.Text;
-using System.Collections.Frozen;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -47,57 +46,49 @@ public sealed class JsonWebKey
     /// </summary>
     public const string ThumbprintUriPrefix = "urn:ietf:params:oauth:jwk-thumbprint:";
 
-    // The RFC 7638 §3.2 "Required Members" for each registered key type, already in lexicographic order so the
-    // canonical thumbprint input can be written directly.
-    private static readonly FrozenDictionary<string, string[]> RequiredThumbprintMembers =
-        new Dictionary<string, string[]>(StringComparer.Ordinal)
-        {
-            ["RSA"] =
-            [
-                JsonWebKeyParameterNames.Exponent,
-                JsonWebKeyParameterNames.KeyType,
-                JsonWebKeyParameterNames.Modulus,
-            ],
-            ["EC"] =
-            [
-                JsonWebKeyParameterNames.Curve,
-                JsonWebKeyParameterNames.KeyType,
-                JsonWebKeyParameterNames.X,
-                JsonWebKeyParameterNames.Y,
-            ],
-            ["OKP"] =
-            [
-                JsonWebKeyParameterNames.Curve,
-                JsonWebKeyParameterNames.KeyType,
-                JsonWebKeyParameterNames.X,
-            ],
-            ["oct"] = [JsonWebKeyParameterNames.SymmetricKey, JsonWebKeyParameterNames.KeyType],
-            ["AKP"] = [JsonWebKeyParameterNames.KeyType, JsonWebKeyParameterNames.PublicKey],
-        }.ToFrozenDictionary(StringComparer.Ordinal);
-
-    // The members that carry private or secret material; stripped by ToPublicKey and used by ContainsPrivateKeyMaterial.
-    private static readonly FrozenSet<string> PrivateMemberNames = new[]
-    {
-        JsonWebKeyParameterNames.EccPrivateKey,
-        JsonWebKeyParameterNames.PrivateKey,
-        JsonWebKeyParameterNames.SymmetricKey,
-        "p",
-        "q",
-        "dp",
-        "dq",
-        "qi",
-        "oth",
-    }.ToFrozenSet(StringComparer.Ordinal);
-
     // The member tree, a detached immutable JsonElement (net9+): no backing JsonDocument to dispose, no cloning.
     private JsonElement Element { get; }
 
     /// <summary>
     /// Initializes a new <see cref="JsonWebKey"/> over the supplied <see cref="JsonElement"/>, which must be a JSON
-    /// object carrying a non-empty string <c>kty</c> member.
+    /// object carrying a non-empty string <c>kty</c> member. The <see cref="KeyTypeDescriptor"/> is the standard one
+    /// for the key's <c>kty</c>, or <c>null</c> when the key type is not standard.
     /// </summary>
     /// <param name="element">The JWK members as a JSON object.</param>
     public JsonWebKey(JsonElement element)
+    {
+        KeyType = ReadKeyType(element);
+        Element = element;
+        KeyTypeDescriptor = JsonWebKeyTypeDescriptors.TryGetStandard(KeyType, out var standard)
+            ? standard
+            : null;
+    }
+
+    /// <summary>
+    /// Initializes a new <see cref="JsonWebKey"/> over the supplied <see cref="JsonElement"/> using the rules of a
+    /// contributed key type.
+    /// </summary>
+    /// <param name="element">The JWK members as a JSON object.</param>
+    /// <param name="keyTypeDescriptor">The rules for the key's <c>kty</c>.</param>
+    /// <exception cref="ArgumentException">The key's <c>kty</c> differs from the name of the descriptor.</exception>
+    public JsonWebKey(JsonElement element, JsonWebKeyTypeDescriptor keyTypeDescriptor)
+    {
+        ArgumentNullException.ThrowIfNull(keyTypeDescriptor);
+
+        KeyType = ReadKeyType(element);
+        if (!string.Equals(KeyType, keyTypeDescriptor.Name, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"The JWK key type '{KeyType}' does not match the descriptor's key type '{keyTypeDescriptor.Name}'.",
+                nameof(keyTypeDescriptor)
+            );
+        }
+
+        Element = element;
+        KeyTypeDescriptor = keyTypeDescriptor;
+    }
+
+    private static string ReadKeyType(JsonElement element)
     {
         if (element.ValueKind != JsonValueKind.Object)
             throw new ArgumentException("The JWK is not a JSON object.", nameof(element));
@@ -113,8 +104,7 @@ public sealed class JsonWebKey
             );
         }
 
-        Element = element;
-        KeyType = kty;
+        return kty;
     }
 
     /// <summary>
@@ -124,6 +114,14 @@ public sealed class JsonWebKey
     /// <param name="members">The JWK members as a JSON object.</param>
     public JsonWebKey(JsonObject members)
         : this(ToElement(members)) { }
+
+    /// <summary>
+    /// Initializes a new <see cref="JsonWebKey"/> from the supplied members using the rules of a contributed key type.
+    /// </summary>
+    /// <param name="members">The JWK members as a JSON object.</param>
+    /// <param name="keyTypeDescriptor">The rules for the key's <c>kty</c>.</param>
+    public JsonWebKey(JsonObject members, JsonWebKeyTypeDescriptor keyTypeDescriptor)
+        : this(ToElement(members), keyTypeDescriptor) { }
 
     /// <summary>
     /// Parses a <see cref="JsonWebKey"/> from its JSON text representation.
@@ -146,6 +144,11 @@ public sealed class JsonWebKey
     /// Gets the <c>kty</c> member, identifying the cryptographic family of the key (RFC 7517 §4.1).
     /// </summary>
     public string KeyType { get; }
+
+    /// <summary>
+    /// Gets the rules for this key's <c>kty</c>, or <c>null</c> when the key type is neither standard nor supplied.
+    /// </summary>
+    public JsonWebKeyTypeDescriptor? KeyTypeDescriptor { get; }
 
     /// <summary>
     /// Gets the <c>use</c> member (<c>sig</c> / <c>enc</c>), or <c>null</c> when absent (RFC 7517 §4.2).
@@ -193,7 +196,9 @@ public sealed class JsonWebKey
 
     /// <summary>
     /// Gets a value indicating whether this key carries any private or secret key material (for example the RSA/EC
-    /// <c>d</c>, the AKP <c>priv</c> seed, or the symmetric <c>k</c>).
+    /// <c>d</c>, the AKP <c>priv</c> seed, or the symmetric <c>k</c>). A member counts as private when it is a standard
+    /// private member name or one of the <see cref="JsonWebKeyTypeDescriptor.PrivateMembers"/> of the
+    /// <see cref="KeyTypeDescriptor"/>.
     /// </summary>
     public bool ContainsPrivateKeyMaterial
     {
@@ -201,7 +206,7 @@ public sealed class JsonWebKey
         {
             foreach (var member in Element.EnumerateObject())
             {
-                if (PrivateMemberNames.Contains(member.Name))
+                if (IsPrivateMember(member.Name))
                     return true;
             }
 
@@ -245,15 +250,22 @@ public sealed class JsonWebKey
             writer.WriteStartObject();
             foreach (var member in Element.EnumerateObject())
             {
-                if (!PrivateMemberNames.Contains(member.Name))
+                if (!IsPrivateMember(member.Name))
                     member.WriteTo(writer);
             }
 
             writer.WriteEndObject();
         }
 
-        return new JsonWebKey(JsonElement.Parse(buffer.WrittenSpan));
+        var parsed = JsonElement.Parse(buffer.WrittenSpan);
+        return KeyTypeDescriptor is null
+            ? new JsonWebKey(parsed)
+            : new JsonWebKey(parsed, KeyTypeDescriptor);
     }
+
+    private bool IsPrivateMember(string name) =>
+        JsonWebKeyTypeDescriptors.StandardPrivateMembers.Contains(name)
+        || (KeyTypeDescriptor?.PrivateMembers.Contains(name) ?? false);
 
     /// <summary>
     /// Computes the base64url-encoded <c>JWK Thumbprint</c> (RFC 7638) of this key using SHA-256.
@@ -262,22 +274,25 @@ public sealed class JsonWebKey
     public string ComputeThumbprint() => ComputeThumbprint(HashAlgorithmName.SHA256);
 
     /// <summary>
-    /// Computes the base64url-encoded <c>JWK Thumbprint</c> (RFC 7638) of this key using the given hash.
+    /// Computes the base64url-encoded <c>JWK Thumbprint</c> (RFC 7638) of this key using the given hash. The members
+    /// hashed are the <see cref="JsonWebKeyTypeDescriptor.ThumbprintMembers"/> of the <see cref="KeyTypeDescriptor"/>.
     /// </summary>
     /// <param name="hashAlgorithmName">The hash algorithm to use.</param>
     /// <returns>The base64url-encoded thumbprint.</returns>
+    /// <exception cref="NotSupportedException">The key has no <see cref="KeyTypeDescriptor"/>.</exception>
     public string ComputeThumbprint(HashAlgorithmName hashAlgorithmName)
     {
-        if (!RequiredThumbprintMembers.TryGetValue(KeyType, out var requiredMembers))
-            throw new NotSupportedException(
-                $"A JWK thumbprint cannot be computed for the key type '{KeyType}'."
+        var descriptor =
+            KeyTypeDescriptor
+            ?? throw new NotSupportedException(
+                $"A JWK thumbprint cannot be computed for the key type '{KeyType}' without its JsonWebKeyTypeDescriptor."
             );
 
         var buffer = new ArrayBufferWriter<byte>(256);
         using (var writer = new Utf8JsonWriter(buffer))
         {
             writer.WriteStartObject();
-            foreach (var name in requiredMembers)
+            foreach (var name in descriptor.ThumbprintMembers)
             {
                 var value =
                     GetMember(name)

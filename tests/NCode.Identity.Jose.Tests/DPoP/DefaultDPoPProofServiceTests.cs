@@ -424,6 +424,24 @@ public class DefaultDPoPProofServiceTests : BaseTests
     }
 
     [Fact]
+    public void TryValidateProof_WhenUnknownKeyTypeCarriesPrivateMember_ReportsUnsupportedKeyType()
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var header = new Dictionary<string, object>
+        {
+            ["typ"] = "dpop+jwt",
+            ["alg"] = "ES256",
+            ["jwk"] = new Dictionary<string, object> { ["kty"] = "XYZ", ["d"] = "AAAA" },
+        };
+
+        AssertRejected(
+            BuildEs256Proof(ecdsa, header, CreatePayload()),
+            CreateParameters(),
+            "'XYZ' is not supported"
+        );
+    }
+
+    [Fact]
     public void TryValidateProof_WhenSymmetricAlgorithmAllowed_StillFails()
     {
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);

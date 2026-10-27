@@ -725,6 +725,14 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **A key type registers its JSON Web Key rules.** A `JsonWebKeyTypeDescriptor` carries a key type's thumbprint members
+  and private members; `JsonWebKeyTypeDescriptors` holds the built-in IANA types, and `JsonWebKey.KeyTypeDescriptor`
+  exposes the one a key uses, set through the new `JsonWebKey(JsonElement, JsonWebKeyTypeDescriptor)` and
+  `JsonWebKey(JsonObject, JsonWebKeyTypeDescriptor)` constructors. Breaking: `ISecretKeyTypeDescriptor.JwkKeyType` is now
+  a `JsonWebKeyTypeDescriptor?` instead of a `string?`. DPoP proof validation, client key import and provider key import
+  build typed keys, so a contributed key type's thumbprint and private members work
+  ([ADR-0271](docs/adr/0271-a-key-type-registers-its-json-web-key-rules.md)).
+
 - **A generated private key stores its public key.** `PersistedSecret.PublicKey` holds the base64url SPKI of every
   generated asymmetric key, set from the new required `GeneratedSecretKeyMaterial.PublicKey`, and
   `PersistedSecret.HasPublicKey()` tells whether a secret has one. `ISecretSerializer.DeserializePublicSecret` reads it,
@@ -2233,6 +2241,10 @@ change to the public API is a **major** version bump.
   ([ADR-0266](docs/adr/0266-text-is-encoded-and-decoded-only-through-strict-encodings.md))
 
 ### Fixed
+
+- **An `AKP` JWK thumbprint covers `alg`.** The thumbprint was computed over `kty` and `pub` only; RFC 9964 §6 also
+  requires `alg`, so two `AKP` keys that differ only in algorithm no longer share a thumbprint
+  ([ADR-0271](docs/adr/0271-a-key-type-registers-its-json-web-key-rules.md)).
 
 - **`client_secret_basic` accepts a secret that contains `%` or `+`.** The handler unescaped the form-urlencoded
   secret over a pooled buffer larger than the secret, so any secret with an escape or a `+` failed with `401`

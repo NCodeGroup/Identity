@@ -12,7 +12,7 @@ NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.ExportPublicKey(NC
 NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.GenerateKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial!
 NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.ImportPublicKeyMaterial(NCode.Identity.Secrets.KeyMaterial.SecretKeyImportParameters! parameters, NCode.Identity.Secrets.KeyMaterial.SecretKeyMaterialProtector! protect) -> NCode.Identity.Secrets.KeyMaterial.ImportedSecretKeyMaterial!
 NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.IsAsymmetric.get -> bool
-NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.JwkKeyType.get -> string!
+NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.JwkKeyType.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor!
 NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.KeyClrType.get -> System.Type!
 NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.KeyType.get -> string!
 NCode.Identity.Jose.EdDsa.KeyTypes.OkpSecretKeyTypeDescriptor.OkpSecretKeyTypeDescriptor(NCode.Extensions.DataProtection.IDataProtectorFactory<NCode.Identity.Secrets.Keys.SecretKey!>! dataProtectorFactory) -> void

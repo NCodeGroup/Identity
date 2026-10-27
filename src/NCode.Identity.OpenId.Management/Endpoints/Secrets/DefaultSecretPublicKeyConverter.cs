@@ -17,19 +17,19 @@
 #endregion
 
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
-using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
 /// <summary>
-/// Provides the default implementation of <see cref="ISecretPublicKeyConverter"/>. It unprotects the private key
-/// with the owner's <see cref="ISecretProtector"/> and asks the key's <see cref="ISecretKeyTypeDescriptor"/> (the
-/// single extensibility seam) to export its public half as a <c>JWK</c> and a <c>SubjectPublicKeyInfo</c> <c>PEM</c>.
-/// Secrets without exportable public material (for example symmetric keys) yield <c>null</c>.
+/// Provides the default implementation of <see cref="ISecretPublicKeyConverter"/>. It reads the secret's stored
+/// public half through <see cref="ISecretSerializer.DeserializePublicSecret"/> and never unprotects private
+/// material, then asks the key's <see cref="ISecretKeyTypeDescriptor"/> (the single extensibility seam) to export
+/// it as a <c>JWK</c> and a <c>SubjectPublicKeyInfo</c> <c>PEM</c>. Secrets without exportable public material (for
+/// example symmetric keys) yield <c>null</c>.
 /// </summary>
 // See ADR-0104.
 internal class DefaultSecretPublicKeyConverter(
@@ -42,18 +42,28 @@ internal class DefaultSecretPublicKeyConverter(
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
     /// <inheritdoc />
-    // See ADR-0235.
-    public PublicKeyResource? Convert(ISecretProtector protector, PersistedSecret secret) =>
-        ExportPublicKey(secret, SecretSerializer.DeserializeSecret(protector, secret));
-
-    private PublicKeyResource? ExportPublicKey(PersistedSecret secret, SecretKey secretKey)
+    // See ADR-0268.
+    public PublicKeyResource? Convert(PersistedSecret secret)
     {
-        if (!SecretKeyTypeCatalog.TryGet(secretKey.KeyType, out var descriptor))
+        if (
+            !SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor)
+            || !descriptor.SupportsPublicKeyExport
+            || !secret.HasPublicKey()
+        )
         {
             return null;
         }
 
+        var secretKey = SecretSerializer.DeserializePublicSecret(secret);
         var exported = descriptor.ExportPublicKey(secretKey);
+        return BuildResource(secret, exported);
+    }
+
+    private static PublicKeyResource? BuildResource(
+        PersistedSecret secret,
+        ExportedPublicKey? exported
+    )
+    {
         if (exported is null)
         {
             return null;

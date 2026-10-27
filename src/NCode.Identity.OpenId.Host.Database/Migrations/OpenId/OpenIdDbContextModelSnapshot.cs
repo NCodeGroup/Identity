@@ -1046,6 +1046,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<string>("PublicKey")
+                        .HasMaxLength(4000)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(4000)");
+
                     b.Property<string>("SecretEncoding")
                         .IsRequired()
                         .HasMaxLength(100)

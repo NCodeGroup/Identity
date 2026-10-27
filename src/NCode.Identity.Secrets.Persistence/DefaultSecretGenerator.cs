@@ -71,6 +71,7 @@ internal class DefaultSecretGenerator(ISecretKeyTypeCatalog secretKeyTypeCatalog
             SecretEncoding = material.SecretEncoding,
             KeySizeBits = material.KeySizeBits,
             EncodedValue = material.ProtectedKeyMaterial,
+            PublicKey = material.PublicKey,
         };
 
         return new GeneratedSecret { Secret = secret, SecretMaterial = material.SecretMaterial };

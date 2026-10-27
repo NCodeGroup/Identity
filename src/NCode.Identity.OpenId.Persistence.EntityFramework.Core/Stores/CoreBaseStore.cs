@@ -131,6 +131,7 @@ internal abstract class CoreBaseStore<TItem, TEntity> : BaseStore<TItem, TEntity
             SecretEncoding = secret.SecretEncoding,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
+            PublicKey = secret.PublicKey,
         };
 
     /// <summary>
@@ -152,6 +153,7 @@ internal abstract class CoreBaseStore<TItem, TEntity> : BaseStore<TItem, TEntity
             SecretEncoding = secret.SecretEncoding,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
+            PublicKey = secret.PublicKey,
         };
 
     /// <summary>

@@ -82,6 +82,7 @@ internal sealed class SymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secretK
             KeySizeBits = keySizeBits,
             SecretEncoding = SecretEncodings.SymmetricRaw,
             SecretMaterial = secretMaterial,
+            PublicKey = null,
         };
     }
 

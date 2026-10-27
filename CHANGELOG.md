@@ -716,6 +716,14 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **A generated private key stores its public key.** `PersistedSecret.PublicKey` holds the base64url SPKI of every
+  generated asymmetric key, set from the new required `GeneratedSecretKeyMaterial.PublicKey`, and
+  `PersistedSecret.HasPublicKey()` tells whether a secret has one. `ISecretSerializer.DeserializePublicSecret` reads it,
+  so the management public-key endpoints and the registration response no longer use a protector and
+  `ISecretPublicKeyConverter.Convert(PersistedSecret)` replaces `Convert(ISecretProtector, PersistedSecret)`. The
+  `AddSecretPublicKey` migration adds the nullable column; a key generated earlier must be rotated to expose its public
+  key ([ADR-0268](docs/adr/0268-a-generated-private-key-stores-its-public-key-beside-it.md), issue
+  [#176](https://github.com/NCodeGroup/Identity/issues/176)).
 - **The conformance seed keys its clients by client id.** `ConformanceSeedOptions.Clients` is now an object keyed by
   client id (`ConformanceSeed:Clients:<client_id>:…`), so an environment override names its client rather than an array
   position. `ConformanceClientSeed.ClientId` is removed, and an entry that still sets it fails strict binding at

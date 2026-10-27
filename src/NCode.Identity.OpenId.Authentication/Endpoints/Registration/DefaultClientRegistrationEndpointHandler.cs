@@ -1587,13 +1587,7 @@ internal class DefaultClientRegistrationEndpointHandler(
                 ? null
                 : string.Join(OpenIdConstants.ParameterSeparatorString, orderedScopes);
 
-        var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
-            SecretOwner.ForTenant(client.TenantId),
-            client.Secrets.Value,
-            cancellationToken
-        );
-
-        return ToResponse(client, protector) with
+        return ToResponse(client) with
         {
             Scope = scope,
         };
@@ -1601,16 +1595,13 @@ internal class DefaultClientRegistrationEndpointHandler(
 
     /// <summary>
     /// Reconstructs the registered metadata of a client information response from a persisted client: the metadata
-    /// from its settings document, and the <c>jwks</c> set from the public keys stored for it, which the given
-    /// protector opens.
+    /// from its settings document, and the <c>jwks</c> set from the public keys stored for it, which are read without
+    /// a protector.
     /// </summary>
-    internal virtual RegisterClientResponse ToResponse(
-        PersistedClient client,
-        ISecretProtector protector
-    )
+    internal virtual RegisterClientResponse ToResponse(PersistedClient client)
     {
         var settings = ToJsonObject(client.Settings.Value);
-        var jwks = ExportPublicKeys(protector, client.Secrets.Value);
+        var jwks = ExportPublicKeys(client.Secrets.Value);
 
         return new RegisterClientResponse
         {
@@ -1736,14 +1727,11 @@ internal class DefaultClientRegistrationEndpointHandler(
 
     /// <summary>
     /// Projects the public keys stored for a client into the JSON Web Key Set its registration reports, or returns
-    /// <see langword="null"/> when it has none. A secret without public key material, such as the client secret, is
-    /// not part of the set and is never deserialized here.
+    /// <see langword="null"/> when it has none. A secret without readable public key material — the client secret, or
+    /// a private key stored without its public key — is skipped and never deserialized.
     /// </summary>
-    // See ADR-0161.
-    private JsonElement? ExportPublicKeys(
-        ISecretProtector protector,
-        IEnumerable<PersistedSecret> secrets
-    )
+    // See ADR-0161 and ADR-0268.
+    private JsonElement? ExportPublicKeys(IEnumerable<PersistedSecret> secrets)
     {
         var keys = new List<JsonWebKey>();
         foreach (var secret in secrets)
@@ -1751,12 +1739,13 @@ internal class DefaultClientRegistrationEndpointHandler(
             if (
                 !SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor)
                 || !descriptor.SupportsPublicKeyExport
+                || !secret.HasPublicKey()
             )
             {
                 continue;
             }
 
-            var secretKey = SecretSerializer.DeserializeSecret(protector, secret);
+            var secretKey = SecretSerializer.DeserializePublicSecret(secret);
             var exported = descriptor.ExportPublicKey(secretKey);
             if (exported is not null)
                 keys.Add(exported.Jwk);

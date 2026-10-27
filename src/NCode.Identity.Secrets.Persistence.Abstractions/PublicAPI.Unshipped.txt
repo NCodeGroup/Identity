@@ -3,6 +3,7 @@ const NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ResourceT
 const NCode.Identity.Secrets.Persistence.SecretMaxLengths.Algorithm = 100 -> int
 const NCode.Identity.Secrets.Persistence.SecretMaxLengths.EncodedValue = 8000 -> int
 const NCode.Identity.Secrets.Persistence.SecretMaxLengths.KeyId = 300 -> int
+const NCode.Identity.Secrets.Persistence.SecretMaxLengths.PublicKey = 4000 -> int
 const NCode.Identity.Secrets.Persistence.SecretMaxLengths.SecretType = 100 -> int
 const NCode.Identity.Secrets.Persistence.SecretMaxLengths.Use = 100 -> int
 const NCode.Identity.Secrets.Persistence.SecretResourceTypes.Secret = "secret" -> string!
@@ -26,6 +27,8 @@ NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.KeyId.init -> v
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.KeySizeBits.get -> int
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.KeySizeBits.init -> void
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.PersistedSecret() -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.PublicKey.get -> string?
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.PublicKey.init -> void
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ResourceId.get -> string!
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ResourceType.get -> string!
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretId.get -> string!
@@ -34,6 +37,9 @@ NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretType.get 
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretType.init -> void
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.Use.get -> string?
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.Use.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecretExtensions
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecretExtensions.extension(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!)
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecretExtensions.extension(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!).HasPublicKey() -> bool
 NCode.Identity.Secrets.Persistence.ISupportPersistedSecretCollection
 NCode.Identity.Secrets.Persistence.ISupportPersistedSecretCollection.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>!
 NCode.Identity.Secrets.Persistence.ISupportSecretId

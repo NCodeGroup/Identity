@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Buffers.Text;
+using System.Security.Cryptography;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 
@@ -139,5 +141,53 @@ public class SecretKeyTypeDescriptorTests
         Assert.Equal("protected", material.ProtectedKeyMaterial);
         Assert.Equal(384, material.KeySizeBits);
         Assert.Null(material.SecretMaterial);
+    }
+
+    [Fact]
+    public void Rsa_GenerateKeyMaterial_StoresThePrivateKeysSubjectPublicKeyInfo()
+    {
+        byte[]? pkcs8 = null;
+        SecretKeyMaterialProtector protect = bytes =>
+        {
+            pkcs8 = bytes.ToArray();
+            return "protected";
+        };
+
+        var material = Rsa().GenerateKeyMaterial(Params(2048), protect);
+
+        using var rsa = RSA.Create();
+        rsa.ImportPkcs8PrivateKey(pkcs8, out _);
+        Assert.NotNull(material.PublicKey);
+        Assert.Equal(
+            rsa.ExportSubjectPublicKeyInfo(),
+            Base64Url.DecodeFromChars(material.PublicKey)
+        );
+    }
+
+    [Fact]
+    public void Ecc_GenerateKeyMaterial_StoresThePrivateKeysSubjectPublicKeyInfo()
+    {
+        byte[]? pkcs8 = null;
+        SecretKeyMaterialProtector protect = bytes =>
+        {
+            pkcs8 = bytes.ToArray();
+            return "protected";
+        };
+
+        var material = Ecc().GenerateKeyMaterial(Params(0, curve: "P-256"), protect);
+
+        using var ecdsa = ECDsa.Create();
+        ecdsa.ImportPkcs8PrivateKey(pkcs8, out _);
+        Assert.NotNull(material.PublicKey);
+        Assert.Equal(
+            ecdsa.ExportSubjectPublicKeyInfo(),
+            Base64Url.DecodeFromChars(material.PublicKey)
+        );
+    }
+
+    [Fact]
+    public void Symmetric_GenerateKeyMaterial_HasNoPublicKey()
+    {
+        Assert.Null(Symmetric().GenerateKeyMaterial(Params(256), Protect).PublicKey);
     }
 }

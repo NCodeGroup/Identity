@@ -63,15 +63,13 @@ public interface ISecretSerializer
     SecretKey DeserializeSecret(ISecretProtector protector, PersistedSecret persistedSecret);
 
     /// <summary>
-    /// Deserializes a <see cref="PersistedSecret"/> instance that holds only public key material by converting it into a
-    /// disposable <see cref="SecretKey"/> instance. Public key material is stored without protection, so no
-    /// <see cref="ISecretProtector"/> is needed.
+    /// Deserializes the public half of a secret without a protector: its own material when its encoding is public, or its
+    /// stored <see cref="PersistedSecret.PublicKey"/> when it holds a private key.
     /// </summary>
     /// <param name="persistedSecret">The <see cref="PersistedSecret"/> instance to deserialize into an <see cref="SecretKey"/> instance.</param>
     /// <returns>The deserialized <see cref="SecretKey"/> instance.</returns>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the <see cref="PersistedSecret.SecretEncoding"/> of <paramref name="persistedSecret"/> is not a
-    /// public encoding.
+    /// Thrown when <paramref name="persistedSecret"/> holds no public key material.
     /// </exception>
     // See ADR-0235.
     SecretKey DeserializePublicSecret(PersistedSecret persistedSecret);

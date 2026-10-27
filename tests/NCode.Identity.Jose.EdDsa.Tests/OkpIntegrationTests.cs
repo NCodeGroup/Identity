@@ -204,6 +204,46 @@ public class OkpIntegrationTests
         );
     }
 
+    [Theory]
+    [InlineData(OkpCurves.Ed25519Name, 256)]
+    [InlineData(OkpCurves.Ed448Name, 456)]
+    public void GenerateKeyMaterial_StoresThePrivateKeysSubjectPublicKeyInfo(
+        string curve,
+        int keySizeBits
+    )
+    {
+        var descriptor = CreateDescriptor();
+        var parameters = new SecretKeyGenerationParameters
+        {
+            KeySizeBits = keySizeBits,
+            Curve = curve,
+        };
+        var generated = descriptor.GenerateKeyMaterial(parameters, Protect);
+        Assert.NotNull(generated.PublicKey);
+
+        var metadata = new KeyMetadata { KeyId = "kid-test", Use = "sig" };
+        var privateKey = descriptor.DeserializeKeyMaterial(
+            metadata,
+            SecretEncodings.Pkcs8,
+            Convert.FromBase64String(generated.ProtectedKeyMaterial)
+        );
+        var publicKey = descriptor.DeserializeKeyMaterial(
+            metadata,
+            SecretEncodings.Spki,
+            System.Buffers.Text.Base64Url.DecodeFromChars(generated.PublicKey)
+        );
+
+        var asymmetricPrivateKey = Assert.IsType<AsymmetricSecretKey>(
+            privateKey,
+            exactMatch: false
+        );
+        var asymmetricPublicKey = Assert.IsType<AsymmetricSecretKey>(publicKey, exactMatch: false);
+        Assert.Equal(
+            asymmetricPrivateKey.ExportSubjectPublicKeyInfoPem(),
+            asymmetricPublicKey.ExportSubjectPublicKeyInfoPem()
+        );
+    }
+
     [Fact]
     public void JwkKeyType_IsOkp()
     {

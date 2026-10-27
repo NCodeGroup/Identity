@@ -54,8 +54,10 @@ internal sealed class DefaultSecretKeyTypeCatalog : ISecretKeyTypeCatalog
         var jwkMap = new Dictionary<string, ISecretKeyTypeDescriptor>(StringComparer.Ordinal);
         foreach (var descriptor in Descriptors)
         {
-            if (descriptor.JwkKeyType is not { Length: > 0 } jwkKeyType)
+            if (descriptor.JwkKeyType is not { } jwkKeyTypeDescriptor)
                 continue;
+
+            var jwkKeyType = jwkKeyTypeDescriptor.Name;
 
             if (!jwkMap.TryAdd(jwkKeyType, descriptor))
             {

@@ -19,6 +19,7 @@
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using NCode.Buffers;
+using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 
@@ -42,7 +43,7 @@ internal sealed class SymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secretK
     public override Type KeyClrType => typeof(SymmetricSecretKey);
 
     /// <inheritdoc />
-    public override string JwkKeyType => "oct";
+    public override JsonWebKeyTypeDescriptor JwkKeyType => JsonWebKeyTypeDescriptors.Oct;
 
     /// <inheritdoc />
     public override string? ValidateGeneration(SecretKeyGenerationParameters parameters) =>

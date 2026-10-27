@@ -62,16 +62,6 @@ NCode.Identity.Cryptography.ICryptoService.GenerateBytes(System.Span<byte> desti
 NCode.Identity.Cryptography.ICryptoService.GenerateKey(int byteLength, string! binaryEncoding) -> string!
 NCode.Identity.Cryptography.ICryptoService.HashValue(string! data, System.Security.Cryptography.HashAlgorithmName hashAlgorithm, string! binaryEncoding, System.Text.Encoding? encoding = null) -> string!
 NCode.Identity.Cryptography.ICryptoService.HashValue(System.ReadOnlySpan<byte> data, System.Security.Cryptography.HashAlgorithmName hashAlgorithm, string! binaryEncoding) -> string!
-NCode.Identity.Models.IsActiveResult
-NCode.Identity.Models.IsActiveResult.IsActive.get -> bool
-NCode.Identity.Models.IsActiveResult.IsActive.set -> void
-NCode.Identity.Models.IsActiveResult.IsActiveResult(bool initial) -> void
-NCode.Identity.Models.NegativeIsActiveResult
-NCode.Identity.Models.NegativeIsActiveResult.NegativeIsActiveResult() -> void
-NCode.Identity.Models.NegativeIsActiveResult.SetActive() -> void
-NCode.Identity.Models.PositiveIsActiveResult
-NCode.Identity.Models.PositiveIsActiveResult.PositiveIsActiveResult() -> void
-NCode.Identity.Models.PositiveIsActiveResult.SetInactive() -> void
 NCode.Identity.Models.TimePeriod
 NCode.Identity.Models.TimePeriod.Duration.get -> System.TimeSpan?
 NCode.Identity.Models.TimePeriod.EndTime.get -> System.DateTimeOffset?

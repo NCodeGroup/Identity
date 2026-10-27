@@ -20,6 +20,7 @@
 using System.Security.Cryptography;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.KeyTypes;
 
 namespace NCode.Identity.Jose.Algorithms.Signature;
 
@@ -42,13 +43,17 @@ internal class EccSignatureAlgorithm : SignatureAlgorithm
 
     private int SignatureSizeBytes { get; }
 
+    private ECCurve Curve { get; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="EccSignatureAlgorithm"/> class.
     /// </summary>
     /// <param name="code">Contains a <see cref="string"/> value that uniquely identifies the cryptographic algorithm.</param>
+    /// <param name="curve">Contains an <see cref="ECCurve"/> value that specifies the only elliptic curve that keys of this digital signature algorithm may use.</param>
     /// <param name="hashAlgorithmName">Contains a <see cref="HashAlgorithmName"/> value that specifies the type of hash function that is used by this digital signature algorithm.</param>
-    public EccSignatureAlgorithm(string code, HashAlgorithmName hashAlgorithmName)
+    public EccSignatureAlgorithm(string code, ECCurve curve, HashAlgorithmName hashAlgorithmName)
     {
+        Curve = curve;
         HashAlgorithmName = hashAlgorithmName;
 
         var hashSizeBits = hashAlgorithmName.GetHashSizeBits();
@@ -67,6 +72,30 @@ internal class EccSignatureAlgorithm : SignatureAlgorithm
     public override int GetSignatureSizeBytes(int keySizeBits) => SignatureSizeBytes;
 
     /// <inheritdoc />
+    public override bool IsKeyCompatible(SecretKey secretKey) =>
+        base.IsKeyCompatible(secretKey)
+        && EccCurveSpecification.IsSameNamedCurve(((EccSecretKey)secretKey).GetECCurve(), Curve);
+
+    private void EnsureCurve(ECDsa key)
+    {
+        if (
+            !EccCurveSpecification.IsSameNamedCurve(
+                key.ExportParameters(includePrivateParameters: false).Curve,
+                Curve
+            )
+        )
+        {
+            // the argument that is invalid is the caller's secretKey, not this helper's ECDsa parameter
+#pragma warning disable CA2208
+            throw new ArgumentException(
+                "The secret key's elliptic curve is not valid for this cryptographic algorithm.",
+                "secretKey"
+            );
+#pragma warning restore CA2208
+        }
+    }
+
+    /// <inheritdoc />
     public override bool TrySign(
         SecretKey secretKey,
         ReadOnlySpan<byte> inputData,
@@ -77,6 +106,7 @@ internal class EccSignatureAlgorithm : SignatureAlgorithm
         var validatedSecurityKey = secretKey.Validate<EccSecretKey>(KeyBitSizes);
 
         using var key = validatedSecurityKey.ExportECDsa();
+        EnsureCurve(key);
 
         return key.TrySignData(inputData, signature, HashAlgorithmName, out bytesWritten);
     }
@@ -91,6 +121,7 @@ internal class EccSignatureAlgorithm : SignatureAlgorithm
         var validatedSecurityKey = secretKey.Validate<EccSecretKey>(KeyBitSizes);
 
         using var key = validatedSecurityKey.ExportECDsa();
+        EnsureCurve(key);
 
         return key.VerifyData(inputData, signature, HashAlgorithmName);
     }

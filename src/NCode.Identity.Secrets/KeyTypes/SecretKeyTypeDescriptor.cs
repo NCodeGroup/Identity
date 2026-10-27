@@ -104,8 +104,27 @@ public abstract class SecretKeyTypeDescriptor : ISecretKeyTypeDescriptor
                     KeySizeBits = algorithm.KeySize,
                     SecretEncoding = SecretEncodings.Pkcs8,
                     SecretMaterial = null,
-                    PublicKey = Base64Url.EncodeToString(algorithm.ExportSubjectPublicKeyInfo()),
+                    PublicKey = ExportBase64UrlSubjectPublicKeyInfo(algorithm),
                 };
+            }
+
+            byteCount = checked(byteCount * 2);
+        }
+    }
+
+    /// <summary>
+    /// Exports the <c>SubjectPublicKeyInfo</c> of the specified asymmetric algorithm into a rented buffer, growing the
+    /// buffer until the export succeeds, and returns it base64url-encoded.
+    /// </summary>
+    private static string ExportBase64UrlSubjectPublicKeyInfo(AsymmetricAlgorithm algorithm)
+    {
+        var byteCount = 1024;
+        while (true)
+        {
+            using var _ = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> span);
+            if (algorithm.TryExportSubjectPublicKeyInfo(span, out var bytesWritten))
+            {
+                return Base64Url.EncodeToString(span[..bytesWritten]);
             }
 
             byteCount = checked(byteCount * 2);

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -95,10 +96,21 @@ public sealed class OkpSecretKeyTypeDescriptor(
         var pkcs8 = OkpKeyEncoder.BuildPkcs8(curve, seed);
         try
         {
-            var publicKey = new byte[curve.PublicKeySize];
+            Span<byte> publicKey = stackalloc byte[curve.PublicKeySize];
             OkpCurves.GeneratePublicKey(curve.Name, seed, publicKey);
-            var subjectPublicKeyInfo = BufferFactory.CreateArrayBufferWriter();
-            OkpKeyEncoder.WriteSubjectPublicKeyInfo(curve, publicKey, ref subjectPublicKeyInfo);
+
+            using var subjectPublicKeyInfoBuffer = BufferFactory.CreatePooledBufferWriter(
+                isSensitive: false
+            );
+            IBufferWriter<byte> subjectPublicKeyInfoWriter = subjectPublicKeyInfoBuffer;
+            OkpKeyEncoder.WriteSubjectPublicKeyInfo(
+                curve,
+                publicKey,
+                ref subjectPublicKeyInfoWriter
+            );
+            using var subjectPublicKeyInfo = subjectPublicKeyInfoBuffer.GetSpanLease(
+                isSensitive: false
+            );
 
             return new GeneratedSecretKeyMaterial
             {
@@ -106,7 +118,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
                 KeySizeBits = curve.KeySizeBits,
                 SecretEncoding = SecretEncodings.Pkcs8,
                 SecretMaterial = null,
-                PublicKey = Base64Url.EncodeToString(subjectPublicKeyInfo.WrittenSpan),
+                PublicKey = Base64Url.EncodeToString(subjectPublicKeyInfo.Span),
             };
         }
         finally

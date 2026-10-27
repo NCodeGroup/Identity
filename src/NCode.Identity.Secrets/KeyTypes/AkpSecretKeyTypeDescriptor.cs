@@ -98,12 +98,31 @@ public sealed class AkpSecretKeyTypeDescriptor(
                 KeySizeBits = algorithm.PublicKeySizeInBytes * 8,
                 SecretEncoding = SecretEncodings.Pkcs8,
                 SecretMaterial = null,
-                PublicKey = Base64Url.EncodeToString(key.ExportSubjectPublicKeyInfo()),
+                PublicKey = ExportBase64UrlSubjectPublicKeyInfo(key),
             };
         }
         finally
         {
             CryptographicOperations.ZeroMemory(pkcs8);
+        }
+    }
+
+    /// <summary>
+    /// Exports the <c>SubjectPublicKeyInfo</c> of the specified key into a rented buffer, growing the buffer until the
+    /// export succeeds, and returns it base64url-encoded.
+    /// </summary>
+    private static string ExportBase64UrlSubjectPublicKeyInfo(MLDsa key)
+    {
+        var byteCount = 4096;
+        while (true)
+        {
+            using var _ = BufferFactory.Rent(byteCount, isSensitive: false, out Span<byte> span);
+            if (key.TryExportSubjectPublicKeyInfo(span, out var bytesWritten))
+            {
+                return Base64Url.EncodeToString(span[..bytesWritten]);
+            }
+
+            byteCount = checked(byteCount * 2);
         }
     }
 

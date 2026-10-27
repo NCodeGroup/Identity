@@ -16,13 +16,16 @@
 
 #endregion
 
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
+using NCode.Identity.Jose.EdDsa;
 using NCode.Identity.Jwt;
 using NCode.Identity.Jwt.Encoding;
 using NCode.Identity.Jwt.Validation;
@@ -32,6 +35,7 @@ using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.KeyTypes;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Client.Tests.Tokens;
@@ -54,11 +58,57 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary().AddJoseLibrary().AddJwtLibrary();
+        serviceCollection.AddEdDsa();
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
         RsaKey = ServiceProvider
             .GetRequiredService<ISecretKeyFactory>()
             .CreateRsa(new KeyMetadata { KeyId = "k1" }, Rsa);
+        Ed25519Key = CreateOkpKey("ed25519", "Ed25519", 256);
+        Ed448Key = CreateOkpKey("ed448", "Ed448", 456);
+    }
+
+    private SecretKey Ed25519Key { get; }
+    private SecretKey Ed448Key { get; }
+
+    private SecretKey CreateOkpKey(string keyId, string curve, int keySizeBits)
+    {
+        var catalog = ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>();
+        Assert.True(catalog.TryGetByJwkKeyType("OKP", out var descriptor));
+        byte[] keyMaterial = [];
+        var generated = descriptor.GenerateKeyMaterial(
+            new SecretKeyGenerationParameters { KeySizeBits = keySizeBits, Curve = curve },
+            bytes =>
+            {
+                keyMaterial = bytes.ToArray();
+                return string.Empty;
+            }
+        );
+        return descriptor.DeserializeKeyMaterial(
+            new KeyMetadata { KeyId = keyId },
+            generated.SecretEncoding,
+            keyMaterial
+        );
+    }
+
+    private SecretKey GetKey(string alg) =>
+        alg switch
+        {
+            "Ed25519" => Ed25519Key,
+            "Ed448" => Ed448Key,
+            _ => RsaKey,
+        };
+
+    private static string ExpectedHash(string alg, string value)
+    {
+        var ascii = SecureEncoding.ASCII.GetBytes(value);
+        var hash = alg switch
+        {
+            "Ed25519" => SHA512.HashData(ascii),
+            "Ed448" => Shake256.HashData(ascii, 114),
+            _ => SHA256.HashData(ascii),
+        };
+        return Base64Url.EncodeToString(hash.AsSpan(0, hash.Length / 2));
     }
 
     public Task InitializeAsync() => Task.CompletedTask;
@@ -72,11 +122,11 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
     private ISecretKeyCollection CreateKeys(params SecretKey[] keys) =>
         ServiceProvider.GetRequiredService<ISecretKeyCollectionFactory>().Create(keys);
 
-    private Mock<IProviderKeySetResolver> CreateKeySetMock()
+    private Mock<IProviderKeySetResolver> CreateKeySetMock(SecretKey? key = null)
     {
         var mock = CreateStrictMock<IProviderKeySetResolver>();
         mock.Setup(x => x.GetSigningKeysAsync(Issuer, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.FromResult(CreateKeys(RsaKey)))
+            .Returns(ValueTask.FromResult(CreateKeys(key ?? RsaKey)))
             .Verifiable();
         return mock;
     }
@@ -120,7 +170,8 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         TimeSpan? expiresIn = null,
         string tokenType = JoseTokenTypes.Jwt,
         bool includeSub = true,
-        IReadOnlyDictionary<string, object>? extraClaims = null
+        IReadOnlyDictionary<string, object>? extraClaims = null,
+        SecretKey? signingKey = null
     )
     {
         var now = DateTimeOffset.UtcNow;
@@ -144,7 +195,10 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
             .Encode(
                 new JwtEncodingParameters
                 {
-                    SigningCredentials = new JoseSigningCredentials(RsaKey, algorithm),
+                    SigningCredentials = new JoseSigningCredentials(
+                        signingKey ?? RsaKey,
+                        algorithm
+                    ),
                     EnsureTokenLifetime = false,
                     TokenType = tokenType,
                     Issuer = issuer,
@@ -165,7 +219,10 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         string idToken,
         string? nonce = null,
         TimeSpan? maxAge = null,
-        string? subject = null
+        string? subject = null,
+        string? accessToken = null,
+        string? authorizationCode = null,
+        string? state = null
     ) =>
         await validator.ValidateAsync(
             Registration,
@@ -175,6 +232,9 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
                 Nonce = nonce,
                 MaxAge = maxAge,
                 Subject = subject,
+                AccessToken = accessToken,
+                AuthorizationCode = authorizationCode,
+                State = state,
             },
             CancellationToken.None
         );
@@ -339,6 +399,80 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
         );
 
         Assert.False(result.IsValid);
+    }
+
+    [Theory]
+    [InlineData("PS256")]
+    [InlineData("Ed25519")]
+    [InlineData("Ed448")]
+    public async Task ValidateAsync_WhenHashClaimsMatch_ReturnsPayload(string alg)
+    {
+        var key = GetKey(alg);
+        var validator = CreateValidator(CreateKeySetMock(key));
+        var claims = new Dictionary<string, object>
+        {
+            ["at_hash"] = ExpectedHash(alg, "access-token"),
+            ["c_hash"] = ExpectedHash(alg, "auth-code"),
+            ["s_hash"] = ExpectedHash(alg, "state-1"),
+        };
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(alg: alg, extraClaims: claims, signingKey: key),
+            accessToken: "access-token",
+            authorizationCode: "auth-code",
+            state: "state-1"
+        );
+
+        Assert.True(result.IsValid, result.FailureReason);
+    }
+
+    [Theory]
+    [InlineData("PS256")]
+    [InlineData("Ed25519")]
+    [InlineData("Ed448")]
+    public async Task ValidateAsync_WhenAtHashDiffers_Fails(string alg)
+    {
+        var key = GetKey(alg);
+        var validator = CreateValidator(CreateKeySetMock(key));
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(
+                alg: alg,
+                extraClaims: Claims("at_hash", ExpectedHash(alg, "other")),
+                signingKey: key
+            ),
+            accessToken: "access-token"
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal("The ID token 'at_hash' does not match.", result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAtHashIsAbsent_ReturnsPayload()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(validator, CreateIdToken(), accessToken: "access-token");
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAtHashIsNotAString_Fails()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(extraClaims: Claims("at_hash", 42)),
+            accessToken: "access-token"
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal("The ID token 'at_hash' does not match.", result.FailureReason);
     }
 
     [Fact]

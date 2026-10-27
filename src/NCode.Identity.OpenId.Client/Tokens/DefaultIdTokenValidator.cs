@@ -170,7 +170,87 @@ internal class DefaultIdTokenValidator(
                 return Fail("The authentication of the ID token is older than the maximum age.");
         }
 
+        if (
+            !string.IsNullOrEmpty(request.AccessToken)
+            || !string.IsNullOrEmpty(request.AuthorizationCode)
+            || !string.IsNullOrEmpty(request.State)
+        )
+        {
+            if (
+                !header.TryGetProperty(JoseClaimNames.Header.Alg, out var algElement)
+                || algElement.ValueKind != JsonValueKind.String
+                || algElement.GetString() is not { } headerAlg
+                || !AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
+                    headerAlg,
+                    out var signatureAlgorithm
+                )
+            )
+                return Fail("The ID token signing algorithm is not registered.");
+
+            var hashFunction = signatureAlgorithm.GetTokenHashFunction(
+                result.DecodedJwt.SigningKey,
+                out var hashSize
+            );
+
+            if (
+                CheckHash(
+                    payload,
+                    JoseClaimNames.Payload.AtHash,
+                    request.AccessToken,
+                    hashFunction,
+                    hashSize
+                ) is
+                { } atHashFailure
+            )
+                return atHashFailure;
+
+            if (
+                CheckHash(
+                    payload,
+                    JoseClaimNames.Payload.CHash,
+                    request.AuthorizationCode,
+                    hashFunction,
+                    hashSize
+                ) is
+                { } cHashFailure
+            )
+                return cHashFailure;
+
+            if (
+                CheckHash(
+                    payload,
+                    JoseClaimNames.Payload.SHash,
+                    request.State,
+                    hashFunction,
+                    hashSize
+                ) is
+                { } sHashFailure
+            )
+                return sHashFailure;
+        }
+
         return new IdTokenValidationResult(payload);
+    }
+
+    private static IdTokenValidationResult? CheckHash(
+        JsonElement payload,
+        string claimName,
+        string? value,
+        HashFunctionDelegate hashFunction,
+        int hashSize
+    )
+    {
+        if (string.IsNullOrEmpty(value) || !payload.TryGetProperty(claimName, out var claim))
+            return null;
+
+        if (
+            claim.ValueKind != JsonValueKind.String
+            || claim.GetString() is not { } tokenHash
+            || !TokenHash.Verify(hashFunction, hashSize, value, tokenHash)
+        )
+            return Fail($"The ID token '{claimName}' does not match.");
+
+        return null;
     }
 
     private static IdTokenValidationResult Fail(string reason) => new(reason);

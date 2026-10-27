@@ -29,5 +29,6 @@
         <ProjectReference Include="..\..\src\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.Jose\NCode.Identity.Jose.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.Jwt\NCode.Identity.Jwt.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Jose.EdDsa\NCode.Identity.Jose.EdDsa.csproj" />
     </ItemGroup>
 </Project>

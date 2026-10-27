@@ -97,21 +97,22 @@ When the user authorizes a push (says "push"), it pushes the current **topic bra
 changes only by pull request through the merge queue
 ([ADR-0261](../../docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
 [ADR-0263](../../docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) — and opens its
-pull request against `main` as a **draft** (`gh pr create --draft`) if none exists (a push to an open pull request's
-branch updates it). The agent stops there: it never marks the pull request ready for review and never enables
+pull request against `main` as a **draft** if none exists (a push to an open pull request's branch updates it). For a
+plan, `/ship-plan draft` does both, as the [Landing](../../AGENTS.md#landing) section of `AGENTS.md` says; keep
+`draft`, because without it `/ship-plan` opens a pull request ready for review. Without a plan, push the branch and
+run `gh pr create --draft`. The agent stops there: it never marks the pull request ready for review and never enables
 auto-merge, because the user self-reviews the draft and that step is the approval
 ([ADR-0269](../../docs/adr/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). Run these gates
 **before** pushing:
 
-1. **Retire the plan.** If a `PLAN.md` exists, every step is `[x]` and its review (`/review-plan-diff`) has run with
-   every queued fix step done. Promote its Decisions in gate 2, delete `PLAN.md` (gitignored, so it is never in a
-   commit), and squash its `Plan: <title>` / `Plan step N` / `Re-plan step N` checkpoint commits into the
-   conventional commit(s) they belong to — neither the plan nor its checkpoints reach `origin`
+1. **Finish the plan.** If a `PLAN.md` exists, every step is `[x]`, its review (`/review-plan-diff`) has run with
+   every queued fix step done, and its `Reviewed:` line matches the work. Gates 2 and 3 change files, so do them before
+   that final review, or run the review again after them: `/ship-plan` lands only the reviewed tree. Keep `PLAN.md`:
+   `/ship-plan` reads it and drops the empty `Plan: <title>` and `Re-plan step N` commits from a branch that was never
+   pushed, and `/finish-plan` deletes it once the pull request merges. The `Plan step N` checkpoints reach the pull
+   request's branch but never `main`: the merge queue squash-merges, taking the commit's subject from the pull request
+   title, which `/ship-plan` takes from the plan's title, so a plan's title is a conventional commit subject
    ([ADR-0170](../../docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
-   Before force-pushing the squash, fetch and confirm that every commit on `origin` past the plan's base is one of the
-   plan's own checkpoint commits. Replay any other commit, which someone else pushed, onto the squash so the push keeps
-   it, and pin the lease to the head you inspected (`git push --force-with-lease=<branch>:<sha>`), so a commit pushed
-   after the check rejects the push instead of being dropped.
 2. **Persist lessons.** Promote every lesson learned in the session into durable repository content — a convention
    into the scoped instruction files, a non-obvious decision into an ADR under [`docs/adr/`](../../docs/adr/), a
    consumer-visible change into [`CHANGELOG.md`](../../CHANGELOG.md), and pending work into a

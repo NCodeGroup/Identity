@@ -1811,6 +1811,9 @@ change to the public API is a **major** version bump.
 
 ### Removed
 
+- `IsActiveResult`, `PositiveIsActiveResult` and `NegativeIsActiveResult` (`NCode.Identity.Models`) are removed from
+  `NCode.Identity.Abstractions`; nothing used them.
+
 - `KeyRingProtectionOptions`, `KeyRingCertificateOptions` and certificate key-ring protection
   (supersedes ADR-0177).
 

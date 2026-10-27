@@ -48,8 +48,6 @@ public sealed class OkpSecretKeyTypeDescriptor(
     IDataProtectorFactory<SecretKey> dataProtectorFactory
 ) : ISecretKeyTypeDescriptor
 {
-    private const string OkpJwkKeyType = "OKP";
-
     private IDataProtector DataProtector { get; } = dataProtectorFactory.CreateDataProtector();
 
     /// <inheritdoc />
@@ -59,7 +57,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
     public Type KeyClrType => typeof(OkpSecretKey);
 
     /// <inheritdoc />
-    public string JwkKeyType => OkpJwkKeyType;
+    public JsonWebKeyTypeDescriptor JwkKeyType => JsonWebKeyTypeDescriptors.Okp;
 
     /// <inheritdoc />
     public bool IsAsymmetric => true;
@@ -235,7 +233,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
 
         var jwk = new JsonObject
         {
-            ["kty"] = OkpJwkKeyType,
+            ["kty"] = JsonWebKeyTypeDescriptors.Okp.Name,
             ["crv"] = okp.Curve,
             ["x"] = Base64Url.EncodeToString(publicKey),
         };
@@ -245,7 +243,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
 
         return new ExportedPublicKey
         {
-            Jwk = new JsonWebKey(jwk),
+            Jwk = new JsonWebKey(jwk, JsonWebKeyTypeDescriptors.Okp),
             Pem = okp.ExportSubjectPublicKeyInfoPem(),
         };
     }
@@ -275,13 +273,16 @@ public sealed class OkpSecretKeyTypeDescriptor(
             throw new ArgumentException("The supplied JWK material is not a JSON object.");
         }
 
-        if (!root.TryGetPropertyValue<string>("kty", out var kty) || kty != OkpJwkKeyType)
+        if (
+            !root.TryGetPropertyValue<string>("kty", out var kty)
+            || kty != JsonWebKeyTypeDescriptors.Okp.Name
+        )
         {
             throw new ArgumentException("The supplied JWK is not an 'OKP' key.");
         }
 
         // A JWK carrying any private or secret component is rejected: only public keys may be imported.
-        if (new JsonWebKey(root).ContainsPrivateKeyMaterial)
+        if (new JsonWebKey(root, JsonWebKeyTypeDescriptors.Okp).ContainsPrivateKeyMaterial)
         {
             throw new ArgumentException(
                 "Importing private key material is not supported; supply a public JWK."

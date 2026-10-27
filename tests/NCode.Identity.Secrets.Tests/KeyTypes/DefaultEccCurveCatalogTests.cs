@@ -57,6 +57,28 @@ public class DefaultEccCurveCatalogTests
     }
 
     [Fact]
+    public void IsSameNamedCurve_WhenExportedFromSameCurve_ReturnsTrue()
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var parameters = ecdsa.ExportParameters(includePrivateParameters: false);
+
+        Assert.True(
+            EccCurveSpecification.IsSameNamedCurve(parameters.Curve, ECCurve.NamedCurves.nistP256)
+        );
+    }
+
+    [Fact]
+    public void IsSameNamedCurve_WhenDifferentCurveOfSameSize_ReturnsFalse()
+    {
+        Assert.False(
+            EccCurveSpecification.IsSameNamedCurve(
+                ECCurve.NamedCurves.nistP256,
+                ECCurve.NamedCurves.brainpoolP256r1
+            )
+        );
+    }
+
+    [Fact]
     public void AdditionalCurve_IsMergedButBuiltInStaysSizeDefault()
     {
         var custom = new EccCurveSpecification

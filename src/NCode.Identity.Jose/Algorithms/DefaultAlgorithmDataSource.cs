@@ -128,18 +128,21 @@ internal sealed class DefaultAlgorithmDataSource(IAesKeyWrap aesKeyWrap)
             // ES256
             yield return new EccSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.EcdsaSha256,
+                ECCurve.NamedCurves.nistP256,
                 HashAlgorithmName.SHA256
             );
 
             // ES384
             yield return new EccSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.EcdsaSha384,
+                ECCurve.NamedCurves.nistP384,
                 HashAlgorithmName.SHA384
             );
 
             // ES512
             yield return new EccSignatureAlgorithm(
                 AlgorithmCodes.DigitalSignature.EcdsaSha512,
+                ECCurve.NamedCurves.nistP521,
                 HashAlgorithmName.SHA512
             );
 

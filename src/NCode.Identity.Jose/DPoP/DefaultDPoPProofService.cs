@@ -204,9 +204,10 @@ internal class DefaultDPoPProofService(
             return false;
         }
 
-        if (!KeySizesUtility.IsLegalSize(signatureAlgorithm.KeyBitSizes, secretKey.KeySizeBits))
+        if (!signatureAlgorithm.IsKeyCompatible(secretKey))
         {
-            error = $"The DPoP proof 'jwk' key size is not supported by the '{alg}' algorithm.";
+            error =
+                $"The DPoP proof 'jwk' key size or curve is not supported by the '{alg}' algorithm.";
             return false;
         }
 

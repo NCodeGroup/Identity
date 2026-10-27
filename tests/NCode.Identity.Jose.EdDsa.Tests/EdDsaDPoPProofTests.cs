@@ -53,9 +53,15 @@ public sealed class EdDsaDPoPProofTests : IAsyncDisposable
     }
 
     [Theory]
-    [InlineData(OkpCurves.Ed25519Name, 256)]
-    [InlineData(OkpCurves.Ed448Name, 456)]
-    public void CreateProof_WhenOkpKey_ValidatesWithThumbprint(string curve, int keySizeBits)
+    [InlineData("EdDSA", OkpCurves.Ed25519Name, 256)]
+    [InlineData("EdDSA", OkpCurves.Ed448Name, 456)]
+    [InlineData("Ed25519", OkpCurves.Ed25519Name, 256)]
+    [InlineData("Ed448", OkpCurves.Ed448Name, 456)]
+    public void CreateProof_WhenOkpKey_ValidatesWithThumbprint(
+        string alg,
+        string curve,
+        int keySizeBits
+    )
     {
         var catalog = ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>();
         Assert.True(catalog.TryGetByJwkKeyType("OKP", out var descriptor));
@@ -76,7 +82,7 @@ public sealed class EdDsaDPoPProofTests : IAsyncDisposable
         var algorithms = ServiceProvider
             .GetRequiredService<IAlgorithmCollectionProvider>()
             .Collection;
-        Assert.True(algorithms.TryGetSignatureAlgorithm("EdDSA", out var algorithm));
+        Assert.True(algorithms.TryGetSignatureAlgorithm(alg, out var algorithm));
         var proofService = ServiceProvider.GetRequiredService<IDPoPProofService>();
 
         var proof = proofService.CreateProof(
@@ -94,7 +100,7 @@ public sealed class EdDsaDPoPProofTests : IAsyncDisposable
             {
                 HttpMethod = "POST",
                 HttpUri = "https://op.test/token",
-                AllowedAlgorithms = ["EdDSA"],
+                AllowedAlgorithms = [alg],
                 Lifetime = TimeSpan.FromSeconds(60),
             },
             out var result,
@@ -103,7 +109,7 @@ public sealed class EdDsaDPoPProofTests : IAsyncDisposable
 
         Assert.True(valid, error);
         Assert.NotNull(result);
-        Assert.Equal("EdDSA", result.Algorithm);
+        Assert.Equal(alg, result.Algorithm);
         Assert.Equal("OKP", result.PublicKey.KeyType);
         Assert.Equal(result.PublicKey.ComputeThumbprint(), result.JwkThumbprint);
     }

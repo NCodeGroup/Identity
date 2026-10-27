@@ -32,7 +32,11 @@ public class EccSignatureAlgorithmTests : BaseTests
         const string code = nameof(code);
         var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
 
-        var algorithm = new EccSignatureAlgorithm(code, anyValidHashAlgorithmName);
+        var algorithm = new EccSignatureAlgorithm(
+            code,
+            ECCurve.NamedCurves.nistP384,
+            anyValidHashAlgorithmName
+        );
         Assert.Equal(code, algorithm.Code);
     }
 
@@ -42,27 +46,32 @@ public class EccSignatureAlgorithmTests : BaseTests
         const string code = nameof(code);
         var anyValidHashAlgorithmName = HashAlgorithmName.SHA384;
 
-        var algorithm = new EccSignatureAlgorithm(code, anyValidHashAlgorithmName);
+        var algorithm = new EccSignatureAlgorithm(
+            code,
+            ECCurve.NamedCurves.nistP384,
+            anyValidHashAlgorithmName
+        );
         Assert.Equal(typeof(EccSecretKey), algorithm.KeyType);
     }
 
     public static IEnumerable<object[]> GetKeyBitSizesTestData()
     {
-        yield return new object[] { HashAlgorithmName.SHA256, 256 };
-        yield return new object[] { HashAlgorithmName.SHA384, 384 };
-        yield return new object[] { HashAlgorithmName.SHA512, 521 };
+        yield return new object[] { ECCurve.NamedCurves.nistP256, HashAlgorithmName.SHA256, 256 };
+        yield return new object[] { ECCurve.NamedCurves.nistP384, HashAlgorithmName.SHA384, 384 };
+        yield return new object[] { ECCurve.NamedCurves.nistP521, HashAlgorithmName.SHA512, 521 };
     }
 
     [Theory]
     [MemberData(nameof(GetKeyBitSizesTestData))]
     public void KeyBitSizes_WhenGivenHashAlgorithm_ReturnsExpected(
+        ECCurve curve,
         HashAlgorithmName hashAlgorithmName,
         int expected
     )
     {
         const string code = nameof(code);
 
-        var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName);
+        var algorithm = new EccSignatureAlgorithm(code, curve, hashAlgorithmName);
         var result = Assert.Single(algorithm.KeyBitSizes);
         Assert.Equal(expected, result.MinSize);
         Assert.Equal(expected, result.MaxSize);
@@ -72,14 +81,15 @@ public class EccSignatureAlgorithmTests : BaseTests
     public static IEnumerable<object[]> GetSignatureSizeBitsTestData()
     {
         // ECDSA signatures are twice the size of the key size rounded up to the nearest byte
-        yield return new object[] { HashAlgorithmName.SHA256, 64 };
-        yield return new object[] { HashAlgorithmName.SHA384, 96 };
-        yield return new object[] { HashAlgorithmName.SHA512, 132 };
+        yield return new object[] { ECCurve.NamedCurves.nistP256, HashAlgorithmName.SHA256, 64 };
+        yield return new object[] { ECCurve.NamedCurves.nistP384, HashAlgorithmName.SHA384, 96 };
+        yield return new object[] { ECCurve.NamedCurves.nistP521, HashAlgorithmName.SHA512, 132 };
     }
 
     [Theory]
     [MemberData(nameof(GetSignatureSizeBitsTestData))]
     public void GetSignatureSizeBytes_WhenGivenHashAlgorithm_ReturnsExpected(
+        ECCurve curve,
         HashAlgorithmName hashAlgorithmName,
         int expected
     )
@@ -88,7 +98,7 @@ public class EccSignatureAlgorithmTests : BaseTests
 
         var keySizeBits = Random.Shared.Next();
 
-        var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName);
+        var algorithm = new EccSignatureAlgorithm(code, curve, hashAlgorithmName);
         var result = algorithm.GetSignatureSizeBytes(keySizeBits);
         Assert.Equal(expected, result);
     }
@@ -111,7 +121,7 @@ public class EccSignatureAlgorithmTests : BaseTests
         using var key = ECDsa.Create(curve);
         var secretKey = SecretKeyFactory.CreateEcc(metadata, key);
 
-        var algorithm = new EccSignatureAlgorithm(code, hashAlgorithmName);
+        var algorithm = new EccSignatureAlgorithm(code, curve, hashAlgorithmName);
         var hashSizeBytes = algorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
 
         var dataSizeBytes = Random.Shared.Next(128, 1024);
@@ -145,5 +155,58 @@ public class EccSignatureAlgorithmTests : BaseTests
             key
         );
         Assert.True(verifyHashUsingControl);
+    }
+
+    private static EccSignatureAlgorithm CreateEs256Algorithm() =>
+        new("ES256", ECCurve.NamedCurves.nistP256, HashAlgorithmName.SHA256);
+
+    private static EccSecretKey CreateBrainpoolP256Key()
+    {
+        var metadata = new KeyMetadata { KeyId = "keyId" };
+        using var key = ECDsa.Create(ECCurve.NamedCurves.brainpoolP256r1);
+        return SecretKeyFactory.CreateEcc(metadata, key);
+    }
+
+    [Fact]
+    public void IsKeyCompatible_WhenCurveMatches_ReturnsTrue()
+    {
+        var metadata = new KeyMetadata { KeyId = "keyId" };
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var secretKey = SecretKeyFactory.CreateEcc(metadata, key);
+
+        var algorithm = CreateEs256Algorithm();
+        Assert.True(algorithm.IsKeyCompatible(secretKey));
+    }
+
+    [Fact]
+    public void IsKeyCompatible_WhenSameSizeDifferentCurve_ReturnsFalse()
+    {
+        var secretKey = CreateBrainpoolP256Key();
+
+        var algorithm = CreateEs256Algorithm();
+        Assert.False(algorithm.IsKeyCompatible(secretKey));
+    }
+
+    [Fact]
+    public void TrySign_WhenSameSizeDifferentCurve_Throws()
+    {
+        var secretKey = CreateBrainpoolP256Key();
+        var algorithm = CreateEs256Algorithm();
+        var signature = new byte[64];
+
+        Assert.Throws<ArgumentException>(() =>
+            algorithm.TrySign(secretKey, new byte[16], signature, out _)
+        );
+    }
+
+    [Fact]
+    public void Verify_WhenSameSizeDifferentCurve_Throws()
+    {
+        var secretKey = CreateBrainpoolP256Key();
+        var algorithm = CreateEs256Algorithm();
+
+        Assert.Throws<ArgumentException>(() =>
+            algorithm.Verify(secretKey, new byte[16], new byte[64])
+        );
     }
 }

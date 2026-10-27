@@ -101,7 +101,7 @@ internal sealed class DefaultEccCurveCatalog : IEccCurveCatalog
     {
         foreach (var candidate in Curves)
         {
-            if (CurveOidMatches(candidate.Curve, curve))
+            if (EccCurveSpecification.IsSameNamedCurve(candidate.Curve, curve))
             {
                 specification = candidate;
                 return true;
@@ -110,27 +110,5 @@ internal sealed class DefaultEccCurveCatalog : IEccCurveCatalog
 
         specification = null;
         return false;
-    }
-
-    // Named curves are compared by OID value (preferred) or friendly name, which survive a PKCS#8 round-trip.
-    private static bool CurveOidMatches(ECCurve left, ECCurve right)
-    {
-        if (!left.IsNamed || !right.IsNamed)
-        {
-            return false;
-        }
-
-        var leftValue = left.Oid?.Value;
-        var rightValue = right.Oid?.Value;
-        if (!string.IsNullOrEmpty(leftValue) && !string.IsNullOrEmpty(rightValue))
-        {
-            return string.Equals(leftValue, rightValue, StringComparison.Ordinal);
-        }
-
-        var leftName = left.Oid?.FriendlyName;
-        var rightName = right.Oid?.FriendlyName;
-        return !string.IsNullOrEmpty(leftName)
-            && !string.IsNullOrEmpty(rightName)
-            && string.Equals(leftName, rightName, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -73,7 +73,7 @@ public partial class AlgorithmCodes
         public const string EcdsaSha384 = "ES384";
 
         /// <summary>
-        /// ECDSA using P-512 and SHA-512
+        /// ECDSA using P-521 and SHA-512
         /// </summary>
         public const string EcdsaSha512 = "ES512";
 
@@ -95,8 +95,19 @@ public partial class AlgorithmCodes
         /// <summary>
         /// Edwards-curve Digital Signature Algorithm (EdDSA) — the JWA <c>alg</c> identifier for Ed25519 and Ed448
         /// (RFC 8037). The concrete curve is selected from the signing key's OKP <c>crv</c>.
+        /// Deprecated by RFC 9864 in favour of Ed25519 and Ed448; kept for interoperability.
         /// </summary>
         public const string EdDsa = "EdDSA";
+
+        /// <summary>
+        /// EdDSA using Ed25519, fully specified (RFC 9864)
+        /// </summary>
+        public const string Ed25519 = "Ed25519";
+
+        /// <summary>
+        /// EdDSA using Ed448, fully specified (RFC 9864)
+        /// </summary>
+        public const string Ed448 = "Ed448";
 
         /// <summary>
         /// Module-Lattice-Based Digital Signature Algorithm (ML-DSA) at parameter set 44 (FIPS 204 / RFC 9964).

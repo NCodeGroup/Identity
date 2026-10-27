@@ -37,6 +37,9 @@ public abstract class EccSecretKey(
     /// </summary>
     public const string Oid = "1.2.840.10045.2.1";
 
+    // A boxed ECCurve: the reference is published atomically with Interlocked, and the box is never mutated.
+    private object? _curve;
+
     /// <inheritdoc />
     public override string KeyType => SecretKeyTypes.Ecc;
 
@@ -44,20 +47,20 @@ public abstract class EccSecretKey(
     /// Gets the <see cref="ECCurve"/> for the current <c>Elliptic-Curve</c> key material.
     /// </summary>
     /// <returns>The <see cref="ECCurve"/> for the current <c>Elliptic-Curve</c> key material.</returns>
-    public virtual ECCurve GetECCurve() =>
-        KeySizeBits switch
-        {
-            256 => ECCurve.NamedCurves.nistP256,
-            384 => ECCurve.NamedCurves.nistP384,
-            521 => ECCurve.NamedCurves.nistP521,
-            _ => GetECCurveSlow(),
-        };
-
-    private ECCurve GetECCurveSlow()
+    /// <remarks>
+    /// The curve is read from the key material, so two curves of the same size are told apart,
+    /// and is read once per key instance.
+    /// </remarks>
+    public virtual ECCurve GetECCurve()
     {
+        if (Volatile.Read(ref _curve) is ECCurve cached)
+            return cached;
+
         using var key = ExportECDsa();
-        var parameters = key.ExportParameters(includePrivateParameters: false);
-        return parameters.Curve;
+        var curve = key.ExportParameters(includePrivateParameters: false).Curve;
+        return Interlocked.CompareExchange(ref _curve, curve, null) is ECCurve existing
+            ? existing
+            : curve;
     }
 
     /// <summary>

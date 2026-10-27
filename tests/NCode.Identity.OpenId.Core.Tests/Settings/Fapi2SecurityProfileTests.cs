@@ -52,6 +52,24 @@ public class Fapi2SecurityProfileTests : BaseTests
     }
 
     [Fact]
+    public void ApplyCeilingSettings_LimitsIdTokenSigningToFapiAlgorithms()
+    {
+        var mockCeiling = CreateLooseMock<ISecurityProfileCeilingBuilder>();
+        mockCeiling
+            .Setup(x =>
+                x.Set(
+                    OpenIdSettingKeys.IdTokenSigningAlgValuesSupported,
+                    It.Is<IReadOnlyCollection<string>>(algs =>
+                        algs.SequenceEqual(new[] { "PS256", "ES256", "EdDSA", "Ed25519" })
+                    )
+                )
+            )
+            .Verifiable();
+
+        new Fapi2SecurityProfile().ApplyCeilingSettings(mockCeiling.Object);
+    }
+
+    [Fact]
     public void ApplyCeilingSettings_RequiresARetryWhenARefreshTokenRotates()
     {
         var mockCeiling = CreateLooseMock<ISecurityProfileCeilingBuilder>();

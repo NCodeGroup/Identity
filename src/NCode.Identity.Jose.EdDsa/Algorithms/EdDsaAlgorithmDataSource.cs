@@ -19,15 +19,22 @@
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Jose.EdDsa.KeyTypes;
 
 namespace NCode.Identity.Jose.EdDsa.Algorithms;
 
 /// <summary>
-/// Contributes the <c>EdDSA</c> <see cref="SignatureAlgorithm"/> to the <c>JOSE</c> algorithm collection.
+/// Contributes the <c>EdDSA</c>, <c>Ed25519</c> and <c>Ed448</c> <see cref="SignatureAlgorithm"/> instances to the
+/// <c>JOSE</c> algorithm collection.
 /// </summary>
 internal sealed class EdDsaAlgorithmDataSource : ICollectionDataSource<Algorithm>
 {
-    private static readonly Algorithm[] Algorithms = [new EdDsaSignatureAlgorithm()];
+    private static readonly Algorithm[] Algorithms =
+    [
+        new EdDsaSignatureAlgorithm(AlgorithmCodes.DigitalSignature.EdDsa, curve: null),
+        new EdDsaSignatureAlgorithm(AlgorithmCodes.DigitalSignature.Ed25519, OkpCurves.Ed25519),
+        new EdDsaSignatureAlgorithm(AlgorithmCodes.DigitalSignature.Ed448, OkpCurves.Ed448),
+    ];
 
     /// <inheritdoc />
     public IEnumerable<Algorithm> Collection => Algorithms;

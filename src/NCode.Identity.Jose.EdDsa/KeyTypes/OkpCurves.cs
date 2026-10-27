@@ -17,7 +17,10 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using NCode.Identity.Jose.EdDsa.Math;
+using System.Security.Cryptography;
+using NCode.Identity.Jose.Algorithms;
+using Ed25519Math = NCode.Identity.Jose.EdDsa.Math.Ed25519;
+using Ed448Math = NCode.Identity.Jose.EdDsa.Math.Ed448;
 
 namespace NCode.Identity.Jose.EdDsa.KeyTypes;
 
@@ -32,6 +35,12 @@ internal static class OkpCurves
 
     private static readonly OkpCurveInfo Ed25519Info = new(Ed25519Name, "1.3.101.112", 32, 32, 64);
     private static readonly OkpCurveInfo Ed448Info = new(Ed448Name, "1.3.101.113", 57, 57, 114);
+
+    // The Ed448 ID-token hash is SHAKE256 with a 114-octet output (OIDF Connect issue #1125).
+    private const int Ed448TokenHashSizeBytes = 114;
+
+    public static OkpCurveInfo Ed25519 => Ed25519Info;
+    public static OkpCurveInfo Ed448 => Ed448Info;
 
     public static int Ed25519KeySizeBits => Ed25519Info.KeySizeBits;
     public static int Ed448KeySizeBits => Ed448Info.KeySizeBits;
@@ -82,11 +91,11 @@ internal static class OkpCurves
     {
         if (curve == Ed25519Name)
         {
-            Ed25519.GeneratePublicKey(seed, publicKey);
+            Ed25519Math.GeneratePublicKey(seed, publicKey);
         }
         else
         {
-            Ed448.GeneratePublicKey(seed, publicKey);
+            Ed448Math.GeneratePublicKey(seed, publicKey);
         }
     }
 
@@ -99,11 +108,11 @@ internal static class OkpCurves
     {
         if (curve == Ed25519Name)
         {
-            Ed25519.Sign(seed, message, signature);
+            Ed25519Math.Sign(seed, message, signature);
         }
         else
         {
-            Ed448.Sign(seed, message, signature);
+            Ed448Math.Sign(seed, message, signature);
         }
     }
 
@@ -114,6 +123,38 @@ internal static class OkpCurves
         ReadOnlySpan<byte> signature
     ) =>
         curve == Ed25519Name
-            ? Ed25519.Verify(publicKey, message, signature)
-            : Ed448.Verify(publicKey, message, signature);
+            ? Ed25519Math.Verify(publicKey, message, signature)
+            : Ed448Math.Verify(publicKey, message, signature);
+
+    public static HashFunctionDelegate GetTokenHashFunction(
+        OkpCurveInfo curve,
+        out int hashSizeBytes
+    )
+    {
+        if (curve.Name == Ed25519Name)
+        {
+            hashSizeBytes = 64;
+            return SHA512.TryHashData;
+        }
+
+        hashSizeBytes = Ed448TokenHashSizeBytes;
+        return TryShake256TokenHash;
+    }
+
+    private static bool TryShake256TokenHash(
+        ReadOnlySpan<byte> source,
+        Span<byte> destination,
+        out int bytesWritten
+    )
+    {
+        if (destination.Length < Ed448TokenHashSizeBytes)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        Shake256.HashData(source, destination[..Ed448TokenHashSizeBytes]);
+        bytesWritten = Ed448TokenHashSizeBytes;
+        return true;
+    }
 }

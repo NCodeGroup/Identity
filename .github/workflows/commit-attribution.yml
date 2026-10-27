@@ -40,6 +40,8 @@ jobs:
         with:
           # The check walks the commits between the base and the head, so it needs their history, not a shallow clone.
           fetch-depth: 0
+          # Nothing in this job pushes, so the token stays out of .git/config, where later steps could read it.
+          persist-credentials: false
 
       # The expressions are GitHub's, not PowerShell's, so they are passed through env rather than interpolated into
       # the script. A push to a new branch has an all-zero `before`, for which the script checks only the head.

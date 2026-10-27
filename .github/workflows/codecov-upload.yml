@@ -41,6 +41,9 @@ jobs:
       # repository.
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Nothing in this job pushes, so the token stays out of .git/config, where later steps could read it.
+          persist-credentials: false
 
       # A failed gate can leave either artifact missing (coverage is only merged once every test passes), so a missing
       # artifact skips its upload instead of failing the job.

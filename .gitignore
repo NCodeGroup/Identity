@@ -20,7 +20,7 @@ PLAN.md
 .env
 .env.*
 !.env.example
-secrets/
+/secrets/
 
 # .NET
 bin/

@@ -157,6 +157,23 @@ which files the runtime can read. Generic conversion loses prompt-specific agent
 are separate: review any such entries individually rather than assuming the repository skills cover them. See
 [ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md#dual-runtime-customization-contract).
 
+## Landing
+
+How `/ship-plan` lands a reviewed plan; `/continue-plan`, `/run-issues` and `.githooks/pre-push` read it too.
+`integrate`: `pull-request` pushes the plan's branch and opens a pull request; `direct` pushes to the default branch.
+`release`: `none`; `tag` tags the plan's `Release:` version; `tag+release` also publishes a release from that
+version's section of `changelog`. `protect`: `none`; `hook` makes `.githooks/pre-push` refuse any push to the default
+branch, for a host that can't require pull requests. Here the `main` ruleset already requires pull requests through
+the merge queue ([ADR-0261](docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), so
+`protect` is `none`, and releases are tagged on `release/vX.Y` lines, never one per plan
+([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none`. Run it as `/ship-plan draft`
+([Plan-and-execute workflow](#plan-and-execute-workflow)).
+
+- integrate: pull-request
+- release: none
+- changelog: CHANGELOG.md
+- protect: none
+
 ## Build, test & contributing
 
 Run [`./build/dod.ps1`](build/dod.ps1) — the single Definition of Done (tool-restore, CSharpier check, restore,

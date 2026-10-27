@@ -380,6 +380,7 @@ override NCode.Identity.Jose.JsonJwt.SerializationFormat.get -> NCode.Identity.J
 override NCode.Identity.Jose.JsonJwt.ToString() -> string!
 static NCode.Identity.Jose.JoseTokenTypes.AreSame(string? left, string? right) -> bool
 static NCode.Identity.Jose.JoseTokenTypes.Normalize(string! tokenType) -> string!
+virtual NCode.Identity.Jose.Algorithms.KeyedAlgorithm.IsKeyCompatible(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> bool
 virtual NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.SupportsKeyWrapping.get -> bool
 const NCode.Identity.Jose.JoseClaimNames.Payload.Ath = "ath" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Htm = "htm" -> string!

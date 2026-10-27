@@ -64,6 +64,49 @@ public class KeyedHashSignatureAlgorithmTests : BaseTests
         Assert.Equal(8, result.SkipSize);
     }
 
+    [Fact]
+    public void IsKeyCompatible_WhenKeyLargeEnough_ReturnsTrue()
+    {
+        var algorithm = new KeyedHashSignatureAlgorithm(
+            AlgorithmCodes.DigitalSignature.HmacSha256,
+            HashAlgorithmName.SHA256,
+            HMACSHA256.TryHashData
+        );
+        var metadata = new KeyMetadata { KeyId = "keyId" };
+        var secretKey = SecretKeyFactory.CreateSymmetric(metadata, new byte[32]);
+
+        Assert.True(algorithm.IsKeyCompatible(secretKey));
+    }
+
+    [Fact]
+    public void IsKeyCompatible_WhenKeyTooSmall_ReturnsFalse()
+    {
+        var algorithm = new KeyedHashSignatureAlgorithm(
+            AlgorithmCodes.DigitalSignature.HmacSha256,
+            HashAlgorithmName.SHA256,
+            HMACSHA256.TryHashData
+        );
+        var metadata = new KeyMetadata { KeyId = "keyId" };
+        var secretKey = SecretKeyFactory.CreateSymmetric(metadata, new byte[16]);
+
+        Assert.False(algorithm.IsKeyCompatible(secretKey));
+    }
+
+    [Fact]
+    public void IsKeyCompatible_WhenKeyTypeDiffers_ReturnsFalse()
+    {
+        var algorithm = new KeyedHashSignatureAlgorithm(
+            AlgorithmCodes.DigitalSignature.HmacSha256,
+            HashAlgorithmName.SHA256,
+            HMACSHA256.TryHashData
+        );
+        var metadata = new KeyMetadata { KeyId = "keyId" };
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var secretKey = SecretKeyFactory.CreateEcc(metadata, ecdsa);
+
+        Assert.False(algorithm.IsKeyCompatible(secretKey));
+    }
+
     [Theory]
     [InlineData(256)]
     [InlineData(384)]

@@ -10,6 +10,13 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Shared state holds versioned expiring values and membership indexes.** `IExpiringValueSet` stores an opaque,
+  versioned `ExpiringValue` with an atomic take and a compare-and-replace, and `IExpiringIndexSet` keeps expiring
+  membership indexes. `AddInProcessExpiringValueSet` and `AddInProcessExpiringIndexSet` register the in-process
+  adapters, and `AddValkey` registers both Valkey adapters. This is phase 0 of the BFF; the BFF itself is not yet
+  delivered
+  ([ADR-0267](docs/adr/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md), issue [#123](https://github.com/NCodeGroup/Identity/issues/123)).
+
 - **The in-process dispatcher is configured from `OpenId:InProcessJobDispatcher`.** `AddConfiguration` binds
   `InProcessJobDispatcherOptions` (`QueueCapacity`, `FullMode`, `MaxConcurrentJobs`) strictly from the OpenID section's
   `InProcessJobDispatcher` subsection, which `InProcessJobDispatcherOptions.SectionName` names, and the host refuses to

@@ -1,7 +1,7 @@
 # Backend for Frontend (BFF) — cookie sessions with server-side token custody
 
-- **Status:** Proposed. This is a design only, and nothing in it is implemented yet. The library is tracked as issue
-  [#123](https://github.com/NCodeGroup/Identity/issues/123), and moving the management console onto it is tracked as [#158](https://github.com/NCodeGroup/Identity/issues/158). When each
+- **Status:** Proposed. This is a design only, and only phase 0 (SharedState) is implemented. The library is tracked as issue
+  [#123](https://github.com/NCodeGroup/Identity/issues/123), and moving the management console onto it is tracked as [#158](https://github.com/NCodeGroup/Identity/issues/158). Phase 0 is delivered: [ADR-0267](adr/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md). When each
   phase lands, its decisions ([§8](#8-decisions-and-options-considered)) become ADRs.
 - **Date:** 2026-10-20
 - **Scope:** a new **server-side** library that turns an ASP.NET Core application into the Backend for Frontend (BFF)
@@ -415,15 +415,17 @@ ending the session when its refresh token dies.
 only whether a key is present. That is enough for the logout-token `jti` replay check and the refresh lease. It cannot
 hold a session or a login transaction. SharedState therefore gains a second primitive next to it:
 
-- **Versioned expiring values.** `TryAdd` succeeds only when the key is absent. `Get` returns the value and its
-  version. `TryReplace` succeeds only when the version still matches. `TryTake` reads and removes in one atomic step.
-  `Remove` deletes. Each value carries an absolute expiry.
-- **Expiring membership indexes.** These are sets of keys under an index key, so the BFF can find every session for an
-  OP `sid` or a `sub` without scanning.
+- **Versioned expiring values** (`IExpiringValueSet`). `TryAddAsync` succeeds only when the key is absent. `GetAsync`
+  returns the value and its version. `TryReplaceAsync` succeeds only when the version still matches. `TryTakeAsync`
+  reads and removes in one atomic step. `RemoveAsync` deletes. Each value carries an absolute expiry.
+- **Expiring membership indexes** (`IExpiringIndexSet`: `AddMemberAsync`, `GetMembersAsync`, `RemoveMemberAsync`,
+  `RemoveAsync`). These are sets of keys under an index key, so the BFF can find every session for an OP `sid` or a
+  `sub` without scanning.
 
 The in-process adapter implements both primitives and stays the default. As ADR-0164 decided for the OP, it is correct
 for a single replica, including a single-replica production deployment. Several replicas register the **Valkey**
-adapter, which implements the primitives with `SET NX PX`, `GETDEL`, and a compare-and-swap script. The BFF thus
+adapter, which implements the primitives with `SET NX PX`, `GETDEL`, and a compare-and-swap script, and the index is a sorted set scored by member expiry
+([ADR-0267](adr/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). The BFF thus
 shares the OP's Valkey integration rather than adding its own. If the store fails, the BFF **fails closed with
 `503`**. It never treats the request as signed out, because a `401` would send the SPA into a login loop against a
 broken store.
@@ -954,7 +956,7 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
 
 | Phase | Delivers                                                                                                                                                                                                         |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0     | SharedState: versioned expiring values with atomic take and compare-and-swap, plus membership indexes, in the in-process and Valkey adapters ([§5.4](#54-state-every-replica-sees)).                             |
+| 0     | SharedState: versioned expiring values with atomic take and compare-and-swap, plus membership indexes, in the in-process and Valkey adapters ([§5.4](#54-state-every-replica-sees)). Delivered ([ADR-0267](adr/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). |
 | 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. |
 | 2     | `NCode.Identity.Bff` core: the scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP. |
 | 3     | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and `NCode.Identity.Bff.Yarp`.                                                                           |

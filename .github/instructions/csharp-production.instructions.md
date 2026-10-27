@@ -672,6 +672,12 @@ rationale.
   one tenant's keys on a clustered Valkey and never several tenants'; and every Valkey adapter call goes through
   `ValkeySharedStateMetrics.MeasureAsync`. A library never registers a host-wide cache. See
   [ADR-0164](../../docs/adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md).
+- 👁 **A record every replica must read and update is an `IExpiringValueSet` value, and a lookup by an attribute is an
+  `IExpiringIndexSet`.** Take a single-use record with `TryTakeAsync`, never `GetAsync` then `RemoveAsync`. Update a
+  record with `TryReplaceAsync`, naming the version you read; on `false` reload the record rather than overwrite it.
+  The value is opaque bytes the caller serializes, and encrypts when it holds secrets. Keep an index's members and
+  their records on the same expiry, and remove both. A store failure throws, and the caller fails closed. See
+  [ADR-0267](../../docs/adr/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md).
 - 👁 **A credential with a stored grant is spent through `IPersistedGrantService.ConsumeOnceOrDefault`, after every
   check passes and before its effect.** A refused request leaves it usable. `IExpiringKeySet` is for single-use state
   with no durable row. See

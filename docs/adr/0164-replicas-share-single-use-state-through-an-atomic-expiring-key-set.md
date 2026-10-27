@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-0246](0246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md): every key carries its
-  tenant as a hash tag)
+  tenant as a hash tag; extended by
+  [ADR-0267](0267-replicas-share-versioned-expiring-values-and-membership-indexes.md): versioned expiring values and
+  membership indexes)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

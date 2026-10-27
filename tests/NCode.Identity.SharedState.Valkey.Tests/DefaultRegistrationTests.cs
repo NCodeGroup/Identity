@@ -35,10 +35,16 @@ public sealed class DefaultRegistrationTests : BaseTests
 
     private IExpiringCounterSet CounterAdapterRegisteredBefore { get; }
 
+    private IExpiringValueSet ValueAdapterRegisteredBefore { get; }
+
+    private IExpiringIndexSet IndexAdapterRegisteredBefore { get; }
+
     private IReplicaBroadcaster BroadcasterRegisteredBefore { get; }
 
     public DefaultRegistrationTests()
     {
+        ValueAdapterRegisteredBefore = CreateStrictMock<IExpiringValueSet>().Object;
+        IndexAdapterRegisteredBefore = CreateStrictMock<IExpiringIndexSet>().Object;
         AdapterRegisteredBefore = CreateStrictMock<IExpiringKeySet>().Object;
         CounterAdapterRegisteredBefore = CreateStrictMock<IExpiringCounterSet>().Object;
         BroadcasterRegisteredBefore = CreateStrictMock<IReplicaBroadcaster>().Object;
@@ -56,6 +62,8 @@ public sealed class DefaultRegistrationTests : BaseTests
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton(AdapterRegisteredBefore);
         serviceCollection.AddSingleton(CounterAdapterRegisteredBefore);
+        serviceCollection.AddSingleton(ValueAdapterRegisteredBefore);
+        serviceCollection.AddSingleton(IndexAdapterRegisteredBefore);
         serviceCollection.AddSingleton(BroadcasterRegisteredBefore);
         serviceCollection.AddSharedStateServices().AddValkey(configuration);
         return serviceCollection;
@@ -75,6 +83,12 @@ public sealed class DefaultRegistrationTests : BaseTests
         Assert.IsType<ValkeyExpiringKeySet>(Assert.Single(provider.GetServices<IExpiringKeySet>()));
         Assert.IsType<ValkeyExpiringCounterSet>(
             Assert.Single(provider.GetServices<IExpiringCounterSet>())
+        );
+        Assert.IsType<ValkeyExpiringValueSet>(
+            Assert.Single(provider.GetServices<IExpiringValueSet>())
+        );
+        Assert.IsType<ValkeyExpiringIndexSet>(
+            Assert.Single(provider.GetServices<IExpiringIndexSet>())
         );
     }
 
@@ -186,6 +200,8 @@ public sealed class DefaultRegistrationTests : BaseTests
             CounterAdapterRegisteredBefore,
             provider.GetRequiredService<IExpiringCounterSet>()
         );
+        Assert.Same(ValueAdapterRegisteredBefore, provider.GetRequiredService<IExpiringValueSet>());
+        Assert.Same(IndexAdapterRegisteredBefore, provider.GetRequiredService<IExpiringIndexSet>());
         Assert.Same(
             BroadcasterRegisteredBefore,
             provider.GetRequiredService<IReplicaBroadcaster>()

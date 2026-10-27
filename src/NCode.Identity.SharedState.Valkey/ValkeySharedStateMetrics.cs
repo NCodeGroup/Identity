@@ -52,6 +52,24 @@ internal sealed class ValkeySharedStateMetrics
 
     internal const string KeySetContainsOperation = "key_set.contains";
 
+    internal const string ValueSetTryAddOperation = "value_set.try_add";
+
+    internal const string ValueSetGetOperation = "value_set.get";
+
+    internal const string ValueSetTryReplaceOperation = "value_set.try_replace";
+
+    internal const string ValueSetTryTakeOperation = "value_set.try_take";
+
+    internal const string ValueSetRemoveOperation = "value_set.remove";
+
+    internal const string IndexSetAddMemberOperation = "index_set.add_member";
+
+    internal const string IndexSetGetMembersOperation = "index_set.get_members";
+
+    internal const string IndexSetRemoveMemberOperation = "index_set.remove_member";
+
+    internal const string IndexSetRemoveOperation = "index_set.remove";
+
     internal const string BroadcastPublishOperation = "broadcast.publish";
 
     // A round trip to a nearby server takes well under a millisecond, so the buckets resolve the sub-millisecond range

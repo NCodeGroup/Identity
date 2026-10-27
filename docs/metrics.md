@@ -85,6 +85,6 @@ server. The in-process adapter records nothing: a dictionary operation in memory
 
 | Attribute                               | Values                                                                                                                                               |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ncode.identity.shared_state.operation` | `counter.increment`, `counter.increment_until_exceeded`, `counter.get`, `counter.remove`, `key_set.try_add`, `key_set.contains`, `broadcast.publish` |
+| `ncode.identity.shared_state.operation` | `counter.increment`, `counter.increment_until_exceeded`, `counter.get`, `counter.remove`, `key_set.try_add`, `key_set.contains`, `broadcast.publish`, `value_set.try_add`, `value_set.get`, `value_set.try_replace`, `value_set.try_take`, `value_set.remove`, `index_set.add_member`, `index_set.get_members`, `index_set.remove_member`, `index_set.remove` |
 | `ncode.identity.shared_state.adapter`   | `valkey`, or the name another networked adapter declares                                                                                             |
 | `error.type`                            | On failure only: the full type name of the exception                                                                                                 |

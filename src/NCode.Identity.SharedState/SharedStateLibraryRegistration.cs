@@ -75,6 +75,50 @@ public static class SharedStateLibraryRegistration
         }
 
         /// <summary>
+        /// Registers the built-in in-process <see cref="IExpiringValueSet"/> adapter. Its values live in the memory of
+        /// one process, so it is correct only for a deployment that runs a single replica: a value recorded by one
+        /// replica is not seen by another, and every value is lost when the process restarts. The registration is a
+        /// default (<c>TryAdd</c>), so a deployment that registered its own <see cref="IExpiringValueSet"/> first
+        /// keeps that adapter.
+        /// </summary>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
+        [PublicAPI]
+        public IServiceBuilder<SharedStateLibrary> AddInProcessExpiringValueSet()
+        {
+            var serviceCollection = builder.ServiceCollection;
+
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddSingleton<
+                IExpiringValueSet,
+                DefaultInProcessExpiringValueSet
+            >();
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Registers the built-in in-process <see cref="IExpiringIndexSet"/> adapter. Its index members live in the
+        /// memory of one process, so it is correct only for a deployment that runs a single replica: a member added by
+        /// one replica is not seen by another, and every member is lost when the process restarts. The registration is
+        /// a default (<c>TryAdd</c>), so a deployment that registered its own <see cref="IExpiringIndexSet"/> first
+        /// keeps that adapter.
+        /// </summary>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
+        [PublicAPI]
+        public IServiceBuilder<SharedStateLibrary> AddInProcessExpiringIndexSet()
+        {
+            var serviceCollection = builder.ServiceCollection;
+
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddSingleton<
+                IExpiringIndexSet,
+                DefaultInProcessExpiringIndexSet
+            >();
+
+            return builder;
+        }
+
+        /// <summary>
         /// Registers the built-in in-process <see cref="IReplicaBroadcaster"/> adapter. It delivers a message only to
         /// the <see cref="IReplicaBroadcastHandler"/> instances of one process, so it is correct only for a deployment
         /// that runs a single replica: a message published by one replica is not seen by another. The registration is

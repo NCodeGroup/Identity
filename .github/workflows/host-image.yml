@@ -36,6 +36,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Nothing in this job pushes, so the token stays out of .git/config, where later steps could read it.
+          persist-credentials: false
 
       # The Dockerfile names Node by a literal tag and digest, which a FROM line cannot read from a file, so its major
       # must equal the single pin in src/frontend/.node-version (ADR-0152, ADR-0249).

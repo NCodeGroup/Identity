@@ -46,7 +46,9 @@ read-only.**
 - **Codecov uploads run in a separate job, over OIDC.** The reusable
   [`codecov-upload.yml`](../../.github/workflows/codecov-upload.yml) job holds the only `id-token: write` permission,
   downloads the gate's artifacts, and uploads coverage and test results with a commit-SHA-pinned Codecov action. Gate
-  jobs stay `contents: read`. No upload secret is stored; pull requests from forks use Codecov's tokenless fork path.
+  jobs stay `contents: read`, and every workflow's checkout except `copilot-setup-steps.yml`'s sets
+  `persist-credentials: false`, so the job's token never lands in `.git/config`, where build, test and third-party
+  action code could read it. No upload secret is stored; pull requests from forks use Codecov's tokenless fork path.
 - **Codecov reports; it does not gate.** Its project and patch statuses are informational
   ([`codecov.yml`](../../codecov.yml)) and an upload failure never fails a run, so the required check stays
   "Definition of Done". The path-filtered frontend flag carries forward across commits that do not touch it.

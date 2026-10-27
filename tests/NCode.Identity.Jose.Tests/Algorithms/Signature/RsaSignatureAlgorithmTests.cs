@@ -57,6 +57,27 @@ public class RsaSignatureAlgorithmTests : BaseTests
         Assert.Equal(64, result.SkipSize);
     }
 
+    [Fact]
+    public void GetTokenHashFunction_ReturnsHashOfHashAlgorithmName()
+    {
+        const string code = nameof(code);
+
+        var algorithm = new RsaSignatureAlgorithm(
+            code,
+            HashAlgorithmName.SHA384,
+            RSASignaturePadding.Pss
+        );
+
+        var hashFunction = algorithm.GetTokenHashFunction(null!, out var hashSizeBytes);
+        Assert.Equal(48, hashSizeBytes);
+
+        var destination = new byte[hashSizeBytes];
+        var result = hashFunction("abc"u8, destination, out var written);
+        Assert.True(result);
+        Assert.Equal(hashSizeBytes, written);
+        Assert.Equal(SHA384.HashData("abc"u8), destination);
+    }
+
     public static IEnumerable<object[]> GetSignatureSizeBitsTestData()
     {
         var keyBitSizes = new[] { 2048, 2048 + 8, 4096, 4096 + 16 };

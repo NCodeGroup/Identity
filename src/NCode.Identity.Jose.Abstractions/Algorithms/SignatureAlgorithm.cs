@@ -43,6 +43,23 @@ public abstract class SignatureAlgorithm : KeyedAlgorithm
     public abstract int GetSignatureSizeBytes(int keySizeBits);
 
     /// <summary>
+    /// Gets the hash function, and its output size in bytes, that OpenID Connect uses for the token hash claims
+    /// (at_hash, c_hash, s_hash) of a token this algorithm signs with the given key. The default uses
+    /// <see cref="HashAlgorithmName"/>.
+    /// </summary>
+    /// <param name="secretKey">Contains the key material for the cryptographic algorithm.</param>
+    /// <param name="hashSizeBytes">The output size, in bytes, of the returned hash function.</param>
+    /// <returns>The hash function to use for the token hash claims.</returns>
+    public virtual HashFunctionDelegate GetTokenHashFunction(
+        SecretKey secretKey,
+        out int hashSizeBytes
+    )
+    {
+        hashSizeBytes = HashAlgorithmName.GetHashSizeBits() >> 3;
+        return HashAlgorithmName.GetHashFunction();
+    }
+
+    /// <summary>
     /// Computes a digital signature.
     /// </summary>
     /// <param name="secretKey">Contains the key material for the cryptographic algorithm.</param>

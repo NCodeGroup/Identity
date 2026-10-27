@@ -44,6 +44,8 @@ const NCode.Identity.Jose.Algorithms.AlgorithmCodes.Compression.None = "" -> str
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.EcdsaSha256 = "ES256" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.EcdsaSha384 = "ES384" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.EcdsaSha512 = "ES512" -> string!
+const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.Ed25519 = "Ed25519" -> string!
+const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.Ed448 = "Ed448" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.EdDsa = "EdDSA" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.HmacSha256 = "HS256" -> string!
 const NCode.Identity.Jose.Algorithms.AlgorithmCodes.DigitalSignature.HmacSha384 = "HS384" -> string!
@@ -382,6 +384,7 @@ static NCode.Identity.Jose.JoseTokenTypes.AreSame(string? left, string? right) -
 static NCode.Identity.Jose.JoseTokenTypes.Normalize(string! tokenType) -> string!
 virtual NCode.Identity.Jose.Algorithms.KeyedAlgorithm.IsKeyCompatible(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> bool
 virtual NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.SupportsKeyWrapping.get -> bool
+virtual NCode.Identity.Jose.Algorithms.SignatureAlgorithm.GetTokenHashFunction(NCode.Identity.Secrets.Keys.SecretKey! secretKey, out int hashSizeBytes) -> NCode.Identity.Jose.Algorithms.HashFunctionDelegate!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Ath = "ath" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Htm = "htm" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Htu = "htu" -> string!

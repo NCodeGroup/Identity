@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Net;
 using System.Text.Json;
 
 namespace NCode.Identity.OpenId.Client.Http;
@@ -24,4 +23,4 @@ namespace NCode.Identity.OpenId.Client.Http;
 /// <summary>
 /// The status code and the parsed JSON body (when the response is JSON) of a provider response.
 /// </summary>
-internal readonly record struct ProviderHttpResponse(HttpStatusCode StatusCode, JsonElement? Json);
+internal readonly record struct ProviderHttpResponse(int StatusCode, JsonElement? Json);

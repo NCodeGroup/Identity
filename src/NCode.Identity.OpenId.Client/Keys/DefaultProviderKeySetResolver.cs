@@ -128,8 +128,8 @@ internal class DefaultProviderKeySetResolver(
             throw;
         }
 
-        if (response.StatusCode != HttpStatusCode.OK)
-            throw Fail(jwksUri, $"The jwks_uri returned status {(int)response.StatusCode}.");
+        if (response.StatusCode != (int)HttpStatusCode.OK)
+            throw Fail(jwksUri, $"The jwks_uri returned status {response.StatusCode}.");
 
         if (response.Json is not { ValueKind: JsonValueKind.Object } json)
             throw Fail(jwksUri, "The jwks_uri did not return a JSON object.");

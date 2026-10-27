@@ -61,7 +61,7 @@ internal class ProviderHttpClient(
             var bytes = await response.Content.ReadAsByteArrayAsync(token);
 
             if (bytes.Length == 0)
-                return new ProviderHttpResponse(response.StatusCode, null);
+                return new ProviderHttpResponse((int)response.StatusCode, null);
 
             var mediaType = response.Content.Headers.ContentType?.MediaType;
             if (
@@ -72,10 +72,10 @@ internal class ProviderHttpClient(
                     StringComparison.OrdinalIgnoreCase
                 )
             )
-                return new ProviderHttpResponse(response.StatusCode, null);
+                return new ProviderHttpResponse((int)response.StatusCode, null);
 
             using var document = JsonDocument.Parse(bytes);
-            return new ProviderHttpResponse(response.StatusCode, document.RootElement.Clone());
+            return new ProviderHttpResponse((int)response.StatusCode, document.RootElement.Clone());
         }
         catch (OperationCanceledException exception)
             when (!cancellationToken.IsCancellationRequested)

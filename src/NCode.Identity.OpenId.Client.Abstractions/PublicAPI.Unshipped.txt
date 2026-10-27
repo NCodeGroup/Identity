@@ -103,8 +103,8 @@ NCode.Identity.OpenId.Client.ProtocolError.ErrorDescription.get -> string?
 NCode.Identity.OpenId.Client.ProtocolError.ErrorDescription.init -> void
 NCode.Identity.OpenId.Client.ProtocolError.ErrorUri.get -> string?
 NCode.Identity.OpenId.Client.ProtocolError.ErrorUri.init -> void
-NCode.Identity.OpenId.Client.ProtocolError.ProtocolError(string! error, System.Net.HttpStatusCode statusCode) -> void
-NCode.Identity.OpenId.Client.ProtocolError.StatusCode.get -> System.Net.HttpStatusCode
+NCode.Identity.OpenId.Client.ProtocolError.ProtocolError(string! error, int statusCode) -> void
+NCode.Identity.OpenId.Client.ProtocolError.StatusCode.get -> int
 NCode.Identity.OpenId.Client.RefreshTokenRequest
 NCode.Identity.OpenId.Client.RefreshTokenRequest.RefreshToken.get -> string!
 NCode.Identity.OpenId.Client.RefreshTokenRequest.RefreshTokenRequest(string! refreshToken) -> void

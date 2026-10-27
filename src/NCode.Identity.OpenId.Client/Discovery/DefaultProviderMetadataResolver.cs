@@ -97,11 +97,8 @@ internal class DefaultProviderMetadataResolver(
             throw;
         }
 
-        if (response.StatusCode != HttpStatusCode.OK)
-            throw Fail(
-                authority,
-                $"The discovery endpoint returned status {(int)response.StatusCode}."
-            );
+        if (response.StatusCode != (int)HttpStatusCode.OK)
+            throw Fail(authority, $"The discovery endpoint returned status {response.StatusCode}.");
 
         if (response.Json is not { ValueKind: JsonValueKind.Object } json)
             throw Fail(authority, "The discovery endpoint did not return a JSON object.");

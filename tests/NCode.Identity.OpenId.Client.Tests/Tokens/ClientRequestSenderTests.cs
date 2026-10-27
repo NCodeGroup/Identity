@@ -90,7 +90,7 @@ public class ClientRequestSenderTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Post, request.Method);
         Assert.Equal(Endpoint, request.RequestUri?.AbsoluteUri);
@@ -157,7 +157,7 @@ public class ClientRequestSenderTests : BaseTests
     public void TryRead_WithErrorObject_ReturnsError()
     {
         var response = new ProviderHttpResponse(
-            HttpStatusCode.BadRequest,
+            (int)HttpStatusCode.BadRequest,
             JsonDocument.Parse("""{"error":"invalid_grant","error_description":"d"}""").RootElement
         );
 
@@ -168,14 +168,14 @@ public class ClientRequestSenderTests : BaseTests
         Assert.Equal("invalid_grant", error.Error);
         Assert.Equal("d", error.ErrorDescription);
         Assert.Null(error.ErrorUri);
-        Assert.Equal(HttpStatusCode.BadRequest, error.StatusCode);
+        Assert.Equal((int)HttpStatusCode.BadRequest, error.StatusCode);
     }
 
     [Fact]
     public void TryRead_WithEmptyObject_ReturnsFalse()
     {
         var response = new ProviderHttpResponse(
-            HttpStatusCode.BadRequest,
+            (int)HttpStatusCode.BadRequest,
             JsonDocument.Parse("{}").RootElement
         );
 
@@ -188,7 +188,7 @@ public class ClientRequestSenderTests : BaseTests
     [Fact]
     public void TryRead_WithNullJson_ReturnsFalse()
     {
-        var response = new ProviderHttpResponse(HttpStatusCode.BadRequest, null);
+        var response = new ProviderHttpResponse((int)HttpStatusCode.BadRequest, null);
 
         var result = ProtocolErrorReader.TryRead(response, out var error);
 

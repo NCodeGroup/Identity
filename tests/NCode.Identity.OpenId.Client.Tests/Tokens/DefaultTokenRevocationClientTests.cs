@@ -134,7 +134,7 @@ public class DefaultTokenRevocationClientTests : BaseTests
 
         Assert.NotNull(error);
         Assert.Equal("unsupported_token_type", error.Error);
-        Assert.Equal(HttpStatusCode.BadRequest, error.StatusCode);
+        Assert.Equal((int)HttpStatusCode.BadRequest, error.StatusCode);
     }
 
     [Fact]

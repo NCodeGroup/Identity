@@ -76,7 +76,7 @@ internal class DefaultTokenClient(
         );
 
         if (
-            response.StatusCode == HttpStatusCode.OK
+            response.StatusCode == (int)HttpStatusCode.OK
             && response.Json is { ValueKind: JsonValueKind.Object } json
         )
         {
@@ -111,7 +111,7 @@ internal class DefaultTokenClient(
             return new TokenResult(error);
 
         throw new OpenIdProviderException(
-            $"The token endpoint answered HTTP {(int)response.StatusCode} without an OAuth error."
+            $"The token endpoint answered HTTP {response.StatusCode} without an OAuth error."
         );
     }
 }

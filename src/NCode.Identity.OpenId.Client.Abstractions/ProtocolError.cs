@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Client;
 /// <param name="error">The error code.</param>
 /// <param name="statusCode">The HTTP status code of the response.</param>
 [PublicAPI]
-public sealed class ProtocolError(string error, System.Net.HttpStatusCode statusCode)
+public sealed class ProtocolError(string error, int statusCode)
 {
     /// <summary>
     /// Gets the error code.
@@ -36,7 +36,7 @@ public sealed class ProtocolError(string error, System.Net.HttpStatusCode status
     /// <summary>
     /// Gets the HTTP status code of the response.
     /// </summary>
-    public System.Net.HttpStatusCode StatusCode { get; } = statusCode;
+    public int StatusCode { get; } = statusCode;
 
     /// <summary>
     /// Gets the human-readable error description, if any.

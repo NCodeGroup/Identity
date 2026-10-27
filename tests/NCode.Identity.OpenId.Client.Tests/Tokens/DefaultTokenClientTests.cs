@@ -218,7 +218,7 @@ public class DefaultTokenClientTests : BaseTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal("invalid_grant", result.Error.Error);
-        Assert.Equal(HttpStatusCode.BadRequest, result.Error.StatusCode);
+        Assert.Equal((int)HttpStatusCode.BadRequest, result.Error.StatusCode);
     }
 
     [Fact]

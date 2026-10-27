@@ -70,14 +70,14 @@ internal class DefaultTokenRevocationClient(
             cancellationToken
         );
 
-        if (response.StatusCode == HttpStatusCode.OK)
+        if (response.StatusCode == (int)HttpStatusCode.OK)
             return null;
 
         if (ProtocolErrorReader.TryRead(response, out var error))
             return error;
 
         throw new OpenIdProviderException(
-            $"The revocation endpoint answered HTTP {(int)response.StatusCode} without an OAuth error."
+            $"The revocation endpoint answered HTTP {response.StatusCode} without an OAuth error."
         );
     }
 }

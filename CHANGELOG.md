@@ -741,7 +741,7 @@ change to the public API is a **major** version bump.
   ([#235](https://github.com/NCodeGroup/Identity/issues/235)).
 - **The plan-and-execute workflow comes from the project template, executes on Claude Sonnet 5.5, and runs in Claude
   Code too.** The repository adopted [project-template](https://github.com/polewskm/project-template) `v0.3.0` and
-  updated to `v0.18.2`: its agents, prompt files, skills, Claude Code commands, `CLAUDE.md`, `commit-msg` hook and
+  updated to `v0.23.0`: its agents, prompt files, skills, Claude Code commands, `CLAUDE.md`, `commit-msg` hook and
   `.template/` scripts are template-owned, `.copier-answers.yml` and `.template-version` record the version, and
   `./.template/Update-Project.ps1` takes a newer one. `v0.4.0` keeps the update from failing on Windows with
   `WinError 206` (the filename or extension is too long) when the repository's `.gitignore` ignores a folder the
@@ -760,7 +760,11 @@ change to the public API is a **major** version bump.
   file in a `Secrets/` source folder, such as `Contracts/Secrets/`, is no longer left out of commits on Windows.
   `v0.16.0` keeps the job's token out of `.git/config` with `persist-credentials: false`, which every checkout here
   except `copilot-setup-steps.yml`'s now sets, and `v0.17.0` starts the `commit-msg` hook with `#!/usr/bin/env sh`,
-  so pre-commit on Windows can run it. Plan steps execute on Claude Sonnet 5.5 instead of Auto in VS Code, Copilot
+  so pre-commit on Windows can run it. From `v0.19.0`, `/ship-plan` lands a reviewed plan as the `## Landing` section
+  of `AGENTS.md` says, here as a draft pull request (`/ship-plan draft`) with no release, and `/continue-plan` shows
+  where each open plan stands; `v0.23.0` adds `/run-issues`, which takes issues from plan to a draft pull request one
+  at a time. A plan's `Plan step` checkpoints now reach its pull request's branch, and its title is the conventional
+  commit subject the squash merge takes. Plan steps execute on Claude Sonnet 5.5 instead of Auto in VS Code, Copilot
   CLI and Claude Code. The repository-wide agent rules moved from `.github/copilot-instructions.md` to
   `.github/instructions/repository.instructions.md`. The `Commit attribution` check now runs the template's
   `./.template/Test-CommitAttribution.ps1`, which replaces `./build/commit-attribution.ps1` and its Definition-of-Done

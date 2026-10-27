@@ -1,6 +1,6 @@
 /**
  * The owner of a collection of secrets or of a settings document: a server, a tenant, or a client or
- * resource server inside a scope (see docs/adr/0257). Secrets and settings are managed the same way for every owner,
+ * resource server inside a scope (see docs/decisions/0257). Secrets and settings are managed the same way for every owner,
  * so the UI and the store address them through one owner value instead of one endpoint per owner. This module is
  * UI-free so the addressing and cache-tag rules are unit-tested.
  */

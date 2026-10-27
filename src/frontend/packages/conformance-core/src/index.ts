@@ -6,7 +6,7 @@
  * The browser dashboard ([apps/conformance](../../../apps/conformance)) renders this; the headless probe runner
  * ([apps/conformance-runner](../../../apps/conformance-runner)) reuses the discovery fetch, the `RawDiscovery` shape,
  * the coverage catalog, and the probe result types to exercise the confidential and server-initiated legs a browser
- * cannot drive. See [ADR-0084](../../../../../docs/adr/0084-spec-coverage-conformance-harness.md).
+ * cannot drive. See [ADR-0084](../../../../../docs/decisions/0084-spec-coverage-conformance-harness.md).
  */
 
 export {

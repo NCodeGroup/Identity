@@ -4,7 +4,7 @@ import type { BrandingConfig } from '@ncode/config';
 /**
  * Builds the application theme from optional runtime {@link BrandingConfig}. Branding is injected at
  * runtime (discovery), never baked at build time, so a single bundle can be re-themed per
- * deployment/tenant (see docs/adr/0064 branding seam).
+ * deployment/tenant (see docs/decisions/0064 branding seam).
  */
 export function createAppTheme(branding?: BrandingConfig): Theme {
   return createTheme({

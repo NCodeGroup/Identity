@@ -5,7 +5,7 @@
  * - the **tenant** scope   (`api/tenants/{tenantId}/...`) — per-tenant administration.
  *
  * Treating these as one list with a filter hides the boundary; the UI models them as distinct
- * browsing contexts (see docs/adr/0064). This module is UI-free so the boundary rules are unit-tested.
+ * browsing contexts (see docs/decisions/0064). This module is UI-free so the boundary rules are unit-tested.
  */
 
 export type ManagementScope =

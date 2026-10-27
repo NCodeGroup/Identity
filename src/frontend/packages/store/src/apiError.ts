@@ -11,7 +11,7 @@ function isFetchBaseQueryError(error: ApiError): error is FetchBaseQueryError {
 /**
  * Turns an RTK Query error into a human-readable message. The Management API returns RFC 7807
  * Problem Details (`{ detail, title, status }`), so a server-supplied `detail`/`title` is preferred;
- * otherwise a status-aware fallback is used. UI-free so it is unit-tested directly (see docs/adr/0064).
+ * otherwise a status-aware fallback is used. UI-free so it is unit-tested directly (see docs/decisions/0064).
  */
 export function apiErrorMessage(
   error: ApiError | undefined,

@@ -20,7 +20,7 @@ supported. Once GA, security fixes target the newest patch of each supported `ma
 ## Verifying packages
 
 Packages are built deterministically and source-linked to this public repository
-([ADR-0007](docs/adr/0007-provenance-sourcelink-and-symbols.md)); released packages should be signed and RFC-3161
+([ADR-0007](docs/decisions/0007-provenance-sourcelink-and-symbols.md)); released packages should be signed and RFC-3161
 timestamped. Verify a downloaded package with:
 
 ```shell

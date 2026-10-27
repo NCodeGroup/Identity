@@ -195,7 +195,7 @@ PublishScripts/
 !**/packages/build/
 # ...and except the frontend workspace packages (src/frontend/packages/**), which are real
 # TypeScript source — not NuGet restore output. Their node_modules/dist/.turbo/coverage output
-# is re-ignored by the toolchain rules later in this file. See docs/adr/0064.
+# is re-ignored by the toolchain rules later in this file. See docs/decisions/0064.
 !src/frontend/packages/**
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/packages/repositories.config
@@ -306,7 +306,7 @@ __pycache__/
 test-results/
 
 # Frontend presentation platform (src/frontend) — node toolchain build/cache output.
-# node_modules/ is already ignored above. See docs/adr/0064.
+# node_modules/ is already ignored above. See docs/decisions/0064.
 dist/
 .turbo/
 storybook-static/

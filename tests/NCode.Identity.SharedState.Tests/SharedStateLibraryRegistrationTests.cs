@@ -84,6 +84,66 @@ public sealed class SharedStateLibraryRegistrationTests : BaseTests
 
     #endregion
 
+    #region AddInProcessExpiringValueSet Tests
+
+    [Fact]
+    public void AddInProcessExpiringValueSet_RegistersTheInProcessAdapter()
+    {
+        var serviceCollection = new ServiceCollection();
+
+        serviceCollection.AddSharedStateServices().AddInProcessExpiringValueSet();
+
+        using var provider = serviceCollection.BuildServiceProvider();
+        Assert.IsType<DefaultInProcessExpiringValueSet>(
+            provider.GetRequiredService<IExpiringValueSet>()
+        );
+    }
+
+    [Fact]
+    public void AddInProcessExpiringValueSet_WhenAdapterRegisteredFirst_KeepsThatAdapter()
+    {
+        var customValueSet = CreateStrictMock<IExpiringValueSet>().Object;
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(customValueSet);
+
+        serviceCollection.AddSharedStateServices().AddInProcessExpiringValueSet();
+
+        using var provider = serviceCollection.BuildServiceProvider();
+        Assert.Same(customValueSet, provider.GetRequiredService<IExpiringValueSet>());
+    }
+
+    #endregion
+
+    #region AddInProcessExpiringIndexSet Tests
+
+    [Fact]
+    public void AddInProcessExpiringIndexSet_RegistersTheInProcessAdapter()
+    {
+        var serviceCollection = new ServiceCollection();
+
+        serviceCollection.AddSharedStateServices().AddInProcessExpiringIndexSet();
+
+        using var provider = serviceCollection.BuildServiceProvider();
+        Assert.IsType<DefaultInProcessExpiringIndexSet>(
+            provider.GetRequiredService<IExpiringIndexSet>()
+        );
+    }
+
+    [Fact]
+    public void AddInProcessExpiringIndexSet_WhenAdapterRegisteredFirst_KeepsThatAdapter()
+    {
+        var customIndexSet = CreateStrictMock<IExpiringIndexSet>().Object;
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(customIndexSet);
+
+        serviceCollection.AddSharedStateServices().AddInProcessExpiringIndexSet();
+
+        using var provider = serviceCollection.BuildServiceProvider();
+        Assert.Same(customIndexSet, provider.GetRequiredService<IExpiringIndexSet>());
+    }
+
+    #endregion
+
     #region AddInProcessReplicaBroadcaster Tests
 
     [Fact]

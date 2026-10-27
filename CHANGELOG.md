@@ -10,6 +10,16 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The OpenID protocol client validates ID tokens.** `IIdTokenValidator.ValidateAsync` takes a `ClientRegistration`
+  and an `IdTokenValidationRequest` and returns an `IdTokenValidationResult` with `IsValid`, the `Payload` and a
+  `FailureReason`; `AddOpenIdClientLibrary()` registers it. The signature algorithm policy is asymmetric-only, never
+  `none` or HMAC, and is limited by `ClientRegistration.IdTokenSigningAlgorithms` and the provider's
+  `id_token_signing_alg_values_supported`. An unknown `kid` triggers one rate-limited JWKS refresh. The
+  `at_hash`/`c_hash`/`s_hash` claims are checked in constant time through `SignatureAlgorithm.GetTokenHashFunction`.
+  The shared `TokenHash` helper in `NCode.Identity.Jose.Algorithms` does that check, and the server's ID-token payload
+  handler now uses it too
+  ([ADR-0273](docs/adr/0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md), issue [#335](https://github.com/NCodeGroup/Identity/issues/335)).
+
 - **The EdDSA package registers the fully-specified `Ed25519` and `Ed448` algorithms.** RFC 9864 deprecates the
   polymorphic `EdDSA`, which stays registered for interop. One `EdDsaSignatureAlgorithm` serves all three codes, and
   `KeyedAlgorithm.IsKeyCompatible(SecretKey)` now decides whether a key fits an algorithm, for the credential selector
@@ -23,8 +33,8 @@ change to the public API is a **major** version bump.
   `ITokenRevocationClient` makes revocation requests; `IProviderMetadataResolver` and `IProviderKeySetResolver` resolve
   and cache a provider's discovery document and JWKS. Client authentication is an open `IClientAuthenticator`
   collection with `client_secret_basic`, `client_secret_post` and `private_key_jwt`. A `ClientRegistration` names its
-  signing keys through a `KeyRing`, which selects a keyed `ISecretKeyCollectionProvider`. PAR, DPoP, mTLS and ID-token
-  and logout-token validation are phase 1b, and the BFF itself is not yet delivered
+  signing keys through a `KeyRing`, which selects a keyed `ISecretKeyCollectionProvider`. PAR, DPoP, mTLS and
+  logout-token validation remain in phase 1b, and the BFF itself is not yet delivered
   ([ADR-0270](docs/adr/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md), issue [#123](https://github.com/NCodeGroup/Identity/issues/123)).
 
 - **Shared state holds versioned expiring values and membership indexes.** `IExpiringValueSet` stores an opaque,

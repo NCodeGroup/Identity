@@ -16,7 +16,10 @@
 
 #endregion
 
+using System.Buffers.Text;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
+using NCode.Buffers;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.EdDsa.Algorithms;
@@ -186,6 +189,30 @@ public class OkpIntegrationTests
 
         Assert.NotNull(hashFunction);
         Assert.Equal(expected, hashSizeBytes);
+    }
+
+    [Theory]
+    [InlineData(AlgorithmCodes.DigitalSignature.Ed25519, OkpCurves.Ed25519Name, 256)]
+    [InlineData(AlgorithmCodes.DigitalSignature.Ed448, OkpCurves.Ed448Name, 456)]
+    public void TokenHashCompute_UsesCurveHash(string code, string keyCurveName, int keySizeBits)
+    {
+        const string value = "access-token";
+        var ascii = SecureEncoding.ASCII.GetBytes(value);
+
+        var descriptor = CreateDescriptor();
+        var algorithm = CreateFixedAlgorithm(code, keyCurveName);
+        var secretKey = GeneratePrivateKey(descriptor, keyCurveName, keySizeBits);
+
+        var hashFunction = algorithm.GetTokenHashFunction(secretKey, out var size);
+
+        var expected =
+            code == AlgorithmCodes.DigitalSignature.Ed25519
+                ? Base64Url.EncodeToString(SHA512.HashData(ascii).AsSpan(0, 32))
+                : Base64Url.EncodeToString(Shake256.HashData(ascii, 114).AsSpan(0, 57));
+
+        Span<byte> hashBuffer = stackalloc byte[size];
+        Assert.Equal(expected, TokenHash.Compute(hashFunction, value, hashBuffer));
+        Assert.True(TokenHash.Verify(hashFunction, value, expected, hashBuffer));
     }
 
     #endregion

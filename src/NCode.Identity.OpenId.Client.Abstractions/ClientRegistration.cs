@@ -17,6 +17,7 @@
 #endregion
 
 using JetBrains.Annotations;
+using NCode.Identity.Jose.Algorithms;
 
 namespace NCode.Identity.OpenId.Client;
 
@@ -53,6 +54,60 @@ public sealed class ClientRegistration(
     /// Gets the name of the keyed <see cref="NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider"/> holding the client's credentials.
     /// </summary>
     public string? KeyRing { get; init; }
+
+    private IReadOnlyList<string>? _idTokenSigningAlgorithms;
+
+    /// <summary>
+    /// Gets the JOSE <c>alg</c> names that ID tokens of this client may be signed with, which is the
+    /// <c>id_token_signed_response_alg</c> the client registered at the provider. <see langword="null"/> or empty
+    /// (the default) adds no client restriction, so any registered asymmetric algorithm the provider advertises is
+    /// accepted. <c>none</c> and symmetric algorithms are never accepted.
+    /// </summary>
+    public IReadOnlyList<string>? IdTokenSigningAlgorithms
+    {
+        get => _idTokenSigningAlgorithms;
+        init => _idTokenSigningAlgorithms = ValidateAlgorithms(value);
+    }
+
+    private static string[]? ValidateAlgorithms(IReadOnlyList<string>? value)
+    {
+        if (value is null)
+            return null;
+
+        var copy = new string[value.Count];
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < copy.Length; i++)
+        {
+            var algorithm = value[i];
+            if (string.IsNullOrWhiteSpace(algorithm))
+                throw new ArgumentException(
+                    "The ID-token signing algorithms must not contain a null, empty or whitespace entry.",
+                    nameof(value)
+                );
+
+            if (
+                string.Equals(
+                    algorithm,
+                    AlgorithmCodes.DigitalSignature.None,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+                throw new ArgumentException(
+                    "The ID-token signing algorithms must not contain 'none'; an unsecured token is never acceptable.",
+                    nameof(value)
+                );
+
+            if (!seen.Add(algorithm))
+                throw new ArgumentException(
+                    $"The ID-token signing algorithms must not contain duplicates; '{algorithm}' appears more than once.",
+                    nameof(value)
+                );
+
+            copy[i] = algorithm;
+        }
+
+        return copy;
+    }
 
     private static string ValidateNotEmpty(
         string value,

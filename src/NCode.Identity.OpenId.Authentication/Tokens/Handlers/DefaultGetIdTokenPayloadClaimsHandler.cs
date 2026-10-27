@@ -16,9 +16,6 @@
 
 #endregion
 
-using System.Diagnostics;
-using NCode.Buffers;
-using NCode.Encoders;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
@@ -113,45 +110,9 @@ internal class DefaultGetIdTokenPayloadClaimsHandler(ISessionService sessionServ
             signingCredentials.SecretKey,
             out var hashSizeBytes
         );
+
         Span<byte> hashBuffer = stackalloc byte[hashSizeBytes];
 
-        // c_hash
-        if (!string.IsNullOrEmpty(authorizationCode))
-        {
-            payloadClaims[JoseClaimNames.Payload.CHash] = GetHashValue(
-                authorizationCode,
-                hashFunction,
-                hashBuffer
-            );
-        }
-
-        // at_hash
-        if (!string.IsNullOrEmpty(accessToken))
-        {
-            payloadClaims[JoseClaimNames.Payload.AtHash] = GetHashValue(
-                accessToken,
-                hashFunction,
-                hashBuffer
-            );
-        }
-
-        // s_hash
-        if (!string.IsNullOrEmpty(state))
-        {
-            payloadClaims[JoseClaimNames.Payload.SHash] = GetHashValue(
-                state,
-                hashFunction,
-                hashBuffer
-            );
-        }
-    }
-
-    private static string GetHashValue(
-        string value,
-        HashFunctionDelegate hashFunction,
-        Span<byte> hashBuffer
-    )
-    {
         /*
             Specification from `c_hash` but also applies to `at_hash` and `s_hash`...
 
@@ -161,20 +122,34 @@ internal class DefaultGetIdTokenPayloadClaimsHandler(ISessionService sessionServ
             take the left-most 256 bits and base64url encode them. The c_hash value is a case-sensitive string.
         */
 
-        var encoding = SecureEncoding.ASCII;
-        var encodeByteCount = encoding.GetByteCount(value);
-        using var _ = BufferFactory.Rent(
-            encodeByteCount,
-            isSensitive: false,
-            out Span<byte> encodeBuffer
-        );
-        var encodeBytesWritten = encoding.GetBytes(value, encodeBuffer);
-        Debug.Assert(encodeBytesWritten == encodeByteCount);
+        // c_hash
+        if (!string.IsNullOrEmpty(authorizationCode))
+        {
+            payloadClaims[JoseClaimNames.Payload.CHash] = TokenHash.Compute(
+                hashFunction,
+                authorizationCode,
+                hashBuffer
+            );
+        }
 
-        var hashResult = hashFunction(encodeBuffer, hashBuffer, out var hashBytesWritten);
-        Debug.Assert(hashResult && hashBytesWritten == hashBuffer.Length);
+        // at_hash
+        if (!string.IsNullOrEmpty(accessToken))
+        {
+            payloadClaims[JoseClaimNames.Payload.AtHash] = TokenHash.Compute(
+                hashFunction,
+                accessToken,
+                hashBuffer
+            );
+        }
 
-        var halfCount = hashBytesWritten / 2;
-        return Base64Url.Encode(hashBuffer[..halfCount]);
+        // s_hash
+        if (!string.IsNullOrEmpty(state))
+        {
+            payloadClaims[JoseClaimNames.Payload.SHash] = TokenHash.Compute(
+                hashFunction,
+                state,
+                hashBuffer
+            );
+        }
     }
 }

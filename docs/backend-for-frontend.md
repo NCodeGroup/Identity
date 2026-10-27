@@ -297,6 +297,8 @@ policy:
 - The signature must verify against the OP's JWKS. `none` and symmetric algorithms are never accepted.
 - `iss` must equal the discovered issuer, and `aud` must contain the `client_id`, with `azp` checked when present.
 - `exp`, `iat`, and `nonce` are checked, and `auth_time` when `max_age` was requested.
+- `at_hash`, `c_hash` and `s_hash`, when present, are checked through the signing algorithm's token hash, in constant
+  time ([ADR-0273](adr/0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md)).
 
 The family therefore has one JOSE stack for every token the BFF validates.
 
@@ -957,7 +959,7 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
 | Phase | Delivers                                                                                                                                                                                                         |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | SharedState: versioned expiring values with atomic take and compare-and-swap, plus membership indexes, in the in-process and Valkey adapters ([§5.4](#54-state-every-replica-sees)). Delivered ([ADR-0267](adr/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). |
-| 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. Phase 1a delivered ([ADR-0270](adr/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)): discovery, JWKS, client authentication, token and revocation requests. 1b remains: PAR, DPoP, mTLS, ID-token and logout-token validation. |
+| 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. Phase 1a delivered ([ADR-0270](adr/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)): discovery, JWKS, client authentication, token and revocation requests. 1b remains: PAR, DPoP, mTLS, logout-token validation; ID-token validation is delivered (ADR-0273). |
 | 2     | `NCode.Identity.Bff` core: the scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP. |
 | 3     | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and `NCode.Identity.Bff.Yarp`.                                                                           |
 | 4     | Multiple frontends, `UseBffSecurityHeaders()`, and the `/bff/jwks` endpoint.                                                                                                                                     |

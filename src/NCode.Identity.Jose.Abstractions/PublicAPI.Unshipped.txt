@@ -226,6 +226,7 @@ NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm
 NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.KeyManagementAlgorithm() -> void
 NCode.Identity.Jose.Algorithms.SignatureAlgorithm
 NCode.Identity.Jose.Algorithms.SignatureAlgorithm.SignatureAlgorithm() -> void
+NCode.Identity.Jose.Algorithms.TokenHash
 NCode.Identity.Jose.CompactJwt
 NCode.Identity.Jose.CompactJwt.CompactJwt(string! protectionType, System.Text.Json.JsonElement header, string! encodedToken, System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<char>>! segments) -> void
 NCode.Identity.Jose.CompactJwt.Segments.get -> System.Collections.Generic.IReadOnlyList<System.ReadOnlyMemory<char>>!
@@ -380,6 +381,8 @@ override NCode.Identity.Jose.JsonJwt.Header.get -> System.Text.Json.JsonElement
 override NCode.Identity.Jose.JsonJwt.ProtectionType.get -> string!
 override NCode.Identity.Jose.JsonJwt.SerializationFormat.get -> NCode.Identity.Jose.JoseSerializationFormat
 override NCode.Identity.Jose.JsonJwt.ToString() -> string!
+static NCode.Identity.Jose.Algorithms.TokenHash.Compute(NCode.Identity.Jose.Algorithms.HashFunctionDelegate! hashFunction, System.ReadOnlySpan<char> value, System.Span<byte> hashBuffer) -> string!
+static NCode.Identity.Jose.Algorithms.TokenHash.Verify(NCode.Identity.Jose.Algorithms.HashFunctionDelegate! hashFunction, System.ReadOnlySpan<char> value, System.ReadOnlySpan<char> tokenHash, System.Span<byte> hashBuffer) -> bool
 static NCode.Identity.Jose.JoseTokenTypes.AreSame(string? left, string? right) -> bool
 static NCode.Identity.Jose.JoseTokenTypes.Normalize(string! tokenType) -> string!
 virtual NCode.Identity.Jose.Algorithms.KeyedAlgorithm.IsKeyCompatible(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> bool

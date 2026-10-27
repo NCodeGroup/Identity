@@ -24,7 +24,7 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   in tests (`CA1707`, `CA1816`, `CA1859`, `CA1861`, `CA1869`, `CA2012`, `CA2215`) are disabled for test projects in
   [`.editorconfig`](../../.editorconfig); they stay active on production code.
 - ⏳ **Warnings are errors in test projects too**, inherited from the root `TreatWarningsAsErrors`
-  ([ADR-0127](../../docs/adr/0127-warnings-are-errors-in-every-project.md)). The criterion is "code we maintain", not
+  ([ADR-0127](../../docs/decisions/0127-warnings-are-errors-in-every-project.md)). The criterion is "code we maintain", not
   "code we ship" — and the `xunit.analyzers` rules in particular report real defects *in the tests themselves*, which
   is the worst class of warning to ignore. To relax a rule that is genuine noise in tests, add it to the
   `[tests/**/*.cs]` block in [`.editorconfig`](../../.editorconfig) **with a one-line justification**; for a single
@@ -86,7 +86,7 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - ✅ **Tests encode text through a strict encoding too.** Use `SecureEncoding.UTF8` / `SecureEncoding.ASCII`; the build
   enforces it with `RS0030`. A test that needs UTF-16 or a byte-order mark builds a strict encoding, such as
   `new UnicodeEncoding(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true)`. See
-  [ADR-0266](../../docs/adr/0266-text-is-encoded-and-decoded-only-through-strict-encodings.md).
+  [ADR-0266](../../docs/decisions/0266-text-is-encoded-and-decoded-only-through-strict-encodings.md).
 
 ## Isolation & mocking
 
@@ -206,7 +206,7 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   converters — must run against an actual `DbContext` (EF **InMemory** covers most cases). Endpoint tests that mock the
   store cannot observe these effects: a `SavingChanges`-only interceptor sat dead for exactly this reason (the codebase
   saves via `SaveChangesAsync`; see
-  [ADR-0012](../../docs/adr/0012-interceptor-managed-concurrency-tokens.md)). Keep both layers — mock the store for
+  [ADR-0012](../../docs/decisions/0012-interceptor-managed-concurrency-tokens.md)). Keep both layers — mock the store for
   endpoint logic, and exercise the store itself against a real provider.
 - 👁 **A handler that writes through more than one store needs an end-to-end test.** A store resolves the tenant that
   owns a row with a database query, not from the change tracker, so a row a tenant owns — its creator's ownership
@@ -232,7 +232,7 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   built without its entity (`TenantStoreContributedEntityRemovalTests`).
 - 👁 **A lost race through the store manager is `StoreConcurrencyException`;** only a test that calls
   `DbContext.SaveChangesAsync` directly sees EF's `DbUpdateConcurrencyException`. See
-  [ADR-0208](../../docs/adr/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).
+  [ADR-0208](../../docs/decisions/0208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).
 - 👁 **Build a stored grant's payload with `TestGrantPayloadProtector.Protect(...)`**
   (which wraps the real `DefaultPersistedPayloadSerializer`), never a bare `JsonSerializer` call. The server stores a
   protected, versioned envelope, so a test that hands the code the bare payload passes while the code fails on every
@@ -252,12 +252,12 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
 - 👁 **Test a read-modify-write through the update function it passes.** The strict setup of `UpdatePayloadAsync`
   captures the `update` argument in its callback; the test invokes it with the stored grant the scenario means, such as
   one a concurrent request changed, and asserts the update it returns (`DefaultSessionServiceTests`,
-  [ADR-0222](../../docs/adr/0222-a-grants-payload-is-changed-by-a-read-modify-write.md)).
+  [ADR-0222](../../docs/decisions/0222-a-grants-payload-is-changed-by-a-read-modify-write.md)).
 - 👁 **A mocked `OpenIdContext` or `OpenIdTenant` that the code under test disposes sets up its protected
   `DisposeAsyncCore`.** `mock.Protected().Setup<ValueTask>("DisposeAsyncCore")…Verifiable()`; `DisposeAsync` is not
   virtual and calls it (`EndedSessionTerminationServiceTests`).
 - 👁 **A global query filter is bypassed for change-tracked entities.** A `HasQueryFilter` predicate (e.g. the
-  tenant-scoping filter, [ADR-0018](../../docs/adr/0018-tenant-scoped-data-access-at-the-persistence-layer.md)) is
+  tenant-scoping filter, [ADR-0018](../../docs/decisions/0018-tenant-scoped-data-access-at-the-persistence-layer.md)) is
   applied to a **database** query, but a first-level-cache hit — an entity already tracked from a prior `Add`/read,
   including a store's local-first lookup — returns the row **without** re-applying the filter. A test that exercises a
   query filter must `ChangeTracker.Clear()` (or use a fresh `DbContext`) after seeding so the assertion hits the
@@ -303,7 +303,7 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   server setting so options validation reads the setting-descriptor catalog, and read `IOptions<OpenIdOptions>.Value`
   (`AddIdentityServer_ReadingTheOpenIdOptions_ConstructsNoClientAuthenticationHandler`).
 - 👁 **A test host pins an issuer for every tenant it serves.** A tenant is served only beneath its stored issuer
-  ([ADR-0165](../../docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), so
+  ([ADR-0165](../../docs/decisions/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)), so
   `HostApplicationFactory` pins the static tenant to `HostApplicationFactory.TestServerIssuer` (`http://localhost`). A
   test that changes the tenant path pins a matching `StaticSingle:Issuer`; a test that selects a dynamic strategy
   configures its issuer template (or `Root:Issuer`, which the dynamic strategies require) and seeds tenants with an
@@ -331,11 +331,11 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   one in-memory RSA signing key, and a tenant reads its settings and keys once, when it is first served, so neither can
   be added after a request reaches it. Select `DeveloperKeys:Mode` `None` (a host setting, above), list a key-management
   algorithm such as `RSA-OAEP-256` beside a signing algorithm in `OpenId:Tenant:KeyProvisioning:Keys`
-  ([ADR-0169](../../docs/adr/0169-every-tenant-is-provisioned-with-persisted-keys.md)), and persist the settings the
+  ([ADR-0169](../../docs/decisions/0169-every-tenant-is-provisioned-with-persisted-keys.md)), and persist the settings the
   tenant needs with `HostApplicationFactory.SeedTenantSettingsAsync` before the first request. Assert that the token is
   a JWE (five segments), so a key that was never provisioned fails the test (`TokenIntrospectionEndpointTests`).
 - 👁 **Drive the authorization endpoint the way a conforming client does.** Every authorization code is bound to an
-  `S256` PKCE challenge by default ([ADR-0144](../../docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)),
+  `S256` PKCE challenge by default ([ADR-0144](../../docs/decisions/0144-authorization-codes-are-bound-to-pkce-by-default.md)),
   so an integration test that requests a code sends `TestPkce.QueryParameters` (or `TestPkce.FormFields` at the pushed
   authorization request endpoint) and redeems it with `TestPkce.CodeVerifier`; a test without them exercises the
   refusal, not the flow. Sign a user in with `InteractiveLogin.SignInAsync` rather than another copy of the antiforgery
@@ -381,14 +381,14 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   server sends `myapp://callback/` for `myapp://callback`.
 - 👁 **A private-use redirect URI in a test is a reverse domain name** (`com.example.app:/callback`);
   `myapp://callback` is of no registered kind and is refused
-  ([ADR-0203](../../docs/adr/0203-redirect-uris-are-matched-exactly.md)).
+  ([ADR-0203](../../docs/decisions/0203-redirect-uris-are-matched-exactly.md)).
 - 👁 **The ephemeral developer key signs only `RS256`.** A test that needs the tenant to sign with `PS256` or
   `ES256`, such as a FAPI client's JARM response, selects `DeveloperKeys:Mode` `None` with `builder.UseSetting` (a
   host setting, above), so the tenant is provisioned `RS256`, `PS256`, and `ES256` keys
   (`Fapi1AdvancedAuthorizationTests`).
 - 👁 **Seed a client registered for the method the test authenticates with.** A client authenticates only with its
   registered `token_endpoint_auth_method`
-  ([ADR-0145](../../docs/adr/0145-a-client-authenticates-only-with-its-registered-method.md)), so each integration-test
+  ([ADR-0145](../../docs/decisions/0145-a-client-authenticates-only-with-its-registered-method.md)), so each integration-test
   seeder registers one: `SeedConfidentialClientAsync` (`client_secret_post`), `SeedClientSecretBasicClientAsync`,
   `SeedClientSecretJwtClientAsync`, the certificate and `jwks_uri` seeders (`private_key_jwt`), the mutual-TLS seeders,
   and `SeedPublicClientAsync` (`none`). A negative test whose client is registered for another method is refused for the

@@ -8,7 +8,7 @@ applyTo: "**"
 ## Design posture (greenfield, pre-release)
 
 This family is **greenfield and pre-release** — nothing is shipped and there is **no backward-compatibility to
-preserve** ([ADR-0025](../../docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)). **Default to the best
+preserve** ([ADR-0025](../../docs/decisions/0025-pre-release-posture-and-auth0-parity-plus.md)). **Default to the best
 long-term, cohesive design.** When a change forks between a minimal, compatibility-preserving patch and the
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
 breakage — PublicAPI churn, setting renames/removals, signature changes, moved types, and clean cutovers are expected
@@ -24,7 +24,7 @@ registered descriptors or strategies, validated as a whole when composed — and
 `switch` over a vocabulary, a hard-coded relationship between its members) must be justified as provably closed. Before
 adding one, ask "could a package that is not this one ever need another member?"; if the answer is not a clear no, it
 is open. The rule and its test: [`csharp-production.instructions.md`](csharp-production.instructions.md)
-§2 and [ADR-0150](../../docs/adr/0150-vocabularies-are-open-unless-provably-closed.md).
+§2 and [ADR-0150](../../docs/decisions/0150-vocabularies-are-open-unless-provably-closed.md).
 
 ### Security-practice default — decide, don't ask
 
@@ -56,18 +56,18 @@ the single source of truth in the scoped instruction files, auto-applied by path
 - Production code: [`instructions/csharp-production.instructions.md`](csharp-production.instructions.md)
 - Test code (`*Tests` projects): [`instructions/csharp-testing.instructions.md`](csharp-testing.instructions.md)
 
-The _reasoning_ behind a non-obvious decision lives in an ADR under [`docs/adr/`](../../docs/adr/).
+The _reasoning_ behind a non-obvious decision lives in an ADR under [`docs/decisions/`](../../docs/decisions/).
 
 Durable knowledge — conventions, reasoning, and recurring gotchas — is captured in these versioned
 files, **never** left only in an agent's volatile memory or chat history: promote any lesson learned
 during a task into the instruction files or an ADR as part of the same change. See
-[ADR-0008](../../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md).
+[ADR-0008](../../docs/decisions/0008-conventions-and-lessons-live-in-the-repository.md).
 
 Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as
 [GitHub issues](https://github.com/NCodeGroup/Identity/issues), the single source of truth for it
-([ADR-0264](../../docs/adr/0264-pending-work-is-tracked-as-github-issues.md)). Record a pending item as an issue
+([ADR-0264](../../docs/decisions/0264-pending-work-is-tracked-as-github-issues.md)). Record a pending item as an issue
 labeled by its area (and a non-obvious decision in an ADR), not in chat history or volatile agent memory
-([ADR-0008](../../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an
+([ADR-0008](../../docs/decisions/0008-conventions-and-lessons-live-in-the-repository.md)). A pull request that completes an
 issue closes it with `Closes #<number>`. Read open issues with `gh issue list`; reference one as
 `[#123](https://github.com/NCodeGroup/Identity/issues/123)` in Markdown and as `issue #123` elsewhere.
 
@@ -89,20 +89,20 @@ enabled per clone and must not be relied on — do not generate them in the firs
 check ([`.template/Test-CommitAttribution.ps1`](../../.template/Test-CommitAttribution.ps1), from the project template)
 rejects agent-authored commits and agent attribution on pull requests, in the merge queue and on pushes, because a
 squash merge credits every commit author. See
-[ADR-0128](../../docs/adr/0128-commits-are-attributed-to-people-not-agents.md).
+[ADR-0128](../../docs/decisions/0128-commits-are-attributed-to-people-not-agents.md).
 
 ## Push protocol
 
 When the user authorizes a push (says "push"), it pushes the current **topic branch** — never `main`, which accepts
 changes only by pull request through the merge queue
-([ADR-0261](../../docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
-[ADR-0263](../../docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) — and opens its
+([ADR-0261](../../docs/decisions/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
+[ADR-0263](../../docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) — and opens its
 pull request against `main` as a **draft** if none exists (a push to an open pull request's branch updates it). For a
 plan, `/ship-plan draft` does both, as the [Landing](../../AGENTS.md#landing) section of `AGENTS.md` says; keep
 `draft`, because without it `/ship-plan` opens a pull request ready for review. Without a plan, push the branch and
 run `gh pr create --draft`. The agent stops there: it never marks the pull request ready for review and never enables
 auto-merge, because the user self-reviews the draft and that step is the approval
-([ADR-0269](../../docs/adr/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). Run these gates
+([ADR-0269](../../docs/decisions/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). Run these gates
 **before** pushing:
 
 1. **Finish the plan.** If a `PLAN.md` exists, every step is `[x]`, its review (`/review-plan-diff`) has run with
@@ -112,9 +112,9 @@ auto-merge, because the user self-reviews the draft and that step is the approva
    pushed, and `/finish-plan` deletes it once the pull request merges. The `Plan step N` checkpoints reach the pull
    request's branch but never `main`: the merge queue squash-merges, taking the commit's subject from the pull request
    title, which `/ship-plan` takes from the plan's title, so a plan's title is a conventional commit subject
-   ([ADR-0170](../../docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
+   ([ADR-0170](../../docs/decisions/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
 2. **Persist lessons.** Promote every lesson learned in the session into durable repository content — a convention
-   into the scoped instruction files, a non-obvious decision into an ADR under [`docs/adr/`](../../docs/adr/), a
+   into the scoped instruction files, a non-obvious decision into an ADR under [`docs/decisions/`](../../docs/decisions/), a
    consumer-visible change into [`CHANGELOG.md`](../../CHANGELOG.md), and pending work into a
    GitHub issue (naming each issue the change completes as `Closes #<number>` in the pull request description).
 3. **Drain volatile memory.** No durable knowledge may remain only in agent memory (`/memories/…`) or chat history:
@@ -124,7 +124,7 @@ auto-merge, because the user self-reviews the draft and that step is the approva
    (fetch `origin` first) — and confirm its final line is `Definition of Done: PASSED`. CI owns the full
    `./build/dod.ps1` (all tests, coverage, packing, and NuGet advisories as errors): the merge queue runs it on the
    merged result before anything reaches `main`
-   ([ADR-0263](../../docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)), so it
+   ([ADR-0263](../../docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)), so it
    does **not** run before a local push. Neither gate builds the host image: when a change adds a file that a root
    build file imports, re-admit it in [`.dockerignore`](../../.dockerignore) too, or only the `Host image` check on the
    pull request finds it.
@@ -138,5 +138,5 @@ commit succeeds. Remediate any failure in the same change, and name every issue 
 so the merge closes it. Once it merges, retire the plan's branch and worktree with `/finish-plan`
 ([`AGENTS.md`](../../AGENTS.md#plan-and-execute-workflow)).
 
-This upholds [ADR-0008](../../docs/adr/0008-conventions-and-lessons-live-in-the-repository.md): conventions, reasoning,
+This upholds [ADR-0008](../../docs/decisions/0008-conventions-and-lessons-live-in-the-repository.md): conventions, reasoning,
 and recurring gotchas live in the repository.

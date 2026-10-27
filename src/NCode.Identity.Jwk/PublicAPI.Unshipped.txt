@@ -28,9 +28,12 @@ NCode.Identity.Jwk.JsonWebKey.ComputeThumbprintUri(System.Security.Cryptography.
 NCode.Identity.Jwk.JsonWebKey.ContainsPrivateKeyMaterial.get -> bool
 NCode.Identity.Jwk.JsonWebKey.GetMember(string! name) -> string?
 NCode.Identity.Jwk.JsonWebKey.JsonWebKey(System.Text.Json.JsonElement element) -> void
+NCode.Identity.Jwk.JsonWebKey.JsonWebKey(System.Text.Json.JsonElement element, NCode.Identity.Jwk.JsonWebKeyTypeDescriptor! keyTypeDescriptor) -> void
 NCode.Identity.Jwk.JsonWebKey.JsonWebKey(System.Text.Json.Nodes.JsonObject! members) -> void
+NCode.Identity.Jwk.JsonWebKey.JsonWebKey(System.Text.Json.Nodes.JsonObject! members, NCode.Identity.Jwk.JsonWebKeyTypeDescriptor! keyTypeDescriptor) -> void
 NCode.Identity.Jwk.JsonWebKey.KeyId.get -> string?
 NCode.Identity.Jwk.JsonWebKey.KeyOperations.get -> System.Collections.Generic.IReadOnlyList<string!>?
+NCode.Identity.Jwk.JsonWebKey.KeyTypeDescriptor.get -> NCode.Identity.Jwk.JsonWebKeyTypeDescriptor?
 NCode.Identity.Jwk.JsonWebKey.KeyType.get -> string!
 NCode.Identity.Jwk.JsonWebKey.PublicKeyUse.get -> string?
 NCode.Identity.Jwk.JsonWebKey.ToJsonString() -> string!

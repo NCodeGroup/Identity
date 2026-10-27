@@ -37,12 +37,6 @@ namespace NCode.Identity.Jose.EdDsa.Algorithms;
 /// <param name="curve">The curve the algorithm is fixed to, or <see langword="null"/> to accept either curve.</param>
 internal sealed class EdDsaSignatureAlgorithm(string code, OkpCurveInfo? curve) : SignatureAlgorithm
 {
-    /// <summary>
-    /// Initializes the polymorphic <c>EdDSA</c> algorithm. Temporary: removed once the data source passes the code and curve.
-    /// </summary>
-    public EdDsaSignatureAlgorithm()
-        : this(AlgorithmCodes.DigitalSignature.EdDsa, null) { }
-
     private OkpCurveInfo? Curve { get; } = curve;
 
     /// <inheritdoc />

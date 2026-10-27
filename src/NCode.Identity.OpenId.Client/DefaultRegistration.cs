@@ -42,7 +42,7 @@ public static class DefaultRegistration
     {
         /// <summary>
         /// Registers the OpenID client library: provider metadata and key set resolution, client authentication,
-        /// and the token and token revocation clients, layered on the <see cref="JwtLibrary"/>.
+        /// the token and token revocation clients, and ID-token validation, layered on the <see cref="JwtLibrary"/>.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> so that additional calls can be chained.</returns>
         public IServiceBuilder<OpenIdClientLibrary> AddOpenIdClientLibrary()
@@ -90,6 +90,7 @@ public static class DefaultRegistration
                 ITokenRevocationClient,
                 DefaultTokenRevocationClient
             >();
+            serviceCollection.TryAddSingleton<IIdTokenValidator, DefaultIdTokenValidator>();
 
             serviceCollection.TryAddEnumerable([
                 ServiceDescriptor.Singleton<

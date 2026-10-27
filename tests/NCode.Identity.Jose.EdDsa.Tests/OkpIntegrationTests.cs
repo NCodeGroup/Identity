@@ -210,8 +210,9 @@ public class OkpIntegrationTests
                 ? Base64Url.EncodeToString(SHA512.HashData(ascii).AsSpan(0, 32))
                 : Base64Url.EncodeToString(Shake256.HashData(ascii, 114).AsSpan(0, 57));
 
-        Assert.Equal(expected, TokenHash.Compute(hashFunction, size, value));
-        Assert.True(TokenHash.Verify(hashFunction, size, value, expected));
+        Span<byte> hashBuffer = stackalloc byte[size];
+        Assert.Equal(expected, TokenHash.Compute(hashFunction, value, hashBuffer));
+        Assert.True(TokenHash.Verify(hashFunction, value, expected, hashBuffer));
     }
 
     #endregion

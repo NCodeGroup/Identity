@@ -74,6 +74,11 @@ security-profile ceiling that tightens the lattice in one move.
 thumbprints, requirement-and-handler style validation, strict RFC 7519 `NumericDate` handling, **EdDSA** (Ed25519 /
 Ed448) as a clean-room opt-in package, and **ML-DSA** post-quantum signatures through the BCL.
 
+**Encryption at rest:** every stored secret is encrypted under a root key held in AWS KMS, Azure Key Vault or Google
+Cloud KMS. That covers private keys, client secrets, grant payloads and the Data Protection key ring. Each tenant has
+its own master key, so deleting a tenant crypto-shreds its data, and secret plaintext is kept in pinned memory that is
+zeroed after use. See [Encryption at Rest](docs/capabilities/encryption-at-rest.md).
+
 **Operations** — durable auditing with a publish-after-commit outbox, schema-versioned and upcastable at-rest grant
 payloads, tenant-scoped data access enforced at the persistence layer, and a management API with resource-based
 ownership authorization.
@@ -89,7 +94,7 @@ Production projects are under `src/`, tests under `tests/`.
 | Area                 | Packages                                                                                                                           |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | JOSE / JWT           | `NCode.Identity.Jose(.Abstractions)`, `.Jose.EdDsa`, `.Jwt(.Abstractions)`, `.Jwk`, `NCode.Json`, `NCode.Time`                     |
-| Secrets              | `NCode.Identity.Secrets(.Abstractions)`, `.Secrets.Persistence(.Abstractions)`                                                     |
+| Secrets              | `NCode.Identity.Secrets(.Abstractions)`, `.Secrets.Persistence(.Abstractions)`, root key providers `.Secrets.Persistence.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms` |
 | OpenID protocol      | `NCode.Identity.OpenId.Abstractions`, `.Core`, `.Messages.Abstractions`                                                            |
 | Endpoints & grants   | `NCode.Identity.OpenId.Authentication(.Abstractions)`, `.Authentication.Interactive(.Abstractions)`                                |
 | Management API       | `NCode.Identity.OpenId.Management(.Abstractions)`                                                                                  |
@@ -138,6 +143,7 @@ annotated in place, and coverage history and pull-request diff coverage live on
 
 | Document                             | What it is                                                                     |
 | ------------------------------------ | ------------------------------------------------------------------------------ |
+| [`docs/capabilities/`](docs/capabilities/README.md) | What the product promises and why it's built that way: an overview first, then the architecture |
 | [`docs/adr/`](docs/adr/)             | Architecture Decision Records — the reasoning behind every non-obvious decision |
 | [GitHub issues](https://github.com/NCodeGroup/Identity/issues)           | The single source of truth for known pending work                              |
 | [`CHANGELOG.md`](CHANGELOG.md)       | Consumer-visible changes                                                       |

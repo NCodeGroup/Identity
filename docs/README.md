@@ -2,6 +2,12 @@
 
 Project documentation for the **NCode.Identity** library family.
 
+## Capabilities
+
+[`capabilities/`](./capabilities/README.md) describes what the product does and promises, and why it's built that way:
+an overview for evaluators first, then the architecture, with links to the ADRs and code behind each capability. The
+first page is [Encryption at Rest](./capabilities/encryption-at-rest.md).
+
 ## Architecture Decision Records (ADRs)
 
 Architecturally significant decisions are captured as ADRs under [`adr/`](./adr). See the

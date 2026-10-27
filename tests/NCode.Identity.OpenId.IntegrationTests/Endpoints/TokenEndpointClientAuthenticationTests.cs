@@ -37,6 +37,8 @@ public class TokenEndpointClientAuthenticationTests
 {
     private const string ClientId = "it-auth-client";
     private const string ClientSecret = "confidential-secret-value";
+    private const string EncodedClientId = "it auth:client+%";
+    private const string EncodedClientSecret = "a secret: with+plus %percent&amp=equals";
     private const string TokenPath = "/oauth2/token";
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
@@ -44,7 +46,8 @@ public class TokenEndpointClientAuthenticationTests
 
     private static AuthenticationHeaderValue BasicHeader(string clientId, string clientSecret)
     {
-        var raw = $"{clientId}:{clientSecret}";
+        // RFC 6749 section 2.3.1 form-urlencodes the client id and secret before the Basic encoding.
+        var raw = $"{WebUtility.UrlEncode(clientId)}:{WebUtility.UrlEncode(clientSecret)}";
         var encoded = Convert.ToBase64String(SecureEncoding.UTF8.GetBytes(raw));
         return new AuthenticationHeaderValue("Basic", encoded);
     }
@@ -208,6 +211,73 @@ public class TokenEndpointClientAuthenticationTests
         using var response = await SendBasicAsync(client, ClientSecret);
 
         await AssertInvalidClientAsync(response, HttpStatusCode.Unauthorized);
+    }
+
+    #endregion
+
+    #region Credential Encoding Tests
+    [Fact]
+    public async Task PostToken_WhenTheBasicSecretNeedsFormEncoding_ReturnsAccessToken()
+    {
+        // RFC 6749 section 2.3.1: a secret with a space, colon, plus and percent is form-urlencoded in the header.
+        using var factory = new HostApplicationFactory();
+        await factory.SeedClientSecretBasicClientAsync(ClientId, EncodedClientSecret);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            ClientId,
+            "it-auth-rs-api",
+            "https://api.auth.integration.test",
+            TestServerSettingsProvider.ApiScope
+        );
+
+        var client = CreateClient(factory);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, TokenPath)
+        {
+            Headers = { Authorization = BasicHeader(ClientId, EncodedClientSecret) },
+            Content = ClientCredentialsBody(),
+        };
+
+        using var response = await client.SendAsync(request);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+
+        using var document = JsonDocument.Parse(body);
+        Assert.False(
+            string.IsNullOrEmpty(document.RootElement.GetProperty("access_token").GetString())
+        );
+    }
+
+    [Fact]
+    public async Task PostToken_WhenTheBasicClientIdNeedsFormEncoding_ReturnsAccessToken()
+    {
+        // RFC 6749 section 2.3.1: a client id with a space, colon, plus and percent is form-urlencoded in the header.
+        using var factory = new HostApplicationFactory();
+        await factory.SeedClientSecretBasicClientAsync(EncodedClientId, ClientSecret);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            EncodedClientId,
+            "it-auth-rs-api",
+            "https://api.auth.integration.test",
+            TestServerSettingsProvider.ApiScope
+        );
+
+        var client = CreateClient(factory);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, TokenPath)
+        {
+            Headers = { Authorization = BasicHeader(EncodedClientId, ClientSecret) },
+            Content = ClientCredentialsBody(),
+        };
+
+        using var response = await client.SendAsync(request);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+
+        using var document = JsonDocument.Parse(body);
+        Assert.False(
+            string.IsNullOrEmpty(document.RootElement.GetProperty("access_token").GetString())
+        );
     }
 
     #endregion

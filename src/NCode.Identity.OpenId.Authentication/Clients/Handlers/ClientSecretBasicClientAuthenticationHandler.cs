@@ -59,7 +59,10 @@ internal class ClientSecretBasicClientAuthenticationHandler(
         }
 
         var lease = SecureMemoryPool<char>.Shared.Rent(encoded.Length);
-        var buffer = lease.Memory;
+        // The pool can return more memory than requested, so the replace and the unescape run over exactly the
+        // encoded secret; otherwise the decoded value carries the unused remainder and never matches the stored
+        // secret (RFC 6749 section 2.3.1).
+        var buffer = lease.Memory[..encoded.Length];
         try
         {
             var destination = buffer.Span;

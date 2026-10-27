@@ -46,6 +46,7 @@ public class ProviderUriTests : BaseTests
     [InlineData(@"C:\path")]
     [InlineData(" https://op.example.test")]
     [InlineData("https://op.example.test/#f")]
+    [InlineData("https://")]
     [InlineData("")]
     [InlineData(null)]
     public void TryParseEndpoint_WithRejectedValue_ReturnsFalse(string? value)

@@ -141,6 +141,23 @@ public class DefaultTokenClientTests : BaseTests
     }
 
     [Fact]
+    public async Task RequestTokenAsync_WithUndeserializableResponse_ThrowsWithJsonException()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, """{"access_token":123}""");
+        var client = CreateClient(handler);
+
+        var exception = await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await client.RequestTokenAsync(
+                CreateRegistration(),
+                new RefreshTokenRequest("old-rt"),
+                CancellationToken.None
+            )
+        );
+
+        Assert.IsAssignableFrom<System.Text.Json.JsonException>(exception.InnerException);
+    }
+
+    [Fact]
     public async Task RequestTokenAsync_WithRefreshToken_PostsRefreshParameters()
     {
         var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, SuccessBody);

@@ -106,15 +106,15 @@ internal class DefaultProviderMetadataResolver(
         OpenIdProviderMetadata? metadata;
         try
         {
-            metadata = json.Deserialize<OpenIdProviderMetadata>();
+            // A JSON object never deserializes to null, so the null case is a defensive guard only.
+            metadata =
+                json.Deserialize<OpenIdProviderMetadata>()
+                ?? throw Fail(authority, "The response is not a valid discovery document.");
         }
         catch (JsonException exception)
         {
             throw Fail(authority, "The response is not a valid discovery document.", exception);
         }
-
-        if (metadata is null)
-            throw Fail(authority, "The response is not a valid discovery document.");
 
         if (!string.Equals(metadata.Issuer, authority, StringComparison.Ordinal))
             throw Fail(

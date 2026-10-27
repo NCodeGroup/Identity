@@ -49,6 +49,54 @@ public class OpenIdClientOptionsValidatorTests : BaseTests
     }
 
     [Fact]
+    public void Validate_WithRequestTimeoutOverTheMaximum_Fails()
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { RequestTimeout = TimeSpan.FromMinutes(6) }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(nameof(OpenIdClientOptions.RequestTimeout), result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_WithNonPositiveMetadataRefreshInterval_Fails()
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { MetadataRefreshInterval = TimeSpan.Zero }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(nameof(OpenIdClientOptions.MetadataRefreshInterval), result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_WithNonPositiveMinimumRefreshInterval_Fails()
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { MinimumRefreshInterval = TimeSpan.Zero }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(nameof(OpenIdClientOptions.MinimumRefreshInterval), result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_WithNonPositiveStaleLifetime_Fails()
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { StaleLifetime = TimeSpan.Zero }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(nameof(OpenIdClientOptions.StaleLifetime), result.FailureMessage);
+    }
+
+    [Fact]
     public void Validate_WithStaleLifetimeBelowRefreshInterval_Fails()
     {
         var result = Validator.Validate(

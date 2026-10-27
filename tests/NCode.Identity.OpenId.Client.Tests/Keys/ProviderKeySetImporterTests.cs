@@ -146,6 +146,73 @@ public class ProviderKeySetImporterTests : BaseTests, IAsyncLifetime
         Assert.Equal("k1", Assert.Single(keys).KeyId);
     }
 
+    [Fact]
+    public void TryImport_WithNonObjectElement_SkipsIt()
+    {
+        using var rsa = RSA.Create(2048);
+        var json = TestJwks.Set(TestJwks.Rsa(rsa, "k1")).Replace("\"keys\":[", "\"keys\":[1,");
+
+        var result = CreateImporter().TryImport(Parse(json), out var keys, out _);
+
+        Assert.True(result);
+        Assert.NotNull(keys);
+        Assert.Equal("k1", Assert.Single(keys).KeyId);
+    }
+
+    [Fact]
+    public void TryImport_WithKeyWithoutKeyType_SkipsIt()
+    {
+        using var rsa = RSA.Create(2048);
+        var json = TestJwks.Set(
+            new Dictionary<string, object> { ["kid"] = "nokty" },
+            TestJwks.Rsa(rsa, "k1")
+        );
+
+        var result = CreateImporter().TryImport(Parse(json), out var keys, out _);
+
+        Assert.True(result);
+        Assert.NotNull(keys);
+        Assert.Equal("k1", Assert.Single(keys).KeyId);
+    }
+
+    [Fact]
+    public void TryImport_WithKeyOperationsWithoutVerify_SkipsIt()
+    {
+        using var rsa1 = RSA.Create(2048);
+        using var rsa2 = RSA.Create(2048);
+        var signOnly = TestJwks.Rsa(rsa1, "signonly");
+        signOnly["key_ops"] = new[] { "sign" };
+        var json = TestJwks.Set(signOnly, TestJwks.Rsa(rsa2, "k1"));
+
+        var result = CreateImporter().TryImport(Parse(json), out var keys, out _);
+
+        Assert.True(result);
+        Assert.NotNull(keys);
+        Assert.Equal("k1", Assert.Single(keys).KeyId);
+    }
+
+    [Fact]
+    public void TryImport_WithMalformedKeyMaterial_SkipsIt()
+    {
+        using var rsa = RSA.Create(2048);
+        var json = TestJwks.Set(
+            new Dictionary<string, object>
+            {
+                ["kty"] = "RSA",
+                ["kid"] = "bad",
+                ["n"] = "!!!",
+                ["e"] = "AQAB",
+            },
+            TestJwks.Rsa(rsa, "k1")
+        );
+
+        var result = CreateImporter().TryImport(Parse(json), out var keys, out _);
+
+        Assert.True(result);
+        Assert.NotNull(keys);
+        Assert.Equal("k1", Assert.Single(keys).KeyId);
+    }
+
     [Theory]
     [InlineData("""{"keys":[]}""")]
     [InlineData("[]")]

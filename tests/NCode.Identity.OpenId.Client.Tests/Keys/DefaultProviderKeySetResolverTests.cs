@@ -62,18 +62,25 @@ public class DefaultProviderKeySetResolverTests : BaseTests, IAsyncLifetime
 
     public async Task DisposeAsync() => await ServiceProvider.DisposeAsync();
 
-    private DefaultProviderKeySetResolver CreateResolver(HttpMessageHandler handler)
+    private DefaultProviderKeySetResolver CreateResolver(
+        HttpMessageHandler handler,
+        string jwksUri = JwksUri,
+        bool sendsRequest = true
+    )
     {
-        MockHttpClientFactory
-            .Setup(x => x.CreateClient(OpenIdClientDefaults.HttpClientName))
-            .Returns(new HttpClient(handler, disposeHandler: false))
-            .Verifiable();
+        if (sendsRequest)
+        {
+            MockHttpClientFactory
+                .Setup(x => x.CreateClient(OpenIdClientDefaults.HttpClientName))
+                .Returns(new HttpClient(handler, disposeHandler: false))
+                .Verifiable();
+        }
 
         var metadata = new OpenIdProviderMetadata
         {
             Issuer = Authority,
             TokenEndpoint = $"{Authority}/token",
-            JwksUri = JwksUri,
+            JwksUri = jwksUri,
         };
         MockMetadataResolver
             .Setup(x => x.GetMetadataAsync(Authority, It.IsAny<CancellationToken>()))
@@ -146,6 +153,49 @@ public class DefaultProviderKeySetResolverTests : BaseTests, IAsyncLifetime
     public async Task GetSigningKeysAsync_WithNotFound_Throws()
     {
         var handler = StubHttpMessageHandler.Respond(HttpStatusCode.NotFound, "{}");
+        var resolver = CreateResolver(handler);
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await resolver.GetSigningKeysAsync(Authority, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task GetSigningKeysAsync_WithInsecureJwksUri_ThrowsWithoutSendingARequest()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, CreateKeySet());
+        var resolver = CreateResolver(
+            handler,
+            jwksUri: "http://op.example.test/jwks",
+            sendsRequest: false
+        );
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await resolver.GetSigningKeysAsync(Authority, CancellationToken.None)
+        );
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task GetSigningKeysAsync_WhenTheProviderIsUnreachable_Throws()
+    {
+        var handler = new StubHttpMessageHandler(
+            (_, _) => throw new HttpRequestException("unreachable")
+        );
+        var resolver = CreateResolver(handler);
+
+        var exception = await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await resolver.GetSigningKeysAsync(Authority, CancellationToken.None)
+        );
+
+        Assert.IsType<HttpRequestException>(exception.InnerException);
+    }
+
+    [Fact]
+    public async Task GetSigningKeysAsync_WithNonObjectResponse_Throws()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "[]");
         var resolver = CreateResolver(handler);
 
         await Assert.ThrowsAsync<OpenIdProviderException>(async () =>

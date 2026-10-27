@@ -17,6 +17,7 @@
 #endregion
 
 using System.Net;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NCode.Identity.OpenId.Client.Discovery;
@@ -174,6 +175,48 @@ public class DefaultProviderMetadataResolverTests : BaseTests
         await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
             await resolver.GetMetadataAsync(Authority, CancellationToken.None)
         );
+    }
+
+    [Fact]
+    public async Task GetMetadataAsync_WhenTheProviderIsUnreachable_Throws()
+    {
+        var handler = new StubHttpMessageHandler(
+            (_, _) => throw new HttpRequestException("unreachable")
+        );
+        var resolver = CreateResolver(handler);
+
+        var exception = await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await resolver.GetMetadataAsync(Authority, CancellationToken.None)
+        );
+
+        Assert.IsType<HttpRequestException>(exception.InnerException);
+    }
+
+    [Theory]
+    [InlineData("[]", "application/json")]
+    [InlineData("null", "application/json")]
+    [InlineData("<html></html>", "text/html")]
+    public async Task GetMetadataAsync_WithNonObjectResponse_Throws(string body, string mediaType)
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, body, mediaType);
+        var resolver = CreateResolver(handler);
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await resolver.GetMetadataAsync(Authority, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task GetMetadataAsync_WithUndeserializableDocument_ThrowsWithJsonException()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, """{"issuer":123}""");
+        var resolver = CreateResolver(handler);
+
+        var exception = await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await resolver.GetMetadataAsync(Authority, CancellationToken.None)
+        );
+
+        Assert.IsAssignableFrom<JsonException>(exception.InnerException);
     }
 
     [Fact]

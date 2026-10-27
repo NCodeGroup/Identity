@@ -1122,19 +1122,8 @@ internal class ServerApiEndpointHandler(
             secret,
             authorizationResource: null,
             Operations.Read,
-            async (x, ct) =>
-            {
-                // The protector is acquired only after authorization, so a caller who may not read the secret
-                // never loads its owner's master keys.
-                var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
-                    SecretOwner.ForServer(serverId),
-                    [x],
-                    ct
-                );
-
-                return SecretPublicKeyConverter.Convert(protector, x);
-            },
-            cancellationToken
+            // The public key is read from its stored public half, so no master key is loaded (ADR-0268).
+            x => SecretPublicKeyConverter.Convert(x)
         );
     }
 
@@ -1205,6 +1194,7 @@ internal class ServerApiEndpointHandler(
             SecretEncoding = secret.SecretEncoding,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
+            PublicKey = secret.PublicKey,
         };
 
         await store.UpdateSecretAsync(serverId, updated, cancellationToken);

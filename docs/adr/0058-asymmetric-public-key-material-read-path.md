@@ -66,7 +66,8 @@ Concretely:
   is derived from the deserialized `AsymmetricSecretKey`'s exported public key
   (`ExportSubjectPublicKeyInfoPem`). The private key is
   unprotected only transiently in memory, **after** authorization succeeds, and only its public half is
-  emitted.
+  emitted. Amended by [ADR-0268](0268-a-generated-private-key-stores-its-public-key-beside-it.md): a generated private
+  key stores its public key, so this path no longer unprotects the private key.
 
 - **Symmetric secrets return `404 Not Found`.** A symmetric secret has no public-key sub-resource, so
   the endpoint reports it as absent — the SecretType is checked without unprotecting any material, and

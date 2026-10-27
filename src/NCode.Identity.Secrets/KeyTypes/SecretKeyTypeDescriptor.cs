@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using JetBrains.Annotations;
 using NCode.Buffers;
@@ -83,7 +84,8 @@ public abstract class SecretKeyTypeDescriptor : ISecretKeyTypeDescriptor
 
     /// <summary>
     /// Exports the <c>PKCS#8</c> private key of the specified asymmetric algorithm into a rented sensitive buffer
-    /// and protects it via <paramref name="protect"/>, growing the buffer until the export succeeds.
+    /// and protects it via <paramref name="protect"/>, growing the buffer until the export succeeds, and exports the
+    /// public half as <c>SubjectPublicKeyInfo</c>.
     /// </summary>
     protected static GeneratedSecretKeyMaterial ExportProtectedPkcs8(
         AsymmetricAlgorithm algorithm,
@@ -102,6 +104,7 @@ public abstract class SecretKeyTypeDescriptor : ISecretKeyTypeDescriptor
                     KeySizeBits = algorithm.KeySize,
                     SecretEncoding = SecretEncodings.Pkcs8,
                     SecretMaterial = null,
+                    PublicKey = Base64Url.EncodeToString(algorithm.ExportSubjectPublicKeyInfo()),
                 };
             }
 

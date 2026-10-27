@@ -57,20 +57,28 @@ internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalo
     {
         ArgumentNullException.ThrowIfNull(protector);
 
-        return DeserializeSecretCore(protector, persistedSecret);
+        return DeserializeSecretCore(protector, persistedSecret, readStoredPublicKey: false);
     }
 
     /// <inheritdoc />
+    // See ADR-0268.
     public SecretKey DeserializePublicSecret(PersistedSecret persistedSecret)
     {
-        if (!SecretEncodings.IsPublic(persistedSecret.SecretEncoding))
+        ArgumentNullException.ThrowIfNull(persistedSecret);
+
+        if (SecretEncodings.IsPublic(persistedSecret.SecretEncoding))
+        {
+            return DeserializeSecretCore(null, persistedSecret, readStoredPublicKey: false);
+        }
+
+        if (persistedSecret.PublicKey is null)
         {
             throw new InvalidOperationException(
-                $"The '{persistedSecret.SecretEncoding}' encoding does not hold public key material."
+                $"The secret '{persistedSecret.SecretId}' holds '{persistedSecret.SecretEncoding}' key material and no stored public key."
             );
         }
 
-        return DeserializeSecretCore(null, persistedSecret);
+        return DeserializeSecretCore(null, persistedSecret, readStoredPublicKey: true);
     }
 
     private SortedSet<SecretKey> DeserializeSecretsCore(
@@ -82,7 +90,9 @@ internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalo
 
         foreach (var persistedSecret in persistedSecrets)
         {
-            secretKeys.Add(DeserializeSecretCore(protector, persistedSecret));
+            secretKeys.Add(
+                DeserializeSecretCore(protector, persistedSecret, readStoredPublicKey: false)
+            );
         }
 
         return secretKeys;
@@ -90,7 +100,8 @@ internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalo
 
     private SecretKey DeserializeSecretCore(
         ISecretProtector? protector,
-        PersistedSecret persistedSecret
+        PersistedSecret persistedSecret,
+        bool readStoredPublicKey
     )
     {
         if (!SecretKeyTypeCatalog.TryGet(persistedSecret.SecretType, out var descriptor))
@@ -117,7 +128,16 @@ internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalo
         );
         IBufferWriter<byte> keyMaterialWriter = keyMaterialBuffer;
 
-        if (SecretEncodings.IsPublic(persistedSecret.SecretEncoding))
+        if (readStoredPublicKey)
+        {
+            var storedPublicKey =
+                persistedSecret.PublicKey
+                ?? throw new InvalidOperationException(
+                    $"The secret '{persistedSecret.SecretId}' has no stored public key."
+                );
+            Base64Url.Decode(storedPublicKey, keyMaterialWriter);
+        }
+        else if (SecretEncodings.IsPublic(persistedSecret.SecretEncoding))
         {
             ReadPublicKeyMaterial(persistedSecret, keyMaterialWriter);
         }
@@ -130,7 +150,7 @@ internal class DefaultSecretSerializer(ISecretKeyTypeCatalog secretKeyTypeCatalo
 
         var secretKey = descriptor.DeserializeKeyMaterial(
             metadata,
-            persistedSecret.SecretEncoding,
+            readStoredPublicKey ? SecretEncodings.Spki : persistedSecret.SecretEncoding,
             keyMaterialSpanLease.Span
         );
 

@@ -57,4 +57,9 @@ public static class SecretMaxLengths
     /// Specifies the maximum length of the <c>EncodedValue</c> field.
     /// </summary>
     public const int EncodedValue = 8000;
+
+    /// <summary>
+    /// Specifies the maximum length of the <c>PublicKey</c> field.
+    /// </summary>
+    public const int PublicKey = 4000;
 }

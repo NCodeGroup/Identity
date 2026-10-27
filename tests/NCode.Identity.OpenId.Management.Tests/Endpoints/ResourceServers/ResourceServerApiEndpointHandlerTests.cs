@@ -951,22 +951,6 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             Pem = "-----BEGIN PUBLIC KEY-----\nMII=\n-----END PUBLIC KEY-----",
         };
 
-    private ISecretProtector SetupSecretProtector()
-    {
-        var protector = MockRepository.Create<ISecretProtector>().Object;
-        MockSecretProtectorProvider
-            .Setup(x =>
-                x.GetProtectorAsync(
-                    SecretOwner.ForTenant(TenantId),
-                    It.IsAny<IReadOnlyCollection<string>>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(protector)
-            .Verifiable();
-        return protector;
-    }
-
     [Fact]
     public async Task GetPublicKeyAsync_WhenAsymmetricAndAuthorized_ReturnsJson()
     {
@@ -981,10 +965,9 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync(CreateResourceServerSecret())
             .Verifiable();
-        var protector = SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretPublicKeyConverter
-            .Setup(x => x.Convert(protector, It.IsAny<PersistedSecret>()))
+            .Setup(x => x.Convert(It.IsAny<PersistedSecret>()))
             .Returns(CreatePublicKeyResource())
             .Verifiable();
 
@@ -1015,10 +998,9 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync(CreateResourceServerSecret())
             .Verifiable();
-        var protector = SetupSecretProtector();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretPublicKeyConverter
-            .Setup(x => x.Convert(protector, It.IsAny<PersistedSecret>()))
+            .Setup(x => x.Convert(It.IsAny<PersistedSecret>()))
             .Returns((PublicKeyResource?)null)
             .Verifiable();
 

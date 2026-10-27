@@ -54,4 +54,11 @@ public sealed class GeneratedSecretKeyMaterial
     /// </summary>
     // See ADR-0050.
     public required string? SecretMaterial { get; init; }
+
+    /// <summary>
+    /// Gets the base64url-encoded <c>SubjectPublicKeyInfo</c> DER of the generated key's public half, or
+    /// <c>null</c> when the key has no public half (a symmetric key).
+    /// </summary>
+    // See ADR-0268.
+    public required string? PublicKey { get; init; }
 }

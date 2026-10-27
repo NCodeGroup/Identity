@@ -117,4 +117,13 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     /// </summary>
     [MaxLength(SecretMaxLengths.EncodedValue)]
     public required string EncodedValue { get; init; }
+
+    /// <summary>
+    /// Gets the base64url-encoded <c>SubjectPublicKeyInfo</c> DER of the public half of a private asymmetric key, so
+    /// the public key is read without unprotecting <see cref="EncodedValue"/>; or <c>null</c> when the secret holds
+    /// no private asymmetric key (its <see cref="EncodedValue"/> is symmetric or already public material).
+    /// </summary>
+    // See ADR-0268.
+    [MaxLength(SecretMaxLengths.PublicKey)]
+    public string? PublicKey { get; init; }
 }

@@ -95,12 +95,18 @@ public sealed class OkpSecretKeyTypeDescriptor(
         var pkcs8 = OkpKeyEncoder.BuildPkcs8(curve, seed);
         try
         {
+            var publicKey = new byte[curve.PublicKeySize];
+            OkpCurves.GeneratePublicKey(curve.Name, seed, publicKey);
+            var subjectPublicKeyInfo = BufferFactory.CreateArrayBufferWriter();
+            OkpKeyEncoder.WriteSubjectPublicKeyInfo(curve, publicKey, ref subjectPublicKeyInfo);
+
             return new GeneratedSecretKeyMaterial
             {
                 ProtectedKeyMaterial = protect(pkcs8),
                 KeySizeBits = curve.KeySizeBits,
                 SecretEncoding = SecretEncodings.Pkcs8,
                 SecretMaterial = null,
+                PublicKey = Base64Url.EncodeToString(subjectPublicKeyInfo.WrittenSpan),
             };
         }
         finally

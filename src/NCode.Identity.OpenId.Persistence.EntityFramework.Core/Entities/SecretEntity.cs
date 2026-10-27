@@ -1,4 +1,4 @@
-﻿#region Copyright Preamble
+#region Copyright Preamble
 
 //
 //    Copyright @ 2023 NCode Group
@@ -128,4 +128,13 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     [Unicode(false)]
     [MaxLength(SecretMaxLengths.EncodedValue)]
     public required string EncodedValue { get; init; }
+
+    /// <summary>
+    /// Gets the base64url-encoded <c>SubjectPublicKeyInfo</c> DER of the public half of a private asymmetric key, or
+    /// <c>null</c> when the secret holds no private asymmetric key.
+    /// </summary>
+    // See ADR-0268.
+    [Unicode(false)]
+    [MaxLength(SecretMaxLengths.PublicKey)]
+    public required string? PublicKey { get; init; }
 }

@@ -239,6 +239,47 @@ public class AkpIntegrationTests
         );
     }
 
+    [Theory]
+    [InlineData("ML-DSA-44")]
+    [InlineData("ML-DSA-65")]
+    [InlineData("ML-DSA-87")]
+    public void GenerateKeyMaterial_StoresThePrivateKeysSubjectPublicKeyInfo(string name)
+    {
+        if (!MLDsa.IsSupported)
+            return;
+
+        var descriptor = CreateDescriptor();
+        var parameters = new SecretKeyGenerationParameters
+        {
+            KeySizeBits = KeySizeBitsOf(name),
+            Curve = name,
+        };
+        var generated = descriptor.GenerateKeyMaterial(parameters, Protect);
+        Assert.NotNull(generated.PublicKey);
+
+        var metadata = new KeyMetadata { KeyId = "kid-test", Use = "sig" };
+        var privateKey = descriptor.DeserializeKeyMaterial(
+            metadata,
+            SecretEncodings.Pkcs8,
+            Convert.FromBase64String(generated.ProtectedKeyMaterial)
+        );
+        var publicKey = descriptor.DeserializeKeyMaterial(
+            metadata,
+            SecretEncodings.Spki,
+            System.Buffers.Text.Base64Url.DecodeFromChars(generated.PublicKey)
+        );
+
+        var asymmetricPrivateKey = Assert.IsType<AsymmetricSecretKey>(
+            privateKey,
+            exactMatch: false
+        );
+        var asymmetricPublicKey = Assert.IsType<AsymmetricSecretKey>(publicKey, exactMatch: false);
+        Assert.Equal(
+            asymmetricPrivateKey.ExportSubjectPublicKeyInfoPem(),
+            asymmetricPublicKey.ExportSubjectPublicKeyInfoPem()
+        );
+    }
+
     [Fact]
     public void JwkKeyType_IsAkp()
     {

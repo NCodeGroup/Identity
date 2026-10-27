@@ -164,6 +164,41 @@ public sealed class ServerStoreSecretsTests : IDisposable
     }
 
     [Fact]
+    public async Task AddSecretAsync_RoundTripsThePublicKey()
+    {
+        await SeedServerAsync(CreateSecret("secret-1"));
+
+        var secret = CreateSecret("secret-2");
+        var withPublicKey = new PersistedSecret
+        {
+            SecretId = secret.SecretId,
+            ConcurrencyToken = secret.ConcurrencyToken,
+            Use = secret.Use,
+            Algorithm = secret.Algorithm,
+            CreatedWhen = secret.CreatedWhen,
+            ExpiresWhen = secret.ExpiresWhen,
+            SecretType = secret.SecretType,
+            SecretEncoding = secret.SecretEncoding,
+            KeySizeBits = secret.KeySizeBits,
+            EncodedValue = secret.EncodedValue,
+            PublicKey = "public-key",
+        };
+
+        await _store.AddSecretAsync(ServerId, withPublicKey, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetSecretOrDefaultAsync(
+            ServerId,
+            "secret-2",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(reloaded);
+        Assert.Equal("public-key", reloaded.PublicKey);
+    }
+
+    [Fact]
     public async Task AddSecretAsync_WhenDuplicate_Throws()
     {
         await SeedServerAsync(CreateSecret("secret-1"));

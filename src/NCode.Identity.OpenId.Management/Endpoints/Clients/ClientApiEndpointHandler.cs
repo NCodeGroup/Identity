@@ -1324,20 +1324,8 @@ internal class ClientApiEndpointHandler(
             scoped,
             node,
             Operations.Read,
-            async (x, ct) =>
-            {
-                // The owner is the tenant that owns the secret, not the route value.
-                // The protector is acquired only after authorization, so a caller who may not read the secret
-                // never loads its owner's master keys.
-                var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
-                    SecretOwner.ForTenant(clientSecret.TenantId),
-                    [x.Value],
-                    ct
-                );
-
-                return SecretPublicKeyConverter.Convert(protector, x.Value);
-            },
-            cancellationToken
+            // The public key is read from its stored public half, so no master key is loaded (ADR-0268).
+            x => SecretPublicKeyConverter.Convert(x.Value)
         );
     }
 
@@ -1414,6 +1402,7 @@ internal class ClientApiEndpointHandler(
             SecretEncoding = secret.SecretEncoding,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
+            PublicKey = secret.PublicKey,
         };
 
         await store.UpdateSecretAsync(clientId, updated, cancellationToken);

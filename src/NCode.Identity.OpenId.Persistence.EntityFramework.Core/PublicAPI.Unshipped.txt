@@ -378,6 +378,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Key
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.KeySizeBits.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.NormalizedSecretId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.NormalizedSecretId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.PublicKey.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.PublicKey.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.SecretEntity() -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.SecretId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.SecretId.init -> void

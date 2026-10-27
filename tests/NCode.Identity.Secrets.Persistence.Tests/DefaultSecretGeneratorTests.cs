@@ -293,6 +293,38 @@ public class DefaultSecretGeneratorTests
     }
 
     [Fact]
+    public void GenerateSecret_WhenRsa_StoresTheSubjectPublicKeyInfo()
+    {
+        var protector = CreateProtector();
+        var generated = _generator.GenerateSecret(protector, CreateRequest(SecretTypes.Rsa, 2048));
+
+        var asymmetric = Assert.IsAssignableFrom<AsymmetricSecretKey>(
+            _serializer.DeserializeSecret(protector, generated.Secret)
+        );
+        var writer = new ArrayBufferWriter<byte>();
+        asymmetric.ExportSubjectPublicKeyInfo(ref writer);
+
+        Assert.NotNull(generated.Secret.PublicKey);
+        Assert.Equal(
+            writer.WrittenSpan.ToArray(),
+            System.Buffers.Text.Base64Url.DecodeFromChars(generated.Secret.PublicKey)
+        );
+    }
+
+    [Fact]
+    public void GenerateSharedSecret_HasNoPublicKey()
+    {
+        var protector = CreateProtector();
+
+        var generated = _generator.GenerateSharedSecret(
+            protector,
+            CreateRequest(SecretTypes.Symmetric, 256)
+        );
+
+        Assert.Null(generated.Secret.PublicKey);
+    }
+
+    [Fact]
     public void GenerateSecret_WhenEccWithCurveName_UsesThatCurveSize()
     {
         var protector = CreateProtector();

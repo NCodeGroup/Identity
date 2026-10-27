@@ -84,7 +84,8 @@ public class DefaultSecretSerializerTests
         string encodedValue,
         string secretId = "secret-1",
         DateTimeOffset? expiresWhen = null,
-        string? keyId = null
+        string? keyId = null,
+        string? publicKey = null
     ) =>
         new()
         {
@@ -98,6 +99,7 @@ public class DefaultSecretSerializerTests
             SecretEncoding = secretEncoding,
             KeySizeBits = keySizeBits,
             EncodedValue = encodedValue,
+            PublicKey = publicKey,
         };
 
     private static DefaultSecretProtector CreateProtector()
@@ -349,6 +351,43 @@ public class DefaultSecretSerializerTests
         );
 
         Assert.Contains(SecretEncodings.Pkcs8, exception.Message);
+    }
+
+    [Fact]
+    public void DeserializePublicSecret_PrivateKeyWithStoredPublicKey_ReadsThePublicHalf()
+    {
+        using var rsa = RSA.Create(2048);
+        var expectedModulus = rsa.ExportParameters(false).Modulus;
+        var protector = CreateProtector();
+        var persisted = CreatePersistedSecretFromEncodedValue(
+            SecretTypes.Rsa,
+            SecretEncodings.Pkcs8,
+            rsa.KeySize,
+            CreateEnvelope(protector, "secret-1", rsa.ExportPkcs8PrivateKey()),
+            publicKey: Base64Url.EncodeToString(rsa.ExportSubjectPublicKeyInfo())
+        );
+
+        var secretKey = _serializer.DeserializePublicSecret(persisted);
+
+        var rsaKey = Assert.IsAssignableFrom<RsaSecretKey>(secretKey);
+        using var exported = rsaKey.ExportRSA();
+        Assert.Equal(expectedModulus, exported.ExportParameters(false).Modulus);
+    }
+
+    [Fact]
+    public void DeserializePublicSecret_Symmetric_Throws()
+    {
+        var protector = CreateProtector();
+        var persisted = CreatePersistedSecretFromEncodedValue(
+            SecretTypes.Symmetric,
+            SecretEncodings.SymmetricRaw,
+            256,
+            CreateEnvelope(protector, "secret-1", RandomNumberGenerator.GetBytes(32))
+        );
+
+        Assert.Throws<InvalidOperationException>(() =>
+            _serializer.DeserializePublicSecret(persisted)
+        );
     }
 
     #endregion

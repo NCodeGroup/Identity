@@ -75,6 +75,8 @@ NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.KeySizeBits.get ->
 NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.KeySizeBits.init -> void
 NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.ProtectedKeyMaterial.get -> string!
 NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.ProtectedKeyMaterial.init -> void
+NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.PublicKey.get -> string?
+NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.PublicKey.init -> void
 NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.SecretMaterial.get -> string?
 NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.SecretMaterial.init -> void
 NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog

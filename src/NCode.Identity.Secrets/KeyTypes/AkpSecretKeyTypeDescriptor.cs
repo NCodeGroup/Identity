@@ -98,6 +98,7 @@ public sealed class AkpSecretKeyTypeDescriptor(
                 KeySizeBits = algorithm.PublicKeySizeInBytes * 8,
                 SecretEncoding = SecretEncodings.Pkcs8,
                 SecretMaterial = null,
+                PublicKey = Base64Url.EncodeToString(key.ExportSubjectPublicKeyInfo()),
             };
         }
         finally

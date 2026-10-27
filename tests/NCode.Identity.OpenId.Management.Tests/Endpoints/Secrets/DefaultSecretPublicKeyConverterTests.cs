@@ -25,7 +25,6 @@ using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
@@ -36,7 +35,6 @@ public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
 
     private MockRepository MockRepository { get; }
     private Mock<ISecretSerializer> MockSecretSerializer { get; }
-    private Mock<ISecretProtector> MockSecretProtector { get; }
     private ServiceProvider ServiceProvider { get; }
     private ISecretKeyFactory SecretKeyFactory { get; }
     private DefaultSecretPublicKeyConverter Converter { get; }
@@ -45,10 +43,9 @@ public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
     {
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockSecretSerializer = MockRepository.Create<ISecretSerializer>();
-        MockSecretProtector = MockRepository.Create<ISecretProtector>();
 
         // Resolve the real key factory and key-type catalog so the converter exports through the same descriptors
-        // the server registers; only the serializer (and the protector it would unprotect with) is mocked.
+        // the server registers; only the serializer is mocked.
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddSecretsLibrary();
@@ -73,7 +70,8 @@ public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
     private static PersistedSecret CreatePersistedSecret(
         string secretType,
         string secretEncoding,
-        int keySizeBits
+        int keySizeBits,
+        string? publicKey = null
     ) =>
         new()
         {
@@ -87,6 +85,7 @@ public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
             SecretEncoding = secretEncoding,
             KeySizeBits = keySizeBits,
             EncodedValue = "encoded",
+            PublicKey = publicKey,
         };
 
     private static KeyMetadata CreateMetadata() =>
@@ -99,20 +98,26 @@ public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
 
     #region Convert Tests
 
+    // See ADR-0268.
     [Fact]
-    public void Convert_EnvelopeRsaKey_ReturnsPublicJwk()
+    public void Convert_PrivateKeyWithStoredPublicKey_ReturnsPublicJwk()
     {
         using var rsa = RSA.Create(2048);
         var parameters = rsa.ExportParameters(includePrivateParameters: false);
         var secretKey = SecretKeyFactory.CreateRsa(CreateMetadata(), rsa);
-        var secret = CreatePersistedSecret(SecretTypes.Rsa, SecretEncodings.Pkcs8, 2048);
+        var secret = CreatePersistedSecret(
+            SecretTypes.Rsa,
+            SecretEncodings.Pkcs8,
+            2048,
+            publicKey: "spki"
+        );
 
         MockSecretSerializer
-            .Setup(x => x.DeserializeSecret(MockSecretProtector.Object, secret))
+            .Setup(x => x.DeserializePublicSecret(secret))
             .Returns(secretKey)
             .Verifiable();
 
-        var resource = Converter.Convert(MockSecretProtector.Object, secret);
+        var resource = Converter.Convert(secret);
 
         Assert.NotNull(resource);
         Assert.Equal(secret.SecretId, resource.SecretId);
@@ -131,23 +136,28 @@ public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
         Assert.StartsWith("-----BEGIN PUBLIC KEY-----", resource.Pem, StringComparison.Ordinal);
     }
 
+    // See ADR-0268.
     [Fact]
-    public void Convert_SymmetricSecret_ReturnsNull()
+    public void Convert_PrivateKeyWithoutStoredPublicKey_ReturnsNull()
     {
-        var keyBytes = RandomNumberGenerator.GetBytes(32);
-        var secretKey = SecretKeyFactory.CreateSymmetric(CreateMetadata(), keyBytes);
+        var secret = CreatePersistedSecret(SecretTypes.Rsa, SecretEncodings.Pkcs8, 2048);
+
+        var resource = Converter.Convert(secret);
+
+        Assert.Null(resource);
+    }
+
+    // See ADR-0268.
+    [Fact]
+    public void Convert_SymmetricSecret_ReturnsNullWithoutDeserializing()
+    {
         var secret = CreatePersistedSecret(
             SecretTypes.Symmetric,
             SecretEncodings.SymmetricRaw,
             256
         );
 
-        MockSecretSerializer
-            .Setup(x => x.DeserializeSecret(MockSecretProtector.Object, secret))
-            .Returns(secretKey)
-            .Verifiable();
-
-        var resource = Converter.Convert(MockSecretProtector.Object, secret);
+        var resource = Converter.Convert(secret);
 
         Assert.Null(resource);
     }

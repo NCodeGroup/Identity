@@ -16,10 +16,15 @@
                       restored; the script lists both.
       Merged          Files whose tools can't include a second file (copier.yml's _merged_files). The template's
                       changes are merged with the project's edits, like a Git merge; the same lines changed on
-                      both sides conflict.
+                      both sides conflict. An adopted project's own lines at the end of .gitignore,
+                      .gitattributes and .editorconfig are set aside while Copier merges, so they never
+                      conflict.
       Project-owned   Written once, never touched again (copier.yml's _skip_if_exists). When the template changed
                       one since the project's version, the script shows the template's change, rendered with
                       the project's answers, leaving out what the project's file already has.
+                      A merged file that the project's project_owned_files answer names
+                      is project-owned too; a project that replaced one sets it with -Data @{ project_owned_files
+                      = '.github/workflows/ci.yml' }, and only merged files can be named.
 
     The update runs `copier recopy` at the project's current template version, which resets the template-owned
     files and shows any local edits, then `copier update --defaults` to the newest version (or -Ref), which merges
@@ -83,6 +88,16 @@ function Invoke-TemplateRender([string]$Version, [string]$Folder) {
 function Get-Answer([string]$Key) {
     $match = Select-String -LiteralPath .copier-answers.yml -Pattern "^${Key}:\s*(.+?)\s*$" | Select-Object -First 1
     if ($match) { $match.Matches[0].Groups[1].Value.Trim("'", '"') }
+}
+
+# A list answer from .copier-answers.yml, which Copier writes as "key:" and then one "- item" line each.
+function Get-AnswerList([string]$Key) {
+    $inList = $false
+    foreach ($line in Get-Content -LiteralPath .copier-answers.yml) {
+        if ($line -match "^${Key}:\s*$") { $inList = $true; continue }
+        if ($inList -and $line -match '^\s*-\s+(.+?)\s*$') { $Matches[1].Trim("'", '"') }
+        elseif ($inList) { break }
+    }
 }
 
 # A file list from the template's copier.yml at a version, or at the clone's HEAD when that version isn't in it.
@@ -186,11 +201,29 @@ try {
 
     $projectOwned = @(Get-TemplateList $TemplateClone $from '_skip_if_exists')
     $merged = @(Get-TemplateList $TemplateClone $from '_merged_files')
+    # Merged files the project owns (its project_owned_files answer): updates leave them alone and show the template's change, as for project-owned files.
+    # -Data wins, because this update records it, and a single file becomes the list the answer must be.
+    if ($Data.ContainsKey('project_owned_files')) { $Data['project_owned_files'] = @($Data['project_owned_files'] | Where-Object { $_ }) }
+    $ownedMerged = @(if ($Data.ContainsKey('project_owned_files')) { $Data['project_owned_files'] } else { Get-AnswerList 'project_owned_files' })
+    $notMerged = @($ownedMerged | Where-Object { $_ -notin $merged })
+    if ($notMerged) { throw "project_owned_files names $($notMerged -join ', '), which isn't a merged file. It can name only these: $($merged -join ', ')." }
     try {
         # Reset the template-owned files to the project's current version; what changes was edited or deleted here.
         $exclude = foreach ($file in $projectOwned + $merged) { '--exclude', $file }
         Invoke-Copier recopy --force --quiet --vcs-ref :current: @exclude
         $reset = @(Get-Change)
+        # Adopt-Project.ps1 ends these files with the repository's own lines under a "# Kept from …" comment. Set them aside while
+        # Copier merges, so a template change to the file's last lines can't conflict with them or take them into its conflict.
+        $keptLines = @{}
+        foreach ($file in '.gitignore', '.gitattributes', '.editorconfig') {
+            if ($file -notin $merged -or $file -in $ownedMerged -or -not (Test-Path -LiteralPath $file)) { continue }
+            $text = [IO.File]::ReadAllText((Join-Path $project $file))
+            $match = [regex]::Match($text, "(?m)^# Kept from this repository's own \S+ when it adopted the project template\r?$")
+            if (-not $match.Success) { continue }
+            $templatePart = $text.Substring(0, $match.Index).TrimEnd("`r", "`n")
+            $keptLines[$file] = $text.Substring($templatePart.Length)
+            [IO.File]::WriteAllText((Join-Path $project $file), "$templatePart`n")
+        }
         $resetCommitted = [bool](git status --porcelain)
         if ($resetCommitted) { git add -A; git commit -q --no-verify -m 'Reset template-owned files'; if ($LASTEXITCODE) { throw 'Committing the reset failed.' } }
 
@@ -199,6 +232,8 @@ try {
         # A project-owned file the project deleted stays deleted; Copier would otherwise create it again.
         $deleted = $projectOwned | Where-Object { -not (Test-Path -LiteralPath $_) -and (git log --diff-filter=D --format=%h -1 -- $_) }
         foreach ($file in $deleted) { $copierArgs += '--exclude', $file }
+        # A merged file the project owns stays as it is; its template change is shown below.
+        foreach ($file in $ownedMerged) { $copierArgs += '--exclude', $file }
         # Copier writes the template's .gitignore over the project's before merging the project's edits back, then passes
         # every path Git reports as ignored to one `git apply` command. Keep the project's rules in force meanwhile, or a
         # folder only they ignore, such as node_modules/, is listed file by file and overflows Windows' command line.
@@ -213,13 +248,19 @@ try {
         try {
             if (Test-Path -LiteralPath $projectIgnore) {
                 New-Item -ItemType Directory -Force (Split-Path $infoExclude) | Out-Null
-                [IO.File]::WriteAllText($infoExclude, "$excludeBefore`n$beginCopy`n$([IO.File]::ReadAllText($projectIgnore))`n$endCopy`n")
+                [IO.File]::WriteAllText($infoExclude, "$excludeBefore`n$beginCopy`n$([IO.File]::ReadAllText($projectIgnore))$($keptLines['.gitignore'])`n$endCopy`n")
             }
             Invoke-Copier @copierArgs
         }
         finally {
             if ($null -eq $excludeBefore) { Remove-Item -LiteralPath $infoExclude -Force -ErrorAction SilentlyContinue }
             else { [IO.File]::WriteAllText($infoExclude, $excludeBefore) }
+        }
+
+        # Put the kept lines back at the end, after any conflict.
+        foreach ($file in $keptLines.Keys) {
+            $full = Join-Path $project $file
+            if (Test-Path -LiteralPath $full) { [IO.File]::WriteAllText($full, [IO.File]::ReadAllText($full).TrimEnd("`r", "`n") + $keptLines[$file]) }
         }
 
         # Drop the reset commit but keep its changes, and any conflict, in the index and the working tree.
@@ -235,6 +276,7 @@ try {
         git add -A
         # Executable on Linux and macOS; Windows doesn't record the bit on its own.
         if (Test-Path -LiteralPath .githooks/commit-msg) { git update-index --chmod=+x .githooks/commit-msg }
+        if (Test-Path -LiteralPath .githooks/pre-push) { git update-index --chmod=+x .githooks/pre-push }
     }
     # Enable the template's versioned hooks in this clone, unless it already runs hooks another way (Get-GitHooksSetup).
     if ((Test-Path -LiteralPath .githooks) -and -not (git config --get core.hooksPath)) {
@@ -245,7 +287,7 @@ try {
     $changes = @(Get-Change)
     $jinjaTag = '\{' + '%.*?%' + '\}'
     $projectOwnedChanged = @(if ($from -ne $to) {
-            $owned = @(Get-TemplateList $TemplateClone $to '_skip_if_exists')
+            $owned = @(Get-TemplateList $TemplateClone $to '_skip_if_exists') + $ownedMerged
             foreach ($source in git -C $TemplateClone diff --name-only $from $to -- template/ 2>$null) {
                 $file = $source -replace '^template/' -replace $jinjaTag -replace '\.jinja$'
                 if ($file -in $owned -and (Test-Path -LiteralPath $file)) { [pscustomobject]@{ File = $file; Source = $source } }

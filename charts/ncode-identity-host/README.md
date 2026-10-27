@@ -3,7 +3,7 @@
 The Helm chart for `NCode.Identity.OpenId.Host`, the OpenID Connect and OAuth 2.0 server. It runs the host image as a
 non-root deployment that meets the restricted Pod Security Standard, probes `/health/live` and `/health/ready`, and
 drains each pod before stopping it
-([ADR-0179](../../docs/adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
+([ADR-0179](../../docs/decisions/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
 It requires Kubernetes 1.30 or later.
 
 ## Before the first install
@@ -70,7 +70,7 @@ the migrations.
 
 The previous version keeps serving while the Job runs and until the rollout ends, so every migration must keep it
 working: add first, and drop or rename only in a later release
-([ADR-0180](../../docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). A `helm rollback` runs no migration.
+([ADR-0180](../../docs/decisions/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). A `helm rollback` runs no migration.
 
 To apply migrations another way, such as with a generated idempotent script, set `migrations.enabled=false`.
 
@@ -84,7 +84,7 @@ after the old one has terminated, so each update has a short outage.
 
 The host encrypts every stored secret, and the Data Protection key ring, under a root key held outside the database, so
 a database dump or backup is useless without it
-([ADR-0235](../../docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+([ADR-0235](../../docs/decisions/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 `secretProtection.rootKeyProvider` chooses where the root key lives, and Production refuses an empty or `ephemeral`
 choice:
 
@@ -293,7 +293,7 @@ credentials itself, leave `provider` empty: the chart then sets only the key nam
 
 The host refuses to start while the Data Protection key ring holds a live key, one that is not revoked and has not
 expired, that the server's master key cannot decrypt, and it names each such key in the error
-([ADR-0247](../../docs/adr/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)). It happens when the
+([ADR-0247](../../docs/decisions/0247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)). It happens when the
 master key rows are lost or recreated while the key ring survives, such as after restoring part of a backup.
 
 Restore the master keys if you can. Otherwise list each ID in `extraEnv` as `DataProtectionKeyRing__RevokedKeyIds__0`,
@@ -313,7 +313,7 @@ entries may be removed afterwards.
 
 Outside Development, the host sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response
 to a request that reached it over HTTPS
-([ADR-0258](../../docs/adr/0258-the-server-sends-strict-transport-security-outside-development.md)). Behind the
+([ADR-0258](../../docs/decisions/0258-the-server-sends-strict-transport-security-outside-development.md)). Behind the
 ingress the pod serves plain HTTP, so the host sees HTTPS only through the `X-Forwarded-Proto` header of a proxy that
 `reverseProxy` trusts: set `reverseProxy.knownNetworks` or `reverseProxy.knownProxies` to cover the ingress controller,
 or the header is not sent.
@@ -333,5 +333,5 @@ TLS to Postgres, reaches both the host and the migrations.
 
 The image writes one JSON object per line to standard output, with a UTC timestamp, so a log collector keeps an entry
 and its exception in one record
-([ADR-0248](../../docs/adr/0248-the-host-image-writes-one-line-json-logs.md)). Set
+([ADR-0248](../../docs/decisions/0248-the-host-image-writes-one-line-json-logs.md)). Set
 `Logging__Console__FormatterName=simple` in `extraEnv` to write text instead.

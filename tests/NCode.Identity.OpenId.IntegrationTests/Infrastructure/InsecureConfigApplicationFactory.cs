@@ -24,11 +24,11 @@ namespace NCode.Identity.OpenId.IntegrationTests.Infrastructure;
 /// <summary>
 /// A <see cref="HostApplicationFactory"/> that re-enables — purely through host configuration — the
 /// not-recommended capabilities the library omits from its secure defaults
-/// ([ADR-0083](../../../docs/adr/0083-secure-by-default-discovery-metadata.md)): the implicit/hybrid response
+/// ([ADR-0083](../../../docs/decisions/0083-secure-by-default-discovery-metadata.md)): the implicit/hybrid response
 /// types and <c>implicit</c> grant. Symmetric signing of a token that crosses a trust boundary is outside the signing
-/// settings' domain ([ADR-0140](../../../docs/adr/0140-setting-values-are-validated-against-their-domain.md)), and
+/// settings' domain ([ADR-0140](../../../docs/decisions/0140-setting-values-are-validated-against-their-domain.md)), and
 /// PKCE <c>plain</c> is not a registered transformation
-/// ([ADR-0144](../../../docs/adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)), so neither can be
+/// ([ADR-0144](../../../docs/decisions/0144-authorization-codes-are-bound-to-pkce-by-default.md)), so neither can be
 /// re-enabled.
 /// </summary>
 /// <remarks>

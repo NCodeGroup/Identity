@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Discovery.Handlers;
 /// Contributes the OpenID Connect Session Management 1.0 <c>check_session_iframe</c> discovery metadata, but only when
 /// the tenant's <c>session_management_supported</c> setting is enabled. Session Management is available but disabled by
 /// default (it depends on third-party cookies the browser platform is removing); see
-/// <see href="../../../../../docs/adr/0088-opt-in-front-channel-logout-and-session-management.md">ADR-0088</see>.
+/// <see href="../../../../../docs/decisions/0088-opt-in-front-channel-logout-and-session-management.md">ADR-0088</see>.
 /// </summary>
 internal class DefaultDiscoverSessionManagementHandler(LinkGenerator linkGenerator)
     : ICommandHandler<DiscoverMetadataCommand>,

@@ -174,6 +174,56 @@ public class OpenIdClientOptionsValidatorTests : BaseTests
         );
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void Validate_WhenIdTokenSigningAlgorithmsBlank_Fails(string? algorithm)
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { IdTokenSigningAlgorithms = ["ES256", algorithm!] }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            nameof(OpenIdClientOptions.IdTokenSigningAlgorithms),
+            result.FailureMessage
+        );
+    }
+
+    [Theory]
+    [InlineData("none")]
+    [InlineData("NONE")]
+    public void Validate_WhenIdTokenSigningAlgorithmsNone_Fails(string algorithm)
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { IdTokenSigningAlgorithms = [algorithm] }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            nameof(OpenIdClientOptions.IdTokenSigningAlgorithms),
+            result.FailureMessage
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenIdTokenSigningAlgorithmsDuplicate_Fails()
+    {
+        var result = Validator.Validate(
+            null,
+            new OpenIdClientOptions { IdTokenSigningAlgorithms = ["ES256", "ES256"] }
+        );
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            nameof(OpenIdClientOptions.IdTokenSigningAlgorithms),
+            result.FailureMessage
+        );
+    }
+
     [Fact]
     public void Validate_WithValidSigningAlgorithms_Succeeds()
     {

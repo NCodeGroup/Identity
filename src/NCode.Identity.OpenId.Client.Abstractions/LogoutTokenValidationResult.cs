@@ -93,8 +93,8 @@ public sealed class LogoutTokenValidationResult
 
     /// <summary>
     /// Gets the expiry (the <c>exp</c> claim) of the logout token when it is valid; otherwise,
-    /// <see langword="default"/>. The validator has already recorded the <c>jti</c> until this instant plus five
-    /// minutes of clock skew.
+    /// <see langword="default"/>. <see cref="ILogoutTokenValidator.TryRecordHandledAsync"/> records the <c>jti</c>
+    /// until this instant plus five minutes of clock skew.
     /// </summary>
     public DateTimeOffset ExpiresAt { get; }
 

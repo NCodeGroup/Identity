@@ -31,8 +31,8 @@ namespace NCode.Identity.OpenId.Client.Tokens;
 /// <summary>
 /// Provides a default implementation of <see cref="ILogoutTokenValidator"/> that first decrypts an encrypted logout
 /// token with the client's keys, then verifies its signature with the provider's signing keys, checks its claims
-/// (OpenID Connect Back-Channel Logout 1.0 §2.6) and records its <c>jti</c> so that the same token validates only
-/// once (ADR-0274).
+/// (OpenID Connect Back-Channel Logout 1.0 §2.6) and refuses a token whose <c>jti</c> is already recorded;
+/// <see cref="TryRecordHandledAsync"/> records it (ADR-0274, ADR-0284).
 /// </summary>
 internal class DefaultLogoutTokenValidator(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
@@ -278,18 +278,40 @@ internal class DefaultLogoutTokenValidator(
             );
 
         if (
-            !await ExpiringKeySet.TryAddAsync(
+            await ExpiringKeySet.ContainsAsync(
                 CreateReplayKey(issuer, registration.ClientId, jti),
-                expiresAt + ClockSkew,
                 cancellationToken
             )
         )
             return Fail(
                 TokenValidationFailureCodes.TokenReplayed,
-                "The logout token has already been received."
+                "The logout token has already been handled."
             );
 
         return new LogoutTokenValidationResult(payload, issuer, jti, expiresAt, sub, sid);
+    }
+
+    /// <inheritdoc />
+    public ValueTask<bool> TryRecordHandledAsync(
+        ClientRegistration registration,
+        LogoutTokenValidationResult result,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(registration);
+        ArgumentNullException.ThrowIfNull(result);
+
+        if (!result.IsValid)
+            throw new ArgumentException(
+                "Only a valid logout token can be recorded as handled.",
+                nameof(result)
+            );
+
+        return ExpiringKeySet.TryAddAsync(
+            CreateReplayKey(result.Issuer, registration.ClientId, result.TokenId),
+            result.ExpiresAt + ClockSkew,
+            cancellationToken
+        );
     }
 
     private static string CreateReplayKey(string issuer, string clientId, string jti)

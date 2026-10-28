@@ -201,9 +201,12 @@ public class DefaultTokenClientTests : BaseTests
 
         await client.RequestTokenAsync(
             CreateRegistration(),
-            new TokenExchangeTokenRequest("subject", TokenTypeIdentifiers.AccessToken)
+            new TokenExchangeTokenRequest(
+                "subject",
+                OpenIdProtocol.TokenTypeIdentifiers.AccessToken
+            )
             {
-                RequestedTokenType = TokenTypeIdentifiers.AccessToken,
+                RequestedTokenType = OpenIdProtocol.TokenTypeIdentifiers.AccessToken,
                 Audiences = ["aud1", "aud2"],
             },
             CancellationToken.None
@@ -211,9 +214,12 @@ public class DefaultTokenClientTests : BaseTests
 
         var parameters = ParseBody(Assert.Single(handler.Requests).Body);
         Assert.Equal(["subject"], Values(parameters, "subject_token"));
-        Assert.Equal([TokenTypeIdentifiers.AccessToken], Values(parameters, "subject_token_type"));
         Assert.Equal(
-            [TokenTypeIdentifiers.AccessToken],
+            [OpenIdProtocol.TokenTypeIdentifiers.AccessToken],
+            Values(parameters, "subject_token_type")
+        );
+        Assert.Equal(
+            [OpenIdProtocol.TokenTypeIdentifiers.AccessToken],
             Values(parameters, "requested_token_type")
         );
         Assert.Equal(["aud1", "aud2"], Values(parameters, "audience"));

@@ -23,7 +23,11 @@ namespace NCode.Identity.OpenId.Client.Tests;
 public class ClientRegistrationTests
 {
     private static ClientRegistration CreateRegistration(IReadOnlyList<string>? algorithms) =>
-        new("https://issuer.example", "client", ClientAuthenticationMethods.ClientSecretBasic)
+        new(
+            "https://issuer.example",
+            "client",
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        )
         {
             IdTokenSigningAlgorithms = algorithms,
         };
@@ -36,7 +40,7 @@ public class ClientRegistrationTests
         var registration = new ClientRegistration(
             "https://issuer.example",
             "client",
-            ClientAuthenticationMethods.ClientSecretBasic
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
         );
 
         Assert.Null(registration.IdTokenSigningAlgorithms);
@@ -88,7 +92,7 @@ public class ClientRegistrationTests
         var registration = new ClientRegistration(
             "https://issuer.example",
             "client",
-            ClientAuthenticationMethods.ClientSecretBasic
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
         );
 
         Assert.False(registration.BackchannelLogoutSessionRequired);
@@ -100,7 +104,7 @@ public class ClientRegistrationTests
         var registration = new ClientRegistration(
             "https://issuer.example",
             "client",
-            ClientAuthenticationMethods.ClientSecretBasic
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
         )
         {
             BackchannelLogoutSessionRequired = true,

@@ -33,7 +33,7 @@ public sealed class TokenRevocationRequest(string token)
     public string Token { get; } = ValidateNotEmpty(token);
 
     /// <summary>
-    /// Gets the hint about the type of the token, if any. See <see cref="TokenTypeHints"/>.
+    /// Gets the hint about the type of the token, if any. See <see cref="OpenIdProtocol.TokenTypeHints"/>.
     /// </summary>
     public string? TokenTypeHint { get; init; }
 

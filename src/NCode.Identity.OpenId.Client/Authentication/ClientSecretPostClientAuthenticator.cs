@@ -28,7 +28,7 @@ internal class ClientSecretPostClientAuthenticator(IClientKeyRingProvider keyRin
     private IClientKeyRingProvider KeyRingProvider { get; } = keyRingProvider;
 
     /// <inheritdoc />
-    public string MethodName => ClientAuthenticationMethods.ClientSecretPost;
+    public string MethodName => OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost;
 
     /// <inheritdoc />
     public ValueTask AuthenticateAsync(

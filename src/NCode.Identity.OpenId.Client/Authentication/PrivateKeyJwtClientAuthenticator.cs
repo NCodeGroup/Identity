@@ -68,7 +68,7 @@ internal class PrivateKeyJwtClientAuthenticator(
     private OpenIdClientOptions Options { get; } = options.Value;
 
     /// <inheritdoc />
-    public string MethodName => ClientAuthenticationMethods.PrivateKeyJwt;
+    public string MethodName => OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt;
 
     /// <inheritdoc />
     public ValueTask AuthenticateAsync(

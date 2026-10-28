@@ -1,16 +1,7 @@
 #nullable enable
 abstract NCode.Identity.OpenId.Client.TokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
 abstract NCode.Identity.OpenId.Client.TokenRequest.GrantType.get -> string!
-const NCode.Identity.OpenId.Client.ClientAuthenticationMethods.ClientSecretBasic = "client_secret_basic" -> string!
-const NCode.Identity.OpenId.Client.ClientAuthenticationMethods.ClientSecretPost = "client_secret_post" -> string!
-const NCode.Identity.OpenId.Client.ClientAuthenticationMethods.PrivateKeyJwt = "private_key_jwt" -> string!
 const NCode.Identity.OpenId.Client.OpenIdClientDefaults.HttpClientName = "NCode.Identity.OpenId.Client" -> string!
-const NCode.Identity.OpenId.Client.TokenTypeHints.AccessToken = "access_token" -> string!
-const NCode.Identity.OpenId.Client.TokenTypeHints.RefreshToken = "refresh_token" -> string!
-const NCode.Identity.OpenId.Client.TokenTypeIdentifiers.AccessToken = "urn:ietf:params:oauth:token-type:access_token" -> string!
-const NCode.Identity.OpenId.Client.TokenTypeIdentifiers.IdToken = "urn:ietf:params:oauth:token-type:id_token" -> string!
-const NCode.Identity.OpenId.Client.TokenTypeIdentifiers.Jwt = "urn:ietf:params:oauth:token-type:jwt" -> string!
-const NCode.Identity.OpenId.Client.TokenTypeIdentifiers.RefreshToken = "urn:ietf:params:oauth:token-type:refresh_token" -> string!
 NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest
 NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.AuthorizationCodeTokenRequest(string! code, string! redirectUri, string! codeVerifier) -> void
 NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.Code.get -> string!
@@ -23,7 +14,6 @@ NCode.Identity.OpenId.Client.ClientAuthenticationContext.Metadata.get -> NCode.I
 NCode.Identity.OpenId.Client.ClientAuthenticationContext.Parameters.get -> System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>!
 NCode.Identity.OpenId.Client.ClientAuthenticationContext.Registration.get -> NCode.Identity.OpenId.Client.ClientRegistration!
 NCode.Identity.OpenId.Client.ClientAuthenticationContext.Request.get -> System.Net.Http.HttpRequestMessage!
-NCode.Identity.OpenId.Client.ClientAuthenticationMethods
 NCode.Identity.OpenId.Client.ClientCredentialsTokenRequest
 NCode.Identity.OpenId.Client.ClientCredentialsTokenRequest.ClientCredentialsTokenRequest() -> void
 NCode.Identity.OpenId.Client.ClientRegistration
@@ -199,8 +189,6 @@ NCode.Identity.OpenId.Client.TokenRevocationRequest.Token.get -> string!
 NCode.Identity.OpenId.Client.TokenRevocationRequest.TokenRevocationRequest(string! token) -> void
 NCode.Identity.OpenId.Client.TokenRevocationRequest.TokenTypeHint.get -> string?
 NCode.Identity.OpenId.Client.TokenRevocationRequest.TokenTypeHint.init -> void
-NCode.Identity.OpenId.Client.TokenTypeHints
-NCode.Identity.OpenId.Client.TokenTypeIdentifiers
 override NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void
 override NCode.Identity.OpenId.Client.AuthorizationCodeTokenRequest.GrantType.get -> string!
 override NCode.Identity.OpenId.Client.ClientCredentialsTokenRequest.AddGrantParameters(System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<string!, string!>>! parameters) -> void

@@ -32,7 +32,7 @@ internal class ClientSecretBasicClientAuthenticator(IClientKeyRingProvider keyRi
     private IClientKeyRingProvider KeyRingProvider { get; } = keyRingProvider;
 
     /// <inheritdoc />
-    public string MethodName => ClientAuthenticationMethods.ClientSecretBasic;
+    public string MethodName => OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic;
 
     /// <inheritdoc />
     public ValueTask AuthenticateAsync(

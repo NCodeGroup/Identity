@@ -97,7 +97,10 @@ public class SharedSecretClientAuthenticatorTests : BaseTests, IAsyncLifetime
     {
         var authenticator = new ClientSecretBasicClientAuthenticator(CreateKeyRingProvider());
 
-        Assert.Equal(ClientAuthenticationMethods.ClientSecretBasic, authenticator.MethodName);
+        Assert.Equal(
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            authenticator.MethodName
+        );
     }
 
     [Fact]
@@ -105,7 +108,10 @@ public class SharedSecretClientAuthenticatorTests : BaseTests, IAsyncLifetime
     {
         var authenticator = new ClientSecretPostClientAuthenticator(CreateKeyRingProvider());
 
-        Assert.Equal(ClientAuthenticationMethods.ClientSecretPost, authenticator.MethodName);
+        Assert.Equal(
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            authenticator.MethodName
+        );
     }
 
     #endregion
@@ -117,7 +123,7 @@ public class SharedSecretClientAuthenticatorTests : BaseTests, IAsyncLifetime
     {
         var authenticator = new ClientSecretBasicClientAuthenticator(CreateKeyRingProvider());
         var registration = CreateRegistration(
-            ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             "ring"
         );
         var context = CreateContext(registration, []);
@@ -137,7 +143,10 @@ public class SharedSecretClientAuthenticatorTests : BaseTests, IAsyncLifetime
     public async Task AuthenticateAsync_Post_AddsClientIdAndSecretParameters()
     {
         var authenticator = new ClientSecretPostClientAuthenticator(CreateKeyRingProvider());
-        var registration = CreateRegistration(ClientAuthenticationMethods.ClientSecretPost, "ring");
+        var registration = CreateRegistration(
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            "ring"
+        );
         var parameters = new List<KeyValuePair<string, string>>();
         var context = CreateContext(registration, parameters);
 
@@ -157,7 +166,7 @@ public class SharedSecretClientAuthenticatorTests : BaseTests, IAsyncLifetime
     {
         var authenticator = new ClientSecretBasicClientAuthenticator(CreateKeyRingProvider());
         var registration = CreateRegistration(
-            ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             keyRing: null
         );
         var context = CreateContext(registration, []);
@@ -172,7 +181,7 @@ public class SharedSecretClientAuthenticatorTests : BaseTests, IAsyncLifetime
     {
         var authenticator = new ClientSecretPostClientAuthenticator(CreateKeyRingProvider());
         var registration = CreateRegistration(
-            ClientAuthenticationMethods.ClientSecretPost,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             "missing"
         );
         var context = CreateContext(registration, []);
@@ -187,7 +196,7 @@ public class SharedSecretClientAuthenticatorTests : BaseTests, IAsyncLifetime
     {
         var authenticator = new ClientSecretBasicClientAuthenticator(CreateKeyRingProvider());
         var registration = CreateRegistration(
-            ClientAuthenticationMethods.ClientSecretBasic,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             "rsa-ring"
         );
         var context = CreateContext(registration, []);

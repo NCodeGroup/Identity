@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Client;
 /// </summary>
 /// <param name="subjectToken">The token that represents the identity of the party on behalf of whom the request is made.</param>
 /// <param name="subjectTokenType">The type identifier of the subject token.
-/// See <see cref="TokenTypeIdentifiers"/> for the known values.</param>
+/// See <see cref="OpenIdProtocol.TokenTypeIdentifiers"/> for the known values.</param>
 [PublicAPI]
 public sealed class TokenExchangeTokenRequest(string subjectToken, string subjectTokenType)
     : TokenRequest

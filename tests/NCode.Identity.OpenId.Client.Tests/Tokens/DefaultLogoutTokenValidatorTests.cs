@@ -48,7 +48,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     private RSA Rsa { get; } = RSA.Create(2048);
     private SecretKey RsaKey { get; }
     private ClientRegistration Registration { get; } =
-        new(Issuer, ClientId, ClientAuthenticationMethods.PrivateKeyJwt);
+        new(Issuer, ClientId, OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt);
 
     public DefaultLogoutTokenValidatorTests()
     {
@@ -189,7 +189,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     private static ClientRegistration CreateRegistration(
         IReadOnlyList<string> idTokenSigningAlgorithms
     ) =>
-        new(Issuer, ClientId, ClientAuthenticationMethods.PrivateKeyJwt)
+        new(Issuer, ClientId, OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt)
         {
             IdTokenSigningAlgorithms = idTokenSigningAlgorithms,
         };
@@ -419,7 +419,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var registration = new ClientRegistration(
             Issuer,
             ClientId,
-            ClientAuthenticationMethods.PrivateKeyJwt
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
         )
         {
             BackchannelLogoutSessionRequired = true,

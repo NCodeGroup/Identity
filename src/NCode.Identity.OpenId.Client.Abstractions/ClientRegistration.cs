@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Client;
 /// <param name="authority">The issuer URL of the OpenID provider.</param>
 /// <param name="clientId">The client identifier issued by the OpenID provider.</param>
 /// <param name="authenticationMethod">The client authentication method used at the token endpoint.
-/// See <see cref="ClientAuthenticationMethods"/> for the known values.</param>
+/// See <see cref="OpenIdProtocol.ClientAuthenticationMethods"/> for the known values.</param>
 [PublicAPI]
 public sealed class ClientRegistration(
     string authority,

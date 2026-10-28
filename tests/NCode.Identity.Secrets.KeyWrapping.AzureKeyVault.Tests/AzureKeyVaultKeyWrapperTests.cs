@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using Azure;
@@ -205,46 +206,18 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(384);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(KeyVersionId, ciphertext);
-        var destination = new byte[48];
+        var destination = new ArrayBufferWriter<byte>();
         var result = CreateUnwrapResult(KeyVersionId, plaintext.ToArray());
         using var cancellationSource = new CancellationTokenSource();
         SetupClient(KeyVersionId);
         SetupUnwrapKey(result, cancellationSource.Token);
         var provider = CreateProvider(KeyId);
 
-        var written = await provider.UnwrapAsync(
-            wrappedKey,
-            context,
-            destination,
-            cancellationSource.Token
-        );
+        await provider.UnwrapAsync(wrappedKey, context, destination, cancellationSource.Token);
 
         Assert.Equal(ciphertext, SentCiphertext);
-        Assert.Equal(plaintext.Length, written);
-        Assert.Equal(plaintext, destination[..written]);
-        Assert.Equal(new byte[destination.Length - written], destination[written..]);
-        Assert.Equal(new byte[plaintext.Length], result.Key);
-    }
-
-    [Fact]
-    public async Task UnwrapAsync_DestinationTooSmall_ThrowsArgumentException()
-    {
-        var plaintext = RandomNumberGenerator.GetBytes(32);
-        var ciphertext = RandomNumberGenerator.GetBytes(384);
-        var context = "root-context"u8.ToArray();
-        var wrappedKey = CreateWrappedKey(KeyVersionId, ciphertext);
-        var destination = new byte[16];
-        var result = CreateUnwrapResult(KeyVersionId, plaintext.ToArray());
-        SetupClient(KeyVersionId);
-        SetupUnwrapKey(result, CancellationToken.None);
-        var provider = CreateProvider(KeyId);
-
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None).AsTask()
-        );
-
-        Assert.Equal("destination", exception.ParamName);
-        Assert.Equal(new byte[destination.Length], destination);
+        Assert.Equal(plaintext.Length, destination.WrittenCount);
+        Assert.Equal(plaintext, destination.WrittenSpan.ToArray());
         Assert.Equal(new byte[plaintext.Length], result.Key);
     }
 
@@ -254,7 +227,7 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(384);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(KeyVersionId, ciphertext);
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var serviceException = new RequestFailedException(400, "x");
         SetupClient(KeyVersionId);
         SetupUnwrapKeyThrows(serviceException);
@@ -273,7 +246,7 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(384);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(KeyVersionId, ciphertext);
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var serviceException = new RequestFailedException(503, "x");
         SetupClient(KeyVersionId);
         SetupUnwrapKeyThrows(serviceException);
@@ -292,7 +265,7 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(384);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(KeyId, ciphertext);
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var provider = CreateProvider(KeyId);
 
         await Assert.ThrowsAsync<CryptographicException>(() =>
@@ -315,7 +288,7 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
             KeyId = KeyVersionId,
             Ciphertext = ciphertext,
         };
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var provider = CreateProvider(KeyId);
 
         await Assert.ThrowsAsync<CryptographicException>(() =>

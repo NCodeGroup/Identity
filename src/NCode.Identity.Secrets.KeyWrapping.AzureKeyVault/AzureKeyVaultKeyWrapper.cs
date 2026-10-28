@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Security.Cryptography;
 using Azure;
 using Azure.Security.KeyVault.Keys.Cryptography;
@@ -136,17 +137,14 @@ internal class AzureKeyVaultKeyWrapper(
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="wrappedKey"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="destination"/> is too small to hold the unwrapped key.
-    /// </exception>
     /// <exception cref="CryptographicException">
     /// Thrown when the wrapped key does not name a Key Vault key version, is not valid base64url text, or was rejected
     /// by the service with an HTTP 400 response.
     /// </exception>
-    public async ValueTask<int> UnwrapAsync(
+    public async ValueTask UnwrapAsync(
         WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
-        Memory<byte> destination,
+        IBufferWriter<byte> destination,
         CancellationToken cancellationToken
     )
     {
@@ -183,7 +181,7 @@ internal class AzureKeyVaultKeyWrapper(
             );
         }
 
-        return CopyPlaintext(result.Key, destination.Span);
+        CopyPlaintext(result.Key, destination);
     }
 
     private static byte[] DecodeCiphertext(string text)
@@ -207,22 +205,15 @@ internal class AzureKeyVaultKeyWrapper(
         }
     }
 
-    private static int CopyPlaintext(byte[] plaintext, Span<byte> destination)
+    private static void CopyPlaintext(byte[] plaintext, IBufferWriter<byte> destination)
     {
         // The SDK hands over an array that nothing else references and leaves the unwrapped key in it, so it is
         // zeroed once copied.
         var source = plaintext.AsSpan();
         using var lifetime = source.GetSecureLifetime();
 
-        if (source.Length > destination.Length)
-        {
-            throw new ArgumentException(
-                "The destination is too small to hold the unwrapped key.",
-                nameof(destination)
-            );
-        }
-
-        source.CopyTo(destination);
-        return source.Length;
+        var length = source.Length;
+        source.CopyTo(destination.GetSpan(length)[..length]);
+        destination.Advance(length);
     }
 }

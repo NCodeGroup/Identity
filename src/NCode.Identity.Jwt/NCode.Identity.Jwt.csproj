@@ -20,13 +20,4 @@
         <PackageReference Include="NCode.Base64Url" />
         <PackageReference Include="NCode.PropertyBag" />
     </ItemGroup>
-
-    <ItemGroup>
-        <Compile Update="DefaultJsonWebTokenService.Validate.cs">
-            <DependentUpon>DefaultJsonWebTokenService.cs</DependentUpon>
-        </Compile>
-        <Compile Update="DefaultJsonWebTokenService.Encode.cs">
-            <DependentUpon>DefaultJsonWebTokenService.cs</DependentUpon>
-        </Compile>
-    </ItemGroup>
 </Project>

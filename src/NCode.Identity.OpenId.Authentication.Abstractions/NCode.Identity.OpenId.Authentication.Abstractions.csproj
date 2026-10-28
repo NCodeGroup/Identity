@@ -17,10 +17,4 @@
         <PackageReference Include="JetBrains.Annotations" />
         <PackageReference Include="NCode.Disposables" />
     </ItemGroup>
-
-    <ItemGroup>
-        <Compile Update="OpenIdConstants.*.cs">
-            <DependentUpon>OpenIdConstants.cs</DependentUpon>
-        </Compile>
-    </ItemGroup>
 </Project>

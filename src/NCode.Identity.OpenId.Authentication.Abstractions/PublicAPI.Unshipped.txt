@@ -210,6 +210,9 @@ const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.For
 const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.PushedAuthorizationRequest = "pushed_authorization_request" -> string!
 const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.Query = "query" -> string!
 const NCode.Identity.OpenId.Authentication.Messages.RequestValuesSourceTypes.RequestObject = "request_object" -> string!
+const NCode.Identity.OpenId.Authentication.Auditing.AuditRequestFactory.MaxUserAgentLength = 512 -> int
+NCode.Identity.OpenId.Authentication.Auditing.AuditRequestFactory
+static NCode.Identity.OpenId.Authentication.Auditing.AuditRequestFactory.Create(Microsoft.AspNetCore.Http.HttpContext! httpContext, string? endpoint) -> NCode.Identity.Events.Audit.AuditRequest!
 NCode.Identity.OpenId.Authentication.Auditing.AuthorizationDeniedAuditEvent
 NCode.Identity.OpenId.Authentication.Auditing.AuthorizationGrantedAuditEvent
 NCode.Identity.OpenId.Authentication.Auditing.ClientAuthenticationFailedAuditEvent

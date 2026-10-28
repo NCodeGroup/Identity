@@ -41,12 +41,16 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     private const string Issuer = "https://op.example.test";
     private const string ClientId = "client-1";
     private const string LogoutEvent = "http://schemas.openid.net/event/backchannel-logout";
+    private const string KeyRingName = "client-ring";
     private const string SignatureFailure =
         "The logout token signature could not be verified with the provider's signing keys.";
 
     private ServiceProvider ServiceProvider { get; }
     private RSA Rsa { get; } = RSA.Create(2048);
+    private RSA EncryptionRsa { get; } = RSA.Create(2048);
+    private RSA OtherRsa { get; } = RSA.Create(2048);
     private SecretKey RsaKey { get; }
+    private SecretKey EncryptionKey { get; }
     private ClientRegistration Registration { get; } =
         new(Issuer, ClientId, OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt);
 
@@ -60,6 +64,12 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         RsaKey = ServiceProvider
             .GetRequiredService<ISecretKeyFactory>()
             .CreateRsa(new KeyMetadata { KeyId = "k1" }, Rsa);
+        EncryptionKey = ServiceProvider
+            .GetRequiredService<ISecretKeyFactory>()
+            .CreateRsa(
+                new KeyMetadata { KeyId = "enc-1", Use = SecretKeyUses.Encryption },
+                EncryptionRsa
+            );
     }
 
     public Task InitializeAsync() => Task.CompletedTask;
@@ -68,6 +78,8 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     {
         await ServiceProvider.DisposeAsync();
         Rsa.Dispose();
+        EncryptionRsa.Dispose();
+        OtherRsa.Dispose();
     }
 
     private ISecretKeyCollection CreateKeys(params SecretKey[] keys) =>
@@ -79,6 +91,13 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         mock.Setup(x => x.GetSigningKeysAsync(Issuer, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.FromResult(CreateKeys(RsaKey)))
             .Verifiable();
+        return mock;
+    }
+
+    private Mock<IClientKeyRingProvider> CreateKeyRingMock(params SecretKey[] keys)
+    {
+        var mock = CreateStrictMock<IClientKeyRingProvider>();
+        mock.Setup(x => x.GetKeyRing(KeyRingName)).Returns(CreateKeys(keys)).Verifiable();
         return mock;
     }
 
@@ -100,7 +119,8 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     private DefaultLogoutTokenValidator CreateValidator(
         Mock<IProviderKeySetResolver>? keySetMock,
         Mock<IExpiringKeySet>? keySet = null,
-        List<string>? advertised = null
+        List<string>? advertised = null,
+        Mock<IClientKeyRingProvider>? keyRingMock = null
     )
     {
         var mockMetadata = CreateStrictMock<IProviderMetadataResolver>();
@@ -118,15 +138,37 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             .Verifiable();
 
         keySetMock ??= CreateStrictMock<IProviderKeySetResolver>();
+        keyRingMock ??= CreateStrictMock<IClientKeyRingProvider>();
         keySet ??= CreateStrictMock<IExpiringKeySet>();
 
         return new DefaultLogoutTokenValidator(
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             mockMetadata.Object,
             keySetMock.Object,
+            keyRingMock.Object,
             ServiceProvider.GetRequiredService<IJwtValidator>(),
             keySet.Object
         );
+    }
+
+    private JoseEncryptionCredentials CreateEncryptionCredentials(
+        SecretKey key,
+        string keyManagement = "RSA-OAEP-256",
+        string contentEncryption = "A128CBC-HS256"
+    )
+    {
+        var algorithms = ServiceProvider
+            .GetRequiredService<IAlgorithmCollectionProvider>()
+            .Collection;
+        Assert.True(algorithms.TryGetKeyManagementAlgorithm(keyManagement, out var management));
+        Assert.True(
+            algorithms.TryGetAuthenticatedEncryptionAlgorithm(
+                contentEncryption,
+                out var authenticatedEncryption
+            )
+        );
+
+        return new JoseEncryptionCredentials(key, management, authenticatedEncryption);
     }
 
     private string CreateLogoutToken(
@@ -140,7 +182,10 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         bool includeJti = true,
         bool includeEvents = true,
         IReadOnlyDictionary<string, object>? extraClaims = null,
-        string jti = "jti-1"
+        string jti = "jti-1",
+        SecretKey? signingKey = null,
+        JoseEncryptionCredentials? encryptionCredentials = null,
+        IReadOnlyDictionary<string, object>? extraEncryptionHeaderClaims = null
     )
     {
         var issuedAt = DateTimeOffset.UtcNow + (issuedOffset ?? TimeSpan.Zero);
@@ -173,18 +218,38 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             .Encode(
                 new JwtEncodingParameters
                 {
-                    SigningCredentials = new JoseSigningCredentials(RsaKey, algorithm),
+                    SigningCredentials = new JoseSigningCredentials(
+                        signingKey ?? RsaKey,
+                        algorithm
+                    ),
                     EnsureTokenLifetime = false,
                     TokenType = tokenType,
                     Issuer = issuer,
                     Audience = new StringValues(audience),
                     IssuedAt = issuedAt,
                     NotBefore = issuedAt,
-                    Expires = issuedAt + (lifetime ?? TimeSpan.FromMinutes(2)),
+                    Expires =
+                        extraClaims is not null && extraClaims.ContainsKey("exp")
+                            ? null
+                            : issuedAt + (lifetime ?? TimeSpan.FromMinutes(2)),
                     ExtraPayloadClaims = claims,
+                    EncryptionCredentials = encryptionCredentials,
+                    ExtraEncryptionHeaderClaims = extraEncryptionHeaderClaims,
                 }
             );
     }
+
+    private static ClientRegistration CreateEncryptingRegistration(
+        IReadOnlyList<string>? keyManagementAlgorithms = null,
+        IReadOnlyList<string>? contentEncryptionAlgorithms = null,
+        string? keyRing = KeyRingName
+    ) =>
+        new(Issuer, ClientId, OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt)
+        {
+            IdTokenKeyManagementAlgorithms = keyManagementAlgorithms ?? ["RSA-OAEP-256"],
+            IdTokenContentEncryptionAlgorithms = contentEncryptionAlgorithms,
+            KeyRing = keyRing,
+        };
 
     private static ClientRegistration CreateRegistration(
         IReadOnlyList<string> idTokenSigningAlgorithms
@@ -221,6 +286,175 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         Assert.Equal("user-1", result.Subject);
         Assert.Equal("sid-1", result.SessionId);
         Assert.InRange((result.ExpiresAt - expected).TotalSeconds, -5, 5);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenEncryptedToTheClient_ReturnsIdentifiers()
+    {
+        var validator = CreateValidator(
+            CreateKeySetMock(),
+            CreateAcceptingKeySet(),
+            keyRingMock: CreateKeyRingMock(EncryptionKey)
+        );
+        var logoutToken = CreateLogoutToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            logoutToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.True(result.IsValid, result.FailureReason);
+        Assert.Null(result.FailureCode);
+        Assert.Equal("jti-1", result.TokenId);
+        Assert.Equal("user-1", result.Subject);
+        Assert.Equal("sid-1", result.SessionId);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenEncryptionIsRegisteredAndTokenIsOnlySigned_FailsWithInvalidToken()
+    {
+        var validator = CreateValidator(
+            CreateKeySetMock(),
+            keyRingMock: CreateKeyRingMock(EncryptionKey)
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            CreateLogoutToken(),
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidToken, result.FailureCode);
+        Assert.Equal(
+            "The logout token is not encrypted, but the client registered ID-token encryption.",
+            result.FailureReason
+        );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenEncryptedAndNoEncryptionIsRegistered_FailsWithAlgorithmNotPermitted()
+    {
+        var validator = CreateValidator(null);
+        var logoutToken = CreateLogoutToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+        );
+
+        var result = await ValidateAsync(validator, logoutToken);
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.AlgorithmNotPermitted, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenEncryptedToAnotherKey_FailsWithDecryptionFailed()
+    {
+        var otherKey = ServiceProvider
+            .GetRequiredService<ISecretKeyFactory>()
+            .CreateRsa(
+                new KeyMetadata { KeyId = "enc-2", Use = SecretKeyUses.Encryption },
+                OtherRsa
+            );
+        var validator = CreateValidator(null, keyRingMock: CreateKeyRingMock(otherKey));
+        var logoutToken = CreateLogoutToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            logoutToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.DecryptionFailed, result.FailureCode);
+        Assert.Equal(
+            "The logout token could not be decrypted with the client's keys.",
+            result.FailureReason
+        );
+        Assert.DoesNotContain(logoutToken, result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenEnclosedSignatureIsInvalid_FailsWithInvalidSignature()
+    {
+        var otherSigningKey = ServiceProvider
+            .GetRequiredService<ISecretKeyFactory>()
+            .CreateRsa(new KeyMetadata { KeyId = "k1" }, OtherRsa);
+        var validator = CreateValidator(
+            CreateKeySetMock(),
+            keyRingMock: CreateKeyRingMock(EncryptionKey)
+        );
+        var logoutToken = CreateLogoutToken(
+            signingKey: otherSigningKey,
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            logoutToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidSignature, result.FailureCode);
+        Assert.Equal(SignatureFailure, result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenReplicatedIssuerDiffers_FailsWithInvalidIssuer()
+    {
+        var validator = CreateValidator(
+            CreateKeySetMock(),
+            keyRingMock: CreateKeyRingMock(EncryptionKey)
+        );
+        var logoutToken = CreateLogoutToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey),
+            extraEncryptionHeaderClaims: new Dictionary<string, object>
+            {
+                ["iss"] = "https://evil.example.test",
+            }
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            logoutToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidIssuer, result.FailureCode);
+        Assert.Equal(
+            "The 'iss' header of the encrypted logout token does not match the issuer.",
+            result.FailureReason
+        );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenReplicatedIssuerMatches_ReturnsIdentifiers()
+    {
+        var validator = CreateValidator(
+            CreateKeySetMock(),
+            CreateAcceptingKeySet(),
+            keyRingMock: CreateKeyRingMock(EncryptionKey)
+        );
+        var logoutToken = CreateLogoutToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey),
+            extraEncryptionHeaderClaims: new Dictionary<string, object> { ["iss"] = Issuer }
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            logoutToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.True(result.IsValid, result.FailureReason);
+        Assert.Null(result.FailureCode);
+        Assert.Equal("jti-1", result.TokenId);
     }
 
     [Fact]
@@ -284,6 +518,20 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(
             validator,
             CreateLogoutToken(lifetime: TimeSpan.FromMinutes(30))
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidLifetime, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenExpIsOutOfRange_FailsWithInvalidLifetime()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateLogoutToken(extraClaims: new Dictionary<string, object> { ["exp"] = 1e300 })
         );
 
         Assert.False(result.IsValid);
@@ -371,6 +619,7 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             CreateStrictMock<IProviderMetadataResolver>().Object,
             CreateStrictMock<IProviderKeySetResolver>().Object,
+            CreateStrictMock<IClientKeyRingProvider>().Object,
             ServiceProvider.GetRequiredService<IJwtValidator>(),
             CreateStrictMock<IExpiringKeySet>().Object
         );

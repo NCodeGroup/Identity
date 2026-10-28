@@ -20,6 +20,7 @@ using IdGen;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Persistence.Stores;
@@ -77,7 +78,7 @@ public sealed class MasterKeyStoreTests : IDisposable
             Version = version,
             CreatedWhen = CreatedWhen,
             RetiredWhen = retired ? CreatedWhen.AddDays(30) : null,
-            RootKeyProvider = RootKeyProviderNames.Local,
+            RootKeyProvider = KeyWrapperNames.Local,
             RootKeyId = $"root-key-{version}",
             RootWrappedKey = $"root-wrapped-key-{version}",
             RecoveryKeyId = $"recovery-key-{version}",
@@ -266,7 +267,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
         var masterKey = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
         var originalToken = masterKey.ConcurrencyToken;
-        masterKey.RootKeyProvider = RootKeyProviderNames.AwsKms;
+        masterKey.RootKeyProvider = KeyWrapperNames.AwsKms;
         masterKey.RootKeyId = "new-root-key";
         masterKey.RootWrappedKey = "new-root-wrapped-key";
         masterKey.RecoveryKeyId = null;
@@ -280,7 +281,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         }
 
         var actual = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
-        Assert.Equal(RootKeyProviderNames.AwsKms, actual.RootKeyProvider);
+        Assert.Equal(KeyWrapperNames.AwsKms, actual.RootKeyProvider);
         Assert.Equal("new-root-key", actual.RootKeyId);
         Assert.Equal("new-root-wrapped-key", actual.RootWrappedKey);
         Assert.Null(actual.RecoveryKeyId);

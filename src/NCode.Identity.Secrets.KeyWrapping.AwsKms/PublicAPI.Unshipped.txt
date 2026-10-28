@@ -1,0 +1,9 @@
+#nullable enable
+const NCode.Identity.Secrets.KeyWrapping.AwsKms.Options.AwsKmsKeyWrapperOptions.DefaultSectionName = "SecretProtection:RootKeyProviders:AwsKms" -> string!
+NCode.Identity.Secrets.KeyWrapping.AwsKms.DefaultRegistration
+NCode.Identity.Secrets.KeyWrapping.AwsKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!)
+NCode.Identity.Secrets.KeyWrapping.AwsKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!).AddAwsKmsKeyWrapper(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
+NCode.Identity.Secrets.KeyWrapping.AwsKms.Options.AwsKmsKeyWrapperOptions
+NCode.Identity.Secrets.KeyWrapping.AwsKms.Options.AwsKmsKeyWrapperOptions.AwsKmsKeyWrapperOptions() -> void
+NCode.Identity.Secrets.KeyWrapping.AwsKms.Options.AwsKmsKeyWrapperOptions.KeyArn.get -> string?
+NCode.Identity.Secrets.KeyWrapping.AwsKms.Options.AwsKmsKeyWrapperOptions.KeyArn.set -> void

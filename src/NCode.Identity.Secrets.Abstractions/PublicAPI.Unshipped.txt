@@ -180,3 +180,21 @@ NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats
 const NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats.Certificate = "certificate" -> string!
 const NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats.Jwk = "jwk" -> string!
 const NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats.Pem = "pem" -> string!
+NCode.Identity.Secrets.KeyWrapping.IKeyWrapper
+NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.Name.get -> string!
+NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.UnwrapAsync(NCode.Identity.Secrets.KeyWrapping.WrappedKey! wrappedKey, System.ReadOnlyMemory<byte> context, System.Buffers.IBufferWriter<byte>! destination, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.WrapAsync(System.ReadOnlyMemory<byte> key, System.ReadOnlyMemory<byte> context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.KeyWrapping.WrappedKey!>
+NCode.Identity.Secrets.KeyWrapping.WrappedKey
+NCode.Identity.Secrets.KeyWrapping.WrappedKey.Ciphertext.get -> string!
+NCode.Identity.Secrets.KeyWrapping.WrappedKey.Ciphertext.init -> void
+NCode.Identity.Secrets.KeyWrapping.WrappedKey.KeyId.get -> string!
+NCode.Identity.Secrets.KeyWrapping.WrappedKey.KeyId.init -> void
+NCode.Identity.Secrets.KeyWrapping.WrappedKey.WrapperName.get -> string!
+NCode.Identity.Secrets.KeyWrapping.WrappedKey.WrapperName.init -> void
+NCode.Identity.Secrets.KeyWrapping.WrappedKey.WrappedKey() -> void
+NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames
+const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.AwsKms = "aws-kms" -> string!
+const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.AzureKeyVault = "azure-key-vault" -> string!
+const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.Ephemeral = "ephemeral" -> string!
+const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.GoogleCloudKms = "google-cloud-kms" -> string!
+const NCode.Identity.Secrets.KeyWrapping.KeyWrapperNames.Local = "local" -> string!

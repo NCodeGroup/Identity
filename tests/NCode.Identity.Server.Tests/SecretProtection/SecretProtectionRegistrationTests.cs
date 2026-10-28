@@ -147,7 +147,7 @@ public class SecretProtectionRegistrationTests : BaseTests
         );
         using var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        var options = serviceProvider.GetRequiredService<IOptions<LocalRootKeyOptions>>().Value;
+        var options = serviceProvider.GetRequiredService<IOptions<LocalKeyWrapperOptions>>().Value;
 
         Assert.Equal("/root-key/key", options.KeyPath);
         Assert.Equal("inline-key", options.Key);
@@ -166,7 +166,7 @@ public class SecretProtectionRegistrationTests : BaseTests
         using var serviceProvider = serviceCollection.BuildServiceProvider();
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            serviceProvider.GetRequiredService<IOptions<LocalRootKeyOptions>>().Value
+            serviceProvider.GetRequiredService<IOptions<LocalKeyWrapperOptions>>().Value
         );
 
         Assert.Contains("'Path'", exception.Message, StringComparison.Ordinal);

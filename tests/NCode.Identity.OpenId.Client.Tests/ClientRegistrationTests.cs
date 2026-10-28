@@ -32,6 +32,30 @@ public class ClientRegistrationTests
             IdTokenSigningAlgorithms = algorithms,
         };
 
+    private static ClientRegistration CreateKeyManagementRegistration(
+        IReadOnlyList<string>? algorithms
+    ) =>
+        new(
+            "https://issuer.example",
+            "client",
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        )
+        {
+            IdTokenKeyManagementAlgorithms = algorithms,
+        };
+
+    private static ClientRegistration CreateContentEncryptionRegistration(
+        IReadOnlyList<string>? algorithms
+    ) =>
+        new(
+            "https://issuer.example",
+            "client",
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        )
+        {
+            IdTokenContentEncryptionAlgorithms = algorithms,
+        };
+
     #region IdTokenSigningAlgorithms Tests
 
     [Fact]
@@ -80,6 +104,90 @@ public class ClientRegistrationTests
     public void IdTokenSigningAlgorithms_WhenDuplicate_ThenThrows()
     {
         Assert.Throws<ArgumentException>(() => CreateRegistration(["PS256", "ES256", "PS256"]));
+    }
+
+    #endregion
+
+    #region IdTokenKeyManagementAlgorithms Tests
+
+    [Fact]
+    public void IdTokenKeyManagementAlgorithms_WhenNotSet_ThenNull()
+    {
+        var registration = new ClientRegistration(
+            "https://issuer.example",
+            "client",
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        );
+
+        Assert.Null(registration.IdTokenKeyManagementAlgorithms);
+    }
+
+    [Fact]
+    public void IdTokenKeyManagementAlgorithms_WhenValid_ThenRoundTripsInOrder()
+    {
+        var registration = CreateKeyManagementRegistration(["RSA-OAEP-256", "ECDH-ES"]);
+
+        Assert.Equal(["RSA-OAEP-256", "ECDH-ES"], registration.IdTokenKeyManagementAlgorithms);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void IdTokenKeyManagementAlgorithms_WhenBlankEntry_ThenThrows(string entry)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            CreateKeyManagementRegistration(["RSA-OAEP-256", entry])
+        );
+    }
+
+    [Fact]
+    public void IdTokenKeyManagementAlgorithms_WhenDuplicate_ThenThrows()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            CreateKeyManagementRegistration(["RSA-OAEP-256", "ECDH-ES", "RSA-OAEP-256"])
+        );
+    }
+
+    #endregion
+
+    #region IdTokenContentEncryptionAlgorithms Tests
+
+    [Fact]
+    public void IdTokenContentEncryptionAlgorithms_WhenNotSet_ThenNull()
+    {
+        var registration = new ClientRegistration(
+            "https://issuer.example",
+            "client",
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        );
+
+        Assert.Null(registration.IdTokenContentEncryptionAlgorithms);
+    }
+
+    [Fact]
+    public void IdTokenContentEncryptionAlgorithms_WhenValid_ThenRoundTripsInOrder()
+    {
+        var registration = CreateContentEncryptionRegistration(["A256GCM", "A128CBC-HS256"]);
+
+        Assert.Equal(["A256GCM", "A128CBC-HS256"], registration.IdTokenContentEncryptionAlgorithms);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void IdTokenContentEncryptionAlgorithms_WhenBlankEntry_ThenThrows(string entry)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            CreateContentEncryptionRegistration(["A256GCM", entry])
+        );
+    }
+
+    [Fact]
+    public void IdTokenContentEncryptionAlgorithms_WhenDuplicate_ThenThrows()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            CreateContentEncryptionRegistration(["A256GCM", "A128CBC-HS256", "A256GCM"])
+        );
     }
 
     #endregion

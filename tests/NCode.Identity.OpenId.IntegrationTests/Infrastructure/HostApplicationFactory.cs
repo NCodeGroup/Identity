@@ -378,11 +378,33 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         params string[] grantTypes
     ) => SeedSharedSecretClientAsync(clientId, clientSecret, null, grantTypes);
 
+    /// <summary>
+    /// Ensures the tenant exists and seeds a confidential client registered for the shared-secret
+    /// <paramref name="tokenEndpointAuthMethod"/> (<c>client_secret_basic</c> or <c>client_secret_post</c>) whose
+    /// symmetric secret matches <paramref name="clientSecret"/>, registered with the given redirect URIs and the extra
+    /// client settings, so an authorization-code flow can be exercised end to end.
+    /// </summary>
+    public Task SeedSharedSecretClientWithSettingsAsync(
+        string clientId,
+        string clientSecret,
+        string tokenEndpointAuthMethod,
+        IReadOnlyDictionary<string, object> settings,
+        params string[] redirectUris
+    ) =>
+        SeedSharedSecretClientAsync(
+            clientId,
+            clientSecret,
+            tokenEndpointAuthMethod,
+            [],
+            new Dictionary<string, object>(settings) { ["redirect_uris"] = redirectUris }
+        );
+
     private async Task SeedSharedSecretClientAsync(
         string clientId,
         string clientSecret,
         string? tokenEndpointAuthMethod,
-        string[] grantTypes
+        string[] grantTypes,
+        IReadOnlyDictionary<string, object>? additionalSettings = null
     )
     {
         // A first request forces the static tenant provider to persist the tenant entity,
@@ -417,7 +439,9 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 SecureEncoding.UTF8.GetBytes(clientSecret)
             );
 
-        var settings = new Dictionary<string, object>();
+        var settings = additionalSettings is null
+            ? new Dictionary<string, object>()
+            : new Dictionary<string, object>(additionalSettings);
         if (tokenEndpointAuthMethod is not null)
             settings["token_endpoint_auth_method"] = tokenEndpointAuthMethod;
         if (grantTypes.Length > 0)

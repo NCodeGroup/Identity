@@ -101,9 +101,9 @@ public abstract class AsymmetricSecretKeyTypeDescriptor(ISecretKeyFactory secret
             return null;
 
         var metadata = asymmetricSecretKey.Metadata;
-        AddIfPresent(jwk, "kid", metadata.KeyId);
-        AddIfPresent(jwk, "use", metadata.Use);
-        AddIfPresent(jwk, "alg", metadata.Algorithm);
+        AddIfPresent(jwk, JsonWebKeyParameterNames.KeyId, metadata.KeyId);
+        AddIfPresent(jwk, JsonWebKeyParameterNames.PublicKeyUse, metadata.Use);
+        AddIfPresent(jwk, JsonWebKeyParameterNames.Algorithm, metadata.Algorithm);
 
         return new ExportedPublicKey
         {

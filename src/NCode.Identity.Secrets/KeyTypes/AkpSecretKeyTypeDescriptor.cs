@@ -205,12 +205,12 @@ public sealed class AkpSecretKeyTypeDescriptor(
 
         var jwk = new JsonObject
         {
-            ["kty"] = JsonWebKeyTypeDescriptors.Akp.Name,
-            ["alg"] = akp.AlgorithmName,
-            ["pub"] = Base64Url.EncodeToString(publicKey),
+            [JsonWebKeyParameterNames.KeyType] = JsonWebKeyTypeDescriptors.Akp.Name,
+            [JsonWebKeyParameterNames.Algorithm] = akp.AlgorithmName,
+            [JsonWebKeyParameterNames.PublicKey] = Base64Url.EncodeToString(publicKey),
         };
-        AddIfPresent(jwk, "kid", akp.Metadata.KeyId);
-        AddIfPresent(jwk, "use", akp.Metadata.Use);
+        AddIfPresent(jwk, JsonWebKeyParameterNames.KeyId, akp.Metadata.KeyId);
+        AddIfPresent(jwk, JsonWebKeyParameterNames.PublicKeyUse, akp.Metadata.Use);
 
         return new ExportedPublicKey
         {
@@ -283,7 +283,7 @@ public sealed class AkpSecretKeyTypeDescriptor(
         }
 
         if (
-            !root.TryGetPropertyValue<string>("kty", out var kty)
+            !root.TryGetPropertyValue<string>(JsonWebKeyParameterNames.KeyType, out var kty)
             || kty != JsonWebKeyTypeDescriptors.Akp.Name
         )
         {
@@ -299,7 +299,7 @@ public sealed class AkpSecretKeyTypeDescriptor(
         }
 
         if (
-            !root.TryGetPropertyValue<string>("alg", out var alg)
+            !root.TryGetPropertyValue<string>(JsonWebKeyParameterNames.Algorithm, out var alg)
             || !MlDsaParameterSets.TryGetByName(alg, out var algorithm)
         )
         {
@@ -308,7 +308,7 @@ public sealed class AkpSecretKeyTypeDescriptor(
             );
         }
 
-        if (!root.TryGetPropertyValue<string>("pub", out var pub))
+        if (!root.TryGetPropertyValue<string>(JsonWebKeyParameterNames.PublicKey, out var pub))
         {
             throw new ArgumentException("The supplied AKP JWK is missing the 'pub' member.");
         }

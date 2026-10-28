@@ -233,13 +233,13 @@ public sealed class OkpSecretKeyTypeDescriptor(
 
         var jwk = new JsonObject
         {
-            ["kty"] = JsonWebKeyTypeDescriptors.Okp.Name,
-            ["crv"] = okp.Curve,
-            ["x"] = Base64Url.EncodeToString(publicKey),
+            [JsonWebKeyParameterNames.KeyType] = JsonWebKeyTypeDescriptors.Okp.Name,
+            [JsonWebKeyParameterNames.Curve] = okp.Curve,
+            [JsonWebKeyParameterNames.X] = Base64Url.EncodeToString(publicKey),
         };
-        AddIfPresent(jwk, "kid", okp.Metadata.KeyId);
-        AddIfPresent(jwk, "use", okp.Metadata.Use);
-        AddIfPresent(jwk, "alg", okp.Metadata.Algorithm);
+        AddIfPresent(jwk, JsonWebKeyParameterNames.KeyId, okp.Metadata.KeyId);
+        AddIfPresent(jwk, JsonWebKeyParameterNames.PublicKeyUse, okp.Metadata.Use);
+        AddIfPresent(jwk, JsonWebKeyParameterNames.Algorithm, okp.Metadata.Algorithm);
 
         return new ExportedPublicKey
         {
@@ -274,7 +274,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
         }
 
         if (
-            !root.TryGetPropertyValue<string>("kty", out var kty)
+            !root.TryGetPropertyValue<string>(JsonWebKeyParameterNames.KeyType, out var kty)
             || kty != JsonWebKeyTypeDescriptors.Okp.Name
         )
         {
@@ -290,7 +290,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
         }
 
         if (
-            !root.TryGetPropertyValue<string>("crv", out var crv)
+            !root.TryGetPropertyValue<string>(JsonWebKeyParameterNames.Curve, out var crv)
             || !OkpCurves.TryGetByName(crv, out var curve)
         )
         {
@@ -299,7 +299,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
             );
         }
 
-        if (!root.TryGetPropertyValue<string>("x", out var x))
+        if (!root.TryGetPropertyValue<string>(JsonWebKeyParameterNames.X, out var x))
         {
             throw new ArgumentException("The supplied OKP JWK is missing the 'x' member.");
         }

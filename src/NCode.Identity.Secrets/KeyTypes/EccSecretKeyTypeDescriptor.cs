@@ -76,7 +76,7 @@ internal sealed class EccSecretKeyTypeDescriptor(
         JsonElement root
     )
     {
-        if (!root.TryGetPropertyValue<string>("crv", out var curveName))
+        if (!root.TryGetPropertyValue<string>(JsonWebKeyParameterNames.Curve, out var curveName))
             throw new ArgumentException("The supplied EC JWK is missing the 'crv' member.");
 
         if (
@@ -90,8 +90,8 @@ internal sealed class EccSecretKeyTypeDescriptor(
             Curve = specification.Curve,
             Q = new ECPoint
             {
-                X = GetRequiredBase64UrlMember(root, "x"),
-                Y = GetRequiredBase64UrlMember(root, "y"),
+                X = GetRequiredBase64UrlMember(root, JsonWebKeyParameterNames.X),
+                Y = GetRequiredBase64UrlMember(root, JsonWebKeyParameterNames.Y),
             },
         };
 
@@ -165,12 +165,12 @@ internal sealed class EccSecretKeyTypeDescriptor(
 
         return new JsonObject
         {
-            ["kty"] = JwkKeyType.Name,
-            ["crv"] = specification.CurveName,
-            ["x"] = parameters.Q.X is { } x
+            [JsonWebKeyParameterNames.KeyType] = JwkKeyType.Name,
+            [JsonWebKeyParameterNames.Curve] = specification.CurveName,
+            [JsonWebKeyParameterNames.X] = parameters.Q.X is { } x
                 ? Base64Url.EncodeToString(x)
                 : throw new InvalidOperationException("The ECC key is missing its X coordinate."),
-            ["y"] = parameters.Q.Y is { } y
+            [JsonWebKeyParameterNames.Y] = parameters.Q.Y is { } y
                 ? Base64Url.EncodeToString(y)
                 : throw new InvalidOperationException("The ECC key is missing its Y coordinate."),
         };

@@ -259,6 +259,33 @@ public class AsymmetricSecretKeyImportExportTests : BaseTests
         Assert.Contains("-----BEGIN PUBLIC KEY-----", exported.Pem);
     }
 
+    [Fact]
+    public void Rsa_ExportPublicKey_WritesKidUseAndAlgFromMetadata()
+    {
+        using var rsa = RSA.Create(2048);
+        var pem = rsa.ExportSubjectPublicKeyInfoPem();
+
+        var descriptor = Rsa();
+        var capture = new CapturingProtector();
+        var material = descriptor.ImportPublicKeyMaterial(
+            new SecretKeyImportParameters
+            {
+                Format = SecretKeyImportFormats.Pem,
+                KeyMaterial = pem,
+            },
+            capture.Protect
+        );
+
+        var secretKey = (RsaSecretKey)
+            descriptor.DeserializeKeyMaterial(Metadata, material.SecretEncoding, capture.Captured);
+
+        var exported = descriptor.ExportPublicKey(secretKey);
+        Assert.NotNull(exported);
+        Assert.Equal("kid-1", exported.Jwk.KeyId);
+        Assert.Equal("sig", exported.Jwk.PublicKeyUse);
+        Assert.Equal("RS256", exported.Jwk.Algorithm);
+    }
+
     #endregion
 
     #region ECC import + round-trip

@@ -267,6 +267,36 @@ public class OkpIntegrationTests
         Assert.True(algorithm.Verify(publicKey, message, signature));
     }
 
+    [Fact]
+    public void ExportPublicKey_WhenMetadataIsSet_WritesKidUseAndAlg()
+    {
+        const string keyId = "kid-test";
+        const string use = "sig";
+
+        var descriptor = CreateDescriptor();
+        var parameters = new SecretKeyGenerationParameters
+        {
+            KeySizeBits = 256,
+            Curve = OkpCurves.Ed25519Name,
+        };
+        var generated = descriptor.GenerateKeyMaterial(parameters, Protect);
+        var metadata = new KeyMetadata
+        {
+            KeyId = keyId,
+            Use = use,
+            Algorithm = AlgorithmCodes.DigitalSignature.EdDsa,
+        };
+        var pkcs8 = Convert.FromBase64String(generated.ProtectedKeyMaterial);
+        var secretKey = descriptor.DeserializeKeyMaterial(metadata, SecretEncodings.Pkcs8, pkcs8);
+
+        var exported = descriptor.ExportPublicKey(secretKey);
+
+        Assert.NotNull(exported);
+        Assert.Equal(keyId, exported.Jwk.KeyId);
+        Assert.Equal(use, exported.Jwk.PublicKeyUse);
+        Assert.Equal(AlgorithmCodes.DigitalSignature.EdDsa, exported.Jwk.Algorithm);
+    }
+
     [Theory]
     [InlineData(OkpCurves.Ed25519Name, 256)]
     [InlineData(OkpCurves.Ed448Name, 456)]

@@ -70,8 +70,8 @@ internal sealed class RsaSecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFact
     {
         var parameters = new RSAParameters
         {
-            Modulus = GetRequiredBase64UrlMember(root, "n"),
-            Exponent = GetRequiredBase64UrlMember(root, "e"),
+            Modulus = GetRequiredBase64UrlMember(root, JsonWebKeyParameterNames.Modulus),
+            Exponent = GetRequiredBase64UrlMember(root, JsonWebKeyParameterNames.Exponent),
         };
 
         try
@@ -139,9 +139,9 @@ internal sealed class RsaSecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFact
             ?? throw new InvalidOperationException("The RSA key is missing its exponent.");
         return new JsonObject
         {
-            ["kty"] = JwkKeyType.Name,
-            ["n"] = Base64Url.EncodeToString(modulus),
-            ["e"] = Base64Url.EncodeToString(exponent),
+            [JsonWebKeyParameterNames.KeyType] = JwkKeyType.Name,
+            [JsonWebKeyParameterNames.Modulus] = Base64Url.EncodeToString(modulus),
+            [JsonWebKeyParameterNames.Exponent] = Base64Url.EncodeToString(exponent),
         };
     }
 }

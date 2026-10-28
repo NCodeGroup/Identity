@@ -309,3 +309,4 @@ standards.
 | [0271](./0271-a-key-type-registers-its-json-web-key-rules.md) | A key type registers its JSON Web Key rules | Accepted |
 | [0272](./0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) | Signature algorithms are fully specified and bound to their curve | Accepted |
 | [0273](./0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) | The protocol client validates ID tokens under an asymmetric algorithm policy | Accepted |
+| [0274](./0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) | The protocol client validates logout tokens and rejects replays | Accepted |

@@ -1,0 +1,5 @@
+#nullable enable
+const NCode.Identity.OpenId.OpenIdProtocol.ParameterSeparatorChar = ' ' -> char
+const NCode.Identity.OpenId.OpenIdProtocol.ParameterSeparatorString = " " -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.PushedAuthorizationRequestUriPrefix = "urn:ietf:params:oauth:request_uri:" -> string!
+NCode.Identity.OpenId.OpenIdProtocol

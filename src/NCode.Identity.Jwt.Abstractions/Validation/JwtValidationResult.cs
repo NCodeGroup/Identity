@@ -105,6 +105,7 @@ public sealed class JwtValidationResult
     /// Gets a value that indicates whether the JSON Web Token (JWT) was successfully decoded and validated.
     /// </summary>
     [MemberNotNullWhen(false, nameof(Exception))]
+    [MemberNotNullWhen(false, nameof(FailureCode))]
     [MemberNotNullWhen(true, nameof(DecodedJwt))]
     [MemberNotNullWhen(true, nameof(CreateClaimsIdentityAsync))]
     public bool IsValid => Exception is null;
@@ -113,6 +114,19 @@ public sealed class JwtValidationResult
     /// Gets an <see cref="Exception"/> that occurred during JSON Web Token (JWT) validation.
     /// </summary>
     public Exception? Exception { get; private init; }
+
+    /// <summary>
+    /// Gets the machine-readable code of the reason the JSON Web Token (JWT) failed validation: the code of a
+    /// <see cref="JwtValidationException"/>, <see cref="JwtValidationFailureCodes.InvalidToken"/> for any other
+    /// exception, or <see langword="null"/> when the token is valid.
+    /// </summary>
+    public string? FailureCode =>
+        Exception switch
+        {
+            null => null,
+            JwtValidationException jwtValidationException => jwtValidationException.FailureCode,
+            _ => JwtValidationFailureCodes.InvalidToken,
+        };
 
     /// <summary>
     /// Gets an <see cref="DecodedJwt"/> that contains the decoded JSON Web Token (JWT) header and payload.

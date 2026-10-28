@@ -203,4 +203,45 @@ public class JsonWebTokensSimpleTests
     }
 
     #endregion
+
+    #region JwtValidationResult Tests
+
+    [Fact]
+    public void JwtValidationResult_WhenFailedWithJwtValidationException_ReportsItsFailureCode()
+    {
+        var parameters = new JwtValidationParameters();
+        var exception = new JwtValidationException("boom")
+        {
+            FailureCode = JwtValidationFailureCodes.Expired,
+        };
+
+        var result = JwtValidationResult.Fail(
+            parameters,
+            parameters.PropertyBag,
+            "token",
+            exception
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(JwtValidationFailureCodes.Expired, result.FailureCode);
+    }
+
+    [Fact]
+    public void JwtValidationResult_WhenFailedWithAnotherException_ReportsInvalidToken()
+    {
+        var parameters = new JwtValidationParameters();
+        var exception = new InvalidOperationException("boom");
+
+        var result = JwtValidationResult.Fail(
+            parameters,
+            parameters.PropertyBag,
+            "token",
+            exception
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(JwtValidationFailureCodes.InvalidToken, result.FailureCode);
+    }
+
+    #endregion
 }

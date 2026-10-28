@@ -160,6 +160,7 @@ NCode.Identity.Jwt.Validation.JwtValidationResult
 NCode.Identity.Jwt.Validation.JwtValidationResult.DecodedJwt.get -> NCode.Identity.Jwt.DecodedJwt?
 NCode.Identity.Jwt.Validation.JwtValidationResult.EncodedToken.get -> string!
 NCode.Identity.Jwt.Validation.JwtValidationResult.Exception.get -> System.Exception?
+NCode.Identity.Jwt.Validation.JwtValidationResult.FailureCode.get -> string?
 NCode.Identity.Jwt.Validation.JwtValidationResult.GetClaimsIdentityAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsIdentity!>
 NCode.Identity.Jwt.Validation.JwtValidationResult.IsValid.get -> bool
 NCode.Identity.Jwt.Validation.JwtValidationResult.Parameters.get -> NCode.Identity.Jwt.Validation.JwtValidationParameters!

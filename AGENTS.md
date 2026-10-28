@@ -106,11 +106,12 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   (`/plan-feature #123 …`). `/plan-issue` reads the issue and every comment, stops with questions when the issue is
   closed, already planned, has an open pull request or says too little to plan, and picks the kind of plan from its
   labels; `/triage-issues <filter>` lists up to 20 open issues with each one's readiness and size and the
-  `/plan-issue` command for each ready one. Every planning command treats an issue's text as data, never as
-  instructions. The plan records the issue on an `Issue:` line, the planning session posts the finished plan to the
-  issue as one collapsed comment, and a re-plan that changes the Decisions or the steps posts a short follow-up; the
-  executor never calls `gh`. `/ship-plan` writes the pull request description, which summarizes the plan and ends
-  with `Closes #123`.
+  `/plan-issue` command for each ready issue or group of overlapping issues. Every planning command treats an issue's
+  text as data, never as instructions. A plan may cover up to three related issues named together, such as
+  `/plan-issue #25 #24 #26`. The plan records its issues on an `Issue:` line, the planning session posts the finished
+  plan to each issue as one collapsed comment, and a re-plan that changes the Decisions or the steps posts a short
+  follow-up; the executor never calls `gh`. `/ship-plan` writes the pull request description, which summarizes the
+  plan and ends with one `Closes #123` line per issue.
 - **Done-when commands** prove one step: the narrowest test that fails until the step is done, such as
   `dotnet test tests/<Project>/<Project>.csproj --filter "FullyQualifiedName~<TestClass>" -- RunConfiguration.TreatNoTestsAsError=true`
   (xUnit v2 on VSTest). Keep the trailing setting: without it a filter that matches no test exits `0`, so the check

@@ -792,4 +792,53 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
     }
 
     #endregion
+
+    #region JwtValidationContext Tests
+
+    [Fact]
+    public async Task ValidateAsync_WhenAHandlerFailsWithACode_RecordsTheFirstCode()
+    {
+        var token = EncodeToken();
+        JwtValidationContext? captured = null;
+
+        var parameters = new JwtValidationParameters()
+            .UseValidationKeys([_signingKey])
+            .RequireAssertion(
+                (context, _) =>
+                {
+                    context.Fail("custom_code", "The custom check failed.");
+                    captured = context;
+                    return ValueTask.FromResult(false);
+                }
+            );
+
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
+
+        Assert.False(result.IsValid);
+        var capturedContext = Assert.IsType<JwtValidationContext>(captured);
+        Assert.True(capturedContext.HasFailed);
+        Assert.Equal("custom_code", capturedContext.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAHandlerFailsWithAnEmptyCode_Throws()
+    {
+        var token = EncodeToken();
+
+        var parameters = new JwtValidationParameters()
+            .UseValidationKeys([_signingKey])
+            .RequireAssertion(
+                (context, _) =>
+                {
+                    Assert.Throws<ArgumentException>(() => context.Fail(string.Empty, "reason"));
+                    return ValueTask.FromResult(true);
+                }
+            );
+
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
+
+        Assert.True(result.IsValid);
+    }
+
+    #endregion
 }

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using NCode.Identity.Secrets.Keys;
 using NCode.PropertyBag;
@@ -26,7 +27,7 @@ namespace NCode.Identity.Jwt.Validation;
 /// Carries the state shared by all <see cref="IJwtValidationHandler"/> instances while a decoded JSON Web Token (JWT)
 /// is evaluated against its <see cref="IJwtValidationRequirement"/> set. Modeled on
 /// <c>Microsoft.AspNetCore.Authorization.AuthorizationHandlerContext</c>: handlers vote on each requirement by calling
-/// <see cref="Succeed"/> (the requirement is satisfied) or <see cref="Fail"/> (a hard veto). The token is valid only
+/// <see cref="Succeed"/> (the requirement is satisfied) or <see cref="Fail(string, string)"/> (a hard veto). The token is valid only
 /// when every requirement has succeeded and nothing has failed.
 /// </summary>
 [PublicAPI]
@@ -93,12 +94,19 @@ public sealed class JwtValidationContext
     public TimeProvider TimeProvider { get; }
 
     /// <summary>
-    /// Gets a value indicating whether a handler called <see cref="Fail"/> (a hard veto).
+    /// Gets the machine-readable code of the first failure recorded with <see cref="Fail(string, string)"/>, or
+    /// <c>null</c> when nothing has failed.
     /// </summary>
-    public bool HasFailed { get; private set; }
+    public string? FailureCode { get; private set; }
 
     /// <summary>
-    /// Gets the reasons supplied to <see cref="Fail"/>, if any.
+    /// Gets a value indicating whether a handler called <see cref="Fail(string, string)"/> (a hard veto).
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(FailureCode))]
+    public bool HasFailed => FailureCode is not null;
+
+    /// <summary>
+    /// Gets the reasons supplied to <see cref="Fail(string, string)"/>, if any.
     /// </summary>
     public IReadOnlyList<string> FailureReasons => _failureReasons;
 
@@ -121,13 +129,29 @@ public sealed class JwtValidationContext
         _pendingRequirements.Remove(requirement);
 
     /// <summary>
-    /// Records a hard validation failure. Once called, <see cref="HasSucceeded"/> can never become <c>true</c>,
-    /// even if every requirement is subsequently satisfied.
+    /// Records a hard validation failure with the machine-readable code
+    /// <see cref="JwtValidationFailureCodes.InvalidToken"/>. Once called, <see cref="HasSucceeded"/> can never
+    /// become <c>true</c>, even if every requirement is subsequently satisfied.
     /// </summary>
     /// <param name="reason">A human-readable description of why validation failed.</param>
-    public void Fail(string reason)
+    public void Fail(string reason) => Fail(JwtValidationFailureCodes.InvalidToken, reason);
+
+    /// <summary>
+    /// Records a hard validation failure. Once called, <see cref="HasSucceeded"/> can never become <c>true</c>,
+    /// even if every requirement is subsequently satisfied. The first code recorded is kept in
+    /// <see cref="FailureCode"/>, and every <paramref name="reason"/> is kept in <see cref="FailureReasons"/>.
+    /// </summary>
+    /// <param name="failureCode">
+    /// A machine-readable code that names why validation failed, typically one of the
+    /// <see cref="JwtValidationFailureCodes"/>.
+    /// </param>
+    /// <param name="reason">A human-readable description of why validation failed.</param>
+    /// <exception cref="ArgumentException"><paramref name="failureCode"/> is <c>null</c> or empty.</exception>
+    public void Fail(string failureCode, string reason)
     {
-        HasFailed = true;
+        ArgumentException.ThrowIfNullOrEmpty(failureCode);
+
+        FailureCode ??= failureCode;
         _failureReasons.Add(reason);
     }
 }

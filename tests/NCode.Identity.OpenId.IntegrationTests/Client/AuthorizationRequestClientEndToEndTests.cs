@@ -19,6 +19,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Web;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
@@ -147,6 +148,60 @@ public class AuthorizationRequestClientEndToEndTests
         return push;
     }
 
+    // Follows the authorization URL as the signed-in end-user's browser, then
+    // redeems the code with the client and the verifier of the request.
+    private static async Task AssertCodeFlowCompletesAsync(
+        HostApplicationFactory factory,
+        ServiceProvider provider,
+        ClientRegistration registration,
+        AuthorizationRequest request,
+        AuthorizationRequestResult result
+    )
+    {
+        Assert.NotNull(result.AuthorizationUri);
+        var browser = factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = false,
+            }
+        );
+        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+
+        using var authorizeRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            result.AuthorizationUri
+        );
+        authorizeRequest.Headers.Add(
+            "Cookie",
+            $"{InteractiveLogin.SessionCookieName}={sessionCookie}"
+        );
+        using var authorizeResponse = await browser.SendAsync(authorizeRequest);
+
+        var location = authorizeResponse.Headers.Location;
+        Assert.NotNull(location);
+        Assert.StartsWith(request.RedirectUri, location.OriginalString, StringComparison.Ordinal);
+        var parameters = HttpUtility.ParseQueryString(location.Query);
+        Assert.Equal(request.State, parameters[OpenIdProtocol.Parameters.State]);
+        var code = parameters[OpenIdProtocol.Parameters.AuthorizationCode];
+        Assert.True(
+            !string.IsNullOrEmpty(code),
+            $"error='{parameters[OpenIdProtocol.Parameters.ErrorCode]}'"
+        );
+
+        var tokenResult = await provider
+            .GetRequiredService<ITokenClient>()
+            .RequestTokenAsync(
+                registration,
+                new AuthorizationCodeTokenRequest(code, request.RedirectUri, request.CodeVerifier),
+                CancellationToken.None
+            );
+
+        Assert.True(tokenResult.IsSuccess, tokenResult.Error?.ToString());
+        Assert.False(string.IsNullOrEmpty(tokenResult.Response.AccessToken));
+        Assert.False(string.IsNullOrEmpty(tokenResult.Response.IdToken));
+    }
+
     #endregion
 
     #region CreateAuthorizationUriAsync Tests
@@ -177,6 +232,7 @@ public class AuthorizationRequestClientEndToEndTests
 
         var push = AssertPushed(result, exchanges, clientId);
         Assert.Equal("Basic", push.AuthorizationScheme);
+        await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
     }
 
     #endregion

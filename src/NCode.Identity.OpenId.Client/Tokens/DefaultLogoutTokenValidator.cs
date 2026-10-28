@@ -289,7 +289,7 @@ internal class DefaultLogoutTokenValidator(
                 "The logout token has already been received."
             );
 
-        return new LogoutTokenValidationResult(payload, jti, expiresAt, sub, sid);
+        return new LogoutTokenValidationResult(payload, issuer, jti, expiresAt, sub, sid);
     }
 
     private static string CreateReplayKey(string issuer, string clientId, string jti)

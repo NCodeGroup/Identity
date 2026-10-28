@@ -23,33 +23,11 @@ using Microsoft.AspNetCore.Authentication;
 namespace NCode.Identity.OpenId;
 
 /// <summary>
-/// Contains constants for various <c>OAuth</c> and <c>OpenID Connect</c> implementations.
+/// Contains the OP's server-side constants. The wire vocabulary shared with clients is <see cref="OpenIdProtocol"/>.
 /// </summary>
 [PublicAPI]
 public static partial class OpenIdConstants
 {
-    /// <summary>
-    /// Contains the space ' ' character which is used as the separator in string lists.
-    /// </summary>
-    public const char ParameterSeparatorChar = ' ';
-
-    /// <summary>
-    /// Contains the space ' ' character (as a string) which is used as the separator in string lists.
-    /// </summary>
-    public const string ParameterSeparatorString = " ";
-
-    /// <summary>
-    /// Contains the <c>application/x-www-form-urlencoded</c> content type used by <c>OAuth</c> and <c>OpenID Connect</c> requests.
-    /// </summary>
-    public const string ContentType = "application/x-www-form-urlencoded";
-
-    /// <summary>
-    /// Contains the URN prefix for a <c>request_uri</c> value issued by the pushed authorization request endpoint
-    /// (<see href="https://datatracker.ietf.org/doc/html/rfc9126#section-2.2">RFC 9126</see>). The full value is this
-    /// prefix followed by a high-entropy, single-use reference to the stored request.
-    /// </summary>
-    public const string PushedAuthorizationRequestUriPrefix = "urn:ietf:params:oauth:request_uri:";
-
     /// <summary>
     /// Contains the names for various <c>OAuth</c> and <c>OpenID Connect</c> endpoints and routes.
     /// </summary>
@@ -437,22 +415,6 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
-    /// Contains constants used by OpenID Connect Back-Channel Logout.
-    /// </summary>
-    public static class BackChannelLogout
-    {
-        /// <summary>
-        /// Contains the event identifier that appears as a member of a <c>logout_token</c>'s <c>events</c> claim.
-        /// </summary>
-        public const string EventName = "http://schemas.openid.net/event/backchannel-logout";
-
-        /// <summary>
-        /// Contains the name of the <c>events</c> claim in a <c>logout_token</c> (RFC 8417 Security Event Token).
-        /// </summary>
-        public const string EventsClaimName = "events";
-    }
-
-    /// <summary>
     /// Contains constants for the expiration policies of refresh tokens. A refresh token always expires.
     /// </summary>
     public static class RefreshTokenExpirationPolicy
@@ -535,51 +497,6 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
-    /// Contains constants for various types of client authentication methods.
-    /// These values are used in the <c>token_endpoint_auth_methods_supported</c> metadata.
-    /// </summary>
-    public static class ClientAuthenticationMethods
-    {
-        /// <summary>
-        /// Indicates that the client does not authenticate itself, either because it uses only the Implicit Flow (and so does not use the Token Endpoint) or because it is a Public Client with no Client Secret or other authentication mechanism.
-        /// </summary>
-        public const string None = "none";
-
-        /// <summary>
-        /// Indicates that the authorization server uses the Client Credentials from the POST request body to authenticate the client.
-        /// </summary>
-        public const string ClientSecretPost = "client_secret_post";
-
-        /// <summary>
-        /// Indicates that the authorization server uses the HTTP Basic authentication scheme to authenticate the client.
-        /// </summary>
-        public const string ClientSecretBasic = "client_secret_basic";
-
-        /// <summary>
-        /// Indicates that the client authenticates with a JWT signed using a secret derived from the Client Secret (<c>client_secret_jwt</c>).
-        /// </summary>
-        public const string ClientSecretJwt = "client_secret_jwt";
-
-        /// <summary>
-        /// Indicates that the client authenticates with a JWT signed using its private key (<c>private_key_jwt</c>).
-        /// </summary>
-        public const string PrivateKeyJwt = "private_key_jwt";
-
-        /// <summary>
-        /// Indicates that the client authenticates with a PKI-validated mutual-TLS client certificate whose
-        /// subject distinguished name or subject alternative name matches the client's registered metadata
-        /// (<c>tls_client_auth</c>, RFC 8705 §2.1).
-        /// </summary>
-        public const string TlsClientAuth = "tls_client_auth";
-
-        /// <summary>
-        /// Indicates that the client authenticates with a mutual-TLS client certificate that matches one of the
-        /// client's registered certificates by thumbprint (<c>self_signed_tls_client_auth</c>, RFC 8705 §2.2).
-        /// </summary>
-        public const string SelfSignedTlsClientAuth = "self_signed_tls_client_auth";
-    }
-
-    /// <summary>
     /// Contains constants for the named <c>security_profiles</c> values a server, tenant, or client can select to
     /// tighten the OP to a standardized security baseline.
     /// </summary>
@@ -602,19 +519,6 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
-    /// Contains constants for the <c>client_assertion_type</c> values used with JWT client-authentication assertions.
-    /// </summary>
-    public static class ClientAssertionTypes
-    {
-        /// <summary>
-        /// The <c>client_assertion_type</c> value that identifies a JWT bearer client-authentication assertion,
-        /// as defined by <see href="https://datatracker.ietf.org/doc/html/rfc7523#section-2.2">RFC 7523 §2.2</see>
-        /// and OpenID Connect Core §9 (<c>private_key_jwt</c> and <c>client_secret_jwt</c>).
-        /// </summary>
-        public const string JwtBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
-    }
-
-    /// <summary>
     /// Contains constants for various items that can be stored within <see cref="AuthenticationProperties"/>.
     /// </summary>
     /// <remarks>
@@ -628,25 +532,6 @@ public static partial class OpenIdConstants
         /// Contains the item key for the current tenant identifier.
         /// </summary>
         public const string TenantId = ".tenant";
-    }
-
-    /// <summary>
-    /// Contains constants for the <c>subject_type</c> values supported by the authorization server.
-    /// </summary>
-    public static class SubjectTypes
-    {
-        /// <summary>
-        /// Indicates that the same subject (<c>sub</c>) value is returned to all clients (<c>public</c>).
-        /// </summary>
-        public const string Public = "public";
-
-        // The pairwise sub is derived deterministically as base64url(SHA-256(sectorIdentifier + principalId +
-        // tenantId + salt)), per the OpenID Connect Core 1.0 §8.1 non-normative example.
-
-        /// <summary>
-        /// Indicates that a different subject (<c>sub</c>) value is returned to each client or sector (<c>pairwise</c>).
-        /// </summary>
-        public const string Pairwise = "pairwise";
     }
 
     /// <summary>

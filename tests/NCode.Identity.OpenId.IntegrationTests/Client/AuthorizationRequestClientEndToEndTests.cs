@@ -18,6 +18,8 @@
 
 using System.Collections.Concurrent;
 using System.Net;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -263,6 +265,59 @@ public class AuthorizationRequestClientEndToEndTests
         Assert.Null(push.AuthorizationScheme);
         var body = HttpUtility.ParseQueryString(push.Body ?? string.Empty);
         Assert.Equal(ClientSecret, body[OpenIdProtocol.Parameters.ClientSecret]);
+        await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithPrivateKeyJwt_PushesAndCompletesTheCodeFlow()
+    {
+        const string clientId = "it-par-e2e-private-key-jwt";
+
+        using var rsa = RSA.Create(2048);
+        using var certificate = new CertificateRequest(
+            $"CN={clientId}",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        ).CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedPrivateKeyJwtClientWithSettingsAsync(
+            clientId,
+            certificate,
+            NoSettings,
+            RedirectUri
+        );
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        await using var provider = CreateClientProvider(
+            factory,
+            exchanges,
+            keyFactory =>
+                keyFactory.CreateRsa(
+                    new KeyMetadata
+                    {
+                        KeyId = $"{clientId}-key",
+                        Use = "sig",
+                        Algorithm = "PS256",
+                    },
+                    rsa
+                )
+        );
+        var registration = CreateRegistration(
+            clientId,
+            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt
+        );
+        var request = CreateAuthorizationRequest();
+
+        var result = await PushAsync(provider, registration, request);
+
+        var push = AssertPushed(result, exchanges, clientId);
+        Assert.Null(push.AuthorizationScheme);
+        var body = HttpUtility.ParseQueryString(push.Body ?? string.Empty);
+        Assert.Equal(
+            OpenIdProtocol.ClientAssertionTypes.JwtBearer,
+            body[OpenIdProtocol.Parameters.ClientAssertionType]
+        );
         await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
     }
 

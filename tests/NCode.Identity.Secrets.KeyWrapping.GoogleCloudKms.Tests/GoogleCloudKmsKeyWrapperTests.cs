@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using Google.Cloud.Kms.V1;
@@ -246,19 +247,14 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(64);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(CryptoKeyVersionName, ciphertext);
-        var destination = new byte[48];
+        var destination = new ArrayBufferWriter<byte>();
         var response = CreateDecryptResponse(plaintext);
         using var cancellationSource = new CancellationTokenSource();
         SetupClient(cancellationSource.Token);
         SetupDecrypt(response, cancellationSource.Token);
         var provider = CreateProvider(CryptoKeyName);
 
-        var written = await provider.UnwrapAsync(
-            wrappedKey,
-            context,
-            destination,
-            cancellationSource.Token
-        );
+        await provider.UnwrapAsync(wrappedKey, context, destination, cancellationSource.Token);
 
         var request = Assert.IsType<CapturedRequest>(DecryptCall);
         Assert.Equal(CryptoKeyName, request.Name);
@@ -269,29 +265,8 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
             GoogleCloudKmsChecksum.Compute(context),
             request.AdditionalAuthenticatedDataCrc32C
         );
-        Assert.Equal(plaintext.Length, written);
-        Assert.Equal(plaintext, destination[..written]);
-        Assert.Equal(new byte[destination.Length - written], destination[written..]);
+        Assert.Equal(plaintext, destination.WrittenSpan.ToArray());
         Assert.Equal(new byte[plaintext.Length], response.Plaintext.ToByteArray());
-    }
-
-    [Fact]
-    public async Task UnwrapAsync_DestinationTooSmall_ThrowsArgumentException()
-    {
-        var plaintext = RandomNumberGenerator.GetBytes(32);
-        var ciphertext = RandomNumberGenerator.GetBytes(64);
-        var context = "root-context"u8.ToArray();
-        var wrappedKey = CreateWrappedKey(CryptoKeyVersionName, ciphertext);
-        var destination = new byte[16];
-        SetupClient(CancellationToken.None);
-        SetupDecrypt(CreateDecryptResponse(plaintext), CancellationToken.None);
-        var provider = CreateProvider(CryptoKeyName);
-
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None).AsTask()
-        );
-
-        Assert.Equal("destination", exception.ParamName);
     }
 
     [Fact]
@@ -301,7 +276,7 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(64);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(CryptoKeyVersionName, ciphertext);
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var response = CreateDecryptResponse(plaintext);
         response.PlaintextCrc32C ^= 1;
         SetupClient(CancellationToken.None);
@@ -312,7 +287,7 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
             provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None).AsTask()
         );
 
-        Assert.Equal(new byte[destination.Length], destination);
+        Assert.Equal(0, destination.WrittenCount);
         Assert.Equal(new byte[plaintext.Length], response.Plaintext.ToByteArray());
     }
 
@@ -323,7 +298,7 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(64);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(CryptoKeyVersionName, ciphertext);
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var calls = 0;
         SetupClient(CancellationToken.None);
         Client
@@ -338,15 +313,9 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
             .Verifiable(Times.Exactly(2));
         var provider = CreateProvider(CryptoKeyName);
 
-        var written = await provider.UnwrapAsync(
-            wrappedKey,
-            context,
-            destination,
-            CancellationToken.None
-        );
+        await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None);
 
-        Assert.Equal(plaintext.Length, written);
-        Assert.Equal(plaintext, destination);
+        Assert.Equal(plaintext, destination.WrittenSpan.ToArray());
     }
 
     [Fact]
@@ -355,7 +324,7 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(64);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(CryptoKeyVersionName, ciphertext);
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var rpcException = CreateRpcException(StatusCode.InvalidArgument);
         SetupClient(CancellationToken.None);
         SetupDecryptThrows(rpcException, Times.Exactly(2));
@@ -374,7 +343,7 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(64);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(CryptoKeyVersionName, ciphertext);
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var rpcException = CreateRpcException(StatusCode.Unavailable);
         SetupClient(CancellationToken.None);
         SetupDecryptThrows(rpcException, Times.Once());
@@ -393,7 +362,7 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
         var ciphertext = RandomNumberGenerator.GetBytes(64);
         var context = "root-context"u8.ToArray();
         var wrappedKey = CreateWrappedKey(CryptoKeyName, ciphertext);
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var provider = CreateProvider(CryptoKeyName);
 
         await Assert.ThrowsAsync<CryptographicException>(() =>
@@ -416,7 +385,7 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
             KeyId = CryptoKeyVersionName,
             Ciphertext = ciphertext,
         };
-        var destination = new byte[32];
+        var destination = new ArrayBufferWriter<byte>();
         var provider = CreateProvider(CryptoKeyName);
 
         await Assert.ThrowsAsync<CryptographicException>(() =>

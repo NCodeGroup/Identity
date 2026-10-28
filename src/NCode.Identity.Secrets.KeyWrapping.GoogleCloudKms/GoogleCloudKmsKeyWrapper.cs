@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Google.Cloud.Kms.V1;
@@ -141,9 +142,6 @@ internal class GoogleCloudKmsKeyWrapper(
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="wrappedKey"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="destination"/> is too small to hold the unwrapped key.
-    /// </exception>
     /// <exception cref="CryptographicException">
     /// Thrown when the wrapped key does not name a Cloud KMS crypto key version, is not valid base64url text, or was
     /// rejected twice by the service because its ciphertext or additional authenticated data does not match.
@@ -151,10 +149,10 @@ internal class GoogleCloudKmsKeyWrapper(
     /// <exception cref="IOException">
     /// Thrown when the plaintext that the service returns fails its integrity check.
     /// </exception>
-    public async ValueTask<int> UnwrapAsync(
+    public async ValueTask UnwrapAsync(
         WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
-        Memory<byte> destination,
+        IBufferWriter<byte> destination,
         CancellationToken cancellationToken
     )
     {
@@ -212,7 +210,7 @@ internal class GoogleCloudKmsKeyWrapper(
         var client = await ClientFactory.GetClientAsync(cancellationToken);
         var response = await DecryptAsync(client, request, cancellationToken);
 
-        return CopyPlaintext(response, destination.Span);
+        CopyPlaintext(response, destination);
     }
 
     private static async ValueTask<DecryptResponse> DecryptAsync(
@@ -247,7 +245,7 @@ internal class GoogleCloudKmsKeyWrapper(
         }
     }
 
-    private static int CopyPlaintext(DecryptResponse response, Span<byte> destination)
+    private static void CopyPlaintext(DecryptResponse response, IBufferWriter<byte> destination)
     {
         // The response owns the plaintext and leaves the unwrapped key in it, so it is zeroed once copied.
         var source = MemoryMarshal.AsMemory(response.Plaintext.Memory).Span;
@@ -260,15 +258,9 @@ internal class GoogleCloudKmsKeyWrapper(
             );
         }
 
-        if (source.Length > destination.Length)
-        {
-            throw new ArgumentException(
-                "The destination is too small to hold the unwrapped key.",
-                nameof(destination)
-            );
-        }
-
-        source.CopyTo(destination);
-        return source.Length;
+        var length = source.Length;
+        var target = destination.GetSpan(length)[..length];
+        source.CopyTo(target);
+        destination.Advance(length);
     }
 }

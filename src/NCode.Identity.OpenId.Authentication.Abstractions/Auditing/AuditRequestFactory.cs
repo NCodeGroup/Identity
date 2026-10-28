@@ -19,6 +19,7 @@
 using System.Diagnostics;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Events.Audit;
 
 namespace NCode.Identity.OpenId.Authentication.Auditing;
@@ -38,6 +39,24 @@ public static class AuditRequestFactory
     /// The maximum number of characters of the <c>User-Agent</c> header that an <see cref="AuditRequest"/> keeps.
     /// </summary>
     public const int MaxUserAgentLength = 512;
+
+    /// <summary>
+    /// Captures the request context of the specified HTTP request and of the current <see cref="Activity"/>.
+    /// The endpoint is the name of the request's endpoint, else its display name.
+    /// </summary>
+    /// <param name="httpContext">The HTTP context of the request that caused the audited operation.</param>
+    /// <returns>The captured <see cref="AuditRequest"/>.</returns>
+    public static AuditRequest Create(HttpContext httpContext)
+    {
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        var endpoint = httpContext.GetEndpoint();
+        return Create(
+            httpContext,
+            endpoint?.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName
+                ?? endpoint?.DisplayName
+        );
+    }
 
     /// <summary>
     /// Captures the request context of the specified HTTP request and of the current <see cref="Activity"/>.

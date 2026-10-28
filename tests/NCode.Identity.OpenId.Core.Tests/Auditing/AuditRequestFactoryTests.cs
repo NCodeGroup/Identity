@@ -19,6 +19,7 @@
 using System.Diagnostics;
 using System.Net;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using Xunit;
 
@@ -192,6 +193,46 @@ public sealed class AuditRequestFactoryTests
         var httpContext = CreatePopulatedHttpContext();
 
         var request = AuditRequestFactory.Create(httpContext, endpoint: null);
+
+        Assert.Null(request.Endpoint);
+    }
+
+    [Fact]
+    public void Create_WhenTheEndpointHasAName_UsesTheName()
+    {
+        var httpContext = CreatePopulatedHttpContext();
+        httpContext.SetEndpoint(
+            new Endpoint(
+                requestDelegate: null,
+                new EndpointMetadataCollection(new EndpointNameMetadata("token_endpoint")),
+                "Token display"
+            )
+        );
+
+        var request = AuditRequestFactory.Create(httpContext);
+
+        Assert.Equal("token_endpoint", request.Endpoint);
+    }
+
+    [Fact]
+    public void Create_WhenTheEndpointHasNoName_UsesTheDisplayName()
+    {
+        var httpContext = CreatePopulatedHttpContext();
+        httpContext.SetEndpoint(
+            new Endpoint(requestDelegate: null, EndpointMetadataCollection.Empty, "Token display")
+        );
+
+        var request = AuditRequestFactory.Create(httpContext);
+
+        Assert.Equal("Token display", request.Endpoint);
+    }
+
+    [Fact]
+    public void Create_WhenThereIsNoEndpoint_LeavesTheEndpointNull()
+    {
+        var httpContext = CreatePopulatedHttpContext();
+
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Null(request.Endpoint);
     }

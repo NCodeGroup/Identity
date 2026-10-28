@@ -133,6 +133,7 @@ const NCode.Identity.Jose.JoseClaimNames.Payload.ClientId = "client_id" -> strin
 const NCode.Identity.Jose.JoseClaimNames.Payload.Cnf = "cnf" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Email = "email" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.EmailVerified = "email_verified" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.Events = "events" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Exp = "exp" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.FamilyName = "family_name" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Gender = "gender" -> string!

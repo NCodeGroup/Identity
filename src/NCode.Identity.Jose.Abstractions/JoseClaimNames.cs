@@ -342,6 +342,12 @@ public static class JoseClaimNames
         public const string EmailVerified = "email_verified";
 
         /// <summary>
+        /// Contains a constant with the value: <c>events</c>
+        /// https://datatracker.ietf.org/doc/html/rfc8417#section-2.2
+        /// </summary>
+        public const string Events = "events";
+
+        /// <summary>
         /// Contains a constant with the value: <c>exp</c>
         /// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4
         /// </summary>

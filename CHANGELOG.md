@@ -10,6 +10,16 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The OpenID protocol client decrypts encrypted ID tokens and logout tokens.**
+  `ClientRegistration.IdTokenKeyManagementAlgorithms` and `IdTokenContentEncryptionAlgorithms` mirror the registered
+  `id_token_encrypted_response_alg` and `id_token_encrypted_response_enc` (`enc` defaults to `A128CBC-HS256`). When they
+  are set, `IIdTokenValidator` and `ILogoutTokenValidator` decrypt with the asymmetric keys of the client's `KeyRing`,
+  accept only RSA-OAEP and ECDH-ES and no compression, require every token to be encrypted, and check a replicated
+  `iss` header. An undecryptable token fails with the new `TokenValidationFailureCodes.DecryptionFailed`
+  (`decryption_failed`), and a client that registers no encryption refuses an encrypted token with
+  `algorithm_not_permitted`
+  ([ADR-0279](docs/decisions/0279-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md), issue [#347](https://github.com/NCodeGroup/Identity/issues/347)).
+
 - **A token validation failure carries a machine-readable code.** `JwtValidationFailureCodes` is the open vocabulary of
   the JWT validator's codes (`invalid_signature`, `invalid_issuer`, `invalid_audience`, `expired`, `not_yet_valid`,
   `algorithm_not_permitted`, …). A handler fails with `JwtValidationContext.Fail(failureCode, reason)`, and
@@ -2325,6 +2335,11 @@ change to the public API is a **major** version bump.
   ([ADR-0266](docs/decisions/0266-text-is-encoded-and-decoded-only-through-strict-encodings.md))
 
 ### Fixed
+
+- **The protocol client fails an ID token with an out-of-range `auth_time` instead of throwing.** With `max_age`, an
+  `auth_time` such as `1e300` or one near the end of time threw `ArgumentOutOfRangeException`; `auth_time` and the
+  logout token's `exp` are read as strict NumericDates, so the token fails with `invalid_claim`
+  ([ADR-0123](docs/decisions/0123-numeric-date-is-read-strictly-and-range-guarded.md), issue [#367](https://github.com/NCodeGroup/Identity/issues/367)).
 
 - **The protocol client accepts an `expires_in` written with a zero fraction.** A pushed authorization response or a
   token response whose `expires_in` was a whole number written as `60.0` or `6e1` failed with

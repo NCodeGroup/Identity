@@ -143,8 +143,8 @@ internal class GoogleCloudKmsKeyWrapper(
     /// Thrown when <paramref name="wrappedKey"/> is <see langword="null"/>.
     /// </exception>
     /// <exception cref="CryptographicException">
-    /// Thrown when the wrapped key does not name a Cloud KMS crypto key version, is not valid base64url text, or was
-    /// rejected twice by the service because its ciphertext or additional authenticated data does not match.
+    /// Thrown when the wrapped key does not name a Cloud KMS crypto key version, is empty or not valid base64url text,
+    /// or was rejected twice by the service because its ciphertext or additional authenticated data does not match.
     /// </exception>
     /// <exception cref="IOException">
     /// Thrown when the plaintext that the service returns fails its integrity check.
@@ -168,33 +168,13 @@ internal class GoogleCloudKmsKeyWrapper(
 
         var text = wrappedKey.Ciphertext;
 
-        // A remainder of one character is not a valid base64url length, and counting its bytes throws.
-        if (text.Length == 0 || text.Length % 4 == 1)
-        {
-            throw new CryptographicException("The wrapped key is not valid base64url text.");
-        }
-
         using var ciphertextLease = BufferFactory.Rent(
-            Base64Url.GetByteCountForDecode(text.Length),
+            WrappedKeyCiphertext.GetByteCount(text),
             isSensitive: false,
             out Memory<byte> ciphertext
         );
 
-        int written;
-        try
-        {
-            if (!Base64Url.TryDecode(text, ciphertext.Span, out written))
-            {
-                throw new CryptographicException("The wrapped key is not valid base64url text.");
-            }
-        }
-        catch (FormatException exception)
-        {
-            throw new CryptographicException(
-                "The wrapped key is not valid base64url text.",
-                exception
-            );
-        }
+        var written = WrappedKeyCiphertext.Decode(text, ciphertext.Span);
 
         // The calls only read the buffers and they outlive them, so they are wrapped without a copy.
         var decoded = ciphertext[..written];

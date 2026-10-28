@@ -10,6 +10,23 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **A JSON Web Key Set types the keys of contributed key types.** The constructor
+  `JsonWebKeySet(JsonElement, IEnumerable<JsonWebKeyTypeDescriptor>)` and
+  `JsonWebKeySet.Parse(string, IEnumerable<JsonWebKeyTypeDescriptor>)` build each key whose `kty` names a supplied
+  descriptor with that descriptor, so a contributed key read from a set is thumbprinted and screened for private
+  members by its own rules; pass the `JwkKeyType` of each `ISecretKeyTypeCatalog.Descriptors` entry. A set
+  deserialized through `System.Text.Json` uses the standard descriptors only
+  ([ADR-0281](docs/decisions/0281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md),
+  issue [#329](https://github.com/NCodeGroup/Identity/issues/329)).
+
+- **A JWK Thumbprint URI names every registered hash the framework computes.** `JsonWebKey.ComputeThumbprintUri`
+  takes the hash's name from the IANA Named Information Hash Algorithm Registry (RFC 9278 §4) and adds SHA3-256,
+  SHA3-384 and SHA3-512 (`sha3-256`, `sha3-384`, `sha3-512`) to SHA-256, SHA-384 and SHA-512. The new
+  `ComputeThumbprintUri(HashAlgorithmName, string)` takes the registry name of any other hash; a truncated hash name
+  is never produced
+  ([ADR-0281](docs/decisions/0281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md),
+  issue [#328](https://github.com/NCodeGroup/Identity/issues/328)).
+
 - **A token validation failure carries a machine-readable code.** `JwtValidationFailureCodes` is the open vocabulary of
   the JWT validator's codes (`invalid_signature`, `invalid_issuer`, `invalid_audience`, `expired`, `not_yet_valid`,
   `algorithm_not_permitted`, …). A handler fails with `JwtValidationContext.Fail(failureCode, reason)`, and
@@ -777,6 +794,12 @@ change to the public API is a **major** version bump.
   [ADR-0155](docs/decisions/0155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
 
 ### Changed
+
+- **The JWK package names every RSA private member.** `JsonWebKeyParameterNames` adds `FirstPrimeFactor` (`p`),
+  `SecondPrimeFactor` (`q`), `FirstFactorCrtExponent` (`dp`), `SecondFactorCrtExponent` (`dq`),
+  `FirstCrtCoefficient` (`qi`) and `OtherPrimesInfo` (`oth`), and the RSA key type descriptor uses them. Breaking:
+  `JsonWebKeyParameterNames.EccPrivateKey` is renamed `D`, because the `d` member is also the RSA private exponent
+  and the OKP private key (issue [#364](https://github.com/NCodeGroup/Identity/issues/364)).
 
 - **The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package.** The new
   `NCode.Identity.OpenId.Protocol.Abstractions` package holds `OpenIdProtocol`, shared by the OP and the protocol
@@ -2325,6 +2348,10 @@ change to the public API is a **major** version bump.
   ([ADR-0266](docs/decisions/0266-text-is-encoded-and-decoded-only-through-strict-encodings.md))
 
 ### Fixed
+
+- **A JSON Web Key Set skips a key with an empty `kty`.** `JsonWebKeySet(JsonElement)` and `JsonWebKeySet.Parse`
+  failed the whole set with `ArgumentException` when one key's `kty` was the empty string; such a key is skipped like
+  one with a missing or non-string `kty` (issue [#329](https://github.com/NCodeGroup/Identity/issues/329)).
 
 - **The protocol client accepts an `expires_in` written with a zero fraction.** A pushed authorization response or a
   token response whose `expires_in` was a whole number written as `60.0` or `6e1` failed with

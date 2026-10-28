@@ -20,7 +20,10 @@ Production projects live under `src/`; test projects (the `*Tests` projects) liv
 - **OpenID** — `NCode.Identity.OpenId.Abstractions` + `.Core` (environments, errors, messages, serialization),
   `.Authentication(.Abstractions)` (endpoints, grant handlers, token/claims services), `.Management(.Abstractions)`
   (the `.Abstractions` package holds the wire contracts under the `NCode.Identity.OpenId.Management.Contracts` namespace),
-  `.Messages.Abstractions`, `.Persistence(.Abstractions)`, `.Persistence.EntityFramework`
+  `.Messages.Abstractions`, `.Persistence(.Abstractions)`, `.Persistence.EntityFramework`, and
+  `NCode.Identity.OpenId.Protocol.Abstractions` (the dependency-free OAuth/OIDC wire vocabulary `OpenIdProtocol`, shared
+  by the OP and the protocol client —
+  [ADR-0276](docs/decisions/0276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md))
 - **OpenID protocol client** — `NCode.Identity.OpenId.Client(.Abstractions)`: an OAuth 2.0 / OIDC client for server-side
   callers (discovery, JWKS, client authentication, token and revocation requests) built on the family's JOSE stack
   ([ADR-0270](docs/decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md))

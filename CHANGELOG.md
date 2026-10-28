@@ -752,6 +752,20 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package.** The new
+  `NCode.Identity.OpenId.Protocol.Abstractions` package holds `OpenIdProtocol`, shared by the OP and the protocol
+  client. The groups `Parameters`, `ErrorCodes`, `GrantTypes`, `ResponseTypes`, `ResponseModes`, `CodeChallengeMethods`,
+  `TokenTypes`, `TokenTypeIdentifiers`, `ClientAuthenticationMethods`, `ClientAssertionTypes`, `PromptTypes`,
+  `DisplayTypes`, `ScopeTypes`, `SubjectTypes`, `BackchannelTokenDeliveryModes`, `DPoP`, `ConfirmationMethods`,
+  `MediaTypes`, `ClaimTypes`, `AuthenticationMethods` and `AuthenticationContextClassReferences` moved from
+  `OpenIdConstants` to `OpenIdProtocol`, and `TokenTypeHints`, `MetadataNames`, `WellKnownPaths` and `BackChannelLogout`
+  are new. Breaking: `OpenIdConstants.ContentType` is now `OpenIdProtocol.MediaTypes.FormUrlEncoded`,
+  `OpenIdConstants.BackChannelLogout.EventsClaimName` is now `JoseClaimNames.Payload.Events`, the `$` parameters moved
+  to `OpenIdConstants.InternalParameters`, and the client's `ClientAuthenticationMethods`, `TokenTypeHints` and
+  `TokenTypeIdentifiers` are removed in favour of `OpenIdProtocol`'s
+  ([ADR-0276](docs/decisions/0276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md),
+  [#353](https://github.com/NCodeGroup/Identity/issues/353)).
+
 - **A key type registers its JSON Web Key rules.** A `JsonWebKeyTypeDescriptor` carries a key type's thumbprint members
   and private members; `JsonWebKeyTypeDescriptors` holds the built-in IANA types, and `JsonWebKey.KeyTypeDescriptor`
   exposes the one a key uses, set through the new `JsonWebKey(JsonElement, JsonWebKeyTypeDescriptor)` and

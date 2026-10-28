@@ -23,6 +23,7 @@ namespace NCode.Identity.Jwt.Validation;
 
 /// <summary>
 /// Represents errors that occur when a <see cref="SecretKey"/> is not found during <c>JSON Web Token (JWT)</c> validation.
+/// The failure code defaults to <see cref="JwtValidationFailureCodes.KeyNotFound"/>.
 /// </summary>
 [PublicAPI]
 [Serializable]
@@ -37,7 +38,7 @@ public class JwtSecretKeyNotFoundException : JwtValidationException
     public JwtSecretKeyNotFoundException()
         : base(DefaultMessage)
     {
-        // nothing
+        FailureCode = JwtValidationFailureCodes.KeyNotFound;
     }
 
     /// <summary>
@@ -47,7 +48,7 @@ public class JwtSecretKeyNotFoundException : JwtValidationException
     public JwtSecretKeyNotFoundException(string message)
         : base(message)
     {
-        // nothing
+        FailureCode = JwtValidationFailureCodes.KeyNotFound;
     }
 
     /// <summary>
@@ -60,6 +61,6 @@ public class JwtSecretKeyNotFoundException : JwtValidationException
     public JwtSecretKeyNotFoundException(string message, Exception inner)
         : base(message, inner)
     {
-        // nothing
+        FailureCode = JwtValidationFailureCodes.KeyNotFound;
     }
 }

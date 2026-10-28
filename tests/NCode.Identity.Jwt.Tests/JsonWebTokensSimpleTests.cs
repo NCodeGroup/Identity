@@ -93,6 +93,24 @@ public class JsonWebTokensSimpleTests
     }
 
     [Fact]
+    public void JwtDecodeException_DefaultConstructor_UsesInvalidSignatureCode()
+    {
+        var exception = new JwtDecodeException();
+
+        Assert.Equal(JwtValidationFailureCodes.InvalidSignature, exception.FailureCode);
+    }
+
+    [Fact]
+    public void JwtDecodeException_WithMessageAndInner_UsesInvalidSignatureCode()
+    {
+        var inner = new InvalidOperationException("inner");
+
+        var exception = new JwtDecodeException("boom", inner);
+
+        Assert.Equal(JwtValidationFailureCodes.InvalidSignature, exception.FailureCode);
+    }
+
+    [Fact]
     public void JwtSecretKeyNotFoundException_DefaultConstructor_HasMessage()
     {
         var exception = new JwtSecretKeyNotFoundException();
@@ -109,6 +127,24 @@ public class JsonWebTokensSimpleTests
 
         Assert.Equal("boom", exception.Message);
         Assert.Same(inner, exception.InnerException);
+    }
+
+    [Fact]
+    public void JwtSecretKeyNotFoundException_DefaultConstructor_UsesKeyNotFoundCode()
+    {
+        var exception = new JwtSecretKeyNotFoundException();
+
+        Assert.Equal(JwtValidationFailureCodes.KeyNotFound, exception.FailureCode);
+    }
+
+    [Fact]
+    public void JwtSecretKeyNotFoundException_WithMessageAndInner_UsesKeyNotFoundCode()
+    {
+        var inner = new InvalidOperationException("inner");
+
+        var exception = new JwtSecretKeyNotFoundException("boom", inner);
+
+        Assert.Equal(JwtValidationFailureCodes.KeyNotFound, exception.FailureCode);
     }
 
     #endregion

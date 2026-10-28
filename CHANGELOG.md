@@ -10,6 +10,16 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **A token validation failure carries a machine-readable code.** `JwtValidationFailureCodes` is the open vocabulary of
+  the JWT validator's codes (`invalid_signature`, `invalid_issuer`, `invalid_audience`, `expired`, `not_yet_valid`,
+  `algorithm_not_permitted`, …). A handler fails with `JwtValidationContext.Fail(failureCode, reason)`, and
+  `ClaimValueRequirement.FailureCode` names a claim check's code. `JwtValidationException.FailureCode` and
+  `JwtValidationResult.FailureCode` report the first failure's code. `IdTokenValidationResult` and
+  `LogoutTokenValidationResult` gain a `FailureCode` from the open `TokenValidationFailureCodes`, which adds
+  `subject_mismatch`, `nonce_mismatch`, `max_age_exceeded`, `token_hash_mismatch` and `token_replayed`. Their failure
+  constructors take the code before the reason. `FailureReason` stays text without the token
+  ([ADR-0278](docs/decisions/0278-token-validation-failures-carry-a-machine-readable-code.md), issue [#343](https://github.com/NCodeGroup/Identity/issues/343)).
+
 - **The JWK package names the JSON Web Key vocabulary.** `NCode.Identity.Jwk` adds `JsonWebKeyUses`,
   `JsonWebKeyOperations`, `JsonWebKeyTypes` and `JsonWebKeySetParameterNames`. The protocol client, the OP's client key
   import and registration, and ECDH key management use them instead of string literals, and `SecretKeyUses` takes its

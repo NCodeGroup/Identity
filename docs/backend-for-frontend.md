@@ -342,7 +342,10 @@ handle the browser already presented. It deletes any session the browser's old c
 initiator cookie, and sets the session cookie. Every failure ends with a `bff.login.failed` event carrying a reason
 name from an open vocabulary (`unknown_state`, `initiator_mismatch`, `issuer_mismatch`, `token_error`,
 `id_token_invalid`, `nonce_mismatch`, `rejected_by_gate`, …). The browser is then redirected to the frontend's
-configured error path, and no session is issued.
+configured error path, and no session is issued. The protocol client names why an ID token failed in
+`IdTokenValidationResult.FailureCode`, from the open `TokenValidationFailureCodes` vocabulary (`nonce_mismatch`,
+`expired`, `invalid_signature`, …), so the BFF picks the reason name without matching on text
+([ADR-0278](decisions/0278-token-validation-failures-carry-a-machine-readable-code.md)).
 
 ```mermaid
 sequenceDiagram

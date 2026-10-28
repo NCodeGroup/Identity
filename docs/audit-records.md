@@ -316,3 +316,146 @@ events library builder, and call `AuditRecordWriter.Write` (to a `Utf8JsonWriter
 a sink that runs in the background after the request has completed still sees it. A handler that throws neither fails
 the audited operation nor stops the other handlers
 ([ADR-0047](decisions/0047-auditing-and-events-observation-seam.md)).
+
+## Indexing
+
+A collector or a store that holds audit records indexes the fields an operator filters, groups and joins on. The names
+below are the record's; the log entry carries each one with the `audit.` prefix (`audit.event_name`,
+`audit.request.trace_id`).
+
+- **Keyword** (exact match, filter and group by): `event_id`, `event_name`, `event_category`, `event_source`, `outcome`,
+  `severity`, `tenant_id`, `subject_id`, `client_id`, `actor.type`, `actor.id`, `request.trace_id`,
+  `request.request_id`, `request.source_ip` and `error.code`. None is free text, and every one is a bounded or
+  identifier-like value.
+- **Date**: `event_time`, so a range filter or a sort follows when the operation occurred, not when the entry was
+  collected.
+- **Nested array**: `resources`, as a nested array of `{type, id}` items with `type` and `id` as keywords, so a query
+  that names a type and an id matches both on the same item. The log entry carries `audit.resources` as raw JSON text,
+  so a log collector parses it before it indexes the items.
+- **Not indexed**: `details`. Its members differ for each event and a package that adds an event adds its own, so leave
+  the object unindexed or turn dynamic mapping off for it. A query that needs one member, such as
+  `audit.details.termination_reason`, names that member in the mapping.
+
+## Lookups
+
+How a sink names the log entry's fields depends on the host's log formatter. With the .NET JSON console formatter the
+state appears under `State`, so `audit.event_name` is `State.audit.event_name` in Elasticsearch, OpenSearch and
+CloudWatch Logs, and `State_audit_event_name` after Loki's `| json` stage flattens it. The examples assume the JSON
+console formatter; the log category is its `Category` member.
+
+### Elasticsearch and OpenSearch (KQL)
+
+Failed authentications:
+
+```text
+Category : "NCode.Identity.Audit" and State.audit.event_category : "authentication" and State.audit.outcome : "failure"
+```
+
+### Grafana Loki (LogQL)
+
+Critical audit events:
+
+```text
+{app="identity"} | json | Category="NCode.Identity.Audit" | State_audit_severity="critical"
+```
+
+### CloudWatch Logs Insights
+
+Every audit event of one request, oldest first:
+
+```text
+filter Category = "NCode.Identity.Audit" and State.audit.request.trace_id = "<trace id>" | sort @timestamp asc
+```
+
+### PostgreSQL (jsonb)
+
+The library ships no audit store yet. A host that stores the `AuditRecordWriter` JSON in its own table, with the record
+in a `record jsonb` column, queries the record's own member names, with no `audit.` prefix. A GIN `jsonb_path_ops` index
+serves the containment (`@>`) test on `resources`:
+
+```sql
+CREATE INDEX audit_records_record_idx ON audit_records USING GIN (record jsonb_path_ops);
+```
+
+Every audit event of one session within a tenant, oldest first:
+
+```sql
+SELECT record
+FROM audit_records
+WHERE record->>'tenant_id' = $1
+  AND record->'resources' @> '[{"type":"session","id":"<sid>"}]'
+ORDER BY (record->>'event_time')::timestamptz;
+```
+
+## Incident runbook
+
+Each entry names when to use it and gives one query. The queries are KQL over the log entries and filter on the category
+`NCode.Identity.Audit` as the [lookups](#lookups) do, except the last, which needs the record. Group the results with
+the tool's aggregation, and read the fields named for each entry from the matching entries.
+
+### Follow one request
+
+Use it to see every audited step of one request, from a trace id taken from a trace, a log line or the caller's
+`traceparent` header. The `audit.request.request_id` on a result pivots to the host's request logs.
+
+```text
+Category : "NCode.Identity.Audit" and State.audit.request.trace_id : "<trace id>"
+```
+
+### Refresh-token replay
+
+Use it when a critical event fires. `token.refresh.replay` is the only critical event: a refresh token was presented
+after its grant was revoked, a token-theft signal. Read `audit.client_id` and `audit.subject_id` from the entry, then
+revoke the subject's sessions through the management API; a `session.revoked.admin` event appears when that is done.
+
+```text
+Category : "NCode.Identity.Audit" and State.audit.severity : "critical" and State.audit.event_name : "token.refresh.replay"
+```
+
+### Credential stuffing
+
+Use it to find a source that is trying many credentials. Group the failures by `audit.request.source_ip` and
+`audit.error.code`; a source with many `invalid_credentials` or `attempt_limit_reached` failures across different
+`audit.subject_id` values is guessing credentials.
+
+```text
+Category : "NCode.Identity.Audit" and State.audit.event_name : "subject.authentication" and State.audit.outcome : "failure"
+```
+
+### A misbehaving client
+
+Use it to find a client that keeps failing to authenticate, such as one with a rotated or expired secret. Group by
+`audit.client_id` and `audit.error.code`; `audit.details.authentication_method` says which method the client attempted.
+
+```text
+Category : "NCode.Identity.Audit" and State.audit.event_name : "client.authentication"
+```
+
+### Who changed configuration
+
+Use it to attribute a configuration change. Read `audit.actor.id` (the administrator), `audit.event_name` (such as
+`client.secret.created`) and `audit.resources` (the changed resource, then the resource that owns it).
+
+```text
+Category : "NCode.Identity.Audit" and State.audit.event_category : "management"
+```
+
+### Everything about a session
+
+Use it to reconstruct a session from its `sid`: its creation, its termination and any administrator revocation. A
+session is identified by a `resources` item whose `type` is `session`. In a store that maps `resources` as a nested
+array, KQL matches the pair on one item:
+
+```text
+resources : { type : "session" and id : "<sid>" }
+```
+
+The log entry carries `audit.resources` as raw JSON text, so look a session up in a store that holds the record. The
+PostgreSQL containment query in the [lookups](#postgresql-jsonb) does the same:
+
+```sql
+SELECT record
+FROM audit_records
+WHERE record->'resources' @> '[{"type":"session","id":"<sid>"}]'
+ORDER BY (record->>'event_time')::timestamptz;
+```

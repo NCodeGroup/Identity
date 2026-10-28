@@ -120,8 +120,8 @@ internal class AwsKmsKeyWrapper(
     /// Thrown when <paramref name="wrappedKey"/> is <see langword="null"/>.
     /// </exception>
     /// <exception cref="CryptographicException">
-    /// Thrown when the wrapped key does not name a KMS key, is not valid base64url text, or was rejected by the
-    /// service as altered or as wrapped under another key or context.
+    /// Thrown when the wrapped key does not name a KMS key, is empty or not valid base64url text, or was rejected by
+    /// the service as altered or as wrapped under another key or context.
     /// </exception>
     public async ValueTask UnwrapAsync(
         WrappedKey wrappedKey,
@@ -142,33 +142,13 @@ internal class AwsKmsKeyWrapper(
 
         var text = wrappedKey.Ciphertext;
 
-        // A remainder of one character is not a valid base64url length, and counting its bytes throws.
-        if (text.Length == 0 || text.Length % 4 == 1)
-        {
-            throw new CryptographicException("The wrapped key is not valid base64url text.");
-        }
-
         using var ciphertextLease = BufferFactory.Rent(
-            Base64Url.GetByteCountForDecode(text.Length),
+            WrappedKeyCiphertext.GetByteCount(text),
             isSensitive: false,
             out Memory<byte> ciphertext
         );
 
-        int written;
-        try
-        {
-            if (!Base64Url.TryDecode(text, ciphertext.Span, out written))
-            {
-                throw new CryptographicException("The wrapped key is not valid base64url text.");
-            }
-        }
-        catch (FormatException exception)
-        {
-            throw new CryptographicException(
-                "The wrapped key is not valid base64url text.",
-                exception
-            );
-        }
+        var written = WrappedKeyCiphertext.Decode(text, ciphertext.Span);
 
         using var ciphertextStream = CreateStream(ciphertext, written);
         var request = new DecryptRequest

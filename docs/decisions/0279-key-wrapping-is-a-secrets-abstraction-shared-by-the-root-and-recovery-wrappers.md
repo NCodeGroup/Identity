@@ -62,6 +62,15 @@ vocabulary names it everywhere.**
    and `p2s` into the JWE header, while a key wrapper holds or reaches its key, is asynchronous because a KMS call is, and
    returns self-contained storable text whose format the stored master keys fix. They share only BCL one-liners (AES-GCM
    with a 96-bit nonce and 128-bit tag; RSA-OAEP-SHA-256), so no code is extracted.
+8. **One decoder for base64url ciphertext.** `WrappedKeyCiphertext` (`GetByteCount`, `Decode`) in
+   `NCode.Identity.Secrets.KeyWrapping` decodes a `WrappedKey.Ciphertext` that a wrapper stores as unpadded base64url
+   into a caller-supplied span or a caller-supplied `IBufferWriter<byte>` (with `GetByteCount` as the sizing method), so
+   the AES-GCM primitive, the three KMS adapters and third-party wrappers share one strict decoder (`NCode.Base64Url`,
+   which refuses padding and illegal characters) and one set of messages: empty text and text that is not valid
+   base64url throw `CryptographicException`; a destination span that is too short throws `ArgumentException`. The
+   wrappers in this repository use the span form because each needs one contiguous buffer that a decryptor or an SDK
+   reads. Checks of a format's own structure, such as AES-GCM's minimum length, stay in the wrapper. Encoding stays in
+   each wrapper. The package references `NCode.Base64Url` for it.
 
 Public names, old to new:
 
@@ -106,6 +115,8 @@ Public names, old to new:
   under the recovery key through `IKeyWrapper`.
 - A new wrapper, such as a remote JOSE key or another KMS, implements `IKeyWrapper` and depends only on
   `NCode.Identity.Secrets.Abstractions`; the vocabulary stays open ([ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md)).
+- A wrapper that stores base64url ciphertext decodes it with `WrappedKeyCiphertext`, so every wrapper refuses malformed
+  ciphertext with the same exception and message.
 
 ## References
 

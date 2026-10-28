@@ -22,6 +22,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
 using NCode.Buffers;
+using NCode.Json;
 
 namespace NCode.Identity.Jwk;
 
@@ -29,6 +30,11 @@ namespace NCode.Identity.Jwk;
 /// A first-class, immutable <c>JSON Web Key Set</c> (RFC 7517 §5): the <c>keys</c> document published at a
 /// <c>jwks_uri</c> and fetched to verify signatures or encrypt payloads.
 /// </summary>
+/// <remarks>
+/// A set deserialized through <c>System.Text.Json</c> types each key with the standard descriptor of its <c>kty</c>
+/// only. The constructor and the <see cref="Parse(string, IEnumerable{JsonWebKeyTypeDescriptor})"/> overload that take
+/// descriptors type the keys of contributed key types.
+/// </remarks>
 /// <seealso href="https://datatracker.ietf.org/doc/html/rfc7517#section-5">RFC 7517 Section 5 - JWK Set Format</seealso>
 [PublicAPI]
 [JsonConverter(typeof(JsonWebKeySetJsonConverter))]
@@ -56,12 +62,34 @@ public sealed class JsonWebKeySet
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonWebKeySet"/> class from the supplied <see cref="JsonElement"/>,
-    /// which must be a JSON object carrying a <c>keys</c> array (RFC 7517 §5.1). Array members that are not valid JWKs
-    /// are skipped so one malformed key cannot poison the whole set.
+    /// which must be a JSON object carrying a <c>keys</c> array (RFC 7517 §5.1). Array members that are not JSON
+    /// objects or that lack a non-empty string <c>kty</c> are skipped so one malformed key cannot poison the whole set.
+    /// Each key uses the standard descriptor of its <c>kty</c>, or none when the key type is not standard.
     /// </summary>
     /// <param name="element">The JWK Set document as a JSON object.</param>
+    /// <exception cref="ArgumentException">The element is not a JSON object carrying a <c>keys</c> array.</exception>
     public JsonWebKeySet(JsonElement element)
-        : this(ReadKeys(element)) { }
+        : this(element, []) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JsonWebKeySet"/> class from the supplied <see cref="JsonElement"/>,
+    /// which must be a JSON object carrying a <c>keys</c> array (RFC 7517 §5.1), typing the keys of contributed key
+    /// types. Array members that are not JSON objects or that lack a non-empty string <c>kty</c> are skipped so one
+    /// malformed key cannot poison the whole set. A key whose <c>kty</c> equals the name of a supplied descriptor (an
+    /// ordinal comparison) uses that descriptor, even for a standard key type; any other key uses the standard
+    /// descriptor of its <c>kty</c>, or none when the key type is not standard.
+    /// </summary>
+    /// <param name="element">The JWK Set document as a JSON object.</param>
+    /// <param name="keyTypeDescriptors">The rules for the contributed key types, each with a distinct name.</param>
+    /// <exception cref="ArgumentException">
+    /// The element is not a JSON object carrying a <c>keys</c> array, a descriptor is <c>null</c>, or two descriptors
+    /// share one name.
+    /// </exception>
+    public JsonWebKeySet(
+        JsonElement element,
+        IEnumerable<JsonWebKeyTypeDescriptor> keyTypeDescriptors
+    )
+        : this(ReadKeys(element, IndexByName(keyTypeDescriptors))) { }
 
     /// <summary>
     /// Parses a <see cref="JsonWebKeySet"/> from its JSON text representation.
@@ -74,30 +102,95 @@ public sealed class JsonWebKeySet
         return new JsonWebKeySet(JsonElement.Parse(json));
     }
 
-    private static List<JsonWebKey> ReadKeys(JsonElement root)
+    /// <summary>
+    /// Parses a <see cref="JsonWebKeySet"/> from its JSON text representation, typing the keys of contributed key
+    /// types. A key whose <c>kty</c> equals the name of a supplied descriptor (an ordinal comparison) uses that
+    /// descriptor, even for a standard key type; any other key uses the standard descriptor of its <c>kty</c>, or none
+    /// when the key type is not standard.
+    /// </summary>
+    /// <param name="json">The JWK Set JSON text.</param>
+    /// <param name="keyTypeDescriptors">The rules for the contributed key types, each with a distinct name.</param>
+    /// <returns>The parsed <see cref="JsonWebKeySet"/>.</returns>
+    /// <exception cref="ArgumentException">
+    /// The document is not a JSON object carrying a <c>keys</c> array, a descriptor is <c>null</c>, or two descriptors
+    /// share one name.
+    /// </exception>
+    public static JsonWebKeySet Parse(
+        string json,
+        IEnumerable<JsonWebKeyTypeDescriptor> keyTypeDescriptors
+    )
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        return new JsonWebKeySet(JsonElement.Parse(json), keyTypeDescriptors);
+    }
+
+    private static Dictionary<string, JsonWebKeyTypeDescriptor> IndexByName(
+        IEnumerable<JsonWebKeyTypeDescriptor> keyTypeDescriptors
+    )
+    {
+        ArgumentNullException.ThrowIfNull(keyTypeDescriptors);
+
+        var descriptorsByName = new Dictionary<string, JsonWebKeyTypeDescriptor>(
+            StringComparer.Ordinal
+        );
+        foreach (var descriptor in keyTypeDescriptors)
+        {
+            if (descriptor is null)
+            {
+                throw new ArgumentException(
+                    "A JWK key type descriptor is null.",
+                    nameof(keyTypeDescriptors)
+                );
+            }
+
+            if (!descriptorsByName.TryAdd(descriptor.Name, descriptor))
+            {
+                throw new ArgumentException(
+                    $"The JWK key type '{descriptor.Name}' is described more than once.",
+                    nameof(keyTypeDescriptors)
+                );
+            }
+        }
+
+        return descriptorsByName;
+    }
+
+    private static List<JsonWebKey> ReadKeys(
+        JsonElement element,
+        Dictionary<string, JsonWebKeyTypeDescriptor> descriptorsByName
+    )
     {
         // RFC 7517 §5.1: the "keys" member is REQUIRED and is an array of JWK objects.
         if (
-            root.ValueKind != JsonValueKind.Object
-            || !root.TryGetProperty(JsonWebKeySetParameterNames.Keys, out var keys)
+            element.ValueKind != JsonValueKind.Object
+            || !element.TryGetProperty(JsonWebKeySetParameterNames.Keys, out var keys)
             || keys.ValueKind != JsonValueKind.Array
         )
         {
-            throw new ArgumentException("The JWK Set is missing its 'keys' array.", nameof(root));
+            throw new ArgumentException(
+                "The JWK Set is missing its 'keys' array.",
+                nameof(element)
+            );
         }
 
         var list = new List<JsonWebKey>(keys.GetArrayLength());
         foreach (var item in keys.EnumerateArray())
         {
-            // Members with a missing or malformed 'kty' are skipped so one bad key cannot poison the whole set.
+            // Members with a missing, non-string or empty 'kty' are skipped so one bad key cannot poison the whole set.
             if (
-                item.ValueKind == JsonValueKind.Object
-                && item.TryGetProperty(JsonWebKeyParameterNames.KeyType, out var kty)
-                && kty.ValueKind == JsonValueKind.String
+                item.ValueKind != JsonValueKind.Object
+                || !item.TryGetPropertyValue<string>(JsonWebKeyParameterNames.KeyType, out var kty)
+                || kty.Length == 0
             )
             {
-                list.Add(new JsonWebKey(item));
+                continue;
             }
+
+            list.Add(
+                descriptorsByName.TryGetValue(kty, out var descriptor)
+                    ? new JsonWebKey(item, descriptor)
+                    : new JsonWebKey(item)
+            );
         }
 
         return list;

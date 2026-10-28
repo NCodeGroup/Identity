@@ -10,6 +10,33 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **A JSON Web Key Set types the keys of contributed key types.** The constructor
+  `JsonWebKeySet(JsonElement, IEnumerable<JsonWebKeyTypeDescriptor>)` and
+  `JsonWebKeySet.Parse(string, IEnumerable<JsonWebKeyTypeDescriptor>)` build each key whose `kty` names a supplied
+  descriptor with that descriptor, so a contributed key read from a set is thumbprinted and screened for private
+  members by its own rules; pass the `JwkKeyType` of each `ISecretKeyTypeCatalog.Descriptors` entry that has one (it is
+  `null` for a key type with no JSON Web Key form). A set deserialized through `System.Text.Json` uses the standard
+  descriptors only
+  ([ADR-0281](docs/decisions/0281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md),
+  issue [#329](https://github.com/NCodeGroup/Identity/issues/329)).
+
+- **A JWK Thumbprint URI names every registered hash the framework computes.** `JsonWebKey.ComputeThumbprintUri`
+  takes the hash's name from the IANA Named Information Hash Algorithm Registry (RFC 9278 §4) and adds SHA3-256,
+  SHA3-384 and SHA3-512 (`sha3-256`, `sha3-384`, `sha3-512`) to SHA-256, SHA-384 and SHA-512. The new
+  `ComputeThumbprintUri(HashAlgorithmName, string)` takes the registry name of any other hash; a truncated hash name
+  is never produced
+  ([ADR-0281](docs/decisions/0281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md),
+  issue [#328](https://github.com/NCodeGroup/Identity/issues/328)).
+
+- **Key wrappers share one decoder for base64url ciphertext.** `WrappedKeyCiphertext.GetByteCount` and
+  `WrappedKeyCiphertext.Decode` in `NCode.Identity.Secrets.KeyWrapping` decode a `WrappedKey.Ciphertext` stored as
+  base64url into a caller-supplied span or `IBufferWriter<byte>` and throw `CryptographicException` for empty or
+  malformed text. The AES-GCM, AWS KMS, Azure Key Vault and Google Cloud KMS wrappers use it, so every wrapper reports
+  empty ciphertext as "The wrapped key is empty." `NCode.Identity.Secrets.Abstractions` now references
+  `NCode.Base64Url`
+  ([ADR-0279](docs/decisions/0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
+  issue [#373](https://github.com/NCodeGroup/Identity/issues/373)).
+
 - **The OpenID protocol client decrypts encrypted ID tokens and logout tokens.**
   `ClientRegistration.IdTokenKeyManagementAlgorithms` and `IdTokenContentEncryptionAlgorithms` mirror the registered
   `id_token_encrypted_response_alg` and `id_token_encrypted_response_enc` (`enc` defaults to `A128CBC-HS256`). When they
@@ -788,6 +815,12 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The JWK package names every RSA private member.** `JsonWebKeyParameterNames` adds `FirstPrimeFactor` (`p`),
+  `SecondPrimeFactor` (`q`), `FirstFactorCrtExponent` (`dp`), `SecondFactorCrtExponent` (`dq`),
+  `FirstCrtCoefficient` (`qi`) and `OtherPrimesInfo` (`oth`), and the RSA key type descriptor uses them. Breaking:
+  `JsonWebKeyParameterNames.EccPrivateKey` is renamed `D`, because the `d` member is also the RSA private exponent
+  and the OKP private key (issue [#364](https://github.com/NCodeGroup/Identity/issues/364)).
+
 - **Key wrapping is a shared secrets abstraction.** Every key wrapper implements `IKeyWrapper` (`Name`, `WrapAsync`,
   and `UnwrapAsync`, which writes the key into an `IBufferWriter<byte>`) and returns `WrappedKey` (`WrapperName`,
   `KeyId`, `Ciphertext`); both, with `KeyWrapperNames`, live in `NCode.Identity.Secrets.Abstractions` under
@@ -798,6 +831,7 @@ change to the public API is a **major** version bump.
   `Add<Vendor>RootKeyProvider` and `<Vendor>RootKeyOptions`. Stored master keys, configuration keys and wrapper names
   are unchanged
   ([ADR-0279](docs/decisions/0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)).
+
 - **The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package.** The new
   `NCode.Identity.OpenId.Protocol.Abstractions` package holds `OpenIdProtocol`, shared by the OP and the protocol
   client. The groups `Parameters`, `ErrorCodes`, `GrantTypes`, `ResponseTypes`, `ResponseModes`, `CodeChallengeMethods`,
@@ -2355,6 +2389,10 @@ change to the public API is a **major** version bump.
   ([ADR-0266](docs/decisions/0266-text-is-encoded-and-decoded-only-through-strict-encodings.md))
 
 ### Fixed
+
+- **A JSON Web Key Set skips a key with an empty `kty`.** `JsonWebKeySet(JsonElement)` and `JsonWebKeySet.Parse`
+  failed the whole set with `ArgumentException` when one key's `kty` was the empty string; such a key is skipped like
+  one with a missing or non-string `kty` (issue [#329](https://github.com/NCodeGroup/Identity/issues/329)).
 
 - **The protocol client fails an ID token with an out-of-range `auth_time` instead of throwing.** With `max_age`, an
   `auth_time` such as `1e300` or one near the end of time threw `ArgumentOutOfRangeException`; `auth_time` and the

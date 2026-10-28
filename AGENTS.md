@@ -175,18 +175,32 @@ are separate: review any such entries individually rather than assuming the repo
 
 How `/ship-plan` lands a reviewed plan; `/continue-plan`, `/run-issues` and `.githooks/pre-push` read it too.
 `integrate`: `pull-request` pushes the plan's branch and opens a pull request; `direct` pushes to the default branch.
-`release`: `none`; `tag` tags the plan's `Release:` version; `tag+release` also publishes a release from that
-version's section of `changelog`. `protect`: `none`; `hook` makes `.githooks/pre-push` refuse any push to the default
-branch, for a host that can't require pull requests. Here the `main` ruleset already requires pull requests through
-the merge queue ([ADR-0261](docs/decisions/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), so
-`protect` is `none`, and releases are tagged on `release/vX.Y` lines, never one per plan
-([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none`. Run it as `/ship-plan draft`
-([Plan-and-execute workflow](#plan-and-execute-workflow)).
+`release`: `none`; `tag` tags the plan's `Release:` version, or the next free one when another plan landed it first;
+`tag+release` also publishes a release from that version's section of `changelog`. `draft`: `no`; `yes` opens every
+pull request as a draft, as `/ship-plan draft` does. `follow-ups`: `issues` files a plan's follow-ups as issues in
+this repository, `<owner/repo>` in that repository, and `none` files none. `follow-up-label`: the label those issues
+get. `gate`: `none`; a command that `/ship-plan` and `/run-issues` run from the repository root before each push,
+stopping when it exits non-zero or changes a file. `protect`: `none`; `hook` makes `.githooks/pre-push` refuse any
+push to the default branch, for a host that can't require pull requests. `pr-format`: `none`; `<file>#<heading>`
+names the section that sets the title and description of the pull requests `/ship-plan` opens. Here the `main`
+ruleset already requires pull requests through the merge queue
+([ADR-0261](docs/decisions/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), so `protect`
+is `none`; releases are tagged on `release/vX.Y` lines, never one per plan
+([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none`; a pull request stays a draft until
+its author reviews it ([ADR-0269](docs/decisions/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)),
+so `draft` is `yes`; `gate` is the push protocol's local pre-push gate
+([ADR-0263](docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)); and a
+plan's title is already the conventional commit subject the squash merge takes, so `pr-format` is `none`.
 
 - integrate: pull-request
 - release: none
 - changelog: CHANGELOG.md
+- draft: yes
+- follow-ups: issues
+- follow-up-label: follow-up
+- gate: ./build/dod.ps1 -Fast -Affected
 - protect: none
+- pr-format: none
 
 ## Build, test & contributing
 

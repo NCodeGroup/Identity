@@ -23,14 +23,13 @@ using Amazon.KeyManagementService.Model;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Encoders;
-using NCode.Identity.Secrets.Persistence.AwsKms.Facades;
-using NCode.Identity.Secrets.Persistence.AwsKms.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
+using NCode.Identity.Secrets.KeyWrapping.AwsKms.Options;
 
-namespace NCode.Identity.Secrets.Persistence.AwsKms;
+namespace NCode.Identity.Secrets.KeyWrapping.AwsKms;
 
 /// <summary>
-/// Provides an implementation of <see cref="IRootKeyProvider"/> that wraps keys with a symmetric encryption key held
+/// Provides an implementation of <see cref="IKeyWrapper"/> that wraps keys with a symmetric encryption key held
 /// in AWS Key Management Service, so the root key never leaves the service.
 /// </summary>
 /// <remarks>
@@ -51,10 +50,10 @@ namespace NCode.Identity.Secrets.Persistence.AwsKms;
 /// </para>
 /// </remarks>
 // See ADR-0235.
-internal class AwsKmsRootKeyProvider(
+internal class AwsKmsKeyWrapper(
     IAwsKmsClientFactory clientFactory,
-    IOptions<AwsKmsRootKeyOptions> options
-) : IRootKeyProvider
+    IOptions<AwsKmsKeyWrapperOptions> options
+) : IKeyWrapper
 {
     /// <summary>
     /// The key of the encryption context entry that carries the context of a wrapped key.
@@ -63,16 +62,16 @@ internal class AwsKmsRootKeyProvider(
 
     private IAwsKmsClientFactory ClientFactory { get; } = clientFactory;
 
-    private IOptions<AwsKmsRootKeyOptions> RootKeyOptions { get; } = options;
+    private IOptions<AwsKmsKeyWrapperOptions> RootKeyOptions { get; } = options;
 
     /// <inheritdoc />
-    public string ProviderName => RootKeyProviderNames.AwsKms;
+    public string Name => KeyWrapperNames.AwsKms;
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">
     /// Thrown when the configured key ARN is not the ARN of a KMS key or alias.
     /// </exception>
-    public async ValueTask<RootWrappedKey> WrapAsync(
+    public async ValueTask<WrappedKey> WrapAsync(
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
@@ -107,9 +106,9 @@ internal class AwsKmsRootKeyProvider(
         var client = ClientFactory.GetClient(AwsKmsKeyArn.GetRegion(keyArn));
         var response = await client.EncryptAsync(request, cancellationToken);
 
-        return new RootWrappedKey
+        return new WrappedKey
         {
-            ProviderName = ProviderName,
+            WrapperName = Name,
             KeyId = response.KeyId,
             Ciphertext = EncodeCiphertext(response.CiphertextBlob),
         };
@@ -127,7 +126,7 @@ internal class AwsKmsRootKeyProvider(
     /// service as altered or as wrapped under another key or context.
     /// </exception>
     public async ValueTask<int> UnwrapAsync(
-        RootWrappedKey wrappedKey,
+        WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
         Memory<byte> destination,
         CancellationToken cancellationToken

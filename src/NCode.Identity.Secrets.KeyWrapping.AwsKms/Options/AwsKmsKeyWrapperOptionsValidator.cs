@@ -18,9 +18,8 @@
 
 using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.Persistence.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
 
-namespace NCode.Identity.Secrets.Persistence.AwsKms.Options;
+namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Options;
 
 /// <summary>
 /// Validates the AWS Key Management Service options when the host starts, so a missing or malformed key ARN stops the
@@ -28,20 +27,20 @@ namespace NCode.Identity.Secrets.Persistence.AwsKms.Options;
 /// root key provider is the one selected.
 /// </summary>
 // See ADR-0235 and ADR-0137 (configuration is validated at startup).
-internal class AwsKmsRootKeyOptionsValidator(IOptions<SecretProtectionOptions> protectionOptions)
-    : IValidateOptions<AwsKmsRootKeyOptions>
+internal class AwsKmsKeyWrapperOptionsValidator(IOptions<SecretProtectionOptions> protectionOptions)
+    : IValidateOptions<AwsKmsKeyWrapperOptions>
 {
     private IOptions<SecretProtectionOptions> ProtectionOptions { get; } = protectionOptions;
 
     /// <inheritdoc />
-    public ValidateOptionsResult Validate(string? name, AwsKmsRootKeyOptions options)
+    public ValidateOptionsResult Validate(string? name, AwsKmsKeyWrapperOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         if (
             !string.Equals(
                 ProtectionOptions.Value.RootKeyProvider,
-                RootKeyProviderNames.AwsKms,
+                KeyWrapperNames.AwsKms,
                 StringComparison.Ordinal
             )
         )

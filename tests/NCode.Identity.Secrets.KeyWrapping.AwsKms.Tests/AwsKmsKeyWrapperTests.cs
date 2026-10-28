@@ -21,14 +21,13 @@ using System.Security.Cryptography;
 using Amazon.KeyManagementService;
 using Amazon.KeyManagementService.Model;
 using Moq;
-using NCode.Identity.Secrets.Persistence.AwsKms.Facades;
-using NCode.Identity.Secrets.Persistence.AwsKms.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
+using NCode.Identity.Secrets.KeyWrapping.AwsKms.Options;
 using Xunit;
 
-namespace NCode.Identity.Secrets.Persistence.AwsKms.Tests;
+namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Tests;
 
-public class AwsKmsRootKeyProviderTests : IDisposable
+public class AwsKmsKeyWrapperTests : IDisposable
 {
     private const string KeyArn =
         "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab";
@@ -62,11 +61,11 @@ public class AwsKmsRootKeyProviderTests : IDisposable
         Dictionary<string, string> EncryptionContext
     );
 
-    private AwsKmsRootKeyProvider CreateProvider(string? keyArn) =>
+    private AwsKmsKeyWrapper CreateProvider(string? keyArn) =>
         new(
             ClientFactory.Object,
             Microsoft.Extensions.Options.Options.Create(
-                new AwsKmsRootKeyOptions { KeyArn = keyArn }
+                new AwsKmsKeyWrapperOptions { KeyArn = keyArn }
             )
         );
 
@@ -83,10 +82,10 @@ public class AwsKmsRootKeyProviderTests : IDisposable
         );
     }
 
-    private static RootWrappedKey CreateWrappedKey(string keyId, byte[] ciphertext) =>
+    private static WrappedKey CreateWrappedKey(string keyId, byte[] ciphertext) =>
         new()
         {
-            ProviderName = RootKeyProviderNames.AwsKms,
+            WrapperName = KeyWrapperNames.AwsKms,
             KeyId = keyId,
             Ciphertext = Base64Url.EncodeToString(ciphertext),
         };
@@ -163,7 +162,7 @@ public class AwsKmsRootKeyProviderTests : IDisposable
         var contextEntry = Assert.Single(request.EncryptionContext);
         Assert.Equal(ExpectedContextKey, contextEntry.Key);
         Assert.Equal(Base64Url.EncodeToString(context), contextEntry.Value);
-        Assert.Equal(RootKeyProviderNames.AwsKms, wrappedKey.ProviderName);
+        Assert.Equal(KeyWrapperNames.AwsKms, wrappedKey.WrapperName);
         Assert.Equal(KeyArn, wrappedKey.KeyId);
         Assert.Equal(Base64Url.EncodeToString(ciphertext), wrappedKey.Ciphertext);
     }
@@ -354,9 +353,9 @@ public class AwsKmsRootKeyProviderTests : IDisposable
     )
     {
         var context = "root-context"u8.ToArray();
-        var wrappedKey = new RootWrappedKey
+        var wrappedKey = new WrappedKey
         {
-            ProviderName = RootKeyProviderNames.AwsKms,
+            WrapperName = KeyWrapperNames.AwsKms,
             KeyId = KeyArn,
             Ciphertext = ciphertext,
         };

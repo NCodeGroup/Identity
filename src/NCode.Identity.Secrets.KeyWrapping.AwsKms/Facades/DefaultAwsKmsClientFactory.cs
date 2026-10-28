@@ -21,7 +21,7 @@ using System.Diagnostics.CodeAnalysis;
 using Amazon;
 using Amazon.KeyManagementService;
 
-namespace NCode.Identity.Secrets.Persistence.AwsKms.Facades;
+namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IAwsKmsClientFactory"/>: one

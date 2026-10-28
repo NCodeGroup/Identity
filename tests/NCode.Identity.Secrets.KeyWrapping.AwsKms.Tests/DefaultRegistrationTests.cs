@@ -20,12 +20,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
-using NCode.Identity.Secrets.Persistence.AwsKms.Facades;
-using NCode.Identity.Secrets.Persistence.AwsKms.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
+using NCode.Identity.Secrets.KeyWrapping.AwsKms.Options;
+using NCode.Identity.Secrets.Persistence;
 using Xunit;
 
-namespace NCode.Identity.Secrets.Persistence.AwsKms.Tests;
+namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Tests;
 
 public class DefaultRegistrationTests
 {
@@ -53,15 +53,15 @@ public class DefaultRegistrationTests
         serviceCollection
             .AddSecretsLibrary()
             .AddPersistenceLibrary()
-            .AddAwsKmsRootKeyProvider(configuration);
+            .AddAwsKmsKeyWrapper(configuration);
 
         return serviceCollection;
     }
 
-    #region AddAwsKmsRootKeyProvider Tests
+    #region AddAwsKmsKeyWrapper Tests
 
     [Fact]
-    public async Task AddAwsKmsRootKeyProvider_RegistersProviderInCatalogWithoutCreatingClient()
+    public async Task AddAwsKmsKeyWrapper_RegistersProviderInCatalogWithoutCreatingClient()
     {
         var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
         var serviceCollection = AddAwsKms(
@@ -70,15 +70,15 @@ public class DefaultRegistrationTests
         );
 
         await using var provider = serviceCollection.BuildServiceProvider();
-        var rootKeyProviders = provider.GetServices<IRootKeyProvider>().ToList();
+        var rootKeyProviders = provider.GetServices<IKeyWrapper>().ToList();
 
-        Assert.Contains(rootKeyProviders, x => x.ProviderName == RootKeyProviderNames.AwsKms);
-        Assert.Contains(rootKeyProviders, x => x is AwsKmsRootKeyProvider);
+        Assert.Contains(rootKeyProviders, x => x.Name == KeyWrapperNames.AwsKms);
+        Assert.Contains(rootKeyProviders, x => x is AwsKmsKeyWrapper);
         clientFactory.Verify();
     }
 
     [Fact]
-    public async Task AddAwsKmsRootKeyProvider_UnknownSetting_Throws()
+    public async Task AddAwsKmsKeyWrapper_UnknownSetting_Throws()
     {
         var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
         var serviceCollection = AddAwsKms(
@@ -87,10 +87,10 @@ public class DefaultRegistrationTests
         );
 
         await using var provider = serviceCollection.BuildServiceProvider();
-        var options = provider.GetRequiredService<IOptions<AwsKmsRootKeyOptions>>();
+        var options = provider.GetRequiredService<IOptions<AwsKmsKeyWrapperOptions>>();
 
         var exception = Assert.Throws<InvalidOperationException>(() => options.Value);
-        Assert.Contains(AwsKmsRootKeyOptions.DefaultSectionName, exception.Message);
+        Assert.Contains(AwsKmsKeyWrapperOptions.DefaultSectionName, exception.Message);
     }
 
     #endregion

@@ -51,7 +51,7 @@
         <Project Path="src/NCode.Identity.Persistence.Abstractions/NCode.Identity.Persistence.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Secrets.Abstractions/NCode.Identity.Secrets.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Secrets.Persistence.Abstractions/NCode.Identity.Secrets.Persistence.Abstractions.csproj" />
-        <Project Path="src/NCode.Identity.Secrets.Persistence.AwsKms/NCode.Identity.Secrets.Persistence.AwsKms.csproj" />
+        <Project Path="src/NCode.Identity.Secrets.KeyWrapping.AwsKms/NCode.Identity.Secrets.KeyWrapping.AwsKms.csproj" />
         <Project Path="src/NCode.Identity.Secrets.Persistence.AzureKeyVault/NCode.Identity.Secrets.Persistence.AzureKeyVault.csproj" />
         <Project Path="src/NCode.Identity.Secrets.Persistence.GoogleCloudKms/NCode.Identity.Secrets.Persistence.GoogleCloudKms.csproj" />
         <Project Path="src/NCode.Identity.Secrets.Persistence/NCode.Identity.Secrets.Persistence.csproj" />
@@ -90,7 +90,7 @@
         <Project Path="tests/NCode.Identity.Secrets.Abstractions.Tests/NCode.Identity.Secrets.Abstractions.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Secrets.Persistence.Tests/NCode.Identity.Secrets.Persistence.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Secrets.Tests/NCode.Identity.Secrets.Tests.csproj" />
-        <Project Path="tests/NCode.Identity.Secrets.Persistence.AwsKms.Tests/NCode.Identity.Secrets.Persistence.AwsKms.Tests.csproj" />
+        <Project Path="tests/NCode.Identity.Secrets.KeyWrapping.AwsKms.Tests/NCode.Identity.Secrets.KeyWrapping.AwsKms.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Secrets.Persistence.AzureKeyVault.Tests/NCode.Identity.Secrets.Persistence.AzureKeyVault.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Secrets.Persistence.GoogleCloudKms.Tests/NCode.Identity.Secrets.Persistence.GoogleCloudKms.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Server.Tests/NCode.Identity.Server.Tests.csproj" />

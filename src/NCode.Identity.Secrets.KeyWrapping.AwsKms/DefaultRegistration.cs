@@ -21,16 +21,16 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Secrets.Persistence.AwsKms.Facades;
-using NCode.Identity.Secrets.Persistence.AwsKms.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
+using NCode.Identity.Secrets.KeyWrapping.AwsKms.Options;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Registration;
 
-namespace NCode.Identity.Secrets.Persistence.AwsKms;
+namespace NCode.Identity.Secrets.KeyWrapping.AwsKms;
 
 /// <summary>
 /// Provides opt-in extension methods for the <see cref="SecretPersistenceLibrary"/> builder to register the AWS Key
-/// Management Service root key provider.
+/// Management Service key wrapper.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
@@ -39,9 +39,9 @@ public static class DefaultRegistration
     extension(IServiceBuilder<SecretPersistenceLibrary> builder)
     {
         /// <summary>
-        /// Registers the AWS Key Management Service <see cref="IRootKeyProvider"/>, which wraps master keys with a
+        /// Registers the AWS Key Management Service <see cref="IKeyWrapper"/>, which a deployment selects as its root key wrapper with <c>SecretProtection:RootKeyProvider</c> = <c>aws-kms</c>, and which wraps master keys with a
         /// symmetric encryption key that never leaves the service. The <c>SecretProtection:RootKeyProviders:AwsKms</c>
-        /// section binds <see cref="AwsKmsRootKeyOptions"/> strictly. The provider stays inert until the
+        /// section binds <see cref="AwsKmsKeyWrapperOptions"/> strictly. The provider stays inert until the
         /// <c>SecretProtection:RootKeyProvider</c> setting selects <c>aws-kms</c>, and no client is created before
         /// the first key is wrapped or unwrapped. Credentials come from the default credential chain of the AWS SDK,
         /// never from configuration.
@@ -49,7 +49,7 @@ public static class DefaultRegistration
         /// <param name="configuration">The <see cref="IConfiguration"/> holding the <c>SecretProtection:RootKeyProviders:AwsKms</c> section.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
         [PublicAPI]
-        public IServiceBuilder<SecretPersistenceLibrary> AddAwsKmsRootKeyProvider(
+        public IServiceBuilder<SecretPersistenceLibrary> AddAwsKmsKeyWrapper(
             IConfiguration configuration
         )
         {
@@ -59,25 +59,25 @@ public static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection
-                .AddOptions<AwsKmsRootKeyOptions>()
+                .AddOptions<AwsKmsKeyWrapperOptions>()
                 .Configure(options =>
                     configuration
-                        .GetSection(AwsKmsRootKeyOptions.DefaultSectionName)
+                        .GetSection(AwsKmsKeyWrapperOptions.DefaultSectionName)
                         .BindStrictly(options)
                 )
                 .ValidateOnStart();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    IValidateOptions<AwsKmsRootKeyOptions>,
-                    AwsKmsRootKeyOptionsValidator
+                    IValidateOptions<AwsKmsKeyWrapperOptions>,
+                    AwsKmsKeyWrapperOptionsValidator
                 >()
             );
 
             serviceCollection.TryAddSingleton<IAwsKmsClientFactory, DefaultAwsKmsClientFactory>();
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IRootKeyProvider, AwsKmsRootKeyProvider>()
+                ServiceDescriptor.Singleton<IKeyWrapper, AwsKmsKeyWrapper>()
             );
 
             return builder;

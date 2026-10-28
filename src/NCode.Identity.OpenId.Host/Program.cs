@@ -29,7 +29,7 @@ using NCode.Identity.OpenId.Host.Database;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
-using NCode.Identity.Secrets.Persistence.AwsKms;
+using NCode.Identity.Secrets.KeyWrapping.AwsKms;
 using NCode.Identity.Secrets.Persistence.AzureKeyVault;
 using NCode.Identity.Secrets.Persistence.GoogleCloudKms;
 using NCode.Identity.Server;
@@ -96,7 +96,7 @@ var identityServer = serviceCollection.AddIdentityServer();
 identityServer.AddConfiguration(configuration, openIdOptionsSectionName);
 
 // AWS KMS can hold the root key ('SecretProtection:RootKeyProvider' = 'aws-kms'); its client is created on first use, so the provider is inert otherwise.
-identityServer.SecretPersistenceLibraryBuilder.AddAwsKmsRootKeyProvider(configuration);
+identityServer.SecretPersistenceLibraryBuilder.AddAwsKmsKeyWrapper(configuration);
 
 // Azure Key Vault or Managed HSM can hold the root key ('SecretProtection:RootKeyProvider' = 'azure-key-vault'); its clients are created on first use, so the provider is inert otherwise.
 identityServer.SecretPersistenceLibraryBuilder.AddAzureKeyVaultRootKeyProvider(configuration);

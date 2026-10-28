@@ -18,7 +18,7 @@
 
 using Amazon.KeyManagementService;
 
-namespace NCode.Identity.Secrets.Persistence.AwsKms.Facades;
+namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
 
 /// <summary>
 /// Provides the AWS Key Management Service client for a region, so the code that wraps and unwraps keys can be tested

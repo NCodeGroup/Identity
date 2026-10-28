@@ -18,7 +18,7 @@
 
 using Xunit;
 
-namespace NCode.Identity.Secrets.Persistence.AwsKms.Tests;
+namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Tests;
 
 public class AwsKmsKeyArnTests
 {

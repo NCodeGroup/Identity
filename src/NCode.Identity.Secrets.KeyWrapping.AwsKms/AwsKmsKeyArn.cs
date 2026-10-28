@@ -19,7 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
-namespace NCode.Identity.Secrets.Persistence.AwsKms;
+namespace NCode.Identity.Secrets.KeyWrapping.AwsKms;
 
 /// <summary>
 /// Contains the rules for the ARN of an AWS KMS key or alias: whether a value is one, and which region it names.

@@ -18,5 +18,5 @@
 
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("NCode.Identity.Secrets.Persistence.AwsKms.Tests")]
+[assembly: InternalsVisibleTo("NCode.Identity.Secrets.KeyWrapping.AwsKms.Tests")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

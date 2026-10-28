@@ -18,15 +18,15 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Secrets.Persistence.AwsKms.Options;
+namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Options;
 
 /// <summary>
-/// Contains the options for the AWS Key Management Service root key provider, bound from the
+/// Contains the options for the AWS Key Management Service key wrapper, bound from the
 /// <see cref="DefaultSectionName"/> configuration section.
 /// </summary>
 // See ADR-0235.
 [PublicAPI]
-public sealed class AwsKmsRootKeyOptions
+public sealed class AwsKmsKeyWrapperOptions
 {
     /// <summary>
     /// Gets the name of the configuration section the options are bound from.

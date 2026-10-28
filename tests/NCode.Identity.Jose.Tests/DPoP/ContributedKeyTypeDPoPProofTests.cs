@@ -58,6 +58,7 @@ public class ContributedKeyTypeDPoPProofTests : BaseTests
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; }
     private IAlgorithmCollection AlgorithmCollection { get; }
     private IDPoPProofService ProofService { get; }
+    private IJoseSerializer JoseSerializer { get; }
 
     public ContributedKeyTypeDPoPProofTests()
     {
@@ -77,6 +78,7 @@ public class ContributedKeyTypeDPoPProofTests : BaseTests
             .GetRequiredService<IAlgorithmCollectionProvider>()
             .Collection;
         ProofService = ServiceProvider.GetRequiredService<IDPoPProofService>();
+        JoseSerializer = ServiceProvider.GetRequiredService<IJoseSerializer>();
     }
 
     protected override async ValueTask DisposeAsyncCore()
@@ -315,6 +317,55 @@ public class ContributedKeyTypeDPoPProofTests : BaseTests
         Assert.Equal(XkpJwkKeyType.Name, result.PublicKey.KeyType);
         Assert.Same(XkpJwkKeyType, result.PublicKey.KeyTypeDescriptor);
         Assert.Equal(exported.Jwk.ComputeThumbprint(), result.JwkThumbprint);
+    }
+
+    #endregion
+
+    #region TryValidateProof Tests
+
+    [Fact]
+    public void TryValidateProof_WhenJwkCarriesContributedPrivateMember_Fails()
+    {
+        var secretKey = CreateSigningKey();
+        Assert.NotNull(secretKey.Pkcs8PrivateKey);
+        var jwk = new JsonWebKey(
+            new JsonObject
+            {
+                [JsonWebKeyParameterNames.KeyType] = XkpJwkKeyType.Name,
+                [PublicMember] = Base64Url.EncodeToString(secretKey.SubjectPublicKeyInfo),
+                [PrivateMember] = Base64Url.EncodeToString(secretKey.Pkcs8PrivateKey),
+            }
+        );
+        // Read without the contributed type's rules, 'sk' is not private: only those rules can refuse it.
+        Assert.False(jwk.ContainsPrivateKeyMaterial);
+        var signature = new JoseSignatureOptions(CreateCredentials(secretKey))
+        {
+            TokenType = JoseTokenTypes.DPoPJwt,
+            AddKeyIdHeader = false,
+            ProtectedHeaders =
+            [
+                new KeyValuePair<string, object>(JoseClaimNames.Header.Jwk, jwk.AsElement()),
+            ],
+        };
+        var payload = new Dictionary<string, object>
+        {
+            [JoseClaimNames.Payload.Htm] = HttpMethod,
+            [JoseClaimNames.Payload.Htu] = HttpUri,
+            [JoseClaimNames.Payload.Jti] = "jti-1",
+            [JoseClaimNames.Payload.Iat] = TimeProvider.System.GetUtcNow().ToUnixTimeSeconds(),
+        };
+        var proof = JoseSerializer.CreateEncoder(new JoseSigningOptions(signature)).Encode(payload);
+
+        var valid = ProofService.TryValidateProof(
+            proof,
+            CreateParameters(),
+            out var result,
+            out var error
+        );
+
+        Assert.False(valid);
+        Assert.Null(result);
+        Assert.Contains("private key material", error, StringComparison.Ordinal);
     }
 
     #endregion

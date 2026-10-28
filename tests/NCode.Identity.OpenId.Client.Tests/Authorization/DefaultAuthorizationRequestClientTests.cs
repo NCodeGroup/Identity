@@ -201,6 +201,26 @@ public class DefaultAuthorizationRequestClientTests : BaseTests
     }
 
     [Fact]
+    public async Task CreateAuthorizationUriAsync_WithSubDelimiters_PercentEncodesThem()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "");
+        var client = CreateClient(handler, CreateMetadata());
+        var request = new AuthorizationRequest(
+            "https://app.example.test/cb",
+            "a!b*c(d)e@f",
+            Verifier
+        );
+
+        var result = await client.CreateAuthorizationUriAsync(
+            CreateRegistration(),
+            request,
+            CancellationToken.None
+        );
+
+        Assert.Contains("&state=a%21b%2Ac%28d%29e%40f&", GetUri(result).Query);
+    }
+
+    [Fact]
     public async Task CreateAuthorizationUriAsync_WhenProviderRequiresParWithoutEndpoint_Throws()
     {
         var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "");

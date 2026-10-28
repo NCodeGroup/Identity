@@ -350,6 +350,114 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
     }
 
     [Fact]
+    public async Task ValidateAsync_WhenEncryptedToAnotherKey_FailsWithDecryptionFailed()
+    {
+        var otherKey = ServiceProvider
+            .GetRequiredService<ISecretKeyFactory>()
+            .CreateRsa(
+                new KeyMetadata { KeyId = "enc-2", Use = SecretKeyUses.Encryption },
+                OtherRsa
+            );
+        var validator = CreateValidator(null, keyRingMock: CreateKeyRingMock(otherKey));
+        var logoutToken = CreateLogoutToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            logoutToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.DecryptionFailed, result.FailureCode);
+        Assert.Equal(
+            "The logout token could not be decrypted with the client's keys.",
+            result.FailureReason
+        );
+        Assert.DoesNotContain(logoutToken, result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenEnclosedSignatureIsInvalid_FailsWithInvalidSignature()
+    {
+        var otherSigningKey = ServiceProvider
+            .GetRequiredService<ISecretKeyFactory>()
+            .CreateRsa(new KeyMetadata { KeyId = "k1" }, OtherRsa);
+        var validator = CreateValidator(
+            CreateKeySetMock(),
+            keyRingMock: CreateKeyRingMock(EncryptionKey)
+        );
+        var logoutToken = CreateLogoutToken(
+            signingKey: otherSigningKey,
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey)
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            logoutToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidSignature, result.FailureCode);
+        Assert.Equal(SignatureFailure, result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenReplicatedIssuerDiffers_FailsWithInvalidIssuer()
+    {
+        var validator = CreateValidator(
+            CreateKeySetMock(),
+            keyRingMock: CreateKeyRingMock(EncryptionKey)
+        );
+        var logoutToken = CreateLogoutToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey),
+            extraEncryptionHeaderClaims: new Dictionary<string, object>
+            {
+                ["iss"] = "https://evil.example.test",
+            }
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            logoutToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidIssuer, result.FailureCode);
+        Assert.Equal(
+            "The 'iss' header of the encrypted logout token does not match the issuer.",
+            result.FailureReason
+        );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenReplicatedIssuerMatches_ReturnsIdentifiers()
+    {
+        var validator = CreateValidator(
+            CreateKeySetMock(),
+            CreateAcceptingKeySet(),
+            keyRingMock: CreateKeyRingMock(EncryptionKey)
+        );
+        var logoutToken = CreateLogoutToken(
+            encryptionCredentials: CreateEncryptionCredentials(EncryptionKey),
+            extraEncryptionHeaderClaims: new Dictionary<string, object> { ["iss"] = Issuer }
+        );
+
+        var result = await ValidateAsync(
+            validator,
+            logoutToken,
+            registration: CreateEncryptingRegistration()
+        );
+
+        Assert.True(result.IsValid, result.FailureReason);
+        Assert.Null(result.FailureCode);
+        Assert.Equal("jti-1", result.TokenId);
+    }
+
+    [Fact]
     public async Task ValidateAsync_WhenIssuerDiffers_Fails()
     {
         var validator = CreateValidator(CreateKeySetMock());

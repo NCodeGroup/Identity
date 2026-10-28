@@ -110,4 +110,35 @@ public class ClientRegistrationTests
     }
 
     #endregion
+
+    #region RequirePushedAuthorizationRequests Tests
+
+    [Fact]
+    public void RequirePushedAuthorizationRequests_WhenNotSet_ThenFalse()
+    {
+        var registration = new ClientRegistration(
+            "https://issuer.example",
+            "client",
+            ClientAuthenticationMethods.ClientSecretBasic
+        );
+
+        Assert.False(registration.RequirePushedAuthorizationRequests);
+    }
+
+    [Fact]
+    public void RequirePushedAuthorizationRequests_WhenSet_ThenTrue()
+    {
+        var registration = new ClientRegistration(
+            "https://issuer.example",
+            "client",
+            ClientAuthenticationMethods.ClientSecretBasic
+        )
+        {
+            RequirePushedAuthorizationRequests = true,
+        };
+
+        Assert.True(registration.RequirePushedAuthorizationRequests);
+    }
+
+    #endregion
 }

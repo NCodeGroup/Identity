@@ -16,6 +16,7 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
@@ -49,6 +50,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         TokenIssuedAuditEvent? captured = null;
@@ -80,13 +82,16 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("token.issued", captured.Action);
+        Assert.Equal("token.issued", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("access_token", captured.TokenType);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
-        Assert.NotEqual(Guid.Empty, captured.EventId);
+        Assert.Equal(AuditActor.Client("client-1"), captured.Actor);
+        Assert.Equal("api/token", captured.Request?.Endpoint);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -104,6 +109,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         TokenRevokedAuditEvent? captured = null;
@@ -127,11 +133,15 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("token.revoked", captured.Action);
+        Assert.Equal("token.revoked", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
+        Assert.Equal(AuditActor.Client("client-1"), captured.Actor);
+        Assert.Equal("api/token", captured.Request?.Endpoint);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -473,6 +483,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
@@ -501,12 +512,15 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("token.refresh.replay", captured.Action);
+        Assert.Equal("token.refresh.replay", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Denied, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("subject-1", captured.SubjectId);
-        Assert.Equal("api/token", captured.Source);
+        Assert.Equal(AuditActor.Client("client-1"), captured.Actor);
+        Assert.Equal("api/token", captured.Request?.Endpoint);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -523,6 +537,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
+        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
@@ -551,12 +566,15 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("token.refresh.retry", captured.Action);
+        Assert.Equal("token.refresh.retry", captured.EventName);
+        Assert.Equal(AuditEventSources.OpenId, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("subject-1", captured.SubjectId);
-        Assert.Equal("api/token", captured.Source);
+        Assert.Equal(AuditActor.Client("client-1"), captured.Actor);
+        Assert.Equal("api/token", captured.Request?.Endpoint);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion

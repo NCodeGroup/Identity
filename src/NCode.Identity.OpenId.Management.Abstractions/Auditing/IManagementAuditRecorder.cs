@@ -359,9 +359,9 @@ public interface IManagementAuditRecorder
     );
 
     /// <summary>
-    /// Records an arbitrary resource-change audit event, deriving the common audit envelope — the event id, timestamp,
-    /// correlation id, acting administrator, and source — from the current request and publishing through the event
-    /// seam. This is the extension seam a capability package (for example, local accounts) uses to record its own
+    /// Records an arbitrary resource-change audit event, deriving the common audit envelope — the event id, event time,
+    /// acting administrator, request context, and event source — from the current request and publishing through the
+    /// event seam. This is the extension seam a capability package (for example, local accounts) uses to record its own
     /// resource-change events without the base management slice knowing their shape.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>

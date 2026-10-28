@@ -33,8 +33,7 @@ namespace NCode.Identity.Events.Audit;
 public interface IAuditEvent : IEvent
 {
     /// <summary>
-    /// Gets the unique identifier of this audit event, distinct from the correlation identifier, so
-    /// at-least-once delivery can be de-duplicated.
+    /// Gets the unique identifier of this audit event, so at-least-once delivery can be de-duplicated.
     /// </summary>
     Guid EventId { get; }
 

@@ -61,6 +61,8 @@ internal class DefaultAuthenticateSubjectHandler(
     private const string BearerPrefix = "Bearer ";
     private const string BearerScheme = "Bearer";
     private const string DPoPPrefix = "DPoP ";
+    private const string AuthenticationFailedErrorCode = "authentication_failed";
+    private const string SubjectIdMissingErrorCode = "subject_id_missing";
 
     internal virtual AuthenticateSubjectDisposition Undefined() => new();
 
@@ -116,6 +118,7 @@ internal class DefaultAuthenticateSubjectHandler(
         {
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
                 openIdContext,
+                AuthenticationFailedErrorCode,
                 "Failed to authenticate the end-user.",
                 attemptedSubjectId: null,
                 cancellationToken
@@ -174,6 +177,7 @@ internal class DefaultAuthenticateSubjectHandler(
         {
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
                 openIdContext,
+                disposition.Error.Code,
                 "Failed to authenticate the end-user.",
                 attemptedSubjectId: null,
                 cancellationToken
@@ -210,6 +214,7 @@ internal class DefaultAuthenticateSubjectHandler(
         {
             await AuditEventRecorder.RecordSubjectAuthenticationFailedAsync(
                 openIdContext,
+                SubjectIdMissingErrorCode,
                 "Unable to determine the end-user's subject id.",
                 attemptedSubjectId: null,
                 cancellationToken

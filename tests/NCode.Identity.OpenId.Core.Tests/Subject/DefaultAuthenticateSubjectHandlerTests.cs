@@ -163,6 +163,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             x =>
                 x.RecordSubjectAuthenticationFailedAsync(
                     It.IsAny<OpenIdContext>(),
+                    It.IsAny<string>(),
                     It.IsAny<string?>(),
                     It.IsAny<string?>(),
                     It.IsAny<CancellationToken>()
@@ -197,8 +198,9 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             x =>
                 x.RecordSubjectAuthenticationFailedAsync(
                     command.OpenIdContext,
-                    It.IsAny<string?>(),
-                    It.IsAny<string?>(),
+                    "authentication_failed",
+                    "Failed to authenticate the end-user.",
+                    null,
                     It.IsAny<CancellationToken>()
                 ),
             Times.Once
@@ -220,8 +222,9 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             x =>
                 x.RecordSubjectAuthenticationFailedAsync(
                     command.OpenIdContext,
-                    It.IsAny<string?>(),
-                    It.IsAny<string?>(),
+                    "subject_id_missing",
+                    "Unable to determine the end-user's subject id.",
+                    null,
                     It.IsAny<CancellationToken>()
                 ),
             Times.Once
@@ -376,6 +379,7 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
     public async Task HandleAsync_WhenBearerTokenInvalid_ReturnsFailedAndAudits()
     {
         var mockError = CreateLooseMock<IOpenIdError>();
+        mockError.SetupGet(x => x.Code).Returns("invalid_token");
         var (command, _) = CreateBearerScaffold(
             new AuthenticateAccessTokenDisposition(mockError.Object)
         );
@@ -388,8 +392,9 @@ public class DefaultAuthenticateSubjectHandlerTests : BaseTests
             x =>
                 x.RecordSubjectAuthenticationFailedAsync(
                     command.OpenIdContext,
-                    It.IsAny<string?>(),
-                    It.IsAny<string?>(),
+                    "invalid_token",
+                    "Failed to authenticate the end-user.",
+                    null,
                     It.IsAny<CancellationToken>()
                 ),
             Times.Once

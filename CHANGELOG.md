@@ -29,7 +29,6 @@ change to the public API is a **major** version bump.
   `algorithm_not_permitted`
   ([ADR-0280](docs/decisions/0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md), issue [#347](https://github.com/NCodeGroup/Identity/issues/347)).
 
-
 - **A token validation failure carries a machine-readable code.** `JwtValidationFailureCodes` is the open vocabulary of
   the JWT validator's codes (`invalid_signature`, `invalid_issuer`, `invalid_audience`, `expired`, `not_yet_valid`,
   `algorithm_not_permitted`, …). A handler fails with `JwtValidationContext.Fail(failureCode, reason)`, and

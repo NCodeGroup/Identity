@@ -22,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Jwt;
 using NCode.Identity.OpenId.Client.Authentication;
+using NCode.Identity.OpenId.Client.Authorization;
 using NCode.Identity.OpenId.Client.Discovery;
 using NCode.Identity.OpenId.Client.Http;
 using NCode.Identity.OpenId.Client.Keys;
@@ -42,7 +43,7 @@ public static class DefaultRegistration
     {
         /// <summary>
         /// Registers the OpenID client library: provider metadata and key set resolution, client authentication,
-        /// the token and token revocation clients, and ID-token and logout-token validation, layered on the
+        /// the authorization request client (with PAR), the token and token revocation clients, and ID-token and logout-token validation, layered on the
         /// <see cref="JwtLibrary"/>. Logout-token validation records each token's <c>jti</c> in the shared
         /// <c>IExpiringKeySet</c>, whose adapter the composition root registers
         /// (<c>AddSharedStateServices().AddInProcessExpiringKeySet()</c> for one replica, Valkey for several).
@@ -87,6 +88,10 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<
                 IClientKeyRingProvider,
                 DefaultClientKeyRingProvider
+            >();
+            serviceCollection.TryAddSingleton<
+                IAuthorizationRequestClient,
+                DefaultAuthorizationRequestClient
             >();
             serviceCollection.TryAddSingleton<ITokenClient, DefaultTokenClient>();
             serviceCollection.TryAddSingleton<

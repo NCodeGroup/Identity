@@ -4,11 +4,22 @@
 
 .DESCRIPTION
     Reads the Git repository that contains the folder and prints one "key: value" line per fact, in a fixed order:
-    folder, worktree, branch, default, host, plan, issue, release, steps, reviewed, landing, ahead, behind, landed,
-    pr, tag, published, issue-state, dirty, plans and next. A fact that does not apply prints "-". With an origin
-    remote, the script first fetches it, ignoring a failure, unless -NoFetch is given. landed is yes when HEAD is on
-    the default branch, or when the branch's merged pull request or merge request has its merge commit there and its
-    head holds HEAD or has HEAD's tree.
+    folder, worktree, branch, default, host, plan, issue, release, steps, reviewed, landing, protected, ahead, behind, landed,
+    pr, merge, tag, renumber, published, issue-state, issue-states, dirty, plans and next. A fact that does not apply prints
+    "-". With an origin remote, the script first fetches it, ignoring a failure, unless -NoFetch is given. landed is
+    yes when HEAD is on the default branch, or when any of the branch's merged pull requests or merge requests has its
+    merge commit there and its head holds HEAD or has HEAD's tree. pr names that request, or else the newest one.
+    merge is the commit that request merged as, when it merged. issue is the plan's Issue: line, which names one
+    issue or up to three separated by spaces; issue-states gives each one's state as <reference>=<state>, and
+    issue-state is OPEN while any of them is open, CLOSED when all are closed, and unknown otherwise.
+    landing gives each key of AGENTS.md's Landing section that the workflow reads as key=value, with its default when
+    the section leaves it out; a value may be written in backticks, and a value with a space is printed in double quotes.
+    gate is the command /ship-plan runs before it pushes, or none.
+    pr-format is <file>#<heading>, the section that sets a pull request's title and description, or none.
+    renumber is the version the plan moves to when another plan has landed its Release: version, or a later one, first: the newest version tag or first ## <version> heading of the changelog on origin's default branch, raised as the plan's version was raised (patch, else minor, else major). It is - when that version is older, release is none, or the plan has landed. next is ship-plan rather than wait while a pull request is open and renumber isn't -, so /ship-plan renumbers the plan.
+    protected is hook when protect is hook and Git runs .githooks/pre-push, host when GitHub or GitLab requires pull
+    requests into the default branch, no when it does not, unknown when the host or its CLI cannot say, and - without
+    a default branch.
 
 .PARAMETER Path
     A folder inside the repository. Defaults to the current folder.
@@ -29,6 +40,87 @@ $ErrorActionPreference = 'Stop'
 
 function Read-Lines([string]$File) {
     ([IO.File]::ReadAllText($File) -split "`r?`n")
+}
+
+function Get-LandingValue([string]$Text, [switch]$Spaced) {
+    $value = $Text.Trim()
+    if ($value -match '^`(.+)`$' -or $value -match '^"(.+)"$') { $value = $Matches[1].Trim() }
+    if (-not $Spaced) { $value = ($value -split '\s+')[0] }
+    $value
+}
+
+function ConvertTo-PlanVersion([string]$Text) {
+    if ($Text -match '^v?(\d+)\.(\d+)\.(\d+)$') { return [version]::new([int]$Matches[1], [int]$Matches[2], [int]$Matches[3]) }
+    $null
+}
+
+function Get-IssueState([string]$Ref, [string]$HostName) {
+    $issueState = 'unknown'
+    $numbers = [regex]::Matches($Ref, '\d+')
+    if ($HostName -in 'github', 'gitlab' -and $numbers.Count -gt 0) {
+        $issueNumber = $numbers[$numbers.Count - 1].Value
+        $repoArgs = @()
+        if ($Ref -match '^(?<r>[^\s/#:]+/[^\s/#:]+)#\d+') { $repoArgs = @('--repo', $Matches['r']) }
+        elseif ($Ref -match '^https?://[^/\s]+/(?<r>.+?)/(?:-/)?issues/\d+') { $repoArgs = @('--repo', $Matches['r']) }
+        $cli = if ($HostName -eq 'github') { 'gh' } else { 'glab' }
+        if (Get-Command $cli -ErrorAction SilentlyContinue) {
+            if ($HostName -eq 'github') {
+                $out = (& gh issue view $issueNumber @repoArgs --json state --jq .state 2>$null | Out-String).Trim()
+                if ($LASTEXITCODE -eq 0 -and $out) { $issueState = $out.ToUpperInvariant() }
+            }
+            else {
+                $out = & glab issue view $issueNumber @repoArgs --output json 2>$null | Out-String
+                if ($LASTEXITCODE -eq 0) {
+                    try {
+                        $issueState = switch ("$(($out | ConvertFrom-Json -ErrorAction Stop).state)") { 'opened' { 'OPEN' } 'closed' { 'CLOSED' } default { 'unknown' } }
+                    }
+                    catch { $issueState = 'unknown' }
+                }
+            }
+        }
+    }
+    $issueState
+}
+
+function Test-RequestLanded([string]$Merge, [string]$Head, [string]$Default) {
+    & git merge-base --is-ancestor $Merge "origin/$Default" 2>$null | Out-Null
+    $mergeOnDefault = ($LASTEXITCODE -eq 0)
+    & git merge-base --is-ancestor HEAD $Head 2>$null | Out-Null
+    $headInPr = ($LASTEXITCODE -eq 0)
+    $prTree = (& git rev-parse -q --verify "${Head}^{tree}" 2>$null | Out-String).Trim()
+    $headTreeNow = (& git rev-parse -q --verify 'HEAD^{tree}' 2>$null | Out-String).Trim()
+    $mergeOnDefault -and ($headInPr -or ($prTree -and $headTreeNow -and $prTree -eq $headTreeNow))
+}
+
+function Get-Protected([string]$HostName, [string]$Default, [string]$Protect) {
+    if ($Protect -eq 'hook') {
+        $h = (& git rev-parse --git-path hooks 2>$null | Out-String).Trim()
+        if ($h -and ((((Split-Path -Leaf $h) -eq '.githooks') -and (Test-Path -LiteralPath "$h/pre-push")) -or [bool]('pre-push', 'pre-push.legacy' | Where-Object { Select-String -LiteralPath "$h/$_" -SimpleMatch '.githooks/pre-push' -Quiet -ErrorAction Ignore }))) { return 'hook' }
+    }
+    if ($Default -eq '-') { return '-' }
+    if ($HostName -notin 'github', 'gitlab') { return 'unknown' }
+    $cli = if ($HostName -eq 'github') { 'gh' } else { 'glab' }
+    if (-not (Get-Command $cli -ErrorAction SilentlyContinue)) { return 'unknown' }
+    if ($HostName -eq 'github') {
+        $out = & gh api "repos/{owner}/{repo}/rules/branches/$Default" 2>$null | Out-String
+        if ($LASTEXITCODE -eq 0) {
+            try {
+                if (@($out | ConvertFrom-Json -ErrorAction Stop | Where-Object { $_.type -eq 'pull_request' }).Count -gt 0) { return 'host' }
+            }
+            catch { }
+        }
+        & gh api "repos/{owner}/{repo}/branches/$Default/protection/required_pull_request_reviews" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) { return 'host' }
+        return 'no'
+    }
+    $out = & glab api "projects/:id/protected_branches/$Default" 2>$null | Out-String
+    if ($LASTEXITCODE -eq 0) {
+        try {
+            if (@(($out | ConvertFrom-Json -ErrorAction Stop).push_access_levels | Where-Object { $_.access_level -ne 0 }).Count -eq 0) { return 'host' }
+        }
+        catch { }
+    }
+    'no'
 }
 
 Push-Location -LiteralPath $Path
@@ -96,23 +188,23 @@ try {
     }
 
     # Landing policy from AGENTS.md
-    $integrate = 'pull-request'; $releasePolicy = 'none'; $changelog = 'CHANGELOG.md'
+    # Each key the workflow reads, with its default, in the order the landing line prints them.
+    $policy = [ordered]@{ integrate = 'pull-request'; release = 'none'; changelog = 'CHANGELOG.md'; draft = 'no'; 'follow-ups' = 'issues'; 'follow-up-label' = 'follow-up'; gate = 'none'; protect = 'none'; 'pr-format' = 'none' }
+    $spacedKeys = @('follow-up-label', 'gate', 'pr-format')   # keys whose value keeps its spaces
     $agents = Join-Path $folder 'AGENTS.md'
     if (Test-Path -LiteralPath $agents) {
         $inLanding = $false
         foreach ($line in (Read-Lines $agents)) {
             if ($line -match '^## Landing\s*$') { $inLanding = $true; continue }
             if ($inLanding -and $line -match '^## ') { break }
-            if ($inLanding -and $line -match '^- (integrate|release|changelog):\s*(\S+)') {
-                switch ($Matches[1]) {
-                    'integrate' { $integrate = $Matches[2] }
-                    'release' { $releasePolicy = $Matches[2] }
-                    'changelog' { $changelog = $Matches[2] }
-                }
+            if ($inLanding -and $line -match '^- ([a-z-]+):\s*(\S.*)$' -and $policy.Contains($Matches[1])) {
+                $key = $Matches[1]; $policy[$key] = Get-LandingValue $Matches[2] -Spaced:($key -in $spacedKeys)
             }
         }
     }
-    $landing = "integrate=$integrate release=$releasePolicy changelog=$changelog"
+    $integrate = $policy['integrate']; $releasePolicy = $policy['release']
+    $landing = @(foreach ($key in $policy.Keys) { if ($policy[$key] -match '\s') { "$key=`"$($policy[$key])`"" } else { "$key=$($policy[$key])" } }) -join ' '
+    $protected = Get-Protected $hostName $default $policy['protect']
 
     # Position against the default branch
     $ahead = '-'; $behind = '-'; $landed = '-'
@@ -132,13 +224,13 @@ try {
     }
 
     # Pull request or merge request
-    $pr = '-'; $prNumber = ''; $prState = ''; $prMerge = ''; $prHead = ''
+    $pr = '-'; $prNumber = ''; $prState = ''; $prMerge = ''; $prHead = ''; $prBase = ''
     if ($hostName -in 'github', 'gitlab' -and $branch -ne '-' -and $branch -ne $default) {
         $cli = if ($hostName -eq 'github') { 'gh' } else { 'glab' }
         $pr = 'unknown'
         if (Get-Command $cli -ErrorAction SilentlyContinue) {
             $json = if ($hostName -eq 'github') {
-                & gh pr list --head $branch --state all --limit 1 --json number,state,mergeCommit,headRefOid 2>$null | Out-String
+                & gh pr list --head $branch --state all --limit 100 --json number,state,mergeCommit,headRefOid,baseRefName 2>$null | Out-String
             }
             else {
                 & glab mr list --source-branch $branch --all --output json 2>$null | Out-String
@@ -146,33 +238,67 @@ try {
             if ($LASTEXITCODE -eq 0) {
                 try {
                     $items = @($json | ConvertFrom-Json -ErrorAction Stop)
-                    if ($items.Count -eq 0) { $pr = '-' }
-                    elseif ($hostName -eq 'github') {
-                        $prNumber = "$($items[0].number)"; $prState = "$($items[0].state)".ToUpperInvariant()
-                        $prMerge = "$($items[0].mergeCommit.oid)"; $prHead = "$($items[0].headRefOid)"
-                        $pr = "$prNumber $prState"
-                    }
+                    $requests = @(foreach ($item in $items) {
+                        if ($hostName -eq 'github') {
+                            [pscustomobject]@{
+                                Number = "$($item.number)"; State = "$($item.state)".ToUpperInvariant()
+                                Merge = "$($item.mergeCommit.oid)"; Head = "$($item.headRefOid)"; Base = "$($item.baseRefName)"
+                            }
+                        }
+                        else {
+                            $mergeSha = "$($item.merge_commit_sha)"
+                            if (-not $mergeSha) { $mergeSha = "$($item.squash_commit_sha)" }
+                            [pscustomobject]@{
+                                Number = "$($item.iid)"
+                                State = switch ("$($item.state)") { 'opened' { 'OPEN' } 'merged' { 'MERGED' } 'closed' { 'CLOSED' } default { "$($item.state)".ToUpperInvariant() } }
+                                Merge = $mergeSha; Head = "$($item.sha)"; Base = "$($item.target_branch)"
+                            }
+                        }
+                    })
+                    if ($requests.Count -eq 0) { $pr = '-' }
                     else {
-                        $prNumber = "$($items[0].iid)"
-                        $prState = switch ("$($items[0].state)") { 'opened' { 'OPEN' } 'merged' { 'MERGED' } 'closed' { 'CLOSED' } default { "$($items[0].state)".ToUpperInvariant() } }
-                        $prMerge = "$($items[0].merge_commit_sha)"
-                        if (-not $prMerge) { $prMerge = "$($items[0].squash_commit_sha)" }
-                        $prHead = "$($items[0].sha)"
+                        $chosen = $requests[0]
+                        foreach ($request in $requests) {
+                            if ($request.State -eq 'MERGED' -and $request.Merge -and $request.Head -and (Test-RequestLanded $request.Merge $request.Head $default)) { $landed = 'yes'; $chosen = $request; break }
+                        }
+                        $prNumber = $chosen.Number; $prState = $chosen.State; $prMerge = $chosen.Merge; $prHead = $chosen.Head; $prBase = $chosen.Base
                         $pr = "$prNumber $prState"
                     }
                 }
-                catch { $pr = 'unknown'; $prNumber = ''; $prState = ''; $prMerge = ''; $prHead = '' }
+                catch { $pr = 'unknown'; $prNumber = ''; $prState = ''; $prMerge = ''; $prHead = ''; $prBase = '' }
             }
         }
     }
-    if ($prState -eq 'MERGED' -and $landed -eq 'no' -and $prMerge -and $prHead) {
-        & git merge-base --is-ancestor $prMerge "origin/$default" 2>$null | Out-Null
-        $mergeOnDefault = ($LASTEXITCODE -eq 0)
-        & git merge-base --is-ancestor HEAD $prHead 2>$null | Out-Null
-        $headInPr = ($LASTEXITCODE -eq 0)
-        $prTree = (& git rev-parse -q --verify "${prHead}^{tree}" 2>$null | Out-String).Trim()
-        $headTreeNow = (& git rev-parse -q --verify 'HEAD^{tree}' 2>$null | Out-String).Trim()
-        if ($mergeOnDefault -and ($headInPr -or ($prTree -and $headTreeNow -and $prTree -eq $headTreeNow))) { $landed = 'yes' }
+    $merge = if ($prState -eq 'MERGED' -and $prMerge) { $prMerge } else { '-' }
+
+    # Version still free for the plan
+    $renumber = '-'
+    $planVersion = ConvertTo-PlanVersion $release
+    if ($releasePolicy -ne 'none' -and $default -ne '-' -and $landed -ne 'yes' -and $null -ne $planVersion) {
+        $found = @()
+        foreach ($tagName in (& git tag --list 2>$null)) {
+            $v = ConvertTo-PlanVersion "$tagName"
+            if ($null -ne $v) { $found += $v }
+        }
+        $headLines = @(& git show "origin/${default}:$($policy['changelog'])" 2>$null)
+        if ($LASTEXITCODE -eq 0) {
+            foreach ($headLine in $headLines) {
+                if ("$headLine" -match '^## (\S+)\s*$') {
+                    $v = ConvertTo-PlanVersion $Matches[1]
+                    if ($null -ne $v) { $found += $v; break }
+                }
+            }
+        }
+        if ($found.Count -gt 0) {
+            $newest = $found | Sort-Object | Select-Object -Last 1
+            if ($newest -ge $planVersion) {
+                $raised = if ($planVersion.Build -gt 0) { [version]::new($newest.Major, $newest.Minor, $newest.Build + 1) }
+                elseif ($planVersion.Minor -gt 0) { [version]::new($newest.Major, $newest.Minor + 1, 0) }
+                else { [version]::new($newest.Major + 1, 0, 0) }
+                $prefix = if ($release.StartsWith('v')) { 'v' } else { '' }
+                $renumber = "$prefix$($raised.Major).$($raised.Minor).$($raised.Build)"
+            }
+        }
     }
 
     # Release published on the host
@@ -190,32 +316,12 @@ try {
     }
 
     # State of the linked issue
-    $issueState = '-'
+    $issueState = '-'; $issueStates = '-'
     if ($issue -ne '-') {
-        $issueState = 'unknown'
-        $numbers = [regex]::Matches($issue, '\d+')
-        if ($hostName -in 'github', 'gitlab' -and $numbers.Count -gt 0) {
-            $issueNumber = $numbers[$numbers.Count - 1].Value
-            $repoArgs = @()
-            if ($issue -match '^(?<r>[^\s/#:]+/[^\s/#:]+)#\d+') { $repoArgs = @('--repo', $Matches['r']) }
-            elseif ($issue -match '^https?://[^/\s]+/(?<r>.+?)/(?:-/)?issues/\d+') { $repoArgs = @('--repo', $Matches['r']) }
-            $cli = if ($hostName -eq 'github') { 'gh' } else { 'glab' }
-            if (Get-Command $cli -ErrorAction SilentlyContinue) {
-                if ($hostName -eq 'github') {
-                    $out = (& gh issue view $issueNumber @repoArgs --json state --jq .state 2>$null | Out-String).Trim()
-                    if ($LASTEXITCODE -eq 0 -and $out) { $issueState = $out.ToUpperInvariant() }
-                }
-                else {
-                    $out = & glab issue view $issueNumber @repoArgs --output json 2>$null | Out-String
-                    if ($LASTEXITCODE -eq 0) {
-                        try {
-                            $issueState = switch ("$(($out | ConvertFrom-Json -ErrorAction Stop).state)") { 'opened' { 'OPEN' } 'closed' { 'CLOSED' } default { 'unknown' } }
-                        }
-                        catch { $issueState = 'unknown' }
-                    }
-                }
-            }
-        }
+        $refs = @($issue -split '[\s,]+' | Where-Object { $_ })
+        $states = @(foreach ($ref in $refs) { Get-IssueState $ref $hostName })
+        $issueStates = @(for ($i = 0; $i -lt $refs.Count; $i++) { "$($refs[$i])=$($states[$i])" }) -join ' '
+        $issueState = if ($states -contains 'OPEN') { 'OPEN' } elseif (@($states | Where-Object { $_ -ne 'CLOSED' }).Count -eq 0) { 'CLOSED' } else { 'unknown' }
     }
 
     $status = (& git status --porcelain 2>$null | Out-String).Trim()
@@ -252,7 +358,10 @@ try {
         elseif ($reviewed -ne 'current') { $next = 'review-plan-diff' }
         elseif ($landed -ne 'yes') {
             if ($hostName -eq 'none') { $next = 'none no origin remote to land on' }
+            elseif ($prState -eq 'OPEN' -and $renumber -ne '-') { $next = 'ship-plan' }
             elseif ($prState -eq 'OPEN') { $next = "wait pull request #$prNumber is open: run ship-plan again once it merges" }
+            elseif ($prState -eq 'MERGED' -and $integrate -eq 'direct') { $next = 'ship-plan' }
+            elseif ($prState -eq 'MERGED' -and $prBase -and $prBase -ne $default) { $next = "none pull request #$prNumber merged into $prBase, not ${default}: this branch lands once $prBase reaches $default; run ship-plan again then" }
             elseif ($prState -eq 'MERGED') { $next = "none pull request #$prNumber merged without this branch's HEAD: land the commits after it from a new branch" }
             else { $next = 'ship-plan' }
         }
@@ -279,13 +388,17 @@ try {
     Write-Output "steps: $steps"
     Write-Output "reviewed: $reviewed"
     Write-Output "landing: $landing"
+    Write-Output "protected: $protected"
     Write-Output "ahead: $ahead"
     Write-Output "behind: $behind"
     Write-Output "landed: $landed"
     Write-Output "pr: $pr"
+    Write-Output "merge: $merge"
     Write-Output "tag: $tag"
+    Write-Output "renumber: $renumber"
     Write-Output "published: $published"
     Write-Output "issue-state: $issueState"
+    Write-Output "issue-states: $issueStates"
     Write-Output "dirty: $dirty"
     Write-Output "plans: $plans"
     Write-Output "next: $next"

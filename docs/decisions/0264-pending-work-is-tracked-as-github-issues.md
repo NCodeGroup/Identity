@@ -22,7 +22,9 @@ Conventions, reasoning and recurring gotchas stay in the repository
 **GitHub issues in `NCodeGroup/Identity` are the single source of truth for pending work, one issue per item.**
 
 1. **One issue per item, labeled by area.** The labels are `deferred`, `enhancement`, `conformance`, `frontend`,
-   `secrets`, `tooling` and `review-finding`. A new area is a new label.
+   `secrets`, `tooling` and `review-finding`. A new area is a new label. `/ship-plan` labels each follow-up it files
+   `follow-up` (the `follow-up-label` of `AGENTS.md`'s Landing section), which records that a plan found the item and
+   left it; the item also takes its area label when it is triaged.
 2. **An item is referenced by its issue number.** In Markdown it is
    `[#123](https://github.com/NCodeGroup/Identity/issues/123)`; in code comments and other files it is `issue #123`.
 3. **The pull request that completes an item closes it** with `Closes #123` in its description. The merge closes the

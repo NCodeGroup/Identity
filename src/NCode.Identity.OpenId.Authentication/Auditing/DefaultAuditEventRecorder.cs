@@ -99,15 +99,17 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
         CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new AuthorizationGrantedAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = Activity.Current?.Id,
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
-            Source = openIdContext.EndpointName,
             SubjectId = subjectId,
             ClientId = openIdClient.ClientId,
+            Actor = AuditActor.EndUser(subjectId),
+            Request = CreateRequest(openIdContext),
             Outcome = AuditOutcome.Success,
         };
 
@@ -119,21 +121,23 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         string? subjectId,
-        string? reason,
+        string? errorCode,
         CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new AuthorizationDeniedAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = Activity.Current?.Id,
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
-            Source = openIdContext.EndpointName,
             SubjectId = subjectId,
             ClientId = openIdClient.ClientId,
+            Actor = AuditActor.EndUser(subjectId),
+            Request = CreateRequest(openIdContext),
             Outcome = AuditOutcome.Denied,
-            Reason = reason,
+            Error = new AuditError(errorCode ?? OpenIdProtocol.ErrorCodes.AccessDenied),
         };
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);
@@ -144,21 +148,23 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
         OpenIdContext openIdContext,
         string clientId,
         string authenticationMethod,
-        string? reason,
+        string? errorCode,
         CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new ClientAuthenticationFailedAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = Activity.Current?.Id,
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.OpenId,
             TenantId = openIdContext.Tenant.TenantId,
-            Source = openIdContext.EndpointName,
             ClientId = clientId,
+            Actor = AuditActor.Client(clientId),
+            Request = CreateRequest(openIdContext),
             AuthenticationMethod = authenticationMethod,
             Outcome = AuditOutcome.Failure,
-            Reason = reason,
+            Error = new AuditError(errorCode ?? OpenIdProtocol.ErrorCodes.InvalidClient),
         };
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);

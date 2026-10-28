@@ -101,7 +101,7 @@ public interface IAuditEventRecorder
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
     /// <param name="openIdClient">The <see cref="OpenIdClient"/> the authorization was denied for.</param>
     /// <param name="subjectId">The identifier of the subject the authorization was denied for, if any.</param>
-    /// <param name="reason">A short, non-sensitive reason the authorization was denied.</param>
+    /// <param name="errorCode">The machine-readable error code the authorization was denied with.</param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
     /// </param>
@@ -112,7 +112,7 @@ public interface IAuditEventRecorder
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,
         string? subjectId,
-        string? reason,
+        string? errorCode,
         CancellationToken cancellationToken
     );
 
@@ -124,7 +124,7 @@ public interface IAuditEventRecorder
     /// <param name="authenticationMethod">
     /// The registered client-authentication method the client attempted, such as <c>private_key_jwt</c>.
     /// </param>
-    /// <param name="reason">A short, non-sensitive reason authentication failed.</param>
+    /// <param name="errorCode">The machine-readable error code authentication failed with.</param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
     /// </param>
@@ -135,7 +135,7 @@ public interface IAuditEventRecorder
         OpenIdContext openIdContext,
         string clientId,
         string authenticationMethod,
-        string? reason,
+        string? errorCode,
         CancellationToken cancellationToken
     );
 

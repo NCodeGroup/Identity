@@ -96,4 +96,80 @@ public class EdDsaSignatureAlgorithmTests
     }
 
     #endregion
+
+    #region TrySign Tests
+
+    [Theory]
+    [InlineData(
+        AlgorithmCodes.DigitalSignature.Ed25519,
+        OkpCurves.Ed25519Name,
+        OkpCurves.Ed448Name,
+        256
+    )]
+    [InlineData(
+        AlgorithmCodes.DigitalSignature.Ed448,
+        OkpCurves.Ed448Name,
+        OkpCurves.Ed25519Name,
+        456
+    )]
+    public void TrySign_WhenSizeMatchesAndCurveDiffers_Throws(
+        string code,
+        string algorithmCurveName,
+        string keyCurveName,
+        int keySizeBits
+    )
+    {
+        var algorithm = CreateFixedAlgorithm(code, algorithmCurveName);
+        var secretKey = new StubOkpSecretKey(keyCurveName, keySizeBits);
+        var signature = new byte[algorithm.GetSignatureSizeBytes(keySizeBits)];
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            algorithm.TrySign(secretKey, "payload"u8, signature, out _)
+        );
+
+        Assert.Equal(
+            $"The OKP curve '{keyCurveName}' is not supported by the '{code}' algorithm.",
+            exception.Message
+        );
+    }
+
+    #endregion
+
+    #region Verify Tests
+
+    [Theory]
+    [InlineData(
+        AlgorithmCodes.DigitalSignature.Ed25519,
+        OkpCurves.Ed25519Name,
+        OkpCurves.Ed448Name,
+        256
+    )]
+    [InlineData(
+        AlgorithmCodes.DigitalSignature.Ed448,
+        OkpCurves.Ed448Name,
+        OkpCurves.Ed25519Name,
+        456
+    )]
+    public void Verify_WhenSizeMatchesAndCurveDiffers_Throws(
+        string code,
+        string algorithmCurveName,
+        string keyCurveName,
+        int keySizeBits
+    )
+    {
+        var algorithm = CreateFixedAlgorithm(code, algorithmCurveName);
+        var secretKey = new StubOkpSecretKey(keyCurveName, keySizeBits);
+        var signature = new byte[algorithm.GetSignatureSizeBytes(keySizeBits)];
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            algorithm.Verify(secretKey, "payload"u8, signature)
+        );
+
+        Assert.Equal(
+            $"The OKP curve '{keyCurveName}' is not supported by the '{code}' algorithm.",
+            exception.Message
+        );
+    }
+
+    #endregion
 }

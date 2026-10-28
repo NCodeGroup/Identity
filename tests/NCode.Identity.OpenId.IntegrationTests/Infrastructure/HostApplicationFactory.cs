@@ -17,6 +17,7 @@
 #endregion
 
 using System.Buffers.Text;
+using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -86,6 +87,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// this responder returns, so a CRL fetch can be exercised without a real network connection.
     /// </summary>
     public Func<HttpRequestMessage, byte[]>? CertificateRevocationListResponder { get; set; }
+
+    /// <summary>
+    /// When set, overrides the SSRF-guarded back-channel logout HTTP client with a stub that answers <c>200 OK</c> to
+    /// every <c>POST</c> and records it in this queue, so the logout token the OP delivers to a client's
+    /// <c>backchannel_logout_uri</c> can be captured without a real network connection. The delivery runs on a
+    /// background worker, so a test polls the queue after the request that terminates the session.
+    /// </summary>
+    internal ConcurrentQueue<RecordedHttpExchange>? BackChannelLogoutExchanges { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether the developer clients of the Development overlay are seeded. They are seeded
@@ -1299,6 +1308,18 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                     .AddHttpClient("NCode.Identity.OpenId.ClientCertificateRevocation")
                     .ConfigurePrimaryHttpMessageHandler(() =>
                         new StubBinaryHttpMessageHandler(crlResponder)
+                    );
+            }
+
+            // Replace the SSRF-guarded back-channel logout HTTP client with a stub that records each delivery, so the
+            // logout token the OP posts to a client's backchannel_logout_uri can be captured without a real outbound
+            // connection (which the guard would refuse).
+            if (BackChannelLogoutExchanges is { } backChannelLogoutExchanges)
+            {
+                serviceCollection
+                    .AddHttpClient("NCode.Identity.OpenId.BackChannelLogout")
+                    .ConfigurePrimaryHttpMessageHandler(() =>
+                        new StubRecordingHttpMessageHandler(backChannelLogoutExchanges)
                     );
             }
 

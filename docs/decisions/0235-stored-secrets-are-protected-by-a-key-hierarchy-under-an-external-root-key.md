@@ -6,7 +6,9 @@
   [ADR-0260](0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md): the Azure Key Vault and Google Cloud
   KMS root key providers; amended by
   [ADR-0265](0265-grant-payloads-are-protected-under-the-tenant-master-key.md): grant payloads are protected under the
-  tenant master key)
+  tenant master key; amended by
+  [ADR-0278](0278-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md): the root key
+  provider contract is the shared `IKeyWrapper`, and the adapters are `NCode.Identity.Secrets.KeyWrapping.<Vendor>`)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 

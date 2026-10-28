@@ -1,6 +1,8 @@
 # 260. Azure Key Vault and Google Cloud KMS are root key providers
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0278](0278-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md): the root key
+  provider contract is the shared `IKeyWrapper`, and the adapters are `NCode.Identity.Secrets.KeyWrapping.<Vendor>`)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 
@@ -132,9 +134,9 @@ never from configuration.
 - [ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies (root key providers).
 - [ADR-0179](0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md) — the chart
   refuses a release that the host would refuse.
-- [`GoogleCloudKmsRootKeyProvider`](../../src/NCode.Identity.Secrets.Persistence.GoogleCloudKms/GoogleCloudKmsRootKeyProvider.cs)
+- [`GoogleCloudKmsKeyWrapper`](../../src/NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms/GoogleCloudKmsKeyWrapper.cs)
   and
-  [`AzureKeyVaultRootKeyProvider`](../../src/NCode.Identity.Secrets.Persistence.AzureKeyVault/AzureKeyVaultRootKeyProvider.cs)
+  [`AzureKeyVaultKeyWrapper`](../../src/NCode.Identity.Secrets.KeyWrapping.AzureKeyVault/AzureKeyVaultKeyWrapper.cs)
   — the providers.
 - [`deployment.yaml`](../../charts/ncode-identity-host/templates/deployment.yaml) — the chart's credential wiring.
 - Google Cloud, "Verifying end-to-end data integrity" (CRC32C checksums on Cloud KMS requests and responses).

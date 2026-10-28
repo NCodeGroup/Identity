@@ -36,7 +36,34 @@ public abstract record AuditEvent : IAuditEvent
     public Guid EventId { get; init; }
 
     /// <inheritdoc />
-    public DateTimeOffset Timestamp { get; init; }
+    public DateTimeOffset EventTime { get; init; }
+
+    // Bridge: aliases EventTime until Timestamp is removed (plan step 33).
+    /// <inheritdoc />
+    public DateTimeOffset Timestamp
+    {
+        get => EventTime;
+        init => EventTime = value;
+    }
+
+    // Bridge: reads Action until EventName becomes abstract (plan step 33). A derived event must
+    // override EventName or Action, never neither.
+    /// <inheritdoc />
+    public virtual string EventName => Action;
+
+    // Bridge: defaults to empty until EventCategory becomes abstract (plan step 33).
+    /// <inheritdoc />
+    public virtual string EventCategory => string.Empty;
+
+    // Bridge: defaults to empty until EventSource becomes required (plan step 33).
+    /// <inheritdoc />
+    public string EventSource { get; init; } = string.Empty;
+
+    /// <inheritdoc />
+    public virtual string Severity =>
+        string.Equals(Outcome, AuditOutcome.Failure, StringComparison.Ordinal)
+            ? AuditSeverities.Warning
+            : AuditSeverities.Info;
 
     /// <inheritdoc />
     public virtual int SchemaVersion => 1;
@@ -56,8 +83,9 @@ public abstract record AuditEvent : IAuditEvent
     /// <inheritdoc />
     public string? ClientId { get; init; }
 
+    // Bridge: reads EventName until Action is removed (plan step 33).
     /// <inheritdoc />
-    public abstract string Action { get; }
+    public virtual string Action => EventName;
 
     /// <inheritdoc />
     public string? Source { get; init; }

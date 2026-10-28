@@ -44,6 +44,38 @@ public interface IAuditEvent : IEvent
     DateTimeOffset Timestamp { get; }
 
     /// <summary>
+    /// Gets the coordinated universal time (UTC) at which the audited operation occurred.
+    /// </summary>
+    DateTimeOffset EventTime { get; }
+
+    /// <summary>
+    /// Gets the stable, dotted name that identifies the audited operation (for example
+    /// <c>token.issued</c>).
+    /// </summary>
+    string EventName { get; }
+
+    /// <summary>
+    /// Gets the category that groups the audited operation (for example
+    /// <see cref="AuditEventCategories.Token"/>). This is an extensible string vocabulary, not a
+    /// closed set.
+    /// </summary>
+    string EventCategory { get; }
+
+    /// <summary>
+    /// Gets the service or component family that produced the audited event (for example
+    /// <see cref="AuditEventSources.OpenId"/>). This is an extensible string vocabulary, not a closed
+    /// set.
+    /// </summary>
+    string EventSource { get; }
+
+    /// <summary>
+    /// Gets the severity of the audited operation, such as <see cref="AuditSeverities.Info"/> or
+    /// <see cref="AuditSeverities.Warning"/>. This is an extensible string vocabulary, not a closed
+    /// set.
+    /// </summary>
+    string Severity { get; }
+
+    /// <summary>
     /// Gets the version of the audit event's serialized schema, so external consumers can evolve
     /// independently of in-process API tracking.
     /// </summary>

@@ -1873,6 +1873,10 @@ change to the public API is a **major** version bump.
 
 ### Removed
 
+- `OpenIdConstants.SecurityTokenTypes.LogoutToken` is removed. Breaking: use `JoseTokenTypes.LogoutJwt`
+  (`logout+jwt`), the single definition of the back-channel logout token's `typ`, which the OP now stamps on its
+  `logout_token` ([#355](https://github.com/NCodeGroup/Identity/issues/355)).
+
 - `IsActiveResult`, `PositiveIsActiveResult` and `NegativeIsActiveResult` (`NCode.Identity.Models`) are removed from
   `NCode.Identity.Abstractions`; nothing used them.
 

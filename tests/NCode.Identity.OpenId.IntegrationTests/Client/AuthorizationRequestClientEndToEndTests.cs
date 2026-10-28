@@ -27,6 +27,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
 using NCode.Identity.OpenId.Client;
 using NCode.Identity.OpenId.IntegrationTests.Infrastructure;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.KeyMaterial;
@@ -318,6 +319,44 @@ public class AuthorizationRequestClientEndToEndTests
             OpenIdProtocol.ClientAssertionTypes.JwtBearer,
             body[OpenIdProtocol.Parameters.ClientAssertionType]
         );
+        await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WhenOnlyTheProviderRequiresPushedRequests_PushesAndCompletesTheCodeFlow()
+    {
+        const string clientId = "it-par-e2e-provider-requires";
+
+        using var factory = new HostApplicationFactory();
+        await factory.SeedTenantSettingsAsync(
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.RequirePushedAuthorizationRequests] = true,
+            }
+        );
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedSharedSecretClientWithSettingsAsync(
+            clientId,
+            ClientSecret,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            NoSettings,
+            RedirectUri
+        );
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        await using var provider = CreateClientProvider(factory, exchanges, CreateSecretKey);
+        var registration = CreateRegistration(
+            clientId,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
+        );
+        var metadata = await provider
+            .GetRequiredService<IProviderMetadataResolver>()
+            .GetMetadataAsync(registration.Authority, CancellationToken.None);
+        Assert.True(metadata.RequirePushedAuthorizationRequests);
+        var request = CreateAuthorizationRequest();
+
+        var result = await PushAsync(provider, registration, request);
+
+        AssertPushed(result, exchanges, clientId);
         await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
     }
 

@@ -18,6 +18,7 @@
 
 using System.Buffers.Text;
 using System.Security.Cryptography;
+using NCode.Identity.Secrets.KeyWrapping;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
@@ -139,8 +140,8 @@ public class EphemeralRootKeyProviderTests
             CancellationToken.None
         );
 
-        Assert.Equal(RootKeyProviderNames.Ephemeral, provider.ProviderName);
-        Assert.Equal(RootKeyProviderNames.Ephemeral, wrappedKey.ProviderName);
+        Assert.Equal(KeyWrapperNames.Ephemeral, provider.Name);
+        Assert.Equal(KeyWrapperNames.Ephemeral, wrappedKey.WrapperName);
         Assert.Equal(AesGcmRootKeyWrapper.FingerprintLength, wrappedKey.KeyId.Length);
         Assert.Equal(SHA256.HashSizeInBytes, Base64Url.DecodeFromChars(wrappedKey.KeyId).Length);
     }
@@ -170,9 +171,9 @@ public class EphemeralRootKeyProviderTests
 
         var bytes = Base64Url.DecodeFromChars(wrappedKey.Ciphertext);
         bytes[SecretProtectionFormat.NonceSizeBytes] ^= 0x01;
-        var tamperedKey = new RootWrappedKey
+        var tamperedKey = new WrappedKey
         {
-            ProviderName = wrappedKey.ProviderName,
+            WrapperName = wrappedKey.WrapperName,
             KeyId = wrappedKey.KeyId,
             Ciphertext = Base64Url.EncodeToString(bytes),
         };
@@ -193,9 +194,9 @@ public class EphemeralRootKeyProviderTests
         using var provider = new EphemeralRootKeyProvider();
         var context = CreateContext();
         var wrappedKey = await provider.WrapAsync(CreateKey(), context, CancellationToken.None);
-        var malformedKey = new RootWrappedKey
+        var malformedKey = new WrappedKey
         {
-            ProviderName = wrappedKey.ProviderName,
+            WrapperName = wrappedKey.WrapperName,
             KeyId = wrappedKey.KeyId,
             Ciphertext = ciphertext,
         };
@@ -212,9 +213,9 @@ public class EphemeralRootKeyProviderTests
         using var provider = new EphemeralRootKeyProvider();
         var context = CreateContext();
         var wrappedKey = await provider.WrapAsync(CreateKey(), context, CancellationToken.None);
-        var malformedKey = new RootWrappedKey
+        var malformedKey = new WrappedKey
         {
-            ProviderName = wrappedKey.ProviderName,
+            WrapperName = wrappedKey.WrapperName,
             KeyId = wrappedKey.KeyId,
             Ciphertext = new string('!', wrappedKey.Ciphertext.Length),
         };

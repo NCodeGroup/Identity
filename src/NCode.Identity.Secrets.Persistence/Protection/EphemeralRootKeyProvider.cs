@@ -18,11 +18,12 @@
 
 using System.Security.Cryptography;
 using NCode.Buffers;
+using NCode.Identity.Secrets.KeyWrapping;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
 /// <summary>
-/// Provides an implementation of <see cref="IRootKeyProvider"/> that generates a random root key when it is created
+/// Provides an implementation of <see cref="IKeyWrapper"/> that generates a random root key when it is created
 /// and keeps the key in memory for the lifetime of the object. A key that this provider wrapped can only be unwrapped
 /// by the same instance, so it is suitable for development and tests but not for data that must survive a restart.
 /// </summary>
@@ -31,7 +32,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// and it is zeroed when the provider is disposed.
 /// </remarks>
 // See ADR-0235.
-internal class EphemeralRootKeyProvider : IRootKeyProvider, IDisposable
+internal class EphemeralRootKeyProvider : IKeyWrapper, IDisposable
 {
     private const int RootKeySizeBytes = 32;
 
@@ -62,10 +63,10 @@ internal class EphemeralRootKeyProvider : IRootKeyProvider, IDisposable
     private string KeyId { get; }
 
     /// <inheritdoc />
-    public string ProviderName => RootKeyProviderNames.Ephemeral;
+    public string Name => KeyWrapperNames.Ephemeral;
 
     /// <inheritdoc />
-    public ValueTask<RootWrappedKey> WrapAsync(
+    public ValueTask<WrappedKey> WrapAsync(
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
@@ -86,9 +87,9 @@ internal class EphemeralRootKeyProvider : IRootKeyProvider, IDisposable
             }
         );
 
-        var wrappedKey = new RootWrappedKey
+        var wrappedKey = new WrappedKey
         {
-            ProviderName = ProviderName,
+            WrapperName = Name,
             KeyId = KeyId,
             Ciphertext = ciphertext,
         };
@@ -105,7 +106,7 @@ internal class EphemeralRootKeyProvider : IRootKeyProvider, IDisposable
     /// process, or when the key was altered or the context does not match.
     /// </exception>
     public ValueTask<int> UnwrapAsync(
-        RootWrappedKey wrappedKey,
+        WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
         Memory<byte> destination,
         CancellationToken cancellationToken

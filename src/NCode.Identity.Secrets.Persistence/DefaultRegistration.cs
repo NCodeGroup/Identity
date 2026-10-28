@@ -19,6 +19,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Registration;
@@ -60,7 +61,7 @@ public static class DefaultRegistration
         /// material.</description></item>
         /// <item><description><see cref="TimeProvider"/> - Supplies the current time, defaulting to
         /// <see cref="TimeProvider.System"/>.</description></item>
-        /// <item><description><see cref="IRootKeyProvider"/> - The ephemeral and local root key providers,
+        /// <item><description><see cref="IKeyWrapper"/> - The ephemeral and local root key providers,
         /// which wrap master keys with a root key.</description></item>
         /// <item><description>A catalog that selects the configured root key provider.</description></item>
         /// <item><description>The recovery key wrapper, which wraps master keys with the configured
@@ -73,7 +74,7 @@ public static class DefaultRegistration
         /// </list>
         /// <para>
         /// Services are registered using <c>TryAdd*</c> semantics, meaning existing registrations
-        /// will not be overwritten. The <see cref="IRootKeyProvider"/> implementations are added as a
+        /// will not be overwritten. The <see cref="IKeyWrapper"/> implementations are added as a
         /// collection.
         /// </para>
         /// </remarks>
@@ -90,10 +91,10 @@ public static class DefaultRegistration
             // Secret protection
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IRootKeyProvider, EphemeralRootKeyProvider>()
+                ServiceDescriptor.Singleton<IKeyWrapper, EphemeralRootKeyProvider>()
             );
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IRootKeyProvider, LocalRootKeyProvider>()
+                ServiceDescriptor.Singleton<IKeyWrapper, LocalRootKeyProvider>()
             );
             serviceCollection.TryAddSingleton<
                 IRootKeyProviderCatalog,

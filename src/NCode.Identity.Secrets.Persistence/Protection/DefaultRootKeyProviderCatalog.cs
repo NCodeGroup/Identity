@@ -18,14 +18,15 @@
 
 using System.Collections.Frozen;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IRootKeyProviderCatalog"/> over the registered
-/// <see cref="IRootKeyProvider"/> instances. Providers are keyed ordinally by
-/// <see cref="IRootKeyProvider.ProviderName"/>.
+/// <see cref="IKeyWrapper"/> instances. Providers are keyed ordinally by
+/// <see cref="IKeyWrapper.Name"/>.
 /// </summary>
 /// <remarks>
 /// The constructor throws an <see cref="InvalidOperationException"/> when more than one registered provider has the
@@ -35,17 +36,16 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="options">The options that select the provider for wrapping new keys.</param>
 // See ADR-0150 and ADR-0235.
 internal class DefaultRootKeyProviderCatalog(
-    IEnumerable<IRootKeyProvider> providers,
+    IEnumerable<IKeyWrapper> providers,
     IOptions<SecretProtectionOptions> options
 ) : IRootKeyProviderCatalog
 {
-    private FrozenDictionary<string, IRootKeyProvider> ProvidersByName { get; } =
-        IndexByName(providers);
+    private FrozenDictionary<string, IKeyWrapper> ProvidersByName { get; } = IndexByName(providers);
 
     private IOptions<SecretProtectionOptions> ProtectionOptions { get; } = options;
 
     /// <inheritdoc />
-    public IRootKeyProvider Get(string providerName)
+    public IKeyWrapper Get(string providerName)
     {
         if (ProvidersByName.TryGetValue(providerName, out var provider))
             return provider;
@@ -57,22 +57,22 @@ internal class DefaultRootKeyProviderCatalog(
     }
 
     /// <inheritdoc />
-    public IRootKeyProvider GetConfigured()
+    public IKeyWrapper GetConfigured()
     {
         var name = ProtectionOptions.Value.RootKeyProvider;
-        return Get(string.IsNullOrWhiteSpace(name) ? RootKeyProviderNames.Ephemeral : name);
+        return Get(string.IsNullOrWhiteSpace(name) ? KeyWrapperNames.Ephemeral : name);
     }
 
-    private static FrozenDictionary<string, IRootKeyProvider> IndexByName(
-        IEnumerable<IRootKeyProvider> providers
+    private static FrozenDictionary<string, IKeyWrapper> IndexByName(
+        IEnumerable<IKeyWrapper> providers
     )
     {
-        var providersByName = new Dictionary<string, IRootKeyProvider>(StringComparer.Ordinal);
+        var providersByName = new Dictionary<string, IKeyWrapper>(StringComparer.Ordinal);
         var duplicateNames = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var provider in providers)
         {
-            var providerName = provider.ProviderName;
+            var providerName = provider.Name;
 
             if (!providersByName.TryAdd(providerName, provider))
                 duplicateNames.Add(providerName);

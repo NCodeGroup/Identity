@@ -20,6 +20,7 @@ using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
 using NCode.Buffers;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
@@ -79,7 +80,7 @@ public class LocalRootKeyProviderTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.Equal(RootKeyProviderNames.Local, wrappedKey.ProviderName);
+        Assert.Equal(KeyWrapperNames.Local, wrappedKey.WrapperName);
         Assert.Equal(key.Length, written);
         Assert.Equal(key, destination);
     }

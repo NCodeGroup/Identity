@@ -16,6 +16,8 @@
 
 #endregion
 
+using NCode.Identity.Secrets.KeyWrapping;
+
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
 /// <summary>
@@ -34,7 +36,7 @@ internal interface IRootKeyProviderCatalog
     /// <exception cref="InvalidOperationException">
     /// Thrown when no provider is registered with the specified name.
     /// </exception>
-    IRootKeyProvider Get(string providerName);
+    IKeyWrapper Get(string providerName);
 
     /// <summary>
     /// Gets the root key provider that the options select for wrapping new keys. When the options do not name a
@@ -44,5 +46,5 @@ internal interface IRootKeyProviderCatalog
     /// <exception cref="InvalidOperationException">
     /// Thrown when the selected provider is not registered.
     /// </exception>
-    IRootKeyProvider GetConfigured();
+    IKeyWrapper GetConfigured();
 }

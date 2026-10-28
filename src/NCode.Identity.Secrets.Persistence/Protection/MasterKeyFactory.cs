@@ -19,6 +19,7 @@
 using System.Security.Cryptography;
 using NCode.Buffers;
 using NCode.Encoders;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
@@ -107,7 +108,7 @@ internal class MasterKeyFactory(
             OwnerId = owner.OwnerId,
             Version = version,
             CreatedWhen = TimeProvider.GetUtcNow(),
-            RootKeyProvider = wrapped.ProviderName,
+            RootKeyProvider = wrapped.WrapperName,
             RootKeyId = wrapped.KeyId,
             RootWrappedKey = wrapped.Ciphertext,
             RecoveryKeyId = Recovery.RecoveryKeyId,
@@ -144,9 +145,9 @@ internal class MasterKeyFactory(
         ArgumentNullException.ThrowIfNull(row);
 
         var owner = row.Owner;
-        var wrappedKey = new RootWrappedKey
+        var wrappedKey = new WrappedKey
         {
-            ProviderName = row.RootKeyProvider,
+            WrapperName = row.RootKeyProvider,
             KeyId = row.RootKeyId,
             Ciphertext = row.RootWrappedKey,
         };

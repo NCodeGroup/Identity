@@ -20,6 +20,7 @@ using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using Moq;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 
@@ -79,8 +80,8 @@ public class MasterKeyFactoryTests : IDisposable
     }
 
     // UnwrapAsync looks the provider up by the name that the row records.
-    private void ExpectGet(IRootKeyProvider provider) =>
-        _catalog.Setup(x => x.Get(RootKeyProviderNames.Ephemeral)).Returns(provider).Verifiable();
+    private void ExpectGet(IKeyWrapper provider) =>
+        _catalog.Setup(x => x.Get(KeyWrapperNames.Ephemeral)).Returns(provider).Verifiable();
 
     private static PersistedMasterKey CopyRow(
         PersistedMasterKey row,
@@ -188,9 +189,9 @@ public class MasterKeyFactoryTests : IDisposable
         );
         var rootDestination = new byte[SecretProtectionFormat.MasterKeySizeBytes];
         var rootWritten = await _provider.UnwrapAsync(
-            new RootWrappedKey
+            new WrappedKey
             {
-                ProviderName = row.RootKeyProvider,
+                WrapperName = row.RootKeyProvider,
                 KeyId = row.RootKeyId,
                 Ciphertext = row.RootWrappedKey,
             },
@@ -199,7 +200,7 @@ public class MasterKeyFactoryTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.Equal(RootKeyProviderNames.Ephemeral, row.RootKeyProvider);
+        Assert.Equal(KeyWrapperNames.Ephemeral, row.RootKeyProvider);
         Assert.Equal(probe.KeyId, row.RootKeyId);
         Assert.Equal(SecretProtectionFormat.MasterKeySizeBytes, rootWritten);
         Assert.Equal(key.Material.ToArray(), rootDestination);
@@ -251,11 +252,11 @@ public class MasterKeyFactoryTests : IDisposable
 
         // The provider ignores the context of the other owner, so that the key check is the only defense that remains.
         var originalContext = CreateRootContext(created.Row.KeyId, Owner);
-        var provider = _mocks.Create<IRootKeyProvider>();
+        var provider = _mocks.Create<IKeyWrapper>();
         provider
             .Setup(x =>
                 x.UnwrapAsync(
-                    It.IsAny<RootWrappedKey>(),
+                    It.IsAny<WrappedKey>(),
                     It.IsAny<ReadOnlyMemory<byte>>(),
                     It.IsAny<Memory<byte>>(),
                     It.IsAny<CancellationToken>()
@@ -263,7 +264,7 @@ public class MasterKeyFactoryTests : IDisposable
             )
             .Returns(
                 (
-                    RootWrappedKey wrapped,
+                    WrappedKey wrapped,
                     ReadOnlyMemory<byte> _,
                     Memory<byte> destination,
                     CancellationToken token
@@ -325,7 +326,7 @@ public class MasterKeyFactoryTests : IDisposable
             OwnerId = Owner.OwnerId,
             Version = 1,
             CreatedWhen = Now,
-            RootKeyProvider = RootKeyProviderNames.Ephemeral,
+            RootKeyProvider = KeyWrapperNames.Ephemeral,
             RootKeyId = "root-key-id",
             RootWrappedKey = "root-wrapped-key",
             KeyCheck = "key-check",
@@ -334,12 +335,12 @@ public class MasterKeyFactoryTests : IDisposable
         var material = RandomNumberGenerator.GetBytes(
             SecretProtectionFormat.MasterKeySizeBytes - 1
         );
-        var provider = _mocks.Create<IRootKeyProvider>();
+        var provider = _mocks.Create<IKeyWrapper>();
         provider
             .Setup(x =>
                 x.UnwrapAsync(
-                    It.Is<RootWrappedKey>(wrapped =>
-                        wrapped.ProviderName == RootKeyProviderNames.Ephemeral
+                    It.Is<WrappedKey>(wrapped =>
+                        wrapped.WrapperName == KeyWrapperNames.Ephemeral
                         && wrapped.KeyId == "root-key-id"
                         && wrapped.Ciphertext == "root-wrapped-key"
                     ),
@@ -352,7 +353,7 @@ public class MasterKeyFactoryTests : IDisposable
             )
             .Returns(
                 (
-                    RootWrappedKey _,
+                    WrappedKey _,
                     ReadOnlyMemory<byte> _,
                     Memory<byte> destination,
                     CancellationToken _
@@ -383,7 +384,7 @@ public class MasterKeyFactoryTests : IDisposable
             OwnerId = Owner.OwnerId,
             Version = 1,
             CreatedWhen = Now,
-            RootKeyProvider = RootKeyProviderNames.Ephemeral,
+            RootKeyProvider = KeyWrapperNames.Ephemeral,
             RootKeyId = "root-key-id",
             RootWrappedKey = "root-wrapped-key",
             KeyCheck = "key-check",
@@ -391,11 +392,11 @@ public class MasterKeyFactoryTests : IDisposable
         var material = RandomNumberGenerator.GetBytes(
             SecretProtectionFormat.MasterKeySizeBytes + 1
         );
-        var provider = _mocks.Create<IRootKeyProvider>();
+        var provider = _mocks.Create<IKeyWrapper>();
         provider
             .Setup(x =>
                 x.UnwrapAsync(
-                    It.IsAny<RootWrappedKey>(),
+                    It.IsAny<WrappedKey>(),
                     It.IsAny<ReadOnlyMemory<byte>>(),
                     It.IsAny<Memory<byte>>(),
                     It.IsAny<CancellationToken>()
@@ -403,7 +404,7 @@ public class MasterKeyFactoryTests : IDisposable
             )
             .Returns(
                 (
-                    RootWrappedKey _,
+                    WrappedKey _,
                     ReadOnlyMemory<byte> _,
                     Memory<byte> destination,
                     CancellationToken _

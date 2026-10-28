@@ -17,6 +17,7 @@
 #endregion
 
 using Moq;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
@@ -30,15 +31,15 @@ public class DefaultRootKeyProviderCatalogTests : IDisposable
         _mocks.Verify();
     }
 
-    private Mock<IRootKeyProvider> CreateProvider(string providerName)
+    private Mock<IKeyWrapper> CreateProvider(string providerName)
     {
-        var provider = _mocks.Create<IRootKeyProvider>();
-        provider.Setup(x => x.ProviderName).Returns(providerName).Verifiable();
+        var provider = _mocks.Create<IKeyWrapper>();
+        provider.Setup(x => x.Name).Returns(providerName).Verifiable();
         return provider;
     }
 
     private static DefaultRootKeyProviderCatalog CreateCatalog(
-        IEnumerable<IRootKeyProvider> providers,
+        IEnumerable<IKeyWrapper> providers,
         string? rootKeyProvider = null
     ) =>
         new(
@@ -72,11 +73,11 @@ public class DefaultRootKeyProviderCatalogTests : IDisposable
     [Fact]
     public void Get_Registered_ReturnsProvider()
     {
-        var ephemeral = CreateProvider(RootKeyProviderNames.Ephemeral);
-        var local = CreateProvider(RootKeyProviderNames.Local);
+        var ephemeral = CreateProvider(KeyWrapperNames.Ephemeral);
+        var local = CreateProvider(KeyWrapperNames.Local);
         var catalog = CreateCatalog([ephemeral.Object, local.Object]);
 
-        var result = catalog.Get(RootKeyProviderNames.Local);
+        var result = catalog.Get(KeyWrapperNames.Local);
 
         Assert.Same(local.Object, result);
     }
@@ -84,17 +85,17 @@ public class DefaultRootKeyProviderCatalogTests : IDisposable
     [Fact]
     public void Get_Unknown_ThrowsListingNames()
     {
-        var ephemeral = CreateProvider(RootKeyProviderNames.Ephemeral);
-        var local = CreateProvider(RootKeyProviderNames.Local);
+        var ephemeral = CreateProvider(KeyWrapperNames.Ephemeral);
+        var local = CreateProvider(KeyWrapperNames.Local);
         var catalog = CreateCatalog([ephemeral.Object, local.Object]);
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            catalog.Get(RootKeyProviderNames.AwsKms)
+            catalog.Get(KeyWrapperNames.AwsKms)
         );
 
-        Assert.Contains($"'{RootKeyProviderNames.AwsKms}'", exception.Message);
-        Assert.Contains($"'{RootKeyProviderNames.Ephemeral}'", exception.Message);
-        Assert.Contains($"'{RootKeyProviderNames.Local}'", exception.Message);
+        Assert.Contains($"'{KeyWrapperNames.AwsKms}'", exception.Message);
+        Assert.Contains($"'{KeyWrapperNames.Ephemeral}'", exception.Message);
+        Assert.Contains($"'{KeyWrapperNames.Local}'", exception.Message);
     }
 
     #endregion
@@ -104,8 +105,8 @@ public class DefaultRootKeyProviderCatalogTests : IDisposable
     [Fact]
     public void GetConfigured_Unset_ReturnsEphemeral()
     {
-        var ephemeral = CreateProvider(RootKeyProviderNames.Ephemeral);
-        var local = CreateProvider(RootKeyProviderNames.Local);
+        var ephemeral = CreateProvider(KeyWrapperNames.Ephemeral);
+        var local = CreateProvider(KeyWrapperNames.Local);
         var catalog = CreateCatalog([ephemeral.Object, local.Object]);
 
         var result = catalog.GetConfigured();
@@ -118,8 +119,8 @@ public class DefaultRootKeyProviderCatalogTests : IDisposable
     [InlineData("  ")]
     public void GetConfigured_Blank_ReturnsEphemeral(string rootKeyProvider)
     {
-        var ephemeral = CreateProvider(RootKeyProviderNames.Ephemeral);
-        var local = CreateProvider(RootKeyProviderNames.Local);
+        var ephemeral = CreateProvider(KeyWrapperNames.Ephemeral);
+        var local = CreateProvider(KeyWrapperNames.Local);
         var catalog = CreateCatalog(
             [ephemeral.Object, local.Object],
             rootKeyProvider: rootKeyProvider
@@ -133,11 +134,11 @@ public class DefaultRootKeyProviderCatalogTests : IDisposable
     [Fact]
     public void GetConfigured_Set_ReturnsNamedProvider()
     {
-        var ephemeral = CreateProvider(RootKeyProviderNames.Ephemeral);
-        var local = CreateProvider(RootKeyProviderNames.Local);
+        var ephemeral = CreateProvider(KeyWrapperNames.Ephemeral);
+        var local = CreateProvider(KeyWrapperNames.Local);
         var catalog = CreateCatalog(
             [ephemeral.Object, local.Object],
-            rootKeyProvider: RootKeyProviderNames.Local
+            rootKeyProvider: KeyWrapperNames.Local
         );
 
         var result = catalog.GetConfigured();

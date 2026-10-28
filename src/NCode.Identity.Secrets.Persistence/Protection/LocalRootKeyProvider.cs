@@ -21,6 +21,7 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Encoders;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using LoadedKey = (System.IDisposable Lease, System.ReadOnlyMemory<byte> Key);
 using LoadedKeys = (
@@ -35,7 +36,7 @@ using LoadedKeys = (
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
 /// <summary>
-/// Provides an implementation of <see cref="IRootKeyProvider"/> that reads its root keys from the configuration or
+/// Provides an implementation of <see cref="IKeyWrapper"/> that reads its root keys from the configuration or
 /// from local files, such as a secret that the hosting environment mounts into the process.
 /// </summary>
 /// <remarks>
@@ -53,7 +54,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </remarks>
 // See ADR-0235.
 internal class LocalRootKeyProvider(IOptions<LocalRootKeyOptions> options)
-    : IRootKeyProvider,
+    : IKeyWrapper,
         IDisposable
 {
     private const string SectionName = LocalRootKeyOptions.DefaultSectionName;
@@ -76,13 +77,13 @@ internal class LocalRootKeyProvider(IOptions<LocalRootKeyOptions> options)
         new(() => LoadKeys(options.Value), LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <inheritdoc />
-    public string ProviderName => RootKeyProviderNames.Local;
+    public string Name => KeyWrapperNames.Local;
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">
     /// Thrown when the root keys are not configured correctly or cannot be read.
     /// </exception>
-    public ValueTask<RootWrappedKey> WrapAsync(
+    public ValueTask<WrappedKey> WrapAsync(
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
@@ -105,9 +106,9 @@ internal class LocalRootKeyProvider(IOptions<LocalRootKeyOptions> options)
             }
         );
 
-        var wrappedKey = new RootWrappedKey
+        var wrappedKey = new WrappedKey
         {
-            ProviderName = ProviderName,
+            WrapperName = Name,
             KeyId = currentKeyId,
             Ciphertext = ciphertext,
         };
@@ -127,7 +128,7 @@ internal class LocalRootKeyProvider(IOptions<LocalRootKeyOptions> options)
     /// not match.
     /// </exception>
     public ValueTask<int> UnwrapAsync(
-        RootWrappedKey wrappedKey,
+        WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
         Memory<byte> destination,
         CancellationToken cancellationToken

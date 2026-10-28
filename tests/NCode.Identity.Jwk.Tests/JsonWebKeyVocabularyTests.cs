@@ -61,4 +61,17 @@ public class JsonWebKeyVocabularyTests
     {
         Assert.Equal(expected, actual);
     }
+
+    [Theory]
+    [InlineData(JsonWebKeyParameterNames.D, "d")]
+    [InlineData(JsonWebKeyParameterNames.FirstPrimeFactor, "p")]
+    [InlineData(JsonWebKeyParameterNames.SecondPrimeFactor, "q")]
+    [InlineData(JsonWebKeyParameterNames.FirstFactorCrtExponent, "dp")]
+    [InlineData(JsonWebKeyParameterNames.SecondFactorCrtExponent, "dq")]
+    [InlineData(JsonWebKeyParameterNames.FirstCrtCoefficient, "qi")]
+    [InlineData(JsonWebKeyParameterNames.OtherPrimesInfo, "oth")]
+    public void PrivateKeyParameterNames_HaveTheirRegisteredValues(string actual, string expected)
+    {
+        Assert.Equal(expected, actual);
+    }
 }

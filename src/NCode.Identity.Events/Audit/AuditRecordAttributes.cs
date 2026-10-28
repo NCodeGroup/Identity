@@ -52,10 +52,14 @@ internal static class AuditRecordAttributes
         var attributes = new List<KeyValuePair<string, object?>>();
 
         using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
-        AuditRecordWriter.Write(buffer, auditEvent);
-        using var document = JsonDocument.Parse(buffer.AsReadOnlySequence);
+        using var writer = new Utf8JsonWriter(buffer);
+        AuditRecordWriter.Write(auditEvent, writer);
+        writer.Flush();
 
-        foreach (var member in document.RootElement.EnumerateObject())
+        using var lease = buffer.GetSpanLease(isSensitive: false);
+        var record = JsonElement.Parse(lease.Span);
+
+        foreach (var member in record.EnumerateObject())
         {
             if (
                 member.Value.ValueKind == JsonValueKind.Object

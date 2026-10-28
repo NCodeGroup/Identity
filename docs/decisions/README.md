@@ -316,3 +316,4 @@ standards.
 | [0278](./0278-token-validation-failures-carry-a-machine-readable-code.md) | Token validation failures carry a machine-readable code | Accepted (amended by [0280](./0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)) |
 | [0279](./0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md) | Key wrapping is a secrets abstraction shared by the root and recovery wrappers | Accepted |
 | [0280](./0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md) | The protocol client decrypts ID and logout tokens with its key ring | Accepted |
+| [0281](./0281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md) | The JWK package takes contributed key types and hash names from its caller | Accepted |

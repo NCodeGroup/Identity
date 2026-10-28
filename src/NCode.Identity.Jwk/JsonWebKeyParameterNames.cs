@@ -62,6 +62,40 @@ public static class JsonWebKeyParameterNames
     /// <summary>The RSA <c>e</c> member, the base64url-encoded public exponent (RFC 7518 §6.3.1.2).</summary>
     public const string Exponent = "e";
 
+    /// <summary>
+    /// The RSA <c>p</c> member, the base64url-encoded first prime factor of the private key (RFC 7518 §6.3.2.2).
+    /// </summary>
+    public const string FirstPrimeFactor = "p";
+
+    /// <summary>
+    /// The RSA <c>q</c> member, the base64url-encoded second prime factor of the private key (RFC 7518 §6.3.2.3).
+    /// </summary>
+    public const string SecondPrimeFactor = "q";
+
+    /// <summary>
+    /// The RSA <c>dp</c> member, the base64url-encoded Chinese Remainder Theorem exponent of the first factor
+    /// (RFC 7518 §6.3.2.4).
+    /// </summary>
+    public const string FirstFactorCrtExponent = "dp";
+
+    /// <summary>
+    /// The RSA <c>dq</c> member, the base64url-encoded Chinese Remainder Theorem exponent of the second factor
+    /// (RFC 7518 §6.3.2.5).
+    /// </summary>
+    public const string SecondFactorCrtExponent = "dq";
+
+    /// <summary>
+    /// The RSA <c>qi</c> member, the base64url-encoded Chinese Remainder Theorem coefficient of the first factor
+    /// (RFC 7518 §6.3.2.6).
+    /// </summary>
+    public const string FirstCrtCoefficient = "qi";
+
+    /// <summary>
+    /// The RSA <c>oth</c> member, an array of objects describing the other prime factors of the private key
+    /// (RFC 7518 §6.3.2.7).
+    /// </summary>
+    public const string OtherPrimesInfo = "oth";
+
     /// <summary>The <c>crv</c> member, identifying the elliptic curve of an <c>EC</c> or <c>OKP</c> key (RFC 7518 / RFC 8037).</summary>
     public const string Curve = "crv";
 
@@ -80,6 +114,9 @@ public static class JsonWebKeyParameterNames
     /// <summary>The <c>priv</c> member, the base64url-encoded private seed of an <c>AKP</c> key (RFC 9964).</summary>
     public const string PrivateKey = "priv";
 
-    /// <summary>The <c>d</c> member, the base64url-encoded private key of an <c>RSA</c>, <c>EC</c>, or <c>OKP</c> key.</summary>
-    public const string EccPrivateKey = "d";
+    /// <summary>
+    /// The <c>d</c> member, the base64url-encoded private exponent of an <c>RSA</c> key (RFC 7518 §6.3.2.1) and the
+    /// private key of an <c>EC</c> (RFC 7518 §6.2.2.1) or <c>OKP</c> (RFC 8037 §2) key.
+    /// </summary>
+    public const string D = "d";
 }

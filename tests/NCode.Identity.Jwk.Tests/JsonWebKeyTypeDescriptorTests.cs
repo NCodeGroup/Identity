@@ -54,6 +54,15 @@ public class JsonWebKeyTypeDescriptorTests
     }
 
     [Fact]
+    public void Rsa_WhenStandard_ListsEveryRsaPrivateMember()
+    {
+        Assert.Equal(
+            ["d", "dp", "dq", "oth", "p", "q", "qi"],
+            JsonWebKeyTypeDescriptors.Rsa.PrivateMembers.Order(StringComparer.Ordinal).ToArray()
+        );
+    }
+
+    [Fact]
     public void TryGetStandard_WhenUnknown_ReturnsFalse()
     {
         Assert.False(JsonWebKeyTypeDescriptors.TryGetStandard("XKP", out var descriptor));

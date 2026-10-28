@@ -18,15 +18,15 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms.Options;
+namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
 
 /// <summary>
-/// Contains the options for the Google Cloud Key Management Service root key provider, bound from the
+/// Contains the options for the Google Cloud Key Management Service key wrapper, bound from the
 /// <see cref="DefaultSectionName"/> configuration section.
 /// </summary>
 // See ADR-0260.
 [PublicAPI]
-public sealed class GoogleCloudKmsRootKeyOptions
+public sealed class GoogleCloudKmsKeyWrapperOptions
 {
     /// <summary>
     /// Gets the name of the configuration section the options are bound from.

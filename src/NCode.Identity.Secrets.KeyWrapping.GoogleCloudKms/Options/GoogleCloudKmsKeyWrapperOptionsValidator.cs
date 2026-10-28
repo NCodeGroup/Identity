@@ -18,31 +18,30 @@
 
 using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.Persistence.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
 
-namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms.Options;
+namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
 
 /// <summary>
 /// Validates the Google Cloud Key Management Service options when the host starts, so a missing or malformed crypto key
 /// name stops the host instead of failing the first time a master key is wrapped. The options are validated only when
-/// the Google Cloud KMS root key provider is the one selected.
+/// the Google Cloud KMS key wrapper is the one selected.
 /// </summary>
 // See ADR-0260 and ADR-0137 (configuration is validated at startup).
-internal class GoogleCloudKmsRootKeyOptionsValidator(
+internal class GoogleCloudKmsKeyWrapperOptionsValidator(
     IOptions<SecretProtectionOptions> protectionOptions
-) : IValidateOptions<GoogleCloudKmsRootKeyOptions>
+) : IValidateOptions<GoogleCloudKmsKeyWrapperOptions>
 {
     private IOptions<SecretProtectionOptions> ProtectionOptions { get; } = protectionOptions;
 
     /// <inheritdoc />
-    public ValidateOptionsResult Validate(string? name, GoogleCloudKmsRootKeyOptions options)
+    public ValidateOptionsResult Validate(string? name, GoogleCloudKmsKeyWrapperOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         if (
             !string.Equals(
                 ProtectionOptions.Value.RootKeyProvider,
-                RootKeyProviderNames.GoogleCloudKms,
+                KeyWrapperNames.GoogleCloudKms,
                 StringComparison.Ordinal
             )
         )

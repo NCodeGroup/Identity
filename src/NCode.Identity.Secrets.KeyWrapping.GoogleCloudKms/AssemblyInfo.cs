@@ -18,5 +18,5 @@
 
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("NCode.Identity.Secrets.Persistence.GoogleCloudKms.Tests")]
+[assembly: InternalsVisibleTo("NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Tests")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

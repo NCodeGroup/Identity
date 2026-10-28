@@ -19,7 +19,7 @@
 using System.Buffers.Binary;
 using System.Numerics;
 
-namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms;
+namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 
 /// <summary>
 /// Computes the CRC32C (Castagnoli) checksum that Google Cloud KMS verifies on requests and reports on responses, so a

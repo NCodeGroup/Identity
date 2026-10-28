@@ -18,7 +18,7 @@
 
 using Google.Cloud.Kms.V1;
 
-namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms.Facades;
+namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Facades;
 
 /// <summary>
 /// Provides the Google Cloud Key Management Service client, so the code that wraps and unwraps keys can be tested

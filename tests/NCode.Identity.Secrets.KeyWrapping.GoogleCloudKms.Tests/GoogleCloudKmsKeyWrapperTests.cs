@@ -22,14 +22,13 @@ using Google.Cloud.Kms.V1;
 using Google.Protobuf;
 using Grpc.Core;
 using Moq;
-using NCode.Identity.Secrets.Persistence.GoogleCloudKms.Facades;
-using NCode.Identity.Secrets.Persistence.GoogleCloudKms.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Facades;
+using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
 using Xunit;
 
-namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms.Tests;
+namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Tests;
 
-public class GoogleCloudKmsRootKeyProviderTests : IDisposable
+public class GoogleCloudKmsKeyWrapperTests : IDisposable
 {
     private const string CryptoKeyName =
         "projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root";
@@ -63,11 +62,11 @@ public class GoogleCloudKmsRootKeyProviderTests : IDisposable
         long? AdditionalAuthenticatedDataCrc32C
     );
 
-    private GoogleCloudKmsRootKeyProvider CreateProvider(string? keyName) =>
+    private GoogleCloudKmsKeyWrapper CreateProvider(string? keyName) =>
         new(
             ClientFactory.Object,
             Microsoft.Extensions.Options.Options.Create(
-                new GoogleCloudKmsRootKeyOptions { KeyName = keyName }
+                new GoogleCloudKmsKeyWrapperOptions { KeyName = keyName }
             )
         );
 
@@ -88,10 +87,10 @@ public class GoogleCloudKmsRootKeyProviderTests : IDisposable
             PlaintextCrc32C = GoogleCloudKmsChecksum.Compute(plaintext),
         };
 
-    private static RootWrappedKey CreateWrappedKey(string keyId, byte[] ciphertext) =>
+    private static WrappedKey CreateWrappedKey(string keyId, byte[] ciphertext) =>
         new()
         {
-            ProviderName = RootKeyProviderNames.GoogleCloudKms,
+            WrapperName = KeyWrapperNames.GoogleCloudKms,
             KeyId = keyId,
             Ciphertext = Base64Url.EncodeToString(ciphertext),
         };
@@ -170,7 +169,7 @@ public class GoogleCloudKmsRootKeyProviderTests : IDisposable
             GoogleCloudKmsChecksum.Compute(context),
             request.AdditionalAuthenticatedDataCrc32C
         );
-        Assert.Equal(RootKeyProviderNames.GoogleCloudKms, wrappedKey.ProviderName);
+        Assert.Equal(KeyWrapperNames.GoogleCloudKms, wrappedKey.WrapperName);
         Assert.Equal(CryptoKeyVersionName, wrappedKey.KeyId);
         Assert.Equal(Base64Url.EncodeToString(ciphertext), wrappedKey.Ciphertext);
     }
@@ -411,9 +410,9 @@ public class GoogleCloudKmsRootKeyProviderTests : IDisposable
     )
     {
         var context = "root-context"u8.ToArray();
-        var wrappedKey = new RootWrappedKey
+        var wrappedKey = new WrappedKey
         {
-            ProviderName = RootKeyProviderNames.GoogleCloudKms,
+            WrapperName = KeyWrapperNames.GoogleCloudKms,
             KeyId = CryptoKeyVersionName,
             Ciphertext = ciphertext,
         };

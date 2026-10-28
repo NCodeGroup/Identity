@@ -21,16 +21,16 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Secrets.Persistence.GoogleCloudKms.Facades;
-using NCode.Identity.Secrets.Persistence.GoogleCloudKms.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Facades;
+using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Registration;
 
-namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms;
+namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 
 /// <summary>
 /// Provides opt-in extension methods for the <see cref="SecretPersistenceLibrary"/> builder to register the Google
-/// Cloud Key Management Service root key provider.
+/// Cloud Key Management Service key wrapper.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
@@ -39,10 +39,10 @@ public static class DefaultRegistration
     extension(IServiceBuilder<SecretPersistenceLibrary> builder)
     {
         /// <summary>
-        /// Registers the Google Cloud Key Management Service <see cref="IRootKeyProvider"/>, which wraps master keys
+        /// Registers the Google Cloud Key Management Service <see cref="IKeyWrapper"/>, which a deployment selects as its root key wrapper with <c>SecretProtection:RootKeyProvider</c> = <c>google-cloud-kms</c>, and which wraps master keys
         /// with a symmetric encryption key that never leaves the service. The
         /// <c>SecretProtection:RootKeyProviders:GoogleCloudKms</c> section binds
-        /// <see cref="GoogleCloudKmsRootKeyOptions"/> strictly. The provider stays inert until the
+        /// <see cref="GoogleCloudKmsKeyWrapperOptions"/> strictly. The provider stays inert until the
         /// <c>SecretProtection:RootKeyProvider</c> setting selects <c>google-cloud-kms</c>, and no client is created
         /// before the first key is wrapped or unwrapped. Credentials come from Application Default Credentials, never
         /// from configuration.
@@ -50,7 +50,7 @@ public static class DefaultRegistration
         /// <param name="configuration">The <see cref="IConfiguration"/> holding the <c>SecretProtection:RootKeyProviders:GoogleCloudKms</c> section.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
         [PublicAPI]
-        public IServiceBuilder<SecretPersistenceLibrary> AddGoogleCloudKmsRootKeyProvider(
+        public IServiceBuilder<SecretPersistenceLibrary> AddGoogleCloudKmsKeyWrapper(
             IConfiguration configuration
         )
         {
@@ -60,18 +60,18 @@ public static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection
-                .AddOptions<GoogleCloudKmsRootKeyOptions>()
+                .AddOptions<GoogleCloudKmsKeyWrapperOptions>()
                 .Configure(options =>
                     configuration
-                        .GetSection(GoogleCloudKmsRootKeyOptions.DefaultSectionName)
+                        .GetSection(GoogleCloudKmsKeyWrapperOptions.DefaultSectionName)
                         .BindStrictly(options)
                 )
                 .ValidateOnStart();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    IValidateOptions<GoogleCloudKmsRootKeyOptions>,
-                    GoogleCloudKmsRootKeyOptionsValidator
+                    IValidateOptions<GoogleCloudKmsKeyWrapperOptions>,
+                    GoogleCloudKmsKeyWrapperOptionsValidator
                 >()
             );
 
@@ -81,7 +81,7 @@ public static class DefaultRegistration
             >();
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IRootKeyProvider, GoogleCloudKmsRootKeyProvider>()
+                ServiceDescriptor.Singleton<IKeyWrapper, GoogleCloudKmsKeyWrapper>()
             );
 
             return builder;

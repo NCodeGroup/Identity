@@ -19,7 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
-namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms;
+namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 
 /// <summary>
 /// Contains the rules for the resource name of a Google Cloud KMS crypto key or crypto key version: whether a value is

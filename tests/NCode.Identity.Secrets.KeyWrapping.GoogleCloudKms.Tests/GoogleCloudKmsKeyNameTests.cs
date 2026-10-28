@@ -18,7 +18,7 @@
 
 using Xunit;
 
-namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms.Tests;
+namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Tests;
 
 public class GoogleCloudKmsKeyNameTests
 {

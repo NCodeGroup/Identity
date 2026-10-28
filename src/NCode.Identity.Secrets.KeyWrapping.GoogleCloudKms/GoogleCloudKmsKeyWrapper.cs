@@ -24,14 +24,13 @@ using Grpc.Core;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Encoders;
-using NCode.Identity.Secrets.Persistence.GoogleCloudKms.Facades;
-using NCode.Identity.Secrets.Persistence.GoogleCloudKms.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Facades;
+using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
 
-namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms;
+namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 
 /// <summary>
-/// Provides an implementation of <see cref="IRootKeyProvider"/> that wraps keys with a symmetric encryption key held
+/// Provides an implementation of <see cref="IKeyWrapper"/> that wraps keys with a symmetric encryption key held
 /// in Google Cloud Key Management Service, so the root key never leaves the service.
 /// </summary>
 /// <remarks>
@@ -56,17 +55,17 @@ namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms;
 /// </para>
 /// </remarks>
 // See ADR-0260.
-internal class GoogleCloudKmsRootKeyProvider(
+internal class GoogleCloudKmsKeyWrapper(
     IGoogleCloudKmsClientFactory clientFactory,
-    IOptions<GoogleCloudKmsRootKeyOptions> options
-) : IRootKeyProvider
+    IOptions<GoogleCloudKmsKeyWrapperOptions> options
+) : IKeyWrapper
 {
     private IGoogleCloudKmsClientFactory ClientFactory { get; } = clientFactory;
 
-    private IOptions<GoogleCloudKmsRootKeyOptions> RootKeyOptions { get; } = options;
+    private IOptions<GoogleCloudKmsKeyWrapperOptions> RootKeyOptions { get; } = options;
 
     /// <inheritdoc />
-    public string ProviderName => RootKeyProviderNames.GoogleCloudKms;
+    public string Name => KeyWrapperNames.GoogleCloudKms;
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">
@@ -76,7 +75,7 @@ internal class GoogleCloudKmsRootKeyProvider(
     /// Thrown when the service does not confirm the integrity of the request and response, or reports a crypto key
     /// version that does not belong to the configured crypto key.
     /// </exception>
-    public async ValueTask<RootWrappedKey> WrapAsync(
+    public async ValueTask<WrappedKey> WrapAsync(
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
@@ -130,9 +129,9 @@ internal class GoogleCloudKmsRootKeyProvider(
             );
         }
 
-        return new RootWrappedKey
+        return new WrappedKey
         {
-            ProviderName = ProviderName,
+            WrapperName = Name,
             KeyId = versionName,
             Ciphertext = Base64Url.Encode(response.Ciphertext.Span),
         };
@@ -153,7 +152,7 @@ internal class GoogleCloudKmsRootKeyProvider(
     /// Thrown when the plaintext that the service returns fails its integrity check.
     /// </exception>
     public async ValueTask<int> UnwrapAsync(
-        RootWrappedKey wrappedKey,
+        WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
         Memory<byte> destination,
         CancellationToken cancellationToken

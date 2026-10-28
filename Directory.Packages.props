@@ -116,7 +116,7 @@
     <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.10.2" />
   </ItemGroup>
 
-  <!-- Root key provider (NCode.Identity.Secrets.Persistence.GoogleCloudKms only). -->
+  <!-- Root key provider (NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms only). -->
   <ItemGroup>
     <PackageVersion Include="Google.Cloud.Kms.V1" Version="3.27.0" />
   </ItemGroup>

@@ -20,7 +20,7 @@
         <ProjectReference Include="..\NCode.Identity.SharedState.Valkey\NCode.Identity.SharedState.Valkey.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets.KeyWrapping.AwsKms\NCode.Identity.Secrets.KeyWrapping.AwsKms.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets.KeyWrapping.AzureKeyVault\NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.csproj" />
-        <ProjectReference Include="..\NCode.Identity.Secrets.Persistence.GoogleCloudKms\NCode.Identity.Secrets.Persistence.GoogleCloudKms.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms\NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.csproj" />
     </ItemGroup>
 
     <ItemGroup>

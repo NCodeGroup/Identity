@@ -16,21 +16,22 @@
 
 #endregion
 
-using NCode.Identity.Secrets.Persistence.GoogleCloudKms.Options;
+using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
 using NCode.Identity.Secrets.Persistence.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
 using Xunit;
 
-namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms.Tests.Options;
+namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Tests.Options;
 
-public class GoogleCloudKmsRootKeyOptionsValidatorTests
+public class GoogleCloudKmsKeyWrapperOptionsValidatorTests
 {
     private const string KeyName =
         "projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root";
 
     private const string KeyVersionName = KeyName + "/cryptoKeyVersions/1";
 
-    private static GoogleCloudKmsRootKeyOptionsValidator CreateValidator(string? rootKeyProvider) =>
+    private static GoogleCloudKmsKeyWrapperOptionsValidator CreateValidator(
+        string? rootKeyProvider
+    ) =>
         new(
             Microsoft.Extensions.Options.Options.Create(
                 new SecretProtectionOptions { RootKeyProvider = rootKeyProvider }
@@ -42,9 +43,12 @@ public class GoogleCloudKmsRootKeyOptionsValidatorTests
     [Fact]
     public void Validate_OtherProviderSelected_Skips()
     {
-        var validator = CreateValidator(RootKeyProviderNames.Local);
+        var validator = CreateValidator(KeyWrapperNames.Local);
 
-        var result = validator.Validate(null, new GoogleCloudKmsRootKeyOptions { KeyName = null });
+        var result = validator.Validate(
+            null,
+            new GoogleCloudKmsKeyWrapperOptions { KeyName = null }
+        );
 
         Assert.True(result.Skipped);
     }
@@ -52,9 +56,12 @@ public class GoogleCloudKmsRootKeyOptionsValidatorTests
     [Fact]
     public void Validate_MissingKeyName_Fails()
     {
-        var validator = CreateValidator(RootKeyProviderNames.GoogleCloudKms);
+        var validator = CreateValidator(KeyWrapperNames.GoogleCloudKms);
 
-        var result = validator.Validate(null, new GoogleCloudKmsRootKeyOptions { KeyName = null });
+        var result = validator.Validate(
+            null,
+            new GoogleCloudKmsKeyWrapperOptions { KeyName = null }
+        );
 
         Assert.True(result.Failed);
         Assert.Contains("KeyName", result.FailureMessage);
@@ -63,11 +70,11 @@ public class GoogleCloudKmsRootKeyOptionsValidatorTests
     [Fact]
     public void Validate_KeyVersionName_Fails()
     {
-        var validator = CreateValidator(RootKeyProviderNames.GoogleCloudKms);
+        var validator = CreateValidator(KeyWrapperNames.GoogleCloudKms);
 
         var result = validator.Validate(
             null,
-            new GoogleCloudKmsRootKeyOptions { KeyName = KeyVersionName }
+            new GoogleCloudKmsKeyWrapperOptions { KeyName = KeyVersionName }
         );
 
         Assert.True(result.Failed);
@@ -77,11 +84,11 @@ public class GoogleCloudKmsRootKeyOptionsValidatorTests
     [Fact]
     public void Validate_KeyName_Succeeds()
     {
-        var validator = CreateValidator(RootKeyProviderNames.GoogleCloudKms);
+        var validator = CreateValidator(KeyWrapperNames.GoogleCloudKms);
 
         var result = validator.Validate(
             null,
-            new GoogleCloudKmsRootKeyOptions { KeyName = KeyName }
+            new GoogleCloudKmsKeyWrapperOptions { KeyName = KeyName }
         );
 
         Assert.True(result.Succeeded);

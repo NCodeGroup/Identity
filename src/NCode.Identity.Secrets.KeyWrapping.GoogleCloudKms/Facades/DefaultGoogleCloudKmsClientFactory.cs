@@ -19,7 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Google.Cloud.Kms.V1;
 
-namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms.Facades;
+namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Facades;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IGoogleCloudKmsClientFactory"/>: one

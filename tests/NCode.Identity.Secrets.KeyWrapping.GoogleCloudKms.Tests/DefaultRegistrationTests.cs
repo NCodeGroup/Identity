@@ -20,12 +20,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
-using NCode.Identity.Secrets.Persistence.GoogleCloudKms.Facades;
-using NCode.Identity.Secrets.Persistence.GoogleCloudKms.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Facades;
+using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
+using NCode.Identity.Secrets.Persistence;
 using Xunit;
 
-namespace NCode.Identity.Secrets.Persistence.GoogleCloudKms.Tests;
+namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Tests;
 
 public class DefaultRegistrationTests
 {
@@ -53,15 +53,15 @@ public class DefaultRegistrationTests
         serviceCollection
             .AddSecretsLibrary()
             .AddPersistenceLibrary()
-            .AddGoogleCloudKmsRootKeyProvider(configuration);
+            .AddGoogleCloudKmsKeyWrapper(configuration);
 
         return serviceCollection;
     }
 
-    #region AddGoogleCloudKmsRootKeyProvider Tests
+    #region AddGoogleCloudKmsKeyWrapper Tests
 
     [Fact]
-    public async Task AddGoogleCloudKmsRootKeyProvider_RegistersProviderInCatalogWithoutCreatingClient()
+    public async Task AddGoogleCloudKmsKeyWrapper_RegistersProviderInCatalogWithoutCreatingClient()
     {
         var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
         var serviceCollection = AddGoogleCloudKms(
@@ -72,18 +72,15 @@ public class DefaultRegistrationTests
         );
 
         await using var provider = serviceCollection.BuildServiceProvider();
-        var rootKeyProviders = provider.GetServices<IRootKeyProvider>().ToList();
+        var rootKeyProviders = provider.GetServices<IKeyWrapper>().ToList();
 
-        Assert.Contains(
-            rootKeyProviders,
-            x => x.ProviderName == RootKeyProviderNames.GoogleCloudKms
-        );
-        Assert.Contains(rootKeyProviders, x => x is GoogleCloudKmsRootKeyProvider);
+        Assert.Contains(rootKeyProviders, x => x.Name == KeyWrapperNames.GoogleCloudKms);
+        Assert.Contains(rootKeyProviders, x => x is GoogleCloudKmsKeyWrapper);
         clientFactory.Verify();
     }
 
     [Fact]
-    public async Task AddGoogleCloudKmsRootKeyProvider_UnknownSetting_Throws()
+    public async Task AddGoogleCloudKmsKeyWrapper_UnknownSetting_Throws()
     {
         var clientFactory = new Mock<IGoogleCloudKmsClientFactory>(MockBehavior.Strict);
         var serviceCollection = AddGoogleCloudKms(
@@ -94,10 +91,10 @@ public class DefaultRegistrationTests
         );
 
         await using var provider = serviceCollection.BuildServiceProvider();
-        var options = provider.GetRequiredService<IOptions<GoogleCloudKmsRootKeyOptions>>();
+        var options = provider.GetRequiredService<IOptions<GoogleCloudKmsKeyWrapperOptions>>();
 
         var exception = Assert.Throws<InvalidOperationException>(() => options.Value);
-        Assert.Contains(GoogleCloudKmsRootKeyOptions.DefaultSectionName, exception.Message);
+        Assert.Contains(GoogleCloudKmsKeyWrapperOptions.DefaultSectionName, exception.Message);
     }
 
     #endregion

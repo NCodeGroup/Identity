@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
@@ -51,16 +52,17 @@ internal class DefaultManagementAuditRecorder(
         CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new GrantRevokedAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = GetCorrelationId(httpContext),
-            ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
             TenantId = tenantId,
             SubjectId = subjectId,
             ClientId = clientId,
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             GrantType = grantType,
         };
@@ -79,18 +81,19 @@ internal class DefaultManagementAuditRecorder(
         CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new GrantsRevokedBulkAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = GetCorrelationId(httpContext),
-            ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
             TenantId = tenantId,
             SubjectId = subjectId,
             ClientId = clientId,
-            SessionId = sessionId,
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
+            SessionId = sessionId,
             RevokedCount = revokedCount,
         };
 
@@ -107,15 +110,16 @@ internal class DefaultManagementAuditRecorder(
         CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new SessionsRevokedAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = GetCorrelationId(httpContext),
-            ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
             TenantId = tenantId,
             SubjectId = subjectId,
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             SessionId = sessionId,
             RevokedCount = revokedCount,
@@ -140,7 +144,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            Source = GetEndpointName(httpContext),
             TenantId = tenantId,
             ClientId = clientId,
             Outcome = AuditOutcome.Success,
@@ -169,7 +173,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            Source = GetEndpointName(httpContext),
             TenantId = tenantId,
             ClientId = clientId,
             Outcome = AuditOutcome.Success,
@@ -196,7 +200,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            Source = GetEndpointName(httpContext),
             TenantId = tenantId,
             Outcome = AuditOutcome.Success,
             ResourceId = tenantId,
@@ -223,7 +227,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            Source = GetEndpointName(httpContext),
             TenantId = tenantId,
             Outcome = AuditOutcome.Success,
             ResourceId = secretId,
@@ -249,7 +253,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            Source = GetEndpointName(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceId = serverId,
             ChangeType = changeType,
@@ -275,7 +279,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            Source = GetEndpointName(httpContext),
             Outcome = AuditOutcome.Success,
             ServerId = serverId,
             ResourceId = secretId,
@@ -302,7 +306,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            Source = GetEndpointName(httpContext),
             TenantId = tenantId,
             Outcome = AuditOutcome.Success,
             ResourceId = resourceServerId,
@@ -330,7 +334,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            Source = GetEndpointName(httpContext),
             TenantId = tenantId,
             Outcome = AuditOutcome.Success,
             ResourceServerId = resourceServerId,
@@ -359,7 +363,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            Source = GetEndpointName(httpContext),
             TenantId = tenantId,
             Outcome = AuditOutcome.Success,
             ResourceServerId = resourceServerId,
@@ -386,7 +390,7 @@ internal class DefaultManagementAuditRecorder(
             Timestamp = TimeProvider.GetUtcNow(),
             CorrelationId = GetCorrelationId(httpContext),
             ActorId = GetActorId(httpContext),
-            Source = GetSource(httpContext),
+            Source = GetEndpointName(httpContext),
         };
 
         return EventPublisher.PublishAsync(stamped, cancellationToken);
@@ -395,12 +399,18 @@ internal class DefaultManagementAuditRecorder(
     private static string? GetCorrelationId(HttpContext httpContext) =>
         Activity.Current?.Id ?? httpContext.TraceIdentifier;
 
-    private static string? GetSource(HttpContext httpContext)
+    private static string? GetEndpointName(HttpContext httpContext)
     {
         var endpoint = httpContext.GetEndpoint();
         return endpoint?.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName
             ?? endpoint?.DisplayName;
     }
+
+    private static AuditRequest CreateRequest(HttpContext httpContext) =>
+        AuditRequestFactory.Create(httpContext, GetEndpointName(httpContext));
+
+    private AuditActor GetActor(HttpContext httpContext) =>
+        AuditActor.Administrator(GetActorId(httpContext));
 
     // The actor is a self-issued/control-plane admin, so its subject is read with the server-default claim types
     // (ADR-0053) through the app-level environment — not the request tenant's subject_claim_types setting.

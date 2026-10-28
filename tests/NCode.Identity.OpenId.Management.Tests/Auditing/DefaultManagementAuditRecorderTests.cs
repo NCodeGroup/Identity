@@ -19,6 +19,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Environments;
@@ -31,13 +32,26 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
     public void Dispose() => MockRepository.Verify();
 
-    private static HttpContext CreateHttpContext(string? actorId) =>
-        new DefaultHttpContext
+    private static HttpContext CreateHttpContext(string? actorId)
+    {
+        var httpContext = new DefaultHttpContext
         {
+            TraceIdentifier = "trace-1",
             User = actorId is null
                 ? new ClaimsPrincipal(new ClaimsIdentity())
                 : new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", actorId)])),
         };
+
+        httpContext.SetEndpoint(
+            new Endpoint(
+                requestDelegate: null,
+                new EndpointMetadataCollection(new EndpointNameMetadata("test-endpoint")),
+                displayName: "Test display name"
+            )
+        );
+
+        return httpContext;
+    }
 
     // The actor id is derived through the host-configured environment seam; mirror the default `sub` extraction.
     private DefaultManagementAuditRecorder CreateRecorder(IEventPublisher eventPublisher)
@@ -94,14 +108,19 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("grant.revoked", captured.Action);
+        Assert.Equal("grant.revoked", captured.EventName);
+        Assert.Equal(AuditEventSources.Management, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
         Assert.Equal("client-1", captured.ClientId);
         Assert.Equal("authorization_code", captured.GrantType);
-        Assert.Equal("admin-1", captured.ActorId);
-        Assert.NotEqual(Guid.Empty, captured.EventId);
+        Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
+        Assert.Equal("admin-1", captured.Actor.Id);
+        Assert.NotNull(captured.Request);
+        Assert.Equal("trace-1", captured.Request.RequestId);
+        Assert.Equal("test-endpoint", captured.Request.Endpoint);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -143,14 +162,20 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("grant.revoked.bulk", captured.Action);
+        Assert.Equal("grant.revoked.bulk", captured.EventName);
+        Assert.Equal(AuditEventSources.Management, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
         Assert.Null(captured.ClientId);
         Assert.Equal("sid-1", captured.SessionId);
         Assert.Equal(7, captured.RevokedCount);
-        Assert.Equal("admin-1", captured.ActorId);
+        Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
+        Assert.Equal("admin-1", captured.Actor.Id);
+        Assert.NotNull(captured.Request);
+        Assert.Equal("trace-1", captured.Request.RequestId);
+        Assert.Equal("test-endpoint", captured.Request.Endpoint);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion
@@ -187,13 +212,19 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("session.revoked.admin", captured.Action);
+        Assert.Equal("session.revoked.admin", captured.EventName);
+        Assert.Equal(AuditEventSources.Management, captured.EventSource);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Equal("subject-1", captured.SubjectId);
         Assert.Equal("sid-1", captured.SessionId);
         Assert.Equal(1, captured.RevokedCount);
-        Assert.Equal("admin-1", captured.ActorId);
+        Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
+        Assert.Equal("admin-1", captured.Actor.Id);
+        Assert.NotNull(captured.Request);
+        Assert.Equal("trace-1", captured.Request.RequestId);
+        Assert.Equal("test-endpoint", captured.Request.Endpoint);
+        Assert.Equal(7, captured.EventId.Version);
     }
 
     #endregion

@@ -31,7 +31,10 @@ vocabulary names it everywhere.**
    `KeyId`, `Ciphertext`) and the name constants `KeyWrapperNames` live in `NCode.Identity.Secrets.Abstractions`, folder
    `KeyWrapping/`, namespace `NCode.Identity.Secrets.KeyWrapping`. That package is the key-material vocabulary that
    `NCode.Identity.Jose.Abstractions` already depends on, the types need only the BCL, and a remote JOSE key can build on
-   them without a new dependency. A new package for three small types is not worth its packaging cost.
+   them without a new dependency. A new package for three small types is not worth its packaging cost. `UnwrapAsync`
+   writes the key into a caller-supplied `IBufferWriter<byte>`, because a caller cannot know an unwrapped key's length
+   in advance; it advances the writer only on success and zeroes what it wrote on failure
+   ([ADR-0116](0116-memory-allocations-and-buffer-operations.md)).
 2. **One vocabulary.** The contract is a key wrapper; implementations are `<Kind>KeyWrapper`, their options
    `<Kind>KeyWrapperOptions`, their registration `Add<Kind>KeyWrapper`, the name constants `KeyWrapperNames` and the
    catalog `IKeyWrapperCatalog`. The in-memory AES-GCM helper becomes `AesGcmKeyWrap`, matching JOSE's `IAesKeyWrap` and

@@ -779,9 +779,9 @@ change to the public API is a **major** version bump.
 ### Changed
 
 - **Key wrapping is a shared secrets abstraction.** Every key wrapper implements `IKeyWrapper` (`Name`, `WrapAsync`,
-  `UnwrapAsync`) and returns `WrappedKey` (`WrapperName`, `KeyId`, `Ciphertext`); both, with `KeyWrapperNames`, live in
-  `NCode.Identity.Secrets.Abstractions` under `NCode.Identity.Secrets.KeyWrapping`, and the offline recovery wrapper
-  implements the same contract. Breaking: `IRootKeyProvider`, `RootWrappedKey` and `RootKeyProviderNames` are removed;
+  and `UnwrapAsync`, which writes the key into an `IBufferWriter<byte>`) and returns `WrappedKey` (`WrapperName`,
+  `KeyId`, `Ciphertext`); both, with `KeyWrapperNames`, live in `NCode.Identity.Secrets.Abstractions` under
+  `NCode.Identity.Secrets.KeyWrapping`, and the offline recovery wrapper implements the same contract. Breaking: `IRootKeyProvider`, `RootWrappedKey` and `RootKeyProviderNames` are removed;
   `LocalRootKeyOptions` is `LocalKeyWrapperOptions`; the packages `NCode.Identity.Secrets.Persistence.AwsKms`,
   `.AzureKeyVault` and `.GoogleCloudKms` are `NCode.Identity.Secrets.KeyWrapping.AwsKms`, `.AzureKeyVault` and
   `.GoogleCloudKms`, with `Add<Vendor>KeyWrapper` and `<Vendor>KeyWrapperOptions` in place of

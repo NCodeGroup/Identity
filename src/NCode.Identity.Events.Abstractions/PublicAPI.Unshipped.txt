@@ -12,6 +12,37 @@ const NCode.Identity.Events.Audit.AuditEventCategories.Session = "session" -> st
 const NCode.Identity.Events.Audit.AuditEventCategories.Token = "token" -> string!
 const NCode.Identity.Events.Audit.AuditEventSources.Management = "management" -> string!
 const NCode.Identity.Events.Audit.AuditEventSources.OpenId = "openid" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Actor = "actor" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ActorFields.Id = "id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ActorFields.Type = "type" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ClientId = "client_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Details = "details" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Error = "error" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ErrorFields.Code = "code" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ErrorFields.Message = "message" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ErrorFields.StatusCode = "status_code" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.EventCategory = "event_category" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.EventId = "event_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.EventName = "event_name" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.EventSource = "event_source" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.EventTime = "event_time" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Outcome = "outcome" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Request = "request" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.Endpoint = "endpoint" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.HttpMethod = "http_method" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.Path = "path" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.RequestId = "request_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.SourceIp = "source_ip" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.SpanId = "span_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.TraceId = "trace_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.RequestFields.UserAgent = "user_agent" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ResourceFields.Id = "id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.ResourceFields.Type = "type" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Resources = "resources" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.SchemaVersion = "schema_version" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.Severity = "severity" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.SubjectId = "subject_id" -> string!
+const NCode.Identity.Events.Audit.AuditRecordFields.TenantId = "tenant_id" -> string!
 const NCode.Identity.Events.Audit.AuditResourceTypes.Session = "session" -> string!
 const NCode.Identity.Events.Audit.AuditSeverities.Critical = "critical" -> string!
 const NCode.Identity.Events.Audit.AuditSeverities.Info = "info" -> string!
@@ -43,6 +74,11 @@ NCode.Identity.Events.Audit.AuditEvent.Request.get -> NCode.Identity.Events.Audi
 NCode.Identity.Events.Audit.AuditEvent.Request.init -> void
 NCode.Identity.Events.Audit.AuditEventCategories
 NCode.Identity.Events.Audit.AuditEventSources
+NCode.Identity.Events.Audit.AuditRecordFields
+NCode.Identity.Events.Audit.AuditRecordFields.ActorFields
+NCode.Identity.Events.Audit.AuditRecordFields.ErrorFields
+NCode.Identity.Events.Audit.AuditRecordFields.RequestFields
+NCode.Identity.Events.Audit.AuditRecordFields.ResourceFields
 NCode.Identity.Events.Audit.AuditRequest
 NCode.Identity.Events.Audit.AuditRequest.Endpoint.get -> string?
 NCode.Identity.Events.Audit.AuditRequest.Endpoint.init -> void

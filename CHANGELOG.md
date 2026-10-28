@@ -10,6 +10,11 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The JWK package names the JSON Web Key vocabulary.** `NCode.Identity.Jwk` adds `JsonWebKeyUses`,
+  `JsonWebKeyOperations`, `JsonWebKeyTypes` and `JsonWebKeySetParameterNames`. The protocol client, the OP's client key
+  import and registration, and ECDH key management use them instead of string literals, and `SecretKeyUses` takes its
+  values from `JsonWebKeyUses` (issue [#357](https://github.com/NCodeGroup/Identity/issues/357)).
+
 - **The OpenID protocol client pushes authorization requests.** `IAuthorizationRequestClient.CreateAuthorizationUriAsync`
   takes a `ClientRegistration` and an `AuthorizationRequest` (redirect URI, `state`, PKCE verifier, optional `nonce`,
   `scope`, `response_mode`, resources and open additional parameters) and returns an `AuthorizationRequestResult`. It

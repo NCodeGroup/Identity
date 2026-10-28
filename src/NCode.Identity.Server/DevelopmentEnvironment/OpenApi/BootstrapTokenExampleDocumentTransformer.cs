@@ -102,7 +102,7 @@ internal sealed class BootstrapTokenExampleDocumentTransformer(
         {
             if (
                 operation.RequestBody?.Content is not { } content
-                || !content.TryGetValue(OpenIdConstants.ContentType, out var mediaType)
+                || !content.TryGetValue(OpenIdProtocol.MediaTypes.FormUrlEncoded, out var mediaType)
             )
             {
                 continue;

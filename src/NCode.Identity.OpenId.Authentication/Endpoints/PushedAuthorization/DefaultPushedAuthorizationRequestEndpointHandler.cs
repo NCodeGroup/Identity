@@ -64,7 +64,10 @@ internal class DefaultPushedAuthorizationRequestEndpointHandler(
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>
         MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header)
-        && header.MediaType.Equals(OpenIdConstants.ContentType, StringComparison.OrdinalIgnoreCase);
+        && header.MediaType.Equals(
+            OpenIdProtocol.MediaTypes.FormUrlEncoded,
+            StringComparison.OrdinalIgnoreCase
+        );
 
     /// <summary>
     /// Pushed authorization request endpoint (OAuth 2.0 Pushed Authorization Requests, RFC 9126).
@@ -93,7 +96,7 @@ internal class DefaultPushedAuthorizationRequestEndpointHandler(
         {
             return errorFactory
                 .InvalidRequest(
-                    $"Only POST requests with Content-Type '{OpenIdConstants.ContentType}' are supported."
+                    $"Only POST requests with Content-Type '{OpenIdProtocol.MediaTypes.FormUrlEncoded}' are supported."
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();

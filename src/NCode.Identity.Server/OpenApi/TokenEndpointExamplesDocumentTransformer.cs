@@ -117,7 +117,7 @@ internal sealed class TokenEndpointExamplesDocumentTransformer : IOpenApiDocumen
             Required = true,
             Content = new Dictionary<string, OpenApiMediaType>(StringComparer.Ordinal)
             {
-                [OpenIdConstants.ContentType] = mediaType,
+                [OpenIdProtocol.MediaTypes.FormUrlEncoded] = mediaType,
             },
         };
     }

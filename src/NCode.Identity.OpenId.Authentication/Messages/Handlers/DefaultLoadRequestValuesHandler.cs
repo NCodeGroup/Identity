@@ -48,7 +48,7 @@ internal class DefaultLoadRequestValuesHandler
 
         if (HttpMethods.IsPost(httpRequest.Method))
         {
-            const string expectedContentType = OpenIdConstants.ContentType;
+            const string expectedContentType = OpenIdProtocol.MediaTypes.FormUrlEncoded;
             if (
                 !httpRequest.ContentType?.StartsWith(
                     expectedContentType,

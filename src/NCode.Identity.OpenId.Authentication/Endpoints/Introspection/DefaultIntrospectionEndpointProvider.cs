@@ -83,7 +83,10 @@ internal class DefaultIntrospectionEndpointProvider(
 
     private static bool IsApplicationFormContentType(HttpContext httpContext) =>
         MediaTypeHeaderValue.TryParse(httpContext.Request.ContentType, out var header)
-        && header.MediaType.Equals(OpenIdConstants.ContentType, StringComparison.OrdinalIgnoreCase);
+        && header.MediaType.Equals(
+            OpenIdProtocol.MediaTypes.FormUrlEncoded,
+            StringComparison.OrdinalIgnoreCase
+        );
 
     // RFC 9701 §4: a resource server requests a JWT response by listing its media type in the Accept header.
     private static bool AcceptsJwtResponse(HttpContext httpContext)
@@ -137,7 +140,7 @@ internal class DefaultIntrospectionEndpointProvider(
         {
             return errorFactory
                 .InvalidRequest(
-                    $"Only POST requests with Content-Type '{OpenIdConstants.ContentType}' are supported."
+                    $"Only POST requests with Content-Type '{OpenIdProtocol.MediaTypes.FormUrlEncoded}' are supported."
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();

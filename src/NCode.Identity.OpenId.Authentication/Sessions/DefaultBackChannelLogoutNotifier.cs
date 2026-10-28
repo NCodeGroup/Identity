@@ -120,11 +120,9 @@ internal class DefaultBackChannelLogoutNotifier(
         var payloadClaims = new Dictionary<string, object>(StringComparer.Ordinal)
         {
             [JoseClaimNames.Payload.Jti] = CryptoService.GenerateUrlSafeKey(),
-            [OpenIdConstants.BackChannelLogout.EventsClaimName] = new Dictionary<string, object>(
-                StringComparer.Ordinal
-            )
+            [JoseClaimNames.Payload.Events] = new Dictionary<string, object>(StringComparer.Ordinal)
             {
-                [OpenIdConstants.BackChannelLogout.EventName] = new Dictionary<string, object>(),
+                [OpenIdProtocol.BackChannelLogout.EventName] = new Dictionary<string, object>(),
             },
         };
 

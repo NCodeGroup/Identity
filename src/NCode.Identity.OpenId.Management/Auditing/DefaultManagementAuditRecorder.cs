@@ -18,7 +18,6 @@
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Auditing;
@@ -405,15 +404,8 @@ internal class DefaultManagementAuditRecorder(
         return EventPublisher.PublishAsync(stamped, cancellationToken);
     }
 
-    private static string? GetEndpointName(HttpContext httpContext)
-    {
-        var endpoint = httpContext.GetEndpoint();
-        return endpoint?.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName
-            ?? endpoint?.DisplayName;
-    }
-
     private static AuditRequest CreateRequest(HttpContext httpContext) =>
-        AuditRequestFactory.Create(httpContext, GetEndpointName(httpContext));
+        AuditRequestFactory.Create(httpContext);
 
     private AuditActor GetActor(HttpContext httpContext) =>
         AuditActor.Administrator(GetActorId(httpContext));

@@ -20,6 +20,7 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NCode.Encoders;
+using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jwt.Encoding;
@@ -41,7 +42,6 @@ internal class PrivateKeyJwtClientAuthenticator(
     IOptions<OpenIdClientOptions> options
 ) : IClientAuthenticator
 {
-    private const string AssertionType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
     private const string NoneAlgorithm = "none";
 
     private static readonly TimeSpan AssertionLifetime = TimeSpan.FromSeconds(60);
@@ -124,17 +124,26 @@ internal class PrivateKeyJwtClientAuthenticator(
                 Expires = now + AssertionLifetime,
                 ExtraPayloadClaims = new Dictionary<string, object>
                 {
-                    ["sub"] = clientId,
-                    ["jti"] = Base64Url.Encode(RandomNumberGenerator.GetBytes(16)),
+                    [JoseClaimNames.Payload.Sub] = clientId,
+                    [JoseClaimNames.Payload.Jti] = Base64Url.Encode(
+                        RandomNumberGenerator.GetBytes(16)
+                    ),
                 },
             }
         );
 
         context.Parameters.Add(
-            new KeyValuePair<string, string>("client_assertion_type", AssertionType)
+            new KeyValuePair<string, string>(
+                OpenIdProtocol.Parameters.ClientAssertionType,
+                OpenIdProtocol.ClientAssertionTypes.JwtBearer
+            )
         );
-        context.Parameters.Add(new KeyValuePair<string, string>("client_assertion", assertion));
-        context.Parameters.Add(new KeyValuePair<string, string>("client_id", clientId));
+        context.Parameters.Add(
+            new KeyValuePair<string, string>(OpenIdProtocol.Parameters.ClientAssertion, assertion)
+        );
+        context.Parameters.Add(
+            new KeyValuePair<string, string>(OpenIdProtocol.Parameters.ClientId, clientId)
+        );
         return ValueTask.CompletedTask;
     }
 

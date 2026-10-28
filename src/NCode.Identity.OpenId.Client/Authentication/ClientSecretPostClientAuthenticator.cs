@@ -42,9 +42,14 @@ internal class ClientSecretPostClientAuthenticator(IClientKeyRingProvider keyRin
         var secret = SharedSecretReader.ReadSecret(KeyRingProvider, registration);
 
         context.Parameters.Add(
-            new KeyValuePair<string, string>("client_id", registration.ClientId)
+            new KeyValuePair<string, string>(
+                OpenIdProtocol.Parameters.ClientId,
+                registration.ClientId
+            )
         );
-        context.Parameters.Add(new KeyValuePair<string, string>("client_secret", secret));
+        context.Parameters.Add(
+            new KeyValuePair<string, string>(OpenIdProtocol.Parameters.ClientSecret, secret)
+        );
         return ValueTask.CompletedTask;
     }
 }

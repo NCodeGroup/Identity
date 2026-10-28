@@ -40,14 +40,14 @@ internal static class ProtocolErrorReader
         if (response.Json is not { ValueKind: JsonValueKind.Object } json)
             return false;
 
-        var errorCode = ReadString(json, "error");
+        var errorCode = ReadString(json, OpenIdProtocol.Parameters.ErrorCode);
         if (string.IsNullOrEmpty(errorCode))
             return false;
 
         error = new ProtocolError(errorCode, response.StatusCode)
         {
-            ErrorDescription = ReadString(json, "error_description"),
-            ErrorUri = ReadString(json, "error_uri"),
+            ErrorDescription = ReadString(json, OpenIdProtocol.Parameters.ErrorDescription),
+            ErrorUri = ReadString(json, OpenIdProtocol.Parameters.ErrorUri),
         };
         return true;
     }

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -251,13 +250,14 @@ internal class DefaultManagementAuditRecorder(
         CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new ServerChangedAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = GetCorrelationId(httpContext),
-            ActorId = GetActorId(httpContext),
-            Source = GetEndpointName(httpContext),
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceId = serverId,
             ChangeType = changeType,
@@ -277,13 +277,14 @@ internal class DefaultManagementAuditRecorder(
         CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new ServerSecretChangedAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = GetCorrelationId(httpContext),
-            ActorId = GetActorId(httpContext),
-            Source = GetEndpointName(httpContext),
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ServerId = serverId,
             ResourceId = secretId,
@@ -304,14 +305,15 @@ internal class DefaultManagementAuditRecorder(
         CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new ResourceServerChangedAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = GetCorrelationId(httpContext),
-            ActorId = GetActorId(httpContext),
-            Source = GetEndpointName(httpContext),
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceId = resourceServerId,
             ChangeType = changeType,
@@ -332,14 +334,15 @@ internal class DefaultManagementAuditRecorder(
         CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new ResourceServerScopeChangedAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = GetCorrelationId(httpContext),
-            ActorId = GetActorId(httpContext),
-            Source = GetEndpointName(httpContext),
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceServerId = resourceServerId,
             ResourceId = scopeValue,
@@ -361,14 +364,15 @@ internal class DefaultManagementAuditRecorder(
         CancellationToken cancellationToken
     )
     {
+        var now = TimeProvider.GetUtcNow();
         var auditEvent = new ResourceServerSecretChangedAuditEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = GetCorrelationId(httpContext),
-            ActorId = GetActorId(httpContext),
-            Source = GetEndpointName(httpContext),
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
             TenantId = tenantId,
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceServerId = resourceServerId,
             ResourceId = secretId,
@@ -388,20 +392,18 @@ internal class DefaultManagementAuditRecorder(
     {
         // Stamp the common envelope (the caller owns the resource-specific fields and outcome); `with` preserves the
         // runtime event type so dispatch keys off the concrete event.
+        var now = TimeProvider.GetUtcNow();
         var stamped = auditEvent with
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = TimeProvider.GetUtcNow(),
-            CorrelationId = GetCorrelationId(httpContext),
-            ActorId = GetActorId(httpContext),
-            Source = GetEndpointName(httpContext),
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
         };
 
         return EventPublisher.PublishAsync(stamped, cancellationToken);
     }
-
-    private static string? GetCorrelationId(HttpContext httpContext) =>
-        Activity.Current?.Id ?? httpContext.TraceIdentifier;
 
     private static string? GetEndpointName(HttpContext httpContext)
     {

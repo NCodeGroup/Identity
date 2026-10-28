@@ -144,7 +144,7 @@ internal class DefaultBackChannelLogoutNotifier(
 
         var parameters = new JwtEncodingParameters
         {
-            TokenType = OpenIdConstants.SecurityTokenTypes.LogoutToken,
+            TokenType = JoseTokenTypes.LogoutJwt,
             SigningCredentials = signingCredentials,
             EncryptionCredentials = credentials.EncryptionCredentials,
             Issuer = openIdTenant.Issuer,

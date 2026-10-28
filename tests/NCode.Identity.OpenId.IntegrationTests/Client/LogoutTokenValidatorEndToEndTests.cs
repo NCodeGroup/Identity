@@ -329,5 +329,38 @@ public class LogoutTokenValidatorEndToEndTests
         Assert.Equal(pairwiseSubject, result.Subject);
     }
 
+    [Fact]
+    public async Task ValidateAsync_WhenTheSameLogoutTokenIsValidatedTwice_FailsAsAReplay()
+    {
+        const string clientId = "it-logout-e2e-replay";
+
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        using var factory = new HostApplicationFactory { BackChannelLogoutExchanges = exchanges };
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await SeedClientAsync(
+            factory,
+            clientId,
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.BackChannelLogoutUri] = BackChannelLogoutUri,
+            }
+        );
+        await using var provider = CreateClientProvider(factory);
+        var registration = CreateRegistration(clientId);
+        var browser = CreateBrowser(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        await RequestIdTokenAsync(browser, sessionCookie, provider, registration);
+
+        await EndSessionAsync(browser, sessionCookie);
+        var logoutToken = await WaitForLogoutTokenAsync(exchanges);
+        var first = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
+        Assert.True(first.IsValid, first.FailureReason);
+
+        var second = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
+
+        Assert.False(second.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.TokenReplayed, second.FailureCode);
+    }
+
     #endregion
 }

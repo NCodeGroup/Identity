@@ -82,9 +82,11 @@ internal class DefaultProviderMetadataResolver(
     {
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            authority.TrimEnd('/') + "/.well-known/openid-configuration"
+            authority.TrimEnd('/') + OpenIdProtocol.WellKnownPaths.OpenIdConfiguration
         );
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Accept.Add(
+            new MediaTypeWithQualityHeaderValue(OpenIdProtocol.MediaTypes.Json)
+        );
 
         ProviderHttpResponse response;
         try
@@ -131,14 +133,17 @@ internal class DefaultProviderMetadataResolver(
         foreach (
             var (name, value) in new (string, string?)[]
             {
-                ("authorization_endpoint", metadata.AuthorizationEndpoint),
-                ("token_endpoint", metadata.TokenEndpoint),
-                ("userinfo_endpoint", metadata.UserInfoEndpoint),
-                ("jwks_uri", metadata.JwksUri),
-                ("end_session_endpoint", metadata.EndSessionEndpoint),
-                ("revocation_endpoint", metadata.RevocationEndpoint),
                 (
-                    "pushed_authorization_request_endpoint",
+                    OpenIdProtocol.MetadataNames.AuthorizationEndpoint,
+                    metadata.AuthorizationEndpoint
+                ),
+                (OpenIdProtocol.MetadataNames.TokenEndpoint, metadata.TokenEndpoint),
+                (OpenIdProtocol.MetadataNames.UserInfoEndpoint, metadata.UserInfoEndpoint),
+                (OpenIdProtocol.MetadataNames.JwksUri, metadata.JwksUri),
+                (OpenIdProtocol.MetadataNames.EndSessionEndpoint, metadata.EndSessionEndpoint),
+                (OpenIdProtocol.MetadataNames.RevocationEndpoint, metadata.RevocationEndpoint),
+                (
+                    OpenIdProtocol.MetadataNames.PushedAuthorizationRequestEndpoint,
                     metadata.PushedAuthorizationRequestEndpoint
                 ),
             }

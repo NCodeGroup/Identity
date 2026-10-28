@@ -189,7 +189,6 @@ public class JoseSerializerTests : BaseTests
         jweAlgorithm switch
         {
             JweAlgorithm.DIR => CreateRandomSymmetricKey(keyId, GetBitCount(jweEncryption)),
-            JweAlgorithm.RSA1_5 => CreateRandomRsaKey(keyId),
             JweAlgorithm.RSA_OAEP => CreateRandomRsaKey(keyId),
             JweAlgorithm.RSA_OAEP_256 => CreateRandomRsaKey(keyId),
             JweAlgorithm.RSA_OAEP_384 => CreateRandomRsaKey(keyId),
@@ -226,7 +225,9 @@ public class JoseSerializerTests : BaseTests
     {
         get
         {
-            var algorithmTypes = Enum.GetValues<JweAlgorithm>();
+            // The library registers no RSA1_5; Decode_WhenJweUsesRsa15_ThrowsJoseInvalidAlgorithmException covers it.
+            var algorithmTypes = Enum.GetValues<JweAlgorithm>()
+                .Where(algorithmType => algorithmType != JweAlgorithm.RSA1_5);
             var encryptionTypes = Enum.GetValues<JweEncryption>();
             var compressionTypes = new JweCompression?[] { null, JweCompression.DEF };
 

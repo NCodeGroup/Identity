@@ -22,7 +22,7 @@ namespace NCode.Identity.Jose.Algorithms;
 public partial class AlgorithmCodes
 {
     /// <summary>
-    /// Contains constants of various supported cryptographic algorithms used for key management.
+    /// Contains the names (<c>alg</c> values) of the cryptographic algorithms used for key management.
     /// </summary>
     /// <remarks>
     /// References: https://datatracker.ietf.org/doc/html/rfc7518#section-4
@@ -80,7 +80,9 @@ public partial class AlgorithmCodes
         public const string Pbes2HmacSha512Aes256 = "PBES2-HS512+A256KW";
 
         /// <summary>
-        /// RSAES-PKCS1-v1_5
+        /// RSAES-PKCS1-v1_5. The library registers no implementation of it: RSAES-PKCS1-v1_5 key encryption is open to
+        /// padding-oracle attacks, and <c>RFC 8725</c> §3.2 says to avoid it. The name lets a policy recognize and
+        /// refuse it.
         /// </summary>
         public const string RsaPkcs1 = "RSA1_5";
 

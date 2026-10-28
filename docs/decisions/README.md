@@ -317,3 +317,4 @@ standards.
 | [0279](./0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md) | Key wrapping is a secrets abstraction shared by the root and recovery wrappers | Accepted |
 | [0280](./0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md) | The protocol client decrypts ID and logout tokens with its key ring | Accepted |
 | [0281](./0281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md) | The JWK package takes contributed key types and hash names from its caller | Accepted |
+| [0282](./0282-the-jose-library-does-not-implement-rsa1-5.md) | The JOSE library does not implement RSA1_5 | Accepted |

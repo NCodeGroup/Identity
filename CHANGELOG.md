@@ -10,6 +10,14 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **The OpenID protocol client pushes authorization requests.** `IAuthorizationRequestClient.CreateAuthorizationUriAsync`
+  takes a `ClientRegistration` and an `AuthorizationRequest` (redirect URI, `state`, PKCE verifier, optional `nonce`,
+  `scope`, `response_mode`, resources and open additional parameters) and returns an `AuthorizationRequestResult`. It
+  always uses the code flow with PKCE `S256`, pushes the request (RFC 9126) whenever the provider advertises a PAR
+  endpoint, and refuses the front channel when the provider or `ClientRegistration.RequirePushedAuthorizationRequests`
+  requires PAR. A PAR error is returned as data
+  ([ADR-0275](docs/decisions/0275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md), issue [#123](https://github.com/NCodeGroup/Identity/issues/123)).
+
 - **The OpenID protocol client validates back-channel logout tokens.** `ILogoutTokenValidator.ValidateAsync` takes a
   `ClientRegistration` and a `LogoutTokenValidationRequest` and returns a `LogoutTokenValidationResult` with
   `IsValid`, the `TokenId`, `ExpiresAt`, `Subject`, `SessionId` and a `FailureReason`. It applies the ID-token
@@ -42,7 +50,7 @@ change to the public API is a **major** version bump.
   `ITokenRevocationClient` makes revocation requests; `IProviderMetadataResolver` and `IProviderKeySetResolver` resolve
   and cache a provider's discovery document and JWKS. Client authentication is an open `IClientAuthenticator`
   collection with `client_secret_basic`, `client_secret_post` and `private_key_jwt`. A `ClientRegistration` names its
-  signing keys through a `KeyRing`, which selects a keyed `ISecretKeyCollectionProvider`. PAR, DPoP and mTLS remain
+  signing keys through a `KeyRing`, which selects a keyed `ISecretKeyCollectionProvider`. DPoP and mTLS remain
   in phase 1b, and the BFF itself is not yet delivered
   ([ADR-0270](docs/decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md), issue [#123](https://github.com/NCodeGroup/Identity/issues/123)).
 

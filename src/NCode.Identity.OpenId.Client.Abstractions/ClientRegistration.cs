@@ -75,6 +75,13 @@ public sealed class ClientRegistration(
     /// </summary>
     public bool BackchannelLogoutSessionRequired { get; init; }
 
+    /// <summary>
+    /// Gets a value indicating whether the client registered <c>require_pushed_authorization_requests</c> (RFC 9126 §6),
+    /// so its authorization requests are always pushed and never sent on the front channel. The default is
+    /// <see langword="false"/>.
+    /// </summary>
+    public bool RequirePushedAuthorizationRequests { get; init; }
+
     private static string[]? ValidateAlgorithms(IReadOnlyList<string>? value)
     {
         if (value is null)

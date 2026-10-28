@@ -16,11 +16,16 @@
 
 #endregion
 
+using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Client.Tokens;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Collections;
+using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.Keys;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Client.Tests.Tokens;
@@ -49,12 +54,14 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
 
     private static ClientRegistration CreateRegistration(
         IReadOnlyList<string>? keyManagement = null,
-        IReadOnlyList<string>? contentEncryption = null
+        IReadOnlyList<string>? contentEncryption = null,
+        string? keyRing = null
     ) =>
         new(Issuer, ClientId, OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt)
         {
             IdTokenKeyManagementAlgorithms = keyManagement,
             IdTokenContentEncryptionAlgorithms = contentEncryption,
+            KeyRing = keyRing,
         };
 
     #region IsEncryptionRegistered Tests
@@ -198,6 +205,109 @@ public class ClientDecryptionPolicyTests : BaseTests, IAsyncLifetime
         );
 
         Assert.Equal(["A256GCM", "A128CBC-HS256"], result);
+    }
+
+    #endregion
+
+    #region GetDecryptionKeys Tests
+
+    [Fact]
+    public void GetDecryptionKeys_WhenNoKeyRing_Throws()
+    {
+        var mockKeyRingProvider = CreateStrictMock<IClientKeyRingProvider>();
+        var registration = CreateRegistration(keyManagement: ["RSA-OAEP-256"]);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            ClientDecryptionPolicy.GetDecryptionKeys(mockKeyRingProvider.Object, registration)
+        );
+
+        Assert.Contains(ClientId, exception.Message);
+    }
+
+    [Fact]
+    public void GetDecryptionKeys_WhenKeyRing_ReturnsOnlyAsymmetricKeys()
+    {
+        const string keyRing = "ring-1";
+        using var rsa = RSA.Create(2048);
+        var keyFactory = ServiceProvider.GetRequiredService<ISecretKeyFactory>();
+        var rsaKey = keyFactory.CreateRsa(
+            new KeyMetadata { KeyId = "r1", Use = SecretKeyUses.Encryption },
+            rsa
+        );
+        var symmetricKey = keyFactory.CreateSymmetric(
+            new KeyMetadata { KeyId = "s1" },
+            "secret".AsSpan()
+        );
+        var keys = ServiceProvider
+            .GetRequiredService<ISecretKeyCollectionFactory>()
+            .Create([rsaKey, symmetricKey]);
+        var mockKeyRingProvider = CreateStrictMock<IClientKeyRingProvider>();
+        mockKeyRingProvider.Setup(x => x.GetKeyRing(keyRing)).Returns(keys).Verifiable();
+        var registration = CreateRegistration(keyManagement: ["RSA-OAEP-256"], keyRing: keyRing);
+
+        var result = ClientDecryptionPolicy.GetDecryptionKeys(
+            mockKeyRingProvider.Object,
+            registration
+        );
+
+        var key = Assert.Single(result);
+        Assert.Same(rsaKey, key);
+    }
+
+    #endregion
+
+    #region IsReplicatedIssuerValid Tests
+
+    [Fact]
+    public void IsReplicatedIssuerValid_WhenNotEncrypted_ReturnsTrue()
+    {
+        var result = ClientDecryptionPolicy.IsReplicatedIssuerValid(null, Issuer);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsReplicatedIssuerValid_WhenHeaderHasNoIssuer_ReturnsTrue()
+    {
+        var header = JsonElement.Parse("""{"alg":"RSA-OAEP-256","enc":"A256GCM"}""");
+
+        var result = ClientDecryptionPolicy.IsReplicatedIssuerValid(header, Issuer);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsReplicatedIssuerValid_WhenIssuerMatches_ReturnsTrue()
+    {
+        var header = JsonElement.Parse(
+            """{"alg":"RSA-OAEP-256","iss":"https://op.example.test"}"""
+        );
+
+        var result = ClientDecryptionPolicy.IsReplicatedIssuerValid(header, Issuer);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsReplicatedIssuerValid_WhenIssuerDiffers_ReturnsFalse()
+    {
+        var header = JsonElement.Parse(
+            """{"alg":"RSA-OAEP-256","iss":"https://evil.example.test"}"""
+        );
+
+        var result = ClientDecryptionPolicy.IsReplicatedIssuerValid(header, Issuer);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsReplicatedIssuerValid_WhenIssuerIsNotAString_ReturnsFalse()
+    {
+        var header = JsonElement.Parse("""{"alg":"RSA-OAEP-256","iss":42}""");
+
+        var result = ClientDecryptionPolicy.IsReplicatedIssuerValid(header, Issuer);
+
+        Assert.False(result);
     }
 
     #endregion

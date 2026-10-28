@@ -16,8 +16,11 @@
 
 #endregion
 
+using System.Text.Json;
+using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets.Keys;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Client.Tokens;
 
@@ -104,5 +107,45 @@ internal static class ClientDecryptionPolicy
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Gets the keys that decrypt the tokens encrypted to the client: the asymmetric keys of its key ring, which the
+    /// JWT validator selects by their <c>use</c> and the <c>alg</c> of the token.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// The client has no key ring, or the key ring is not registered.
+    /// </exception>
+    public static List<SecretKey> GetDecryptionKeys(
+        IClientKeyRingProvider keyRingProvider,
+        ClientRegistration registration
+    )
+    {
+        var keyRing = registration.KeyRing;
+        if (string.IsNullOrEmpty(keyRing))
+            throw new InvalidOperationException(
+                $"The client '{registration.ClientId}' registers ID-token encryption but has no key ring."
+            );
+
+        var keys = keyRingProvider.GetKeyRing(keyRing);
+        return [.. keys.OfType<AsymmetricSecretKey>()];
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the <c>iss</c> header parameter that the encryption header replicates, if any,
+    /// equals the specified issuer. An unencrypted token or a header without <c>iss</c> is valid.
+    /// </summary>
+    public static bool IsReplicatedIssuerValid(JsonElement? encryptionHeader, string issuer)
+    {
+        // A JWE may replicate the claim of the enclosed JWT as a header parameter; when it does, it must agree with
+        // the issuer (RFC 7519 §5.3, OpenID Connect Back-Channel Logout 1.0 §2.4).
+        if (
+            encryptionHeader is not { } header
+            || !header.TryGetProperty(JoseClaimNames.Payload.Iss, out _)
+        )
+            return true;
+
+        return header.TryGetPropertyValue<string>(JoseClaimNames.Payload.Iss, out var replicated)
+            && string.Equals(replicated, issuer, StringComparison.Ordinal);
     }
 }

@@ -477,6 +477,22 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         );
     }
 
+    [Fact]
+    public async Task ValidateAsync_WhenAssertionIsNotSatisfied_FailsWithAssertionFailed()
+    {
+        var token = EncodeToken();
+
+        var parameters = new JwtValidationParameters()
+            .UseValidationKeys([_signingKey])
+            .RequireAssertion((_, _) => ValueTask.FromResult(false));
+
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
+
+        Assert.False(result.IsValid);
+        Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.AssertionFailed, result.FailureCode);
+    }
+
     #endregion
 
     #region ValidateTokenLifeTime NumericDate Tests
@@ -819,6 +835,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.InvalidTokenType, result.FailureCode);
     }
 
     [Fact]

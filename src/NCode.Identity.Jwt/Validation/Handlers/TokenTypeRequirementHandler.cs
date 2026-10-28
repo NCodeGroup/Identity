@@ -47,13 +47,17 @@ internal sealed class TokenTypeRequirementHandler : JwtValidationHandler<TokenTy
             || string.IsNullOrEmpty(tokenType)
         )
         {
-            context.Fail("The 'typ' header parameter is missing.");
+            context.Fail(
+                JwtValidationFailureCodes.InvalidTokenType,
+                "The 'typ' header parameter is missing."
+            );
             return ValueTask.CompletedTask;
         }
 
         if (!validTokenTypeSet.Contains(JoseTokenTypes.Normalize(tokenType)))
         {
             context.Fail(
+                JwtValidationFailureCodes.InvalidTokenType,
                 $"The 'typ' header parameter '{tokenType}' is invalid because it does not match any of the expected token types."
             );
             return ValueTask.CompletedTask;

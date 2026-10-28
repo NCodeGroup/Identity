@@ -257,6 +257,7 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
 
         Assert.False(result.IsValid);
         Assert.Contains(expectedMessage, result.Exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.InvalidCertificate, result.FailureCode);
     }
 
     [Fact]

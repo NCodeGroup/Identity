@@ -371,5 +371,271 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         Assert.Equal("The logout token is empty.", result.FailureReason);
     }
 
+    [Fact]
+    public async Task ValidateAsync_WhenSubAndSidAreMissing_Fails()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateLogoutToken(includeSub: false, includeSid: false)
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(
+            "The logout token has neither a 'sub' nor a 'sid' claim.",
+            result.FailureReason
+        );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenOnlySid_ReturnsPayload()
+    {
+        var validator = CreateValidator(CreateKeySetMock(), CreateAcceptingKeySet());
+
+        var result = await ValidateAsync(validator, CreateLogoutToken(includeSub: false));
+
+        Assert.True(result.IsValid, result.FailureReason);
+        Assert.Null(result.Subject);
+        Assert.Equal("sid-1", result.SessionId);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenOnlySub_ReturnsPayload()
+    {
+        var validator = CreateValidator(CreateKeySetMock(), CreateAcceptingKeySet());
+
+        var result = await ValidateAsync(validator, CreateLogoutToken(includeSid: false));
+
+        Assert.True(result.IsValid, result.FailureReason);
+        Assert.Equal("user-1", result.Subject);
+        Assert.Null(result.SessionId);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenSessionRequiredAndSidIsMissing_Fails()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+        var registration = new ClientRegistration(
+            Issuer,
+            ClientId,
+            ClientAuthenticationMethods.PrivateKeyJwt
+        )
+        {
+            BackchannelLogoutSessionRequired = true,
+        };
+
+        var result = await ValidateAsync(
+            validator,
+            CreateLogoutToken(includeSid: false),
+            registration
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(
+            "The logout token has no 'sid' claim, which the client requires.",
+            result.FailureReason
+        );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenSidIsNotAString_Fails()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateLogoutToken(extraClaims: new Dictionary<string, object> { ["sid"] = 42 })
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(
+            "The 'sid' claim of the logout token is not a non-empty string.",
+            result.FailureReason
+        );
+    }
+
+    private const string EventsFailure =
+        "The 'events' claim of the logout token does not contain the back-channel logout event.";
+
+    [Fact]
+    public async Task ValidateAsync_WhenEventsIsMissing_Fails()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(validator, CreateLogoutToken(includeEvents: false));
+
+        Assert.False(result.IsValid);
+        Assert.Equal(EventsFailure, result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenEventsLacksTheLogoutEvent_Fails()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateLogoutToken(
+                extraClaims: new Dictionary<string, object>
+                {
+                    ["events"] = new Dictionary<string, object>
+                    {
+                        ["other"] = new Dictionary<string, object>(),
+                    },
+                }
+            )
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(EventsFailure, result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenLogoutEventIsNotAnObject_Fails()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateLogoutToken(
+                extraClaims: new Dictionary<string, object>
+                {
+                    ["events"] = new Dictionary<string, object> { [LogoutEvent] = "x" },
+                }
+            )
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(EventsFailure, result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenNonceIsPresent_Fails()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateLogoutToken(extraClaims: new Dictionary<string, object> { ["nonce"] = "n" })
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal("The logout token contains a 'nonce' claim.", result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenJtiIsMissing_Fails()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(validator, CreateLogoutToken(includeJti: false));
+
+        Assert.False(result.IsValid);
+        Assert.Equal("The logout token has no 'jti' claim.", result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenReplayed_Fails()
+    {
+        var keySet = CreateStrictMock<IExpiringKeySet>();
+        keySet
+            .Setup(x =>
+                x.TryAddAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.FromResult(false))
+            .Verifiable();
+        var validator = CreateValidator(CreateKeySetMock(), keySet);
+
+        var result = await ValidateAsync(validator, CreateLogoutToken());
+
+        Assert.False(result.IsValid);
+        Assert.Equal("The logout token has already been received.", result.FailureReason);
+    }
+
+    private Mock<IExpiringKeySet> CreateCapturingKeySet(
+        List<(string Key, DateTimeOffset ExpiresWhen)> captured
+    )
+    {
+        var mock = CreateStrictMock<IExpiringKeySet>();
+        mock.Setup(x =>
+                x.TryAddAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback<string, DateTimeOffset, CancellationToken>(
+                (key, expiresWhen, _) => captured.Add((key, expiresWhen))
+            )
+            .Returns(ValueTask.FromResult(true))
+            .Verifiable();
+        return mock;
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenValid_RecordsScopedJtiUntilExpiryPlusSkew()
+    {
+        var captured = new List<(string Key, DateTimeOffset ExpiresWhen)>();
+        var validator = CreateValidator(CreateKeySetMock(), CreateCapturingKeySet(captured));
+
+        var result = await ValidateAsync(validator, CreateLogoutToken());
+
+        Assert.True(result.IsValid, result.FailureReason);
+        var entry = Assert.Single(captured);
+        Assert.StartsWith("logout_token_jti:", entry.Key);
+        Assert.DoesNotContain("jti-1", entry.Key);
+        Assert.Equal(result.ExpiresAt + TimeSpan.FromMinutes(5), entry.ExpiresWhen);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenJtiDiffers_RecordsADifferentKey()
+    {
+        var captured = new List<(string Key, DateTimeOffset ExpiresWhen)>();
+        var validator = CreateValidator(CreateKeySetMock(), CreateCapturingKeySet(captured));
+
+        await ValidateAsync(validator, CreateLogoutToken(jti: "jti-1"));
+        await ValidateAsync(validator, CreateLogoutToken(jti: "jti-2"));
+        await ValidateAsync(validator, CreateLogoutToken(jti: "jti-1"));
+
+        Assert.Equal(3, captured.Count);
+        Assert.NotEqual(captured[0].Key, captured[1].Key);
+        Assert.Equal(captured[0].Key, captured[2].Key);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenCancelled_ThrowsOperationCanceledException()
+    {
+        var mockKeySet = CreateStrictMock<IProviderKeySetResolver>();
+        mockKeySet
+            .Setup(x => x.GetSigningKeysAsync(Issuer, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException())
+            .Verifiable();
+        var validator = CreateValidator(mockKeySet);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await ValidateAsync(validator, CreateLogoutToken())
+        );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenKeySetResolverThrows_Throws()
+    {
+        var mockKeySet = CreateStrictMock<IProviderKeySetResolver>();
+        mockKeySet
+            .Setup(x => x.GetSigningKeysAsync(Issuer, It.IsAny<CancellationToken>()))
+            .Throws(new OpenIdProviderException("jwks unavailable"))
+            .Verifiable();
+        var validator = CreateValidator(mockKeySet);
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await ValidateAsync(validator, CreateLogoutToken())
+        );
+    }
+
     #endregion
 }

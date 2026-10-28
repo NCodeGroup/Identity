@@ -118,9 +118,10 @@ NCode.Identity.OpenId.Client.LogoutTokenValidationRequest.LogoutToken.init -> vo
 NCode.Identity.OpenId.Client.LogoutTokenValidationRequest.LogoutTokenValidationRequest() -> void
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.ExpiresAt.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Client.LogoutTokenValidationResult.FailureCode.get -> string?
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.FailureReason.get -> string?
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.IsValid.get -> bool
-NCode.Identity.OpenId.Client.LogoutTokenValidationResult.LogoutTokenValidationResult(string! failureReason) -> void
+NCode.Identity.OpenId.Client.LogoutTokenValidationResult.LogoutTokenValidationResult(string! failureCode, string! failureReason) -> void
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.LogoutTokenValidationResult(System.Text.Json.JsonElement payload, string! tokenId, System.DateTimeOffset expiresAt, string? subject, string? sessionId) -> void
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.Payload.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Client.LogoutTokenValidationResult.SessionId.get -> string?

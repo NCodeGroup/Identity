@@ -432,6 +432,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.Expired, result.FailureCode);
     }
 
     [Fact]
@@ -538,6 +539,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         Assert.False(result.IsValid);
         var exception = Assert.IsType<JwtValidationException>(result.Exception);
         Assert.Contains("'iat'", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.InvalidLifetime, result.FailureCode);
     }
 
     [Fact]
@@ -564,6 +566,22 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         Assert.False(result.IsValid);
         var exception = Assert.IsType<JwtValidationException>(result.Exception);
         Assert.Contains("issued in the future", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.NotYetValid, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenNotBeforeIsInFutureBeyondClockSkew_FailsAsNotYetValid()
+    {
+        var now = _utcNow.ToUnixTimeSeconds();
+
+        var result = await EncodeAndValidateLifetimeAsync(
+            new Dictionary<string, object> { ["nbf"] = now + 301, ["exp"] = now + 600 }
+        );
+
+        Assert.False(result.IsValid);
+        var exception = Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Contains("not valid before", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.NotYetValid, result.FailureCode);
     }
 
     #endregion
@@ -598,6 +616,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         Assert.False(result.IsValid);
         var exception = Assert.IsType<JwtValidationException>(result.Exception);
         Assert.Contains("issued-at", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.InvalidLifetime, result.FailureCode);
     }
 
     [Fact]
@@ -649,6 +668,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
         Assert.False(result.IsValid);
         var exception = Assert.IsType<JwtValidationException>(result.Exception);
         Assert.Contains("exceeds the maximum", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(JwtValidationFailureCodes.InvalidLifetime, result.FailureCode);
     }
 
     [Fact]

@@ -41,47 +41,53 @@ internal sealed class TokenLifetimeRequirementHandler
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (TryGetFailureReason(context, requirement, out var failureReason))
-            context.Fail(failureReason);
+        if (TryGetFailure(context, requirement, out var failureCode, out var failureReason))
+            context.Fail(failureCode, failureReason);
         else
             context.Succeed(requirement);
 
         return ValueTask.CompletedTask;
     }
 
-    private static bool TryGetFailureReason(
+    private static bool TryGetFailure(
         JwtValidationContext context,
         TokenLifetimeRequirement requirement,
+        [NotNullWhen(true)] out string? failureCode,
         [NotNullWhen(true)] out string? failureReason
     )
     {
         var payload = context.DecodedJwt.Payload;
         if (!TryGetOptionalNumericDate(payload, JoseClaimNames.Payload.Nbf, out var notBefore))
         {
+            failureCode = JwtValidationFailureCodes.InvalidLifetime;
             failureReason = "The token's 'nbf' claim is not a valid NumericDate.";
             return true;
         }
 
         if (!TryGetOptionalNumericDate(payload, JoseClaimNames.Payload.Iat, out var issuedAt))
         {
+            failureCode = JwtValidationFailureCodes.InvalidLifetime;
             failureReason = "The token's 'iat' claim is not a valid NumericDate.";
             return true;
         }
 
         if (!TryGetOptionalNumericDate(payload, JoseClaimNames.Payload.Exp, out var expires))
         {
+            failureCode = JwtValidationFailureCodes.InvalidLifetime;
             failureReason = "The token's 'exp' claim is not a valid NumericDate.";
             return true;
         }
 
         if (notBefore is null && requirement.RequireNotBefore)
         {
+            failureCode = JwtValidationFailureCodes.InvalidLifetime;
             failureReason = "The token is missing a not-before time.";
             return true;
         }
 
         if (issuedAt is null && requirement.RequireIssuedAt)
         {
+            failureCode = JwtValidationFailureCodes.InvalidLifetime;
             failureReason = "The token is missing an issued-at time.";
             return true;
         }
@@ -91,12 +97,14 @@ internal sealed class TokenLifetimeRequirementHandler
             requirement.RequireExpirationTime || requirement.MaxLifetime.HasValue;
         if (expires is null && requireExpirationTime)
         {
+            failureCode = JwtValidationFailureCodes.InvalidLifetime;
             failureReason = "The token is missing an expiration time.";
             return true;
         }
 
         if (notBefore > expires)
         {
+            failureCode = JwtValidationFailureCodes.InvalidLifetime;
             failureReason =
                 $"The NotBefore value '{notBefore:O}' cannot be after the Expires value '{expires:O}'.";
             return true;
@@ -108,18 +116,21 @@ internal sealed class TokenLifetimeRequirementHandler
 
         if (notBefore?.UtcTicks > latestStartTicks)
         {
+            failureCode = JwtValidationFailureCodes.NotYetValid;
             failureReason = $"The token is not valid before '{notBefore:O}'.";
             return true;
         }
 
         if (issuedAt?.UtcTicks > latestStartTicks)
         {
+            failureCode = JwtValidationFailureCodes.NotYetValid;
             failureReason = $"The token was issued in the future at '{issuedAt:O}'.";
             return true;
         }
 
         if (expires?.UtcTicks < nowTicks - clockSkewTicks)
         {
+            failureCode = JwtValidationFailureCodes.Expired;
             failureReason = $"The token is not valid after '{expires:O}'.";
             return true;
         }
@@ -133,11 +144,13 @@ internal sealed class TokenLifetimeRequirementHandler
             );
             if (expiresAt.UtcTicks - startTicks > maxLifetime.Ticks)
             {
+                failureCode = JwtValidationFailureCodes.InvalidLifetime;
                 failureReason = $"The token's lifetime exceeds the maximum of '{maxLifetime:c}'.";
                 return true;
             }
         }
 
+        failureCode = null;
         failureReason = null;
         return false;
     }

@@ -284,5 +284,210 @@ public class DefaultAuthorizationRequestClientTests : BaseTests
         Assert.Equal("/authorize", GetUri(result).AbsolutePath);
     }
 
+    private const string ParEndpoint = "https://op.example.test/par";
+
+    private const string ParSuccessBody =
+        """{"request_uri":"urn:ietf:params:oauth:request_uri:abc","expires_in":60}""";
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithParEndpoint_PushesAndReturnsRequestUri()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.Created, ParSuccessBody);
+        var client = CreateClient(
+            handler,
+            CreateMetadata(parEndpoint: ParEndpoint),
+            expectPush: true
+        );
+
+        var result = await client.CreateAuthorizationUriAsync(
+            CreateRegistration(),
+            CreateRequest(),
+            CancellationToken.None
+        );
+
+        var recorded = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Post, recorded.Method);
+        Assert.Equal(new Uri(ParEndpoint), recorded.RequestUri);
+        var body = HttpUtility.ParseQueryString(recorded.Body ?? "");
+        Assert.Equal("code", body["response_type"]);
+        Assert.Equal(["client-1"], Assert.IsType<string[]>(body.GetValues("client_id")));
+        Assert.Equal("https://app.example.test/cb", body["redirect_uri"]);
+        Assert.Equal("state-1", body["state"]);
+        Assert.Equal(Challenge, body["code_challenge"]);
+        Assert.Equal("S256", body["code_challenge_method"]);
+        Assert.Equal("n-1", body["nonce"]);
+        Assert.Equal("openid profile", body["scope"]);
+        Assert.Equal("query", body["response_mode"]);
+        Assert.Equal(
+            ["https://api1.example.test", "https://api2.example.test"],
+            Assert.IsType<string[]>(body.GetValues("resource"))
+        );
+        Assert.Equal("login", body["prompt"]);
+        Assert.Null(body["request_uri"]);
+
+        Assert.True(result.IsPushed);
+        Assert.Equal("urn:ietf:params:oauth:request_uri:abc", result.RequestUri);
+        Assert.Equal(60, result.ExpiresIn);
+        Assert.Equal("/authorize", GetUri(result).AbsolutePath);
+        var query = HttpUtility.ParseQueryString(GetUri(result).Query);
+        Assert.Equal(["client_id", "request_uri"], query.AllKeys.Order(StringComparer.Ordinal));
+        Assert.Equal("client-1", query["client_id"]);
+        Assert.Equal("urn:ietf:params:oauth:request_uri:abc", query["request_uri"]);
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithParEndpoint_WhenAuthenticatorAddsClientId_SendsItOnce()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.Created, ParSuccessBody);
+        var client = CreateClient(
+            handler,
+            CreateMetadata(parEndpoint: ParEndpoint),
+            expectPush: true,
+            authenticate: context =>
+                context.Parameters.Add(new KeyValuePair<string, string>("client_id", "client-1"))
+        );
+
+        await client.CreateAuthorizationUriAsync(
+            CreateRegistration(),
+            CreateRequest(),
+            CancellationToken.None
+        );
+
+        var body = HttpUtility.ParseQueryString(Assert.Single(handler.Requests).Body ?? "");
+        Assert.Equal(["client-1"], Assert.IsType<string[]>(body.GetValues("client_id")));
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WhenRegistrationRequiresPar_Pushes()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.Created, ParSuccessBody);
+        var client = CreateClient(
+            handler,
+            CreateMetadata(parEndpoint: ParEndpoint),
+            expectPush: true
+        );
+
+        var result = await client.CreateAuthorizationUriAsync(
+            CreateRegistration(requirePar: true),
+            CreateRequest(),
+            CancellationToken.None
+        );
+
+        Assert.Single(handler.Requests);
+        Assert.True(result.IsPushed);
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithParError_ReturnsError()
+    {
+        var handler = StubHttpMessageHandler.Respond(
+            HttpStatusCode.BadRequest,
+            """{"error":"invalid_request"}"""
+        );
+        var client = CreateClient(
+            handler,
+            CreateMetadata(parEndpoint: ParEndpoint),
+            expectPush: true
+        );
+
+        var result = await client.CreateAuthorizationUriAsync(
+            CreateRegistration(),
+            CreateRequest(),
+            CancellationToken.None
+        );
+
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.AuthorizationUri);
+        var error = Assert.IsType<ProtocolError>(result.Error);
+        Assert.Equal("invalid_request", error.Error);
+        Assert.Equal(400, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithParOkInsteadOfCreated_Throws()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, ParSuccessBody);
+        var client = CreateClient(
+            handler,
+            CreateMetadata(parEndpoint: ParEndpoint),
+            expectPush: true
+        );
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await client.CreateAuthorizationUriAsync(
+                CreateRegistration(),
+                CreateRequest(),
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithParMissingRequestUri_Throws()
+    {
+        var handler = StubHttpMessageHandler.Respond(
+            HttpStatusCode.Created,
+            """{"expires_in":60}"""
+        );
+        var client = CreateClient(
+            handler,
+            CreateMetadata(parEndpoint: ParEndpoint),
+            expectPush: true
+        );
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await client.CreateAuthorizationUriAsync(
+                CreateRegistration(),
+                CreateRequest(),
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithParNonPositiveExpiresIn_Throws()
+    {
+        var handler = StubHttpMessageHandler.Respond(
+            HttpStatusCode.Created,
+            """{"request_uri":"urn:ietf:params:oauth:request_uri:abc","expires_in":0}"""
+        );
+        var client = CreateClient(
+            handler,
+            CreateMetadata(parEndpoint: ParEndpoint),
+            expectPush: true
+        );
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await client.CreateAuthorizationUriAsync(
+                CreateRegistration(),
+                CreateRequest(),
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithParServerErrorWithoutOAuthError_Throws()
+    {
+        var handler = StubHttpMessageHandler.Respond(
+            HttpStatusCode.InternalServerError,
+            "boom",
+            "text/plain"
+        );
+        var client = CreateClient(
+            handler,
+            CreateMetadata(parEndpoint: ParEndpoint),
+            expectPush: true
+        );
+
+        await Assert.ThrowsAsync<OpenIdProviderException>(async () =>
+            await client.CreateAuthorizationUriAsync(
+                CreateRegistration(),
+                CreateRequest(),
+                CancellationToken.None
+            )
+        );
+    }
+
     #endregion
 }

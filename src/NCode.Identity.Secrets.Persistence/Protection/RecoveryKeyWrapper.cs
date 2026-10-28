@@ -42,7 +42,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </para>
 /// </remarks>
 // See ADR-0235.
-internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IKeyWrapper, IDisposable
+internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IDisposable
 {
     /// <summary>
     /// The name that <see cref="Name"/> reports. The name is never persisted or configured, because the recovery
@@ -68,7 +68,10 @@ internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IKeyWrapper, IDisposabl
 
     private int WrappedLength { get; }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets the identifier of the recovery public key, which is the base64url-encoded SHA-256 digest of the
+    /// SubjectPublicKeyInfo of the key, or <see langword="null"/> when no recovery key is configured.
+    /// </summary>
     public string? RecoveryKeyId { get; }
 
     /// <summary>
@@ -108,9 +111,7 @@ internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IKeyWrapper, IDisposabl
     /// <inheritdoc />
     public string Name => WrapperName;
 
-    /// <summary>
-    /// Gets a value indicating whether a recovery public key is configured.
-    /// </summary>
+    /// <inheritdoc />
     public bool IsConfigured => PublicKey is not null;
 
     /// <inheritdoc />
@@ -173,10 +174,30 @@ internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IKeyWrapper, IDisposabl
             "The recovery private key is kept offline, so the recovery key wrapper can only wrap."
         );
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets the number of characters that <see cref="Wrap{TWriter}"/> writes.
+    /// </summary>
+    /// <returns>
+    /// The length of the base64url-encoded wrapped key, or zero when no recovery key is configured.
+    /// </returns>
     public int GetWrappedLength() => WrappedLength;
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Wraps a master key under the recovery public key with RSA-OAEP and SHA-256, and writes the base64url text of
+    /// the wrapped key to a writer.
+    /// </summary>
+    /// <typeparam name="TWriter">The type of the writer that receives the wrapped key.</typeparam>
+    /// <param name="masterKey">The master key to wrap.</param>
+    /// <param name="destination">
+    /// The writer that receives exactly <see cref="GetWrappedLength"/> characters.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no recovery key is configured, or when <paramref name="destination"/> does not provide the
+    /// requested space.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the master key cannot be wrapped under the recovery public key.
+    /// </exception>
     public void Wrap<TWriter>(ReadOnlySpan<byte> masterKey, ref TWriter destination)
         where TWriter : IBufferWriter<char>, allows ref struct
     {

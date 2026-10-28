@@ -101,6 +101,10 @@ internal class MasterKeyFactory(
 
         var wrapped = await Catalog.GetConfigured().WrapAsync(material, context, cancellationToken);
 
+        var recoveryWrapped = Recovery.IsConfigured
+            ? await Recovery.WrapAsync(material, ReadOnlyMemory<byte>.Empty, cancellationToken)
+            : null;
+
         var row = new PersistedMasterKey
         {
             KeyId = keyId,
@@ -111,8 +115,8 @@ internal class MasterKeyFactory(
             RootKeyProvider = wrapped.WrapperName,
             RootKeyId = wrapped.KeyId,
             RootWrappedKey = wrapped.Ciphertext,
-            RecoveryKeyId = Recovery.RecoveryKeyId,
-            RecoveryWrappedKey = CreateRecoveryWrappedKey(material),
+            RecoveryKeyId = recoveryWrapped?.KeyId,
+            RecoveryWrappedKey = recoveryWrapped?.Ciphertext,
             KeyCheck = CreateKeyCheck(material.Span, keyId, owner, version),
         };
 
@@ -195,33 +199,6 @@ internal class MasterKeyFactory(
         }
 
         return MasterKey.Create(row.KeyId, owner, row.Version, material.Span);
-    }
-
-    // Wraps the master key under the recovery key into a string, which is persisted in a text column, or returns null
-    // when no recovery key is configured.
-    private string? CreateRecoveryWrappedKey(ReadOnlyMemory<byte> material)
-    {
-        var wrappedLength = Recovery.GetWrappedLength();
-        if (wrappedLength == 0)
-        {
-            return null;
-        }
-
-        return string.Create(
-            wrappedLength,
-            (Recovery: Recovery, Material: material),
-            static (chars, state) =>
-            {
-                var writer = chars.GetFixedBufferWriter();
-                state.Recovery.Wrap(state.Material.Span, ref writer);
-                if (writer.WrittenCount != chars.Length)
-                {
-                    throw new InvalidOperationException(
-                        $"The recovery key wrapper wrote {writer.WrittenCount} characters instead of the {chars.Length} that GetWrappedLength reported."
-                    );
-                }
-            }
-        );
     }
 
     // Computes the key-check value of the master key as the string that the row persists.

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using Moq;
@@ -56,21 +55,6 @@ public class MasterKeyFactoryTests : IDisposable
 
     private MasterKeyFactory CreateFactory(IRecoveryKeyWrapper recovery) =>
         new(_catalog.Object, recovery, _timeProvider.Object);
-
-    // Reports a wrapped length of eight characters but writes seven, so the factory must reject it.
-    private sealed class ShortRecoveryKeyWrapper : IRecoveryKeyWrapper
-    {
-        public string? RecoveryKeyId => "short";
-
-        public int GetWrappedLength() => 8;
-
-        public void Wrap<TWriter>(ReadOnlySpan<byte> masterKey, ref TWriter destination)
-            where TWriter : IBufferWriter<char>, allows ref struct
-        {
-            "1234567".CopyTo(destination.GetSpan(7));
-            destination.Advance(7);
-        }
-    }
 
     // CreateAsync selects the configured provider and reads the clock.
     private void ExpectCreate()
@@ -224,17 +208,6 @@ public class MasterKeyFactoryTests : IDisposable
 
         Assert.Null(created.Row.RecoveryKeyId);
         Assert.Null(created.Row.RecoveryWrappedKey);
-    }
-
-    [Fact]
-    public async Task Create_RecoveryWrapperWritesFewerCharacters_Throws()
-    {
-        ExpectCreate();
-        var factory = CreateFactory(new ShortRecoveryKeyWrapper());
-
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await factory.CreateAsync(Owner, version: 1, CancellationToken.None)
-        );
     }
 
     #endregion

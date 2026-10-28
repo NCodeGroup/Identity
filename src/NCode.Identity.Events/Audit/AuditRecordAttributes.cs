@@ -17,6 +17,7 @@
 #endregion
 
 using System.Text.Json;
+using NCode.Buffers;
 
 namespace NCode.Identity.Events.Audit;
 
@@ -50,7 +51,9 @@ internal static class AuditRecordAttributes
 
         var attributes = new List<KeyValuePair<string, object?>>();
 
-        using var document = JsonDocument.Parse(AuditRecordWriter.SerializeToUtf8Bytes(auditEvent));
+        using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false);
+        AuditRecordWriter.Write(buffer, auditEvent);
+        using var document = JsonDocument.Parse(buffer.AsReadOnlySequence);
 
         foreach (var member in document.RootElement.EnumerateObject())
         {

@@ -40,10 +40,13 @@ public sealed class IdTokenValidationResult
     /// <summary>
     /// Initializes a new instance of the <see cref="IdTokenValidationResult"/> class for an invalid ID token.
     /// </summary>
+    /// <param name="failureCode">The machine-readable code of the reason the ID token is invalid.</param>
     /// <param name="failureReason">The reason the ID token is invalid.</param>
-    public IdTokenValidationResult(string failureReason)
+    public IdTokenValidationResult(string failureCode, string failureReason)
     {
+        ArgumentException.ThrowIfNullOrEmpty(failureCode);
         ArgumentException.ThrowIfNullOrEmpty(failureReason);
+        FailureCode = failureCode;
         FailureReason = failureReason;
     }
 
@@ -53,6 +56,12 @@ public sealed class IdTokenValidationResult
     public JsonElement Payload { get; }
 
     /// <summary>
+    /// Gets the machine-readable code of the reason the ID token is invalid, a <see cref="TokenValidationFailureCodes"/>
+    /// value or another code a validator reports; otherwise, <see langword="null"/>.
+    /// </summary>
+    public string? FailureCode { get; }
+
+    /// <summary>
     /// Gets the reason the ID token is invalid; otherwise, <see langword="null"/>.
     /// </summary>
     public string? FailureReason { get; }
@@ -60,6 +69,6 @@ public sealed class IdTokenValidationResult
     /// <summary>
     /// Gets a value indicating whether the ID token is valid.
     /// </summary>
-    [MemberNotNullWhen(false, nameof(FailureReason))]
-    public bool IsValid => FailureReason is null;
+    [MemberNotNullWhen(false, nameof(FailureCode), nameof(FailureReason))]
+    public bool IsValid => FailureCode is null;
 }

@@ -81,6 +81,15 @@ request ([polewskm/project-template#48](https://github.com/polewskm/project-temp
 ([#49](https://github.com/polewskm/project-template/issues/49)) or the pull request's title
 ([#45](https://github.com/polewskm/project-template/issues/45)).
 
+The update to project-template `v0.35.1` adds those keys, and `AGENTS.md` sets them: `draft: yes`, so `/ship-plan`
+opens every pull request as a draft without the `draft` argument; `gate: ./build/dod.ps1 -Fast -Affected`, so
+`/ship-plan` and `/run-issues` run the local pre-push gate before each push and stop when it fails or changes a file;
+and `pr-format: none`, because a plan's title is already the conventional commit subject. `/ship-plan` files a plan's
+follow-ups as issues labelled `follow-up` ([ADR-0264](0264-pending-work-is-tracked-as-github-issues.md)). One plan may
+cover up to three related issues, with a `Closes` line for each, and `/run-issues` answers top-level pull request
+comments and review summaries as well as review threads, and plans the next issue while a pull request waits for
+review.
+
 ## Context
 
 An agent-driven change has two halves with opposite needs. **Planning** — reading the code paths, settling the design,

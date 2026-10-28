@@ -33,4 +33,11 @@ public sealed record ClaimValueRequirement(
     bool UsePayload,
     bool AllowCollection,
     IReadOnlyCollection<string> ValidValues
-) : IJwtValidationRequirement;
+) : IJwtValidationRequirement
+{
+    /// <summary>
+    /// Gets the machine-readable code the requirement fails with. The default is
+    /// <see cref="JwtValidationFailureCodes.InvalidClaim"/>.
+    /// </summary>
+    public string FailureCode { get; init; } = JwtValidationFailureCodes.InvalidClaim;
+}

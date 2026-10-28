@@ -87,6 +87,8 @@ NCode.Identity.Jwt.Validation.ClaimValueRequirement.AllowCollection.init -> void
 NCode.Identity.Jwt.Validation.ClaimValueRequirement.ClaimName.get -> string!
 NCode.Identity.Jwt.Validation.ClaimValueRequirement.ClaimName.init -> void
 NCode.Identity.Jwt.Validation.ClaimValueRequirement.ClaimValueRequirement(string! ClaimName, bool UsePayload, bool AllowCollection, System.Collections.Generic.IReadOnlyCollection<string!>! ValidValues) -> void
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.FailureCode.get -> string!
+NCode.Identity.Jwt.Validation.ClaimValueRequirement.FailureCode.init -> void
 NCode.Identity.Jwt.Validation.ClaimValueRequirement.UsePayload.get -> bool
 NCode.Identity.Jwt.Validation.ClaimValueRequirement.UsePayload.init -> void
 NCode.Identity.Jwt.Validation.ClaimValueRequirement.ValidValues.get -> System.Collections.Generic.IReadOnlyCollection<string!>!

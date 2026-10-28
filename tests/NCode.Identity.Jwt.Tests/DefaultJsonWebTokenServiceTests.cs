@@ -377,6 +377,7 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.InvalidIssuer, result.FailureCode);
     }
 
     [Fact]
@@ -393,6 +394,28 @@ public class DefaultJsonWebTokenServiceTests : IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.InvalidAudience, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenClaimValueMismatch_FailsWithInvalidClaim()
+    {
+        var token = EncodeToken();
+
+        var parameters = new JwtValidationParameters()
+            .UseValidationKeys([_signingKey])
+            .ValidateClaim(
+                JoseClaimNames.Payload.Iss,
+                usePayload: true,
+                allowCollection: false,
+                ["https://other.example"]
+            );
+
+        var result = await _validator.ValidateAsync(token, parameters, CancellationToken.None);
+
+        Assert.False(result.IsValid);
+        Assert.IsType<JwtValidationException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.InvalidClaim, result.FailureCode);
     }
 
     [Fact]

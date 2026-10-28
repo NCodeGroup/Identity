@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Text.Json;
 using NCode.Identity.Events.Audit;
 
@@ -54,7 +55,7 @@ public sealed class ManagementAuditEventShapeTests
     {
         var auditEvent = CreateGrantRevokedEvent("refresh_token");
 
-        using var record = JsonDocument.Parse(AuditRecordWriter.SerializeToUtf8Bytes(auditEvent));
+        using var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"grant_type":"refresh_token"}""",
@@ -67,7 +68,7 @@ public sealed class ManagementAuditEventShapeTests
     {
         var auditEvent = CreateGrantRevokedEvent(null);
 
-        using var record = JsonDocument.Parse(AuditRecordWriter.SerializeToUtf8Bytes(auditEvent));
+        using var record = ParseRecord(auditEvent);
 
         Assert.Equal("{}", record.RootElement.GetProperty("details").GetRawText());
     }
@@ -115,7 +116,7 @@ public sealed class ManagementAuditEventShapeTests
     {
         var auditEvent = CreateGrantsRevokedBulkEvent("sid-1");
 
-        using var record = JsonDocument.Parse(AuditRecordWriter.SerializeToUtf8Bytes(auditEvent));
+        using var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"revoked_count":3}""",
@@ -166,7 +167,7 @@ public sealed class ManagementAuditEventShapeTests
     {
         var auditEvent = CreateSessionsRevokedEvent("sid-1");
 
-        using var record = JsonDocument.Parse(AuditRecordWriter.SerializeToUtf8Bytes(auditEvent));
+        using var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"revoked_count":2}""",
@@ -287,6 +288,13 @@ public sealed class ManagementAuditEventShapeTests
     #endregion
 
     #region Helpers
+
+    private static JsonDocument ParseRecord(IAuditEvent auditEvent)
+    {
+        var output = new ArrayBufferWriter<byte>();
+        AuditRecordWriter.Write(output, auditEvent);
+        return JsonDocument.Parse(output.WrittenMemory);
+    }
 
     private static ClientSecretChangedAuditEvent CreateClientSecretChangedEvent(string? clientId) =>
         new()

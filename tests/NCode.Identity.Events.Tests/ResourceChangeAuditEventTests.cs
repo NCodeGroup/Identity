@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Text.Json;
 using NCode.Identity.Events.Audit;
 using Xunit;
@@ -41,6 +42,13 @@ public class ResourceChangeAuditEventTests
             ChangeType = ResourceChangeTypes.Created,
             ResourceValues = JsonDocument.Parse("""{"name":"x"}""").RootElement,
         };
+
+    private static JsonDocument ParseRecord(IAuditEvent auditEvent)
+    {
+        var output = new ArrayBufferWriter<byte>();
+        AuditRecordWriter.Write(output, auditEvent);
+        return JsonDocument.Parse(output.WrittenMemory);
+    }
 
     #region EventName Property Tests
 
@@ -88,7 +96,7 @@ public class ResourceChangeAuditEventTests
     {
         var auditEvent = CreateSample();
 
-        using var record = JsonDocument.Parse(AuditRecordWriter.SerializeToUtf8Bytes(auditEvent));
+        using var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"change_type":"created","resource_values":{"name":"x"}}""",
@@ -101,7 +109,7 @@ public class ResourceChangeAuditEventTests
     {
         var auditEvent = CreateSample() with { ResourceValues = null };
 
-        using var record = JsonDocument.Parse(AuditRecordWriter.SerializeToUtf8Bytes(auditEvent));
+        using var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"change_type":"created"}""",

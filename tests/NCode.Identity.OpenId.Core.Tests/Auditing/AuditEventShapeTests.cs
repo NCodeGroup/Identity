@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Text.Json;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Auditing;
@@ -48,7 +49,7 @@ public sealed class AuditEventShapeTests
     {
         var auditEvent = CreateTokenIssuedEvent();
 
-        using var record = JsonDocument.Parse(AuditRecordWriter.SerializeToUtf8Bytes(auditEvent));
+        using var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"token_type":"access_token"}""",
@@ -197,7 +198,7 @@ public sealed class AuditEventShapeTests
     {
         var auditEvent = CreateClientAuthenticationFailedEvent();
 
-        using var record = JsonDocument.Parse(AuditRecordWriter.SerializeToUtf8Bytes(auditEvent));
+        using var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"authentication_method":"private_key_jwt"}""",
@@ -318,7 +319,7 @@ public sealed class AuditEventShapeTests
     {
         var auditEvent = CreateSessionTerminatedEvent("sid-1");
 
-        using var record = JsonDocument.Parse(AuditRecordWriter.SerializeToUtf8Bytes(auditEvent));
+        using var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"termination_reason":"logout"}""",
@@ -329,6 +330,13 @@ public sealed class AuditEventShapeTests
     #endregion
 
     #region Helpers
+
+    private static JsonDocument ParseRecord(IAuditEvent auditEvent)
+    {
+        var output = new ArrayBufferWriter<byte>();
+        AuditRecordWriter.Write(output, auditEvent);
+        return JsonDocument.Parse(output.WrittenMemory);
+    }
 
     private static TokenIssuedAuditEvent CreateTokenIssuedEvent() =>
         new()

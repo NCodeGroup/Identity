@@ -181,8 +181,6 @@ static NCode.Identity.Events.Audit.AuditActor.Client(string! clientId) -> NCode.
 static NCode.Identity.Events.Audit.AuditActor.EndUser(string? subjectId) -> NCode.Identity.Events.Audit.AuditActor!
 static NCode.Identity.Events.Audit.AuditActor.System.get -> NCode.Identity.Events.Audit.AuditActor!
 static NCode.Identity.Events.Audit.AuditRecordWriter.Write(NCode.Identity.Events.Audit.IAuditEvent! auditEvent, System.Text.Json.Utf8JsonWriter! writer) -> void
-static NCode.Identity.Events.Audit.AuditRecordWriter.Write(System.Buffers.IBufferWriter<byte>! output, NCode.Identity.Events.Audit.IAuditEvent! auditEvent) -> void
-static NCode.Identity.Events.Audit.AuditRecordWriter.Write(System.Text.Json.Utf8JsonWriter! writer, NCode.Identity.Events.Audit.IAuditEvent! auditEvent) -> void
 static NCode.Identity.Events.Audit.AuditRecordWriter.Write<TWriter>(NCode.Identity.Events.Audit.IAuditEvent! auditEvent, ref TWriter destination) -> void
 static NCode.Identity.Events.DefaultHandlerPriorities.High.get -> int
 static NCode.Identity.Events.DefaultHandlerPriorities.High.set -> void

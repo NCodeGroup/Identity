@@ -98,14 +98,6 @@ public static class AuditRecordWriter
     }
 
     /// <summary>
-    /// Writes the audit record of an audit event as one JSON object.
-    /// </summary>
-    /// <param name="writer">The writer to write the audit record to.</param>
-    /// <param name="auditEvent">The audit event to write.</param>
-    public static void Write(Utf8JsonWriter writer, IAuditEvent auditEvent) =>
-        Write(auditEvent, writer);
-
-    /// <summary>
     /// Writes the audit record of an audit event as UTF-8 encoded JSON into a buffer writer.
     /// </summary>
     /// <typeparam name="TWriter">The type of the buffer writer.</typeparam>
@@ -132,20 +124,6 @@ public static class AuditRecordWriter
             segment.Span.CopyTo(destination.GetSpan(segment.Length));
             destination.Advance(segment.Length);
         }
-    }
-
-    /// <summary>
-    /// Writes the audit record of an audit event as UTF-8 encoded JSON into a buffer writer.
-    /// </summary>
-    /// <param name="output">The buffer writer to write the UTF-8 encoded JSON of the audit record to.</param>
-    /// <param name="auditEvent">The audit event to write.</param>
-    public static void Write(IBufferWriter<byte> output, IAuditEvent auditEvent)
-    {
-        ArgumentNullException.ThrowIfNull(output);
-        ArgumentNullException.ThrowIfNull(auditEvent);
-
-        using var writer = new Utf8JsonWriter(output);
-        Write(auditEvent, writer);
     }
 
     private static void WriteIfNotNull(Utf8JsonWriter writer, string name, string? value)

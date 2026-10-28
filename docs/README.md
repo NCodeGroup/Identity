@@ -13,6 +13,11 @@ first page is [Encryption at Rest](./capabilities/encryption-at-rest.md).
 Architecturally significant decisions are captured as ADRs under [`decisions/`](./decisions). See the
 [ADR index](./decisions/README.md) for the list and the process we follow.
 
+## Audit records
+
+[`audit-records.md`](./audit-records.md) documents the audit record: its JSON fields, the vocabularies of its values, the
+catalog of every audit event, and how the record reaches logs, traces and metrics.
+
 ## Metrics
 
 [`metrics.md`](./metrics.md) catalogs every meter, instrument, and attribute the family emits, and how a host collects

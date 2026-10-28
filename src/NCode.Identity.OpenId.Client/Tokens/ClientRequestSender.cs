@@ -105,8 +105,16 @@ internal class ClientRequestSender(
             cancellationToken
         );
 
-        if (includeClientId && !parameters.Exists(static p => p.Key == "client_id"))
-            parameters.Add(new KeyValuePair<string, string>("client_id", registration.ClientId));
+        if (
+            includeClientId
+            && !parameters.Exists(static p => p.Key == OpenIdProtocol.Parameters.ClientId)
+        )
+            parameters.Add(
+                new KeyValuePair<string, string>(
+                    OpenIdProtocol.Parameters.ClientId,
+                    registration.ClientId
+                )
+            );
 
         request.Content = new FormUrlEncodedContent(parameters);
 

@@ -55,11 +55,11 @@ public sealed class ManagementAuditEventShapeTests
     {
         var auditEvent = CreateGrantRevokedEvent("refresh_token");
 
-        using var record = ParseRecord(auditEvent);
+        var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"grant_type":"refresh_token"}""",
-            record.RootElement.GetProperty("details").GetRawText()
+            record.GetProperty("details").GetRawText()
         );
     }
 
@@ -68,9 +68,9 @@ public sealed class ManagementAuditEventShapeTests
     {
         var auditEvent = CreateGrantRevokedEvent(null);
 
-        using var record = ParseRecord(auditEvent);
+        var record = ParseRecord(auditEvent);
 
-        Assert.Equal("{}", record.RootElement.GetProperty("details").GetRawText());
+        Assert.Equal("{}", record.GetProperty("details").GetRawText());
     }
 
     #endregion
@@ -116,12 +116,9 @@ public sealed class ManagementAuditEventShapeTests
     {
         var auditEvent = CreateGrantsRevokedBulkEvent("sid-1");
 
-        using var record = ParseRecord(auditEvent);
+        var record = ParseRecord(auditEvent);
 
-        Assert.Equal(
-            """{"revoked_count":3}""",
-            record.RootElement.GetProperty("details").GetRawText()
-        );
+        Assert.Equal("""{"revoked_count":3}""", record.GetProperty("details").GetRawText());
     }
 
     #endregion
@@ -167,12 +164,9 @@ public sealed class ManagementAuditEventShapeTests
     {
         var auditEvent = CreateSessionsRevokedEvent("sid-1");
 
-        using var record = ParseRecord(auditEvent);
+        var record = ParseRecord(auditEvent);
 
-        Assert.Equal(
-            """{"revoked_count":2}""",
-            record.RootElement.GetProperty("details").GetRawText()
-        );
+        Assert.Equal("""{"revoked_count":2}""", record.GetProperty("details").GetRawText());
     }
 
     #endregion
@@ -289,11 +283,11 @@ public sealed class ManagementAuditEventShapeTests
 
     #region Helpers
 
-    private static JsonDocument ParseRecord(IAuditEvent auditEvent)
+    private static JsonElement ParseRecord(IAuditEvent auditEvent)
     {
         var output = new ArrayBufferWriter<byte>();
-        AuditRecordWriter.Write(output, auditEvent);
-        return JsonDocument.Parse(output.WrittenMemory);
+        AuditRecordWriter.Write(auditEvent, ref output);
+        return JsonElement.Parse(output.WrittenSpan);
     }
 
     private static ClientSecretChangedAuditEvent CreateClientSecretChangedEvent(string? clientId) =>

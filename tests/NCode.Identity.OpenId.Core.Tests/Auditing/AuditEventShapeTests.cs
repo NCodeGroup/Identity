@@ -49,11 +49,11 @@ public sealed class AuditEventShapeTests
     {
         var auditEvent = CreateTokenIssuedEvent();
 
-        using var record = ParseRecord(auditEvent);
+        var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"token_type":"access_token"}""",
-            record.RootElement.GetProperty("details").GetRawText()
+            record.GetProperty("details").GetRawText()
         );
     }
 
@@ -198,11 +198,11 @@ public sealed class AuditEventShapeTests
     {
         var auditEvent = CreateClientAuthenticationFailedEvent();
 
-        using var record = ParseRecord(auditEvent);
+        var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"authentication_method":"private_key_jwt"}""",
-            record.RootElement.GetProperty("details").GetRawText()
+            record.GetProperty("details").GetRawText()
         );
     }
 
@@ -319,11 +319,11 @@ public sealed class AuditEventShapeTests
     {
         var auditEvent = CreateSessionTerminatedEvent("sid-1");
 
-        using var record = ParseRecord(auditEvent);
+        var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"termination_reason":"logout"}""",
-            record.RootElement.GetProperty("details").GetRawText()
+            record.GetProperty("details").GetRawText()
         );
     }
 
@@ -331,11 +331,11 @@ public sealed class AuditEventShapeTests
 
     #region Helpers
 
-    private static JsonDocument ParseRecord(IAuditEvent auditEvent)
+    private static JsonElement ParseRecord(IAuditEvent auditEvent)
     {
         var output = new ArrayBufferWriter<byte>();
-        AuditRecordWriter.Write(output, auditEvent);
-        return JsonDocument.Parse(output.WrittenMemory);
+        AuditRecordWriter.Write(auditEvent, ref output);
+        return JsonElement.Parse(output.WrittenSpan);
     }
 
     private static TokenIssuedAuditEvent CreateTokenIssuedEvent() =>

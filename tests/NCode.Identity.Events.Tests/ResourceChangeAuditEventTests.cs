@@ -40,14 +40,14 @@ public class ResourceChangeAuditEventTests
             Outcome = AuditOutcome.Success,
             ResourceId = "w-1",
             ChangeType = ResourceChangeTypes.Created,
-            ResourceValues = JsonDocument.Parse("""{"name":"x"}""").RootElement,
+            ResourceValues = JsonElement.Parse("""{"name":"x"}"""),
         };
 
-    private static JsonDocument ParseRecord(IAuditEvent auditEvent)
+    private static JsonElement ParseRecord(IAuditEvent auditEvent)
     {
         var output = new ArrayBufferWriter<byte>();
-        AuditRecordWriter.Write(output, auditEvent);
-        return JsonDocument.Parse(output.WrittenMemory);
+        AuditRecordWriter.Write(auditEvent, ref output);
+        return JsonElement.Parse(output.WrittenSpan);
     }
 
     #region EventName Property Tests
@@ -96,11 +96,11 @@ public class ResourceChangeAuditEventTests
     {
         var auditEvent = CreateSample();
 
-        using var record = ParseRecord(auditEvent);
+        var record = ParseRecord(auditEvent);
 
         Assert.Equal(
             """{"change_type":"created","resource_values":{"name":"x"}}""",
-            record.RootElement.GetProperty("details").GetRawText()
+            record.GetProperty("details").GetRawText()
         );
     }
 
@@ -109,12 +109,9 @@ public class ResourceChangeAuditEventTests
     {
         var auditEvent = CreateSample() with { ResourceValues = null };
 
-        using var record = ParseRecord(auditEvent);
+        var record = ParseRecord(auditEvent);
 
-        Assert.Equal(
-            """{"change_type":"created"}""",
-            record.RootElement.GetProperty("details").GetRawText()
-        );
+        Assert.Equal("""{"change_type":"created"}""", record.GetProperty("details").GetRawText());
     }
 
     #endregion

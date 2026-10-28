@@ -36,7 +36,7 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     private static AuditRequest CreateRequest(OpenIdContext openIdContext) =>
-        AuditRequestFactory.Create(openIdContext.Http, openIdContext.EndpointName);
+        AuditRequestFactory.Create(openIdContext.Http);
 
     /// <inheritdoc />
     public ValueTask RecordTokenIssuedAsync(

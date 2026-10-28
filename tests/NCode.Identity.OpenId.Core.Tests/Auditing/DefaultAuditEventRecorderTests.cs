@@ -17,6 +17,7 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Moq;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
@@ -37,6 +38,19 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
     public void Dispose() => MockRepository.Verify();
 
+    private static DefaultHttpContext CreateHttpContext(string endpointName)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.SetEndpoint(
+            new Endpoint(
+                null,
+                new EndpointMetadataCollection(new EndpointNameMetadata(endpointName)),
+                endpointName
+            )
+        );
+        return httpContext;
+    }
+
     #region RecordTokenIssuedAsync Tests
 
     [Fact]
@@ -49,8 +63,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/token")).Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         TokenIssuedAuditEvent? captured = null;
@@ -108,8 +121,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/token")).Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         TokenRevokedAuditEvent? captured = null;
@@ -157,8 +169,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/authorize")).Verifiable();
 
         SubjectAuthenticationAuditEvent? captured = null;
         mockPublisher
@@ -208,8 +219,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/authorize")).Verifiable();
 
         SubjectAuthenticationAuditEvent? captured = null;
         mockPublisher
@@ -263,8 +273,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/authorize")).Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         AuthorizationGrantedAuditEvent? captured = null;
@@ -312,8 +321,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/authorize")).Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
         AuthorizationDeniedAuditEvent? captured = null;
@@ -363,8 +371,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/token")).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
 
         ClientAuthenticationFailedAuditEvent? captured = null;
@@ -421,8 +428,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/token")).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockError.Setup(x => x.Code).Returns("invalid_request").Verifiable();
         mockError
@@ -470,8 +476,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/authorize").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/authorize")).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockError.Setup(x => x.Code).Returns(OpenIdProtocol.ErrorCodes.AccessDenied).Verifiable();
         mockError.Setup(x => x.Description).Returns((string?)null).Verifiable();
@@ -512,8 +517,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/token")).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
@@ -566,8 +570,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/token").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/token")).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
         mockClient.Setup(x => x.ClientId).Returns("client-1").Verifiable();
 
@@ -620,8 +623,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("login").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("login")).Verifiable();
 
         SessionCreatedAuditEvent? captured = null;
         mockPublisher
@@ -670,8 +672,7 @@ public sealed class DefaultAuditEventRecorderTests : IDisposable
 
         mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
         mockTenant.Setup(x => x.TenantId).Returns("tenant-1").Verifiable();
-        mockContext.Setup(x => x.EndpointName).Returns("api/sessions").Verifiable();
-        mockContext.Setup(x => x.Http).Returns(new DefaultHttpContext()).Verifiable();
+        mockContext.Setup(x => x.Http).Returns(CreateHttpContext("api/sessions")).Verifiable();
 
         SessionTerminatedAuditEvent? captured = null;
         mockPublisher

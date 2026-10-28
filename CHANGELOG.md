@@ -819,6 +819,15 @@ change to the public API is a **major** version bump.
 
 ### Changed
 
+- **The OpenID protocol client needs no ASP.NET Core runtime.** `NCode.Identity.OpenId.Client` no longer references
+  the `Microsoft.AspNetCore.App` shared framework and references
+  `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Http`,
+  `Microsoft.Extensions.Logging.Abstractions`, `Microsoft.Extensions.Options` and `Microsoft.Extensions.Primitives`
+  directly, so a console app, worker or function runs it on the .NET runtime alone; an authorization URI
+  percent-encodes every parameter character outside the RFC 3986 unreserved set (`! * ( ) @` included)
+  ([ADR-0285](docs/decisions/0285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md),
+  issue [#321](https://github.com/NCodeGroup/Identity/issues/321)).
+
 - **Audit events are CloudTrail-shaped JSON records.** `AuditRecordWriter` writes each audit event as one compact,
   snake_case record whose field names are the constants of `AuditRecordFields`: `schema_version` (`"1.0"`), `event_id`
   (a UUIDv7), `event_time` (UTC), `event_name`, `event_category`, `event_source`, `outcome`, `severity`, `tenant_id`,

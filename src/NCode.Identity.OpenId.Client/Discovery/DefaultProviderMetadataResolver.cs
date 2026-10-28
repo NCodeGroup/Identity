@@ -18,7 +18,6 @@
 
 using System.Net.Http.Headers;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Client.Caching;
@@ -99,7 +98,7 @@ internal class DefaultProviderMetadataResolver(
             throw;
         }
 
-        if (response.StatusCode != StatusCodes.Status200OK)
+        if (response.StatusCode != ProviderStatusCodes.Status200OK)
             throw Fail(authority, $"The discovery endpoint returned status {response.StatusCode}.");
 
         if (response.Json is not { ValueKind: JsonValueKind.Object } json)

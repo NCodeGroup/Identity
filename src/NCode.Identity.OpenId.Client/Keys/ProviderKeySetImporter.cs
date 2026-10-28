@@ -33,10 +33,6 @@ namespace NCode.Identity.OpenId.Client.Keys;
 /// </summary>
 internal class ProviderKeySetImporter(ISecretKeyTypeCatalog secretKeyTypeCatalog)
 {
-    private const string SigningUse = "sig";
-    private const string VerifyOperation = "verify";
-    private const string SymmetricKeyType = "oct";
-
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
     /// <summary>
@@ -52,7 +48,7 @@ internal class ProviderKeySetImporter(ISecretKeyTypeCatalog secretKeyTypeCatalog
 
         if (
             keySet.ValueKind != JsonValueKind.Object
-            || !keySet.TryGetProperty("keys", out var keysElement)
+            || !keySet.TryGetProperty(JsonWebKeySetParameterNames.Keys, out var keysElement)
             || keysElement.ValueKind != JsonValueKind.Array
         )
         {
@@ -84,7 +80,7 @@ internal class ProviderKeySetImporter(ISecretKeyTypeCatalog secretKeyTypeCatalog
 
             if (
                 jwk.ContainsPrivateKeyMaterial
-                || string.Equals(jwk.KeyType, SymmetricKeyType, StringComparison.Ordinal)
+                || string.Equals(jwk.KeyType, JsonWebKeyTypes.Oct, StringComparison.Ordinal)
             )
             {
                 error = "The JSON Web Key Set must not contain private or symmetric key material.";
@@ -93,13 +89,13 @@ internal class ProviderKeySetImporter(ISecretKeyTypeCatalog secretKeyTypeCatalog
 
             if (
                 jwk.PublicKeyUse is { } use
-                && !string.Equals(use, SigningUse, StringComparison.Ordinal)
+                && !string.Equals(use, JsonWebKeyUses.Signature, StringComparison.Ordinal)
             )
                 continue;
 
             if (
                 jwk.KeyOperations is { } operations
-                && !operations.Contains(VerifyOperation, StringComparer.Ordinal)
+                && !operations.Contains(JsonWebKeyOperations.Verify, StringComparer.Ordinal)
             )
                 continue;
 

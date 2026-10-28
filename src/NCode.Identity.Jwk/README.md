@@ -35,3 +35,14 @@ key types (`RSA`, `EC`, `OKP`, `oct` and `AKP`) are built in as `JsonWebKeyTypeD
 returns its own descriptor from `ISecretKeyTypeDescriptor.JwkKeyType`, and code that resolved it constructs
 `new JsonWebKey(element, descriptor)` so the key uses that type's rules. The standard private member names stay private
 for every key type. See [ADR-0271](../../docs/decisions/0271-a-key-type-registers-its-json-web-key-rules.md).
+A set read with `JsonWebKeySet.Parse(json, keyTypeDescriptors)` or `new JsonWebKeySet(element, keyTypeDescriptors)`
+builds each key of a supplied type with its descriptor; pass the `JwkKeyType` of each `ISecretKeyTypeCatalog.Descriptors`
+entry. A set deserialized through `System.Text.Json` uses the standard descriptors only.
+
+## Thumbprint URI hash names
+
+`ComputeThumbprintUri(HashAlgorithmName)` names SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-384 and SHA3-512 by their
+names in the IANA [Named Information Hash Algorithm Registry](https://www.iana.org/assignments/named-information)
+(`sha-256` … `sha3-512`), as RFC 9278 §4 requires. For another hash the framework computes, pass its registry name to
+`ComputeThumbprintUri(HashAlgorithmName, string)`. A truncated hash name, such as `sha-256-128`, is never produced. See
+[ADR-0281](../../docs/decisions/0281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md).

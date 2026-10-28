@@ -18,6 +18,7 @@
 
 using System.Buffers;
 using System.Buffers.Text;
+using System.Collections.Frozen;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -45,6 +46,19 @@ public sealed class JsonWebKey
     /// The URN prefix of a <c>JWK Thumbprint URI</c> as defined by RFC 9278 §3.
     /// </summary>
     public const string ThumbprintUriPrefix = "urn:ietf:params:oauth:jwk-thumbprint:";
+
+    // Keyed by HashAlgorithmName.Name; the values are Hash Name Strings of the IANA Named Information Hash Algorithm
+    // Registry (RFC 9278 §4). Truncated names are never produced (ADR-0281).
+    private static FrozenDictionary<string, string> ThumbprintHashNames { get; } =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["SHA256"] = "sha-256",
+            ["SHA384"] = "sha-384",
+            ["SHA512"] = "sha-512",
+            ["SHA3_256"] = "sha3-256",
+            ["SHA3_384"] = "sha3-384",
+            ["SHA3_512"] = "sha3-512",
+        }.ToFrozenDictionary(StringComparer.Ordinal);
 
     // The member tree, a detached immutable JsonElement (net9+): no backing JsonDocument to dispose, no cloning.
     private JsonElement Element { get; }
@@ -318,21 +332,77 @@ public sealed class JsonWebKey
     public string ComputeThumbprintUri() => ComputeThumbprintUri(HashAlgorithmName.SHA256);
 
     /// <summary>
-    /// Computes the <c>JWK Thumbprint URI</c> (RFC 9278) of this key using the given hash.
+    /// Computes the <c>JWK Thumbprint URI</c> (RFC 9278) of this key using the given hash, naming the hash by its
+    /// Hash Name String in the IANA Named Information Hash Algorithm Registry. The hashes named are
+    /// <see cref="HashAlgorithmName.SHA256"/> (<c>sha-256</c>), <see cref="HashAlgorithmName.SHA384"/>
+    /// (<c>sha-384</c>), <see cref="HashAlgorithmName.SHA512"/> (<c>sha-512</c>),
+    /// <see cref="HashAlgorithmName.SHA3_256"/> (<c>sha3-256</c>), <see cref="HashAlgorithmName.SHA3_384"/>
+    /// (<c>sha3-384</c>) and <see cref="HashAlgorithmName.SHA3_512"/> (<c>sha3-512</c>). Use
+    /// <see cref="ComputeThumbprintUri(HashAlgorithmName, string)"/> for any other hash.
     /// </summary>
     /// <param name="hashAlgorithmName">The hash algorithm to use.</param>
     /// <returns>The thumbprint URI.</returns>
+    /// <exception cref="NotSupportedException">
+    /// The hash algorithm is not one of those listed, or the key has no <see cref="KeyTypeDescriptor"/>.
+    /// </exception>
     public string ComputeThumbprintUri(HashAlgorithmName hashAlgorithmName)
     {
-        var hashName = hashAlgorithmName.Name switch
+        if (
+            hashAlgorithmName.Name is not { } name
+            || !ThumbprintHashNames.TryGetValue(name, out var hashName)
+        )
         {
-            "SHA256" => "sha-256",
-            "SHA384" => "sha-384",
-            "SHA512" => "sha-512",
-            _ => throw new NotSupportedException(
-                $"The hash algorithm '{hashAlgorithmName.Name}' is not supported for a JWK thumbprint URI."
-            ),
-        };
+            throw new NotSupportedException(
+                $"The hash algorithm '{hashAlgorithmName.Name}' has no known JWK Thumbprint URI name; pass its IANA hash name to ComputeThumbprintUri(HashAlgorithmName, string)."
+            );
+        }
+
+        return ComputeThumbprintUri(hashAlgorithmName, hashName);
+    }
+
+    /// <summary>
+    /// Computes the <c>JWK Thumbprint URI</c> (RFC 9278) of this key using the given hash, which the caller names by
+    /// its Hash Name String in the IANA Named Information Hash Algorithm Registry. Use this overload for a hash that
+    /// <see cref="ComputeThumbprintUri(HashAlgorithmName)"/> cannot name.
+    /// </summary>
+    /// <param name="hashAlgorithmName">The hash algorithm to use.</param>
+    /// <param name="hashName">
+    /// The Hash Name String of the hash algorithm, which must consist of URI unreserved characters (ASCII letters,
+    /// digits, <c>-</c>, <c>.</c>, <c>_</c> and <c>~</c>).
+    /// </param>
+    /// <returns>The thumbprint URI.</returns>
+    /// <exception cref="ArgumentException">
+    /// The hash algorithm has no name, the hash name is empty or contains a character that is not a URI unreserved
+    /// character, or the hash name differs from the registry name of a hash algorithm that has one.
+    /// </exception>
+    /// <exception cref="NotSupportedException">The key has no <see cref="KeyTypeDescriptor"/>.</exception>
+    public string ComputeThumbprintUri(HashAlgorithmName hashAlgorithmName, string hashName)
+    {
+        var algorithm = hashAlgorithmName.Name;
+        ArgumentException.ThrowIfNullOrEmpty(algorithm, nameof(hashAlgorithmName));
+        ArgumentException.ThrowIfNullOrEmpty(hashName);
+
+        foreach (var c in hashName)
+        {
+            if (!char.IsAsciiLetterOrDigit(c) && c is not ('-' or '.' or '_' or '~'))
+            {
+                throw new ArgumentException(
+                    $"The hash name '{hashName}' must consist of URI unreserved characters.",
+                    nameof(hashName)
+                );
+            }
+        }
+
+        if (
+            ThumbprintHashNames.TryGetValue(algorithm, out var registered)
+            && !string.Equals(registered, hashName, StringComparison.Ordinal)
+        )
+        {
+            throw new ArgumentException(
+                $"The hash name '{hashName}' does not name the hash algorithm '{algorithm}', whose name is '{registered}'.",
+                nameof(hashName)
+            );
+        }
 
         return $"{ThumbprintUriPrefix}{hashName}:{ComputeThumbprint(hashAlgorithmName)}";
     }

@@ -47,6 +47,7 @@ NCode.Identity.Jwk.JsonWebKey.ComputeThumbprint() -> string!
 NCode.Identity.Jwk.JsonWebKey.ComputeThumbprint(System.Security.Cryptography.HashAlgorithmName hashAlgorithmName) -> string!
 NCode.Identity.Jwk.JsonWebKey.ComputeThumbprintUri() -> string!
 NCode.Identity.Jwk.JsonWebKey.ComputeThumbprintUri(System.Security.Cryptography.HashAlgorithmName hashAlgorithmName) -> string!
+NCode.Identity.Jwk.JsonWebKey.ComputeThumbprintUri(System.Security.Cryptography.HashAlgorithmName hashAlgorithmName, string! hashName) -> string!
 NCode.Identity.Jwk.JsonWebKey.ContainsPrivateKeyMaterial.get -> bool
 NCode.Identity.Jwk.JsonWebKey.GetMember(string! name) -> string?
 NCode.Identity.Jwk.JsonWebKey.JsonWebKey(System.Text.Json.JsonElement element) -> void

@@ -25,7 +25,8 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 /// An audit event raised when an <c>OAuth</c> or <c>OpenID Connect</c> protocol endpoint returns an
 /// error response, whether the error was thrown or returned directly. The event is published once per
 /// errored request from the single endpoint-filter funnel, so no publishing site is required at the
-/// individual error call sites.
+/// individual error call sites. The error code, description and HTTP status code are carried by
+/// <see cref="AuditEvent.Error"/>.
 /// </summary>
 [PublicAPI]
 public sealed record OpenIdErrorEvent : AuditEvent
@@ -35,20 +36,4 @@ public sealed record OpenIdErrorEvent : AuditEvent
 
     /// <inheritdoc />
     public override string EventCategory => AuditEventCategories.Protocol;
-
-    /// <summary>
-    /// Gets the <c>OAuth</c> or <c>OpenID Connect</c> error code (the <c>error</c> parameter).
-    /// </summary>
-    public required string ErrorCode { get; init; }
-
-    /// <summary>
-    /// Gets the non-sensitive, human-readable error description (the <c>error_description</c> parameter),
-    /// if any.
-    /// </summary>
-    public string? ErrorDescription { get; init; }
-
-    /// <summary>
-    /// Gets the HTTP status code used for the error response, if known.
-    /// </summary>
-    public int? StatusCode { get; init; }
 }

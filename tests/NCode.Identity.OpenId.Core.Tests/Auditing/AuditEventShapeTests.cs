@@ -411,7 +411,7 @@ public sealed class AuditEventShapeTests
             EventTime = DateTimeOffset.UnixEpoch,
             EventSource = AuditEventSources.OpenId,
             Outcome = AuditOutcome.Failure,
-            ErrorCode = "invalid_request",
+            Error = new AuditError("invalid_request"),
         };
 
     private static SessionCreatedAuditEvent CreateSessionCreatedEvent() =>

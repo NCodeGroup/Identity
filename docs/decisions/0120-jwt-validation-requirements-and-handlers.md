@@ -1,6 +1,7 @@
 # 120. JWT validation is modeled as ASP.NET Core-style requirements and handlers
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-0278](0278-token-validation-failures-carry-a-machine-readable-code.md): a
+  handler fails with a machine-readable code, `Fail(failureCode, reason)`)
 - **Date:** 2026-10-17
 - **Deciders:** NCode.Identity maintainers
 

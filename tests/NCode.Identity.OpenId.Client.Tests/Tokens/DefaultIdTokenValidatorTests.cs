@@ -17,6 +17,7 @@
 #endregion
 
 using System.Buffers.Text;
+using System.Globalization;
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
@@ -449,6 +450,70 @@ public class DefaultIdTokenValidatorTests : BaseTests, IAsyncLifetime
 
         Assert.False(result.IsValid);
         Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAuthTimeIsOutOfRange_FailsWithInvalidClaim()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(extraClaims: Claims("auth_time", 1e300)),
+            maxAge: TimeSpan.FromMinutes(1)
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
+        Assert.Equal("The ID token has no valid 'auth_time' claim.", result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAuthTimeIsAString_FailsWithInvalidClaim()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+        var authTime = DateTimeOffset
+            .UtcNow.ToUnixTimeSeconds()
+            .ToString(CultureInfo.InvariantCulture);
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(extraClaims: Claims("auth_time", authTime)),
+            maxAge: TimeSpan.FromHours(1)
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidClaim, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAuthTimeIsFractional_ReturnsPayload()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+        var authTime = DateTimeOffset.UtcNow.AddMinutes(-10).ToUnixTimeSeconds() + 0.5;
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(extraClaims: Claims("auth_time", authTime)),
+            maxAge: TimeSpan.FromHours(1)
+        );
+
+        Assert.True(result.IsValid, result.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenAuthTimeIsTheLatestNumericDate_ReturnsPayload()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+        var authTime = DateTimeOffset.MaxValue.ToUnixTimeSeconds();
+
+        var result = await ValidateAsync(
+            validator,
+            CreateIdToken(extraClaims: Claims("auth_time", authTime)),
+            maxAge: TimeSpan.FromHours(1)
+        );
+
+        Assert.True(result.IsValid, result.FailureReason);
     }
 
     [Theory]

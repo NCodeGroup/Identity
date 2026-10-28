@@ -1009,7 +1009,8 @@ nameType, roleType)`) is acceptable, and a private single-call-site helper isn't
   `DateCoercion.TryFromNumericDate` for a number already in hand. They return `false` instead of throwing, so wire input
   can never fault the caller; `DateTimeOffset.FromUnixTimeSeconds`/`FromUnixTimeMilliseconds` are **banned** (`RS0030`)
   because they throw on out-of-range input. A time claim that is **present but invalid fails closed** — never read it
-  as absent. Saturate (don't overflow) when adding a margin to an instant near `DateTimeOffset.MaxValue`. See
+  as absent. Saturate (don't overflow) when adding a margin to an instant near `DateTimeOffset.MaxValue`, or compare
+  the elapsed time instead (`now - instant - skew > limit`), which cannot overflow. See
   [ADR-0123](../../docs/decisions/0123-numeric-date-is-read-strictly-and-range-guarded.md).
 - **Read a count of seconds a remote party sends (`expires_in`, `interval`) with `JsonElement.TryGetWholeInt32` /
   `TryGetPropertyWholeInt32`, or `[JsonConverter(typeof(WholeInt32JsonConverter))]` on a serialized member** — never

@@ -21,6 +21,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.Secrets.Keys;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Client.Tokens;
 
@@ -178,17 +179,17 @@ internal class DefaultIdTokenValidator(
         if (request.MaxAge is { } maxAge)
         {
             if (
-                !payload.TryGetProperty(JoseClaimNames.Payload.AuthTime, out var authTimeElement)
-                || authTimeElement.ValueKind != JsonValueKind.Number
-                || !authTimeElement.TryGetDouble(out var authTimeSeconds)
+                !payload.TryGetPropertyNumericDate(
+                    JoseClaimNames.Payload.AuthTime,
+                    out var authTime
+                )
             )
                 return Fail(
                     TokenValidationFailureCodes.InvalidClaim,
-                    "The ID token has no numeric 'auth_time' claim."
+                    "The ID token has no valid 'auth_time' claim."
                 );
 
-            var authTime = DateTimeOffset.UnixEpoch.AddSeconds(authTimeSeconds);
-            if (TimeProvider.GetUtcNow() > authTime + maxAge + ClockSkew)
+            if (TimeProvider.GetUtcNow() - authTime - ClockSkew > maxAge)
                 return Fail(
                     TokenValidationFailureCodes.MaxAgeExceeded,
                     "The authentication of the ID token is older than the maximum age."

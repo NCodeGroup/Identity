@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 # One-time frontend bootstrap: ensures the repo-pinned Node and pnpm are reachable and installs the pnpm workspace.
 #
-# Orchestration is owned by .NET Aspire now (see docs/adr/0071): the `Aspire: Full stack (F5)` launch starts the
+# Orchestration is owned by .NET Aspire now (see docs/decisions/0071): the `Aspire: Full stack (F5)` launch starts the
 # AppHost, which runs each app's own `dev` script with deterministic, health-gated ordering. This script no longer
 # runs `pnpm dev` — it only prepares the workspace so Aspire can spawn pnpm/node:
 #   - The Node major is pinned once, in src/frontend/.node-version (CI and the AppHost read it too). With NVS, this

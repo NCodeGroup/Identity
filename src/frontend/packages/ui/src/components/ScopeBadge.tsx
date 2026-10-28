@@ -11,7 +11,7 @@ export type ScopeBadgeProps = {
 
 /**
  * Stateless visual marker of the security boundary a view belongs to. The global scope is styled
- * distinctly from a tenant scope so the boundary is always visible (see docs/adr/0064).
+ * distinctly from a tenant scope so the boundary is always visible (see docs/decisions/0064).
  */
 export function ScopeBadge({ kind, label }: ScopeBadgeProps) {
   const isGlobal = kind === 'global';

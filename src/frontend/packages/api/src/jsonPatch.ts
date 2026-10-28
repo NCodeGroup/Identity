@@ -3,7 +3,7 @@
  * endpoints as `JsonPatchDocument<T>` (SystemTextJsonPatch) and hydrates the current resource before
  * applying the document, so the UI expresses a full desired state as a set of `replace` operations —
  * one per mutable field. This module is UI-free so the wire shape is unit-tested in isolation
- * (see docs/adr/0064).
+ * (see docs/decisions/0064).
  */
 
 /** A single JSON Patch operation. The Management update endpoints only ever need `replace`. */

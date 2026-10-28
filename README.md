@@ -15,7 +15,7 @@ through public contracts.
 > **Greenfield, pre-release, under active development.** Nothing is shipped — no stable release, and no packages are
 > published to NuGet. **Anything can break at any time**: the public API, settings names, database schema, and token
 > formats all change without a deprecation cycle or migration path. Breaking changes land as clean cutovers rather
-> than compatibility shims ([ADR-0025](docs/adr/0025-pre-release-posture-and-auth0-parity-plus.md)). Do not use this
+> than compatibility shims ([ADR-0025](docs/decisions/0025-pre-release-posture-and-auth0-parity-plus.md)). Do not use this
 > in production, and do not depend on anything here staying put.
 
 ## Status
@@ -30,7 +30,7 @@ through public contracts.
 | **Repository** | A **monorepo** for now; the packages may split into separate repositories at GA                   |
 
 The whole family is versioned in lockstep from a single
-[`version.json`](version.json) ([ADR-0003](docs/adr/0003-central-package-management-and-lockstep-versioning.md)), which
+[`version.json`](version.json) ([ADR-0003](docs/decisions/0003-central-package-management-and-lockstep-versioning.md)), which
 is part of why it currently lives in one repository. That is a convenience of the pre-release phase, not a commitment.
 
 ## Why
@@ -47,12 +47,12 @@ Two consequences worth knowing up front:
   advertises `response_types_supported` as **`code` only**, so the implicit and hybrid combinations that
   [RFC 9700] and OAuth 2.1 remove are off unless an operator deliberately widens the setting. Anonymous dynamic client
   registration is off, and capabilities that weaken posture are opt-in and advertised only when enabled
-  ([ADR-0083](docs/adr/0083-secure-by-default-discovery-metadata.md)). The resource-owner password grant exists for
+  ([ADR-0083](docs/decisions/0083-secure-by-default-discovery-metadata.md)). The resource-owner password grant exists for
   hosts that genuinely need it, but it is a separate opt-in registration rather than part of the default composition.
 - **Settings are a merge lattice, not a flag soup.** Server, tenant, resource-server, and client settings merge through
   declared rules (a floor cannot be raised by a child, a ceiling cannot be exceeded), so a tenant cannot configure its
   way out of a server-level security decision
-  ([ADR-0108](docs/adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
+  ([ADR-0108](docs/decisions/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
 
 ## What works today
 
@@ -103,12 +103,12 @@ Production projects are under `src/`, tests under `tests/`.
 | Composition and host | `NCode.Registration(.AspNetCore)`, `NCode.Identity`, `NCode.Identity.Server`, `NCode.Identity.OpenId.Host*`                   |
 
 The extensibility model — **service** vs **strategy collection** vs **mediator** — is
-[ADR-0001](docs/adr/0001-mediator-vs-dependency-injection-logic-classes.md).
+[ADR-0001](docs/decisions/0001-mediator-vs-dependency-injection-logic-classes.md).
 
 ## Running the reference server
 
 The `NCode.Identity.OpenId.Host` project is a complete OpenID Provider used as the reference composition and the local test bed.
-[.NET Aspire](docs/adr/0071-aspire-local-dev-orchestrator.md) orchestrates the whole stack — the provider, a
+[.NET Aspire](docs/decisions/0071-aspire-local-dev-orchestrator.md) orchestrates the whole stack — the provider, a
 PostgreSQL container, the schema migration worker, and the frontend apps — with deterministic startup ordering:
 
 ```pwsh
@@ -134,17 +134,17 @@ green run means the same thing in both places. It prints `Definition of Done: PA
 Test results land in `artifacts/test-results/` and the merged coverage report in `artifacts/coverage/` (open
 `index.html`). In CI, each run's summary page shows the stage timings, test results, and coverage, failed tests are
 annotated in place, and coverage history and pull-request diff coverage live on
-[Codecov](https://codecov.io/gh/NCodeGroup/Identity) ([ADR-0143](docs/adr/0143-ci-presents-test-results-and-coverage-in-github.md)).
+[Codecov](https://codecov.io/gh/NCodeGroup/Identity) ([ADR-0143](docs/decisions/0143-ci-presents-test-results-and-coverage-in-github.md)).
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) has the full workflow. Work lands on the single `main` trunk
-([ADR-0125](docs/adr/0125-trunk-based-development-on-main.md)).
+([ADR-0125](docs/decisions/0125-trunk-based-development-on-main.md)).
 
 ## Documentation
 
 | Document                             | What it is                                                                     |
 | ------------------------------------ | ------------------------------------------------------------------------------ |
 | [`docs/capabilities/`](docs/capabilities/README.md) | What the product promises and why it's built that way: an overview first, then the architecture |
-| [`docs/adr/`](docs/adr/)             | Architecture Decision Records — the reasoning behind every non-obvious decision |
+| [`docs/decisions/`](docs/decisions/)             | Architecture Decision Records — the reasoning behind every non-obvious decision |
 | [GitHub issues](https://github.com/NCodeGroup/Identity/issues)           | The single source of truth for known pending work                              |
 | [`CHANGELOG.md`](CHANGELOG.md)       | Consumer-visible changes                                                       |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Build, conventions, and the change workflow                                    |

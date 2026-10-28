@@ -19,7 +19,7 @@
 
 Every option is judged against the platform's operating principles — cattle not pets, immutable artifacts, everything as
 code, stateless services, redundancy by default, proven recoverability, and secure by default
-([ADR-0134](adr/0134-cloud-native-operating-principles.md)).
+([ADR-0134](decisions/0134-cloud-native-operating-principles.md)).
 
 ## 2. Summary and ranked recommendations
 
@@ -59,7 +59,7 @@ Neon / Aiven free tiers as the always-on database (wrong region, scale-to-zero, 
 
 ### Environment model
 
-Decided in [ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-scheme.md).
+Decided in [ADR-0131](decisions/0131-hosted-platform-environment-model-and-hostname-scheme.md).
 
 - **Customer environments are tenants on production.** A customer's dev, test, and prod are separate tenants on the one
   production platform (the Auth0 model): `acme-dev.auth.nidentity.io`, `acme-test.auth.nidentity.io`,
@@ -71,7 +71,7 @@ Decided in [ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-sc
   owner's private proving ground for platform changes, upgrades, and conformance experiments, which never hosts a
   customer tenant. Lab hosts carry a `lab` label (`auth.lab.nidentity.io`) so a platform environment can't be confused
   with a customer's `-dev` tenant; `dev`, `test`, and `staging` are reserved for customers' tenants and never name a
-  platform environment ([ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-scheme.md)).
+  platform environment ([ADR-0131](decisions/0131-hosted-platform-environment-model-and-hostname-scheme.md)).
 - **Production therefore carries customers' dev/test traffic too:** per-tenant rate limits (done, issue [#84](https://github.com/NCodeGroup/Identity/issues/84)) and
   quotas (done, issue [#118](https://github.com/NCodeGroup/Identity/issues/118)) keep one tenant's load test from starving another.
 
@@ -79,7 +79,7 @@ Decided in [ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-sc
 
 1. **Now — the lab:** run it on OCI's Pay-As-You-Go A1 allowance in Phoenix as an **OKE Basic** cluster (free managed
    control plane) with a 3 × 1 OCPU / 8 GB node pool spread across the region's three availability domains
-   (**~$0–4/month**) — managed node pools keep the lab disposable ([ADR-0134](adr/0134-cloud-native-operating-principles.md))
+   (**~$0–4/month**) — managed node pools keep the lab disposable ([ADR-0134](decisions/0134-cloud-native-operating-principles.md))
    — plus ephemeral load-test and topology runs on the Azure Visual Studio credit
    ([§10](#10-devtest-and-conformance-on-azure-visual-studio-credit), $0). The Kubernetes layer (Traefik, charts, app)
    is identical to production; only the cluster, LB, and database modules differ — acceptable because no customer
@@ -98,7 +98,7 @@ control plane (+$60).
 
 | Concern                                        | Service                                       | Free allowance (verified 2026-10-18 unless noted)                                                                        |
 | ---------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Source, infrastructure code, CI, images        | GitHub Actions + GitHub Container Registry    | Free for public repositories and public packages, including environments with required reviewers ([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md)) |
+| Source, infrastructure code, CI, images        | GitHub Actions + GitHub Container Registry    | Free for public repositories and public packages, including environments with required reviewers ([ADR-0132](decisions/0132-platform-infrastructure-as-code-is-public-on-github.md)) |
 | DNS                                            | Cloudflare DNS                                | Free plan, incl. DNSSEC; registrar stays at Porkbun. Keep identity hosts **DNS-only** — proxying would terminate TLS at Cloudflare and drop the client certificate |
 | Server certificates                            | Let's Encrypt via cert-manager                | Free                                                                                                                     |
 | OpenTofu state, Postgres backups, vendor tokens | AWS S3 + SSM Parameter Store (dedicated account) | **Not free — cents/month at this size:** S3 Standard $0.023/GB-month, $5/M writes, $0.40/M reads; SSM standard parameters free |
@@ -152,10 +152,10 @@ flowchart LR
   certificate; PROXY protocol v2 preserves the client IP.
 - Traefik terminates TLS, **requests** the client certificate on the mTLS host, and forwards it with the
   `passTLSClientCert` middleware; the server reads it via `OpenId:MutualTls:CertificateHeaderName`
-  ([ADR-0097](adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md)).
+  ([ADR-0097](decisions/0097-sender-constrained-access-tokens-dpop-and-mtls.md)).
 - RFC 8705 §5 mTLS endpoint aliases map naturally to a dedicated mTLS hostname (the tenant's
   `mtlsEndpointAliasAuthority`), so only that host asks for client certificates; per-tenant alias hosts route to their
-  tenant ([ADR-0195](adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)).
+  tenant ([ADR-0195](decisions/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)).
 
 ### Domain and DNS — `nidentity.io`
 
@@ -168,7 +168,7 @@ public infrastructure repository, the Cloudflare account and a short-lived boots
 IAM Identity Center (home region `us-west-2`), the OCI tenancy for the lab (home region Phoenix), running the bootstrap
 stack, the registrar delegation, and the email-routing verification.
 
-**Bootstrap stack** ([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md)) — OpenTofu run once
+**Bootstrap stack** ([ADR-0132](decisions/0132-platform-infrastructure-as-code-is-public-on-github.md)) — OpenTofu run once
 from the owner's machine with those short-lived credentials (local state, then migrated into the bucket it creates):
 the S3 **state bucket** (versioning, encryption, public-access block, TLS-only policy) and **backup bucket** (Object
 Lock in compliance mode, archive lifecycle); the GitHub OIDC provider with a read-only **plan** role and an **apply**
@@ -188,17 +188,17 @@ into Kubernetes Secrets that Traefik serves. Traefik's built-in ACME client keep
 it across 3 replicas, so it isn't used.
 
 **Hostnames** — the issuer URL is baked into every client's configuration, so choose these once (decided in
-[ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-scheme.md)). The scheme uses
+[ADR-0131](decisions/0131-hosted-platform-environment-model-and-hostname-scheme.md)). The scheme uses
 **functional namespaces** under the apex — `auth` for the OpenID protocol, `mtls` for its certificate-bound aliases,
 `manage` for the management plane — mirroring Auth0 (`{tenant}.us.auth0.com` for tenants, `manage.auth0.com` for the
 dashboard):
 
 | Hostname                                        | Serves                                                                                                   | Certificate                    |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `auth.nidentity.io`                             | Root (control-plane) tenant issuer — where admins sign in and management-API tokens are issued ([ADR-0031](adr/0031-control-plane-management-resource-server-and-root-tenant-seeding.md)) | `auth.nidentity.io`            |
+| `auth.nidentity.io`                             | Root (control-plane) tenant issuer — where admins sign in and management-API tokens are issued ([ADR-0031](decisions/0031-control-plane-management-resource-server-and-root-tenant-seeding.md)) | `auth.nidentity.io`            |
 | `{tenant}.auth.nidentity.io`                    | Workload tenant issuers, resolved by `DynamicByHost` (e.g. `acme.auth.nidentity.io`)                     | `*.auth.nidentity.io`          |
 | `mtls.nidentity.io`, `{tenant}.mtls.nidentity.io` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-0195) | `mtls.…` + `*.mtls.nidentity.io` |
-| `manage.nidentity.io`                           | Management API (`/api`) and admin console — the control-plane surface ([ADR-0042](adr/0042-management-api-route-driven-tenant-scope.md)) | `manage.nidentity.io`          |
+| `manage.nidentity.io`                           | Management API (`/api`) and admin console — the control-plane surface ([ADR-0042](decisions/0042-management-api-route-driven-tenant-scope.md)) | `manage.nidentity.io`          |
 | `nidentity.io`, `www.nidentity.io`              | Project site / docs                                                                                      | Hosting provider               |
 
 Why this shape:
@@ -208,30 +208,30 @@ Why this shape:
 - **Tenants nest under a function label rather than the apex** (`acme.auth.nidentity.io`, not `acme.nidentity.io`): no
   tenant name can ever collide with a service host (`www`, `manage`, `mtls`, `status`, `docs`, `dev`, …), so there is no
   reserved-name list to maintain, and each function gets one wildcard certificate. A tenant can still be moved to a
-  dedicated deployment ([ADR-0024](adr/0024-control-plane-and-per-tenant-planes.md)) by changing its DNS record, without
+  dedicated deployment ([ADR-0024](decisions/0024-control-plane-and-per-tenant-planes.md)) by changing its DNS record, without
   changing its issuer.
 - **`mtls` is a sibling namespace, not `mtls.{tenant}.auth…`:** a wildcard covers one label only, so nesting would need a
   certificate per tenant.
 - **`manage` is separate from `auth`:** the management plane gets its own CORS, rate-limit, and IP-allow-list policy at
   Traefik, and `/api` is routed **only** on `manage` (blocked on `auth` / `mtls` hosts) as defense in depth.
 - **Custom domains later** (Auth0 parity): the tenant's issuer is its single origin — it both routes the tenant and
-  anchors every published URL ([ADR-0129](adr/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)) — so a
+  anchors every published URL ([ADR-0129](decisions/0129-the-tenant-issuer-is-the-single-authoritative-origin.md)) — so a
   custom domain (`login.customer.com`, CNAME'd to the platform) *becomes* the tenant's issuer. Choose it before clients
   integrate; cert-manager issues its certificate over HTTP-01.
 - **The server derives these hosts from configuration**
-  ([ADR-0165](adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)):
+  ([ADR-0165](decisions/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)):
   `OpenId:TenantResolution:StrategyCode = DynamicByHost`, `DynamicByHost:IssuerTemplate =
   https://{tenantId}.auth.nidentity.io`, and `Root:Issuer = https://auth.nidentity.io`. A tenant created without an
   issuer is given (and keeps) the one the template derives; a custom domain is set as an explicit issuer. The mTLS
   aliases follow the same rule: `DynamicByHost:MtlsEndpointAliasTemplate = https://{tenantId}.mtls.nidentity.io` and
   `Root:MtlsEndpointAliasAuthority = https://mtls.nidentity.io`
-  ([ADR-0195](adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). The root tenant
+  ([ADR-0195](decisions/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). The root tenant
   is created when the first request reaches `auth.nidentity.io`, with the bootstrap administrator named into it
   (`BootstrapAdmin:TenantId = root`,
-  [ADR-0166](adr/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). `/api` is served on
+  [ADR-0166](decisions/0166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). `/api` is served on
   `manage.nidentity.io`, which is no tenant's host, because the management API authenticates against the root tenant
   rather than the host it is called on
-  ([ADR-0191](adr/0191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
+  ([ADR-0191](decisions/0191-the-management-api-authenticates-against-the-control-plane-tenant.md)).
 
 **Environments.** Customer environments are just tenants on production (`acme-dev.auth.nidentity.io`), so they need no
 extra hostnames. The platform's private **lab** inserts a `lab` label after the function: `auth.lab.nidentity.io`,
@@ -252,7 +252,7 @@ All identity hosts are **DNS-only** in Cloudflare (no proxy), so TLS reaches Tra
   proxied through Cloudflare later needs an advanced certificate from a listed CA.
 - **Inbound mail only:** Cloudflare Email Routing (free, receive-only; `cloudflare_email_routing_settings` / `_dns` /
   `_address` / `_rule`) forwards per-purpose addresses — `security@` for `security.txt`, `platform@` as the owner of
-  every cloud resource ([ADR-0135](adr/0135-one-resource-tagging-strategy-across-every-vendor.md)), and one per vendor account
+  every cloud resource ([ADR-0135](decisions/0135-one-resource-tagging-strategy-across-every-vendor.md)), and one per vendor account
   such as `npm@`, `gitlab@`, `docker-ncodegroup@` — to the owner's personal mailbox; no catch-all. Its MX and SPF
   records replace a null MX; DMARC stays `v=DMARC1; p=reject` because nothing sends as the domain yet — an identity
   domain is a prime phishing target.
@@ -281,7 +281,7 @@ GitHub organization `nidentity` belongs to an unrelated party (created 2021-10-1
 and container images stay under `NCodeGroup` (`ghcr.io/ncodegroup/…`), which doesn't need to match the product domain.
 The GitLab group [`gitlab.com/nidentity`](https://gitlab.com/nidentity) is held defensively (public, 2FA required,
 no code — it points to GitHub); GitHub remains the single home for source, infrastructure code, CI, and packages
-([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md)). On npm the `@ncode` scope
+([ADR-0132](decisions/0132-platform-infrastructure-as-code-is-public-on-github.md)). On npm the `@ncode` scope
 belongs to an unrelated party, so JavaScript packages publish under the org-owned `@ncodegroup` scope (matching the
 GitHub organization and GitHub Packages' scope rule), and `@nidentity` is held defensively (both orgs enforce 2FA); the
 frontend's `@ncode/*`
@@ -319,11 +319,11 @@ No production load data exists yet, so these are **planning estimates**; confirm
 - **Bandwidth is not a cost driver.** Token responses are a few KB; even 1M interactive logins/month at ~500 KB of
   assets each is ~0.5 TB, below every vendor's included transfer.
 - **Multi-replica readiness:** Data Protection keys already persist to Postgres
-  ([ADR-0073](adr/0073-postgres-dev-database-and-aspire-migration-worker.md); each key is encrypted under the server
+  ([ADR-0073](decisions/0073-postgres-dev-database-and-aspire-migration-worker.md); each key is encrypted under the server
   master key, whose root key lives outside the database —
-  [ADR-0235](adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)); the DPoP nonce
+  [ADR-0235](decisions/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)); the DPoP nonce
   and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`
-  connection string ([ADR-0164](adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); the
+  connection string ([ADR-0164](decisions/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); the
   in-process job dispatcher does not coordinate across nodes (issue [#25](https://github.com/NCodeGroup/Identity/issues/25)).
 
 **Measure before buying:** run the host (`NCode.Identity.OpenId.Host`) with `dotnet-counters` attached, drive the token
@@ -403,10 +403,10 @@ cluster). Neon and Aiven Free/Developer are fine for dev/staging, not for a prod
 
 **Self-hosting is the recommended default.** Valkey backs the shared-state port that records DPoP nonces and the
 single-use DPoP-proof and client-assertion `jti`s
-([ADR-0164](adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); losing it on restart only
+([ADR-0164](decisions/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); losing it on restart only
 reopens a replay window bounded by the proof and assertion lifetimes. Enable AOF persistence if that window matters.
 Valkey also carries the replica broadcast port, so a tenant or server settings change reaches every replica at once
-([ADR-0205](adr/0205-replicas-announce-changes-through-a-broadcast-port.md)); the access-control user needs `PUBLISH`
+([ADR-0205](decisions/0205-replicas-announce-changes-through-a-broadcast-port.md)); the access-control user needs `PUBLISH`
 and `SUBSCRIBE` as well as the key-set and counter commands, and an outage costs only that promptness, because the
 replicas converge through their polls and the 15-minute tenant cache lifetime.
 Address it with the `valkey` connection string (TLS and an access-control user in production:
@@ -450,15 +450,15 @@ Verified against Traefik v3.7 documentation and source:
 - **[#83](https://github.com/NCodeGroup/Identity/issues/83) — chain in the forwarded header (resolved).** The default `Base64Der` format reads Traefik's comma-separated
   chain, the client's own certificate first, and surfaces the rest as intermediates for chain building. A forwarded
   value that cannot be decoded fails the request with `invalid_request` rather than reading as no certificate
-  ([ADR-0172](adr/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
+  ([ADR-0172](decisions/0172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
 - **[#82](https://github.com/NCodeGroup/Identity/issues/82) — chain validation in the server (resolved).** `tls_client_auth` builds the presented certificate's chain to
   the client's `tls_client_auth_trust_anchors` (tenant- or client-scoped PEM CAs, custom root trust, `clientAuth` EKU,
   validity, `tls_client_auth_revocation_mode`) before matching the subject, and trusts no certificate when no anchor is
   configured. The proxy only requests and forwards the certificate
-  ([ADR-0173](adr/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
+  ([ADR-0173](decisions/0173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
 - **[#86](https://github.com/NCodeGroup/Identity/issues/86) — the mTLS alias host routes to its tenant (resolved).** The alias is the tenant property
   `MtlsEndpointAliasAuthority`; `DynamicByHost` routes its derived host as well as the issuer's, and validation keeps
-  both hosts unique ([ADR-0195](adr/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). Each tenant's
+  both hosts unique ([ADR-0195](decisions/0195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)). Each tenant's
   alias is derived from `DynamicByHost:MtlsEndpointAliasTemplate` unless one is set through the management API ([#117](https://github.com/NCodeGroup/Identity/issues/117)).
 
 **Proxy rule:** on the mTLS host, use `RequireAnyClientCert` (request, don't verify) and forward the certificate. The
@@ -497,7 +497,7 @@ state key. A cluster reaches it through web identity federation, which needs the
 publicly discoverable, because AWS IAM fetches the issuer's discovery document and JWKS; a cluster whose issuer is
 private needs IAM Roles Anywhere (issue [#177](https://github.com/NCodeGroup/Identity/issues/177)) or the `local` provider. Google Cloud KMS, by contrast, accepts an
 uploaded JWKS, so a private issuer is no obstacle there. The `azure-key-vault` and `google-cloud-kms` providers
-([ADR-0260](adr/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)) let a deployment keep its root key
+([ADR-0260](decisions/0260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)) let a deployment keep its root key
 in either service instead.
 
 | Service                    | Key cost                                         | Sign-operation cost                                            | Throughput notes                                                         |
@@ -591,10 +591,10 @@ janitor that destroys anything older than a few hours — that also keeps every 
   the buckets, OIDC roles, zone, and vendor tokens (§3). Prefer **OpenTofu** for client-side **state and plan
   encryption** (state and plans contain connection strings and keys).
 - **Repository:** the public `NCodeGroup/identity-platform`, with the guardrails in
-  [ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md) — no secrets in Git (push protection,
+  [ADR-0132](decisions/0132-platform-infrastructure-as-code-is-public-on-github.md) — no secrets in Git (push protection,
   `gitleaks`), no credentials for untrusted pull requests, no plans in public logs or artifacts, operator-specific values
   in SSM.
-- **Same artifacts as self-hosters** ([ADR-0133](adr/0133-we-ship-and-run-the-same-deployment-artifacts.md)): the host's
+- **Same artifacts as self-hosters** ([ADR-0133](decisions/0133-we-ship-and-run-the-same-deployment-artifacts.md)): the host's
   Helm chart ships from the library repository as a signed OCI chart. `NCodeGroup/identity-platform` layers small
   **component modules** (`modules/`: e.g. `cloudflare-zone`, `aws-state-backend`, `akamai-lke`, `akamai-postgres`,
   `oci-k3s`, `flux-bootstrap`) and **in-cluster components** (`kubernetes/components/`: `traefik`, `cert-manager`,
@@ -635,23 +635,23 @@ speed-test endpoint from the Denver network the users are on.
   secrets and the Data Protection key ring in the same Postgres database, so a backup would otherwise hold everything
   needed to use them. Every private value is encrypted under a per-owner master key wrapped by a root key held in a key
   management service, and a Production host refuses to start without a real root key and a recovery decision
-  ([ADR-0235](adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md); pairs with
+  ([ADR-0235](decisions/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md); pairs with
   [#165](https://github.com/NCodeGroup/Identity/issues/165)).
 - **Kubernetes deployment artifacts** — issue [#85](https://github.com/NCodeGroup/Identity/issues/85), done. `NCode.Identity.OpenId.Host` already trusts forwarded headers
   only from configured proxies (set `ReverseProxy:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,
   developer CORS, seeders). Its image is chiseled, runs non-root on port 8080, is built for amd64 and arm64, and
   carries the login bundle
-  ([ADR-0178](adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)). Its Helm
+  ([ADR-0178](decisions/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)). Its Helm
   chart runs restricted pods that probe `/health/live` and `/health/ready`, drain before stopping, and require Valkey
   for more than one replica
-  ([ADR-0179](adr/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Before
+  ([ADR-0179](decisions/0179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Before
   each rollout it migrates the database in a Job from the same image, and every migration keeps the previous release
-  working ([ADR-0180](adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Still
+  working ([ADR-0180](decisions/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Still
   needed: publishing the image and chart ([#87](https://github.com/NCodeGroup/Identity/issues/87)).
 - **Per-tenant rate limits and quotas** — issues [#84](https://github.com/NCodeGroup/Identity/issues/84) and [#118](https://github.com/NCodeGroup/Identity/issues/118), done
-  ([ADR-0196](adr/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
-  [ADR-0198](adr/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)); the mTLS work ([#82](https://github.com/NCodeGroup/Identity/issues/82), [#83](https://github.com/NCodeGroup/Identity/issues/83),
+  ([ADR-0196](decisions/0196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
+  [ADR-0198](decisions/0198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)); the mTLS work ([#82](https://github.com/NCodeGroup/Identity/issues/82), [#83](https://github.com/NCodeGroup/Identity/issues/83),
   [#86](https://github.com/NCodeGroup/Identity/issues/86), and [#117](https://github.com/NCodeGroup/Identity/issues/117)) is done.
 
 **Operations:**
@@ -660,14 +660,14 @@ speed-test endpoint from the Denver network the users are on.
   is the primary restore path, but it lives in the same vendor account. A nightly `pg_dump`, encrypted client-side with
   `age` (it contains signing keys and the Data Protection key ring), goes off-vendor to the AWS backup bucket — Object
   Lock in compliance mode, write-only credentials, 14 daily + 12 monthly copies with monthly ones moved to an archive
-  tier ([ADR-0132](adr/0132-platform-infrastructure-as-code-is-public-on-github.md)). A restore drill before launch and
+  tier ([ADR-0132](decisions/0132-platform-infrastructure-as-code-is-public-on-github.md)). A restore drill before launch and
   quarterly; written RPO / RTO targets.
 - **Cluster secrets** never sit in Git as plaintext: SOPS + age (free) or External Secrets Operator syncing from the
   key vault.
 - **Alerting:** Grafana Cloud alerts on token-endpoint error rate and p95 latency, certificate expiry, database
   connections and replication lag, and node/disk pressure; on-call via Grafana IRM's free tier; a public status page
   (`status.nidentity.io`, UptimeRobot free).
-- **Audit events** ([ADR-0047](adr/0047-auditing-and-events-observation-seam.md)): decide retention and customer export —
+- **Audit events** ([ADR-0047](decisions/0047-auditing-and-events-observation-seam.md)): decide retention and customer export —
   they contain PII.
 - **Cost guardrails:** billing alerts on every vendor, an Azure budget alert, and bandwidth-overage alerts.
 
@@ -686,7 +686,7 @@ speed-test endpoint from the Denver network the users are on.
 
 **Business and legal (before onboarding customers):** privacy policy, terms, a DPA and subprocessor list (Akamai,
 Cloudflare, Grafana Labs, and the key-vault provider); data residency is US-only (Dallas) — EU customers will need a
-separate EU deployment later ([ADR-0024](adr/0024-control-plane-and-per-tenant-planes.md)); an SLA no higher than a
+separate EU deployment later ([ADR-0024](decisions/0024-control-plane-and-per-tenant-planes.md)); an SLA no higher than a
 single-datacenter platform supports (~99.9%); an incident-response runbook.
 
 **Outbound email (future):** verification, password reset, and email MFA need a sending provider — OCI Email Delivery
@@ -701,7 +701,7 @@ the provider's SPF include and DKIM keys, and keep DMARC at `p=reject`.
 2. **Managed vs. self-managed Kubernetes:** DOKS / LKE / VKE (free control plane) vs. k3s on 3 VMs (HA control plane
    included).
 3. **Postgres:** managed same-DC (Akamai 3-node $37 is the HA sweet spot) vs. CloudNativePG in-cluster.
-4. **Environments — decided** ([ADR-0131](adr/0131-hosted-platform-environment-model-and-hostname-scheme.md)):
+4. **Environments — decided** ([ADR-0131](decisions/0131-hosted-platform-environment-model-and-hostname-scheme.md)):
    customer dev/test/prod are tenants on production; the platform runs production plus a private lab
    on the OCI Pay-As-You-Go A1 allowance (~$4) and ephemeral Azure runs on the Visual Studio credit (§2, §10,
    issue [#132](https://github.com/NCodeGroup/Identity/issues/132)).

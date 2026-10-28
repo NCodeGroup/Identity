@@ -159,7 +159,7 @@ connectaddress=localhost connectport=8443` (reset with `netsh interface portprox
   orchestration script + baseline files; green locally end to end.
 - **Phase E — CI:** nightly/opt-in pipeline gated on the baseline; result zips published as artifacts.
 - **Phase F — Record outcomes:** close real gaps in code; capture residual items as issues; if the tooling choice/baseline policy needs justification, add an
-  [ADR](adr/).
+  [ADR](decisions/).
 
 ## Open decisions
 
@@ -225,7 +225,7 @@ negative tests.
 ## Appendix C — Client seeding checklist (manual, non-DCR path)
 
 The Basic OP plan needs **three** client registrations; each is a distinct client, because a client authenticates only
-with the one method it registers ([ADR-0145](adr/0145-a-client-authenticates-only-with-its-registered-method.md)). All
+with the one method it registers ([ADR-0145](decisions/0145-a-client-authenticates-only-with-its-registered-method.md)). All
 must register the suite callback as a redirect URI.
 
 - **`client` (primary):** `token_endpoint_auth_method=client_secret_basic`; grants
@@ -237,7 +237,7 @@ must register the suite callback as a redirect URI.
   (local: `https://localhost.emobix.co.uk:8443/test/a/<ALIAS>/callback`;
   hosted: `https://www.certification.openid.net/test/a/<ALIAS>/callback`).
 - **PKCE:** allow `S256`. The OP binds every authorization code to PKCE by default
-  ([ADR-0144](adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)); the conformance host relaxes
+  ([ADR-0144](decisions/0144-authorization-codes-are-bound-to-pkce-by-default.md)); the conformance host relaxes
   `require_pkce` and attests its clients with `pkce_nonce_exemption`, because the suite's requests carry a `nonce` but
   send PKCE in only one module.
 

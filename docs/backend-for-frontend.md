@@ -1,7 +1,7 @@
 # Backend for Frontend (BFF) — cookie sessions with server-side token custody
 
 - **Status:** Proposed. This is a design only, and only phase 0 (SharedState) is implemented. The library is tracked as issue
-  [#123](https://github.com/NCodeGroup/Identity/issues/123), and moving the management console onto it is tracked as [#158](https://github.com/NCodeGroup/Identity/issues/158). Phase 0 is delivered: [ADR-0267](adr/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md). When each
+  [#123](https://github.com/NCodeGroup/Identity/issues/123), and moving the management console onto it is tracked as [#158](https://github.com/NCodeGroup/Identity/issues/158). Phase 0 is delivered: [ADR-0267](decisions/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md). When each
   phase lands, its decisions ([§8](#8-decisions-and-options-considered)) become ADRs.
 - **Date:** 2026-10-20
 - **Scope:** a new **server-side** library that turns an ASP.NET Core application into the Backend for Frontend (BFF)
@@ -35,7 +35,7 @@ any compliant OpenID Provider (OP). The NCode OP is its reference partner and te
    and binds tokens with DPoP when the OP supports it ([§5.1](#51-the-bff-as-a-confidential-client)).
 4. **Refresh is single-flight across the whole cluster.** A rotated refresh token presented twice trips reuse
    detection, and the NCode OP then revokes the whole token family by default
-   ([ADR-0087](adr/0087-refresh-token-reuse-detection-and-family-revocation.md)). Only one replica may refresh a given
+   ([ADR-0087](decisions/0087-refresh-token-reuse-detection-and-family-revocation.md)). Only one replica may refresh a given
    session at a time ([D6](#d6-refresh-concurrency), [§5.5](#55-token-management)).
 5. **The BFF accepts the cookie through a layered CSRF defense.** It requires a static custom header, denies
    cross-origin calls by default, checks Fetch Metadata, and sets `SameSite=Strict`, as RFC 10017 §6.1.3.3 describes
@@ -46,7 +46,7 @@ any compliant OpenID Provider (OP). The NCode OP is its reference partner and te
    receives back-channel `logout_token`s and ends the matching sessions ([§5.8](#58-logout-and-back-channel-logout)).
 8. **Every vocabulary is open.** Token requirements, client-authentication methods, frontends, login gates, and claim
    shaping are registered strategies, not closed switches
-   ([ADR-0150](adr/0150-vocabularies-are-open-unless-provably-closed.md), [§5.11](#511-extensibility-seams)).
+   ([ADR-0150](decisions/0150-vocabularies-are-open-unless-provably-closed.md), [§5.11](#511-extensibility-seams)).
 
 ## Contents
 
@@ -84,7 +84,7 @@ asset. When the application holds OAuth tokens, that code can:
 
 The browser platform has moved too. Safari blocks third-party cookies, Firefox partitions them, and Chrome is
 deprecating them. Silent renewal with `prompt=none` in an iframe therefore fails for a growing share of users. This is
-the same reason [ADR-0074](adr/0074-session-management-and-logout.md) prefers back-channel logout over the iframe
+the same reason [ADR-0074](decisions/0074-session-management-and-logout.md) prefers back-channel logout over the iframe
 mechanisms.
 
 ### 1.2 Where NCode stands today
@@ -93,13 +93,13 @@ The **OpenID Provider side** already provides everything a BFF needs:
 
 | BFF needs                                    | The NCode OP provides                                                                                                                                       |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Confidential-client authentication           | `private_key_jwt` ([ADR-0102](adr/0102-jwt-bearer-client-authentication.md)) and mutual TLS ([ADR-0107](adr/0107-mutual-tls-client-authentication.md))      |
-| Authorization requests kept off the URL      | Pushed authorization requests (PAR) ([ADR-0089](adr/0089-pushed-authorization-requests.md))                                                                 |
-| Sender-constrained tokens                    | DPoP, including `dpop_jkt` and refresh-token binding continuity ([ADR-0097](adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md))                    |
-| Audience-restricted tokens per API           | RFC 8707 resource indicators, including down-scoping on refresh ([ADR-0158](adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)) |
-| Safe refresh tokens                          | Rotation with reuse detection that revokes the family ([ADR-0087](adr/0087-refresh-token-reuse-detection-and-family-revocation.md))                         |
-| Sessions the server can end                  | `sid`, RP-initiated logout, and back-channel logout ([ADR-0074](adr/0074-session-management-and-logout.md), [ADR-0077](adr/0077-session-scoped-grant-revocation-on-logout.md)) |
-| Revocation and exchange                      | Refresh-token revocation ([ADR-0028](adr/0028-token-revocation-refresh-tokens-only.md)) and token exchange ([ADR-0101](adr/0101-oauth-token-exchange-rfc8693.md))   |
+| Confidential-client authentication           | `private_key_jwt` ([ADR-0102](decisions/0102-jwt-bearer-client-authentication.md)) and mutual TLS ([ADR-0107](decisions/0107-mutual-tls-client-authentication.md))      |
+| Authorization requests kept off the URL      | Pushed authorization requests (PAR) ([ADR-0089](decisions/0089-pushed-authorization-requests.md))                                                                 |
+| Sender-constrained tokens                    | DPoP, including `dpop_jkt` and refresh-token binding continuity ([ADR-0097](decisions/0097-sender-constrained-access-tokens-dpop-and-mtls.md))                    |
+| Audience-restricted tokens per API           | RFC 8707 resource indicators, including down-scoping on refresh ([ADR-0158](decisions/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)) |
+| Safe refresh tokens                          | Rotation with reuse detection that revokes the family ([ADR-0087](decisions/0087-refresh-token-reuse-detection-and-family-revocation.md))                         |
+| Sessions the server can end                  | `sid`, RP-initiated logout, and back-channel logout ([ADR-0074](decisions/0074-session-management-and-logout.md), [ADR-0077](decisions/0077-session-scoped-grant-revocation-on-logout.md)) |
+| Revocation and exchange                      | Refresh-token revocation ([ADR-0028](decisions/0028-token-revocation-refresh-tokens-only.md)) and token exchange ([ADR-0101](decisions/0101-oauth-token-exchange-rfc8693.md))   |
 
 The family has **no relying-party library**, though: no package helps an application consume the OP. Its own
 management console (`src/frontend/apps/mgmt`) is a browser public client. `@ncode/auth` runs authorization code +
@@ -144,7 +144,7 @@ access token to the browser**. It is not offered, because the token still reache
 - Native and mobile apps, which are public clients with platform key storage.
 - Service-to-service calls.
 - The NCode **Playground**, whose purpose is to show the tokens a flow produces
-  ([ADR-0082](adr/0082-playground-and-conformance-surfaces.md)).
+  ([ADR-0082](decisions/0082-playground-and-conformance-surfaces.md)).
 
 ---
 
@@ -175,7 +175,7 @@ access token to the browser**. It is not offered, because the token still reache
 - **The token-mediating backend** (RFC 10017 §6.2), and **implicit, hybrid, or password flows**.
 - **Adapters for one identity provider.** Anything a standard OP needs is metadata-driven.
 - **Front-channel logout and session-management iframes**, for the same reasons as
-  [ADR-0074](adr/0074-session-management-and-logout.md).
+  [ADR-0074](decisions/0074-session-management-and-logout.md).
 - **Framework-specific glue** for Blazor or server-rendered page frameworks, beyond what an ASP.NET Core
   authentication scheme already provides ([§11](#11-open-questions)).
 
@@ -185,7 +185,7 @@ access token to the browser**. It is not offered, because the token still reache
   implementations, sealed options classes with validators, and the `IServiceBuilder<TMarker>` composition idiom.
 - No dependency on the OP packages (`NCode.Identity.OpenId.Authentication*`). The BFF is a relying party.
 - Shared state goes through the existing `NCode.Identity.SharedState` port and its adapters
-  ([ADR-0164](adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)), not a second
+  ([ADR-0164](decisions/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)), not a second
   integration with the same infrastructure.
 
 ---
@@ -244,7 +244,7 @@ The flow follows RFC 10017 Figure 1:
 | Package                                         | Depends on                                                      | Holds                                                                                                                                                                                                                                                                       |
 | ----------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `NCode.Identity.OpenId.Client.Abstractions`     | `NCode.Identity.Jose.Abstractions`                              | Contracts for an OAuth/OIDC **protocol client**: discovery document, token-endpoint requests and responses, client-authentication strategies, DPoP proof creation, ID-token and logout-token validation results.                                                            |
-| `NCode.Identity.OpenId.Client`                  | the above, `.Jwt.Abstractions` (abstractions only, ADR-0016)    | Default implementations: cached discovery and JWKS, PAR, code / refresh / client-credentials / token-exchange requests, revocation, `private_key_jwt` and mTLS client authentication, DPoP with nonce handling, and ID-token and logout-token validation under the family's JWT policy ([ADR-0154](adr/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)). It is useful on its own to any server-side client. |
+| `NCode.Identity.OpenId.Client`                  | the above, `.Jwt.Abstractions` (abstractions only, ADR-0016)    | Default implementations: cached discovery and JWKS, PAR, code / refresh / client-credentials / token-exchange requests, revocation, `private_key_jwt` and mTLS client authentication, DPoP with nonce handling, and ID-token and logout-token validation under the family's JWT policy ([ADR-0154](decisions/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)). It is useful on its own to any server-side client. |
 | `NCode.Identity.Bff.Abstractions`               | `NCode.Identity.OpenId.Client.Abstractions`                     | BFF contracts: session and session store, token requirements, token accessor, frontend descriptors, login gates, claim contributors, event types, and name constants.                                                                                                        |
 | `NCode.Identity.Bff`                            | the above, `NCode.Registration.AspNetCore`, `.Events`           | The ASP.NET Core authentication scheme, the `/bff` endpoints, the cookie-acceptance middleware, the token manager, local-API endpoint metadata, the remote-API forwarder (YARP's `IHttpForwarder`), the back-channel logout receiver, and `AddIdentityBff()`.                 |
 | `NCode.Identity.Bff.Yarp`                       | `NCode.Identity.Bff`, YARP                                      | Optional. Attaches tokens to routes defined in YARP configuration and applies the anti-forgery check to them.                                                                                                                                                               |
@@ -265,7 +265,7 @@ packages, so a BFF in front of a non-NCode OP pulls in no server code.
 - `private_key_jwt` is the default. The signing key comes from `NCode.Identity.Secrets`, so it can rotate and be backed
   by a key-management service. The BFF can publish its public keys at an optional `/bff/jwks` endpoint, and a client
   registered with that `jwks_uri` rotates without re-registration (the NCode OP resolves `jwks_uri` at runtime, per
-  [ADR-0106](adr/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)).
+  [ADR-0106](decisions/0106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)).
 - `tls_client_auth` and `self_signed_tls_client_auth` use a client certificate from the secrets subsystem.
 - `client_secret_basic` and `client_secret_post` are registered for OPs that support nothing stronger. The secret
   comes from the secrets subsystem, never from `appsettings`.
@@ -298,7 +298,7 @@ policy:
 - `iss` must equal the discovered issuer, and `aud` must contain the `client_id`, with `azp` checked when present.
 - `exp`, `iat`, and `nonce` are checked, and `auth_time` when `max_age` was requested.
 - `at_hash`, `c_hash` and `s_hash`, when present, are checked through the signing algorithm's token hash, in constant
-  time ([ADR-0273](adr/0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md)).
+  time ([ADR-0273](decisions/0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md)).
 
 The family therefore has one JOSE stack for every token the BFF validates.
 
@@ -413,7 +413,7 @@ ending the session when its refresh token dies.
 
 ### 5.4 State every replica sees
 
-`IExpiringKeySet` ([ADR-0164](adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)) records
+`IExpiringKeySet` ([ADR-0164](decisions/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)) records
 only whether a key is present. That is enough for the logout-token `jti` replay check and the refresh lease. It cannot
 hold a session or a login transaction. SharedState therefore gains a second primitive next to it:
 
@@ -427,7 +427,7 @@ hold a session or a login transaction. SharedState therefore gains a second prim
 The in-process adapter implements both primitives and stays the default. As ADR-0164 decided for the OP, it is correct
 for a single replica, including a single-replica production deployment. Several replicas register the **Valkey**
 adapter, which implements the primitives with `SET NX PX`, `GETDEL`, and a compare-and-swap script, and the index is a sorted set scored by member expiry
-([ADR-0267](adr/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). The BFF thus
+([ADR-0267](decisions/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). The BFF thus
 shares the OP's Valkey integration rather than adding its own. If the store fails, the BFF **fails closed with
 `503`**. It never treats the request as signed out, because a `401` would send the SPA into a login loop against a
 broken store.
@@ -444,7 +444,7 @@ refresh with the RFC 8707 `resource` parameter, as RFC 8707 §2.2 allows.
 
 **Single-flight across the cluster.** With rotation, presenting the same refresh token twice is the signature of
 theft. The NCode OP's default `refresh_token_reuse_policy=revoke_all` then **revokes the whole family**
-([ADR-0087](adr/0087-refresh-token-reuse-detection-and-family-revocation.md)). Two browser tabs, or two parallel
+([ADR-0087](decisions/0087-refresh-token-reuse-detection-and-family-revocation.md)). Two browser tabs, or two parallel
 `fetch` calls landing on different replicas, would log the user out. The BFF prevents that:
 
 1. Within one replica, an async lock per session collapses concurrent refreshes into one.
@@ -511,7 +511,7 @@ remote API:
   separation is the point: tokens live in the store and the key lives elsewhere, possibly as a non-exportable key in a
   key-management service.
 - **Rotation.** Each session records the `jkt` it was bound with. The NCode OP keeps a refresh token bound to its
-  original key across rotation ([ADR-0097](adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md)), so a session
+  original key across rotation ([ADR-0097](decisions/0097-sender-constrained-access-tokens-dpop-and-mtls.md)), so a session
   keeps using its original key until it ends. New sessions use the current key, and retired keys are kept for at
   least the maximum session lifetime.
 - **Proofs.** A fresh proof (`htm`, `htu`, `iat`, `jti`, `ath`) accompanies every token-endpoint call and resource
@@ -607,7 +607,7 @@ the allow-listed path. That URL must also be registered with the OP.
    the user out. The `Strict` cookie already stops cross-site navigations; the guard covers same-site ones.
 2. The BFF revokes the refresh token at the OP's `revocation_endpoint` with `token_type_hint=refresh_token`
    (RFC 7009). This is best effort, because the OP's end-session step revokes the session's grants anyway
-   ([ADR-0077](adr/0077-session-scoped-grant-revocation-on-logout.md)).
+   ([ADR-0077](decisions/0077-session-scoped-grant-revocation-on-logout.md)).
 3. The BFF deletes the session record and its index entries, deletes the cookie, and records `bff.session.ended` with
    reason `logged_out`.
 4. It redirects to the OP's `end_session_endpoint` with `id_token_hint`, `client_id`, a `post_logout_redirect_uri` that
@@ -634,7 +634,7 @@ The client is registered with `backchannel_logout_uri` and `backchannel_logout_s
 always sends `sid`.
 
 The two paths combine: when the user logs out of **another** application at the NCode OP, the OP revokes the session's
-grants and posts a logout token to this BFF ([ADR-0074](adr/0074-session-management-and-logout.md)). The BFF then ends
+grants and posts a logout token to this BFF ([ADR-0074](decisions/0074-session-management-and-logout.md)). The BFF then ends
 its session on every replica at once.
 
 ### 5.9 Browser-facing hardening
@@ -688,7 +688,7 @@ path-addressed surfaces on one origin must never share a session cookie.
 
 ### 5.11 Extensibility seams
 
-Each seam follows [ADR-0001](adr/0001-mediator-vs-dependency-injection-logic-classes.md): a **service** where there is
+Each seam follows [ADR-0001](decisions/0001-mediator-vs-dependency-injection-logic-classes.md): a **service** where there is
 one answer, a **strategy collection** where several named members exist, and a **mediator** command where a pipeline
 runs.
 
@@ -899,7 +899,7 @@ never carry subjects, handles, tokens, client ids, or paths.
 - **Why:**
   - (b) validates ID tokens with a second JOSE stack (Microsoft.IdentityModel), while the back-channel logout token
     must be validated by the BFF anyway. That would put two stacks and two key policies on one OP's keys, against
-    [ADR-0154](adr/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md).
+    [ADR-0154](decisions/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md).
   - (b) requires Data Protection key custody (D2).
   - (b) needs event hooks to add `private_key_jwt`, DPoP on the token request, RFC 9207, and per-resource refresh, which
     are the core of this design.
@@ -958,8 +958,8 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
 
 | Phase | Delivers                                                                                                                                                                                                         |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0     | SharedState: versioned expiring values with atomic take and compare-and-swap, plus membership indexes, in the in-process and Valkey adapters ([§5.4](#54-state-every-replica-sees)). Delivered ([ADR-0267](adr/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). |
-| 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. Phase 1a delivered ([ADR-0270](adr/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)): discovery, JWKS, client authentication, token and revocation requests. 1b remains: PAR, DPoP, mTLS, logout-token validation; ID-token validation is delivered (ADR-0273). |
+| 0     | SharedState: versioned expiring values with atomic take and compare-and-swap, plus membership indexes, in the in-process and Valkey adapters ([§5.4](#54-state-every-replica-sees)). Delivered ([ADR-0267](decisions/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). |
+| 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. Phase 1a delivered ([ADR-0270](decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)): discovery, JWKS, client authentication, token and revocation requests. 1b remains: PAR, DPoP, mTLS, logout-token validation; ID-token validation is delivered (ADR-0273). |
 | 2     | `NCode.Identity.Bff` core: the scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP. |
 | 3     | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and `NCode.Identity.Bff.Yarp`.                                                                           |
 | 4     | Multiple frontends, `UseBffSecurityHeaders()`, and the `/bff/jwks` endpoint.                                                                                                                                     |
@@ -991,7 +991,7 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
 1. **A `bff` client profile at the OP.** Should the NCode OP offer a registered security profile that provisions a BFF
    client correctly in one step? It would set confidential `private_key_jwt`, PAR required, DPoP required,
    `backchannel_logout_session_required`, rotation with `revoke_all`, and a refresh-token absolute lifetime aligned
-   with the BFF session, in the spirit of the FAPI ceiling ([ADR-0108](adr/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
+   with the BFF session, in the spirit of the FAPI ceiling ([ADR-0108](decisions/0108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
 2. **Refresh-token lifetime discovery.** OPs do not advertise a refresh token's absolute expiry, so the BFF learns it
    only from `invalid_grant`. Should the NCode OP return a (non-standard) `refresh_token_expires_in`, so the BFF can cap
    the session up front?
@@ -1042,12 +1042,12 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
 - [Cookies: HTTP State Management Mechanism (RFC 6265bis)](https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/)
   — the `__Host-` and `__Host-Http-` prefixes and `SameSite`.
 - [Fetch Metadata Request Headers](https://www.w3.org/TR/fetch-metadata/).
-- Family ADRs: [0001](adr/0001-mediator-vs-dependency-injection-logic-classes.md),
-  [0074](adr/0074-session-management-and-logout.md), [0077](adr/0077-session-scoped-grant-revocation-on-logout.md),
-  [0087](adr/0087-refresh-token-reuse-detection-and-family-revocation.md),
-  [0089](adr/0089-pushed-authorization-requests.md),
-  [0097](adr/0097-sender-constrained-access-tokens-dpop-and-mtls.md),
-  [0150](adr/0150-vocabularies-are-open-unless-provably-closed.md),
-  [0154](adr/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),
-  [0158](adr/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md),
-  [0164](adr/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md).
+- Family ADRs: [0001](decisions/0001-mediator-vs-dependency-injection-logic-classes.md),
+  [0074](decisions/0074-session-management-and-logout.md), [0077](decisions/0077-session-scoped-grant-revocation-on-logout.md),
+  [0087](decisions/0087-refresh-token-reuse-detection-and-family-revocation.md),
+  [0089](decisions/0089-pushed-authorization-requests.md),
+  [0097](decisions/0097-sender-constrained-access-tokens-dpop-and-mtls.md),
+  [0150](decisions/0150-vocabularies-are-open-unless-provably-closed.md),
+  [0154](decisions/0154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md),
+  [0158](decisions/0158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md),
+  [0164](decisions/0164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md).

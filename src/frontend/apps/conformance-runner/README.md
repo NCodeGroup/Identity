@@ -1,7 +1,7 @@
 # @ncode/app-conformance-runner
 
 Headless OAuth 2.x / OpenID Connect **conformance probe runner** — Phase 3 of the spec-coverage harness
-([ADR-0084](../../../../docs/adr/0084-spec-coverage-conformance-harness.md)).
+([ADR-0084](../../../../docs/decisions/0084-spec-coverage-conformance-harness.md)).
 
 Where the browser dashboard ([`apps/conformance`](../conformance)) verifies the CORS-reachable, credential-free
 endpoints, this runner exercises the **confidential and server-initiated legs a browser cannot drive**:

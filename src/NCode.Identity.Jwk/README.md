@@ -8,7 +8,7 @@ First-class **JSON Web Key** (JWK, RFC 7517), **JSON Web Key Set** (JWKS, RFC 75
 
 This is intentional, and it is the one place in the family where a type is deliberately **not** split into a contracts
 package. If this comes up again, the decision has already been made — see
-[ADR-0119](../../docs/adr/0119-first-class-jwk-jwks-and-thumbprint.md) for the full record. In short:
+[ADR-0119](../../docs/decisions/0119-first-class-jwk-jwks-and-thumbprint.md) for the full record. In short:
 
 - **Our `*.Abstractions` packages hold contracts only — no logic.** That rule is what the whole Abstractions/impl split
   exists to enforce.
@@ -34,4 +34,4 @@ A `JsonWebKey` carries a `JsonWebKeyTypeDescriptor` that names its thumbprint me
 key types (`RSA`, `EC`, `OKP`, `oct` and `AKP`) are built in as `JsonWebKeyTypeDescriptors`. A contributed key type
 returns its own descriptor from `ISecretKeyTypeDescriptor.JwkKeyType`, and code that resolved it constructs
 `new JsonWebKey(element, descriptor)` so the key uses that type's rules. The standard private member names stay private
-for every key type. See [ADR-0271](../../docs/adr/0271-a-key-type-registers-its-json-web-key-rules.md).
+for every key type. See [ADR-0271](../../docs/decisions/0271-a-key-type-registers-its-json-web-key-rules.md).

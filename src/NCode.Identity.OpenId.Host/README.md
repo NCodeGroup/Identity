@@ -6,7 +6,7 @@ A runnable ASP.NET Core reference host for the OpenID Connect + OAuth 2.0 librar
 ## Database provider
 
 The dev database is **PostgreSQL**, orchestrated by the Aspire AppHost
-([ADR-0073](../../docs/adr/0073-postgres-dev-database-and-aspire-migration-worker.md)). Run the stack through the
+([ADR-0073](../../docs/decisions/0073-postgres-dev-database-and-aspire-migration-worker.md)). Run the stack through the
 AppHost (not this project directly) so the database, migrations, and host come up in the right order:
 
 ```pwsh
@@ -37,7 +37,7 @@ one purge resets all of them consistently.
 ### Secret protection
 
 Every stored secret, including the key ring, is encrypted under a key hierarchy whose root key lives **outside** the
-database ([ADR-0235](../../docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+database ([ADR-0235](../../docs/decisions/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 A **Production** host refuses to start without a real root key, and a root key must never be committed. The
 `SecretProtection` section selects it (environment variables use `__`, for example
 `SecretProtection__RootKeyProvider=local`):
@@ -71,7 +71,7 @@ their unreadable keys automatically and are provisioned again; reset the databas
 ## Schema management (EF Core migrations)
 
 The schema is managed by **EF Core migrations**, not `EnsureCreated()`
-([ADR-0041](../../docs/adr/0041-host-owned-ef-migrations-deliberate-outside-development.md)). The migrations live in the
+([ADR-0041](../../docs/decisions/0041-host-owned-ef-migrations-deliberate-outside-development.md)). The migrations live in the
 host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/OpenId` and
 `Migrations/DataProtection`; the published persistence library ships none.
 
@@ -79,7 +79,7 @@ host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/O
 - **Production** (any non-Development deployment) applies schema deliberately, once per release, before the rollout.
   The Helm chart runs the same worker from the host's image as a `pre-install` and `pre-upgrade` Job, and a failed
   migration stops the release before any pod changes
-  ([ADR-0180](../../docs/adr/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Without the
+  ([ADR-0180](../../docs/decisions/0180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Without the
   chart, run the worker the same way, or apply a generated idempotent script
   (`dotnet ef migrations script --idempotent`).
 
@@ -105,13 +105,13 @@ restricts deleting rows of an existing table. A migration that runs raw SQL or c
 the previous release: `[ExpandMigration("why")]` when that release still reads every row it writes,
 `[ContractMigration("why")]` when it does not. A deliberate contract step carries `[ContractMigration("why")]`, whose
 reason names the release that stopped reading the old shape
-([ADR-0184](../../docs/adr/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
-[ADR-0250](../../docs/adr/0250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md)).
+([ADR-0184](../../docs/decisions/0184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
+[ADR-0250](../../docs/decisions/0250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md)).
 
 Retiring a setting, or giving its value a home outside the settings documents, is an expansion too: the descriptor stays
 registered with a `RetiredReason`, the migration copies the value and leaves the stored setting, and a later release
 removes both
-([ADR-0251](../../docs/adr/0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md)).
+([ADR-0251](../../docs/decisions/0251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md)).
 
 Add a migration after changing the EF model (the `Database` project carries the design-time factories, so it is both
 `--project` and `--startup-project`):
@@ -145,7 +145,7 @@ DataProtection key ring are in the same database and are purged with it.
 
 The `Dockerfile` builds the production image from the repository root. Its base images are pinned by tag and digest, and
 Dependabot moves the digests
-([ADR-0249](../../docs/adr/0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)); the
+([ADR-0249](../../docs/decisions/0249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)); the
 Node image's major matches the single pin in `src/frontend/.node-version`, which the `Host image` workflow checks:
 
 ```bash
@@ -157,9 +157,9 @@ port **8080** over plain HTTP, and serves the `apps/auth` login bundle from `/ap
 Probe `/health/live` for liveness and `/health/ready` for readiness. The image writes one JSON object per line to
 standard output, with a UTC timestamp, so a log collector keeps an entry and its exception in one record; set
 `Logging__Console__FormatterName=simple` to write text
-([ADR-0248](../../docs/adr/0248-the-host-image-writes-one-line-json-logs.md)). CI builds it for `linux/amd64` and
+([ADR-0248](../../docs/decisions/0248-the-host-image-writes-one-line-json-logs.md)). CI builds it for `linux/amd64` and
 `linux/arm64`
-([ADR-0178](../../docs/adr/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
+([ADR-0178](../../docs/decisions/0178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
 
 The image starts in the `Production` environment, which refuses to start until the deployment provides:
 
@@ -169,12 +169,12 @@ The image starts in the `Production` environment, which refuses to start until t
   `SecretProtection__RootKeyProviders__Local__KeyPath` for `local`, and either
   `SecretProtection__Recovery__PublicKeyPath` or `SecretProtection__Recovery__Disabled=true`, which acknowledges running
   without a recovery key
-  ([ADR-0235](../../docs/adr/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
+  ([ADR-0235](../../docs/decisions/0235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 - `ConnectionStrings__openiddb`: the Postgres database. It also stores the key ring, so the host refuses to start
   without it.
 - `OpenId__TenantResolution__StaticSingle__Issuer`: the public issuer URL, or another tenant resolution mode. A served
   tenant without an issuer fails closed
-  ([ADR-0165](../../docs/adr/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
+  ([ADR-0165](../../docs/decisions/0165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md)).
 
 The host does not migrate on boot. The image also carries the migration worker, which runs from `/app/migrations` with
 `dotnet NCode.Identity.OpenId.Host.MigrationService.dll` and the same `ConnectionStrings__openiddb`.

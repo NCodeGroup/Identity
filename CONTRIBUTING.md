@@ -50,7 +50,7 @@ Every gate run clears and rewrites `artifacts/test-results/` (one JUnit report p
 of a full run) and prints a test digest and a per-stage duration table; a full run also writes the merged coverage
 report to `artifacts/coverage/` — open `index.html` to browse it. In CI the same results appear on the run's summary
 page, failed tests and the failing stage are annotated, and coverage is uploaded to Codecov
-([ADR-0143](docs/adr/0143-ci-presents-test-results-and-coverage-in-github.md)). The frontend workspace's equivalent is
+([ADR-0143](docs/decisions/0143-ci-presents-test-results-and-coverage-in-github.md)). The frontend workspace's equivalent is
 `pnpm run test:report` (in `src/frontend`), which adds per-package JUnit and coverage output to `pnpm test`.
 
 The Definition of Done gates the .NET tier only. A change under `src/frontend` also runs that workspace's gates before
@@ -63,7 +63,7 @@ To preview the CI presentation (job summary + annotations) without pushing, run 
 point `GITHUB_STEP_SUMMARY` at an empty temporary file, then read that file. The build writes nothing to `GITHUB_ENV`:
 `version.json` turns off Nerdbank.GitVersioning's cloud-build variables, whose unlocked appends from parallel MSBuild
 nodes tore that file and failed the job
-([ADR-0003](docs/adr/0003-central-package-management-and-lockstep-versioning.md)).
+([ADR-0003](docs/decisions/0003-central-package-management-and-lockstep-versioning.md)).
 
 When adding a project, place it in the solution folder that mirrors its directory — `/src/` for `src/**` and `/tests/`
 for `tests/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`) — never at the solution root.
@@ -79,18 +79,18 @@ marked tool-enforced or review-only. The highlights:
 - Nullable enabled; restructure so the compiler proves non-null instead of using `!`.
 - `sealed` / `init` / concrete collections; vocabularies are open by default — `const string` names plus registered
   descriptors or strategies — and an `enum` only for a provably closed set
-  ([ADR-0150](docs/adr/0150-vocabularies-are-open-unless-provably-closed.md)).
+  ([ADR-0150](docs/decisions/0150-vocabularies-are-open-unless-provably-closed.md)).
 - No behavior-selecting flag arguments; split into intention-revealing methods instead.
 - **No cross-assembly `InternalsVisibleTo`** in production — packages compose through public contracts
-  ([ADR-0004](docs/adr/0004-no-cross-assembly-internalsvisibleto.md)).
+  ([ADR-0004](docs/decisions/0004-no-cross-assembly-internalsvisibleto.md)).
 - One type per file; the single canonical implementation of `IFoo` is `DefaultFoo`
-  ([ADR-0006](docs/adr/0006-single-canonical-impl-is-defaultfoo.md)); C# 14 `extension` syntax.
+  ([ADR-0006](docs/decisions/0006-single-canonical-impl-is-defaultfoo.md)); C# 14 `extension` syntax.
 
 ## Making a change
 
 1. Open (or find) a GitHub issue describing the problem or proposal. A change that affects the **public outcome**
    (semantics, public surface, validation/security posture) should reach agreement on the issue — and be recorded as an
-   ADR under [`docs/adr/`](docs/adr/) — before the pull request.
+   ADR under [`docs/decisions/`](docs/decisions/) — before the pull request.
 2. Work on a short-lived branch from `main`. Keep the public surface deliberate; a breaking change to the public API is
    a **major** version bump.
 3. Record any consumer-visible change in [`CHANGELOG.md`](CHANGELOG.md) under `## [Unreleased]`.
@@ -100,8 +100,8 @@ marked tool-enforced or review-only. The highlights:
    and every review thread is resolved, merging ("Merge when ready") adds it to the merge queue, which runs the full
    gate on the merged result and squash-merges it, so the branch need not be up to date with `main`; no one pushes to
    `main` directly. See
-   [ADR-0261](docs/adr/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) and
-   [ADR-0263](docs/adr/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md). CI runs on a
+   [ADR-0261](docs/decisions/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) and
+   [ADR-0263](docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md). CI runs on a
    pull request, in the merge queue, and on a push to `main` or a release line, not on a push to any other branch, so a
    branch's commits are checked once. To check a branch that has no pull request, open a draft pull request or run the
    workflows by hand (`workflow_dispatch`).
@@ -111,7 +111,7 @@ Claude Sonnet 5.5 executes one verified step at a time, and Opus re-plans any st
 Copilot CLI or Claude Code. The workflow files come from the project template; update them with
 `/plan-template-update`, which plans and runs `./.template/Update-Project.ps1`, never by hand. See
 [AGENTS.md](AGENTS.md#plan-and-execute-workflow) and
-[ADR-0170](docs/adr/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md).
+[ADR-0170](docs/decisions/0170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md).
 
 See [GOVERNANCE.md](GOVERNANCE.md) for ownership, the release lifecycle, and how versions map onto tags.
 
@@ -147,7 +147,7 @@ git rebase origin/main --exec "git commit --amend --no-edit --reset-author"
 git push --force-with-lease
 ```
 
-See [ADR-0128](docs/adr/0128-commits-are-attributed-to-people-not-agents.md).
+See [ADR-0128](docs/decisions/0128-commits-are-attributed-to-people-not-agents.md).
 
 ## Code formatting — CSharpier
 
@@ -166,7 +166,7 @@ The version is pinned with `rollForward: false` so formatting output never drift
 ## Package versions — Central Package Management (CPM)
 
 Package **versions live in one place** ([`Directory.Packages.props`](Directory.Packages.props)) and are not repeated
-per project ([ADR-0003](docs/adr/0003-central-package-management-and-lockstep-versioning.md)).
+per project ([ADR-0003](docs/decisions/0003-central-package-management-and-lockstep-versioning.md)).
 
 - A `<PackageVersion Include="X" Version="1.2.3" />` in `Directory.Packages.props` says **which version**.
 - A `<PackageReference Include="X" />` (no `Version`) in a `.csproj` says **which project uses it**. NuGet errors with
@@ -199,14 +199,14 @@ directories. Dependabot starts with no cache, and a warm local metadata cache ca
 When an upgrade **cannot land yet** (the upstream ecosystem has not caught up), hold it with an `ignore` rule in
 `dependabot.yml` that explains why, plus an issue for lifting it. That is how TypeScript majors and `@types/node`
 majors are held today
-([ADR-0147](docs/adr/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Without the rule,
+([ADR-0147](docs/decisions/0147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Without the rule,
 every weekly group PR fails on the same package.
 
 The frontend has no lockfile-free path: after changing a `package.json`, run `pnpm install` in `src/frontend` and commit
 `pnpm-lock.yaml`, because CI installs with `--frozen-lockfile`. Frontend versions must be three days old before anyone
 installs them: pnpm's `minimumReleaseAge` gates people and Dependabot's npm `cooldown` gates its updates. Keep the two
 windows equal, because Dependabot fails while the lockfile holds a version younger than its cooldown
-([ADR-0153](docs/adr/0153-one-release-age-window-gates-frontend-dependencies.md)).
+([ADR-0153](docs/decisions/0153-one-release-age-window-gates-frontend-dependencies.md)).
 
 Workflows reference GitHub's own `actions/*` by major tag (`actions/checkout@v7`) and every **third-party** action by
 full commit SHA with its version in a trailing comment
@@ -218,7 +218,7 @@ review; a commit cannot. Dependabot's GitHub Actions group updates the SHA and t
 Because these are shipped libraries, an accidental change to the public API surface is a break for every consumer. The
 [`Microsoft.CodeAnalysis.PublicApiAnalyzers`](https://github.com/dotnet/roslyn-analyzers/blob/main/src/PublicApiAnalyzers/PublicApiAnalyzers.Help.md)
 Roslyn analyzer makes the surface explicit and reviewable via a `PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt`
-pair per packable project ([ADR-0005](docs/adr/0005-public-api-surface-is-tracked-and-evolves-compatibly.md)):
+pair per packable project ([ADR-0005](docs/decisions/0005-public-api-surface-is-tracked-and-evolves-compatibly.md)):
 
 - Add public API → add its lines to `PublicAPI.Unshipped.txt` (the IDE's _"Add to public API"_ code fix generates them).
 - Remove public API → prefix the removed line with `*REMOVED*` in `PublicAPI.Unshipped.txt`.

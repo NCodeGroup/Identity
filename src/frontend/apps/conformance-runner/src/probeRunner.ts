@@ -7,7 +7,7 @@
  * and CORS forbid: `client_credentials`, introspection/revocation with client authentication, `private_key_jwt`,
  * device-code polling, CIBA, DPoP/mTLS, and back-channel logout. Every probe is a plain async function over an injected
  * {@link ProbeFetch} (and, for the asymmetric legs, an injected signer) so the runner stays deterministic and testable
- * without a network or real keys. Phase 3 of [ADR-0084](../../../../docs/adr/0084-spec-coverage-conformance-harness.md).
+ * without a network or real keys. Phase 3 of [ADR-0084](../../../../../docs/decisions/0084-spec-coverage-conformance-harness.md).
  */
 
 import type { ProbeFetch, ProbeReport, ProbeResult, RawDiscovery } from '@ncode/conformance-core';

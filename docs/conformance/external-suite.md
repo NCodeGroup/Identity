@@ -3,7 +3,7 @@
 Status: **implemented (committed harness); nightly CI pipeline deferred.** Detailed plan for the remaining
 Phase 4 of issue [#129](https://github.com/NCodeGroup/Identity/issues/129) and Phase D of [#124](https://github.com/NCodeGroup/Identity/issues/124). Parent design:
 [`docs/conformance-testing.md`](../conformance-testing.md). Decision record:
-[ADR-0084](../adr/0084-spec-coverage-conformance-harness.md) (the `browser` / `probe-runner` / `external-suite`
+[ADR-0084](../decisions/0084-spec-coverage-conformance-harness.md) (the `browser` / `probe-runner` / `external-suite`
 exercise boundary).
 
 ## Goal
@@ -39,7 +39,7 @@ on any failed probe. Running it first gives fast local feedback before the heavi
 
 ## Exercise boundary (why both)
 
-Per [ADR-0084](../adr/0084-spec-coverage-conformance-harness.md), coverage is split across three actors and the
+Per [ADR-0084](../decisions/0084-spec-coverage-conformance-harness.md), coverage is split across three actors and the
 harness runs the first two locally, pre-flighting the third:
 
 | Actor            | Drives                                                                    | In this harness                                  |
@@ -65,14 +65,14 @@ hermetic [`build/dod.ps1`](../../build/dod.ps1) inner loop — consistent with
   `Unable to locate element with ID: 'username'` (the suite's default `BrowserControl` is a no-JavaScript
   **HtmlUnitDriver** and the login surface was a client-rendered SPA); that is **fixed** by the no-JS progressive
   `<form>`. The config was then switched to **Dynamic Client Registration** (dropping the static `alias` + `client`/
-  `client2` so the suite registers a fresh client per module — [ADR-0063](../adr/0063-dynamic-client-registration.md),
+  `client2` so the suite registers a fresh client per module — [ADR-0063](../decisions/0063-dynamic-client-registration.md),
   with `registration_endpoint_allow_anonymous=true` in `appsettings.Conformance.json`), which removed the
   `Stopping test due to alias conflict` serialization. The DCR switch surfaced and **fixed** two further backend bugs:
   the deregistration `DELETE /oauth2/register/{client_id}` failing on a client that still owned a secret
   (`ClientStore.RemoveAsync` guard was blind to same-unit-of-work pending deletes), and **generated `client_secret`s
   failing `invalid_client`** because a symmetric secret was stored as raw bytes instead of the UTF-8 bytes client
   authentication compares against (new `ISecretGenerator.GenerateSharedSecret` —
-  [ADR-0110](../adr/0110-shared-secret-vs-cryptographic-key-storage.md)). Two conformance-config fixes were also needed:
+  [ADR-0110](../decisions/0110-shared-secret-vs-cryptographic-key-storage.md)). Two conformance-config fixes were also needed:
   the `Verify Complete` callback match uses `/test/*/callback*` (DCR has no `/a/<alias>/` segment), and the `Login` task
   is `optional` (so no-login `prompt=none` / `max_age` flows do not error). **First full Basic OP (DCR) run:**
   `18 PASSED, 11 WARNING, 4 SKIPPED, 4 FAILED` across 38 modules with no mass-abort. Triaging those dispositions is
@@ -95,7 +95,7 @@ fixes below the plan runs clean** — `32 PASSED, 0 WARNING, 3 REVIEW, 4 SKIPPED
 OP) with a green gate (`Conformance run PASSED`); a `REVIEW` result with no failing conditions does not gate the run.
 
 `expected-failures.json` holds one intentional deviation: since every authorization code is bound to PKCE
-([ADR-0144](../adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)), the conformance host relaxes
+([ADR-0144](../decisions/0144-authorization-codes-are-bound-to-pkce-by-default.md)), the conformance host relaxes
 `require_pkce` and attests the suite's clients with `pkce_nonce_exemption`, so its nonce-carrying requests need no
 `code_challenge` — but `oidcc-ensure-request-without-nonce-succeeds-for-code-flow` sends neither a challenge nor a nonce,
 which leaves the code unprotected against injection, and the OP refuses it with `invalid_request` (OAuth 2.1 §7.5.1.1).
@@ -154,7 +154,7 @@ Config OP; the failure is the expected one, on `CheckIfAuthorizationEndpointErro
 - **`acr` emission (`WARNING`: `oidcc-ensure-request-with-acr-values-succeeds`)** — fixed by configuring the conformance
   environment, not the backend: the OP now advertises `acr_values_supported` and sets a `default_acr` baseline (server
   settings in `appsettings.Conformance.json`), so the password login's resolved `acr`
-  ([ADR-0091](../adr/0091-acr-emission-and-conditional-auth-time.md)) is emitted and matches the suite's requested
+  ([ADR-0091](../decisions/0091-acr-emission-and-conditional-auth-time.md)) is emitted and matches the suite's requested
   `acr_values`. The ACR resolver already honored `default_acr`; only the conformance environment lacked a baseline.
 - **UserInfo access token in the POST body (`WARNING`: `oidcc-userinfo-post-body`)** — `DefaultAuthenticateSubjectHandler`
   now accepts the bearer token as an `access_token` form parameter (RFC 6750 §2.2 / OIDC §5.3.1) for a non-GET
@@ -175,8 +175,8 @@ Config OP; the failure is the expected one, on `CheckIfAuthorizationEndpointErro
   `sid` is now always emitted into subject-bound access tokens (the opt-in `send_session_id_in_access_token` setting is
   retired). No global access-token denylist and no per-token store: one indexed session lookup on first-party
   access-token authentication and one session-scoped revocation on the rare replay path. External resource servers still
-  treat the JWT as self-contained. See [ADR-0112](../adr/0112-authorization-code-replay-revokes-session.md) (refines
-  [ADR-0028](../adr/0028-token-revocation-refresh-tokens-only.md)); its `expected-failures.json` baseline was removed.
+  treat the JWT as self-contained. See [ADR-0112](../decisions/0112-authorization-code-replay-revokes-session.md) (refines
+  [ADR-0028](../decisions/0028-token-revocation-refresh-tokens-only.md)); its `expected-failures.json` baseline was removed.
 
 ### Codified intentional deviations
 

@@ -10,7 +10,7 @@
  * `/.well-known/openid-configuration`, so the matrix is read-only and needs no OAuth client. The column semantics are
  * therefore *advertised* — a secure-by-default provider (ADR-0083) may implement but not advertise a capability. Later
  * phases add active probes that refine *advertised* into *verified*. See
- * [ADR-0084](../../../../docs/adr/0084-spec-coverage-conformance-harness.md).
+ * [ADR-0084](../../../../../docs/decisions/0084-spec-coverage-conformance-harness.md).
  */
 
 import type { RawDiscovery } from './audit.js';

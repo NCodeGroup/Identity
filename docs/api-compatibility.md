@@ -3,7 +3,7 @@
 These are shipped libraries: once a type or member is `public` it is a contract every consumer depends on. This document
 is the procedure for evolving that surface without breaking consumers. The surface itself is tracked by
 `Microsoft.CodeAnalysis.PublicApiAnalyzers` via each packable project's `PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt`
-pair ([ADR-0005](adr/0005-public-api-surface-is-tracked-and-evolves-compatibly.md)).
+pair ([ADR-0005](decisions/0005-public-api-surface-is-tracked-and-evolves-compatibly.md)).
 
 ## The rule
 

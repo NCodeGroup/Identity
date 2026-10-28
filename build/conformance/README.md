@@ -99,7 +99,7 @@ Client Registration. It runs green; status and triage history are in
 
 **FAPI 1.0 Advanced.** `-Fapi1Advanced` runs `fapi1-advanced-final-test-plan` four times, with `private_key_jwt` and
 `mtls` client authentication and the `plain_response` and `jarm` response modes, always with pushed authorization
-requests ([ADR-0202](../../docs/adr/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)). The
+requests ([ADR-0202](../../docs/decisions/0202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)). The
 `mtls` variant uses `self_signed_tls_client_auth`. Each of the four `fapi1-*` clients in
 `appsettings.Conformance.json` gets a P-256 key and a self-signed certificate for it. They are generated on first use
 into `./.fapi1-keys/` (gitignored, never committed) and reused, so the seeded clients keep matching a persistent

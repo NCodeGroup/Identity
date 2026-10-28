@@ -54,11 +54,11 @@ client registrations (all registering the suite callback as a redirect URI):
 - **Redirect URI (all):** `https://<SUITE_BASE>/test/a/<ALIAS>/callback`
   (local: `https://localhost.emobix.co.uk:8443/test/a/<ALIAS>/callback`).
 - **PKCE:** allow `S256`. Every authorization code is bound to PKCE by default
-  ([ADR-0144](../adr/0144-authorization-codes-are-bound-to-pkce-by-default.md)); because the suite sends PKCE in only one
+  ([ADR-0144](../decisions/0144-authorization-codes-are-bound-to-pkce-by-default.md)); because the suite sends PKCE in only one
   module, the conformance host relaxes `require_pkce` and attests its clients with `pkce_nonce_exemption`, so a
   confidential client's request that carries a `nonce` may omit the challenge. Each seeded client registers one
   `TokenEndpointAuthMethod` as its `token_endpoint_auth_method`, which makes it confidential and is the only method it
-  authenticates with ([ADR-0145](../adr/0145-a-client-authenticates-only-with-its-registered-method.md)).
+  authenticates with ([ADR-0145](../decisions/0145-a-client-authenticates-only-with-its-registered-method.md)).
 
 Plus a **deterministic test user** (e.g. `conformance-user` + fixed password) in the conformance tenant,
 consumed by the [#125](https://github.com/NCodeGroup/Identity/issues/125) login page.

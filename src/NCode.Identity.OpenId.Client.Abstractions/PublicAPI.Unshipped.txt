@@ -29,6 +29,8 @@ NCode.Identity.OpenId.Client.ClientCredentialsTokenRequest.ClientCredentialsToke
 NCode.Identity.OpenId.Client.ClientRegistration
 NCode.Identity.OpenId.Client.ClientRegistration.AuthenticationMethod.get -> string!
 NCode.Identity.OpenId.Client.ClientRegistration.Authority.get -> string!
+NCode.Identity.OpenId.Client.ClientRegistration.BackchannelLogoutSessionRequired.get -> bool
+NCode.Identity.OpenId.Client.ClientRegistration.BackchannelLogoutSessionRequired.init -> void
 NCode.Identity.OpenId.Client.ClientRegistration.ClientId.get -> string!
 NCode.Identity.OpenId.Client.ClientRegistration.ClientRegistration(string! authority, string! clientId, string! authenticationMethod) -> void
 NCode.Identity.OpenId.Client.ClientRegistration.IdTokenSigningAlgorithms.get -> System.Collections.Generic.IReadOnlyList<string!>?

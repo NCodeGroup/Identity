@@ -79,4 +79,35 @@ public class ClientRegistrationTests
     }
 
     #endregion
+
+    #region BackchannelLogoutSessionRequired Tests
+
+    [Fact]
+    public void BackchannelLogoutSessionRequired_WhenNotSet_ThenFalse()
+    {
+        var registration = new ClientRegistration(
+            "https://issuer.example",
+            "client",
+            ClientAuthenticationMethods.ClientSecretBasic
+        );
+
+        Assert.False(registration.BackchannelLogoutSessionRequired);
+    }
+
+    [Fact]
+    public void BackchannelLogoutSessionRequired_WhenSet_ThenTrue()
+    {
+        var registration = new ClientRegistration(
+            "https://issuer.example",
+            "client",
+            ClientAuthenticationMethods.ClientSecretBasic
+        )
+        {
+            BackchannelLogoutSessionRequired = true,
+        };
+
+        Assert.True(registration.BackchannelLogoutSessionRequired);
+    }
+
+    #endregion
 }

@@ -18,5 +18,5 @@
 
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("NCode.Identity.Secrets.Persistence.AzureKeyVault.Tests")]
+[assembly: InternalsVisibleTo("NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Tests")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

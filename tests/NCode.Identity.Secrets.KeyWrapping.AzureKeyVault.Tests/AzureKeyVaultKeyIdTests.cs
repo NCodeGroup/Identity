@@ -18,7 +18,7 @@
 
 using Xunit;
 
-namespace NCode.Identity.Secrets.Persistence.AzureKeyVault.Tests;
+namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Tests;
 
 public class AzureKeyVaultKeyIdTests
 {

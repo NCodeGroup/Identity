@@ -22,14 +22,13 @@ using Azure;
 using Azure.Security.KeyVault.Keys;
 using Azure.Security.KeyVault.Keys.Cryptography;
 using Moq;
-using NCode.Identity.Secrets.Persistence.AzureKeyVault.Facades;
-using NCode.Identity.Secrets.Persistence.AzureKeyVault.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
+using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options;
 using Xunit;
 
-namespace NCode.Identity.Secrets.Persistence.AzureKeyVault.Tests;
+namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Tests;
 
-public class AzureKeyVaultRootKeyProviderTests : IDisposable
+public class AzureKeyVaultKeyWrapperTests : IDisposable
 {
     private const string KeyId = "https://contoso.vault.azure.net/keys/ncode-identity-root";
 
@@ -51,11 +50,11 @@ public class AzureKeyVaultRootKeyProviderTests : IDisposable
         Client.Verify();
     }
 
-    private AzureKeyVaultRootKeyProvider CreateProvider(string? keyId) =>
+    private AzureKeyVaultKeyWrapper CreateProvider(string? keyId) =>
         new(
             ClientFactory.Object,
             Microsoft.Extensions.Options.Options.Create(
-                new AzureKeyVaultRootKeyOptions { KeyId = keyId }
+                new AzureKeyVaultKeyWrapperOptions { KeyId = keyId }
             )
         );
 
@@ -85,10 +84,10 @@ public class AzureKeyVaultRootKeyProviderTests : IDisposable
     private static UnwrapResult CreateUnwrapResult(string keyId, byte[] key) =>
         CryptographyModelFactory.UnwrapResult(keyId, key, KeyWrapAlgorithm.RsaOaep256);
 
-    private static RootWrappedKey CreateWrappedKey(string keyId, byte[] ciphertext) =>
+    private static WrappedKey CreateWrappedKey(string keyId, byte[] ciphertext) =>
         new()
         {
-            ProviderName = RootKeyProviderNames.AzureKeyVault,
+            WrapperName = KeyWrapperNames.AzureKeyVault,
             KeyId = keyId,
             Ciphertext = Base64Url.EncodeToString(ciphertext),
         };
@@ -132,7 +131,7 @@ public class AzureKeyVaultRootKeyProviderTests : IDisposable
         var wrappedKey = await provider.WrapAsync(key, context, cancellationSource.Token);
 
         Assert.Equal(key, SentKey);
-        Assert.Equal(RootKeyProviderNames.AzureKeyVault, wrappedKey.ProviderName);
+        Assert.Equal(KeyWrapperNames.AzureKeyVault, wrappedKey.WrapperName);
         Assert.Equal(KeyVersionId, wrappedKey.KeyId);
         Assert.Equal(Base64Url.EncodeToString(encryptedKey), wrappedKey.Ciphertext);
     }
@@ -310,9 +309,9 @@ public class AzureKeyVaultRootKeyProviderTests : IDisposable
     )
     {
         var context = "root-context"u8.ToArray();
-        var wrappedKey = new RootWrappedKey
+        var wrappedKey = new WrappedKey
         {
-            ProviderName = RootKeyProviderNames.AzureKeyVault,
+            WrapperName = KeyWrapperNames.AzureKeyVault,
             KeyId = KeyVersionId,
             Ciphertext = ciphertext,
         };

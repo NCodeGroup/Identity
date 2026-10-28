@@ -21,16 +21,16 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Secrets.Persistence.AzureKeyVault.Facades;
-using NCode.Identity.Secrets.Persistence.AzureKeyVault.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
+using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Registration;
 
-namespace NCode.Identity.Secrets.Persistence.AzureKeyVault;
+namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault;
 
 /// <summary>
 /// Provides opt-in extension methods for the <see cref="SecretPersistenceLibrary"/> builder to register the Azure Key
-/// Vault root key provider.
+/// Vault key wrapper.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
@@ -39,10 +39,10 @@ public static class DefaultRegistration
     extension(IServiceBuilder<SecretPersistenceLibrary> builder)
     {
         /// <summary>
-        /// Registers the Azure Key Vault <see cref="IRootKeyProvider"/>, which wraps master keys with an RSA key in
+        /// Registers the Azure Key Vault <see cref="IKeyWrapper"/>, which a deployment selects as its root key wrapper with <c>SecretProtection:RootKeyProvider</c> = <c>azure-key-vault</c>, and which wraps master keys with an RSA key in
         /// Azure Key Vault or Managed HSM that never leaves the service. The
         /// <c>SecretProtection:RootKeyProviders:AzureKeyVault</c> section binds
-        /// <see cref="AzureKeyVaultRootKeyOptions"/> strictly. The provider stays inert until the
+        /// <see cref="AzureKeyVaultKeyWrapperOptions"/> strictly. The provider stays inert until the
         /// <c>SecretProtection:RootKeyProvider</c> setting selects <c>azure-key-vault</c>, and no client is created
         /// before the first key is wrapped or unwrapped. Credentials come from
         /// <see cref="Azure.Identity.DefaultAzureCredential"/>, never from configuration.
@@ -50,7 +50,7 @@ public static class DefaultRegistration
         /// <param name="configuration">The <see cref="IConfiguration"/> holding the <c>SecretProtection:RootKeyProviders:AzureKeyVault</c> section.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
         [PublicAPI]
-        public IServiceBuilder<SecretPersistenceLibrary> AddAzureKeyVaultRootKeyProvider(
+        public IServiceBuilder<SecretPersistenceLibrary> AddAzureKeyVaultKeyWrapper(
             IConfiguration configuration
         )
         {
@@ -60,18 +60,18 @@ public static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection
-                .AddOptions<AzureKeyVaultRootKeyOptions>()
+                .AddOptions<AzureKeyVaultKeyWrapperOptions>()
                 .Configure(options =>
                     configuration
-                        .GetSection(AzureKeyVaultRootKeyOptions.DefaultSectionName)
+                        .GetSection(AzureKeyVaultKeyWrapperOptions.DefaultSectionName)
                         .BindStrictly(options)
                 )
                 .ValidateOnStart();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    IValidateOptions<AzureKeyVaultRootKeyOptions>,
-                    AzureKeyVaultRootKeyOptionsValidator
+                    IValidateOptions<AzureKeyVaultKeyWrapperOptions>,
+                    AzureKeyVaultKeyWrapperOptionsValidator
                 >()
             );
 
@@ -81,7 +81,7 @@ public static class DefaultRegistration
             >();
 
             serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<IRootKeyProvider, AzureKeyVaultRootKeyProvider>()
+                ServiceDescriptor.Singleton<IKeyWrapper, AzureKeyVaultKeyWrapper>()
             );
 
             return builder;

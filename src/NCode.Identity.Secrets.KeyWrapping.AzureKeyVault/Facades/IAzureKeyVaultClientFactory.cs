@@ -18,7 +18,7 @@
 
 using Azure.Security.KeyVault.Keys.Cryptography;
 
-namespace NCode.Identity.Secrets.Persistence.AzureKeyVault.Facades;
+namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 
 /// <summary>
 /// Provides the Azure Key Vault cryptography client for a key, so the code that wraps and unwraps keys can be tested

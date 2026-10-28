@@ -21,7 +21,7 @@ using Azure.Core;
 using Azure.Identity;
 using Azure.Security.KeyVault.Keys.Cryptography;
 
-namespace NCode.Identity.Secrets.Persistence.AzureKeyVault.Facades;
+namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IAzureKeyVaultClientFactory"/>: one

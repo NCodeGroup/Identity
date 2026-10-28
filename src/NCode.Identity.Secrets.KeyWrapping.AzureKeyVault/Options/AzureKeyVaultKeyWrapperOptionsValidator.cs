@@ -18,9 +18,8 @@
 
 using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.Persistence.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
 
-namespace NCode.Identity.Secrets.Persistence.AzureKeyVault.Options;
+namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options;
 
 /// <summary>
 /// Validates the Azure Key Vault options when the host starts, so a missing or malformed key identifier stops the host
@@ -28,21 +27,21 @@ namespace NCode.Identity.Secrets.Persistence.AzureKeyVault.Options;
 /// root key provider is the one selected.
 /// </summary>
 // See ADR-0260 and ADR-0137 (configuration is validated at startup).
-internal class AzureKeyVaultRootKeyOptionsValidator(
+internal class AzureKeyVaultKeyWrapperOptionsValidator(
     IOptions<SecretProtectionOptions> protectionOptions
-) : IValidateOptions<AzureKeyVaultRootKeyOptions>
+) : IValidateOptions<AzureKeyVaultKeyWrapperOptions>
 {
     private IOptions<SecretProtectionOptions> ProtectionOptions { get; } = protectionOptions;
 
     /// <inheritdoc />
-    public ValidateOptionsResult Validate(string? name, AzureKeyVaultRootKeyOptions options)
+    public ValidateOptionsResult Validate(string? name, AzureKeyVaultKeyWrapperOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         if (
             !string.Equals(
                 ProtectionOptions.Value.RootKeyProvider,
-                RootKeyProviderNames.AzureKeyVault,
+                KeyWrapperNames.AzureKeyVault,
                 StringComparison.Ordinal
             )
         )

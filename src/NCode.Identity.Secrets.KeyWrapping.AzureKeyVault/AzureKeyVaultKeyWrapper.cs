@@ -22,14 +22,13 @@ using Azure.Security.KeyVault.Keys.Cryptography;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Encoders;
-using NCode.Identity.Secrets.Persistence.AzureKeyVault.Facades;
-using NCode.Identity.Secrets.Persistence.AzureKeyVault.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
+using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options;
 
-namespace NCode.Identity.Secrets.Persistence.AzureKeyVault;
+namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault;
 
 /// <summary>
-/// Provides an implementation of <see cref="IRootKeyProvider"/> that wraps keys with an RSA key held in Azure Key Vault
+/// Provides an implementation of <see cref="IKeyWrapper"/> that wraps keys with an RSA key held in Azure Key Vault
 /// or Managed HSM, so the root key never leaves the service.
 /// </summary>
 /// <remarks>
@@ -55,10 +54,10 @@ namespace NCode.Identity.Secrets.Persistence.AzureKeyVault;
 /// </para>
 /// </remarks>
 // See ADR-0260.
-internal class AzureKeyVaultRootKeyProvider(
+internal class AzureKeyVaultKeyWrapper(
     IAzureKeyVaultClientFactory clientFactory,
-    IOptions<AzureKeyVaultRootKeyOptions> options
-) : IRootKeyProvider
+    IOptions<AzureKeyVaultKeyWrapperOptions> options
+) : IKeyWrapper
 {
     /// <summary>
     /// The minimum size, in bytes, of a wrapped key, which is the size of an RSA modulus of 3072 bits.
@@ -67,17 +66,17 @@ internal class AzureKeyVaultRootKeyProvider(
 
     private IAzureKeyVaultClientFactory ClientFactory { get; } = clientFactory;
 
-    private IOptions<AzureKeyVaultRootKeyOptions> RootKeyOptions { get; } = options;
+    private IOptions<AzureKeyVaultKeyWrapperOptions> RootKeyOptions { get; } = options;
 
     /// <inheritdoc />
-    public string ProviderName => RootKeyProviderNames.AzureKeyVault;
+    public string Name => KeyWrapperNames.AzureKeyVault;
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">
     /// Thrown when the configured key identifier is not the identifier of a Key Vault key, or when the service reports
     /// a key that is not a key version or that is shorter than 3072 bits.
     /// </exception>
-    public async ValueTask<RootWrappedKey> WrapAsync(
+    public async ValueTask<WrappedKey> WrapAsync(
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
@@ -125,9 +124,9 @@ internal class AzureKeyVaultRootKeyProvider(
             );
         }
 
-        return new RootWrappedKey
+        return new WrappedKey
         {
-            ProviderName = ProviderName,
+            WrapperName = Name,
             KeyId = result.KeyId,
             Ciphertext = Base64Url.Encode(result.EncryptedKey),
         };
@@ -145,7 +144,7 @@ internal class AzureKeyVaultRootKeyProvider(
     /// by the service with an HTTP 400 response.
     /// </exception>
     public async ValueTask<int> UnwrapAsync(
-        RootWrappedKey wrappedKey,
+        WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
         Memory<byte> destination,
         CancellationToken cancellationToken

@@ -20,12 +20,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
-using NCode.Identity.Secrets.Persistence.AzureKeyVault.Facades;
-using NCode.Identity.Secrets.Persistence.AzureKeyVault.Options;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
+using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options;
+using NCode.Identity.Secrets.Persistence;
 using Xunit;
 
-namespace NCode.Identity.Secrets.Persistence.AzureKeyVault.Tests;
+namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Tests;
 
 public class DefaultRegistrationTests
 {
@@ -52,15 +52,15 @@ public class DefaultRegistrationTests
         serviceCollection
             .AddSecretsLibrary()
             .AddPersistenceLibrary()
-            .AddAzureKeyVaultRootKeyProvider(configuration);
+            .AddAzureKeyVaultKeyWrapper(configuration);
 
         return serviceCollection;
     }
 
-    #region AddAzureKeyVaultRootKeyProvider Tests
+    #region AddAzureKeyVaultKeyWrapper Tests
 
     [Fact]
-    public async Task AddAzureKeyVaultRootKeyProvider_RegistersProviderInCatalogWithoutCreatingClient()
+    public async Task AddAzureKeyVaultKeyWrapper_RegistersProviderInCatalogWithoutCreatingClient()
     {
         var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
         var serviceCollection = AddAzureKeyVault(
@@ -69,18 +69,15 @@ public class DefaultRegistrationTests
         );
 
         await using var provider = serviceCollection.BuildServiceProvider();
-        var rootKeyProviders = provider.GetServices<IRootKeyProvider>().ToList();
+        var rootKeyProviders = provider.GetServices<IKeyWrapper>().ToList();
 
-        Assert.Contains(
-            rootKeyProviders,
-            x => x.ProviderName == RootKeyProviderNames.AzureKeyVault
-        );
-        Assert.Contains(rootKeyProviders, x => x is AzureKeyVaultRootKeyProvider);
+        Assert.Contains(rootKeyProviders, x => x.Name == KeyWrapperNames.AzureKeyVault);
+        Assert.Contains(rootKeyProviders, x => x is AzureKeyVaultKeyWrapper);
         clientFactory.Verify();
     }
 
     [Fact]
-    public async Task AddAzureKeyVaultRootKeyProvider_UnknownSetting_Throws()
+    public async Task AddAzureKeyVaultKeyWrapper_UnknownSetting_Throws()
     {
         var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
         var serviceCollection = AddAzureKeyVault(
@@ -89,10 +86,10 @@ public class DefaultRegistrationTests
         );
 
         await using var provider = serviceCollection.BuildServiceProvider();
-        var options = provider.GetRequiredService<IOptions<AzureKeyVaultRootKeyOptions>>();
+        var options = provider.GetRequiredService<IOptions<AzureKeyVaultKeyWrapperOptions>>();
 
         var exception = Assert.Throws<InvalidOperationException>(() => options.Value);
-        Assert.Contains(AzureKeyVaultRootKeyOptions.DefaultSectionName, exception.Message);
+        Assert.Contains(AzureKeyVaultKeyWrapperOptions.DefaultSectionName, exception.Message);
     }
 
     #endregion

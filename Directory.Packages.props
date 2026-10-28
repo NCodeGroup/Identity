@@ -110,7 +110,7 @@
     <PackageVersion Include="AWSSDK.SecurityToken" Version="4.0.101.6" />
   </ItemGroup>
 
-  <!-- Root key provider (NCode.Identity.Secrets.Persistence.AzureKeyVault only). -->
+  <!-- Root key provider (NCode.Identity.Secrets.KeyWrapping.AzureKeyVault only). -->
   <ItemGroup>
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.10.2" />

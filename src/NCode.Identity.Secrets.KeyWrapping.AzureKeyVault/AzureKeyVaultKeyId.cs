@@ -19,7 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
-namespace NCode.Identity.Secrets.Persistence.AzureKeyVault;
+namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault;
 
 /// <summary>
 /// Contains the rules for the identifier of a key in Azure Key Vault or Managed HSM: whether a value is one, and whether

@@ -16,10 +16,10 @@
 
 #endregion
 
-using NCode.Identity.Secrets.Persistence.AzureKeyVault.Facades;
+using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 using Xunit;
 
-namespace NCode.Identity.Secrets.Persistence.AzureKeyVault.Tests.Facades;
+namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Tests.Facades;
 
 public class DefaultAzureKeyVaultClientFactoryTests
 {

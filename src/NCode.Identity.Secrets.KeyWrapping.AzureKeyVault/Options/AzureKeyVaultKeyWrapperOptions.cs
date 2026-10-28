@@ -18,15 +18,15 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Secrets.Persistence.AzureKeyVault.Options;
+namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options;
 
 /// <summary>
-/// Contains the options for the Azure Key Vault root key provider, bound from the <see cref="DefaultSectionName"/>
+/// Contains the options for the Azure Key Vault key wrapper, bound from the <see cref="DefaultSectionName"/>
 /// configuration section.
 /// </summary>
 // See ADR-0260.
 [PublicAPI]
-public sealed class AzureKeyVaultRootKeyOptions
+public sealed class AzureKeyVaultKeyWrapperOptions
 {
     /// <summary>
     /// Gets the name of the configuration section the options are bound from.

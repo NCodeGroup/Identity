@@ -16,7 +16,7 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Client.Http;
 
 namespace NCode.Identity.OpenId.Client.Tokens;
 
@@ -76,7 +76,7 @@ internal class DefaultTokenRevocationClient(
             cancellationToken
         );
 
-        if (response.StatusCode == StatusCodes.Status200OK)
+        if (response.StatusCode == ProviderStatusCodes.Status200OK)
             return null;
 
         if (ProtocolErrorReader.TryRead(response, out var error))

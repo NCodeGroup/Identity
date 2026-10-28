@@ -79,6 +79,12 @@ make code mockable — live in [`csharp-production.instructions.md`](csharp-prod
   fallback so it **would succeed** — give the tenant a key the policy permits — and pair the test with a control that
   shows the same fallback succeeding when the rule does not apply. Otherwise the refusal also happens because the
   fallback itself fails, the same error is asserted, and the test passes with the rule removed.
+- 👁 **Test a curve binding with a key whose size the algorithm accepts.** An algorithm checks a key's size before its
+  curve, so a key on a curve of another size is refused by the size check, and the test passes with the curve rule
+  removed. Use a same-size named curve where one exists (`brainpoolP256r1` for `ES256`, `brainpoolP384r1` for
+  `ES384`); otherwise use a stub key that declares the algorithm's size on another curve, because no other named
+  curve has 521 bits and Ed25519 and Ed448 differ in size (`StubEccSecretKey` in `EccSignatureAlgorithmTests`,
+  `StubOkpSecretKey` in `EdDsaSignatureAlgorithmTests`).
 - 👁 **A fix that moves a refusal earlier is proven by a request the old code deferred.** When the change is *when* a
   request is refused (credentials checked before sign-in rather than when the response is written), send a request the
   old code accepts and parks, for example an authorization request without `prompt=none`, which the old code answers

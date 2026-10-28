@@ -36,7 +36,7 @@ public sealed class AuditRequestFactoryTests
     {
         var httpContext = CreatePopulatedHttpContext();
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Equal("req-1", request.RequestId);
     }
@@ -47,7 +47,7 @@ public sealed class AuditRequestFactoryTests
         var httpContext = CreatePopulatedHttpContext();
         using var activity = new Activity("test").SetIdFormat(ActivityIdFormat.W3C).Start();
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Equal(activity.TraceId.ToHexString(), request.TraceId);
         Assert.Equal(activity.SpanId.ToHexString(), request.SpanId);
@@ -61,7 +61,7 @@ public sealed class AuditRequestFactoryTests
             .SetIdFormat(ActivityIdFormat.Hierarchical)
             .Start();
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Null(request.TraceId);
         Assert.Null(request.SpanId);
@@ -73,7 +73,7 @@ public sealed class AuditRequestFactoryTests
         var httpContext = CreatePopulatedHttpContext();
         Activity.Current = null;
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Null(request.TraceId);
         Assert.Null(request.SpanId);
@@ -84,7 +84,7 @@ public sealed class AuditRequestFactoryTests
     {
         var httpContext = CreatePopulatedHttpContext();
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Equal("203.0.113.5", request.SourceIp);
     }
@@ -94,7 +94,7 @@ public sealed class AuditRequestFactoryTests
     {
         var httpContext = CreatePopulatedHttpContext();
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Equal("curl/8.0", request.UserAgent);
     }
@@ -104,7 +104,7 @@ public sealed class AuditRequestFactoryTests
     {
         var httpContext = CreatePopulatedHttpContext();
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Equal("POST", request.HttpMethod);
     }
@@ -114,17 +114,18 @@ public sealed class AuditRequestFactoryTests
     {
         var httpContext = CreatePopulatedHttpContext();
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Equal("/id/oauth2/token", request.Path);
     }
 
     [Fact]
-    public void Create_WhenAnEndpointIsGiven_CapturesTheEndpoint()
+    public void Create_WhenTheRequestHasAnEndpoint_CapturesTheEndpoint()
     {
         var httpContext = CreatePopulatedHttpContext();
+        SetNamedEndpoint(httpContext);
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Equal(EndpointName, request.Endpoint);
     }
@@ -135,7 +136,7 @@ public sealed class AuditRequestFactoryTests
         var httpContext = CreatePopulatedHttpContext();
         httpContext.Request.Headers.UserAgent = new string('a', 600);
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Equal(new string('a', AuditRequestFactory.MaxUserAgentLength), request.UserAgent);
     }
@@ -149,7 +150,7 @@ public sealed class AuditRequestFactoryTests
             AuditRequestFactory.MaxUserAgentLength
         );
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Equal(new string('a', AuditRequestFactory.MaxUserAgentLength), request.UserAgent);
     }
@@ -161,7 +162,7 @@ public sealed class AuditRequestFactoryTests
         httpContext.Request.Headers.UserAgent =
             new string('a', AuditRequestFactory.MaxUserAgentLength - 1) + "\U0001F600" + "tail";
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Equal(
             new string('a', AuditRequestFactory.MaxUserAgentLength - 1),
@@ -173,9 +174,10 @@ public sealed class AuditRequestFactoryTests
     public void Create_WhenTheRequestIsEmpty_CapturesNothingButTheEndpoint()
     {
         var httpContext = new DefaultHttpContext { TraceIdentifier = string.Empty };
+        SetNamedEndpoint(httpContext);
         Activity.Current = null;
 
-        var request = AuditRequestFactory.Create(httpContext, EndpointName);
+        var request = AuditRequestFactory.Create(httpContext);
 
         Assert.Null(request.RequestId);
         Assert.Null(request.TraceId);
@@ -185,16 +187,6 @@ public sealed class AuditRequestFactoryTests
         Assert.Null(request.HttpMethod);
         Assert.Null(request.Path);
         Assert.Equal(EndpointName, request.Endpoint);
-    }
-
-    [Fact]
-    public void Create_WhenNoEndpointIsGiven_CapturesNoEndpoint()
-    {
-        var httpContext = CreatePopulatedHttpContext();
-
-        var request = AuditRequestFactory.Create(httpContext, endpoint: null);
-
-        Assert.Null(request.Endpoint);
     }
 
     [Fact]
@@ -238,6 +230,15 @@ public sealed class AuditRequestFactoryTests
     }
 
     #endregion
+
+    private static void SetNamedEndpoint(HttpContext httpContext) =>
+        httpContext.SetEndpoint(
+            new Endpoint(
+                requestDelegate: null,
+                new EndpointMetadataCollection(new EndpointNameMetadata(EndpointName)),
+                "Token display"
+            )
+        );
 
     private static DefaultHttpContext CreatePopulatedHttpContext()
     {

@@ -50,26 +50,9 @@ public static class AuditRequestFactory
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
-        var endpoint = httpContext.GetEndpoint();
-        return Create(
-            httpContext,
-            endpoint?.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName
-                ?? endpoint?.DisplayName
-        );
-    }
-
-    /// <summary>
-    /// Captures the request context of the specified HTTP request and of the current <see cref="Activity"/>.
-    /// </summary>
-    /// <param name="httpContext">The HTTP context of the request that caused the audited operation.</param>
-    /// <param name="endpoint">The name of the endpoint that handled the request, if known.</param>
-    /// <returns>The captured <see cref="AuditRequest"/>.</returns>
-    public static AuditRequest Create(HttpContext httpContext, string? endpoint)
-    {
-        ArgumentNullException.ThrowIfNull(httpContext);
-
         var request = httpContext.Request;
         var activity = Activity.Current;
+        var endpoint = httpContext.GetEndpoint();
 
         return new AuditRequest
         {
@@ -86,7 +69,10 @@ public static class AuditRequestFactory
             ),
             HttpMethod = NullIfEmpty(request.Method),
             Path = NullIfEmpty((request.PathBase + request.Path).Value),
-            Endpoint = NullIfEmpty(endpoint),
+            Endpoint = NullIfEmpty(
+                endpoint?.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName
+                    ?? endpoint?.DisplayName
+            ),
         };
     }
 

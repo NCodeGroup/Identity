@@ -100,6 +100,93 @@ public class ClientRequestSenderTests : BaseTests
     }
 
     [Fact]
+    public async Task PostFormAsync_WhenIncludeClientIdAndAuthenticatorAddsNone_AppendsClientId()
+    {
+        var mockAuthenticator = CreateAuthenticatorMock();
+        mockAuthenticator
+            .Setup(x =>
+                x.AuthenticateAsync(It.IsAny<ClientAuthenticationContext>(), CancellationToken.None)
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "{}");
+        SetupHttpClient(handler);
+        var sender = CreateSender(mockAuthenticator.Object);
+
+        await sender.PostFormAsync(
+            CreateRegistration(),
+            new OpenIdProviderMetadata(),
+            Endpoint,
+            [new KeyValuePair<string, string>("a", "b")],
+            includeClientId: true,
+            CancellationToken.None
+        );
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("a=b&client_id=client-1", request.Body);
+    }
+
+    [Fact]
+    public async Task PostFormAsync_WhenIncludeClientIdAndAuthenticatorAddsClientId_SendsItOnce()
+    {
+        var mockAuthenticator = CreateAuthenticatorMock();
+        mockAuthenticator
+            .Setup(x =>
+                x.AuthenticateAsync(It.IsAny<ClientAuthenticationContext>(), CancellationToken.None)
+            )
+            .Callback<ClientAuthenticationContext, CancellationToken>(
+                (context, _) =>
+                    context.Parameters.Add(
+                        new KeyValuePair<string, string>("client_id", "client-1")
+                    )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "{}");
+        SetupHttpClient(handler);
+        var sender = CreateSender(mockAuthenticator.Object);
+
+        await sender.PostFormAsync(
+            CreateRegistration(),
+            new OpenIdProviderMetadata(),
+            Endpoint,
+            [new KeyValuePair<string, string>("a", "b")],
+            includeClientId: true,
+            CancellationToken.None
+        );
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("a=b&client_id=client-1", request.Body);
+    }
+
+    [Fact]
+    public async Task PostFormAsync_WhenNotIncludeClientId_SendsNoClientId()
+    {
+        var mockAuthenticator = CreateAuthenticatorMock();
+        mockAuthenticator
+            .Setup(x =>
+                x.AuthenticateAsync(It.IsAny<ClientAuthenticationContext>(), CancellationToken.None)
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "{}");
+        SetupHttpClient(handler);
+        var sender = CreateSender(mockAuthenticator.Object);
+
+        await sender.PostFormAsync(
+            CreateRegistration(),
+            new OpenIdProviderMetadata(),
+            Endpoint,
+            [new KeyValuePair<string, string>("a", "b")],
+            includeClientId: false,
+            CancellationToken.None
+        );
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("a=b", request.Body);
+    }
+
+    [Fact]
     public async Task PostFormAsync_WithUnknownMethod_Throws()
     {
         var handler = StubHttpMessageHandler.Respond(HttpStatusCode.OK, "{}");

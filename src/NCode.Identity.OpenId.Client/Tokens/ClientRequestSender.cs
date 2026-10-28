@@ -51,11 +51,37 @@ internal class ClientRequestSender(
         return dictionary.ToFrozenDictionary(StringComparer.Ordinal);
     }
 
+    public virtual ValueTask<ProviderHttpResponse> PostFormAsync(
+        ClientRegistration registration,
+        OpenIdProviderMetadata metadata,
+        string endpoint,
+        List<KeyValuePair<string, string>> parameters,
+        CancellationToken cancellationToken
+    ) =>
+        PostFormAsync(
+            registration,
+            metadata,
+            endpoint,
+            parameters,
+            includeClientId: false,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Sends a client-authenticated form post to a provider endpoint.
+    /// </summary>
+    /// <param name="registration">The client registration.</param>
+    /// <param name="metadata">The provider metadata.</param>
+    /// <param name="endpoint">The endpoint to post to.</param>
+    /// <param name="parameters">The form parameters.</param>
+    /// <param name="includeClientId">Whether the form must carry <c>client_id</c>; it is appended after authentication unless the authenticator already added it (RFC 9126 §2.1).</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     public virtual async ValueTask<ProviderHttpResponse> PostFormAsync(
         ClientRegistration registration,
         OpenIdProviderMetadata metadata,
         string endpoint,
         List<KeyValuePair<string, string>> parameters,
+        bool includeClientId,
         CancellationToken cancellationToken
     )
     {
@@ -76,6 +102,9 @@ internal class ClientRequestSender(
             new ClientAuthenticationContext(registration, metadata, endpoint, request, parameters),
             cancellationToken
         );
+
+        if (includeClientId && !parameters.Exists(static p => p.Key == "client_id"))
+            parameters.Add(new KeyValuePair<string, string>("client_id", registration.ClientId));
 
         request.Content = new FormUrlEncodedContent(parameters);
 

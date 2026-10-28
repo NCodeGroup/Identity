@@ -24,6 +24,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jwt.Validation;
 using NCode.Identity.SharedState;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Client.Tokens;
 
@@ -210,17 +211,11 @@ internal class DefaultLogoutTokenValidator(
                 "The logout token has no 'jti' claim."
             );
 
-        if (
-            !payload.TryGetProperty(JoseClaimNames.Payload.Exp, out var expElement)
-            || expElement.ValueKind != JsonValueKind.Number
-            || !expElement.TryGetDouble(out var expSeconds)
-        )
+        if (!payload.TryGetPropertyNumericDate(JoseClaimNames.Payload.Exp, out var expiresAt))
             return Fail(
                 TokenValidationFailureCodes.InvalidLifetime,
-                "The logout token has no numeric 'exp' claim."
+                "The logout token has no valid 'exp' claim."
             );
-
-        var expiresAt = DateTimeOffset.UnixEpoch.AddSeconds(expSeconds);
 
         if (
             !await ExpiringKeySet.TryAddAsync(

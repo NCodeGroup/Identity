@@ -180,7 +180,10 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
                     Audience = new StringValues(audience),
                     IssuedAt = issuedAt,
                     NotBefore = issuedAt,
-                    Expires = issuedAt + (lifetime ?? TimeSpan.FromMinutes(2)),
+                    Expires =
+                        extraClaims is not null && extraClaims.ContainsKey("exp")
+                            ? null
+                            : issuedAt + (lifetime ?? TimeSpan.FromMinutes(2)),
                     ExtraPayloadClaims = claims,
                 }
             );
@@ -284,6 +287,20 @@ public class DefaultLogoutTokenValidatorTests : BaseTests, IAsyncLifetime
         var result = await ValidateAsync(
             validator,
             CreateLogoutToken(lifetime: TimeSpan.FromMinutes(30))
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(TokenValidationFailureCodes.InvalidLifetime, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenExpIsOutOfRange_FailsWithInvalidLifetime()
+    {
+        var validator = CreateValidator(CreateKeySetMock());
+
+        var result = await ValidateAsync(
+            validator,
+            CreateLogoutToken(extraClaims: new Dictionary<string, object> { ["exp"] = 1e300 })
         );
 
         Assert.False(result.IsValid);

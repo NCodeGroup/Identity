@@ -88,6 +88,32 @@ const NCode.Identity.OpenId.OpenIdProtocol.MediaTypes.FormUrlEncoded = "applicat
 const NCode.Identity.OpenId.OpenIdProtocol.MediaTypes.Html = "text/html" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MediaTypes.Json = "application/json" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.MediaTypes.JwkSet = "application/jwk-set+json" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.AuthorizationEndpoint = "authorization_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.AuthorizationResponseIssParameterSupported = "authorization_response_iss_parameter_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.BackchannelAuthenticationEndpoint = "backchannel_authentication_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.BackchannelLogoutSessionSupported = "backchannel_logout_session_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.BackchannelLogoutSupported = "backchannel_logout_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.CheckSessionIframe = "check_session_iframe" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.CodeChallengeMethodsSupported = "code_challenge_methods_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.DeviceAuthorizationEndpoint = "device_authorization_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.DPoPSigningAlgValuesSupported = "dpop_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.EndSessionEndpoint = "end_session_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.GrantTypesSupported = "grant_types_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.IdTokenSigningAlgValuesSupported = "id_token_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.IntrospectionEndpoint = "introspection_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.Issuer = "issuer" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.JwksUri = "jwks_uri" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.MtlsEndpointAliases = "mtls_endpoint_aliases" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.PushedAuthorizationRequestEndpoint = "pushed_authorization_request_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.RegistrationEndpoint = "registration_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.RequirePushedAuthorizationRequests = "require_pushed_authorization_requests" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.ResponseTypesSupported = "response_types_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.RevocationEndpoint = "revocation_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.ScopesSupported = "scopes_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.TokenEndpoint = "token_endpoint" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.TokenEndpointAuthMethodsSupported = "token_endpoint_auth_methods_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.TokenEndpointAuthSigningAlgValuesSupported = "token_endpoint_auth_signing_alg_values_supported" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.MetadataNames.UserInfoEndpoint = "userinfo_endpoint" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.Parameters.AccessToken = "access_token" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.Parameters.AccessTokenHash = "at_hash" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.Parameters.AcrValues = "acr_values" -> string!
@@ -208,6 +234,7 @@ const NCode.Identity.OpenId.OpenIdProtocol.TokenTypes.DPoP = "DPoP" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.TokenTypes.IdToken = "id_token" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.TokenTypes.NotApplicable = "N_A" -> string!
 const NCode.Identity.OpenId.OpenIdProtocol.TokenTypes.RefreshToken = "refresh_token" -> string!
+const NCode.Identity.OpenId.OpenIdProtocol.WellKnownPaths.OpenIdConfiguration = "/.well-known/openid-configuration" -> string!
 NCode.Identity.OpenId.OpenIdProtocol
 NCode.Identity.OpenId.OpenIdProtocol.AuthenticationContextClassReferences
 NCode.Identity.OpenId.OpenIdProtocol.AuthenticationMethods
@@ -223,6 +250,7 @@ NCode.Identity.OpenId.OpenIdProtocol.DPoP
 NCode.Identity.OpenId.OpenIdProtocol.ErrorCodes
 NCode.Identity.OpenId.OpenIdProtocol.GrantTypes
 NCode.Identity.OpenId.OpenIdProtocol.MediaTypes
+NCode.Identity.OpenId.OpenIdProtocol.MetadataNames
 NCode.Identity.OpenId.OpenIdProtocol.Parameters
 NCode.Identity.OpenId.OpenIdProtocol.PromptTypes
 NCode.Identity.OpenId.OpenIdProtocol.ResponseModes
@@ -232,3 +260,4 @@ NCode.Identity.OpenId.OpenIdProtocol.SubjectTypes
 NCode.Identity.OpenId.OpenIdProtocol.TokenTypeHints
 NCode.Identity.OpenId.OpenIdProtocol.TokenTypeIdentifiers
 NCode.Identity.OpenId.OpenIdProtocol.TokenTypes
+NCode.Identity.OpenId.OpenIdProtocol.WellKnownPaths

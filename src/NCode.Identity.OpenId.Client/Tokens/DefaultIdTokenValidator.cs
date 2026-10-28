@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
@@ -70,7 +69,11 @@ internal class DefaultIdTokenValidator(
                 "The discovery document of the provider lacks the issuer."
             );
 
-        var algorithms = GetPermittedAlgorithms(registration, metadata);
+        var algorithms = ProviderSignaturePolicy.GetPermittedAlgorithms(
+            AlgorithmCollectionProvider.Collection,
+            registration,
+            metadata
+        );
         if (algorithms.Count == 0)
             return Fail(
                 "No ID-token signing algorithm is both permitted by the client and advertised by the provider."
@@ -81,7 +84,12 @@ internal class DefaultIdTokenValidator(
             ClockSkew = ClockSkew,
             ValidSignatureAlgorithms = algorithms,
             ResolveValidationKeysAsync = (token, _, _, ct) =>
-                ResolveKeysAsync(registration.Authority, token, ct),
+                ProviderSignaturePolicy.ResolveKeysAsync(
+                    KeySetResolver,
+                    registration.Authority,
+                    token,
+                    ct
+                ),
         }
             .ValidateIssuer(issuer)
             .ValidateAudience(registration.ClientId)
@@ -96,8 +104,7 @@ internal class DefaultIdTokenValidator(
         if (!result.IsValid)
         {
             var exception = result.Exception;
-            if (exception is OperationCanceledException or OpenIdProviderException)
-                ExceptionDispatchInfo.Capture(exception).Throw();
+            ProviderSignaturePolicy.RethrowProviderFailure(exception);
 
             return Fail(
                 exception is JwtDecodeException or JwtSecretKeyNotFoundException
@@ -259,61 +266,4 @@ internal class DefaultIdTokenValidator(
     }
 
     private static IdTokenValidationResult Fail(string reason) => new(reason);
-
-    private List<string> GetPermittedAlgorithms(
-        ClientRegistration registration,
-        OpenIdProviderMetadata metadata
-    )
-    {
-        var configured = registration.IdTokenSigningAlgorithms;
-        var advertised = metadata.IdTokenSigningAlgValuesSupported;
-
-        var result = new List<string>();
-        foreach (var algorithm in AlgorithmCollectionProvider.Collection)
-        {
-            if (
-                algorithm is not SignatureAlgorithm signatureAlgorithm
-                || !typeof(AsymmetricSecretKey).IsAssignableFrom(signatureAlgorithm.KeyType)
-                || string.Equals(
-                    signatureAlgorithm.Code,
-                    AlgorithmCodes.DigitalSignature.None,
-                    StringComparison.OrdinalIgnoreCase
-                )
-            )
-                continue;
-
-            var code = signatureAlgorithm.Code;
-            if (configured is { Count: > 0 } && !configured.Contains(code, StringComparer.Ordinal))
-                continue;
-
-            if (advertised is { Count: > 0 } && !advertised.Contains(code, StringComparer.Ordinal))
-                continue;
-
-            result.Add(code);
-        }
-
-        return result;
-    }
-
-    private async ValueTask<IEnumerable<SecretKey>> ResolveKeysAsync(
-        string authority,
-        JoseToken token,
-        CancellationToken cancellationToken
-    )
-    {
-        var keys = await KeySetResolver.GetSigningKeysAsync(authority, cancellationToken);
-
-        if (
-            !token.Header.TryGetProperty(JoseClaimNames.Header.Kid, out var kidElement)
-            || kidElement.ValueKind != JsonValueKind.String
-            || kidElement.GetString() is not { Length: > 0 } kid
-        )
-            return keys;
-
-        if (keys.TryGetByKeyId(kid, out var key))
-            return [key];
-
-        keys = await KeySetResolver.RefreshSigningKeysAsync(authority, cancellationToken);
-        return keys.TryGetByKeyId(kid, out key) ? [key] : [];
-    }
 }

@@ -627,6 +627,9 @@ Without a session, logout is idempotent: it redirects to the allow-listed return
   `events` and `nonce` checks already tell it apart from an ID token (spec §2.6).
 - `jti` is recorded in `IExpiringKeySet` so a token cannot be replayed.
 
+The protocol client's `ILogoutTokenValidator` performs all of these checks, including the `jti` record, and bounds a
+token's lifetime to 10 minutes ([ADR-0274](decisions/0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md)).
+
 A token with a `sid` ends every session holding that OP `sid`. A token with only `sub` ends every session of that
 subject from that issuer. The BFF finds them through the membership indexes ([§5.4](#54-state-every-replica-sees)),
 without needing any handle. It answers `200` on success and `400` on an invalid token, with `Cache-Control: no-store`.
@@ -959,7 +962,7 @@ Each phase is shippable on its own, ends green under `./build/dod.ps1`, and prom
 | Phase | Delivers                                                                                                                                                                                                         |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | SharedState: versioned expiring values with atomic take and compare-and-swap, plus membership indexes, in the in-process and Valkey adapters ([§5.4](#54-state-every-replica-sees)). Delivered ([ADR-0267](decisions/0267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). |
-| 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. Phase 1a delivered ([ADR-0270](decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)): discovery, JWKS, client authentication, token and revocation requests. 1b remains: PAR, DPoP, mTLS, logout-token validation; ID-token validation is delivered (ADR-0273). |
+| 1     | `NCode.Identity.OpenId.Client`: discovery and JWKS caching, PAR, code / refresh / client-credentials / token-exchange requests, revocation, client authentication strategies, DPoP, and ID-token and logout-token validation. Phase 1a delivered ([ADR-0270](decisions/0270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)): discovery, JWKS, client authentication, token and revocation requests. 1b remains: PAR, DPoP, mTLS; ID-token validation (ADR-0273) and logout-token validation ([ADR-0274](decisions/0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md)) are delivered. |
 | 2     | `NCode.Identity.Bff` core: the scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP. |
 | 3     | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and `NCode.Identity.Bff.Yarp`.                                                                           |
 | 4     | Multiple frontends, `UseBffSecurityHeaders()`, and the `/bff/jwks` endpoint.                                                                                                                                     |

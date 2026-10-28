@@ -3,6 +3,7 @@ abstract NCode.Identity.OpenId.Client.TokenRequest.AddGrantParameters(System.Col
 abstract NCode.Identity.OpenId.Client.TokenRequest.GrantType.get -> string!
 const NCode.Identity.OpenId.Client.OpenIdClientDefaults.HttpClientName = "NCode.Identity.OpenId.Client" -> string!
 const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.AlgorithmNotPermitted = "algorithm_not_permitted" -> string!
+const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.DecryptionFailed = "decryption_failed" -> string!
 const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.Expired = "expired" -> string!
 const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.InvalidAudience = "invalid_audience" -> string!
 const NCode.Identity.OpenId.Client.TokenValidationFailureCodes.InvalidClaim = "invalid_claim" -> string!

@@ -28,6 +28,26 @@ public class JsonWebTokensSimpleTests
     #region Exception Tests
 
     [Fact]
+    public void JwtValidationException_DefaultConstructor_UsesInvalidTokenCode()
+    {
+        var exception = new JwtValidationException();
+
+        Assert.Equal(JwtValidationFailureCodes.InvalidToken, exception.FailureCode);
+    }
+
+    [Fact]
+    public void JwtValidationException_WhenFailureCodeIsSet_ReportsIt()
+    {
+        var exception = new JwtValidationException("boom")
+        {
+            FailureCode = JwtValidationFailureCodes.InvalidIssuer,
+        };
+
+        Assert.Equal(JwtValidationFailureCodes.InvalidIssuer, exception.FailureCode);
+        Assert.Equal("boom", exception.Message);
+    }
+
+    [Fact]
     public void JwtValidationException_DefaultConstructor_UsesDefaultMessage()
     {
         var exception = new JwtValidationException();

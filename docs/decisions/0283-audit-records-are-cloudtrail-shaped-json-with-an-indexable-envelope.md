@@ -30,7 +30,8 @@ those operators and to the tools built around them ([ADR-0025](0025-pre-release-
 
 **An audit event is written as one JSON record with a fixed, versioned, snake_case, CloudTrail-modelled envelope. One
 writer, `AuditRecordWriter`, produces it, and the log entry, the span event and the metric attributes all use the
-record's field names.**
+record's field names.** The writer writes into a `Utf8JsonWriter` or a caller-supplied `IBufferWriter<byte>` and never
+allocates a `byte[]` ([ADR-0116](0116-memory-allocations-and-buffer-operations.md)).
 
 1. **Ingestion is unchanged.** `IEventPublisher`, hierarchical dispatch, fault isolation, background delivery, the
    recorder facades and every publishing site's choice of event and outcome are as
@@ -55,11 +56,11 @@ record's field names.**
 7. **`request` captures a fixed set of members.** It holds the request id, the trace id, the span id, the source
    address (`Connection.RemoteIpAddress`, which the host has already corrected for a trusted forwarding proxy), the
    User-Agent cut at 512 characters, the HTTP method, `PathBase` plus `Path`, and the endpoint name. It never holds the
-   query string, which can carry codes or tokens. One public factory, `AuditRequestFactory.Create`, takes the
-   `HttpContext` and the endpoint name and builds it for both recorders. It lives in
-   `NCode.Identity.OpenId.Authentication.Abstractions`, so `NCode.Identity.Events.Abstractions` stays free of HTTP
-   types. The request context is captured when the event is published, so a sink that runs in the background after the
-   request has completed still sees it.
+   query string, which can carry codes or tokens. One public factory, `AuditRequestFactory.Create(HttpContext)`, builds
+   it for both recorders and reads the endpoint from the request's endpoint metadata: its name, else its display name.
+   It lives in `NCode.Identity.OpenId.Authentication.Abstractions`, so `NCode.Identity.Events.Abstractions` stays free
+   of HTTP types. The request context is captured when the event is published, so a sink that runs in the background
+   after the request has completed still sees it.
 8. **The actor is stated explicitly for each recorder method.** The actor types are an open vocabulary
    (`AuditActorTypes`): `end_user`, `client`, `administrator`, `system` and `anonymous`. Token endpoint and revocation
    events are performed by a `client`. Authorization, successful subject authentication and session creation are
@@ -163,6 +164,8 @@ record's field names.**
 - [ADR-0025](0025-pre-release-posture-and-auth0-parity-plus.md) — breaking changes are acceptable before release
 - [ADR-0047](0047-auditing-and-events-observation-seam.md) — the event seam and the envelope this amends
 - [ADR-0049](0049-openid-errors-audited-from-single-funnel.md) — the single funnel that records `openid.error`
+- [ADR-0116](0116-memory-allocations-and-buffer-operations.md) — the writer uses buffer writers and allocates no
+  `byte[]`
 - [ADR-0150](0150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-0197](0197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) — bounded metric
   dimensions

@@ -30,8 +30,11 @@ those operators and to the tools built around them ([ADR-0025](0025-pre-release-
 
 **An audit event is written as one JSON record with a fixed, versioned, snake_case, CloudTrail-modelled envelope. One
 writer, `AuditRecordWriter`, produces it, and the log entry, the span event and the metric attributes all use the
-record's field names.** The writer writes into a `Utf8JsonWriter` or a caller-supplied `IBufferWriter<byte>` and never
-allocates a `byte[]` ([ADR-0116](0116-memory-allocations-and-buffer-operations.md)).
+record's field names.** The writer takes the event first and the destination last. `Write(IAuditEvent, Utf8JsonWriter)`
+writes directly, and `Write<TWriter>(IAuditEvent, ref TWriter)` (`allows ref struct`) stages the record in a pooled
+buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It never allocates a `byte[]`
+([ADR-0116](0116-memory-allocations-and-buffer-operations.md)), and a record is read back with `JsonElement.Parse`, not
+`JsonDocument`.
 
 1. **Ingestion is unchanged.** `IEventPublisher`, hierarchical dispatch, fault isolation, background delivery, the
    recorder facades and every publishing site's choice of event and outcome are as

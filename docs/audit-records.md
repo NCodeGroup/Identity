@@ -13,7 +13,8 @@ operations are audited, and their outcomes, are the same whatever sink receives 
 One record shape serves every sink:
 
 - **The JSON record** is what `AuditRecordWriter` writes for an `IAuditEvent`. A sink that persists or forwards the
-  record calls `AuditRecordWriter.Write`, which writes into a `Utf8JsonWriter` or an `IBufferWriter<byte>`.
+  record calls `AuditRecordWriter.Write`, which writes into a `Utf8JsonWriter`, or into any `IBufferWriter<byte>`, ref
+  structs included, through a pooled staging buffer.
 - **The log entry** carries the record as flattened `audit.*` key/value pairs, so a collector indexes the same fields.
 - **The span event** on the current activity carries the same `audit.*` tags.
 - **The metric attributes** carry the bounded fields only: `event_name`, `event_category` and `outcome`.
@@ -311,10 +312,11 @@ attributes; a tenant, client, subject or network address never is. See [metrics.
 ### Custom sinks
 
 An audit sink is an `IEventHandler<IAuditEvent>`: register it with `AddEventHandler<IAuditEvent, THandler>()` on the
-events library builder, and call `AuditRecordWriter.Write` (into a `Utf8JsonWriter` or an `IBufferWriter<byte>`) for
-the record. The request context is captured when the event is published, so a sink that runs in the background after
-the request has completed still sees it. A handler that throws neither fails the audited operation nor stops the other
-handlers ([ADR-0047](decisions/0047-auditing-and-events-observation-seam.md)).
+events library builder, and call `AuditRecordWriter.Write` (into a `Utf8JsonWriter`, or into any
+`IBufferWriter<byte>`, ref structs included, through a pooled staging buffer) for the record. The request context is
+captured when the event is published, so a sink that runs in the background after the request has completed still sees
+it. A handler that throws neither fails the audited operation nor stops the other handlers
+([ADR-0047](decisions/0047-auditing-and-events-observation-seam.md)).
 
 ## Indexing
 

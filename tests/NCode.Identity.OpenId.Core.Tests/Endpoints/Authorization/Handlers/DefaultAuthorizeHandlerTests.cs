@@ -306,7 +306,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         var standingError = CreateLooseMock<IOpenIdError>();
         standingError
             .SetupGet(x => x.Code)
-            .Returns(OpenIdConstants.ErrorCodes.AccessDenied)
+            .Returns(OpenIdProtocol.ErrorCodes.AccessDenied)
             .Verifiable();
 
         SetupValidateSubject(mockContext, mockMediator, mockError.Object);
@@ -317,7 +317,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<OpenIdClient>(),
                     It.IsAny<string>(),
-                    OpenIdConstants.ErrorCodes.AccessDenied,
+                    OpenIdProtocol.ErrorCodes.AccessDenied,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -341,7 +341,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
         var standingError = CreateLooseMock<IOpenIdError>();
         standingError
             .SetupGet(x => x.Code)
-            .Returns(OpenIdConstants.ErrorCodes.AccessDenied)
+            .Returns(OpenIdProtocol.ErrorCodes.AccessDenied)
             .Verifiable();
 
         SetupValidateSubject(mockContext, mockMediator, mockError.Object);
@@ -352,7 +352,7 @@ public class DefaultAuthorizeHandlerTests : BaseTests
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<OpenIdClient>(),
                     It.IsAny<string>(),
-                    OpenIdConstants.ErrorCodes.AccessDenied,
+                    OpenIdProtocol.ErrorCodes.AccessDenied,
                     It.IsAny<CancellationToken>()
                 )
             )

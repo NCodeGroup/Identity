@@ -126,7 +126,7 @@ public class TokenEndpointSecurityProfileTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -150,7 +150,7 @@ public class TokenEndpointSecurityProfileTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }

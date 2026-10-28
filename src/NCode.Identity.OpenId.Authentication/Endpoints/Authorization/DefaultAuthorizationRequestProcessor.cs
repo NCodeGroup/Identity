@@ -88,7 +88,7 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
             OpenIdException openIdException => openIdException.Error.WithState(state),
 
             _ => errorFactory
-                .Create(OpenIdConstants.ErrorCodes.ServerError)
+                .Create(OpenIdProtocol.ErrorCodes.ServerError)
                 .WithState(state)
                 .WithException(exception),
         };

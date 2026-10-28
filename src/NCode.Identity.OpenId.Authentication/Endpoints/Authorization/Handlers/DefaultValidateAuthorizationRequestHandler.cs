@@ -142,8 +142,8 @@ internal class DefaultValidateAuthorizationRequestHandler(
 
         var errorCode =
             requestObject.RequestObjectSource == RequestObjectSource.Remote
-                ? OpenIdConstants.ErrorCodes.InvalidRequestUri
-                : OpenIdConstants.ErrorCodes.InvalidRequestJwt;
+                ? OpenIdProtocol.ErrorCodes.InvalidRequestUri
+                : OpenIdProtocol.ErrorCodes.InvalidRequestJwt;
 
         /*
          * request and request_uri parameters MUST NOT be included in Request Objects.

@@ -104,7 +104,7 @@ internal class DefaultCibaGrantHandler(
         if (persistedGrant.Status == PersistedGrantStatus.Expired)
             return Error(
                 errorFactory,
-                OpenIdConstants.ErrorCodes.ExpiredToken,
+                OpenIdProtocol.ErrorCodes.ExpiredToken,
                 "The backchannel authentication request has expired."
             );
 
@@ -125,7 +125,7 @@ internal class DefaultCibaGrantHandler(
             )
         )
             return errorFactory
-                .Create(OpenIdConstants.ErrorCodes.UnauthorizedClient)
+                .Create(OpenIdProtocol.ErrorCodes.UnauthorizedClient)
                 .WithDescription(
                     "The token endpoint cannot be used with push token delivery; the tokens are delivered to the client notification endpoint."
                 )
@@ -136,7 +136,7 @@ internal class DefaultCibaGrantHandler(
             case DeviceAuthorizationStatus.Denied:
                 return Error(
                     errorFactory,
-                    OpenIdConstants.ErrorCodes.AccessDenied,
+                    OpenIdProtocol.ErrorCodes.AccessDenied,
                     "The end user denied the backchannel authentication request."
                 );
 
@@ -194,12 +194,12 @@ internal class DefaultCibaGrantHandler(
         return tooFast
             ? Error(
                 errorFactory,
-                OpenIdConstants.ErrorCodes.SlowDown,
+                OpenIdProtocol.ErrorCodes.SlowDown,
                 "The client is polling faster than the permitted interval."
             )
             : Error(
                 errorFactory,
-                OpenIdConstants.ErrorCodes.AuthorizationPending,
+                OpenIdProtocol.ErrorCodes.AuthorizationPending,
                 "The end user has not yet completed the backchannel authentication request."
             );
     }

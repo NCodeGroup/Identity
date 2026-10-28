@@ -104,7 +104,7 @@ public class TokenEndpointClientAuthenticationTests
 
         using var document = JsonDocument.Parse(body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -307,7 +307,7 @@ public class TokenEndpointClientAuthenticationTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -391,7 +391,7 @@ public class TokenEndpointClientAuthenticationTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }

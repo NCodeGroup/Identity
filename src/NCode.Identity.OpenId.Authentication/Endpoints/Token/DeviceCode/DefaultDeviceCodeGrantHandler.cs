@@ -104,7 +104,7 @@ internal class DefaultDeviceCodeGrantHandler(
         if (persistedGrant.Status == PersistedGrantStatus.Expired)
             return Error(
                 errorFactory,
-                OpenIdConstants.ErrorCodes.ExpiredToken,
+                OpenIdProtocol.ErrorCodes.ExpiredToken,
                 "The device code has expired."
             );
 
@@ -120,7 +120,7 @@ internal class DefaultDeviceCodeGrantHandler(
             case DeviceAuthorizationStatus.Denied:
                 return Error(
                     errorFactory,
-                    OpenIdConstants.ErrorCodes.AccessDenied,
+                    OpenIdProtocol.ErrorCodes.AccessDenied,
                     "The end user denied the device authorization request."
                 );
 
@@ -178,12 +178,12 @@ internal class DefaultDeviceCodeGrantHandler(
         return tooFast
             ? Error(
                 errorFactory,
-                OpenIdConstants.ErrorCodes.SlowDown,
+                OpenIdProtocol.ErrorCodes.SlowDown,
                 "The device is polling faster than the permitted interval."
             )
             : Error(
                 errorFactory,
-                OpenIdConstants.ErrorCodes.AuthorizationPending,
+                OpenIdProtocol.ErrorCodes.AuthorizationPending,
                 "The end user has not yet completed the device authorization request."
             );
     }

@@ -67,7 +67,7 @@ internal class DefaultLoadBackchannelAuthenticationRequestHandler(
 
         var openIdEnvironment = openIdContext.Environment;
         var errorFactory = openIdEnvironment.ErrorFactory;
-        const string errorCode = OpenIdConstants.ErrorCodes.InvalidRequestJwt;
+        const string errorCode = OpenIdProtocol.ErrorCodes.InvalidRequestJwt;
 
         JsonElement jwtPayload;
         try

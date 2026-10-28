@@ -183,7 +183,7 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.ServerError,
+            OpenIdProtocol.ErrorCodes.ServerError,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -260,7 +260,7 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         Assert.NotNull(location);
         var parameters = HttpUtility.ParseQueryString(location.Query);
         Assert.Equal("a", parameters["tenant"]);
-        Assert.Equal(OpenIdConstants.ErrorCodes.LoginRequired, parameters["error"]);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.LoginRequired, parameters["error"]);
     }
 
     [Fact]
@@ -363,7 +363,7 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -389,7 +389,7 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -419,7 +419,7 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         var location = response.Headers.Location;
         Assert.NotNull(location);
         var parameters = HttpUtility.ParseQueryString(location.Query);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, parameters["error"]);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, parameters["error"]);
         Assert.Contains("response mode", parameters["error_description"], StringComparison.Ordinal);
     }
 
@@ -446,7 +446,7 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         var parameters = HttpUtility.ParseQueryString(location.Query);
         var payload = DecodePayload(parameters["response"]);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             payload.GetProperty("error").GetString()
         );
     }

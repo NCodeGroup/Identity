@@ -128,7 +128,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
         )
         {
             return errorFactory
-                .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                .Create(OpenIdProtocol.ErrorCodes.InvalidDPoPProof)
                 .WithDescription(
                     "The DPoP proof key does not match the 'dpop_jkt' value from the authorization request."
                 )

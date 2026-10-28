@@ -215,7 +215,7 @@ internal class DefaultAuthorizeHandler(
                     openIdContext,
                     openIdClient,
                     authenticationTicket.PrincipalId,
-                    OpenIdConstants.ErrorCodes.ConsentRequired,
+                    OpenIdProtocol.ErrorCodes.ConsentRequired,
                     cancellationToken
                 );
                 return Failed(openIdContext.ErrorFactory.ConsentRequired());

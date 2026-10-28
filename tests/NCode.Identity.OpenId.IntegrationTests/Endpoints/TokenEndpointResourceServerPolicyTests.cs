@@ -177,7 +177,7 @@ public class TokenEndpointResourceServerPolicyTests
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         using var document = await ReadJsonAsync(response);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.ServerError,
+            OpenIdProtocol.ErrorCodes.ServerError,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -200,7 +200,7 @@ public class TokenEndpointResourceServerPolicyTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var document = await ReadJsonAsync(response);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -274,7 +274,7 @@ public class TokenEndpointResourceServerPolicyTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var document = await ReadJsonAsync(response);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
         Assert.StartsWith(
@@ -308,7 +308,7 @@ public class TokenEndpointResourceServerPolicyTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var document = await ReadJsonAsync(response);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }

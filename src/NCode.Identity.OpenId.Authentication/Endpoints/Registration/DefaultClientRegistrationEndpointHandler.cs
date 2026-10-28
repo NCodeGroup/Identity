@@ -195,7 +195,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             return errorFactory
                 .InvalidRequest(
                     "Only requests with Content-Type 'application/json' are supported.",
-                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                    OpenIdProtocol.ErrorCodes.InvalidClientMetadata
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
@@ -221,7 +221,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             return errorFactory
                 .InvalidRequest(
                     "The request body could not be parsed as JSON client metadata.",
-                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                    OpenIdProtocol.ErrorCodes.InvalidClientMetadata
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
@@ -522,7 +522,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             return errorFactory
                 .InvalidRequest(
                     "Only requests with Content-Type 'application/json' are supported.",
-                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                    OpenIdProtocol.ErrorCodes.InvalidClientMetadata
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
@@ -534,7 +534,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             return errorFactory
                 .InvalidRequest(
                     "The request body could not be parsed as JSON client metadata.",
-                    OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                    OpenIdProtocol.ErrorCodes.InvalidClientMetadata
                 )
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
@@ -762,7 +762,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         return description is null
             ? null
             : errorFactory
-                .InvalidRequest(description, OpenIdConstants.ErrorCodes.InvalidClientMetadata)
+                .InvalidRequest(description, OpenIdProtocol.ErrorCodes.InvalidClientMetadata)
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();
     }
@@ -817,7 +817,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         {
             return errorFactory.InvalidRequest(
                 "The 'token_endpoint_auth_method' value must be a non-empty string.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             );
         }
 
@@ -828,7 +828,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         {
             return errorFactory.InvalidRequest(
                 "Every 'response_types' value must be a non-empty string.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             );
         }
 
@@ -862,7 +862,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         {
             return errorFactory.InvalidRequest(
                 "At least one 'redirect_uris' value is required for the registered response types.",
-                OpenIdConstants.ErrorCodes.InvalidRedirectUri
+                OpenIdProtocol.ErrorCodes.InvalidRedirectUri
             );
         }
 
@@ -875,7 +875,7 @@ internal class DefaultClientRegistrationEndpointHandler(
             {
                 return errorFactory.InvalidRequest(
                     $"The redirect URI '{redirectUri}' is not a valid absolute URI without a fragment.",
-                    OpenIdConstants.ErrorCodes.InvalidRedirectUri
+                    OpenIdProtocol.ErrorCodes.InvalidRedirectUri
                 );
             }
         }
@@ -885,7 +885,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         {
             return errorFactory.InvalidRequest(
                 $"The 'subject_type' value '{subjectType}' is not supported.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             );
         }
 
@@ -914,7 +914,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         {
             return errorFactory.InvalidRequest(
                 "A 'sector_identifier_uri' is required for a pairwise client whose 'redirect_uris' span multiple hosts.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             );
         }
 
@@ -981,7 +981,7 @@ internal class DefaultClientRegistrationEndpointHandler(
 
             return errorFactory.InvalidRequest(
                 $"The 'response_types' value '{responseType}' requires the '{missingGrantType}' grant type, which is not among the registered 'grant_types'.",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             );
         }
 
@@ -1021,8 +1021,8 @@ internal class DefaultClientRegistrationEndpointHandler(
                 StringComparison.Ordinal
             )
         )
-            ? OpenIdConstants.ErrorCodes.InvalidRedirectUri
-            : OpenIdConstants.ErrorCodes.InvalidClientMetadata;
+            ? OpenIdProtocol.ErrorCodes.InvalidRedirectUri
+            : OpenIdProtocol.ErrorCodes.InvalidClientMetadata;
 
         return errorFactory.InvalidRequest(description, code);
     }
@@ -1214,7 +1214,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     private static IOpenIdError InvalidClientMetadata(
         IOpenIdErrorFactory errorFactory,
         string description
-    ) => errorFactory.InvalidRequest(description, OpenIdConstants.ErrorCodes.InvalidClientMetadata);
+    ) => errorFactory.InvalidRequest(description, OpenIdProtocol.ErrorCodes.InvalidClientMetadata);
 
     private static bool HasMultipleDistinctHosts(IReadOnlyCollection<string> redirectUris)
     {
@@ -1344,7 +1344,7 @@ internal class DefaultClientRegistrationEndpointHandler(
         return errorFactory
             .InvalidRequest(
                 $"The 'jwks' parameter is invalid. {error}",
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             )
             .WithStatusCode(StatusCodes.Status400BadRequest)
             .AsHttpResult();
@@ -1386,8 +1386,8 @@ internal class DefaultClientRegistrationEndpointHandler(
             )
         );
         var errorCode = isRedirectUriError
-            ? OpenIdConstants.ErrorCodes.InvalidRedirectUri
-            : OpenIdConstants.ErrorCodes.InvalidClientMetadata;
+            ? OpenIdProtocol.ErrorCodes.InvalidRedirectUri
+            : OpenIdProtocol.ErrorCodes.InvalidClientMetadata;
 
         var messages = settingErrors.Select(error => error.Message);
         var description = string.Join(" ", messages);

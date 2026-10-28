@@ -126,7 +126,7 @@ public class JwtSecuredAuthorizationResponseRequirementTests : BaseTests
             await requirement.EvaluateAsync(context, CancellationToken.None)
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, capturedCode());
     }
 
     #endregion

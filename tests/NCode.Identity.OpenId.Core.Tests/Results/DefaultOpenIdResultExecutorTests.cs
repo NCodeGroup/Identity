@@ -79,7 +79,7 @@ public sealed class DefaultOpenIdResultExecutorTests : BaseTests
     public async Task ExecuteAsync_WhenTheResponseIsAnError_TagsTheRequestWithItsCode()
     {
         var mockError = CreateLooseMock<IOpenIdError>();
-        mockError.SetupGet(x => x.Code).Returns(OpenIdConstants.ErrorCodes.InvalidGrant);
+        mockError.SetupGet(x => x.Code).Returns(OpenIdProtocol.ErrorCodes.InvalidGrant);
         var httpContext = CreateHttpContext(mockError.Object);
 
         await Executor.ExecuteAsync(
@@ -92,7 +92,7 @@ public sealed class DefaultOpenIdResultExecutorTests : BaseTests
             [
                 new KeyValuePair<string, object?>(
                     OpenIdMetricAttributes.Error,
-                    OpenIdConstants.ErrorCodes.InvalidGrant
+                    OpenIdProtocol.ErrorCodes.InvalidGrant
                 ),
             ],
             MetricsTags.Tags

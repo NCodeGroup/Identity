@@ -435,7 +435,7 @@ public class InteractiveTenantRouteTests
                 StringComparison.Ordinal
             );
             Assert.Contains(
-                $"data-error-code=\"{OpenIdConstants.ErrorCodes.InvalidClient}\"",
+                $"data-error-code=\"{OpenIdProtocol.ErrorCodes.InvalidClient}\"",
                 html,
                 StringComparison.Ordinal
             );

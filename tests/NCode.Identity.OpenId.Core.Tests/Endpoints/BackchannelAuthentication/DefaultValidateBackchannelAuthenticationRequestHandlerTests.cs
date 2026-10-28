@@ -130,7 +130,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
 
     [Fact]
@@ -197,7 +197,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, CapturedErrorCode);
     }
 
     [Fact]

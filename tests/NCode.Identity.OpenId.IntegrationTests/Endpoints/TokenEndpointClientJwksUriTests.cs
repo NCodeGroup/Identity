@@ -176,7 +176,7 @@ public class TokenEndpointClientJwksUriTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }

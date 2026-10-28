@@ -231,7 +231,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
     }
 
     [Fact]
@@ -242,7 +242,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
     }
 
     [Fact]
@@ -265,7 +265,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
     }
 
     [Fact]
@@ -280,7 +280,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
     }
 
     [Fact]
@@ -293,7 +293,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
     }
 
     [Fact]
@@ -318,7 +318,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestJwt, scaffold.CapturedCode());
     }
 
     #endregion
@@ -387,7 +387,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
             )
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnsupportedResponseType, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnsupportedResponseType, capturedCode());
     }
 
     [Fact]
@@ -417,7 +417,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
             )
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnsupportedResponseType, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnsupportedResponseType, capturedCode());
     }
 
     [Fact]
@@ -452,7 +452,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
             )
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, capturedCode());
     }
 
     [Fact]
@@ -487,7 +487,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
             )
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, capturedCode());
     }
 
     [Fact]
@@ -551,7 +551,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
             )
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, capturedCode());
     }
 
     #endregion
@@ -651,7 +651,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
         Assert.Throws<OpenIdException>(() => InvokeValidateCodeChallenge(scaffold));
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
     }
 
     [Fact]
@@ -695,7 +695,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
         Assert.Throws<OpenIdException>(() => InvokeValidateCodeChallenge(scaffold));
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
     }
 
     [Fact]
@@ -724,7 +724,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
         Assert.Throws<OpenIdException>(() => InvokeValidateCodeChallenge(scaffold));
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
     }
 
     [Theory]
@@ -740,7 +740,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
         Assert.Throws<OpenIdException>(() => InvokeValidateCodeChallenge(scaffold));
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
     }
 
     [Theory]
@@ -753,7 +753,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
 
         Assert.Throws<OpenIdException>(() => InvokeValidateCodeChallenge(scaffold));
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, scaffold.CapturedCode());
     }
 
     #endregion

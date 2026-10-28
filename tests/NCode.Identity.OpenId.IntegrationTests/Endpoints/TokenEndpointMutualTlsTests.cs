@@ -332,7 +332,7 @@ public class TokenEndpointMutualTlsTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -366,7 +366,7 @@ public class TokenEndpointMutualTlsTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             document.RootElement.GetProperty("error").GetString()
         );
     }

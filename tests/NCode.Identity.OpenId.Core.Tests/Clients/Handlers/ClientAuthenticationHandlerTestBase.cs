@@ -154,7 +154,7 @@ public abstract class ClientAuthenticationHandlerTestBase : BaseTests
     protected static void AssertInvalidClient(ClientAuthenticationResult result, int statusCode)
     {
         Assert.True(result.IsError);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClient, result.Error.Code);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClient, result.Error.Code);
         Assert.Equal(statusCode, result.Error.StatusCode);
     }
 }

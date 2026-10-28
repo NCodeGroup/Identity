@@ -381,7 +381,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         }
 
         return TypedResults.Redirect(
-            BuildLoginRedirect(httpContext, safeReturnUrl, OpenIdConstants.ErrorCodes.AccessDenied)
+            BuildLoginRedirect(httpContext, safeReturnUrl, OpenIdProtocol.ErrorCodes.AccessDenied)
         );
     }
 
@@ -1110,7 +1110,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
             null or "" => null,
             "invalid_credentials" => "The username or password is incorrect.",
             "invalid_request" => "Enter both a username and a password.",
-            OpenIdConstants.ErrorCodes.AccessDenied =>
+            OpenIdProtocol.ErrorCodes.AccessDenied =>
                 "This account cannot sign in. Contact your administrator.",
             _ => "Sign-in failed. Please try again.",
         };

@@ -339,7 +339,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
 
         var (code, error) = await ReadResultAsync(response);
         Assert.Null(code);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, error);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestJwt, error);
     }
 
     [Fact]
@@ -375,7 +375,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         Assert.Equal(RedirectUri, location.GetLeftPart(UriPartial.Path));
         Assert.Null(HttpUtility.ParseQueryString(location.Query)["error"]);
         var parameters = HttpUtility.ParseQueryString(location.Fragment.TrimStart('#'));
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, parameters["error"]);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestJwt, parameters["error"]);
         Assert.Equal(State, parameters["state"]);
     }
 
@@ -415,7 +415,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         Assert.False(string.IsNullOrEmpty(jwt), location.ToString());
         using var payload = JsonDocument.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[1]));
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequestJwt,
+            OpenIdProtocol.ErrorCodes.InvalidRequestJwt,
             payload.RootElement.GetProperty("error").GetString()
         );
         Assert.Equal(State, payload.RootElement.GetProperty("state").GetString());
@@ -440,7 +440,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         Assert.True(string.IsNullOrEmpty(code));
         Assert.NotNull(error);
         Assert.Contains(
-            OpenIdConstants.ErrorCodes.InvalidRequestJwt,
+            OpenIdProtocol.ErrorCodes.InvalidRequestJwt,
             error,
             StringComparison.Ordinal
         );
@@ -464,7 +464,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         Assert.True(string.IsNullOrEmpty(code));
         Assert.NotNull(error);
         Assert.Contains(
-            OpenIdConstants.ErrorCodes.InvalidRequestJwt,
+            OpenIdProtocol.ErrorCodes.InvalidRequestJwt,
             error,
             StringComparison.Ordinal
         );
@@ -495,7 +495,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         Assert.True(string.IsNullOrEmpty(code));
         Assert.NotNull(error);
         Assert.Contains(
-            OpenIdConstants.ErrorCodes.InvalidRequestJwt,
+            OpenIdProtocol.ErrorCodes.InvalidRequestJwt,
             error,
             StringComparison.Ordinal
         );
@@ -567,7 +567,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var parBody = await parResponse.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.BadRequest, parResponse.StatusCode);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.UnauthorizedClient,
+            OpenIdProtocol.ErrorCodes.UnauthorizedClient,
             JsonElement.Parse(parBody).GetProperty("error").GetString()
         );
     }
@@ -592,7 +592,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
         var parBody = await parResponse.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.BadRequest, parResponse.StatusCode);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequestJwt,
+            OpenIdProtocol.ErrorCodes.InvalidRequestJwt,
             JsonElement.Parse(parBody).GetProperty("error").GetString()
         );
     }

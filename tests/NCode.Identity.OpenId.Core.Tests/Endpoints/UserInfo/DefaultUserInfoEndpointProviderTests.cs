@@ -190,7 +190,7 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
 
         await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidToken, CreatedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidToken, CreatedErrorCode);
     }
 
     [Fact]
@@ -210,7 +210,7 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
 
         await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidToken, CreatedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidToken, CreatedErrorCode);
     }
 
     [Fact]

@@ -84,7 +84,7 @@ internal sealed class DefaultOpenIdError
     {
         get =>
             GetKnownParameter(OpenIdCommonParameters.ErrorCode)
-            ?? OpenIdConstants.ErrorCodes.ServerError;
+            ?? OpenIdProtocol.ErrorCodes.ServerError;
         set => SetKnownParameter(OpenIdCommonParameters.ErrorCode, value);
     }
 

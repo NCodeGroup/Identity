@@ -236,7 +236,7 @@ public class JwtSecuredAuthorizationResponseTests
         var (header, payload) = DecodeJwt(parameters["response"]);
         AssertAddressedToTheClient(header, payload);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.LoginRequired,
+            OpenIdProtocol.ErrorCodes.LoginRequired,
             payload.GetProperty("error").GetString()
         );
         Assert.Equal("abc123", payload.GetProperty("state").GetString());
@@ -288,7 +288,7 @@ public class JwtSecuredAuthorizationResponseTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.ServerError,
+            OpenIdProtocol.ErrorCodes.ServerError,
             document.RootElement.GetProperty("error").GetString()
         );
         Assert.Contains(
@@ -326,7 +326,7 @@ public class JwtSecuredAuthorizationResponseTests
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.ServerError,
+            OpenIdProtocol.ErrorCodes.ServerError,
             document.RootElement.GetProperty("error").GetString()
         );
         Assert.Contains(
@@ -402,7 +402,7 @@ public class JwtSecuredAuthorizationResponseTests
         var signed = joseSerializer.Decode(encrypted, clientKey);
         var (_, payload) = DecodeJwt(signed);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.LoginRequired,
+            OpenIdProtocol.ErrorCodes.LoginRequired,
             payload.GetProperty("error").GetString()
         );
         Assert.Equal("abc123", payload.GetProperty("state").GetString());

@@ -99,7 +99,7 @@ internal class DefaultOpenIdExceptionHandler(ILogger<DefaultOpenIdExceptionHandl
         exception is OpenIdException openIdException
             ? openIdException.Error.AsHttpResult()
             : openIdEnvironment
-                .CreateError(OpenIdConstants.ErrorCodes.ServerError)
+                .CreateError(OpenIdProtocol.ErrorCodes.ServerError)
                 .WithDescription("An unexpected error occurred while processing the request.")
                 .WithStatusCode(StatusCodes.Status500InternalServerError)
                 .WithException(exception)

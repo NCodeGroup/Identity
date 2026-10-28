@@ -110,7 +110,7 @@ public class DefaultValidateDeviceAuthorizationRequestHandlerTests : BaseTests
         await Assert.ThrowsAsync<OpenIdException>(() =>
             InvokeAsync(context, client, request).AsTask()
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, CapturedErrorCode);
     }
 
     [Fact]

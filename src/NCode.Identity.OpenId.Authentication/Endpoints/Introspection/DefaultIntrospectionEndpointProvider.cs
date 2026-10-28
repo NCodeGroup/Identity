@@ -288,7 +288,7 @@ internal class DefaultIntrospectionEndpointProvider(
         if (credentials.SigningCredentials is null)
         {
             throw openIdContext
-                .ErrorFactory.Create(OpenIdConstants.ErrorCodes.ServerError)
+                .ErrorFactory.Create(OpenIdProtocol.ErrorCodes.ServerError)
                 .WithDescription(
                     $"The client registers no '{OpenIdSettingNames.IntrospectionSignedResponseAlg}', and a JWT introspection response is always signed."
                 )

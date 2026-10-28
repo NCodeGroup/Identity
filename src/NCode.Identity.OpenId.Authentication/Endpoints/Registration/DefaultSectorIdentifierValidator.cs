@@ -62,7 +62,7 @@ internal class DefaultSectorIdentifierValidator(
         IOpenIdError InvalidMetadata(string description) =>
             errorFactory.InvalidRequest(
                 description,
-                OpenIdConstants.ErrorCodes.InvalidClientMetadata
+                OpenIdProtocol.ErrorCodes.InvalidClientMetadata
             );
 
         // §8.1: the sector_identifier_uri must be an https URL.

@@ -117,7 +117,7 @@ public class IssuerOnlyRequestObjectAudienceRequirementTests : BaseTests
             await requirement.EvaluateAsync(context, CancellationToken.None)
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestJwt, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestJwt, capturedCode());
     }
 
     #endregion

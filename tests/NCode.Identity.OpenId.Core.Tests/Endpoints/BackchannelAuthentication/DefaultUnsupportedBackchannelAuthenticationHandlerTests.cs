@@ -58,6 +58,6 @@ public class DefaultUnsupportedBackchannelAuthenticationHandlerTests : BaseTests
 
         Assert.True(disposition.HasError);
         Assert.Same(mockError.Object, disposition.Error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnknownUserId, capturedCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnknownUserId, capturedCode);
     }
 }

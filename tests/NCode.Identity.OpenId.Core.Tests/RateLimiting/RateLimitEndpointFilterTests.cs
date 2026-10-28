@@ -116,7 +116,7 @@ public sealed class RateLimitEndpointFilterTests : BaseTests
         mockError.SetupAllProperties();
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         mockErrorFactory
-            .Setup(x => x.Create(OpenIdConstants.ErrorCodes.TemporarilyUnavailable))
+            .Setup(x => x.Create(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable))
             .Returns(mockError.Object)
             .Verifiable();
         MockContext.Setup(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();

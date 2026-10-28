@@ -172,7 +172,7 @@ public sealed class DefaultClientCertificateResolverTests : BaseTests
             resolver.ResolveCertificateAsync(context, CancellationToken.None).AsTask()
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequest, exception.Error.Code);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequest, exception.Error.Code);
         Assert.Equal(StatusCodes.Status400BadRequest, exception.Error.StatusCode);
     }
 

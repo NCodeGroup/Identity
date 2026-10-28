@@ -132,7 +132,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -226,7 +226,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -245,7 +245,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     [Fact]
@@ -264,7 +264,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
         );
 
         Assert.NotNull(error);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
     }
 
     #endregion

@@ -275,7 +275,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
 
         AssertError(
             result,
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             StatusCodes.Status400BadRequest
         );
     }
@@ -323,7 +323,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
 
         AssertError(
             result,
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             StatusCodes.Status400BadRequest
         );
     }
@@ -350,7 +350,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
 
         AssertError(
             result,
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             StatusCodes.Status400BadRequest
         );
     }
@@ -378,7 +378,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
 
         AssertError(
             result,
-            OpenIdConstants.ErrorCodes.InvalidClient,
+            OpenIdProtocol.ErrorCodes.InvalidClient,
             StatusCodes.Status400BadRequest
         );
     }
@@ -404,7 +404,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
 
         AssertError(
             result,
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             StatusCodes.Status400BadRequest
         );
     }
@@ -435,7 +435,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
 
         AssertError(
             result,
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             StatusCodes.Status400BadRequest
         );
     }
@@ -505,7 +505,7 @@ public class DefaultClientAuthenticationServiceTests : BaseTests
 
         AssertError(
             result,
-            OpenIdConstants.ErrorCodes.TemporarilyUnavailable,
+            OpenIdProtocol.ErrorCodes.TemporarilyUnavailable,
             StatusCodes.Status429TooManyRequests
         );
     }

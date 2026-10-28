@@ -44,7 +44,7 @@ internal sealed class IssuerOnlyRequestObjectAudienceRequirement
             throw context
                 .OpenIdContext.ErrorFactory.InvalidRequest(
                     "Under a selected security profile a request object must be addressed to the issuer identifier, so the client must not set 'request_object_expected_audience'.",
-                    OpenIdConstants.ErrorCodes.InvalidRequestJwt
+                    OpenIdProtocol.ErrorCodes.InvalidRequestJwt
                 )
                 .AsException();
         }

@@ -153,7 +153,7 @@ internal class DefaultBackchannelAuthenticationEndpointHandler(
         if (!disposition.IsAuthenticated)
         {
             return errorFactory
-                .Create(OpenIdConstants.ErrorCodes.UnknownUserId)
+                .Create(OpenIdProtocol.ErrorCodes.UnknownUserId)
                 .WithDescription("The supplied login hint could not be resolved to a known user.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsHttpResult();

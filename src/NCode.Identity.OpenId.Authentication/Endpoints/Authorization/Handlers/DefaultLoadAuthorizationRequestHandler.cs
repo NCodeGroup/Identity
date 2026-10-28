@@ -123,7 +123,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
                 throw errorFactory.RequestUriNotSupported().AsException();
 
             requestObjectSource = RequestObjectSource.Remote;
-            errorCode = OpenIdConstants.ErrorCodes.InvalidRequestUri;
+            errorCode = OpenIdProtocol.ErrorCodes.InvalidRequestUri;
 
             if (!string.IsNullOrEmpty(requestJwt))
                 throw errorFactory
@@ -146,7 +146,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
                 throw errorFactory.RequestParameterNotSupported().AsException();
 
             requestObjectSource = RequestObjectSource.Inline;
-            errorCode = OpenIdConstants.ErrorCodes.InvalidRequestJwt;
+            errorCode = OpenIdProtocol.ErrorCodes.InvalidRequestJwt;
         }
         else
         {
@@ -160,7 +160,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
         if (IsUnsignedRequestObject(requestJwt))
         {
             throw errorFactory
-                .Create(OpenIdConstants.ErrorCodes.RequestNotSupported)
+                .Create(OpenIdProtocol.ErrorCodes.RequestNotSupported)
                 .WithDescription(
                     "The authorization server does not support unsigned ('alg':'none') request objects."
                 )

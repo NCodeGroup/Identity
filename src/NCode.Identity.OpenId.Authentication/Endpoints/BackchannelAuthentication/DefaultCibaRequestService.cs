@@ -190,7 +190,7 @@ internal sealed class DefaultCibaRequestService(
             )
         )
         {
-            job = job with { Error = OpenIdConstants.ErrorCodes.AccessDenied };
+            job = job with { Error = OpenIdProtocol.ErrorCodes.AccessDenied };
         }
 
         await JobDispatcher.DispatchAsync(job, cancellationToken: cancellationToken);

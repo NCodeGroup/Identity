@@ -394,7 +394,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
             Values((OpenIdSettingNames.AccessTokenSigningAlgValuesSupported, new[] { Es256 }))
         );
 
-        AssertRefused(OpenIdConstants.ErrorCodes.ServerError, () => Evaluate(client, Targeting()));
+        AssertRefused(OpenIdProtocol.ErrorCodes.ServerError, () => Evaluate(client, Targeting()));
     }
 
     #endregion
@@ -422,7 +422,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         );
 
         AssertRefused(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             () => Evaluate(client, Targeting(resourceServer))
         );
     }
@@ -435,7 +435,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         );
 
         AssertRefused(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             () => Evaluate(client, Targeting())
         );
     }
@@ -489,7 +489,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         );
 
         AssertRefused(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             () => Evaluate(client, Targeting(resourceServer), CertificateBound)
         );
     }
@@ -511,7 +511,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         );
 
         AssertRefused(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             () => Evaluate(client, Targeting(first, second), DPoPBound)
         );
     }
@@ -596,7 +596,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         var resourceServer = CreateResourceServer("rs-api", null, ResourceServerKey);
 
         AssertRefused(
-            OpenIdConstants.ErrorCodes.ServerError,
+            OpenIdProtocol.ErrorCodes.ServerError,
             () =>
                 Service.Evaluate(
                     CreateContext(TenantKey, tenantEncryptionKey),
@@ -725,7 +725,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         var other = CreateResourceServer("rs-b");
 
         AssertRefused(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             () => Evaluate(client, Targeting(reader, other))
         );
     }
@@ -780,7 +780,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
         Assert.Throws<OpenIdException>(() =>
             Service.Evaluate(CreateContext(signingOnlyKey), client, default, Targeting())
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.ServerError, CreatedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.ServerError, CreatedErrorCode);
     }
 
     #endregion

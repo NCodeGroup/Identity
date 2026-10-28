@@ -922,7 +922,7 @@ public class TokenIntrospectionEndpointTests
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
         using var document = JsonDocument.Parse(body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -961,7 +961,7 @@ public class TokenIntrospectionEndpointTests
         Assert.True(secondResponse.StatusCode == HttpStatusCode.Unauthorized, secondBody);
         using var document = JsonDocument.Parse(secondBody);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidToken,
+            OpenIdProtocol.ErrorCodes.InvalidToken,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -1055,7 +1055,7 @@ public class TokenIntrospectionEndpointTests
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
         using var document = JsonDocument.Parse(body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             document.RootElement.GetProperty("error").GetString()
         );
     }

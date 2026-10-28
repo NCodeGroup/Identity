@@ -125,7 +125,7 @@ public class ClientRegistrationEndpointTests
 
         await AssertRegistrationErrorAsync(
             response,
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             "introspection_*_response_*"
         );
     }
@@ -183,7 +183,7 @@ public class ClientRegistrationEndpointTests
 
         await AssertRegistrationErrorAsync(
             response,
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             settingName
         );
     }
@@ -207,7 +207,7 @@ public class ClientRegistrationEndpointTests
 
         await AssertRegistrationErrorAsync(
             response,
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             OpenIdSettingNames.JwksUri
         );
     }
@@ -234,7 +234,7 @@ public class ClientRegistrationEndpointTests
 
         using var document = JsonDocument.Parse(body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRedirectUri,
+            OpenIdProtocol.ErrorCodes.InvalidRedirectUri,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -300,7 +300,7 @@ public class ClientRegistrationEndpointTests
         var codeLocation = codeResponse.Headers.Location;
         Assert.NotNull(codeLocation);
         var parameters = HttpUtility.ParseQueryString(codeLocation.Query);
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, parameters["error"]);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, parameters["error"]);
     }
 
     [Fact]
@@ -327,7 +327,7 @@ public class ClientRegistrationEndpointTests
 
         await AssertRegistrationErrorAsync(
             response,
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             OpenIdSettingNames.ResponseTypesSupported
         );
     }
@@ -362,7 +362,7 @@ public class ClientRegistrationEndpointTests
 
         await AssertRegistrationErrorAsync(
             response,
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             "token_endpoint_auth_method"
         );
     }
@@ -387,7 +387,7 @@ public class ClientRegistrationEndpointTests
 
         await AssertRegistrationErrorAsync(
             response,
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             OpenIdConstants.GrantTypes.Implicit
         );
     }
@@ -506,7 +506,7 @@ public class ClientRegistrationEndpointTests
 
         await AssertRegistrationErrorAsync(
             response,
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             "jwks"
         );
     }
@@ -527,7 +527,7 @@ public class ClientRegistrationEndpointTests
 
         await AssertRegistrationErrorAsync(
             response,
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             "kid"
         );
     }
@@ -767,7 +767,7 @@ public class ClientRegistrationEndpointTests
         using var token = JsonDocument.Parse(tokenBody);
         Assert.False(
             token.RootElement.TryGetProperty("error", out var error)
-                && error.GetString() == OpenIdConstants.ErrorCodes.InvalidClient,
+                && error.GetString() == OpenIdProtocol.ErrorCodes.InvalidClient,
             tokenBody
         );
     }
@@ -793,7 +793,7 @@ public class ClientRegistrationEndpointTests
 
         await AssertRegistrationErrorAsync(
             response,
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             "jwks_uri"
         );
     }
@@ -865,7 +865,7 @@ public class ClientRegistrationEndpointTests
 
         await AssertRegistrationErrorAsync(
             response,
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             "tls_client_auth_subject_dn"
         );
     }
@@ -974,7 +974,7 @@ public class ClientRegistrationEndpointTests
 
         await AssertRegistrationErrorAsync(
             response,
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             expectedQuotedName
         );
     }
@@ -1005,7 +1005,7 @@ public class ClientRegistrationEndpointTests
 
         await AssertRegistrationErrorAsync(
             response,
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             "tls_client_certificate_bound_access_tokens"
         );
     }
@@ -1120,7 +1120,7 @@ public class ClientRegistrationEndpointTests
         Assert.True(tokenResponse.StatusCode == HttpStatusCode.BadRequest, tokenBody);
         using var token = JsonDocument.Parse(tokenBody);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidDPoPProof,
+            OpenIdProtocol.ErrorCodes.InvalidDPoPProof,
             token.RootElement.GetProperty("error").GetString()
         );
     }

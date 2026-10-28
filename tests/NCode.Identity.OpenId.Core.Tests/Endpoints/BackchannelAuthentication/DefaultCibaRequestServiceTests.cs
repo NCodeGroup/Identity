@@ -586,7 +586,7 @@ public class DefaultCibaRequestServiceTests : BaseTests
         MockJobDispatcher.Verify();
         Assert.Equal(OpenIdConstants.BackchannelTokenDeliveryModes.Push, CapturedJob?.DeliveryMode);
         Assert.Equal(AuthReqId, CapturedJob?.AuthReqId);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, CapturedJob?.Error);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AccessDenied, CapturedJob?.Error);
         Assert.Null(CapturedJob?.AccessToken);
     }
 

@@ -90,7 +90,7 @@ public class DefaultValidateBlockedSubjectHandlerTests : BaseTests
 
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         mockErrorFactory
-            .Setup(x => x.Create(OpenIdConstants.ErrorCodes.AccessDenied))
+            .Setup(x => x.Create(OpenIdProtocol.ErrorCodes.AccessDenied))
             .Returns(mockError.Object)
             .Verifiable();
 

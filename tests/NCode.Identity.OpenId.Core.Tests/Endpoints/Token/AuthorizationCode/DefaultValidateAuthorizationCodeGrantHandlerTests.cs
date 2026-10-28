@@ -224,7 +224,7 @@ public class DefaultValidateAuthorizationCodeGrantHandlerTests : BaseTests
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await Handler.HandleAsync(scaffold.Command, CancellationToken.None)
         );
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidGrant, scaffold.CapturedErrorCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidGrant, scaffold.CapturedErrorCode());
     }
 
     #endregion

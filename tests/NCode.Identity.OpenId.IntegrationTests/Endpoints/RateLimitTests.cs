@@ -100,7 +100,7 @@ public class RateLimitTests
 
         using var document = JsonDocument.Parse(body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.TemporarilyUnavailable,
+            OpenIdProtocol.ErrorCodes.TemporarilyUnavailable,
             document.RootElement.GetProperty("error").GetString()
         );
     }

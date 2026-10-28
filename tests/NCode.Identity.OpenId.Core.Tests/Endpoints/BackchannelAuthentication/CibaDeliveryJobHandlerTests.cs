@@ -153,7 +153,7 @@ public class CibaDeliveryJobHandlerTests : BaseTests
             EndpointUrl = Endpoint,
             ClientNotificationToken = NotificationToken,
             AuthReqId = AuthReqId,
-            Error = OpenIdConstants.ErrorCodes.AccessDenied,
+            Error = OpenIdProtocol.ErrorCodes.AccessDenied,
         };
 
         await Subject.HandleAsync(job, Context(), CancellationToken.None);
@@ -162,7 +162,7 @@ public class CibaDeliveryJobHandlerTests : BaseTests
         var root = document.RootElement;
         Assert.Equal(AuthReqId, root.GetProperty(OpenIdConstants.Parameters.AuthReqId).GetString());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.AccessDenied,
+            OpenIdProtocol.ErrorCodes.AccessDenied,
             root.GetProperty(OpenIdConstants.Parameters.ErrorCode).GetString()
         );
         Assert.False(root.TryGetProperty(OpenIdConstants.Parameters.AccessToken, out _));

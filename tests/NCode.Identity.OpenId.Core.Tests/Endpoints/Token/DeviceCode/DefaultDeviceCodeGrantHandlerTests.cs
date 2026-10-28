@@ -277,7 +277,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidGrant, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidGrant, CapturedErrorCode);
     }
 
     [Fact]
@@ -296,7 +296,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidGrant, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidGrant, CapturedErrorCode);
     }
 
     [Fact]
@@ -315,7 +315,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AccessDenied, CapturedErrorCode);
     }
 
     [Fact]
@@ -342,7 +342,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AuthorizationPending, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AuthorizationPending, CapturedErrorCode);
         Assert.Equal(UtcNow, update()?.Payload.LastPolledWhen);
     }
 
@@ -370,7 +370,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AuthorizationPending, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AuthorizationPending, CapturedErrorCode);
         Assert.Null(update());
     }
 
@@ -398,7 +398,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.SlowDown, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.SlowDown, CapturedErrorCode);
     }
 
     [Fact]
@@ -438,7 +438,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         );
 
         Assert.Same(mockError.Object, result);
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidGrant, CapturedErrorCode);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidGrant, CapturedErrorCode);
     }
 
     [Fact]

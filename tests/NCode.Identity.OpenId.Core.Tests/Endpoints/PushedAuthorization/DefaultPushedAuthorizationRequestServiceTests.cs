@@ -266,7 +266,7 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                 .AsTask()
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestUri, capturedCode.Value);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestUri, capturedCode.Value);
     }
 
     [Fact]
@@ -317,7 +317,7 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                 .AsTask()
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestUri, capturedCode.Value);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestUri, capturedCode.Value);
     }
 
     [Fact]
@@ -388,7 +388,7 @@ public class DefaultPushedAuthorizationRequestServiceTests : BaseTests
                 .AsTask()
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.InvalidRequestUri, capturedCode.Value);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestUri, capturedCode.Value);
     }
 
     private (Mock<OpenIdContext> context, StrongBox<string?> capturedCode) CreateErrorScaffold()

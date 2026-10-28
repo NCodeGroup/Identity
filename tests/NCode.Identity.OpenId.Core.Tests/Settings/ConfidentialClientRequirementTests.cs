@@ -106,7 +106,7 @@ public class ConfidentialClientRequirementTests : BaseTests
             await requirement.EvaluateAsync(context, CancellationToken.None)
         );
 
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnauthorizedClient, capturedCode());
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnauthorizedClient, capturedCode());
     }
 
     #endregion

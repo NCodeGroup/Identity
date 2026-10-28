@@ -180,7 +180,7 @@ internal class DefaultAuthorizationResponseDeliveryResolver(
         if (credentials.SigningCredentials is null)
         {
             throw openIdContext
-                .ErrorFactory.Create(OpenIdConstants.ErrorCodes.ServerError)
+                .ErrorFactory.Create(OpenIdProtocol.ErrorCodes.ServerError)
                 .WithDescription(
                     $"The client registers no '{OpenIdSettingNames.AuthorizationSignedResponseAlg}', and a JWT-secured authorization response is always signed."
                 )

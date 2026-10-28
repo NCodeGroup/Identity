@@ -158,7 +158,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
     public async Task ExecuteAsync_WhenAnErrorIsRedirected_TagsTheErrorCode()
     {
         var mockError = CreateLooseMock<IOpenIdError>();
-        mockError.SetupGet(x => x.Code).Returns(OpenIdConstants.ErrorCodes.AccessDenied);
+        mockError.SetupGet(x => x.Code).Returns(OpenIdProtocol.ErrorCodes.AccessDenied);
         mockError
             .SetupGet(x => x.OpenIdEnvironment)
             .Returns(CreateStrictMock<OpenIdEnvironment>().Object);
@@ -183,7 +183,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
 
         var tag = Assert.Single(metricsTags.Tags);
         Assert.Equal(OpenIdMetricAttributes.Error, tag.Key);
-        Assert.Equal(OpenIdConstants.ErrorCodes.AccessDenied, tag.Value);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.AccessDenied, tag.Value);
         Assert.StartsWith(
             RedirectUri,
             httpContext.Response.Headers.Location.ToString(),

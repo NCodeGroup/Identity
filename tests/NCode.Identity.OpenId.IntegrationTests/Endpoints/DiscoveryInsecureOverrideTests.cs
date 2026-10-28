@@ -118,7 +118,7 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
         Assert.NotNull(location);
         Assert.StartsWith(RedirectUri, location.GetLeftPart(UriPartial.Path));
         var parameters = HttpUtility.ParseQueryString(location.Fragment.TrimStart('#'));
-        Assert.Equal(OpenIdConstants.ErrorCodes.UnsupportedResponseType, parameters["error"]);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.UnsupportedResponseType, parameters["error"]);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory fac
         Assert.Equal(RedirectUri, location.GetLeftPart(UriPartial.Path));
         Assert.Empty(location.Query);
         var parameters = HttpUtility.ParseQueryString(location.Fragment.TrimStart('#'));
-        Assert.Equal(OpenIdConstants.ErrorCodes.LoginRequired, parameters["error"]);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.LoginRequired, parameters["error"]);
         Assert.Equal("abc123", parameters["state"]);
     }
 

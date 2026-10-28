@@ -148,8 +148,8 @@ internal class DefaultRefreshTokenGrantHandler(
             if (!matches)
             {
                 var errorCode = !string.IsNullOrEmpty(storedConfirmation.JwkThumbprint)
-                    ? OpenIdConstants.ErrorCodes.InvalidDPoPProof
-                    : OpenIdConstants.ErrorCodes.InvalidGrant;
+                    ? OpenIdProtocol.ErrorCodes.InvalidDPoPProof
+                    : OpenIdProtocol.ErrorCodes.InvalidGrant;
                 return errorFactory
                     .Create(errorCode)
                     .WithDescription(

@@ -58,7 +58,7 @@ internal class DefaultLoadRequestValuesHandler
             )
             {
                 throw errorFactory
-                    .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
+                    .Create(OpenIdProtocol.ErrorCodes.InvalidRequest)
                     .WithDescription(
                         $"The content type of POST requests must be '{expectedContentType}', received '{httpRequest.ContentType}'."
                     )
@@ -71,7 +71,7 @@ internal class DefaultLoadRequestValuesHandler
         }
 
         throw errorFactory
-            .Create(OpenIdConstants.ErrorCodes.InvalidRequest)
+            .Create(OpenIdProtocol.ErrorCodes.InvalidRequest)
             .WithStatusCode(StatusCodes.Status405MethodNotAllowed)
             .AsException();
     }

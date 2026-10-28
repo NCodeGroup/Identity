@@ -143,7 +143,7 @@ internal class DefaultProofOfPossessionService(
             if (string.IsNullOrEmpty(proofJwt))
             {
                 return errorFactory
-                    .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                    .Create(OpenIdProtocol.ErrorCodes.InvalidDPoPProof)
                     .WithDescription(
                         "A DPoP proof is required to present a DPoP-bound access token."
                     )
@@ -181,7 +181,7 @@ internal class DefaultProofOfPossessionService(
             )
             {
                 return errorFactory
-                    .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                    .Create(OpenIdProtocol.ErrorCodes.InvalidDPoPProof)
                     .WithDescription(
                         "The DPoP proof key does not match the access token's confirmation."
                     )
@@ -246,7 +246,7 @@ internal class DefaultProofOfPossessionService(
         if (proofs.Count > 1)
         {
             throw errorFactory
-                .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                .Create(OpenIdProtocol.ErrorCodes.InvalidDPoPProof)
                 .WithDescription("The request contains more than one DPoP proof.")
                 .WithStatusCode(StatusCodes.Status400BadRequest)
                 .AsException();
@@ -262,7 +262,7 @@ internal class DefaultProofOfPossessionService(
             if (requireDPoP)
             {
                 throw errorFactory
-                    .Create(OpenIdConstants.ErrorCodes.InvalidDPoPProof)
+                    .Create(OpenIdProtocol.ErrorCodes.InvalidDPoPProof)
                     .WithDescription("A DPoP proof is required but was not presented.")
                     .WithStatusCode(StatusCodes.Status400BadRequest)
                     .AsException();

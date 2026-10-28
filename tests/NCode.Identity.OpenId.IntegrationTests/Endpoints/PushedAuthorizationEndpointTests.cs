@@ -141,7 +141,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -178,7 +178,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.ServerError,
+            OpenIdProtocol.ErrorCodes.ServerError,
             document.RootElement.GetProperty("error").GetString()
         );
     }

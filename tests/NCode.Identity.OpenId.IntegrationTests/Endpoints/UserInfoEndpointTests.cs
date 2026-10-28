@@ -345,7 +345,7 @@ public class UserInfoEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidClientMetadata,
+            OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
             JsonElement.Parse(body).GetProperty("error").GetString()
         );
     }

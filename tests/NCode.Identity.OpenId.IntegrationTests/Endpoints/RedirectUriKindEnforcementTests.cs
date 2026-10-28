@@ -139,7 +139,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -207,7 +207,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -252,7 +252,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRequest,
+            OpenIdProtocol.ErrorCodes.InvalidRequest,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -274,7 +274,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRedirectUri,
+            OpenIdProtocol.ErrorCodes.InvalidRedirectUri,
             document.RootElement.GetProperty("error").GetString()
         );
     }
@@ -306,7 +306,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
 
         using var document = JsonDocument.Parse(body);
         Assert.Equal(
-            OpenIdConstants.ErrorCodes.InvalidRedirectUri,
+            OpenIdProtocol.ErrorCodes.InvalidRedirectUri,
             document.RootElement.GetProperty("error").GetString()
         );
     }

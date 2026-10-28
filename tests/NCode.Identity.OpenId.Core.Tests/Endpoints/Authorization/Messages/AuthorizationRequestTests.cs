@@ -264,7 +264,7 @@ public class AuthorizationRequestTests : BaseTests
     {
         var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
         {
-            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+            ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
         };
         var requestObject = new AuthorizationRequestObject(MockOpenIdEnvironment.Object);
         var authorizationRequest = new AuthorizationRequest(false, requestMessage, requestObject);
@@ -331,7 +331,7 @@ public class AuthorizationRequestTests : BaseTests
     {
         var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
         {
-            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
+            ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
         };
         var authorizationRequest = new AuthorizationRequest(false, requestMessage, null);
 
@@ -345,14 +345,14 @@ public class AuthorizationRequestTests : BaseTests
     {
         var requestMessage = new AuthorizationRequestMessage(MockOpenIdEnvironment.Object)
         {
-            ResponseTypes = [OpenIdConstants.ResponseTypes.Code],
-            ResponseMode = OpenIdConstants.ResponseModes.FormPost,
+            ResponseTypes = [OpenIdProtocol.ResponseTypes.Code],
+            ResponseMode = OpenIdProtocol.ResponseModes.FormPost,
         };
         var authorizationRequest = new AuthorizationRequest(false, requestMessage, null);
 
         var responseMode = authorizationRequest.ResponseMode;
 
-        Assert.Equal(OpenIdConstants.ResponseModes.FormPost, responseMode);
+        Assert.Equal(OpenIdProtocol.ResponseModes.FormPost, responseMode);
     }
 
     #endregion

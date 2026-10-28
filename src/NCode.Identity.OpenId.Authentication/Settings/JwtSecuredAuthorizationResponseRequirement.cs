@@ -38,7 +38,7 @@ internal sealed class JwtSecuredAuthorizationResponseRequirement
     {
         var request = context.Request;
         var returnsIdToken = request.ResponseTypes.Contains(
-            OpenIdConstants.ResponseTypes.IdToken,
+            OpenIdProtocol.ResponseTypes.IdToken,
             StringComparer.Ordinal
         );
         var isJwtSecured = context.Delivery.ResponseModeHandler.SecuredResponseMode is not null;

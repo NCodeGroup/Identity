@@ -163,12 +163,12 @@ public class ClientCoherenceTests
 
         var (statusCode, body) = await PostClientAsync(
             administrator,
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
         );
 
         Assert.True(statusCode == HttpStatusCode.BadRequest, body);
         Assert.True(HasError(body, OpenIdSettingNames.GrantTypesSupported), body);
-        Assert.Contains($"'{OpenIdConstants.GrantTypes.Implicit}'", body, StringComparison.Ordinal);
+        Assert.Contains($"'{OpenIdProtocol.GrantTypes.Implicit}'", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public class ClientCoherenceTests
 
         var (statusCode, body) = await PostClientAsync(
             administrator,
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.RefreshToken]
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.RefreshToken]
         );
 
         Assert.True(statusCode == HttpStatusCode.Created, body);

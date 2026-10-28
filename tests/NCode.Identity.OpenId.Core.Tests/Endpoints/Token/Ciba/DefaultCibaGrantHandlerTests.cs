@@ -217,7 +217,7 @@ public class DefaultCibaGrantHandlerTests : BaseTests
     [Fact]
     public void GrantTypes_Always_ContainsCiba()
     {
-        Assert.Contains(OpenIdConstants.GrantTypes.Ciba, Handler.GrantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.Ciba, Handler.GrantTypes);
     }
 
     #endregion

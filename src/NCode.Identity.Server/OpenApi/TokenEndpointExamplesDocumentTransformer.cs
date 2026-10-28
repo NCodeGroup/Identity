@@ -106,9 +106,9 @@ internal sealed class TokenEndpointExamplesDocumentTransformer : IOpenApiDocumen
             Schema = new OpenApiSchema { Type = JsonSchemaType.Object, Properties = properties },
             Examples = new Dictionary<string, IOpenApiExample>(StringComparer.Ordinal)
             {
-                [OpenIdConstants.GrantTypes.ClientCredentials] = ClientCredentialsExample(),
-                [OpenIdConstants.GrantTypes.AuthorizationCode] = AuthorizationCodeExample(),
-                [OpenIdConstants.GrantTypes.RefreshToken] = RefreshTokenExample(),
+                [OpenIdProtocol.GrantTypes.ClientCredentials] = ClientCredentialsExample(),
+                [OpenIdProtocol.GrantTypes.AuthorizationCode] = AuthorizationCodeExample(),
+                [OpenIdProtocol.GrantTypes.RefreshToken] = RefreshTokenExample(),
             },
         };
 
@@ -167,7 +167,7 @@ internal sealed class TokenEndpointExamplesDocumentTransformer : IOpenApiDocumen
             Description = "Exchange a refresh token for a new access token.",
             Value = new JsonObject
             {
-                [OpenIdConstants.Parameters.GrantType] = OpenIdConstants.GrantTypes.RefreshToken,
+                [OpenIdConstants.Parameters.GrantType] = OpenIdProtocol.GrantTypes.RefreshToken,
                 [OpenIdConstants.Parameters.RefreshToken] = "the-refresh-token",
                 [OpenIdConstants.Parameters.ClientId] = "your-client-id",
                 [OpenIdConstants.Parameters.ClientSecret] = "your-client-secret",

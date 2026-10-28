@@ -90,7 +90,7 @@ public class TokenEndpointClientJwksUriTests
         new(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
                 ["client_assertion_type"] = OpenIdConstants.ClientAssertionTypes.JwtBearer,
                 ["client_assertion"] = assertion,
@@ -115,7 +115,7 @@ public class TokenEndpointClientJwksUriTests
         await factory.SeedConfidentialClientWithJwksUriAsync(
             ClientId,
             JwksUri,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
@@ -153,7 +153,7 @@ public class TokenEndpointClientJwksUriTests
         await factory.SeedConfidentialClientWithJwksUriAsync(
             ClientId,
             JwksUri,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,

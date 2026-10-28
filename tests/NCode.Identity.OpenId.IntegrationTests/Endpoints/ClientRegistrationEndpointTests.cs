@@ -47,7 +47,7 @@ public class ClientRegistrationEndpointTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["token_endpoint_auth_method"] = OpenIdConstants
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
@@ -89,7 +89,7 @@ public class ClientRegistrationEndpointTests
         using var tokenContent = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = clientId,
                 ["client_secret"] = clientSecret,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
@@ -115,7 +115,7 @@ public class ClientRegistrationEndpointTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["token_endpoint_auth_method"] = OpenIdConstants
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
@@ -145,7 +145,7 @@ public class ClientRegistrationEndpointTests
             Content = JsonContent.Create(
                 new Dictionary<string, object>
                 {
-                    ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                    ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                     ["token_endpoint_auth_method"] = OpenIdConstants
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
@@ -200,7 +200,7 @@ public class ClientRegistrationEndpointTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["jwks_uri"] = "http://client.example/jwks",
             }
         );
@@ -224,7 +224,7 @@ public class ClientRegistrationEndpointTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["redirect_uris"] = new[] { "/callback" },
             }
         );
@@ -244,8 +244,8 @@ public class ClientRegistrationEndpointTests
     {
         using var factory = new ConfiguredHostApplicationFactory(
             CreateServerConfiguration(
-                [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.CodeIdToken],
-                [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+                [OpenIdProtocol.ResponseTypes.Code, OpenIdProtocol.ResponseTypes.CodeIdToken],
+                [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
             )
         );
         var client = factory.CreateClient(
@@ -271,18 +271,18 @@ public class ClientRegistrationEndpointTests
 
         // The response type is registered, and reported, in canonical form together with the grant types it uses.
         Assert.Equal(
-            [OpenIdConstants.ResponseTypes.CodeIdToken],
+            [OpenIdProtocol.ResponseTypes.CodeIdToken],
             GetStringArray(root, "response_types")
         );
         Assert.Equal(
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit],
             GetStringArray(root, "grant_types")
         );
 
         // The authorization endpoint accepts the registered response type: with no end-user session it issues the
         // interactive challenge rather than an error redirected to the client.
         using var hybridResponse = await client.GetAsync(
-            CreateAuthorizeUri(clientId, OpenIdConstants.ResponseTypes.CodeIdToken)
+            CreateAuthorizeUri(clientId, OpenIdProtocol.ResponseTypes.CodeIdToken)
         );
         Assert.Equal(HttpStatusCode.Redirect, hybridResponse.StatusCode);
         var hybridLocation = hybridResponse.Headers.Location;
@@ -294,7 +294,7 @@ public class ClientRegistrationEndpointTests
 
         // The server supports 'code', but the client did not register it.
         using var codeResponse = await client.GetAsync(
-            CreateAuthorizeUri(clientId, OpenIdConstants.ResponseTypes.Code)
+            CreateAuthorizeUri(clientId, OpenIdProtocol.ResponseTypes.Code)
         );
         Assert.Equal(HttpStatusCode.SeeOther, codeResponse.StatusCode);
         var codeLocation = codeResponse.Headers.Location;
@@ -308,8 +308,8 @@ public class ClientRegistrationEndpointTests
     {
         using var factory = new ConfiguredHostApplicationFactory(
             CreateServerConfiguration(
-                [OpenIdConstants.ResponseTypes.Code],
-                [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+                [OpenIdProtocol.ResponseTypes.Code],
+                [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
             )
         );
         var client = factory.CreateClient(
@@ -321,7 +321,7 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, object>
             {
                 ["redirect_uris"] = new[] { RedirectUri },
-                ["response_types"] = new[] { OpenIdConstants.ResponseTypes.CodeIdToken },
+                ["response_types"] = new[] { OpenIdProtocol.ResponseTypes.CodeIdToken },
             }
         );
 
@@ -380,15 +380,15 @@ public class ClientRegistrationEndpointTests
             new Dictionary<string, object>
             {
                 ["redirect_uris"] = new[] { RedirectUri },
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.AuthorizationCode },
-                ["response_types"] = new[] { OpenIdConstants.ResponseTypes.CodeIdToken },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.AuthorizationCode },
+                ["response_types"] = new[] { OpenIdProtocol.ResponseTypes.CodeIdToken },
             }
         );
 
         await AssertRegistrationErrorAsync(
             response,
             OpenIdProtocol.ErrorCodes.InvalidClientMetadata,
-            OpenIdConstants.GrantTypes.Implicit
+            OpenIdProtocol.GrantTypes.Implicit
         );
     }
 
@@ -475,7 +475,7 @@ public class ClientRegistrationEndpointTests
     ) =>
         new()
         {
-            ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+            ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
             ["token_endpoint_auth_method"] = OpenIdConstants
                 .ClientAuthenticationMethods
                 .ClientSecretPost,
@@ -620,7 +620,7 @@ public class ClientRegistrationEndpointTests
                 new Dictionary<string, object>
                 {
                     ["client_id"] = root.GetProperty("client_id").GetString() ?? string.Empty,
-                    ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                    ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                     ["token_endpoint_auth_method"] = OpenIdConstants
                         .ClientAuthenticationMethods
                         .ClientSecretPost,
@@ -756,7 +756,7 @@ public class ClientRegistrationEndpointTests
             new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["client_assertion_type"] = OpenIdConstants.ClientAssertionTypes.JwtBearer,
                     ["client_assertion"] = BuildPrivateKeyJwt(clientId, rsa, issuer),
                 }
@@ -784,7 +784,7 @@ public class ClientRegistrationEndpointTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["token_endpoint_auth_method"] = OpenIdConstants
                     .ClientAuthenticationMethods
                     .PrivateKeyJwt,
@@ -810,7 +810,7 @@ public class ClientRegistrationEndpointTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["token_endpoint_auth_method"] = OpenIdConstants
                     .ClientAuthenticationMethods
                     .TlsClientAuth,
@@ -856,7 +856,7 @@ public class ClientRegistrationEndpointTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["token_endpoint_auth_method"] = OpenIdConstants
                     .ClientAuthenticationMethods
                     .TlsClientAuth,
@@ -886,7 +886,7 @@ public class ClientRegistrationEndpointTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["token_endpoint_auth_method"] = OpenIdConstants
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
@@ -960,7 +960,7 @@ public class ClientRegistrationEndpointTests
         );
         var metadata = new Dictionary<string, object>
         {
-            ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+            ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
             ["backchannel_token_delivery_mode"] = deliveryMode,
         };
         if (notificationEndpoint is not null)
@@ -995,7 +995,7 @@ public class ClientRegistrationEndpointTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["token_endpoint_auth_method"] = OpenIdConstants
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
@@ -1028,7 +1028,7 @@ public class ClientRegistrationEndpointTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["token_endpoint_auth_method"] = OpenIdConstants
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
@@ -1076,7 +1076,7 @@ public class ClientRegistrationEndpointTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                 ["token_endpoint_auth_method"] = OpenIdConstants
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
@@ -1109,7 +1109,7 @@ public class ClientRegistrationEndpointTests
         using var tokenContent = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = root.GetProperty("client_id").GetString()!,
                 ["client_secret"] = root.GetProperty("client_secret").GetString()!,
             }

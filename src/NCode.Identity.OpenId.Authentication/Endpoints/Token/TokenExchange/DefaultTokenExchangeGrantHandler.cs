@@ -64,7 +64,7 @@ internal class DefaultTokenExchangeGrantHandler(
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
-        new HashSet<string>(StringComparer.Ordinal) { OpenIdConstants.GrantTypes.TokenExchange };
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdProtocol.GrantTypes.TokenExchange };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -201,7 +201,7 @@ internal class DefaultTokenExchangeGrantHandler(
 
         var subjectAuthentication = SubjectAuthentication.Create(
             openIdContext,
-            OpenIdConstants.GrantTypes.TokenExchange,
+            OpenIdProtocol.GrantTypes.TokenExchange,
             authenticationProperties,
             subjectResult.Principal,
             principalId
@@ -498,7 +498,7 @@ internal class DefaultTokenExchangeGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = createdWhen,
-            GrantType = OpenIdConstants.GrantTypes.TokenExchange,
+            GrantType = OpenIdProtocol.GrantTypes.TokenExchange,
             OriginalScopes = effectiveScopes,
             EffectiveScopes = effectiveScopes,
             Resources = resources,

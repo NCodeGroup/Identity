@@ -190,7 +190,7 @@ public class Fapi1AdvancedSecurityProfileTests : BaseTests
             )
         );
         Assert.Equal<string>(
-            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.CodeIdToken],
+            [OpenIdProtocol.ResponseTypes.Code, OpenIdProtocol.ResponseTypes.CodeIdToken],
             Assert.IsAssignableFrom<IReadOnlyCollection<string>>(
                 recorder.Values[OpenIdSettingKeys.ResponseTypesSupported.SettingName]
             )

@@ -32,7 +32,7 @@ public class ResponseTypeValuesTests
 
         var result = ResponseTypeValues.Canonicalize(names);
 
-        Assert.Equal(OpenIdConstants.ResponseTypes.CodeIdTokenToken, result);
+        Assert.Equal(OpenIdProtocol.ResponseTypes.CodeIdTokenToken, result);
     }
 
     [Theory]
@@ -130,16 +130,12 @@ public class ResponseTypeValuesTests
     [Fact]
     public void GetGrantTypes_WhenGivenNames_ReturnsTheGrantTypesTheyUse()
     {
-        string[] names =
-        [
-            OpenIdConstants.ResponseTypes.IdToken,
-            OpenIdConstants.ResponseTypes.Code,
-        ];
+        string[] names = [OpenIdProtocol.ResponseTypes.IdToken, OpenIdProtocol.ResponseTypes.Code];
 
         var result = ResponseTypeValues.GetGrantTypes(names);
 
         Assert.Equal(
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit],
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit],
             result
         );
     }

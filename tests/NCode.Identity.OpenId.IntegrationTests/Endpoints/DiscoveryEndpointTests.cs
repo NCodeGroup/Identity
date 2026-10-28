@@ -191,8 +191,8 @@ public class DiscoveryEndpointTests(HostApplicationFactory factory)
         Assert.Equal(["code"], responseTypes);
 
         var grantTypes = GetStringArray(root, "grant_types_supported");
-        Assert.DoesNotContain(OpenIdConstants.GrantTypes.Implicit, grantTypes);
-        Assert.Contains(OpenIdConstants.GrantTypes.AuthorizationCode, grantTypes);
+        Assert.DoesNotContain(OpenIdProtocol.GrantTypes.Implicit, grantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.AuthorizationCode, grantTypes);
 
         // PKCE advertises only S256 (never 'plain').
         var codeChallengeMethods = GetStringArray(root, "code_challenge_methods_supported");

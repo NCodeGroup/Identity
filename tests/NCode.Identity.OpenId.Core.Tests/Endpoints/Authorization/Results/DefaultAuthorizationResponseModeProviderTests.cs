@@ -50,23 +50,23 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
     private static IAuthorizationResponseModeHandler[] CreateHandlers() =>
         [
             new StubResponseModeHandler(
-                OpenIdConstants.ResponseModes.Query,
+                OpenIdProtocol.ResponseModes.Query,
                 securedResponseMode: null,
                 deliversInQuery: true
             ),
             new StubResponseModeHandler(
-                OpenIdConstants.ResponseModes.Fragment,
+                OpenIdProtocol.ResponseModes.Fragment,
                 securedResponseMode: null,
                 deliversInQuery: false
             ),
             new StubResponseModeHandler(
-                OpenIdConstants.ResponseModes.QueryJwt,
-                securedResponseMode: OpenIdConstants.ResponseModes.Query,
+                OpenIdProtocol.ResponseModes.QueryJwt,
+                securedResponseMode: OpenIdProtocol.ResponseModes.Query,
                 deliversInQuery: true
             ),
             new StubResponseModeHandler(
-                OpenIdConstants.ResponseModes.FragmentJwt,
-                securedResponseMode: OpenIdConstants.ResponseModes.Fragment,
+                OpenIdProtocol.ResponseModes.FragmentJwt,
+                securedResponseMode: OpenIdProtocol.ResponseModes.Fragment,
                 deliversInQuery: false
             ),
         ];
@@ -86,12 +86,12 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
         IAuthorizationResponseModeHandler[] handlers =
         [
             new StubResponseModeHandler(
-                OpenIdConstants.ResponseModes.Query,
+                OpenIdProtocol.ResponseModes.Query,
                 securedResponseMode: null,
                 deliversInQuery: true
             ),
             new StubResponseModeHandler(
-                OpenIdConstants.ResponseModes.Query,
+                OpenIdProtocol.ResponseModes.Query,
                 securedResponseMode: null,
                 deliversInQuery: true
             ),
@@ -114,18 +114,18 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
         IAuthorizationResponseModeHandler[] handlers =
         [
             new StubResponseModeHandler(
-                OpenIdConstants.ResponseModes.Query,
+                OpenIdProtocol.ResponseModes.Query,
                 securedResponseMode: null,
                 deliversInQuery: true
             ),
             new StubResponseModeHandler(
-                OpenIdConstants.ResponseModes.QueryJwt,
-                securedResponseMode: OpenIdConstants.ResponseModes.Query,
+                OpenIdProtocol.ResponseModes.QueryJwt,
+                securedResponseMode: OpenIdProtocol.ResponseModes.Query,
                 deliversInQuery: true
             ),
             new StubResponseModeHandler(
                 "query.other",
-                securedResponseMode: OpenIdConstants.ResponseModes.Query,
+                securedResponseMode: OpenIdProtocol.ResponseModes.Query,
                 deliversInQuery: true
             ),
         ];
@@ -147,8 +147,8 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
         IAuthorizationResponseModeHandler[] handlers =
         [
             new StubResponseModeHandler(
-                OpenIdConstants.ResponseModes.QueryJwt,
-                securedResponseMode: OpenIdConstants.ResponseModes.Query,
+                OpenIdProtocol.ResponseModes.QueryJwt,
+                securedResponseMode: OpenIdProtocol.ResponseModes.Query,
                 deliversInQuery: true
             ),
         ];
@@ -159,7 +159,7 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
 
         Assert.Contains("but no handler delivers it.", exception.Message, StringComparison.Ordinal);
         Assert.Contains(
-            $"secures the '{OpenIdConstants.ResponseModes.Query}' response mode",
+            $"secures the '{OpenIdProtocol.ResponseModes.Query}' response mode",
             exception.Message,
             StringComparison.Ordinal
         );
@@ -171,7 +171,7 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
         IAuthorizationResponseModeHandler[] handlers =
         [
             new StubResponseModeHandler(
-                OpenIdConstants.ResponseModes.Jwt,
+                OpenIdProtocol.ResponseModes.Jwt,
                 securedResponseMode: null,
                 deliversInQuery: false
             ),
@@ -189,8 +189,8 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
     #region TryResolve Tests
 
     [Theory]
-    [InlineData(new[] { "code" }, OpenIdConstants.ResponseModes.Query)]
-    [InlineData(new[] { "code", "id_token" }, OpenIdConstants.ResponseModes.Fragment)]
+    [InlineData(new[] { "code" }, OpenIdProtocol.ResponseModes.Query)]
+    [InlineData(new[] { "code", "id_token" }, OpenIdProtocol.ResponseModes.Fragment)]
     public void TryResolve_WhenNoModeIsRequested_ReturnsTheResponseTypesDefault(
         string[] responseTypes,
         string expectedResponseMode
@@ -210,8 +210,8 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
     }
 
     [Theory]
-    [InlineData(new[] { "code" }, OpenIdConstants.ResponseModes.QueryJwt)]
-    [InlineData(new[] { "id_token" }, OpenIdConstants.ResponseModes.FragmentJwt)]
+    [InlineData(new[] { "code" }, OpenIdProtocol.ResponseModes.QueryJwt)]
+    [InlineData(new[] { "id_token" }, OpenIdProtocol.ResponseModes.FragmentJwt)]
     public void TryResolve_WhenTheJwtShorthandIsRequested_ReturnsTheHandlerThatSecuresTheDefault(
         string[] responseTypes,
         string expectedResponseMode
@@ -221,7 +221,7 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
         var provider = new DefaultAuthorizationResponseModeProvider(handlers);
 
         var result = provider.TryResolve(
-            OpenIdConstants.ResponseModes.Jwt,
+            OpenIdProtocol.ResponseModes.Jwt,
             responseTypes,
             out var handler
         );
@@ -231,10 +231,10 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
     }
 
     [Theory]
-    [InlineData(OpenIdConstants.ResponseModes.Query)]
-    [InlineData(OpenIdConstants.ResponseModes.Fragment)]
-    [InlineData(OpenIdConstants.ResponseModes.QueryJwt)]
-    [InlineData(OpenIdConstants.ResponseModes.FragmentJwt)]
+    [InlineData(OpenIdProtocol.ResponseModes.Query)]
+    [InlineData(OpenIdProtocol.ResponseModes.Fragment)]
+    [InlineData(OpenIdProtocol.ResponseModes.QueryJwt)]
+    [InlineData(OpenIdProtocol.ResponseModes.FragmentJwt)]
     public void TryResolve_WhenARegisteredModeIsRequested_ReturnsItsHandler(
         string requestedResponseMode
     )
@@ -254,7 +254,7 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
         var provider = new DefaultAuthorizationResponseModeProvider(CreateHandlers());
 
         var result = provider.TryResolve(
-            OpenIdConstants.ResponseModes.FormPost,
+            OpenIdProtocol.ResponseModes.FormPost,
             ["code"],
             out var handler
         );
@@ -269,12 +269,12 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
         IAuthorizationResponseModeHandler[] handlers =
         [
             new StubResponseModeHandler(
-                OpenIdConstants.ResponseModes.Query,
+                OpenIdProtocol.ResponseModes.Query,
                 securedResponseMode: null,
                 deliversInQuery: true
             ),
             new StubResponseModeHandler(
-                OpenIdConstants.ResponseModes.Fragment,
+                OpenIdProtocol.ResponseModes.Fragment,
                 securedResponseMode: null,
                 deliversInQuery: false
             ),
@@ -282,7 +282,7 @@ public class DefaultAuthorizationResponseModeProviderTests : BaseTests
         var provider = new DefaultAuthorizationResponseModeProvider(handlers);
 
         var result = provider.TryResolve(
-            OpenIdConstants.ResponseModes.Jwt,
+            OpenIdProtocol.ResponseModes.Jwt,
             ["code"],
             out var handler
         );

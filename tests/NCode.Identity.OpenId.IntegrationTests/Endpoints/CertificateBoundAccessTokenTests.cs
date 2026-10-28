@@ -55,7 +55,7 @@ public class CertificateBoundAccessTokenTests
         await factory.SeedConfidentialClientAsync(
             clientId,
             ClientSecret,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -68,7 +68,7 @@ public class CertificateBoundAccessTokenTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
                 ["client_id"] = clientId,
                 ["client_secret"] = ClientSecret,

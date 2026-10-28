@@ -225,14 +225,12 @@ internal class DefaultValidateAuthorizationRequestHandler(
                 .AsException();
 
         if (
-            request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.IdToken)
+            request.ResponseTypes.Contains(OpenIdProtocol.ResponseTypes.IdToken)
             && string.IsNullOrEmpty(request.Nonce)
         )
             throw errorFactory.MissingParameter(OpenIdConstants.Parameters.Nonce).AsException();
 
-        if (
-            request.ResponseTypes.Contains(OpenIdConstants.ResponseTypes.IdToken) && !hasOpenIdScope
-        )
+        if (request.ResponseTypes.Contains(OpenIdProtocol.ResponseTypes.IdToken) && !hasOpenIdScope)
             throw errorFactory
                 .InvalidRequest("The 'openid' scope is required when requesting id tokens.")
                 .AsException();

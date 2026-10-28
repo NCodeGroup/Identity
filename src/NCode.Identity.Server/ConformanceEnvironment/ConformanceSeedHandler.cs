@@ -69,8 +69,8 @@ internal sealed class ConformanceSeedHandler(
     // The Basic OP set a client uses when its seed configures no grant types.
     private static readonly string[] DefaultGrantTypes =
     [
-        OpenIdConstants.GrantTypes.AuthorizationCode,
-        OpenIdConstants.GrantTypes.RefreshToken,
+        OpenIdProtocol.GrantTypes.AuthorizationCode,
+        OpenIdProtocol.GrantTypes.RefreshToken,
     ];
     private ConformanceSeedOptions Options { get; } = options;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;

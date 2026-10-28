@@ -49,7 +49,7 @@ internal class DefaultCibaGrantHandler(
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
-        new HashSet<string>(StringComparer.Ordinal) { OpenIdConstants.GrantTypes.Ciba };
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdProtocol.GrantTypes.Ciba };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(

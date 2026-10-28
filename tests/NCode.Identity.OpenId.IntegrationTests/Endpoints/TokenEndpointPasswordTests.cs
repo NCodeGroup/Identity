@@ -45,7 +45,7 @@ public class TokenEndpointPasswordTests
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdConstants.GrantTypes.Password
+            OpenIdProtocol.GrantTypes.Password
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
@@ -64,7 +64,7 @@ public class TokenEndpointPasswordTests
             using var content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.Password,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.Password,
                     ["client_id"] = ClientId,
                     ["client_secret"] = ClientSecret,
                     ["username"] = UserName,
@@ -111,7 +111,7 @@ public class TokenEndpointPasswordTests
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdConstants.GrantTypes.Password
+            OpenIdProtocol.GrantTypes.Password
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             ClientId,
@@ -128,7 +128,7 @@ public class TokenEndpointPasswordTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.Password,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.Password,
                 ["client_id"] = ClientId,
                 ["client_secret"] = ClientSecret,
                 ["username"] = UserName,
@@ -162,7 +162,7 @@ public class TokenEndpointPasswordTests
             "/oauth2/register",
             new Dictionary<string, object>
             {
-                ["grant_types"] = new[] { OpenIdConstants.GrantTypes.Password },
+                ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.Password },
                 ["token_endpoint_auth_method"] = OpenIdConstants
                     .ClientAuthenticationMethods
                     .ClientSecretPost,
@@ -192,7 +192,7 @@ public class TokenEndpointPasswordTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.Password,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.Password,
                 ["client_id"] = clientId,
                 ["client_secret"] = clientSecret,
                 ["username"] = UserName,

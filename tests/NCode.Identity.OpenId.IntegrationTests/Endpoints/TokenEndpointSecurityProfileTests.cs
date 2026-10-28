@@ -57,7 +57,7 @@ public class TokenEndpointSecurityProfileTests
         new(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
                 ["client_id"] = clientId,
                 ["client_secret"] = ClientSecret,
@@ -74,7 +74,7 @@ public class TokenEndpointSecurityProfileTests
             clientId,
             ClientSecret,
             securityProfiles,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -265,7 +265,7 @@ public class TokenEndpointSecurityProfileTests
             ReadStrings(metadata, "code_challenge_methods_supported")
         );
         Assert.Equal(
-            [OpenIdConstants.ResponseTypes.Code],
+            [OpenIdProtocol.ResponseTypes.Code],
             ReadStrings(metadata, "response_types_supported")
         );
         string[] fapi1SigningAlgorithms = ["PS256", "ES256"];

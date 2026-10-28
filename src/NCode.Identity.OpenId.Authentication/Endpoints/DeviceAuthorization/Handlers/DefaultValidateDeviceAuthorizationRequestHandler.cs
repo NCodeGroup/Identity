@@ -48,7 +48,7 @@ internal class DefaultValidateDeviceAuthorizationRequestHandler
         // The device authorization grant must be allowed by the client (RFC 8628).
         if (
             settings.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out var grantTypesSupported)
-            && !grantTypesSupported.Contains(OpenIdConstants.GrantTypes.DeviceCode)
+            && !grantTypesSupported.Contains(OpenIdProtocol.GrantTypes.DeviceCode)
         )
         {
             throw errorFactory

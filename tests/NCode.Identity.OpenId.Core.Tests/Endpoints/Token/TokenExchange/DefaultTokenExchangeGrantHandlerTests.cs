@@ -142,7 +142,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     [Fact]
     public void GrantTypes_Always_ContainsTokenExchange()
     {
-        Assert.Contains(OpenIdConstants.GrantTypes.TokenExchange, Handler.GrantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.TokenExchange, Handler.GrantTypes);
     }
 
     #endregion

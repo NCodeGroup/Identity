@@ -81,9 +81,9 @@ internal class DefaultClientRegistrationEndpointHandler(
 
     private static readonly string[] DefaultGrantTypes =
     [
-        OpenIdConstants.GrantTypes.AuthorizationCode,
+        OpenIdProtocol.GrantTypes.AuthorizationCode,
     ];
-    private static readonly string[] DefaultResponseTypes = [OpenIdConstants.ResponseTypes.Code];
+    private static readonly string[] DefaultResponseTypes = [OpenIdProtocol.ResponseTypes.Code];
 
     private static readonly string[] SupportedSubjectTypes =
     [
@@ -953,8 +953,8 @@ internal class DefaultClientRegistrationEndpointHandler(
     // RFC 7591 §2: omitted response_types default to code. A client whose grant types do not use the authorization
     // endpoint (neither authorization_code nor implicit) registers no response type.
     private static string[] GetDefaultResponseTypes(IReadOnlyList<string> grantTypes) =>
-        grantTypes.Contains(OpenIdConstants.GrantTypes.AuthorizationCode)
-        || grantTypes.Contains(OpenIdConstants.GrantTypes.Implicit)
+        grantTypes.Contains(OpenIdProtocol.GrantTypes.AuthorizationCode)
+        || grantTypes.Contains(OpenIdProtocol.GrantTypes.Implicit)
             ? DefaultResponseTypes
             : [];
 

@@ -97,7 +97,7 @@ public class TokenIntrospectionEndpointTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["scope"] = ManagementScope,
                 }
             ),
@@ -133,7 +133,7 @@ public class TokenIntrospectionEndpointTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["client_id"] = IssuingClientId,
                     ["client_secret"] = ClientSecret,
                     ["scope"] = scope,
@@ -405,7 +405,7 @@ public class TokenIntrospectionEndpointTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = clientId,
                 ["client_secret"] = clientSecret,
             }
@@ -749,7 +749,7 @@ public class TokenIntrospectionEndpointTests
     {
         var metadata = new Dictionary<string, object>
         {
-            ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+            ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
             ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
             // The binding comes from the initial access token alone; a request member is ignored.
             ["resource_server_id"] = BillingResourceServerId,
@@ -1042,7 +1042,7 @@ public class TokenIntrospectionEndpointTests
                 new Dictionary<string, object>
                 {
                     ["client_id"] = clientId ?? string.Empty,
-                    ["grant_types"] = new[] { OpenIdConstants.GrantTypes.ClientCredentials },
+                    ["grant_types"] = new[] { OpenIdProtocol.GrantTypes.ClientCredentials },
                     ["token_endpoint_auth_method"] = OpenIdConstants
                         .ClientAuthenticationMethods
                         .None,

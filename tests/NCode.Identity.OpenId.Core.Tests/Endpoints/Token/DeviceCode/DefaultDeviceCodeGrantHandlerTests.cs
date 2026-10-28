@@ -237,7 +237,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
     [Fact]
     public void GrantTypes_Always_ContainsDeviceCode()
     {
-        Assert.Contains(OpenIdConstants.GrantTypes.DeviceCode, Handler.GrantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.DeviceCode, Handler.GrantTypes);
     }
 
     #endregion
@@ -517,7 +517,7 @@ public class DefaultDeviceCodeGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.DeviceCode)
+            .Returns(OpenIdProtocol.GrantTypes.DeviceCode)
             .Verifiable();
 
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(UtcNow).Verifiable();

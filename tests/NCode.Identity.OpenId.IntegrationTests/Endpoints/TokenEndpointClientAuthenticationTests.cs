@@ -56,7 +56,7 @@ public class TokenEndpointClientAuthenticationTests
         new(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
             }
         );
@@ -65,7 +65,7 @@ public class TokenEndpointClientAuthenticationTests
         new(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = ClientId,
                 ["client_secret"] = clientSecret,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
@@ -122,7 +122,7 @@ public class TokenEndpointClientAuthenticationTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.RefreshToken,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.RefreshToken,
                 ["client_id"] = ClientId,
                 ["refresh_token"] = "any-refresh-token",
             }
@@ -378,7 +378,7 @@ public class TokenEndpointClientAuthenticationTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = ClientId,
                 ["client_secret"] = "wrong-secret",
                 ["scope"] = TestServerSettingsProvider.ApiScope,

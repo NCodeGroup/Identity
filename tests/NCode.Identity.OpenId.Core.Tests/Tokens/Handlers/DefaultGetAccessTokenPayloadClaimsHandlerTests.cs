@@ -89,7 +89,7 @@ public class DefaultGetAccessTokenPayloadClaimsHandlerTests : BaseTests
         var tokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = CreatedWhen,
-            GrantType = OpenIdConstants.GrantTypes.AuthorizationCode,
+            GrantType = OpenIdProtocol.GrantTypes.AuthorizationCode,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             SubjectAuthentication = subjectAuthentication,

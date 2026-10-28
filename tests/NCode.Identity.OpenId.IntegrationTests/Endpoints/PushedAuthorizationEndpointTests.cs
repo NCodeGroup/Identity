@@ -117,7 +117,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
             {
                 [OpenIdSettingNames.ResponseModesSupported] = new[]
                 {
-                    OpenIdConstants.ResponseModes.Query,
+                    OpenIdProtocol.ResponseModes.Query,
                 },
             },
             RedirectUri
@@ -132,7 +132,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
             [
                 new KeyValuePair<string, string>(
                     "response_mode",
-                    OpenIdConstants.ResponseModes.Fragment
+                    OpenIdProtocol.ResponseModes.Fragment
                 ),
             ]
         );
@@ -169,7 +169,7 @@ public class PushedAuthorizationEndpointTests(HostApplicationFactory factory)
             [
                 new KeyValuePair<string, string>(
                     "response_mode",
-                    OpenIdConstants.ResponseModes.QueryJwt
+                    OpenIdProtocol.ResponseModes.QueryJwt
                 ),
             ]
         );

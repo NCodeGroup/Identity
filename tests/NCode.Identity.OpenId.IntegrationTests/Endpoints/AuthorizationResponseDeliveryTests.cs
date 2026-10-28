@@ -45,7 +45,7 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
         string clientId,
         string redirectUri,
         string extraParameters,
-        string responseType = OpenIdConstants.ResponseTypes.Code
+        string responseType = OpenIdProtocol.ResponseTypes.Code
     )
     {
         var client = Factory.CreateClient(
@@ -89,8 +89,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
             {
                 [OpenIdSettingNames.ResponseModesSupported] = new[]
                 {
-                    OpenIdConstants.ResponseModes.Query,
-                    OpenIdConstants.ResponseModes.QueryJwt,
+                    OpenIdProtocol.ResponseModes.Query,
+                    OpenIdProtocol.ResponseModes.QueryJwt,
                 },
             },
             RedirectUri
@@ -116,7 +116,7 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
             {
                 [OpenIdSettingNames.ResponseModesSupported] = new[]
                 {
-                    OpenIdConstants.ResponseModes.FormPost,
+                    OpenIdProtocol.ResponseModes.FormPost,
                 },
             },
             RedirectUri
@@ -138,8 +138,8 @@ public class AuthorizationResponseDeliveryTests(HostApplicationFactory factory)
             {
                 [OpenIdSettingNames.ResponseModesSupported] = new[]
                 {
-                    OpenIdConstants.ResponseModes.Jwt,
-                    OpenIdConstants.ResponseModes.QueryJwt,
+                    OpenIdProtocol.ResponseModes.Jwt,
+                    OpenIdProtocol.ResponseModes.QueryJwt,
                 },
             },
             RedirectUri

@@ -95,7 +95,7 @@ internal class DefaultCreatePasswordGrantSubjectHandler(
 
         var identity = new ClaimsIdentity(
             claims,
-            authenticationType: OpenIdConstants.GrantTypes.Password
+            authenticationType: OpenIdProtocol.GrantTypes.Password
         );
 
         return new ClaimsPrincipal(identity);

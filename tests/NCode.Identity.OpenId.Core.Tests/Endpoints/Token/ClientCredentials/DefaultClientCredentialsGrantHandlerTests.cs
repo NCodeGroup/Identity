@@ -56,7 +56,7 @@ public class DefaultClientCredentialsGrantHandlerTests : BaseTests
     [Fact]
     public void GrantTypes_Always_ContainsClientCredentials()
     {
-        Assert.Contains(OpenIdConstants.GrantTypes.ClientCredentials, Handler.GrantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.ClientCredentials, Handler.GrantTypes);
     }
 
     #endregion
@@ -134,7 +134,7 @@ public class DefaultClientCredentialsGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.ClientCredentials)
+            .Returns(OpenIdProtocol.GrantTypes.ClientCredentials)
             .Verifiable();
 
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(createdWhen).Verifiable();

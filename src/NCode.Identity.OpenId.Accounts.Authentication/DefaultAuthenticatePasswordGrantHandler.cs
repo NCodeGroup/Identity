@@ -141,7 +141,7 @@ internal class DefaultAuthenticatePasswordGrantHandler(
 
         var ticket = SubjectAuthentication.Create(
             openIdContext,
-            OpenIdConstants.GrantTypes.Password,
+            OpenIdProtocol.GrantTypes.Password,
             authenticationProperties,
             subject,
             principalId

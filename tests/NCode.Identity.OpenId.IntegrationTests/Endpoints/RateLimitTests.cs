@@ -59,7 +59,7 @@ public class RateLimitTests
         new(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = ClientId,
                 ["client_secret"] = ClientSecret,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
@@ -70,7 +70,7 @@ public class RateLimitTests
         new(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
             }
         );
 
@@ -207,7 +207,7 @@ public class RateLimitTests
             using var content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["client_id"] = ClientId,
                 }
             );

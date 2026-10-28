@@ -49,7 +49,7 @@ public class TokenEndpointClientCredentialsTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = ClientId,
                 ["client_secret"] = ClientSecret,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
@@ -94,7 +94,7 @@ public class TokenEndpointClientCredentialsTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = ClientId,
                 ["client_secret"] = "wrong-secret",
                 ["scope"] = TestServerSettingsProvider.ApiScope,
@@ -143,7 +143,7 @@ public class TokenEndpointClientCredentialsTests
         new(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = ClientId,
                 ["client_secret"] = clientSecret,
                 ["scope"] = TestServerSettingsProvider.ApiScope,

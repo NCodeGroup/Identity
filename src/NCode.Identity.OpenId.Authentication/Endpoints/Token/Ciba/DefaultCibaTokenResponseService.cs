@@ -57,7 +57,7 @@ internal sealed class DefaultCibaTokenResponseService(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = OpenIdConstants.GrantTypes.Ciba,
+            GrantType = OpenIdProtocol.GrantTypes.Ciba,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             Resources = payload.Resources,

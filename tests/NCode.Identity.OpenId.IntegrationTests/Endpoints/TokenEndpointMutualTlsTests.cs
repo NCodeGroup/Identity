@@ -166,7 +166,7 @@ public class TokenEndpointMutualTlsTests
             clientId,
             subjectDn,
             trustAnchors,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -195,7 +195,7 @@ public class TokenEndpointMutualTlsTests
                     .ClientCertificateRevocationMode
                     .Online,
             },
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -230,7 +230,7 @@ public class TokenEndpointMutualTlsTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["scope"] = TestServerSettingsProvider.ApiScope,
                     ["client_id"] = clientId,
                 }
@@ -258,7 +258,7 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             certificate,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -290,7 +290,7 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             certificate,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -320,7 +320,7 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             certificate,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
 
         var client = CreateClient(factory);
@@ -348,7 +348,7 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientAsync(
             clientId,
             registeredCertificate,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -408,7 +408,7 @@ public class TokenEndpointMutualTlsTests
         await factory.SeedSelfSignedTlsClientWithJwksUriAsync(
             clientId,
             JwksUri,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,

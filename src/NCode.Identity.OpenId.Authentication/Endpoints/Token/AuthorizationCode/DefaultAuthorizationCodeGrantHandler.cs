@@ -50,10 +50,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
-        new HashSet<string>(StringComparer.Ordinal)
-        {
-            OpenIdConstants.GrantTypes.AuthorizationCode,
-        };
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdProtocol.GrantTypes.AuthorizationCode };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -203,7 +200,7 @@ internal class DefaultAuthorizationCodeGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.AuthorizationCode,
+            GrantType = tokenRequest.GrantType ?? OpenIdProtocol.GrantTypes.AuthorizationCode,
             Nonce = authorizationRequest.Nonce,
             State = authorizationRequest.State,
             OriginalScopes = originalScopes,

@@ -45,7 +45,7 @@ public class TokenEndpointResourceServerPolicyTests
         new(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["scope"] = TestServerSettingsProvider.ApiScope,
                 ["client_id"] = clientId,
                 ["client_secret"] = ClientSecret,
@@ -99,7 +99,7 @@ public class TokenEndpointResourceServerPolicyTests
             {
                 [OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens] = true,
             },
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
@@ -121,7 +121,7 @@ public class TokenEndpointResourceServerPolicyTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["scope"] = TestServerSettingsProvider.ApiScope,
                     ["client_id"] = clientId,
                 }
@@ -259,7 +259,7 @@ public class TokenEndpointResourceServerPolicyTests
                     OpenIdConstants.SecurityProfiles.Fapi2,
                 },
             },
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,

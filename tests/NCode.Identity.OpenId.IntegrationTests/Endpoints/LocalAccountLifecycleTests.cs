@@ -83,7 +83,7 @@ public class LocalAccountLifecycleTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["scope"] = ManagementScope,
                 }
             ),
@@ -438,7 +438,7 @@ public class LocalAccountLifecycleTests
             client,
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.DeviceCode,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.DeviceCode,
                 ["device_code"] = deviceCode,
                 ["client_id"] = clientId,
             }
@@ -469,7 +469,7 @@ public class LocalAccountLifecycleTests
             client,
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.DeviceCode,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.DeviceCode,
                 ["device_code"] = deviceCode,
                 ["client_id"] = otherClientId,
             }
@@ -497,7 +497,7 @@ public class LocalAccountLifecycleTests
             client,
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.DeviceCode,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.DeviceCode,
                 ["device_code"] = deviceCode,
                 ["client_id"] = clientId,
             }
@@ -925,15 +925,15 @@ public class LocalAccountLifecycleTests
         await factory.SeedConfidentialClientAsync(
             passwordClientId,
             passwordClientSecret,
-            OpenIdConstants.GrantTypes.Password,
-            OpenIdConstants.GrantTypes.RefreshToken
+            OpenIdProtocol.GrantTypes.Password,
+            OpenIdProtocol.GrantTypes.RefreshToken
         );
         var client = CreateClient(factory);
         var (issueStatusCode, issueBody) = await PostTokenAsync(
             client,
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.Password,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.Password,
                 ["client_id"] = passwordClientId,
                 ["client_secret"] = passwordClientSecret,
                 ["username"] = UserName,
@@ -968,7 +968,7 @@ public class LocalAccountLifecycleTests
             client,
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.RefreshToken,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.RefreshToken,
                 ["client_id"] = passwordClientId,
                 ["client_secret"] = passwordClientSecret,
                 ["refresh_token"] = refreshToken,

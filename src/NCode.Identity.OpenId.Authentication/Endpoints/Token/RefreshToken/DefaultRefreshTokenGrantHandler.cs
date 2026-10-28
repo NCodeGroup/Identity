@@ -51,7 +51,7 @@ internal class DefaultRefreshTokenGrantHandler(
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
-        new HashSet<string>(StringComparer.Ordinal) { OpenIdConstants.GrantTypes.RefreshToken };
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdProtocol.GrantTypes.RefreshToken };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -182,7 +182,7 @@ internal class DefaultRefreshTokenGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = utcNow,
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.RefreshToken,
+            GrantType = tokenRequest.GrantType ?? OpenIdProtocol.GrantTypes.RefreshToken,
             OriginalScopes = refreshTokenGrant.OriginalScopes,
             EffectiveScopes = tokenRequest.Scopes ?? refreshTokenGrant.OriginalScopes,
             Resources = tokenRequest.Resources,

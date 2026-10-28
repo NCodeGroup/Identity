@@ -48,7 +48,7 @@ internal class DefaultValidateBackchannelAuthenticationRequestHandler
         // The CIBA grant must be allowed by the client (ADR-0085).
         if (
             settings.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out var grantTypesSupported)
-            && !grantTypesSupported.Contains(OpenIdConstants.GrantTypes.Ciba)
+            && !grantTypesSupported.Contains(OpenIdProtocol.GrantTypes.Ciba)
         )
         {
             throw errorFactory

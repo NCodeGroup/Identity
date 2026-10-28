@@ -117,7 +117,7 @@ public class TenantUsageTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["scope"] = "read:clients",
                 }
             ),
@@ -140,7 +140,7 @@ public class TenantUsageTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
             }
         );
         using var response = await client.PostAsync("/oauth2/token", content);
@@ -261,7 +261,7 @@ public class TenantUsageTests
             Content = new FormUrlEncodedContent(
                 new Dictionary<string, string>
                 {
-                    ["grant_type"] = OpenIdConstants.GrantTypes.ClientCredentials,
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["scope"] = "read:clients",
                 }
             ),

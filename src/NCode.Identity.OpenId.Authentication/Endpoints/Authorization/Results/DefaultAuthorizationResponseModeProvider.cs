@@ -61,7 +61,7 @@ internal class DefaultAuthorizationResponseModeProvider : IAuthorizationResponse
             if (
                 string.Equals(
                     responseMode,
-                    OpenIdConstants.ResponseModes.Jwt,
+                    OpenIdProtocol.ResponseModes.Jwt,
                     StringComparison.Ordinal
                 )
             )
@@ -115,7 +115,7 @@ internal class DefaultAuthorizationResponseModeProvider : IAuthorizationResponse
         if (
             string.Equals(
                 requestedResponseMode,
-                OpenIdConstants.ResponseModes.Jwt,
+                OpenIdProtocol.ResponseModes.Jwt,
                 StringComparison.Ordinal
             )
         )

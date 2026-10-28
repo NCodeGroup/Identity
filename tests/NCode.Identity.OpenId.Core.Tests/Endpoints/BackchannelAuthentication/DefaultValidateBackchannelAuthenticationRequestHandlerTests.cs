@@ -68,7 +68,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
             .Callback<string>(code => CapturedErrorCode = code)
             .Returns(mockError.Object);
 
-        var grantTypes = grantTypesSupported ?? [OpenIdConstants.GrantTypes.Ciba];
+        var grantTypes = grantTypesSupported ?? [OpenIdProtocol.GrantTypes.Ciba];
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out grantTypes!))
             .Returns(true);
@@ -124,7 +124,7 @@ public class DefaultValidateBackchannelAuthenticationRequestHandlerTests : BaseT
     public async Task HandleAsync_WhenGrantNotAllowed_ThrowsUnauthorizedClient()
     {
         var (context, client, _, request) = CreateScaffold(
-            grantTypesSupported: [OpenIdConstants.GrantTypes.AuthorizationCode]
+            grantTypesSupported: [OpenIdProtocol.GrantTypes.AuthorizationCode]
         );
 
         await Assert.ThrowsAsync<OpenIdException>(() =>

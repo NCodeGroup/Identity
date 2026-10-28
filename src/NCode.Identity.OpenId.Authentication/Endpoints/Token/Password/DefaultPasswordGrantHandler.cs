@@ -43,7 +43,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
-        new HashSet<string>(StringComparer.Ordinal) { OpenIdConstants.GrantTypes.Password };
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdProtocol.GrantTypes.Password };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -142,7 +142,7 @@ internal class DefaultPasswordGrantHandler(TimeProvider timeProvider, ITokenServ
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = createdWhen,
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.Password,
+            GrantType = tokenRequest.GrantType ?? OpenIdProtocol.GrantTypes.Password,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             Resources = tokenRequest.Resources,

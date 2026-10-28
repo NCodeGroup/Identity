@@ -76,7 +76,7 @@ internal sealed class BootstrapTokenExampleDocumentTransformer(
 
         (string Name, string Value)[] fields =
         [
-            (OpenIdConstants.Parameters.GrantType, OpenIdConstants.GrantTypes.ClientCredentials),
+            (OpenIdConstants.Parameters.GrantType, OpenIdProtocol.GrantTypes.ClientCredentials),
             (OpenIdConstants.Parameters.ClientId, clientId),
             (OpenIdConstants.Parameters.ClientSecret, clientSecret),
             (OpenIdConstants.Parameters.Scope, BootstrapScope),

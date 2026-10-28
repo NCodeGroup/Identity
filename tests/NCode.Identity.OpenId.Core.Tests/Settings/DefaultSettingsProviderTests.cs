@@ -49,10 +49,10 @@ public class DefaultSettingsProviderTests : BaseTests
         SetupBaseline(
             mockSettings,
             OpenIdSettingKeys.GrantTypesSupported,
-            OpenIdConstants.GrantTypes.AuthorizationCode,
-            OpenIdConstants.GrantTypes.RefreshToken,
-            OpenIdConstants.GrantTypes.DeviceCode,
-            OpenIdConstants.GrantTypes.Ciba
+            OpenIdProtocol.GrantTypes.AuthorizationCode,
+            OpenIdProtocol.GrantTypes.RefreshToken,
+            OpenIdProtocol.GrantTypes.DeviceCode,
+            OpenIdProtocol.GrantTypes.Ciba
         );
         SetupBaseline(
             mockSettings,
@@ -73,18 +73,18 @@ public class DefaultSettingsProviderTests : BaseTests
         SetupBaseline(
             mockSettings,
             OpenIdSettingKeys.ResponseModesSupported,
-            OpenIdConstants.ResponseModes.Query,
-            OpenIdConstants.ResponseModes.Fragment,
-            OpenIdConstants.ResponseModes.FormPost,
-            OpenIdConstants.ResponseModes.QueryJwt,
-            OpenIdConstants.ResponseModes.FragmentJwt,
-            OpenIdConstants.ResponseModes.FormPostJwt,
-            OpenIdConstants.ResponseModes.Jwt
+            OpenIdProtocol.ResponseModes.Query,
+            OpenIdProtocol.ResponseModes.Fragment,
+            OpenIdProtocol.ResponseModes.FormPost,
+            OpenIdProtocol.ResponseModes.QueryJwt,
+            OpenIdProtocol.ResponseModes.FragmentJwt,
+            OpenIdProtocol.ResponseModes.FormPostJwt,
+            OpenIdProtocol.ResponseModes.Jwt
         );
         SetupBaseline(
             mockSettings,
             OpenIdSettingKeys.ResponseTypesSupported,
-            OpenIdConstants.ResponseTypes.Code
+            OpenIdProtocol.ResponseTypes.Code
         );
         SetupBaseline(
             mockSettings,

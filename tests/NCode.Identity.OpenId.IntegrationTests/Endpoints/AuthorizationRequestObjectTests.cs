@@ -274,7 +274,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            responseMode: OpenIdConstants.ResponseModes.Jwt
+            responseMode: OpenIdProtocol.ResponseModes.Jwt
         );
 
         using var response = await AuthorizeAsync(client, sessionCookie, clientId, requestObject);
@@ -304,7 +304,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             sessionCookie,
             clientId,
             requestObject,
-            $"&response_mode={OpenIdConstants.ResponseModes.Fragment}"
+            $"&response_mode={OpenIdProtocol.ResponseModes.Fragment}"
         );
 
         var location = response.Headers.Location;
@@ -357,7 +357,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            responseMode: OpenIdConstants.ResponseModes.Fragment,
+            responseMode: OpenIdProtocol.ResponseModes.Fragment,
             redirectUri: null
         );
 
@@ -393,7 +393,7 @@ public sealed class AuthorizationRequestObjectTests : IDisposable
             clientId,
             "RS256",
             issuer,
-            responseMode: OpenIdConstants.ResponseModes.Jwt,
+            responseMode: OpenIdProtocol.ResponseModes.Jwt,
             redirectUri: null
         );
 

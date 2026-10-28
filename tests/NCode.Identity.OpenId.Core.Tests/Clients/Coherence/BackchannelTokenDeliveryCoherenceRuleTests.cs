@@ -97,7 +97,7 @@ public class BackchannelTokenDeliveryCoherenceRuleTests : BaseTests
     {
         SetupMode(OpenIdConstants.BackchannelTokenDeliveryModes.Push);
         SetupEndpoint(NotificationEndpoint);
-        SetupValues(OpenIdSettingKeys.GrantTypesSupported, OpenIdConstants.GrantTypes.Ciba);
+        SetupValues(OpenIdSettingKeys.GrantTypesSupported, OpenIdProtocol.GrantTypes.Ciba);
         SetupValues(
             OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
             OpenIdConstants.BackchannelTokenDeliveryModes.Poll,
@@ -124,7 +124,7 @@ public class BackchannelTokenDeliveryCoherenceRuleTests : BaseTests
     {
         SetupValues(
             OpenIdSettingKeys.GrantTypesSupported,
-            OpenIdConstants.GrantTypes.AuthorizationCode
+            OpenIdProtocol.GrantTypes.AuthorizationCode
         );
         SetupValues(
             OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
@@ -142,7 +142,7 @@ public class BackchannelTokenDeliveryCoherenceRuleTests : BaseTests
     public void FindViolations_WhenThePollModeIsSupported_ReturnsEmpty()
     {
         SetupMode(OpenIdConstants.BackchannelTokenDeliveryModes.Poll);
-        SetupValues(OpenIdSettingKeys.GrantTypesSupported, OpenIdConstants.GrantTypes.Ciba);
+        SetupValues(OpenIdSettingKeys.GrantTypesSupported, OpenIdProtocol.GrantTypes.Ciba);
         SetupValues(
             OpenIdSettingKeys.BackchannelTokenDeliveryModesSupported,
             OpenIdConstants.BackchannelTokenDeliveryModes.Poll,

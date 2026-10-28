@@ -179,7 +179,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         mockRequestObject.SetupGet(x => x.RedirectUri).Returns("https://client.example/callback");
         mockRequestObject
             .SetupGet(x => x.ResponseTypes)
-            .Returns([OpenIdConstants.ResponseTypes.Code]);
+            .Returns([OpenIdProtocol.ResponseTypes.Code]);
         mockRequestObject.SetupGet(x => x.Scopes).Returns([OpenIdConstants.ScopeTypes.OpenId]);
 
         return new RequestObjectScaffold(
@@ -216,7 +216,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         scaffold.Message.SetupGet(x => x.RedirectUri).Returns("https://client.example/callback");
         scaffold
             .Message.SetupGet(x => x.ResponseTypes)
-            .Returns([OpenIdConstants.ResponseTypes.Code]);
+            .Returns([OpenIdProtocol.ResponseTypes.Code]);
 
         InvokeValidateRequestObject(scaffold);
 
@@ -276,7 +276,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         scaffold.RequestObject.SetupGet(x => x.ResponseTypes).Returns((List<string>?)null);
         scaffold
             .Message.SetupGet(x => x.ResponseTypes)
-            .Returns([OpenIdConstants.ResponseTypes.Code]);
+            .Returns([OpenIdProtocol.ResponseTypes.Code]);
 
         Assert.Throws<OpenIdException>(() => InvokeValidateRequestObject(scaffold));
 
@@ -332,21 +332,21 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
         SetupSupported(
             mockTenantSettings,
-            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.CodeIdToken],
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            [OpenIdProtocol.ResponseTypes.Code, OpenIdProtocol.ResponseTypes.CodeIdToken],
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
         );
         SetupSupported(
             mockClientSettings,
-            [OpenIdConstants.ResponseTypes.CodeIdToken],
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            [OpenIdProtocol.ResponseTypes.CodeIdToken],
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
         );
         var (context, client, _) = CreateResponseTypeScaffold(
             mockTenantSettings,
             mockClientSettings
         );
         var mockRequest = CreateRequest(
-            OpenIdConstants.ResponseTypes.IdToken,
-            OpenIdConstants.ResponseTypes.Code
+            OpenIdProtocol.ResponseTypes.IdToken,
+            OpenIdProtocol.ResponseTypes.Code
         );
 
         var exception = Record.Exception(() =>
@@ -367,16 +367,16 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
         SetupSupported(
             mockTenantSettings,
-            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.IdToken],
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            [OpenIdProtocol.ResponseTypes.Code, OpenIdProtocol.ResponseTypes.IdToken],
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
         );
         var (context, client, capturedCode) = CreateResponseTypeScaffold(
             mockTenantSettings,
             mockClientSettings
         );
         var mockRequest = CreateRequest(
-            OpenIdConstants.ResponseTypes.Code,
-            OpenIdConstants.ResponseTypes.IdToken
+            OpenIdProtocol.ResponseTypes.Code,
+            OpenIdProtocol.ResponseTypes.IdToken
         );
 
         Assert.Throws<OpenIdException>(() =>
@@ -397,16 +397,16 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
         SetupSupported(
             mockTenantSettings,
-            [OpenIdConstants.ResponseTypes.CodeIdToken],
-            [OpenIdConstants.GrantTypes.AuthorizationCode]
+            [OpenIdProtocol.ResponseTypes.CodeIdToken],
+            [OpenIdProtocol.GrantTypes.AuthorizationCode]
         );
         var (context, client, capturedCode) = CreateResponseTypeScaffold(
             mockTenantSettings,
             mockClientSettings
         );
         var mockRequest = CreateRequest(
-            OpenIdConstants.ResponseTypes.Code,
-            OpenIdConstants.ResponseTypes.IdToken
+            OpenIdProtocol.ResponseTypes.Code,
+            OpenIdProtocol.ResponseTypes.IdToken
         );
 
         Assert.Throws<OpenIdException>(() =>
@@ -427,21 +427,21 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
         SetupSupported(
             mockTenantSettings,
-            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.CodeIdToken],
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            [OpenIdProtocol.ResponseTypes.Code, OpenIdProtocol.ResponseTypes.CodeIdToken],
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
         );
         SetupSupported(
             mockClientSettings,
-            [OpenIdConstants.ResponseTypes.Code],
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            [OpenIdProtocol.ResponseTypes.Code],
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
         );
         var (context, client, capturedCode) = CreateResponseTypeScaffold(
             mockTenantSettings,
             mockClientSettings
         );
         var mockRequest = CreateRequest(
-            OpenIdConstants.ResponseTypes.Code,
-            OpenIdConstants.ResponseTypes.IdToken
+            OpenIdProtocol.ResponseTypes.Code,
+            OpenIdProtocol.ResponseTypes.IdToken
         );
 
         Assert.Throws<OpenIdException>(() =>
@@ -462,21 +462,21 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
         SetupSupported(
             mockTenantSettings,
-            [OpenIdConstants.ResponseTypes.CodeIdToken],
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            [OpenIdProtocol.ResponseTypes.CodeIdToken],
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
         );
         SetupSupported(
             mockClientSettings,
-            [OpenIdConstants.ResponseTypes.CodeIdToken],
-            [OpenIdConstants.GrantTypes.AuthorizationCode]
+            [OpenIdProtocol.ResponseTypes.CodeIdToken],
+            [OpenIdProtocol.GrantTypes.AuthorizationCode]
         );
         var (context, client, capturedCode) = CreateResponseTypeScaffold(
             mockTenantSettings,
             mockClientSettings
         );
         var mockRequest = CreateRequest(
-            OpenIdConstants.ResponseTypes.Code,
-            OpenIdConstants.ResponseTypes.IdToken
+            OpenIdProtocol.ResponseTypes.Code,
+            OpenIdProtocol.ResponseTypes.IdToken
         );
 
         Assert.Throws<OpenIdException>(() =>
@@ -500,8 +500,8 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
             mockClientSettings
         );
         var mockRequest = CreateRequest(
-            OpenIdConstants.ResponseTypes.Code,
-            OpenIdConstants.ResponseTypes.Token
+            OpenIdProtocol.ResponseTypes.Code,
+            OpenIdProtocol.ResponseTypes.Token
         );
 
         var exception = Record.Exception(() =>
@@ -522,25 +522,25 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         var mockClientSettings = CreateLooseMock<IReadOnlySettingCollection>();
         SetupSupported(
             mockTenantSettings,
-            [OpenIdConstants.ResponseTypes.Code, OpenIdConstants.ResponseTypes.CodeToken],
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            [OpenIdProtocol.ResponseTypes.Code, OpenIdProtocol.ResponseTypes.CodeToken],
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
         );
         SetupSupported(
             mockClientSettings,
             [
-                OpenIdConstants.ResponseTypes.Code,
-                OpenIdConstants.ResponseTypes.IdToken,
-                OpenIdConstants.ResponseTypes.CodeIdToken,
+                OpenIdProtocol.ResponseTypes.Code,
+                OpenIdProtocol.ResponseTypes.IdToken,
+                OpenIdProtocol.ResponseTypes.CodeIdToken,
             ],
-            [OpenIdConstants.GrantTypes.AuthorizationCode, OpenIdConstants.GrantTypes.Implicit]
+            [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
         );
         var (context, client, capturedCode) = CreateResponseTypeScaffold(
             mockTenantSettings,
             mockClientSettings
         );
         var mockRequest = CreateRequest(
-            OpenIdConstants.ResponseTypes.Token,
-            OpenIdConstants.ResponseTypes.Code
+            OpenIdProtocol.ResponseTypes.Token,
+            OpenIdProtocol.ResponseTypes.Code
         );
 
         Assert.Throws<OpenIdException>(() =>
@@ -566,8 +566,8 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         var (mockSettings, mockRequest) = CreateScaffold();
         IReadOnlyList<string> responseTypes =
         [
-            OpenIdConstants.ResponseTypes.Code,
-            OpenIdConstants.ResponseTypes.Token,
+            OpenIdProtocol.ResponseTypes.Code,
+            OpenIdProtocol.ResponseTypes.Token,
         ];
         mockRequest.SetupGet(x => x.ResponseTypes).Returns(responseTypes);
 
@@ -624,7 +624,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
         var mockClient = CreateLooseMock<OpenIdClient>();
         mockClient.SetupGet(x => x.Settings).Returns(mockSettings.Object);
 
-        var mockRequest = CreateRequest(OpenIdConstants.ResponseTypes.Code);
+        var mockRequest = CreateRequest(OpenIdProtocol.ResponseTypes.Code);
         IReadOnlyList<string> scopes = [OpenIdConstants.ScopeTypes.OpenId];
         mockRequest.SetupGet(x => x.Scopes).Returns(scopes);
 
@@ -659,7 +659,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     {
         // PKCE binds an authorization code; an implicit response type issues none.
         var scaffold = CreateCodeChallengeScaffold(requirePkce: true);
-        IReadOnlyList<string> responseTypes = [OpenIdConstants.ResponseTypes.IdToken];
+        IReadOnlyList<string> responseTypes = [OpenIdProtocol.ResponseTypes.IdToken];
         scaffold.Request.SetupGet(x => x.ResponseTypes).Returns(responseTypes);
 
         var exception = Record.Exception(() => InvokeValidateCodeChallenge(scaffold));

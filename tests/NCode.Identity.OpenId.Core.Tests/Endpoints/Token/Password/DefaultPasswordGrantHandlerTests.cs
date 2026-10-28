@@ -137,7 +137,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.Password)
+            .Returns(OpenIdProtocol.GrantTypes.Password)
             .Verifiable();
 
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();
@@ -162,7 +162,7 @@ public class DefaultPasswordGrantHandlerTests : BaseTests
     [Fact]
     public void GrantTypes_Always_ContainsPassword()
     {
-        Assert.Contains(OpenIdConstants.GrantTypes.Password, Handler.GrantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.Password, Handler.GrantTypes);
     }
 
     #endregion

@@ -46,8 +46,8 @@ internal sealed class Fapi1AdvancedSecurityProfile : ISecurityProfile
     // FAPI 1.0 Advanced §5.2.2-1/2: 'code id_token', or 'code' with a JWT-secured response mode (the requirement below).
     private static readonly string[] ResponseTypes =
     [
-        OpenIdConstants.ResponseTypes.Code,
-        OpenIdConstants.ResponseTypes.CodeIdToken,
+        OpenIdProtocol.ResponseTypes.Code,
+        OpenIdProtocol.ResponseTypes.CodeIdToken,
     ];
 
     /// <inheritdoc />

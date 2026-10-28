@@ -38,11 +38,11 @@ internal static class OpenIdSettingRules
 {
     private static readonly string[] GrantTypeNames =
     [
-        OpenIdConstants.GrantTypes.AuthorizationCode,
-        OpenIdConstants.GrantTypes.Implicit,
-        OpenIdConstants.GrantTypes.Password,
-        OpenIdConstants.GrantTypes.ClientCredentials,
-        OpenIdConstants.GrantTypes.RefreshToken,
+        OpenIdProtocol.GrantTypes.AuthorizationCode,
+        OpenIdProtocol.GrantTypes.Implicit,
+        OpenIdProtocol.GrantTypes.Password,
+        OpenIdProtocol.GrantTypes.ClientCredentials,
+        OpenIdProtocol.GrantTypes.RefreshToken,
     ];
 
     /// <summary>
@@ -82,13 +82,13 @@ internal static class OpenIdSettingRules
     /// </summary>
     public static SettingRule<string> ResponseType() =>
         SettingRules.OneOf(
-            OpenIdConstants.ResponseTypes.Code,
-            OpenIdConstants.ResponseTypes.IdToken,
-            OpenIdConstants.ResponseTypes.Token,
-            OpenIdConstants.ResponseTypes.CodeIdToken,
-            OpenIdConstants.ResponseTypes.CodeToken,
-            OpenIdConstants.ResponseTypes.IdTokenToken,
-            OpenIdConstants.ResponseTypes.CodeIdTokenToken
+            OpenIdProtocol.ResponseTypes.Code,
+            OpenIdProtocol.ResponseTypes.IdToken,
+            OpenIdProtocol.ResponseTypes.Token,
+            OpenIdProtocol.ResponseTypes.CodeIdToken,
+            OpenIdProtocol.ResponseTypes.CodeToken,
+            OpenIdProtocol.ResponseTypes.IdTokenToken,
+            OpenIdProtocol.ResponseTypes.CodeIdTokenToken
         );
 
     /// <summary>

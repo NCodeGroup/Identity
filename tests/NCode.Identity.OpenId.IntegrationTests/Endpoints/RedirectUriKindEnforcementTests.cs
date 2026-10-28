@@ -47,7 +47,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         var query =
             $"?client_id={Uri.EscapeDataString(clientId)}"
             + $"&redirect_uri={Uri.EscapeDataString(redirectUri)}"
-            + $"&response_type={Uri.EscapeDataString(OpenIdConstants.ResponseTypes.Code)}"
+            + $"&response_type={Uri.EscapeDataString(OpenIdProtocol.ResponseTypes.Code)}"
             + "&scope=openid"
             + "&state=abc123"
             + TestPkce.QueryParameters
@@ -66,7 +66,7 @@ public class RedirectUriKindEnforcementTests(HostApplicationFactory factory)
         {
             new("client_id", clientId),
             new("redirect_uri", redirectUri),
-            new("response_type", OpenIdConstants.ResponseTypes.Code),
+            new("response_type", OpenIdProtocol.ResponseTypes.Code),
             new("scope", "openid"),
             new("state", "abc123"),
         };

@@ -143,7 +143,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
     public async Task HandleAsync_WhenCodeResponseType_SetsAuthorizationCode()
     {
         var (command, mockContext, mockClient) = CreateScaffold([
-            OpenIdConstants.ResponseTypes.Code,
+            OpenIdProtocol.ResponseTypes.Code,
         ]);
 
         MockAuthorizationCodeService
@@ -172,7 +172,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
     public async Task HandleAsync_WhenTokenResponseType_SetsAccessToken()
     {
         var (command, mockContext, mockClient) = CreateScaffold([
-            OpenIdConstants.ResponseTypes.Token,
+            OpenIdProtocol.ResponseTypes.Token,
         ]);
 
         MockTokenService
@@ -181,7 +181,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
                     mockContext.Object,
                     mockClient.Object,
                     It.Is<CreateSecurityTokenRequest>(request =>
-                        request.GrantType == OpenIdConstants.GrantTypes.Implicit
+                        request.GrantType == OpenIdProtocol.GrantTypes.Implicit
                     ),
                     It.IsAny<CancellationToken>()
                 )
@@ -201,7 +201,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
     public async Task HandleAsync_WhenIdTokenResponseType_SetsIdToken()
     {
         var (command, mockContext, mockClient) = CreateScaffold([
-            OpenIdConstants.ResponseTypes.IdToken,
+            OpenIdProtocol.ResponseTypes.IdToken,
         ]);
 
         MockTokenService
@@ -210,7 +210,7 @@ public class DefaultCreateAuthorizationTicketHandlerTests : BaseTests
                     mockContext.Object,
                     mockClient.Object,
                     It.Is<CreateSecurityTokenRequest>(request =>
-                        request.GrantType == OpenIdConstants.GrantTypes.Implicit
+                        request.GrantType == OpenIdProtocol.GrantTypes.Implicit
                     ),
                     It.IsAny<CancellationToken>()
                 )

@@ -199,7 +199,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
     [Fact]
     public void GrantTypes_Always_ContainsAuthorizationCode()
     {
-        Assert.Contains(OpenIdConstants.GrantTypes.AuthorizationCode, Handler.GrantTypes);
+        Assert.Contains(OpenIdProtocol.GrantTypes.AuthorizationCode, Handler.GrantTypes);
     }
 
     #endregion
@@ -393,7 +393,7 @@ public class DefaultAuthorizationCodeGrantHandlerTests : BaseTests
         mockTokenRequest.SetupGet(x => x.Resources).Returns((List<string>?)null).Verifiable();
         mockTokenRequest
             .SetupGet(x => x.GrantType)
-            .Returns(OpenIdConstants.GrantTypes.AuthorizationCode)
+            .Returns(OpenIdProtocol.GrantTypes.AuthorizationCode)
             .Verifiable();
 
         MockTimeProvider.Setup(x => x.GetUtcNow()).Returns(CreatedWhen).Verifiable();

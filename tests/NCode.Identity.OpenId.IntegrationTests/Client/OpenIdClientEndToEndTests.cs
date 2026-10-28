@@ -117,7 +117,7 @@ public class OpenIdClientEndToEndTests
         await factory.SeedConfidentialClientWithJwksUriAsync(
             clientId,
             JwksUri,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await SeedResourceServerAsync(factory, clientId);
 
@@ -164,7 +164,7 @@ public class OpenIdClientEndToEndTests
         await factory.SeedConfidentialClientAsync(
             clientId,
             ClientSecret,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await SeedResourceServerAsync(factory, clientId);
 
@@ -191,7 +191,7 @@ public class OpenIdClientEndToEndTests
         await factory.SeedConfidentialClientAsync(
             clientId,
             ClientSecret,
-            OpenIdConstants.GrantTypes.ClientCredentials
+            OpenIdProtocol.GrantTypes.ClientCredentials
         );
         await SeedResourceServerAsync(factory, clientId);
 

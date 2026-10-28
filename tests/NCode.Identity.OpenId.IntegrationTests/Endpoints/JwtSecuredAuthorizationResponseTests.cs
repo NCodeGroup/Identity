@@ -142,7 +142,7 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeAsync(
             client,
             sessionCookie,
-            OpenIdConstants.ResponseModes.QueryJwt
+            OpenIdProtocol.ResponseModes.QueryJwt
         );
 
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode);
@@ -168,7 +168,7 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeAsync(
             client,
             sessionCookie,
-            OpenIdConstants.ResponseModes.Jwt
+            OpenIdProtocol.ResponseModes.Jwt
         );
 
         var location = response.Headers.Location;
@@ -188,7 +188,7 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeAsync(
             client,
             sessionCookie,
-            OpenIdConstants.ResponseModes.FragmentJwt
+            OpenIdProtocol.ResponseModes.FragmentJwt
         );
 
         var location = response.Headers.Location;
@@ -208,7 +208,7 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeAsync(
             client,
             sessionCookie,
-            OpenIdConstants.ResponseModes.FormPostJwt
+            OpenIdProtocol.ResponseModes.FormPostJwt
         );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -226,7 +226,7 @@ public class JwtSecuredAuthorizationResponseTests
         using var response = await AuthorizeAsync(
             client,
             sessionCookie: null,
-            OpenIdConstants.ResponseModes.QueryJwt
+            OpenIdProtocol.ResponseModes.QueryJwt
         );
 
         var location = response.Headers.Location;

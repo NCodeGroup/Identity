@@ -63,7 +63,7 @@ public class PasswordAttemptLimitTests
         using var content = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
-                ["grant_type"] = OpenIdConstants.GrantTypes.Password,
+                ["grant_type"] = OpenIdProtocol.GrantTypes.Password,
                 ["client_id"] = ClientId,
                 ["client_secret"] = ClientSecret,
                 ["username"] = UserName,
@@ -105,7 +105,7 @@ public class PasswordAttemptLimitTests
         await factory.SeedConfidentialClientAsync(
             ClientId,
             ClientSecret,
-            OpenIdConstants.GrantTypes.Password
+            OpenIdProtocol.GrantTypes.Password
         );
         await factory.SeedLocalAccountAsync(UserName, Password);
         var client = CreateClient(factory);

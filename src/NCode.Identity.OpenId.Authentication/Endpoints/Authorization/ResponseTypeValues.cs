@@ -60,7 +60,7 @@ internal static class ResponseTypeValues
     /// <param name="names">The names of the response type, in any order.</param>
     /// <returns><see langword="true"/> when the response type issues an authorization code.</returns>
     public static bool IssuesAuthorizationCode(IReadOnlyCollection<string> names) =>
-        names.Contains(OpenIdConstants.ResponseTypes.Code, StringComparer.Ordinal);
+        names.Contains(OpenIdProtocol.ResponseTypes.Code, StringComparer.Ordinal);
 
     /// <summary>
     /// Gets a value indicating whether a response type returns a token from the authorization endpoint: it includes
@@ -69,8 +69,8 @@ internal static class ResponseTypeValues
     /// <param name="names">The names of the response type, in any order.</param>
     /// <returns><see langword="true"/> when the response type returns a token or an ID token.</returns>
     public static bool ReturnsTokens(IReadOnlyCollection<string> names) =>
-        names.Contains(OpenIdConstants.ResponseTypes.IdToken, StringComparer.Ordinal)
-        || names.Contains(OpenIdConstants.ResponseTypes.Token, StringComparer.Ordinal);
+        names.Contains(OpenIdProtocol.ResponseTypes.IdToken, StringComparer.Ordinal)
+        || names.Contains(OpenIdProtocol.ResponseTypes.Token, StringComparer.Ordinal);
 
     /// <summary>
     /// Gets the default <c>response_mode</c> of a response type (OAuth 2.0 Multiple Response Type Encoding Practices
@@ -81,8 +81,8 @@ internal static class ResponseTypeValues
     /// <returns>The default <c>response_mode</c>.</returns>
     public static string GetDefaultResponseMode(IReadOnlyCollection<string> names) =>
         ReturnsTokens(names)
-            ? OpenIdConstants.ResponseModes.Fragment
-            : OpenIdConstants.ResponseModes.Query;
+            ? OpenIdProtocol.ResponseModes.Fragment
+            : OpenIdProtocol.ResponseModes.Query;
 
     /// <summary>
     /// Gets the grant types a response type uses (OpenID Connect Dynamic Client Registration 1.0 §2):
@@ -97,10 +97,10 @@ internal static class ResponseTypeValues
         List<string> grantTypes = [];
 
         if (IssuesAuthorizationCode(names))
-            grantTypes.Add(OpenIdConstants.GrantTypes.AuthorizationCode);
+            grantTypes.Add(OpenIdProtocol.GrantTypes.AuthorizationCode);
 
         if (ReturnsTokens(names))
-            grantTypes.Add(OpenIdConstants.GrantTypes.Implicit);
+            grantTypes.Add(OpenIdProtocol.GrantTypes.Implicit);
 
         return grantTypes;
     }

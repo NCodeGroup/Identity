@@ -84,7 +84,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         ceiling.Set(OpenIdSettingKeys.TokenEndpointAuthMethodsSupported, TokenEndpointAuthMethods);
         ceiling.Set(
             OpenIdSettingKeys.ResponseTypesSupported,
-            (IReadOnlyCollection<string>)[OpenIdConstants.ResponseTypes.Code]
+            (IReadOnlyCollection<string>)[OpenIdProtocol.ResponseTypes.Code]
         );
         ceiling.Set(
             OpenIdSettingKeys.CodeChallengeMethodsSupported,

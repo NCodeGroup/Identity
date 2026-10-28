@@ -44,10 +44,7 @@ internal class DefaultClientCredentialsGrantHandler(
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
-        new HashSet<string>(StringComparer.Ordinal)
-        {
-            OpenIdConstants.GrantTypes.ClientCredentials,
-        };
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdProtocol.GrantTypes.ClientCredentials };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -106,7 +103,7 @@ internal class DefaultClientCredentialsGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.ClientCredentials,
+            GrantType = tokenRequest.GrantType ?? OpenIdProtocol.GrantTypes.ClientCredentials,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             Resources = tokenRequest.Resources,

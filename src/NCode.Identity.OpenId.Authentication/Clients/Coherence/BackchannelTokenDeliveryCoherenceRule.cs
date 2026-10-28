@@ -88,7 +88,7 @@ internal sealed class BackchannelTokenDeliveryCoherenceRule : IClientCoherenceRu
 
         var permitsCiba =
             !settings.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out var grantTypes)
-            || grantTypes.Contains(OpenIdConstants.GrantTypes.Ciba, StringComparer.Ordinal);
+            || grantTypes.Contains(OpenIdProtocol.GrantTypes.Ciba, StringComparer.Ordinal);
 
         if (
             permitsCiba

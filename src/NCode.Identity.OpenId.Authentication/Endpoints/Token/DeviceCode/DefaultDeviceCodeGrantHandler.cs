@@ -49,7 +49,7 @@ internal class DefaultDeviceCodeGrantHandler(
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
-        new HashSet<string>(StringComparer.Ordinal) { OpenIdConstants.GrantTypes.DeviceCode };
+        new HashSet<string>(StringComparer.Ordinal) { OpenIdProtocol.GrantTypes.DeviceCode };
 
     /// <inheritdoc />
     public async ValueTask<IOpenIdResponse> HandleAsync(
@@ -268,7 +268,7 @@ internal class DefaultDeviceCodeGrantHandler(
         var securityTokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = TimeProvider.GetUtcNowWithPrecisionInSeconds(),
-            GrantType = tokenRequest.GrantType ?? OpenIdConstants.GrantTypes.DeviceCode,
+            GrantType = tokenRequest.GrantType ?? OpenIdProtocol.GrantTypes.DeviceCode,
             OriginalScopes = originalScopes,
             EffectiveScopes = effectiveScopes,
             Resources = tokenRequest.Resources,

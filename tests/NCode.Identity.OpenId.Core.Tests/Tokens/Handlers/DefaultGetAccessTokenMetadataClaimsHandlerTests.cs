@@ -68,7 +68,7 @@ public class DefaultGetAccessTokenMetadataClaimsHandlerTests : BaseTests
         var tokenRequest = new CreateSecurityTokenRequest
         {
             CreatedWhen = CreatedWhen,
-            GrantType = OpenIdConstants.GrantTypes.Password,
+            GrantType = OpenIdProtocol.GrantTypes.Password,
             OriginalScopes = scopes,
             EffectiveScopes = scopes,
             SubjectAuthentication = subjectAuthentication,

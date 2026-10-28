@@ -98,10 +98,10 @@ changes only by pull request through the merge queue
 ([ADR-0261](../../docs/decisions/0261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
 [ADR-0263](../../docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) — and opens its
 pull request against `main` as a **draft** if none exists (a push to an open pull request's branch updates it). For a
-plan, `/ship-plan draft` does both, as the [Landing](../../AGENTS.md#landing) section of `AGENTS.md` says; keep
-`draft`, because without it `/ship-plan` opens a pull request ready for review. Without a plan, push the branch and
-run `gh pr create --draft`. The agent stops there: it never marks the pull request ready for review and never enables
-auto-merge, because the user self-reviews the draft and that step is the approval
+plan, `/ship-plan` does both, as the [Landing](../../AGENTS.md#landing) section of `AGENTS.md` says: its `draft: yes`
+opens the pull request as a draft, and its `gate` runs gate 4 below before each push. Without a plan, push the branch
+and run `gh pr create --draft`. The agent stops there: it never marks the pull request ready for review and never
+enables auto-merge, because the user self-reviews the draft and that step is the approval
 ([ADR-0269](../../docs/decisions/0269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). Run these gates
 **before** pushing:
 
@@ -121,9 +121,10 @@ auto-merge, because the user self-reviews the draft and that step is the approva
    migrate anything durable into the repository and clear the memory so nothing survives solely as a volatile note.
 4. **Pass the local pre-push gate.** Run `./build/dod.ps1 -Fast -Affected` — the local-development pre-push gate, which
    builds the whole solution and runs the test projects the change reaches since its merge base with `origin/main`
-   (fetch `origin` first) — and confirm its final line is `Definition of Done: PASSED`. CI owns the full
-   `./build/dod.ps1` (all tests, coverage, packing, and NuGet advisories as errors): the merge queue runs it on the
-   merged result before anything reaches `main`
+   (fetch `origin` first) — and confirm its final line is `Definition of Done: PASSED`. For a plan, `/ship-plan` runs it
+   as the Landing section's `gate` and stops when it exits non-zero. CI owns the full `./build/dod.ps1` (all tests,
+   coverage, packing, and NuGet advisories as errors): the merge queue runs it on the merged result before anything
+   reaches `main`
    ([ADR-0263](../../docs/decisions/0263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)), so it
    does **not** run before a local push. Neither gate builds the host image: when a change adds a file that a root
    build file imports, re-admit it in [`.dockerignore`](../../.dockerignore) too, or only the `Host image` check on the

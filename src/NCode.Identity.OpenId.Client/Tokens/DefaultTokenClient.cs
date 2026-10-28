@@ -56,16 +56,20 @@ internal class DefaultTokenClient(
 
         var parameters = new List<KeyValuePair<string, string>>
         {
-            new("grant_type", request.GrantType),
+            new(OpenIdProtocol.Parameters.GrantType, request.GrantType),
         };
 
         request.AddGrantParameters(parameters);
 
         if (!string.IsNullOrEmpty(request.Scope))
-            parameters.Add(new KeyValuePair<string, string>("scope", request.Scope));
+            parameters.Add(
+                new KeyValuePair<string, string>(OpenIdProtocol.Parameters.Scope, request.Scope)
+            );
 
         foreach (var resource in request.Resources)
-            parameters.Add(new KeyValuePair<string, string>("resource", resource));
+            parameters.Add(
+                new KeyValuePair<string, string>(OpenIdProtocol.Parameters.Resource, resource)
+            );
 
         var response = await Sender.PostFormAsync(
             registration,

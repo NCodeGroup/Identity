@@ -43,9 +43,6 @@ internal class DefaultLogoutTokenValidator(
     private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan MaxLifetime = TimeSpan.FromMinutes(10);
 
-    private const string EventsClaimName = "events";
-    private const string BackChannelLogoutEvent =
-        "http://schemas.openid.net/event/backchannel-logout";
     private const string ReplayKeyPurpose = "logout_token_jti";
 
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
@@ -166,9 +163,12 @@ internal class DefaultLogoutTokenValidator(
             return Fail("The logout token has no 'sid' claim, which the client requires.");
 
         if (
-            !payload.TryGetProperty(EventsClaimName, out var events)
+            !payload.TryGetProperty(JoseClaimNames.Payload.Events, out var events)
             || events.ValueKind != JsonValueKind.Object
-            || !events.TryGetProperty(BackChannelLogoutEvent, out var logoutEvent)
+            || !events.TryGetProperty(
+                OpenIdProtocol.BackChannelLogout.EventName,
+                out var logoutEvent
+            )
             || logoutEvent.ValueKind != JsonValueKind.Object
         )
             return Fail(

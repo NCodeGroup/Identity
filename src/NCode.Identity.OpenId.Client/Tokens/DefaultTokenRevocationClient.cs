@@ -55,11 +55,17 @@ internal class DefaultTokenRevocationClient(
             );
         }
 
-        var parameters = new List<KeyValuePair<string, string>> { new("token", request.Token) };
+        var parameters = new List<KeyValuePair<string, string>>
+        {
+            new(OpenIdProtocol.Parameters.Token, request.Token),
+        };
 
         if (!string.IsNullOrEmpty(request.TokenTypeHint))
             parameters.Add(
-                new KeyValuePair<string, string>("token_type_hint", request.TokenTypeHint)
+                new KeyValuePair<string, string>(
+                    OpenIdProtocol.Parameters.TokenTypeHint,
+                    request.TokenTypeHint
+                )
             );
 
         var response = await Sender.PostFormAsync(

@@ -271,6 +271,7 @@ public class LogoutTokenValidatorEndToEndTests
         var result = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
 
         Assert.True(result.IsValid, result.FailureReason);
+        Assert.Equal(HostApplicationFactory.TestServerIssuer, result.Issuer);
         using var logoutTokenPayload = JsonDocument.Parse(
             Base64Url.DecodeFromChars(logoutToken.Split('.')[1])
         );
@@ -330,7 +331,38 @@ public class LogoutTokenValidatorEndToEndTests
     }
 
     [Fact]
-    public async Task ValidateAsync_WhenTheSameLogoutTokenIsValidatedTwice_FailsAsAReplay()
+    public async Task ValidateAsync_WhenTheLogoutTokenIsValidatedAgainBeforeItIsRecorded_IsValid()
+    {
+        const string clientId = "it-logout-e2e-retry";
+
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        using var factory = new HostApplicationFactory { BackChannelLogoutExchanges = exchanges };
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await SeedClientAsync(
+            factory,
+            clientId,
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.BackChannelLogoutUri] = BackChannelLogoutUri,
+            }
+        );
+        await using var provider = CreateClientProvider(factory);
+        var registration = CreateRegistration(clientId);
+        var browser = CreateBrowser(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        await RequestIdTokenAsync(browser, sessionCookie, provider, registration);
+
+        await EndSessionAsync(browser, sessionCookie);
+        var logoutToken = await WaitForLogoutTokenAsync(exchanges);
+        var first = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
+        var second = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
+
+        Assert.True(first.IsValid, first.FailureReason);
+        Assert.True(second.IsValid, second.FailureReason);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenTheLogoutTokenWasRecordedAsHandled_FailsAsAReplay()
     {
         const string clientId = "it-logout-e2e-replay";
 
@@ -353,13 +385,26 @@ public class LogoutTokenValidatorEndToEndTests
 
         await EndSessionAsync(browser, sessionCookie);
         var logoutToken = await WaitForLogoutTokenAsync(exchanges);
+        var validator = provider.GetRequiredService<ILogoutTokenValidator>();
         var first = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
         Assert.True(first.IsValid, first.FailureReason);
 
+        var recorded = await validator.TryRecordHandledAsync(
+            registration,
+            first,
+            CancellationToken.None
+        );
         var second = await ValidateLogoutTokenAsync(provider, registration, logoutToken);
+        var recordedAgain = await validator.TryRecordHandledAsync(
+            registration,
+            first,
+            CancellationToken.None
+        );
 
+        Assert.True(recorded);
         Assert.False(second.IsValid);
         Assert.Equal(TokenValidationFailureCodes.TokenReplayed, second.FailureCode);
+        Assert.False(recordedAgain);
     }
 
     #endregion

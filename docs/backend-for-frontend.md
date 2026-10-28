@@ -637,15 +637,18 @@ Without a session, logout is idempotent: it redirects to the allow-listed return
   `events` and `nonce` checks already tell it apart from an ID token (spec §2.6).
 - When the client registers ID-token encryption, the logout token must be encrypted the same way (spec §2.6;
   [ADR-0280](decisions/0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)).
-- `jti` is recorded in `IExpiringKeySet` so a token cannot be replayed.
+- A `jti` already recorded in `IExpiringKeySet` is refused as a replay.
 
-The protocol client's `ILogoutTokenValidator` performs all of these checks, including the `jti` record, and bounds a
+The protocol client's `ILogoutTokenValidator` performs all of these checks, including the `jti` lookup, and bounds a
 token's lifetime to 10 minutes ([ADR-0274](decisions/0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md)).
+It looks the `jti` up but does not record it: the BFF calls `TryRecordHandledAsync` only after it has ended the sessions
+([ADR-0284](decisions/0284-a-logout-token-is-recorded-only-after-the-client-handles-it.md)).
 
 A token with a `sid` ends every session holding that OP `sid`. A token with only `sub` ends every session of that
 subject from that issuer. The BFF finds them through the membership indexes ([§5.4](#54-state-every-replica-sees)),
-without needing any handle. It answers `200` on success and `400` on an invalid token, with `Cache-Control: no-store`.
-The client is registered with `backchannel_logout_uri` and `backchannel_logout_session_required=true`, so the OP
+without needing any handle. It answers `200` once the sessions are ended and the `jti` is recorded, and `400` on an
+invalid token or when ending the sessions fails, so the OP retries a failed delivery and the retry validates again.
+Every answer carries `Cache-Control: no-store`. The client is registered with `backchannel_logout_uri` and `backchannel_logout_session_required=true`, so the OP
 always sends `sid`.
 
 The two paths combine: when the user logs out of **another** application at the NCode OP, the OP revokes the session's

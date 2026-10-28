@@ -3,7 +3,9 @@
 - **Status:** Accepted (amended by [ADR-0278](0278-token-validation-failures-carry-a-machine-readable-code.md): an
   invalid logout token also carries a `FailureCode`; amended by
   [ADR-0280](0280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md): an encrypted logout token is
-  decrypted with the client's key ring)
+  decrypted with the client's key ring; amended by
+  [ADR-0284](0284-a-logout-token-is-recorded-only-after-the-client-handles-it.md): validation only looks the `jti` up,
+  and `TryRecordHandledAsync` records it once the client has handled the token)
 - **Date:** 2026-10-27
 - **Deciders:** NCode Group
 

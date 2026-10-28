@@ -35,6 +35,7 @@ public class LogoutTokenValidationResultTests
 
         var result = new LogoutTokenValidationResult(
             payload,
+            "https://op.example.test",
             "jti-1",
             expiresAt,
             "subject-1",
@@ -45,6 +46,7 @@ public class LogoutTokenValidationResultTests
         Assert.Null(result.FailureCode);
         Assert.Null(result.FailureReason);
         Assert.Equal(payload.ToString(), result.Payload.ToString());
+        Assert.Equal("https://op.example.test", result.Issuer);
         Assert.Equal("jti-1", result.TokenId);
         Assert.Equal(expiresAt, result.ExpiresAt);
         Assert.Equal("subject-1", result.Subject);
@@ -56,6 +58,7 @@ public class LogoutTokenValidationResultTests
     {
         var result = new LogoutTokenValidationResult(
             CreatePayload(),
+            "https://op.example.test",
             "jti-1",
             DateTimeOffset.UnixEpoch,
             null,
@@ -68,11 +71,27 @@ public class LogoutTokenValidationResultTests
     }
 
     [Fact]
+    public void Constructor_WhenIssuerIsEmpty_Throws()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            new LogoutTokenValidationResult(
+                CreatePayload(),
+                "",
+                "jti-1",
+                DateTimeOffset.UnixEpoch,
+                "subject-1",
+                null
+            )
+        );
+    }
+
+    [Fact]
     public void Constructor_WhenTokenIdIsEmpty_Throws()
     {
         Assert.Throws<ArgumentException>(() =>
             new LogoutTokenValidationResult(
                 CreatePayload(),
+                "https://op.example.test",
                 "",
                 DateTimeOffset.UnixEpoch,
                 "subject-1",
@@ -87,6 +106,7 @@ public class LogoutTokenValidationResultTests
         Assert.Throws<ArgumentException>(() =>
             new LogoutTokenValidationResult(
                 CreatePayload(),
+                "https://op.example.test",
                 "jti-1",
                 DateTimeOffset.UnixEpoch,
                 null,
@@ -107,6 +127,7 @@ public class LogoutTokenValidationResultTests
         Assert.Equal(TokenValidationFailureCodes.InvalidSignature, result.FailureCode);
         Assert.Equal("bad signature", result.FailureReason);
         Assert.Null(result.TokenId);
+        Assert.Null(result.Issuer);
     }
 
     [Fact]

@@ -26,6 +26,12 @@ const NCode.Identity.Jwk.JsonWebKeyParameterNames.X509CertificateSha1Thumbprint 
 const NCode.Identity.Jwk.JsonWebKeyParameterNames.X509CertificateSha256Thumbprint = "x5t#S256" -> string!
 const NCode.Identity.Jwk.JsonWebKeyParameterNames.X509Url = "x5u" -> string!
 const NCode.Identity.Jwk.JsonWebKeyParameterNames.Y = "y" -> string!
+const NCode.Identity.Jwk.JsonWebKeySetParameterNames.Keys = "keys" -> string!
+const NCode.Identity.Jwk.JsonWebKeyTypes.Akp = "AKP" -> string!
+const NCode.Identity.Jwk.JsonWebKeyTypes.Ec = "EC" -> string!
+const NCode.Identity.Jwk.JsonWebKeyTypes.Oct = "oct" -> string!
+const NCode.Identity.Jwk.JsonWebKeyTypes.Okp = "OKP" -> string!
+const NCode.Identity.Jwk.JsonWebKeyTypes.Rsa = "RSA" -> string!
 const NCode.Identity.Jwk.JsonWebKeyUses.Encryption = "enc" -> string!
 const NCode.Identity.Jwk.JsonWebKeyUses.Signature = "sig" -> string!
 NCode.Identity.Jwk.JsonWebKey
@@ -61,12 +67,14 @@ NCode.Identity.Jwk.JsonWebKeySet.JsonWebKeySet(System.Text.Json.JsonElement elem
 NCode.Identity.Jwk.JsonWebKeySet.Keys.get -> System.Collections.Immutable.ImmutableArray<NCode.Identity.Jwk.JsonWebKey!>
 NCode.Identity.Jwk.JsonWebKeySet.ToJsonString() -> string!
 NCode.Identity.Jwk.JsonWebKeySet.TryGetKey(string! keyId, out NCode.Identity.Jwk.JsonWebKey? key) -> bool
+NCode.Identity.Jwk.JsonWebKeySetParameterNames
 NCode.Identity.Jwk.JsonWebKeyTypeDescriptor
 NCode.Identity.Jwk.JsonWebKeyTypeDescriptor.JsonWebKeyTypeDescriptor(string! name, System.Collections.Generic.IEnumerable<string!>! thumbprintMembers, System.Collections.Generic.IEnumerable<string!>! privateMembers) -> void
 NCode.Identity.Jwk.JsonWebKeyTypeDescriptor.Name.get -> string!
 NCode.Identity.Jwk.JsonWebKeyTypeDescriptor.PrivateMembers.get -> System.Collections.Frozen.FrozenSet<string!>!
 NCode.Identity.Jwk.JsonWebKeyTypeDescriptor.ThumbprintMembers.get -> System.Collections.Immutable.ImmutableArray<string!>
 NCode.Identity.Jwk.JsonWebKeyTypeDescriptors
+NCode.Identity.Jwk.JsonWebKeyTypes
 NCode.Identity.Jwk.JsonWebKeyUses
 override NCode.Identity.Jwk.JsonWebKey.ToString() -> string!
 override NCode.Identity.Jwk.JsonWebKeySet.ToString() -> string!

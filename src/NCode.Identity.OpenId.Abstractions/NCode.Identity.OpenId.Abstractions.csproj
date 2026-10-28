@@ -28,4 +28,10 @@
         <PackageReference Include="NCode.Mediator.Abstractions" />
         <PackageReference Include="NCode.PropertyBag.Abstractions" />
     </ItemGroup>
+
+    <ItemGroup>
+        <Compile Update="OpenIdConstants.*.cs">
+            <DependentUpon>OpenIdConstants.cs</DependentUpon>
+        </Compile>
+    </ItemGroup>
 </Project>

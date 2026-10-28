@@ -1,6 +1,8 @@
 # 278. Token validation failures carry a machine-readable code
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-0279](0279-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md): the client code
+  `decryption_failed`)
 - **Date:** 2026-10-28
 - **Deciders:** NCode Group
 

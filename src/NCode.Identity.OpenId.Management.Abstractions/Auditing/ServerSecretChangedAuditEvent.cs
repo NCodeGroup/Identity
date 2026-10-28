@@ -40,4 +40,11 @@ public sealed record ServerSecretChangedAuditEvent : ResourceChangeAuditEvent
 
     /// <inheritdoc />
     public override string ResourceType => ManagementResourceTypes.ServerSecret;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Lists the owning server.
+    /// </remarks>
+    protected override IEnumerable<AuditResource> ParentResources =>
+        [new AuditResource(ManagementResourceTypes.Server, ServerId)];
 }

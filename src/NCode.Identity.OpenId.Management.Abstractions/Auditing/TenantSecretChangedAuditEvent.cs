@@ -32,4 +32,11 @@ public sealed record TenantSecretChangedAuditEvent : ResourceChangeAuditEvent
 {
     /// <inheritdoc />
     public override string ResourceType => ManagementResourceTypes.TenantSecret;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Lists the owning tenant when <see cref="IAuditEvent.TenantId"/> is set.
+    /// </remarks>
+    protected override IEnumerable<AuditResource> ParentResources =>
+        TenantId is null ? [] : [new AuditResource(ManagementResourceTypes.Tenant, TenantId)];
 }

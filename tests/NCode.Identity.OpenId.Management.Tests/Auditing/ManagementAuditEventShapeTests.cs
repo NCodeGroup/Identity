@@ -176,7 +176,177 @@ public sealed class ManagementAuditEventShapeTests
 
     #endregion
 
+    #region ClientSecretChangedAuditEvent Tests
+
+    [Fact]
+    public void Resources_WhenAClientSecretChanges_ListsTheSecretThenTheClient()
+    {
+        var auditEvent = CreateClientSecretChangedEvent("client-1");
+
+        Assert.Equal(
+            [
+                new AuditResource(ManagementResourceTypes.ClientSecret, "secret-1"),
+                new AuditResource(ManagementResourceTypes.Client, "client-1"),
+            ],
+            auditEvent.Resources
+        );
+    }
+
+    [Fact]
+    public void Resources_WhenAClientSecretChangesWithoutAClient_ListsOnlyTheSecret()
+    {
+        var auditEvent = CreateClientSecretChangedEvent(null);
+
+        var resource = Assert.Single(auditEvent.Resources);
+
+        Assert.Equal(new AuditResource(ManagementResourceTypes.ClientSecret, "secret-1"), resource);
+    }
+
+    #endregion
+
+    #region TenantSecretChangedAuditEvent Tests
+
+    [Fact]
+    public void Resources_WhenATenantSecretChanges_ListsTheSecretThenTheTenant()
+    {
+        var auditEvent = CreateTenantSecretChangedEvent("tenant-1");
+
+        Assert.Equal(
+            [
+                new AuditResource(ManagementResourceTypes.TenantSecret, "secret-1"),
+                new AuditResource(ManagementResourceTypes.Tenant, "tenant-1"),
+            ],
+            auditEvent.Resources
+        );
+    }
+
+    [Fact]
+    public void Resources_WhenATenantSecretChangesWithoutATenant_ListsOnlyTheSecret()
+    {
+        var auditEvent = CreateTenantSecretChangedEvent(null);
+
+        var resource = Assert.Single(auditEvent.Resources);
+
+        Assert.Equal(new AuditResource(ManagementResourceTypes.TenantSecret, "secret-1"), resource);
+    }
+
+    #endregion
+
+    #region ServerSecretChangedAuditEvent Tests
+
+    [Fact]
+    public void Resources_WhenAServerSecretChanges_ListsTheSecretThenTheServer()
+    {
+        var auditEvent = CreateServerSecretChangedEvent();
+
+        Assert.Equal(
+            [
+                new AuditResource(ManagementResourceTypes.ServerSecret, "secret-1"),
+                new AuditResource(ManagementResourceTypes.Server, "server-1"),
+            ],
+            auditEvent.Resources
+        );
+    }
+
+    #endregion
+
+    #region ResourceServerScopeChangedAuditEvent Tests
+
+    [Fact]
+    public void Resources_WhenAScopeChanges_ListsTheScopeThenTheResourceServer()
+    {
+        var auditEvent = CreateResourceServerScopeChangedEvent();
+
+        Assert.Equal(
+            [
+                new AuditResource(ManagementResourceTypes.ResourceServerScope, "orders.read"),
+                new AuditResource(ManagementResourceTypes.ResourceServer, "resource-server-1"),
+            ],
+            auditEvent.Resources
+        );
+    }
+
+    #endregion
+
+    #region ResourceServerSecretChangedAuditEvent Tests
+
+    [Fact]
+    public void Resources_WhenAResourceServerSecretChanges_ListsTheSecretThenTheResourceServer()
+    {
+        var auditEvent = CreateResourceServerSecretChangedEvent();
+
+        Assert.Equal(
+            [
+                new AuditResource(ManagementResourceTypes.ResourceServerSecret, "secret-1"),
+                new AuditResource(ManagementResourceTypes.ResourceServer, "resource-server-1"),
+            ],
+            auditEvent.Resources
+        );
+    }
+
+    #endregion
+
     #region Helpers
+
+    private static ClientSecretChangedAuditEvent CreateClientSecretChangedEvent(string? clientId) =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.Management,
+            Outcome = AuditOutcome.Success,
+            ClientId = clientId,
+            ResourceId = "secret-1",
+            ChangeType = ResourceChangeTypes.Created,
+        };
+
+    private static TenantSecretChangedAuditEvent CreateTenantSecretChangedEvent(string? tenantId) =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.Management,
+            Outcome = AuditOutcome.Success,
+            TenantId = tenantId,
+            ResourceId = "secret-1",
+            ChangeType = ResourceChangeTypes.Created,
+        };
+
+    private static ServerSecretChangedAuditEvent CreateServerSecretChangedEvent() =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.Management,
+            Outcome = AuditOutcome.Success,
+            ServerId = "server-1",
+            ResourceId = "secret-1",
+            ChangeType = ResourceChangeTypes.Created,
+        };
+
+    private static ResourceServerScopeChangedAuditEvent CreateResourceServerScopeChangedEvent() =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.Management,
+            Outcome = AuditOutcome.Success,
+            ResourceServerId = "resource-server-1",
+            ResourceId = "orders.read",
+            ChangeType = ResourceChangeTypes.Created,
+        };
+
+    private static ResourceServerSecretChangedAuditEvent CreateResourceServerSecretChangedEvent() =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.Management,
+            Outcome = AuditOutcome.Success,
+            ResourceServerId = "resource-server-1",
+            ResourceId = "secret-1",
+            ChangeType = ResourceChangeTypes.Created,
+        };
 
     private static GrantRevokedAuditEvent CreateGrantRevokedEvent(string? grantType) =>
         new()

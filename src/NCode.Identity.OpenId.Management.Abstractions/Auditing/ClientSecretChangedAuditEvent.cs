@@ -32,4 +32,11 @@ public sealed record ClientSecretChangedAuditEvent : ResourceChangeAuditEvent
 {
     /// <inheritdoc />
     public override string ResourceType => ManagementResourceTypes.ClientSecret;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Lists the owning client when <see cref="IAuditEvent.ClientId"/> is set.
+    /// </remarks>
+    protected override IEnumerable<AuditResource> ParentResources =>
+        ClientId is null ? [] : [new AuditResource(ManagementResourceTypes.Client, ClientId)];
 }

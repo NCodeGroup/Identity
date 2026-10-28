@@ -282,5 +282,52 @@ public class LogoutTokenValidatorEndToEndTests
         Assert.Equal(GetString(idTokenPayload, JoseClaimNames.Payload.Sid), result.SessionId);
     }
 
+    [Fact]
+    public async Task ValidateAsync_WithAPairwiseClient_ReturnsTheSubjectOfItsIdToken()
+    {
+        const string publicClientId = "it-logout-e2e-public-control";
+        const string pairwiseClientId = "it-logout-e2e-pairwise";
+
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        using var factory = new HostApplicationFactory { BackChannelLogoutExchanges = exchanges };
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await SeedClientAsync(factory, publicClientId, new Dictionary<string, object>());
+        await SeedClientAsync(
+            factory,
+            pairwiseClientId,
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.BackChannelLogoutUri] = BackChannelLogoutUri,
+                [OpenIdSettingNames.SubjectType] = OpenIdProtocol.SubjectTypes.Pairwise,
+            }
+        );
+        await using var provider = CreateClientProvider(factory);
+        var publicRegistration = CreateRegistration(publicClientId);
+        var pairwiseRegistration = CreateRegistration(pairwiseClientId);
+        var browser = CreateBrowser(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(browser, UserName, Password);
+        var publicPayload = await RequestIdTokenAsync(
+            browser,
+            sessionCookie,
+            provider,
+            publicRegistration
+        );
+        var pairwisePayload = await RequestIdTokenAsync(
+            browser,
+            sessionCookie,
+            provider,
+            pairwiseRegistration
+        );
+        var pairwiseSubject = GetString(pairwisePayload, JoseClaimNames.Payload.Sub);
+        Assert.NotEqual(GetString(publicPayload, JoseClaimNames.Payload.Sub), pairwiseSubject);
+
+        await EndSessionAsync(browser, sessionCookie);
+        var logoutToken = await WaitForLogoutTokenAsync(exchanges);
+        var result = await ValidateLogoutTokenAsync(provider, pairwiseRegistration, logoutToken);
+
+        Assert.True(result.IsValid, result.FailureReason);
+        Assert.Equal(pairwiseSubject, result.Subject);
+    }
+
     #endregion
 }

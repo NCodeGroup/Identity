@@ -16,6 +16,7 @@
 
 #endregion
 
+using NCode.Buffers;
 using NCode.Identity.OpenId.Client.Tokens;
 using Xunit;
 
@@ -55,5 +56,38 @@ public class ProtocolPackageDependencyTests : BaseTests
 
             Assert.True(isAllowed, name);
         }
+    }
+
+    [Theory]
+    [InlineData(typeof(ClientRegistration))]
+    [InlineData(typeof(DefaultTokenClient))]
+    public void ClientAssembly_ReferencesNoAspNetCoreAssembly(Type type)
+    {
+        foreach (var reference in type.Assembly.GetReferencedAssemblies())
+        {
+            Assert.False(
+                (reference.Name ?? string.Empty).StartsWith(
+                    "Microsoft.AspNetCore",
+                    StringComparison.Ordinal
+                ),
+                reference.Name
+            );
+        }
+    }
+
+    [Fact]
+    public void ClientPackage_RunsWithoutTheAspNetCoreSharedFramework()
+    {
+        var path = Path.Combine(
+            AppContext.BaseDirectory,
+            typeof(ProtocolPackageDependencyTests).Assembly.GetName().Name + ".runtimeconfig.json"
+        );
+
+        Assert.True(File.Exists(path), path);
+        Assert.DoesNotContain(
+            "Microsoft.AspNetCore.App",
+            File.ReadAllText(path, SecureEncoding.UTF8),
+            StringComparison.Ordinal
+        );
     }
 }

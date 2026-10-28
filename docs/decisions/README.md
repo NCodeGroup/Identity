@@ -310,3 +310,4 @@ standards.
 | [0272](./0272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) | Signature algorithms are fully specified and bound to their curve | Accepted |
 | [0273](./0273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) | The protocol client validates ID tokens under an asymmetric algorithm policy | Accepted |
 | [0274](./0274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) | The protocol client validates logout tokens and rejects replays | Accepted |
+| [0276](./0276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md) | The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package | Accepted |

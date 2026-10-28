@@ -360,5 +360,41 @@ public class AuthorizationRequestClientEndToEndTests
         await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
     }
 
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WhenOnlyTheRegistrationRequiresPushedRequests_PushesAndCompletesTheCodeFlow()
+    {
+        const string clientId = "it-par-e2e-registration-requires";
+
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedSharedSecretClientWithSettingsAsync(
+            clientId,
+            ClientSecret,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.RequirePushedAuthorizationRequests] = true,
+            },
+            RedirectUri
+        );
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        await using var provider = CreateClientProvider(factory, exchanges, CreateSecretKey);
+        var registration = CreateRegistration(
+            clientId,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
+            requirePushedAuthorizationRequests: true
+        );
+        var metadata = await provider
+            .GetRequiredService<IProviderMetadataResolver>()
+            .GetMetadataAsync(registration.Authority, CancellationToken.None);
+        Assert.False(metadata.RequirePushedAuthorizationRequests);
+        var request = CreateAuthorizationRequest();
+
+        var result = await PushAsync(provider, registration, request);
+
+        AssertPushed(result, exchanges, clientId);
+        await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
+    }
+
     #endregion
 }

@@ -235,5 +235,36 @@ public class AuthorizationRequestClientEndToEndTests
         await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
     }
 
+    [Fact]
+    public async Task CreateAuthorizationUriAsync_WithClientSecretPost_PushesAndCompletesTheCodeFlow()
+    {
+        const string clientId = "it-par-e2e-secret-post";
+
+        using var factory = new HostApplicationFactory();
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        await factory.SeedSharedSecretClientWithSettingsAsync(
+            clientId,
+            ClientSecret,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+            NoSettings,
+            RedirectUri
+        );
+        var exchanges = new ConcurrentQueue<RecordedHttpExchange>();
+        await using var provider = CreateClientProvider(factory, exchanges, CreateSecretKey);
+        var registration = CreateRegistration(
+            clientId,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+        var request = CreateAuthorizationRequest();
+
+        var result = await PushAsync(provider, registration, request);
+
+        var push = AssertPushed(result, exchanges, clientId);
+        Assert.Null(push.AuthorizationScheme);
+        var body = HttpUtility.ParseQueryString(push.Body ?? string.Empty);
+        Assert.Equal(ClientSecret, body[OpenIdProtocol.Parameters.ClientSecret]);
+        await AssertCodeFlowCompletesAsync(factory, provider, registration, request, result);
+    }
+
     #endregion
 }

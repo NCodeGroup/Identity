@@ -1,13 +1,13 @@
 #nullable enable
-const NCode.Identity.Secrets.Persistence.Options.LocalRootKeyOptions.DefaultSectionName = "SecretProtection:RootKeyProviders:Local" -> string!
+const NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.DefaultSectionName = "SecretProtection:RootKeyProviders:Local" -> string!
 NCode.Identity.Secrets.Persistence.DefaultRegistration
 NCode.Identity.Secrets.Persistence.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!)
 NCode.Identity.Secrets.Persistence.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.SecretsLibrary>!).AddPersistenceLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
-NCode.Identity.Secrets.Persistence.Options.LocalRootKeyOptions
-NCode.Identity.Secrets.Persistence.Options.LocalRootKeyOptions.Key.get -> string?
-NCode.Identity.Secrets.Persistence.Options.LocalRootKeyOptions.Key.set -> void
-NCode.Identity.Secrets.Persistence.Options.LocalRootKeyOptions.KeyPath.get -> string?
-NCode.Identity.Secrets.Persistence.Options.LocalRootKeyOptions.KeyPath.set -> void
-NCode.Identity.Secrets.Persistence.Options.LocalRootKeyOptions.LocalRootKeyOptions() -> void
-NCode.Identity.Secrets.Persistence.Options.LocalRootKeyOptions.PreviousKeyPaths.get -> string![]!
-NCode.Identity.Secrets.Persistence.Options.LocalRootKeyOptions.PreviousKeyPaths.set -> void
+NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions
+NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.Key.get -> string?
+NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.Key.set -> void
+NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.KeyPath.get -> string?
+NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.KeyPath.set -> void
+NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.LocalKeyWrapperOptions() -> void
+NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.PreviousKeyPaths.get -> string![]!
+NCode.Identity.Secrets.Persistence.Options.LocalKeyWrapperOptions.PreviousKeyPaths.set -> void

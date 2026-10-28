@@ -46,7 +46,7 @@ public class DefaultMasterKeyRingTests : IDisposable
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
     private readonly Queue<IStoreManager> _storeManagers = new();
     private bool _storeManagerFactorySetUp;
-    private readonly EphemeralRootKeyProvider _provider = new();
+    private readonly EphemeralKeyWrapper _provider = new();
     private readonly RecoveryKeyWrapper _recovery = new(
         Microsoft.Extensions.Options.Options.Create(
             new SecretProtectionOptions { Recovery = new RecoveryKeyOptions { Disabled = true } }
@@ -56,7 +56,7 @@ public class DefaultMasterKeyRingTests : IDisposable
 
     public DefaultMasterKeyRingTests()
     {
-        var catalog = new DefaultRootKeyProviderCatalog(
+        var catalog = new DefaultKeyWrapperCatalog(
             [_provider],
             Microsoft.Extensions.Options.Options.Create(new SecretProtectionOptions())
         );

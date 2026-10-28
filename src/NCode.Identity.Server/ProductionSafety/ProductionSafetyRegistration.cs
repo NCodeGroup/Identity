@@ -21,7 +21,7 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Identity.Server.ProductionSafety;
 
@@ -193,8 +193,8 @@ public static class ProductionSafetyRegistration
     {
         const string providerResolution =
             "Set it to a root key provider whose key outlives the process, such as a key management service "
-            + $"('{RootKeyProviderNames.AwsKms}', '{RootKeyProviderNames.AzureKeyVault}' or "
-            + $"'{RootKeyProviderNames.GoogleCloudKms}') or '{RootKeyProviderNames.Local}' with a mounted key file.";
+            + $"('{KeyWrapperNames.AwsKms}', '{KeyWrapperNames.AzureKeyVault}' or "
+            + $"'{KeyWrapperNames.GoogleCloudKms}') or '{KeyWrapperNames.Local}' with a mounted key file.";
 
         var rootKeyProvider = configuration[RootKeyProviderConfigurationKey];
         if (string.IsNullOrWhiteSpace(rootKeyProvider))
@@ -209,13 +209,13 @@ public static class ProductionSafetyRegistration
             );
         }
         else if (
-            string.Equals(rootKeyProvider, RootKeyProviderNames.Ephemeral, StringComparison.Ordinal)
+            string.Equals(rootKeyProvider, KeyWrapperNames.Ephemeral, StringComparison.Ordinal)
         )
         {
             violations.Add(
                 new ProductionSafetyViolation(
                     RootKeyProviderConfigurationKey,
-                    $"'{RootKeyProviderNames.Ephemeral}' keeps the root key in memory, so every restart makes every "
+                    $"'{KeyWrapperNames.Ephemeral}' keeps the root key in memory, so every restart makes every "
                         + "stored secret unreadable.",
                     providerResolution
                 )

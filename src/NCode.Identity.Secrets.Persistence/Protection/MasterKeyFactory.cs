@@ -19,6 +19,7 @@
 using System.Security.Cryptography;
 using NCode.Buffers;
 using NCode.Encoders;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
@@ -43,12 +44,12 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="timeProvider">The time provider that supplies the creation time of a new master key.</param>
 // See ADR-0235.
 internal class MasterKeyFactory(
-    IRootKeyProviderCatalog catalog,
+    IKeyWrapperCatalog catalog,
     IRecoveryKeyWrapper recovery,
     TimeProvider timeProvider
 )
 {
-    private IRootKeyProviderCatalog Catalog { get; } = catalog;
+    private IKeyWrapperCatalog Catalog { get; } = catalog;
 
     private IRecoveryKeyWrapper Recovery { get; } = recovery;
 
@@ -100,6 +101,10 @@ internal class MasterKeyFactory(
 
         var wrapped = await Catalog.GetConfigured().WrapAsync(material, context, cancellationToken);
 
+        var recoveryWrapped = Recovery.IsConfigured
+            ? await Recovery.WrapAsync(material, ReadOnlyMemory<byte>.Empty, cancellationToken)
+            : null;
+
         var row = new PersistedMasterKey
         {
             KeyId = keyId,
@@ -107,11 +112,11 @@ internal class MasterKeyFactory(
             OwnerId = owner.OwnerId,
             Version = version,
             CreatedWhen = TimeProvider.GetUtcNow(),
-            RootKeyProvider = wrapped.ProviderName,
+            RootKeyProvider = wrapped.WrapperName,
             RootKeyId = wrapped.KeyId,
             RootWrappedKey = wrapped.Ciphertext,
-            RecoveryKeyId = Recovery.RecoveryKeyId,
-            RecoveryWrappedKey = CreateRecoveryWrappedKey(material),
+            RecoveryKeyId = recoveryWrapped?.KeyId,
+            RecoveryWrappedKey = recoveryWrapped?.Ciphertext,
             KeyCheck = CreateKeyCheck(material.Span, keyId, owner, version),
         };
 
@@ -144,9 +149,9 @@ internal class MasterKeyFactory(
         ArgumentNullException.ThrowIfNull(row);
 
         var owner = row.Owner;
-        var wrappedKey = new RootWrappedKey
+        var wrappedKey = new WrappedKey
         {
-            ProviderName = row.RootKeyProvider,
+            WrapperName = row.RootKeyProvider,
             KeyId = row.RootKeyId,
             Ciphertext = row.RootWrappedKey,
         };
@@ -164,27 +169,23 @@ internal class MasterKeyFactory(
         );
         var context = contextBuffer[..contextWritten];
 
-        // The destination is twice the size of a master key, so a provider that unwraps a longer key writes it and the
-        // length check below reports it, instead of the provider rejecting a destination that is too small.
-        const int destinationSize = SecretProtectionFormat.MasterKeySizeBytes * 2;
-        using var lease = BufferFactory.Rent(
-            destinationSize,
+        using var destination = BufferFactory.CreatePooledBufferWriter(
             isSensitive: true,
-            out Memory<byte> destination
+            SecretProtectionFormat.MasterKeySizeBytes
         );
 
-        var written = await Catalog
+        await Catalog
             .Get(row.RootKeyProvider)
             .UnwrapAsync(wrappedKey, context, destination, cancellationToken);
 
-        if (written != SecretProtectionFormat.MasterKeySizeBytes)
+        if (destination.Length != SecretProtectionFormat.MasterKeySizeBytes)
         {
             throw new CryptographicException(
                 $"The master key '{row.KeyId}' of owner '{owner}' does not have the size of a master key."
             );
         }
 
-        var material = destination[..written];
+        using var material = destination.GetSpanLease(isSensitive: true);
 
         if (!IsKeyCheckValid(material.Span, row, owner))
         {
@@ -194,33 +195,6 @@ internal class MasterKeyFactory(
         }
 
         return MasterKey.Create(row.KeyId, owner, row.Version, material.Span);
-    }
-
-    // Wraps the master key under the recovery key into a string, which is persisted in a text column, or returns null
-    // when no recovery key is configured.
-    private string? CreateRecoveryWrappedKey(ReadOnlyMemory<byte> material)
-    {
-        var wrappedLength = Recovery.GetWrappedLength();
-        if (wrappedLength == 0)
-        {
-            return null;
-        }
-
-        return string.Create(
-            wrappedLength,
-            (Recovery: Recovery, Material: material),
-            static (chars, state) =>
-            {
-                var writer = chars.GetFixedBufferWriter();
-                state.Recovery.Wrap(state.Material.Span, ref writer);
-                if (writer.WrittenCount != chars.Length)
-                {
-                    throw new InvalidOperationException(
-                        $"The recovery key wrapper wrote {writer.WrittenCount} characters instead of the {chars.Length} that GetWrappedLength reported."
-                    );
-                }
-            }
-        );
     }
 
     // Computes the key-check value of the master key as the string that the row persists.

@@ -137,8 +137,8 @@ namespace key → data key), so it should feel familiar. It also improves on it 
   rotate.
 - **The payload isn't bound to a master key.** Rotating a master key only rewraps 32-byte data keys and never
   re-encrypts payloads.
-- **Open provider model.** Any KMS can be a root key provider by registering an `IRootKeyProvider`
-  ([ADR-0150](../decisions/0150-vocabularies-are-open-unless-provably-closed.md)).
+- **Open provider model.** Any KMS can be a root key provider by registering an `IKeyWrapper`
+  ([ADR-0150](../decisions/0150-vocabularies-are-open-unless-provably-closed.md), [ADR-0279](../decisions/0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)).
 - **Keyless cloud credentials.** Every cloud provider authenticates with workload identity federation, so no cloud
   credential is stored in the cluster.
 
@@ -363,5 +363,5 @@ We'd rather say what this doesn't do yet:
 - [`SecretProtectionFormat`](../../src/NCode.Identity.Secrets.Persistence/Protection/SecretProtectionFormat.cs): envelope, binding and key derivation
 - [`DefaultSecretProtector`](../../src/NCode.Identity.Secrets.Persistence/Protection/DefaultSecretProtector.cs): protect and unprotect
 - [`DefaultMasterKeyRing`](../../src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyRing.cs): master key loading and caching
-- [`IRootKeyProvider`](../../src/NCode.Identity.Secrets.Persistence.Abstractions/Protection/IRootKeyProvider.cs): the root key provider contract
+- [`IKeyWrapper`](../../src/NCode.Identity.Secrets.Abstractions/KeyWrapping/IKeyWrapper.cs): the key wrapper contract that root key wrappers implement
 - [`ProductionSafetyRegistration`](../../src/NCode.Identity.Server/ProductionSafety/ProductionSafetyRegistration.cs): the Production refusals

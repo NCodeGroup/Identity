@@ -41,7 +41,7 @@ public class DefaultAuthorizationResultExecutorTests : BaseTests
 {
     private const string NormalName = "code";
     private const string NormalValue = "auth-code";
-    private const string InternalName = OpenIdConstants.Parameters.CreatedWhen;
+    private const string InternalName = OpenIdConstants.InternalParameters.CreatedWhen;
     private const string InternalValue = "2025-01-01T00:00:00Z";
 
     private const string RedirectUri = "https://client.example/callback";

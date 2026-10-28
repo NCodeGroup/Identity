@@ -54,7 +54,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>$authorization_source_type</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="string"/> result.
     /// </summary>
     public static readonly KnownParameter<string> AuthorizationSourceType = new(
-        OpenIdConstants.Parameters.AuthorizationSourceType,
+        OpenIdConstants.InternalParameters.AuthorizationSourceType,
         CommonParameterParsers.String
     )
     {
@@ -99,7 +99,7 @@ public static class OpenIdCommonParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>$created_when</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="DateTimeOffset"/> result.
     /// </summary>
     public static readonly KnownParameter<DateTimeOffset> CreatedWhen = new(
-        OpenIdConstants.Parameters.CreatedWhen,
+        OpenIdConstants.InternalParameters.CreatedWhen,
         CommonParameterParsers.DateTimeOffset
     )
     {

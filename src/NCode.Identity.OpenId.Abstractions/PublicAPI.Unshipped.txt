@@ -1175,3 +1175,7 @@ NCode.Identity.OpenId.ClientCertificates.DistinguishedName
 NCode.Identity.OpenId.ClientCertificates.DistinguishedName.Matches(NCode.Identity.OpenId.ClientCertificates.DistinguishedName! other) -> bool
 static NCode.Identity.OpenId.ClientCertificates.DistinguishedName.FromX500(System.Security.Cryptography.X509Certificates.X500DistinguishedName! name) -> NCode.Identity.OpenId.ClientCertificates.DistinguishedName!
 static NCode.Identity.OpenId.ClientCertificates.DistinguishedName.TryParse(string! value, out NCode.Identity.OpenId.ClientCertificates.DistinguishedName? distinguishedName) -> bool
+NCode.Identity.OpenId.OpenIdConstants.InternalParameters
+const NCode.Identity.OpenId.OpenIdConstants.InternalParameters.AuthorizationSourceType = "$authorization_source_type" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.InternalParameters.CreatedWhen = "$created_when" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.InternalParameters.RequestObjectSource = "$request_object_source" -> string!

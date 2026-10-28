@@ -47,7 +47,7 @@ public static class OpenIdAuthenticationParameters
     /// Gets the <see cref="KnownParameter"/> for the <c>$request_object_source</c> message parameter which parsers <see cref="StringValues"/> into an <see cref="RequestObjectSource"/> result.
     /// </summary>
     public static readonly KnownParameter<RequestObjectSource> RequestObjectSource = new(
-        OpenIdConstants.Parameters.RequestObjectSource,
+        OpenIdConstants.InternalParameters.RequestObjectSource,
         EnumParser<RequestObjectSource>.Singleton
     )
     {

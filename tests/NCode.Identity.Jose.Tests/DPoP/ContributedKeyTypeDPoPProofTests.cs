@@ -24,6 +24,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Primitives;
+using NCode.Collections.Providers;
+using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Jose.Credentials;
+using NCode.Identity.Jose.DPoP;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
@@ -42,12 +47,17 @@ public class ContributedKeyTypeDPoPProofTests : BaseTests
     private const string SecretKeyTypeName = "xkp";
     private const string PublicMember = "pub";
     private const string PrivateMember = "sk";
+    private const string HttpMethod = "POST";
+    private const string HttpUri = "https://op.test/token";
+    private const string AlgorithmCode = "XKP256";
 
     private static JsonWebKeyTypeDescriptor XkpJwkKeyType { get; } =
         new("XKP", [PublicMember], [PrivateMember]);
 
     private ServiceProvider ServiceProvider { get; }
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; }
+    private IAlgorithmCollection AlgorithmCollection { get; }
+    private IDPoPProofService ProofService { get; }
 
     public ContributedKeyTypeDPoPProofTests()
     {
@@ -57,9 +67,16 @@ public class ContributedKeyTypeDPoPProofTests : BaseTests
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<ISecretKeyTypeDescriptor, XkpSecretKeyTypeDescriptor>()
         );
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<ICollectionDataSource<Algorithm>, XkpAlgorithmDataSource>()
+        );
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
         SecretKeyTypeCatalog = ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>();
+        AlgorithmCollection = ServiceProvider
+            .GetRequiredService<IAlgorithmCollectionProvider>()
+            .Collection;
+        ProofService = ServiceProvider.GetRequiredService<IDPoPProofService>();
     }
 
     protected override async ValueTask DisposeAsyncCore()
@@ -90,6 +107,21 @@ public class ContributedKeyTypeDPoPProofTests : BaseTests
         );
         return Assert.IsType<XkpSecretKey>(secretKey);
     }
+
+    private JoseSigningCredentials CreateCredentials(XkpSecretKey secretKey)
+    {
+        Assert.True(AlgorithmCollection.TryGetSignatureAlgorithm(AlgorithmCode, out var algorithm));
+        return new JoseSigningCredentials(secretKey, algorithm);
+    }
+
+    private static DPoPProofValidationParameters CreateParameters() =>
+        new()
+        {
+            HttpMethod = HttpMethod,
+            HttpUri = HttpUri,
+            AllowedAlgorithms = [AlgorithmCode],
+            Lifetime = TimeSpan.FromSeconds(60),
+        };
 
     private sealed class XkpSecretKey(
         KeyMetadata metadata,
@@ -190,6 +222,99 @@ public class ContributedKeyTypeDPoPProofTests : BaseTests
             ecdsa.ImportSubjectPublicKeyInfo(subjectPublicKeyInfo, out _);
             return (subjectPublicKeyInfo, ecdsa.KeySize);
         }
+    }
+
+    private sealed class XkpSignatureAlgorithm : SignatureAlgorithm
+    {
+        public override string Code => AlgorithmCode;
+
+        public override Type KeyType => typeof(XkpSecretKey);
+
+        public override IEnumerable<KeySizes> KeyBitSizes { get; } =
+        [new KeySizes(minSize: 256, maxSize: 256, skipSize: 0)];
+
+        public override HashAlgorithmName HashAlgorithmName => HashAlgorithmName.SHA256;
+
+        public override int GetSignatureSizeBytes(int keySizeBits) => 64;
+
+        public override bool TrySign(
+            SecretKey secretKey,
+            ReadOnlySpan<byte> inputData,
+            Span<byte> signature,
+            out int bytesWritten
+        )
+        {
+            var privateKey =
+                ((XkpSecretKey)secretKey).Pkcs8PrivateKey
+                ?? throw new InvalidOperationException("The key holds only its public half.");
+            using var ecdsa = ECDsa.Create();
+            ecdsa.ImportPkcs8PrivateKey(privateKey, out _);
+            return ecdsa.TrySignData(
+                inputData,
+                signature,
+                HashAlgorithmName.SHA256,
+                DSASignatureFormat.IeeeP1363FixedFieldConcatenation,
+                out bytesWritten
+            );
+        }
+
+        public override bool Verify(
+            SecretKey secretKey,
+            ReadOnlySpan<byte> inputData,
+            ReadOnlySpan<byte> signature
+        )
+        {
+            using var ecdsa = ECDsa.Create();
+            ecdsa.ImportSubjectPublicKeyInfo(((XkpSecretKey)secretKey).SubjectPublicKeyInfo, out _);
+            return ecdsa.VerifyData(
+                inputData,
+                signature,
+                HashAlgorithmName.SHA256,
+                DSASignatureFormat.IeeeP1363FixedFieldConcatenation
+            );
+        }
+    }
+
+    private sealed class XkpAlgorithmDataSource : ICollectionDataSource<Algorithm>
+    {
+        public IEnumerable<Algorithm> Collection { get; } = [new XkpSignatureAlgorithm()];
+
+        public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
+    }
+
+    #endregion
+
+    #region CreateProof Tests
+
+    [Fact]
+    public void CreateProof_WhenContributedKeyType_ValidatesWithKeyThumbprint()
+    {
+        var secretKey = CreateSigningKey();
+        Assert.True(SecretKeyTypeCatalog.TryGet(secretKey.KeyType, out var descriptor));
+        var exported = descriptor.ExportPublicKey(secretKey);
+        Assert.NotNull(exported);
+        var proof = ProofService.CreateProof(
+            new DPoPProofCreationOptions
+            {
+                SigningCredentials = CreateCredentials(secretKey),
+                HttpMethod = HttpMethod,
+                HttpUri = HttpUri,
+            }
+        );
+
+        var valid = ProofService.TryValidateProof(
+            proof,
+            CreateParameters(),
+            out var result,
+            out var error
+        );
+
+        Assert.True(valid, error);
+        Assert.NotNull(result);
+        Assert.Equal(AlgorithmCode, result.Algorithm);
+        Assert.Equal(XkpJwkKeyType.Name, result.PublicKey.KeyType);
+        Assert.Same(XkpJwkKeyType, result.PublicKey.KeyTypeDescriptor);
+        Assert.Equal(exported.Jwk.ComputeThumbprint(), result.JwkThumbprint);
     }
 
     #endregion

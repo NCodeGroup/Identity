@@ -10,6 +10,13 @@ change to the public API is a **major** version bump.
 
 ### Added
 
+- **Key wrappers share one decoder for base64url ciphertext.** `WrappedKeyCiphertext.GetByteCount` and
+  `WrappedKeyCiphertext.Decode` in `NCode.Identity.Secrets.KeyWrapping` decode a `WrappedKey.Ciphertext` stored as
+  base64url into a caller-supplied span and throw `CryptographicException` for empty or malformed text. The AES-GCM,
+  AWS KMS, Azure Key Vault and Google Cloud KMS wrappers use it, so every wrapper reports empty ciphertext as "The
+  wrapped key is empty." `NCode.Identity.Secrets.Abstractions` now references `NCode.Base64Url`
+  ([ADR-0279](docs/decisions/0279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md), issue [#373](https://github.com/NCodeGroup/Identity/issues/373)).
+
 - **A token validation failure carries a machine-readable code.** `JwtValidationFailureCodes` is the open vocabulary of
   the JWT validator's codes (`invalid_signature`, `invalid_issuer`, `invalid_audience`, `expired`, `not_yet_valid`,
   `algorithm_not_permitted`, …). A handler fails with `JwtValidationContext.Fail(failureCode, reason)`, and

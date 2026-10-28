@@ -43,6 +43,7 @@ public sealed class WrappedKey
 
     /// <summary>
     /// Gets the wrapped key as a string that is safe to store. The format is defined by the wrapper.
+    /// A wrapper that stores binary ciphertext as base64url text can decode it with <see cref="WrappedKeyCiphertext"/>.
     /// </summary>
     public required string Ciphertext { get; init; }
 }

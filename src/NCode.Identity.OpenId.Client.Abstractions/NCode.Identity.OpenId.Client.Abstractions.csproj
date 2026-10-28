@@ -13,6 +13,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Jwt.Abstractions\NCode.Identity.Jwt.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Protocol.Abstractions\NCode.Identity.OpenId.Protocol.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />

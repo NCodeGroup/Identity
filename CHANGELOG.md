@@ -14,8 +14,9 @@ change to the public API is a **major** version bump.
   `JsonWebKeySet(JsonElement, IEnumerable<JsonWebKeyTypeDescriptor>)` and
   `JsonWebKeySet.Parse(string, IEnumerable<JsonWebKeyTypeDescriptor>)` build each key whose `kty` names a supplied
   descriptor with that descriptor, so a contributed key read from a set is thumbprinted and screened for private
-  members by its own rules; pass the `JwkKeyType` of each `ISecretKeyTypeCatalog.Descriptors` entry. A set
-  deserialized through `System.Text.Json` uses the standard descriptors only
+  members by its own rules; pass the `JwkKeyType` of each `ISecretKeyTypeCatalog.Descriptors` entry that has one (it is
+  `null` for a key type with no JSON Web Key form). A set deserialized through `System.Text.Json` uses the standard
+  descriptors only
   ([ADR-0281](docs/decisions/0281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md),
   issue [#329](https://github.com/NCodeGroup/Identity/issues/329)).
 

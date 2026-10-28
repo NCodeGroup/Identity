@@ -36,8 +36,10 @@ returns its own descriptor from `ISecretKeyTypeDescriptor.JwkKeyType`, and code 
 `new JsonWebKey(element, descriptor)` so the key uses that type's rules. The standard private member names stay private
 for every key type. See [ADR-0271](../../docs/decisions/0271-a-key-type-registers-its-json-web-key-rules.md).
 A set read with `JsonWebKeySet.Parse(json, keyTypeDescriptors)` or `new JsonWebKeySet(element, keyTypeDescriptors)`
-builds each key of a supplied type with its descriptor; pass the `JwkKeyType` of each `ISecretKeyTypeCatalog.Descriptors`
-entry. A set deserialized through `System.Text.Json` uses the standard descriptors only.
+builds each key of a supplied type with its descriptor; pass the `JwkKeyType` of each
+`ISecretKeyTypeCatalog.Descriptors` entry that has one (it is `null` for a key type with no JSON Web Key form, and a
+`null` descriptor throws `ArgumentException`). A set deserialized through `System.Text.Json` uses the standard
+descriptors only.
 
 ## Thumbprint URI hash names
 
